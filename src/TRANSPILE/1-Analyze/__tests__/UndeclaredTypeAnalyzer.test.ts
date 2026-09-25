@@ -53,7 +53,7 @@ beforeEach(() => {
   registry = new SymbolRegistry();
 });
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("UndeclaredTypeAnalyzer", () => {
   beforeEach(() => {});

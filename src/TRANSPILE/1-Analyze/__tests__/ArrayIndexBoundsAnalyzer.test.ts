@@ -49,7 +49,7 @@ afterEach(() => {
   state = new RenderState();
 });
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("ArrayIndexBoundsAnalyzer (E0854)", () => {
   it("rejects an index at the dimension, on a write and on a read, at the subscript", () => {

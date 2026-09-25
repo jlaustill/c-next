@@ -25,7 +25,7 @@ const errors = (source: string) => {
 const inIf = (condition: string): string =>
   `bool flag <- true;\nu32 n <- 1;\nvoid t() {\n    if (${condition}) { }\n}`;
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("ControllingExpressionAnalyzer", () => {
   beforeEach(() => {

@@ -43,7 +43,7 @@ afterEach(() => {
   state = new RenderState();
 });
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("CppClassInitializerAnalyzer (E0508)", () => {
   it("rejects a global initializer at the literal, not at a later declaration", () => {

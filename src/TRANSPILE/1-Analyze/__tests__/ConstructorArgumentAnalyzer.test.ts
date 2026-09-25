@@ -29,7 +29,7 @@ const errors = (source: string) => {
   );
 };
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("ConstructorArgumentAnalyzer", () => {
   beforeEach(() => {

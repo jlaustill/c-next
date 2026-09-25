@@ -29,7 +29,7 @@ function parseTypeContext(source: string): Parser.TypeContext | null {
   return decl?.type() ?? null;
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("TypeRegistrationEngine", () => {
   describe("parseArrayTypeDimension", () => {
@@ -212,6 +212,14 @@ describe("TypeRegistrationEngine", () => {
     });
 
     it("registers qualified type arrays (Scope.Type[N])", () => {
+      // The engine walks `scope Motor` on its way to the file-scope
+      // declaration, and entering a scope asserts the symbols pass registered
+      // it. Registered here because this test never runs one -- it passed
+      // before #1452 only because the previous test's registration survived on
+      // a mutable static.
+      enterScope(state, "Motor");
+      enterScope(state, null);
+
       const source = `
         scope Motor {
           public enum State { OFF, ON }

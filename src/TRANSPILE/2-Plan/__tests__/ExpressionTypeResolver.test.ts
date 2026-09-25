@@ -38,7 +38,7 @@ const postfixOpsFrom = (
     LBRACKET: () => (text.startsWith("[") ? {} : null),
   }));
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("ExpressionTypeResolver", () => {
   let symbolTable: SymbolTable;

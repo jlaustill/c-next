@@ -37,7 +37,7 @@ afterEach(() => {
   state = new RenderState();
 });
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("SwitchStatementAnalyzer", () => {
   it("rejects a switch on a bool, with a real position", () => {

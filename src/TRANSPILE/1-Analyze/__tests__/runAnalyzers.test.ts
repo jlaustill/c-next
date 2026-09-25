@@ -42,7 +42,7 @@ function parseWithComments(source: string) {
   return { tree, comments };
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("runAnalyzers", () => {
   // Reset RenderState before each test

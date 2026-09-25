@@ -22,7 +22,7 @@ const errors = (source: string) => {
 const wrap = (body: string) =>
   `void main() {\n    u32 q <- 0;\n    bool err <- false;\n${body}\n}`;
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("SafeDivisionAnalyzer (E0884)", () => {
   beforeEach(() => {

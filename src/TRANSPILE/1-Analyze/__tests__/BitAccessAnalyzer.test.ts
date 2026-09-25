@@ -16,7 +16,7 @@ const errors = (source: string) => {
   return new BitAccessAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("BitAccessAnalyzer (E0856)", () => {
   beforeEach(() => {

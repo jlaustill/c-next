@@ -53,7 +53,7 @@ afterEach(() => {
   state = new RenderState();
 });
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("RegisterAccessAnalyzer", () => {
   describe("E0870 -- a write-only member is read", () => {

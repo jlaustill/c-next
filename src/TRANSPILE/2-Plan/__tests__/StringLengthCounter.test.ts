@@ -31,7 +31,7 @@ function parseBlock(statements: string) {
   return funcDecl.block()!;
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("StringLengthCounter", () => {
   beforeEach(() => {

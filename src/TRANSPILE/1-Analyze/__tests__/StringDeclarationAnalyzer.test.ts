@@ -30,7 +30,7 @@ afterEach(() => {
   state = new RenderState();
 });
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("StringDeclarationAnalyzer", () => {
   describe("E0862 -- a capacity has to be stated, or inferable", () => {

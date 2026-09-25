@@ -55,7 +55,7 @@ afterEach(() => {
   state = new RenderState();
 });
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("BitmapAccessAnalyzer (E0881)", () => {
   it("rejects a value wider than the field, in every literal base", () => {

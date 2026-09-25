@@ -44,7 +44,7 @@ beforeEach(() => {
   registry = new SymbolRegistry();
 });
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("ArrayDeclarationAnalyzer", () => {
   describe("E0874 -- C-style declarations and parameters", () => {

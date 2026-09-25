@@ -57,7 +57,7 @@ afterEach(() => {
   state = new RenderState();
 });
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("BareEnumMemberAnalyzer (E0424)", () => {
   it("accepts a bare member where the position names its enum", () => {

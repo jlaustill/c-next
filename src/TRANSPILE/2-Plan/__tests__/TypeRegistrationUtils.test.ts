@@ -27,7 +27,7 @@ function createMockTypeSymbols(overrides: Record<string, unknown> = {}) {
   };
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("TypeRegistrationUtils", () => {
   beforeEach(() => {

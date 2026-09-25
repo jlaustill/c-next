@@ -27,7 +27,7 @@ afterEach(() => {
   state = new RenderState();
 });
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("LengthPropertyAnalyzer", () => {
   it("rejects .element_count on a scalar, with a real position", () => {

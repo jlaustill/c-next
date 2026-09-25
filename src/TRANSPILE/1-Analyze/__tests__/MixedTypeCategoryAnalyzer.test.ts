@@ -25,7 +25,7 @@ function analyze(source: string) {
   );
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("MixedTypeCategoryAnalyzer", () => {
   beforeEach(() => {

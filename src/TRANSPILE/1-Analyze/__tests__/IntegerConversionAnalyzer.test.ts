@@ -50,7 +50,7 @@ afterEach(() => {
 const inMain = (body: string): string =>
   `u32 wide <- 1000;\ni32 neg <- -5;\nu8 byte <- 7;\nu32 main() {\n${body}\n    return 0;\n}`;
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("IntegerConversionAnalyzer", () => {
   describe("E0868 -- a literal must fit", () => {

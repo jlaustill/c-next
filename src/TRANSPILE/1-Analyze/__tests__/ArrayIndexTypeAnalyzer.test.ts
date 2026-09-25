@@ -22,7 +22,7 @@ function parse(source: string) {
   return parser.program();
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("ArrayIndexTypeAnalyzer", () => {
   afterEach(() => {

@@ -38,7 +38,7 @@ beforeEach(() => {
   registry = new SymbolRegistry();
 });
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("FunctionReference.candidates -- the ADR-057 order", () => {
   it("tries the enclosing scope's member before the file-scope name", () => {

@@ -33,7 +33,7 @@ const collect = (source: string): DeclarationScopeCollector => {
 const globalVar = (source: string, name: string) =>
   collect(source).getGlobalFrame().vars.get(name);
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("DeclarationScopeCollector records what a declaration says", () => {
   beforeEach(() => {

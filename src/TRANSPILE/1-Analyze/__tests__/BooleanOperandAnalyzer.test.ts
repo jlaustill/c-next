@@ -38,7 +38,7 @@ function inMain(statement: string) {
   `;
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("BooleanOperandAnalyzer", () => {
   beforeEach(() => {

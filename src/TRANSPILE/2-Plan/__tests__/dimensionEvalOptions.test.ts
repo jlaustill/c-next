@@ -8,7 +8,7 @@ import RenderState from "../../3-Render/RenderState";
 import TYPE_WIDTH from "../../../transpiler/constants/TYPE_WIDTH";
 import dimensionEvalOptions from "../dimensionEvalOptions";
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("dimensionEvalOptions", () => {
   afterEach(() => {

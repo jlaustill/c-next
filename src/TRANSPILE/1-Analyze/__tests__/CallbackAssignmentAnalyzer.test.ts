@@ -58,7 +58,7 @@ beforeEach(() => {
   registry = new SymbolRegistry();
 });
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("CallbackAssignmentAnalyzer", () => {
   it("returns no findings when the program's symbols are absent", () => {

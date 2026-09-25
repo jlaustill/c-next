@@ -139,7 +139,7 @@ function setupSymbols(
 // ========================================================================
 // SIMPLE Assignment
 // ========================================================================
-let state: RenderState;
+let state = new RenderState();
 
 describe("AssignmentClassifier - SIMPLE", () => {
   beforeEach(() => {

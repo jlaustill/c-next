@@ -34,7 +34,7 @@ const errors = (source: string) => {
 const inMain = (body: string): string =>
   `u32 main() {\n${body}\n    return 0;\n}`;
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("CompoundAssignmentAnalyzer", () => {
   beforeEach(() => {

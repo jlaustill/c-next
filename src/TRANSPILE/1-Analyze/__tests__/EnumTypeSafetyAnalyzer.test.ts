@@ -35,7 +35,7 @@ afterEach(() => {
   state = new RenderState();
 });
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("EnumTypeSafetyAnalyzer", () => {
   describe("assignment (E0428)", () => {

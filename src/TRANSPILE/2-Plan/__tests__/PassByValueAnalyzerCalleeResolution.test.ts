@@ -81,7 +81,7 @@ const callerParameterIsModified = (callee: string): boolean => {
   return collect.modifiedParameters.get("Caller__forward")!.has("value");
 };
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   beforeEach(() => {

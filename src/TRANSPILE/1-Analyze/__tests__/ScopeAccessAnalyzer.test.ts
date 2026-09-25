@@ -49,7 +49,7 @@ afterEach(() => {
   state = new RenderState();
 });
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("ScopeAccessAnalyzer", () => {
   describe("E0435 -- own scope by name", () => {

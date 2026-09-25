@@ -20,7 +20,7 @@ const errors = (source: string) => {
   return new ConstAssignmentAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("ConstAssignmentAnalyzer (E0877)", () => {
   beforeEach(() => {

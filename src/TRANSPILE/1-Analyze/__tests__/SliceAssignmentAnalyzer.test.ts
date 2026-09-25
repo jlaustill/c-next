@@ -26,7 +26,7 @@ afterEach(() => {
   state = new RenderState();
 });
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("SliceAssignmentAnalyzer", () => {
   describe("E0858 -- what can be sliced at all", () => {
