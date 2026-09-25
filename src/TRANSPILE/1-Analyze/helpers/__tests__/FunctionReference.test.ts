@@ -151,7 +151,11 @@ describe("FunctionReference.ofTypeText -- the order, observed", () => {
     ).toBeNull();
   });
 
-  it("answers null with no program at all, rather than throwing", () => {
+  // `testAnalysisContext` substitutes `Program.build([], {})` when the state
+  // has none, and `FunctionReference.lookup` no longer has a `!program` branch
+  // -- so this is the EMPTY-program case, not the absent-program one. Renamed
+  // rather than deleted: an empty program is a state a caller can reach.
+  it("answers null when the program declares no such function", () => {
     state = new TranspileState();
     expect(
       FunctionReference.ofTypeText("handler", "", testAnalysisContext(state)),

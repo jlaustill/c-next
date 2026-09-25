@@ -5,7 +5,8 @@ import type SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 /**
  * What 2.1 Analyze is allowed to know about the program it is judging.
  *
- * #1456. These three facts were reached through `CodeGenState`, which is the
+ * #1456. These four facts were reached through the render state (then
+ * `CodeGenState`, now `TranspileState`), which is the
  * render pass's state container and is reachable from every pass at once. That
  * is the shape `docs/architecture/README.md` forbids -- *"a container that
  * outlives a pass is how facts come to be stashed instead of carried"* -- and
@@ -52,10 +53,13 @@ interface IAnalysisContext {
    * Whether this file can see a C/C++ header, which is what decides if an
    * unresolved name is a defect or a type the compiler will supply.
    *
-   * The orchestrator computes it per file in `_establishPerFileCodeGenState`,
-   * the single site #1430 forced it into. It travels here rather than on
-   * `CodeGenState` for the same reason as the rest: 2.1 reads it, and 2.3
-   * happens to be where it was parked.
+   * The orchestrator computes it per file in `_analyzeFile`, as
+   * `file.reachesForeignHeader ?? true`. #1430 forced it into a single site,
+   * which was `_establishPerFileCodeGenState` -- and then this interface became
+   * that site: the write onto the state had no reader left and is gone, so the
+   * expression here is the only one. It travels on the context rather than on
+   * the state for the same reason as the rest: 2.1 reads it, and 2.3 happens to
+   * be where it was parked.
    */
   readonly reachesForeignHeader: boolean;
 }

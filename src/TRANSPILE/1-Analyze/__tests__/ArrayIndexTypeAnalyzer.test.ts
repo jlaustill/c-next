@@ -469,7 +469,8 @@ describe("ArrayIndexTypeAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
 
-    it("should allow arr[EColor.RED] via state.isKnownEnum", () => {
+    // The route is `context.symbols.knownEnums`; 2.1 cannot reach the state.
+    it("should allow arr[EColor.RED] for a known enum member", () => {
       state.symbols = createMockSymbols({
         knownEnums: new Set(["EColor"]),
       });

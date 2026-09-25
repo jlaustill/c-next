@@ -768,6 +768,39 @@ const MOVES: readonly IMove[] = [
       "deciding and 2.3 formatting -- the one direction the digit rule allows. " +
       "Nothing outside `src/TRANSPILE/` imports it.",
   },
+  {
+    from: "src/transpiler/state/AdrProvenance.ts",
+    to: "src/instrumentation/AdrProvenance.ts",
+    because:
+      "#1452. Records where an ADR's rule fired, so matrix occupancy can derive " +
+      "from codegen decisions and not only from diagnostic positions. It is " +
+      "genuinely cross-pass -- 17 `record` sites across 2.1 Analyze and 2.3 " +
+      "Render, read once at the end -- which is why it is instrumentation " +
+      "rather than a pass artifact, and why box 4 exempts it by the owner's " +
+      "call on 2026-09-23 that box 4 governs PROGRAM state. " +
+      "Added by the #1657 review: the module moved with the rest of this card " +
+      "and had no entry, so `npm run move:modules` against a BASE export left " +
+      "it behind. A manifest that cannot replay the move it records is a " +
+      "reviewable artifact that cannot be reviewed.",
+  },
+  {
+    from: "src/transpiler/state/__tests__/AdrProvenance.test.ts",
+    to: "src/instrumentation/__tests__/AdrProvenance.test.ts",
+    because: "Follows its subject.",
+  },
+  {
+    from: "src/transpiler/state/CodeGenState.ts",
+    to: "src/transpiler/state/RenderState.ts",
+    because:
+      "The step the chain below starts AFTER, recorded so a replay does not " +
+      "begin at a path that never existed at BASE. This is a rename in place, " +
+      "not a relocation: `CodeGenState` and `TranspilerState` were merged into " +
+      "one class here before anything moved, because the destination question " +
+      "cannot be asked of two classes at once. `RenderState` then moved to " +
+      "`3-Render/`, which was wrong, and then to `src/TRANSPILE/TranspileState.ts`, " +
+      "which is where it is -- both of those are entries below, with their " +
+      "reasons.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */

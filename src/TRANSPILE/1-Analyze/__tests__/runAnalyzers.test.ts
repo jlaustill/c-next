@@ -310,7 +310,9 @@ describe("runAnalyzers", () => {
   // ========================================================================
 
   describe("options", () => {
-    it("should read externalStructFields from TranspileState", () => {
+    // Read from `context.program.externalStructFields()` since #1447/#1456;
+    // the state is not reachable from 2.1.
+    it("should read externalStructFields from the program artifact", () => {
       // Code that uses a field from an external struct - externalStructFields
       // are now read from TranspileState
       const { tree, comments } = parseWithComments(`

@@ -50,7 +50,6 @@ const srcDir = join(rootDir, "src");
 const WINDOW = 8;
 
 const PER_FILE_STRUCTS = /knownStructs/;
-const PER_FILE_BITMAPS = /knownBitmaps/;
 const RUN_WIDE_FALLBACK = /getStructFields/;
 
 /** The one module entitled to derive it. */
@@ -72,16 +71,24 @@ function sourceFiles(dir: string): string[] {
   return found;
 }
 
-/** True when the three checks appear within `WINDOW` lines of each other. */
+/**
+ * True when a copy of the decision appears within `WINDOW` lines.
+ *
+ * The bitmap arm is NOT required, and that is the point. Requiring all three
+ * meant a copy that had ALREADY DIVERGED -- one that dropped the bitmap check,
+ * which is #551 itself -- went unreported, so the guard was blindest exactly
+ * where the defect is worst. Verified: adding the two-line struct-and-fallback
+ * pair to `PostfixExpressionGenerator` left this at 5/5.
+ *
+ * Widening costs nothing today: `DeclaredTypeFacts` is still the only module
+ * with `knownStructs` and the run-wide fallback inside one window, so the
+ * roster below is unchanged and the population control still passes.
+ */
 function derivesTheDecision(source: string): boolean {
   const lines = source.split("\n");
   for (let i = 0; i < lines.length; i++) {
     const window = lines.slice(i, i + WINDOW).join("\n");
-    if (
-      PER_FILE_STRUCTS.test(window) &&
-      PER_FILE_BITMAPS.test(window) &&
-      RUN_WIDE_FALLBACK.test(window)
-    ) {
+    if (PER_FILE_STRUCTS.test(window) && RUN_WIDE_FALLBACK.test(window)) {
       return true;
     }
   }

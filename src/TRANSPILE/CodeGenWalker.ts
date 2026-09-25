@@ -205,10 +205,16 @@ class CodeGenWalker {
   private readonly host: CodeGenerator;
 
   /**
-   * 2.3 Render's per-file state, for the orchestrator (#1452 box 4).
+   * 2.3 Render's per-file state, for callers that hold the WALKER (#1452 box 4).
    *
-   * A narrow accessor rather than widening `host`: `Transpiler` needs one flag
-   * off it (ADR-040's ISR typedef) and has no business with the rest.
+   * An accessor rather than widening `host`, so `Transpiler` reaches the state
+   * without reaching `CodeGenerator`. It was described as narrow on the grounds
+   * that `Transpiler` needed one flag off it (ADR-040's ISR typedef); it names
+   * `transpileState` 45 times, so what it is narrow about is the OBJECT
+   * exposed, not the number of reads.
+   *
+   * The walk itself does not go through here -- it holds `this.host` directly
+   * and spells the state `this.host.state`.
    */
   get transpileState(): TranspileState {
     return this.host.state;

@@ -116,6 +116,38 @@ const INSTRUMENTATION_HOLDERS = [
 const MUTABLE_STATIC =
   /^\s*(?:public|private|protected)?\s*static\s+(?!readonly\b)(?:#?[A-Za-z_$][\w$]*)\s*[:=]/;
 
+/**
+ * `static readonly` bound to a MUTABLE container -- the binding cannot be
+ * reassigned, and `.set()` on it is still process-global state.
+ *
+ * `readonly` is exempted above on the grounds that the slot cannot change, and
+ * for a scalar that is the whole story. For a `Map` it is not: `private static
+ * readonly cache = new Map()` written with `.set()` is the same shape as the 92
+ * statics #1452 removed, and the exemption waved it through. Verified: adding
+ * that line to an analyzer passed 9/9, and the same line without `readonly`
+ * failed.
+ *
+ * A `Readonly*` annotation is accepted, because the compiler then refuses the
+ * write -- which is the property `readonly` was being credited with.
+ *
+ * The lookahead is `(?!\s*Readonly)` rather than `\s*(?!Readonly)`: with the
+ * whitespace outside it, backtracking matched `\s*` as ZERO characters and
+ * tested the lookahead against `" ReadonlyMap"`, which does not start with
+ * `Readonly`, so the annotation that makes the container safe was what let it
+ * through. Both directions are pinned below.
+ */
+const MUTABLE_READONLY_CONTAINER =
+  /^\s*(?:public|private|protected)?\s*static\s+readonly\s+(?:#?[A-Za-z_$][\w$]*)\s*(?::(?!\s*Readonly)[^=]*)?=\s*new\s+(?:Map|Set|WeakMap|WeakSet|Array)\b/;
+
+/**
+ * The two that exist today, both filled once at module load and never written
+ * again. Named rather than pattern-exempted: a third one should have to be
+ * argued for here.
+ */
+const CONTAINER_HOLDERS = [
+  "src/TRANSPILE/3-Render/codegen/assignment/handlers/index.ts",
+];
+
 /** A module-scope `let` -- the same mutable slot without a class around it. */
 const MODULE_LET = /^let\s+[A-Za-z_$]/;
 
@@ -155,7 +187,10 @@ function holders(includeGenerated: boolean): string[] {
       readFileSync(path, "utf-8")
         .split("\n")
         .forEach((line, index) => {
-          if (MUTABLE_STATIC.test(line) || MODULE_LET.test(line)) {
+          const container =
+            MUTABLE_READONLY_CONTAINER.test(line) &&
+            !CONTAINER_HOLDERS.includes(relative);
+          if (MUTABLE_STATIC.test(line) || MODULE_LET.test(line) || container) {
             found.push(`${relative}:${index + 1}`);
           }
         });
@@ -234,6 +269,21 @@ describe("the passes hold no mutable state (#1452 box 4)", () => {
     // Per-arm control. `MUTABLE_STATIC` is the arm with no live site once the
     // generated grammar is excluded, so without this it is asserted by nothing.
     expect(MUTABLE_STATIC.test("  static cache = new Map();")).toBe(true);
+    // Per-direction control for the container arm: a mutable container is
+    // flagged, a `Readonly*`-annotated one is not, and a readonly SCALAR is not.
+    expect(
+      MUTABLE_READONLY_CONTAINER.test(
+        "  private static readonly cache: Map<string, string> = new Map();",
+      ),
+    ).toBe(true);
+    expect(
+      MUTABLE_READONLY_CONTAINER.test(
+        "  private static readonly B: ReadonlyMap<string, string> = new Map(",
+      ),
+    ).toBe(false);
+    expect(
+      MUTABLE_READONLY_CONTAINER.test("  private static readonly N = 5;"),
+    ).toBe(false);
     expect(
       MUTABLE_STATIC.test("  private static cache: Map<string, string>;"),
     ).toBe(true);

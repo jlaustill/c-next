@@ -41,16 +41,7 @@ import type IAssignmentOverflowContext from "../transpiler/types/IAssignmentOver
  * that. So the statics dissolve BEFORE the file moves, and this is where they
  * go.
  *
- * ## Why only nine, for now
- *
- * These are the members with no friction: measured, every reference outside
- * `CodeGenState` itself lives in `CodeGenWalker` or `CodeGenerator` -- two
- * modules that already hold each other -- AND `CodeGenState`'s own methods
- * never touch them. Eighteen more are walker/generator-only but are read or
- * written by methods on `CodeGenState`, so they move with those methods rather
- * than alone. The rest reach further still.
- *
- * Owned by `CodeGenerator`, which the walker reaches as `this.host`, so both
+ * Owned by `CodeGenerator` * Owned by `CodeGenerator`, which the walker reaches as `this.host`, so both
  * read one object instead of one global.
  */
 class TranspileState {
@@ -1638,11 +1629,6 @@ class TranspileState {
     this.callbackTypes = new Map();
     this.generatedStructInits = new Set();
     this.exportedRegisterBlocks = [];
-    // persist into code generation. It is cleared at the start of each Transpiler run.
-
-    // Pass-by-value analysis
-
-    // Overflow & division helpers
 
     // Issue #1143, #1452: the per-file requirement maps moved to
     // src/instrumentation/ToolchainRequirements, which owns its own clearing.

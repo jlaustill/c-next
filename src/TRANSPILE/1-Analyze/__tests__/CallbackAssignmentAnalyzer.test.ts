@@ -61,7 +61,9 @@ beforeEach(() => {
 let state = new TranspileState();
 
 describe("CallbackAssignmentAnalyzer", () => {
-  it("returns no findings when the program's symbols are absent", () => {
+  // Same as `FunctionReference`: the context always carries a program, so
+  // "absent" is unrepresentable. What this checks is an empty one.
+  it("returns no findings when the program declares no struct fields", () => {
     // The precondition every case below shares: without `Program` neither
     // rule can name a function, so the analyzer is silent by construction.
     // This is what makes the fixtures, not this file, the rules' evidence.

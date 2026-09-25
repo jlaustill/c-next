@@ -260,18 +260,19 @@ class FunctionCallAnalyzer {
    */
   private readonly programFunctions: ReadonlySet<string>;
 
-  /**
-   * @param programFunctions every function declared anywhere in the program,
-   *        supplied by the whole-program callback pass. Omitted for a per-file
-   *        run -- see the field.
-   */
   private readonly callbacksFound = new Map<string, string>();
 
   /**
-   * #1452 box 3: `registry` is supplied only by the Stage 3 caller
-   * (`CallbackCompatibility.derive`), which runs BEFORE `Program.build` and so
-   * cannot reach the scope graph through the artifact. The 2.1 caller leaves it
-   * undefined and reads `IProgram`, which exists by then.
+   * @param programFunctions every function declared anywhere in the program,
+   *        supplied by the whole-program callback pass. Omitted for a per-file
+   *        run.
+   * @param registry supplied only by the Stage 3 caller
+   *        (`CallbackCompatibility.derive`), which runs BEFORE `Program.build`
+   *        and so cannot reach the scope graph through the artifact (#1452
+   *        box 3). The 2.1 caller leaves it undefined and reads `IProgram`,
+   *        which exists by then.
+   * @param context absent on that same Stage 3 path, and present for every 2.1
+   *        run. That is why it is optional here and required everywhere else.
    */
   public constructor(
     programFunctions: ReadonlySet<string> = new Set(),
@@ -376,11 +377,6 @@ class FunctionCallAnalyzer {
   }
 
   /**
-   * Issue #786: Pre-collect all function names defined in this file.
-   * Used to distinguish between local functions (subject to define-before-use)
-   * and cross-file functions from includes (allowed without local definition).
-   */
-  /**
    * What path a scope NAME has, from whichever artifact this instance was
    * handed: `SymbolRegistry` at Stage 3, before `Program` is built, and the
    * 2.1 context after. Falling back to the bare name is what the registry does
@@ -391,6 +387,11 @@ class FunctionCallAnalyzer {
     return this.context?.program.scopePathOf(scopeName) ?? scopeName;
   }
 
+  /**
+   * Issue #786: Pre-collect all function names defined in this file.
+   * Used to distinguish between local functions (subject to define-before-use)
+   * and cross-file functions from includes (allowed without local definition).
+   */
   private collectAllLocalFunctions(tree: Parser.ProgramContext): void {
     for (const name of FunctionCallAnalyzer.declaredFunctionNames(
       tree,

@@ -182,25 +182,55 @@ describe("SymbolRegistry", () => {
     });
   });
 
-  describe("reset", () => {
-    it("clears all registered symbols", () => {
+  // #1452 box 3 deleted `reset()`, and the block that tested it could not fail
+  // once the call went: it registered `foo` in scope `Test` and then asserted
+  // on the GLOBAL scope, where `resolveFunction` walks outward and never
+  // inward -- so both assertions held whether or not anything had been cleared.
+  // What replaces it is the property that made `reset()` unnecessary.
+  describe("isolation between instances (#1452 box 3)", () => {
+    it("does not share scopes or functions with another registry", () => {
       registry.getOrCreateScope("Test");
-      const func = FunctionUtils.create({
-        name: "foo",
-        scopePath: "Test",
-        parameters: [],
-        returnType: TTypeUtils.createPrimitive("void"),
-        visibility: "private",
-        sourceFile: "test.cnx",
-        span: TestSourceSpan.at(1),
-      });
-      registry.registerFunction(func);
+      registry.registerFunction(
+        FunctionUtils.create({
+          name: "foo",
+          scopePath: "Test",
+          parameters: [],
+          returnType: TTypeUtils.createPrimitive("void"),
+          visibility: "private",
+          sourceFile: "test.cnx",
+          span: TestSourceSpan.at(1),
+        }),
+      );
 
-      const newGlobal = registry.getGlobalScope();
-      expect(newGlobal.functions).toHaveLength(0);
+      const other = new SymbolRegistry();
 
-      const found = registry.resolveFunction("foo", newGlobal);
-      expect(found).toBeNull();
+      expect(other.getScope("Test")).toBeNull();
+      expect(other.resolveFunction("foo", other.getGlobalScope())).toBeNull();
+      // Control: the registry that DID register it still has it, so the
+      // assertions above are about isolation rather than about registration
+      // silently failing.
+      expect(registry.getScope("Test")).not.toBeNull();
+    });
+  });
+
+  describe("scopePathOf", () => {
+    it("does not create the scope it is asked about", () => {
+      // The non-creating property #1452 leans on: two call sites outside 1.3
+      // Declare turned a name-to-path lookup into a scope CREATION, which is
+      // what `passes-hold-no-mutable-state.test.ts` keeps out of the later
+      // passes. Nothing pinned the behavior itself.
+      expect(registry.scopePathOf("NeverRegistered")).toBe("NeverRegistered");
+
+      expect(registry.getScope("NeverRegistered")).toBeNull();
+    });
+
+    it("answers with the registered path for a scope it knows", () => {
+      registry.getOrCreateScope("Outer.Inner");
+
+      // Keyed on the path `getScope` accepts, which is the full dotted path --
+      // a leaf name is NOT a key, and falls through to the identity answer.
+      expect(registry.scopePathOf("Outer.Inner")).toBe("Outer.Inner");
+      expect(registry.scopePathOf("Inner")).toBe("Inner");
     });
   });
 

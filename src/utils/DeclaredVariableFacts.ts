@@ -12,14 +12,15 @@ import type TTypeInfo from "../transpiler/types/TTypeInfo";
  * What the program DECLARES about a variable -- the answer that does not
  * depend on which file has been generated.
  *
- * #1456. These five lived on `CodeGenState`, so 2.1 Analyze had to reach the
+ * #1456. These five lived on the render state (then `CodeGenState`, now
+ * `TranspileState`), so 2.1 Analyze had to reach the
  * render pass's state container to ask a question about declarations.
  * Parameterized on the two views they actually read, they are callable from
- * either side: `CodeGenState` delegates, and an analyzer passes what its
+ * either side: `TranspileState` delegates, and an analyzer passes what its
  * `IAnalysisContext` carries.
  *
  * Deliberately NOT the per-file `typeRegistry`, and that omission is the point
- * -- see `CodeGenState.getVariableTypeInfo`, which layers the registry on top
+ * -- see `TranspileState.getVariableTypeInfo`, which layers the registry on top
  * of these for codegen. #1432 is what happens when an analyzer gets the
  * registry: it reads the PREVIOUS run's variables, and a signed array
  * subscript reaches generated C with the transpile reporting success.
@@ -41,7 +42,7 @@ class DeclaredVariableFacts {
    *
    * Extracted so "which symbol is this name?" is decided once: both the
    * TTypeInfo lookup below and the type-text lookup the analyzers use
-   * (getCNextVariableTypeName) go through it, instead of each repeating the
+   * go through it, instead of each repeating the
    * kind/type narrowing and drifting apart.
    */
   static symbolOf(
@@ -179,7 +180,8 @@ class DeclaredVariableFacts {
    * What a variable's type is according to what the program DECLARES -- the
    * answer that does not depend on which file has been generated.
    *
-   * #1432. This is the tail of `getVariableTypeInfo` above, split out rather
+   * #1432. This is the tail of `TranspileState.getVariableTypeInfo`, split out
+   * rather
    * than copied, so the symbol-table half stays one decision: a change to how
    * a C struct global is read reaches codegen and the analyzers together.
    * What codegen has and 2.1 does not is the `typeRegistry` probe, and that is
@@ -192,7 +194,7 @@ class DeclaredVariableFacts {
    * signed array subscript, undefined behavior in C -- did not fire. The
    * transpile reported success.
    *
-   * `getCNextVariableTypeName` and `getCNextConstValue` were already written
+   * Two sibling readers were already written
    * symbol-table-only for this reason under #1220; this is the third accessor
    * and the one the array-index, slice and string analyzers reach.
    */
