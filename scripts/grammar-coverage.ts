@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 
 import { ParseTreeWalker } from "antlr4ng";
 import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
-import IGrammarCoverageReport from "../src/TRANSPILE/1-Analyze/types/IGrammarCoverageReport";
+import IGrammarCoverageReport from "../src/transpiler/types/IGrammarCoverageReport";
 import GrammarCoverageReportBuilder from "../src/TRANSPILE/1-Analyze/types/GrammarCoverageReportBuilder";
 import GrammarCoverageListener from "../src/TRANSPILE/1-Analyze/GrammarCoverageListener";
 import { CNextLexer } from "../src/PARSE/2-Parse/grammar/CNextLexer";

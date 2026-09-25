@@ -27,7 +27,8 @@
  * notice in review.
  */
 
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -905,6 +906,73 @@ function main(): void {
 
   project.saveSync();
   console.log("\nWritten.");
+
+  reportStaleImporters();
+}
+
+/**
+ * Importers OUTSIDE the tsconfig program that still name a moved module's old path.
+ *
+ * ts-morph rewrites the importers it can see, and it sees the root tsconfig's
+ * program -- which does not include `scripts/`. So a move can leave a `scripts/`
+ * import pointing at a path that no longer exists, and because a missing module
+ * resolves to `any`/`unknown` rather than erroring at the import line, the
+ * failure surfaces later as `TS18046: 'a' is of type 'unknown'` somewhere else
+ * entirely. `npx tsc --noEmit` does not catch it either, since that is the root
+ * config; only `typecheck:scripts` does.
+ *
+ * That is exactly how `IGrammarCoverageReport` moved with `scripts/grammar-coverage.ts`
+ * left behind: the mover reported success, the root typecheck reported 0, and the
+ * gate failed six lines into an unrelated sort comparator.
+ *
+ * The existing "not in the project" error covers a moved FILE the program cannot
+ * see. This covers an IMPORTER it cannot see, which is the other half.
+ */
+function reportStaleImporters(): void {
+  const tracked = execFileSync("git", ["ls-files", "*.ts"], {
+    cwd: rootDir,
+    encoding: "utf8",
+  })
+    .split("\n")
+    .filter(Boolean);
+
+  const movedFrom = new Set(
+    MOVES.map((move) => move.from.replace(/\.ts$/, "")),
+  );
+
+  const stale: string[] = [];
+  for (const file of tracked) {
+    // The manifest records every old path on purpose, and so do the guards
+    // whose subject IS a path string.
+    if (file === "scripts/move-modules.ts") continue;
+
+    const source = readFileSync(join(rootDir, file), "utf8");
+    // Only real module specifiers. Matching any OCCURRENCE reports every test
+    // that feeds a path to a path-classifying function as a literal --
+    // `unused-code.test.ts` and `layer-rules.test.ts` both do, so the first
+    // draft of this cried wolf on two files it had no business naming. A guard
+    // that over-reports gets switched off, which is the failure mode that
+    // matters here.
+    for (const [, specifier] of source.matchAll(
+      /(?:from|require\()\s*["']([^"']+)["']/g,
+    )) {
+      if (!specifier.startsWith(".")) continue;
+      const resolved = relative(
+        rootDir,
+        resolve(dirname(join(rootDir, file)), specifier),
+      );
+      if (movedFrom.has(resolved)) {
+        stale.push(`  ! ${file} imports ${resolved}, which moved`);
+      }
+    }
+  }
+
+  if (stale.length === 0) return;
+  console.error(
+    "\nImporters outside the tsconfig program still name a moved path:\n" +
+      stale.join("\n"),
+  );
+  process.exitCode = 1;
 }
 
 main();
