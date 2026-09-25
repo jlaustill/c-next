@@ -38,6 +38,7 @@ import IPlannedArrayDeclaration from "../types/IPlannedArrayDeclaration";
 import TPlannedVariableDecl from "../types/TPlannedVariableDecl";
 import TPlannedVariableInitializer from "../types/TPlannedVariableInitializer";
 import TYPE_MAP from "../types/TYPE_MAP";
+import type RenderState from "../../../../transpiler/state/RenderState";
 
 /**
  * Result from rendering the array half of a declaration.
@@ -107,6 +108,7 @@ class VariableDeclHelper {
     plan: IPlannedArrayDeclaration,
     sourceName: string,
     decl: string,
+    state: RenderState,
   ): IArrayDeclResult {
     if (!plan.isArray) {
       return { handled: false, code: "", decl, isArray: false };
@@ -122,12 +124,13 @@ class VariableDeclHelper {
       // `Point single = { .x = 1 }` on the next line was already plain. One
       // declaration-initializer decision, previously made in two places.
       const init = plan.init;
-      const arrayInitResult = CodeGenState.withDeclarationInit(() =>
+      const arrayInitResult = state.withDeclarationInit(() =>
         ArrayInitHelper.processArrayInit(
           sourceName,
           plan.hasEmptyDimension,
           plan.declaredSize,
           {
+            state,
             // Lazy, not pre-generated: each must run inside the
             // `withExpectedType` window the helper opens.
             generateExpression: init.renderExpression,
@@ -168,6 +171,7 @@ class VariableDeclHelper {
     plan: TPlannedVariableInitializer,
     decl: string,
     isArray: boolean,
+    state: RenderState,
   ): string {
     if (plan.kind === "zero") {
       // ADR-015: Zero initialization for uninitialized variables
@@ -180,8 +184,8 @@ class VariableDeclHelper {
 
     // Issue #872: Set expectedType for MISRA 7.2 U suffix compliance
     // MISRA 10.3: Also check for cross-type-category conversions (int <-> float)
-    return CodeGenState.withExpectedType(typeName, () => {
-      let exprCode = CodeGenState.withDeclarationInit(plan.renderExpression);
+    return state.withExpectedType(typeName, () => {
+      let exprCode = state.withDeclarationInit(plan.renderExpression);
 
       // MISRA 10.3: Check for cross-type-category conversions (int <-> float).
       // Asked AFTER the render, and inside the window, because the question is
@@ -222,7 +226,10 @@ class VariableDeclHelper {
   /**
    * Render the declaration a plan describes.
    */
-  static renderVariableDecl(plan: TPlannedVariableDecl): string {
+  static renderVariableDecl(
+    plan: TPlannedVariableDecl,
+    state: RenderState,
+  ): string {
     switch (plan.kind) {
       // Issue #375: C++ constructor syntax.
       //
@@ -241,7 +248,7 @@ class VariableDeclHelper {
         );
 
       case "plain":
-        return VariableDeclHelper.renderPlainDecl(plan);
+        return VariableDeclHelper.renderPlainDecl(plan, state);
     }
   }
 
@@ -250,6 +257,7 @@ class VariableDeclHelper {
    */
   private static renderPlainDecl(
     plan: Extract<TPlannedVariableDecl, { kind: "plain" }>,
+    state: RenderState,
   ): string {
     // ADR-057: the DECLARED identifier is the emitted one -- a local shadowing a
     // file-scope name carries a distinct C name so `global.x` still reaches
@@ -262,6 +270,7 @@ class VariableDeclHelper {
       plan.array,
       plan.sourceName,
       base,
+      state,
     );
     if (arrayResult.handled) {
       return arrayResult.code;
@@ -271,6 +280,7 @@ class VariableDeclHelper {
       plan.initializer,
       arrayResult.decl,
       arrayResult.isArray,
+      state,
     );
 
     // Handle pending C++ class field assignments

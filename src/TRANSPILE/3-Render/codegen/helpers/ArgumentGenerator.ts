@@ -88,7 +88,7 @@ class ArgumentGenerator {
     const cType = TYPE_MAP[targetParamBaseType];
     if (!cType || cType === "void") {
       // Issue #872: Suppress bare enum resolution in function args (requires ADR to change)
-      return CodeGenState.withExpectedType(
+      return callbacks.state.withExpectedType(
         targetParamBaseType,
         () => callbacks.generateExpression(),
         true, // suppressEnumResolution
@@ -96,7 +96,7 @@ class ArgumentGenerator {
     }
 
     // Issue #872: Suppress bare enum resolution in function args (requires ADR to change)
-    const value = CodeGenState.withExpectedType(
+    const value = callbacks.state.withExpectedType(
       targetParamBaseType,
       () => callbacks.generateExpression(),
       true, // suppressEnumResolution

@@ -11,6 +11,7 @@ import type IBitmapFieldLayout from "../../../../../transpiler/types/IBitmapFiel
 import accessGenerators from "./AccessExprGenerator";
 import TGeneratorEffect from "../TGeneratorEffect";
 import invariant from "../../../../../utils/invariant";
+import type RenderState from "../../../../../transpiler/state/RenderState";
 
 interface BitmapAccessResult {
   code: string;
@@ -38,6 +39,7 @@ class BitmapAccessHelper {
     bitmapType: string,
     bitmapFields: ReadonlyMap<string, ReadonlyMap<string, IBitmapFieldLayout>>,
     errorDescriptor: string,
+    state: RenderState,
   ): BitmapAccessResult {
     const fieldInfo = bitmapFields.get(bitmapType)?.get(memberName);
     invariant(
@@ -48,6 +50,7 @@ class BitmapAccessHelper {
     const bitmapResult = accessGenerators.generateBitmapFieldAccess(
       result,
       fieldInfo,
+      state,
     );
     return { code: bitmapResult.code, effects: bitmapResult.effects };
   }

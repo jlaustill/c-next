@@ -22,7 +22,7 @@
  *
  * ## The window is opened HERE, around thunks the planner did not evaluate
  *
- * `CodeGenState.withoutExpectedType` is a dynamic scope over the whole operand
+ * `orchestrator.state.withoutExpectedType` is a dynamic scope over the whole operand
  * subtree, not a parameter: it clears `expectedType` and
  * `suppressBareEnumResolution` for the duration of a callback, and a leaf reads
  * them live at the instant it renders. So an operand nested any distance under
@@ -33,7 +33,6 @@
  */
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import BinaryExprUtils from "./BinaryExprUtils";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IGeneratorState from "../IGeneratorState";
@@ -195,6 +194,7 @@ const renderArithmetic = (
  */
 const renderComparison = (
   plan: Extract<TPlannedBinaryExpr, { kind: "comparison" }>,
+  orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
@@ -217,7 +217,7 @@ const renderComparison = (
     // `= u` silently. Pre-existing and preserved exactly: this slice's oracle
     // is a byte-identical corpus, and the fix needs a language decision about
     // chained comparison that #1649 records.
-    const [left, right] = CodeGenState.withoutExpectedType(() =>
+    const [left, right] = orchestrator.state.withoutExpectedType(() =>
       renderOperands(plan.renderOperands.slice(0, 2), effects),
     );
 
@@ -234,7 +234,7 @@ const renderComparison = (
   // Issue #1032: the operands render with expectedType CLEARED. MISRA 7.2's U
   // suffix applies to assignments, not comparisons -- `i32 < 0` becoming
   // `signedIdx < 0U` changes semantics under C's integer promotion.
-  const operandCodes = CodeGenState.withoutExpectedType(() =>
+  const operandCodes = orchestrator.state.withoutExpectedType(() =>
     renderOperands(plan.renderOperands, effects),
   );
 
@@ -256,7 +256,7 @@ const generateBinaryExpr = (
   plan: TPlannedBinaryExpr,
   _input: IGeneratorInput,
   _state: IGeneratorState,
-  _orchestrator: IOrchestrator,
+  orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   switch (plan.kind) {
     case "leaf":
@@ -269,7 +269,7 @@ const generateBinaryExpr = (
     }
 
     case "comparison":
-      return renderComparison(plan);
+      return renderComparison(plan, orchestrator);
 
     case "shift": {
       // #1322: the shift amount (MISRA 12.2, E0873) is checked in pass 2.1.

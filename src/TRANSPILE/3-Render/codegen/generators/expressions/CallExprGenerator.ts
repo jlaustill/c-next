@@ -164,7 +164,7 @@ const _generateCFunctionArg = (
 
   // Issue #872: Set expectedType for MISRA 7.2 compliance, but suppress bare enum resolution
   // (bare enums in function args was never allowed - changing that requires ADR approval)
-  const argCode = CodeGenState.withExpectedType(
+  const argCode = orchestrator.state.withExpectedType(
     targetParam?.baseType,
     arg.render,
     true, // suppressEnumResolution
@@ -311,7 +311,7 @@ const generateFunctionCall = (
 
   // Issue #992: Clear inDeclarationInit for function call arguments — struct
   // initializers inside function args need compound literals, not plain designated initializers.
-  const rendered = CodeGenState.withoutDeclarationInit(() =>
+  const rendered = orchestrator.state.withoutDeclarationInit(() =>
     args
       .map((arg, idx) => {
         // Get parameter type info from local signature or cross-file SymbolTable
@@ -339,7 +339,7 @@ const generateFunctionCall = (
           )
         ) {
           // Issue #872: Set expectedType for MISRA 7.2 compliance, but suppress bare enum resolution
-          const argCode = CodeGenState.withExpectedType(
+          const argCode = orchestrator.state.withExpectedType(
             targetParam?.baseType,
             arg.render,
             true, // suppressEnumResolution

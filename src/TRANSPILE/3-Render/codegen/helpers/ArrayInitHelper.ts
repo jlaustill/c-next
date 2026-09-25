@@ -13,6 +13,7 @@
 
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import invariant from "../../../../utils/invariant";
+import type RenderState from "../../../../transpiler/state/RenderState";
 
 /**
  * Result from processing array initialization.
@@ -39,11 +40,19 @@ interface IArrayInitResult {
  *
  * Thunks rather than pre-generated strings, deliberately. `getTypeName` must
  * run BEFORE `generateExpression`, and `generateExpression` must run INSIDE
- * the `CodeGenState.withExpectedType` window that this helper opens -- that
+ * the `callbacks.state.withExpectedType` window that this helper opens -- that
  * window is the whole point of `_generateArrayInitValue`. Passing strings
  * would evaluate them at the call site, outside it.
  */
 interface IArrayInitCallbacks {
+  /**
+   * 2.3 Render's per-file working state (#1452 box 4).
+   *
+   * Carried on the deps object this helper already receives, rather than read
+   * off a static class.
+   */
+  readonly state: RenderState;
+
   /** Generate the initializer expression's code */
   generateExpression: () => string;
   /** Get the declared type's C name */
@@ -102,7 +111,7 @@ class ArrayInitHelper {
     callbacks: IArrayInitCallbacks,
   ): string {
     const typeName = callbacks.getTypeName();
-    return CodeGenState.withExpectedType(typeName, () =>
+    return callbacks.state.withExpectedType(typeName, () =>
       callbacks.generateExpression(),
     );
   }

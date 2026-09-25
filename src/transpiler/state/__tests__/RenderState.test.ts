@@ -148,4 +148,199 @@ describe("RenderState", () => {
       expect(state.isOpaqueScopeVariableAccess("UI_widgetsExtra")).toBe(false);
     });
   });
+
+  describe("withDeclarationInit()", () => {
+    it("sets inDeclarationInit to true during callback", () => {
+      state.inDeclarationInit = false;
+      let valueInside = false;
+
+      state.withDeclarationInit(() => {
+        valueInside = state.inDeclarationInit;
+      });
+
+      expect(valueInside).toBe(true);
+    });
+
+    it("restores prior value after callback", () => {
+      state.inDeclarationInit = false;
+
+      state.withDeclarationInit(() => {
+        // inside: true
+      });
+
+      expect(state.inDeclarationInit).toBe(false);
+    });
+
+    it("restores prior value even when already true", () => {
+      state.inDeclarationInit = true;
+
+      state.withDeclarationInit(() => {
+        expect(state.inDeclarationInit).toBe(true);
+      });
+
+      expect(state.inDeclarationInit).toBe(true);
+    });
+
+    it("returns the callback result", () => {
+      const result = state.withDeclarationInit(() => "hello");
+      expect(result).toBe("hello");
+    });
+
+    it("restores prior value on exception", () => {
+      state.inDeclarationInit = false;
+
+      expect(() =>
+        state.withDeclarationInit(() => {
+          throw new Error("test error");
+        }),
+      ).toThrow("test error");
+
+      expect(state.inDeclarationInit).toBe(false);
+    });
+  });
+
+  describe("withoutDeclarationInit()", () => {
+    it("sets inDeclarationInit to false during callback", () => {
+      state.inDeclarationInit = true;
+      let valueInside = true;
+
+      state.withoutDeclarationInit(() => {
+        valueInside = state.inDeclarationInit;
+      });
+
+      expect(valueInside).toBe(false);
+    });
+
+    it("restores prior value after callback", () => {
+      state.inDeclarationInit = true;
+
+      state.withoutDeclarationInit(() => {
+        // inside: false
+      });
+
+      expect(state.inDeclarationInit).toBe(true);
+    });
+
+    it("restores prior value even when already false", () => {
+      state.inDeclarationInit = false;
+
+      state.withoutDeclarationInit(() => {
+        expect(state.inDeclarationInit).toBe(false);
+      });
+
+      expect(state.inDeclarationInit).toBe(false);
+    });
+
+    it("returns the callback result", () => {
+      const result = state.withoutDeclarationInit(() => 42);
+      expect(result).toBe(42);
+    });
+
+    it("restores prior value on exception", () => {
+      state.inDeclarationInit = true;
+
+      expect(() =>
+        state.withoutDeclarationInit(() => {
+          throw new Error("test error");
+        }),
+      ).toThrow("test error");
+
+      expect(state.inDeclarationInit).toBe(true);
+    });
+
+    it("nests correctly with withDeclarationInit", () => {
+      state.inDeclarationInit = false;
+
+      state.withDeclarationInit(() => {
+        expect(state.inDeclarationInit).toBe(true);
+
+        state.withoutDeclarationInit(() => {
+          expect(state.inDeclarationInit).toBe(false);
+        });
+
+        expect(state.inDeclarationInit).toBe(true);
+      });
+
+      expect(state.inDeclarationInit).toBe(false);
+    });
+  });
+
+  describe("withoutExpectedType()", () => {
+    it("clears expectedType during callback", () => {
+      state.expectedType = "u32";
+      let typeInside: string | null = "notCleared";
+
+      state.withoutExpectedType(() => {
+        typeInside = state.expectedType;
+      });
+
+      expect(typeInside).toBeNull();
+    });
+
+    it("clears suppressBareEnumResolution during callback", () => {
+      state.suppressBareEnumResolution = true;
+      let suppressInside = true;
+
+      state.withoutExpectedType(() => {
+        suppressInside = state.suppressBareEnumResolution;
+      });
+
+      expect(suppressInside).toBe(false);
+    });
+
+    it("restores expectedType after callback", () => {
+      state.expectedType = "i32";
+
+      state.withoutExpectedType(() => {
+        // inside: null
+      });
+
+      expect(state.expectedType).toBe("i32");
+    });
+
+    it("restores suppressBareEnumResolution after callback", () => {
+      state.suppressBareEnumResolution = true;
+
+      state.withoutExpectedType(() => {
+        // inside: false
+      });
+
+      expect(state.suppressBareEnumResolution).toBe(true);
+    });
+
+    it("returns the callback result", () => {
+      const result = state.withoutExpectedType(() => 123);
+      expect(result).toBe(123);
+    });
+
+    it("restores values on exception", () => {
+      state.expectedType = "bool";
+      state.suppressBareEnumResolution = true;
+
+      expect(() =>
+        state.withoutExpectedType(() => {
+          throw new Error("test error");
+        }),
+      ).toThrow("test error");
+
+      expect(state.expectedType).toBe("bool");
+      expect(state.suppressBareEnumResolution).toBe(true);
+    });
+
+    it("handles null expectedType correctly", () => {
+      state.expectedType = null;
+      state.suppressBareEnumResolution = false;
+
+      let executed = false;
+      state.withoutExpectedType(() => {
+        executed = true;
+        expect(state.expectedType).toBeNull();
+        expect(state.suppressBareEnumResolution).toBe(false);
+      });
+
+      expect(executed).toBe(true);
+      expect(state.expectedType).toBeNull();
+      expect(state.suppressBareEnumResolution).toBe(false);
+    });
+  });
 });

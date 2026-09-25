@@ -262,23 +262,6 @@ export default class CodeGenState {
   /** Whether we're inside a function body */
   static inFunctionBody: boolean = false;
 
-  /** Whether we're generating the RHS of a variable declaration initializer.
-   *  When true, struct literals use { .field = value } instead of (Type){ .field = value }
-   *  because plain designated initializers are valid C99 at any scope, while compound
-   *  literals are not constant expressions and fail at file scope on GCC < 13. */
-  static inDeclarationInit: boolean = false;
-
-  /** Expected type for struct initializers and enum inference */
-  static expectedType: string | null = null;
-
-  /**
-   * Suppress bare enum resolution even when expectedType is set.
-   * Issue #872: MISRA 7.2 requires expectedType for U suffix on function args,
-   * but bare enum resolution in function args was never allowed and changing
-   * that would require ADR approval.
-   */
-  static suppressBareEnumResolution: boolean = false;
-
   /** Track args parameter name for main() translation */
   static mainArgsName: string | null = null;
 
@@ -368,6 +351,15 @@ export default class CodeGenState {
   // ===========================================================================
 
   /**
+   * Exit a function body context.
+   * Clears local tracking and sets inFunctionBody to false.
+   */
+  static exitFunctionBody(): void {
+    this.inFunctionBody = false;
+    this.clearFunctionLocals();
+  }
+
+  /**
    * Reset all state for a fresh generation pass.
    * Called at the start of CodeGenerator.generate()
    */
@@ -417,9 +409,6 @@ export default class CodeGenState {
 
     // Generation state
     this.inFunctionBody = false;
-    this.inDeclarationInit = false;
-    this.expectedType = null;
-    this.suppressBareEnumResolution = false;
     this.mainArgsName = null;
     this.lastArrayInitCount = 0;
     this.lastArrayFillValue = undefined;
@@ -467,46 +456,6 @@ export default class CodeGenState {
   }
 
   /**
-   * Exit a function body context.
-   * Clears local tracking and sets inFunctionBody to false.
-   */
-  static exitFunctionBody(): void {
-    this.inFunctionBody = false;
-    this.clearFunctionLocals();
-  }
-
-  /**
-   * Execute a function with a temporary expectedType, restoring on completion.
-   * Issue #872: Extracted to eliminate duplicate save/restore pattern and add exception safety.
-   *
-   * @param type - The expected type to set (if falsy, no change is made)
-   * @param fn - The function to execute
-   * @param suppressEnumResolution - If true, suppress bare enum resolution (for MISRA-only contexts)
-   * @returns The result of the function
-   */
-  static withExpectedType<T>(
-    type: string | undefined | null,
-    fn: () => T,
-    suppressEnumResolution: boolean = false,
-  ): T {
-    if (!type) {
-      return fn();
-    }
-    const savedType = this.expectedType;
-    const savedSuppress = this.suppressBareEnumResolution;
-    this.expectedType = type;
-    if (suppressEnumResolution) {
-      this.suppressBareEnumResolution = true;
-    }
-    try {
-      return fn();
-    } finally {
-      this.expectedType = savedType;
-      this.suppressBareEnumResolution = savedSuppress;
-    }
-  }
-
-  /**
    * Execute fn with the current scope set to `scopeName`'s path, restoring the
    * previous path on exit.
    *
@@ -531,49 +480,6 @@ export default class CodeGenState {
       return fn();
     } finally {
       this.currentScopePath = saved;
-    }
-  }
-
-  /** Execute fn with inDeclarationInit=true, restoring prior value on exit. */
-  static withDeclarationInit<T>(fn: () => T): T {
-    const saved = this.inDeclarationInit;
-    this.inDeclarationInit = true;
-    try {
-      return fn();
-    } finally {
-      this.inDeclarationInit = saved;
-    }
-  }
-
-  /** Execute fn with inDeclarationInit=false, restoring prior value on exit.
-   *  Used in sub-expression contexts (function args, ternary arms) where
-   *  plain designated initializers are not valid C. */
-  static withoutDeclarationInit<T>(fn: () => T): T {
-    const saved = this.inDeclarationInit;
-    this.inDeclarationInit = false;
-    try {
-      return fn();
-    } finally {
-      this.inDeclarationInit = saved;
-    }
-  }
-
-  /**
-   * Execute fn with expectedType=null, restoring prior value on exit.
-   * Issue #1032: Used in comparison contexts (relational/equality expressions)
-   * where MISRA 7.2 U suffix should NOT be applied - comparing `i32 < 0`
-   * should not generate `signedIdx < 0U` which changes comparison semantics.
-   */
-  static withoutExpectedType<T>(fn: () => T): T {
-    const savedType = this.expectedType;
-    const savedSuppress = this.suppressBareEnumResolution;
-    this.expectedType = null;
-    this.suppressBareEnumResolution = false;
-    try {
-      return fn();
-    } finally {
-      this.expectedType = savedType;
-      this.suppressBareEnumResolution = savedSuppress;
     }
   }
 

@@ -75,12 +75,16 @@ interface ITrackingState {
  * @param base generated C for the value being read from
  * @param index generated C for the bit index
  */
-const singleBitRead = (base: string, index: string): string => {
+const singleBitRead = (
+  base: string,
+  index: string,
+  orchestrator: IOrchestrator,
+): string => {
   const expr =
     index === "0" || index === "0U"
       ? `((${base}) & 1)`
       : `((${base} >> ${index}) & 1)`;
-  const targetType = CodeGenState.expectedType;
+  const targetType = orchestrator.state.expectedType;
   return targetType ? NarrowingCastHelper.wrap(expr, "int", targetType) : expr;
 };
 
@@ -1317,14 +1321,14 @@ const generateMemberAccess = (
   effects: TGeneratorEffect[],
 ): MemberAccessResult => {
   return (
-    tryBitmapFieldAccess(ctx, input, effects) ??
+    tryBitmapFieldAccess(ctx, input, effects, orchestrator) ??
     tryScopeMemberAccess(ctx, input, state, orchestrator) ??
     tryKnownScopeAccess(ctx, orchestrator) ??
     tryEnumMemberAccess(ctx, input, orchestrator) ??
     tryRegisterMemberAccess(ctx, input) ??
     tryStructParamAccess(ctx, orchestrator) ??
-    tryRegisterBitmapAccess(ctx, input, effects) ??
-    tryStructBitmapAccess(ctx, input, effects) ??
+    tryRegisterBitmapAccess(ctx, input, effects, orchestrator) ??
+    tryStructBitmapAccess(ctx, input, effects, orchestrator) ??
     generateDefaultAccess(ctx, orchestrator)
   );
 };
@@ -1340,6 +1344,7 @@ const tryBitmapFieldAccess = (
   ctx: IMemberAccessContext,
   input: IGeneratorInput,
   effects: TGeneratorEffect[],
+  orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
   if (!ctx.rootIdentifier) {
     return null;
@@ -1356,6 +1361,7 @@ const tryBitmapFieldAccess = (
     typeInfo.bitmapTypeName,
     input.symbols!.bitmapFields,
     `type '${typeInfo.bitmapTypeName}'`,
+    orchestrator.state,
   );
   applyAccessEffects(bitmapResult.effects, effects);
   output.result = bitmapResult.code;
@@ -1491,6 +1497,7 @@ const tryRegisterBitmapAccess = (
   ctx: IMemberAccessContext,
   input: IGeneratorInput,
   effects: TGeneratorEffect[],
+  orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
   if (!input.symbols!.registerMemberTypes.has(ctx.result)) {
     return null;
@@ -1504,6 +1511,7 @@ const tryRegisterBitmapAccess = (
     bitmapType,
     input.symbols!.bitmapFields,
     `register member '${ctx.result}' (bitmap type '${bitmapType}')`,
+    orchestrator.state,
   );
   applyAccessEffects(bitmapResult.effects, effects);
   output.result = bitmapResult.code;
@@ -1517,6 +1525,7 @@ const tryStructBitmapAccess = (
   ctx: IMemberAccessContext,
   input: IGeneratorInput,
   effects: TGeneratorEffect[],
+  orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
   if (
     !ctx.currentStructType ||
@@ -1532,6 +1541,7 @@ const tryStructBitmapAccess = (
     ctx.currentStructType,
     input.symbols!.bitmapFields,
     `struct member '${ctx.result}' (bitmap type '${ctx.currentStructType}')`,
+    orchestrator.state,
   );
   applyAccessEffects(bitmapResult.effects, effects);
   output.result = bitmapResult.code;
@@ -1613,7 +1623,7 @@ const generateSubscriptAccess = (
   // what gives an index literal its U suffix regardless of element type, and it
   // is why the plan hands over a render rather than a rendered string -- a
   // value generated outside this window silently loses the suffix.
-  const indexes = CodeGenState.withExpectedType("size_t", () =>
+  const indexes = orchestrator.state.withExpectedType("size_t", () =>
     ctx.subscript.renderIndexes(),
   );
 
@@ -1649,7 +1659,7 @@ const handleSingleSubscript = (
 
   // Register access: bit extraction
   if (isRegisterAccess) {
-    output.result = singleBitRead(ctx.result, index);
+    output.result = singleBitRead(ctx.result, index, orchestrator);
     return output;
   }
 
@@ -1673,7 +1683,7 @@ const handleSingleSubscript = (
   const isPrimitiveIntMember =
     ctx.currentStructType && TypeCheckUtils.isInteger(ctx.currentStructType);
   if (isPrimitiveIntMember) {
-    output.result = singleBitRead(ctx.result, index);
+    output.result = singleBitRead(ctx.result, index, orchestrator);
     output.currentStructType = undefined;
     return output;
   }
@@ -1690,7 +1700,13 @@ const handleSingleSubscript = (
   }
 
   // Default: classify subscript type
-  return handleDefaultSubscript(ctx, index, identifierTypeInfo, output);
+  return handleDefaultSubscript(
+    ctx,
+    index,
+    identifierTypeInfo,
+    output,
+    orchestrator,
+  );
 };
 
 /**
@@ -1784,6 +1800,7 @@ const handleDefaultSubscript = (
   index: string,
   typeInfo: TTypeInfo | undefined,
   output: SubscriptAccessResult,
+  orchestrator: IOrchestrator,
 ): SubscriptAccessResult => {
   const subscriptKind = SubscriptClassifier.classify({
     typeInfo: typeInfo ?? null,
@@ -1792,7 +1809,7 @@ const handleDefaultSubscript = (
   });
 
   if (subscriptKind === "bit_single") {
-    output.result = singleBitRead(ctx.result, index);
+    output.result = singleBitRead(ctx.result, index, orchestrator);
   } else {
     output.result = `${ctx.result}[${index}]`;
   }
@@ -1856,7 +1873,7 @@ const handleBitRangeSubscript = (
 
     // MISRA 10.3: Add narrowing cast if expected type is known
     // Bit operations promote to int, so wrap with cast when assigning to narrower types
-    const targetType = CodeGenState.expectedType;
+    const targetType = orchestrator.state.expectedType;
     if (targetType && ctx.primaryTypeInfo?.baseType) {
       const promotedSourceType = NarrowingCastHelper.getPromotedType(
         ctx.primaryTypeInfo.baseType,

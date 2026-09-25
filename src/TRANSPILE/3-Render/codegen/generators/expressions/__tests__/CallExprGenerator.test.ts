@@ -100,13 +100,19 @@ interface IArgumentPlannerStub {
   ): string;
 }
 
+/**
+ * #1452: the generator reads render state off its orchestrator, so the mock
+ * and the assertions share ONE instance.
+ */
+let sharedRenderState = new RenderState();
+
 function createMockOrchestrator(
   overrides: Partial<IOrchestrator & IArgumentPlannerStub> = {},
 ): IOrchestrator & IArgumentPlannerStub {
   return {
     // #1452: the orchestrator carries 2.3's per-file state, so a generator
     // reads it from the collaborator it was handed rather than a static class.
-    state: new RenderState(),
+    state: sharedRenderState,
     generateExpression: vi.fn((ctx: Parser.ExpressionContext) => ctx.getText()),
     generateFunctionArg: vi.fn(
       (ctx: Parser.ExpressionContext) => `&${ctx.getText()}`,
@@ -1498,8 +1504,12 @@ describe("CallExprGenerator", () => {
   });
 
   describe("inDeclarationInit clearing (Issue #992)", () => {
+    beforeEach(() => {
+      sharedRenderState = new RenderState();
+    });
+
     it("clears inDeclarationInit during function argument generation", () => {
-      CodeGenState.inDeclarationInit = true;
+      sharedRenderState.inDeclarationInit = true;
 
       const argExpressions = [createMockExpressionContext("myArg")];
       const input = createMockInput();
@@ -1509,7 +1519,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         generateExpression: vi.fn((ctx: Parser.ExpressionContext) => {
-          flagDuringArg = CodeGenState.inDeclarationInit;
+          flagDuringArg = sharedRenderState.inDeclarationInit;
           return ctx.getText();
         }),
       });
@@ -1523,11 +1533,11 @@ describe("CallExprGenerator", () => {
       );
 
       expect(flagDuringArg).toBe(false);
-      expect(CodeGenState.inDeclarationInit).toBe(true);
+      expect(sharedRenderState.inDeclarationInit).toBe(true);
     });
 
     it("restores inDeclarationInit after argument generation", () => {
-      CodeGenState.inDeclarationInit = true;
+      sharedRenderState.inDeclarationInit = true;
 
       const argExpressions = [
         createMockExpressionContext("a"),
@@ -1547,7 +1557,7 @@ describe("CallExprGenerator", () => {
         orchestrator,
       );
 
-      expect(CodeGenState.inDeclarationInit).toBe(true);
+      expect(sharedRenderState.inDeclarationInit).toBe(true);
     });
   });
 });

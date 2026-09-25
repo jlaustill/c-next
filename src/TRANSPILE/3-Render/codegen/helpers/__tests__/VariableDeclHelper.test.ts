@@ -20,6 +20,7 @@ import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import IPlannedArrayDeclaration from "../../types/IPlannedArrayDeclaration";
 import TPlannedVariableDecl from "../../types/TPlannedVariableDecl";
 import TPlannedVariableInitializer from "../../types/TPlannedVariableInitializer";
+import RenderState from "../../../../../transpiler/state/RenderState";
 
 /**
  * An initializer render that sets the array-init bookkeeping, the way a real
@@ -94,6 +95,7 @@ describe("VariableDeclHelper", () => {
         arrayPlan(),
         "x",
         "uint8_t x",
+        new RenderState(),
       );
 
       expect(result).toEqual({
@@ -113,6 +115,7 @@ describe("VariableDeclHelper", () => {
         }),
         "arr",
         "uint8_t arr",
+        new RenderState(),
       );
 
       expect(result.handled).toBe(false);
@@ -127,6 +130,7 @@ describe("VariableDeclHelper", () => {
         arrayPlan({ isArray: true, arrayTypeDimensions: "[4]" }),
         "arr",
         "uint8_t main__arr",
+        new RenderState(),
       );
 
       expect(CodeGenState.localArrays.has("arr")).toBe(true);
@@ -146,6 +150,7 @@ describe("VariableDeclHelper", () => {
         }),
         "arr",
         "uint8_t arr",
+        new RenderState(),
       );
 
       expect(result.handled).toBe(true);
@@ -170,6 +175,7 @@ describe("VariableDeclHelper", () => {
         }),
         "arr",
         "uint8_t arr",
+        new RenderState(),
       );
 
       expect(result.handled).toBe(true);
@@ -185,13 +191,19 @@ describe("VariableDeclHelper", () => {
       };
 
       expect(
-        VariableDeclHelper.renderVariableInitializer(plan, "uint8_t x", false),
+        VariableDeclHelper.renderVariableInitializer(
+          plan,
+          "uint8_t x",
+          false,
+          new RenderState(),
+        ),
       ).toBe("uint8_t x = 0");
       expect(
         VariableDeclHelper.renderVariableInitializer(
           plan,
           "uint8_t x[2]",
           true,
+          new RenderState(),
         ),
       ).toBe("uint8_t x[2] = {0}");
     });
@@ -207,6 +219,7 @@ describe("VariableDeclHelper", () => {
           },
           "uint8_t x",
           false,
+          new RenderState(),
         ),
       ).toBe("uint8_t x = 42");
     });
@@ -215,19 +228,23 @@ describe("VariableDeclHelper", () => {
     // which is what puts MISRA C:2012 Rule 7.2's suffix on an unsigned literal.
     it("renders the expression inside the declared type's expectedType window", () => {
       let seen: string | null = null;
+      // #1452: the window is opened on the instance passed in, so the
+      // assertion reads that same object rather than a static class.
+      const state = new RenderState();
 
       VariableDeclHelper.renderVariableInitializer(
         {
           kind: "expression",
           renderTypeName: () => "u32",
           renderExpression: () => {
-            seen = CodeGenState.expectedType;
+            seen = state.expectedType;
             return "1";
           },
           resolveExpressionType: () => "u32",
         },
         "uint32_t x",
         false,
+        state,
       );
 
       expect(seen).toBe("u32");
@@ -253,6 +270,7 @@ describe("VariableDeclHelper", () => {
         },
         "float x",
         false,
+        new RenderState(),
       );
 
       expect(order).toEqual(["render", "resolve"]);
@@ -273,6 +291,7 @@ describe("VariableDeclHelper", () => {
           },
           "decl",
           false,
+          new RenderState(),
         );
 
         expect(result).toContain(expected);
@@ -290,6 +309,7 @@ describe("VariableDeclHelper", () => {
           },
           "uint32_t x",
           false,
+          new RenderState(),
         ),
       ).toBe("uint32_t x = n");
     });
@@ -304,9 +324,9 @@ describe("VariableDeclHelper", () => {
         args: ["pinConst"],
       };
 
-      expect(VariableDeclHelper.renderVariableDecl(plan)).toBe(
-        "MAX31856 thermo(pinConst);",
-      );
+      expect(
+        VariableDeclHelper.renderVariableDecl(plan, new RenderState()),
+      ).toBe("MAX31856 thermo(pinConst);");
     });
 
     it("renders the plain arm with its modifier prefix and emitted name", () => {
@@ -320,9 +340,9 @@ describe("VariableDeclHelper", () => {
         initializer: { kind: "zero", render: () => "0" },
       };
 
-      expect(VariableDeclHelper.renderVariableDecl(plan)).toBe(
-        "const uint8_t main__x = 0;",
-      );
+      expect(
+        VariableDeclHelper.renderVariableDecl(plan, new RenderState()),
+      ).toBe("const uint8_t main__x = 0;");
     });
 
     // The array half can finish the declaration on its own, and when it does
@@ -353,9 +373,9 @@ describe("VariableDeclHelper", () => {
         },
       };
 
-      expect(VariableDeclHelper.renderVariableDecl(plan)).toBe(
-        "uint8_t arr[2] = {1, 2};",
-      );
+      expect(
+        VariableDeclHelper.renderVariableDecl(plan, new RenderState()),
+      ).toBe("uint8_t arr[2] = {1, 2};");
       expect(renderExpression).not.toHaveBeenCalled();
     });
   });

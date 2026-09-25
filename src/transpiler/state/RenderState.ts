@@ -352,8 +352,96 @@ class RenderState {
     this.opaqueScopeVariables.add(qualifiedName);
   }
 
+  /** Expected type for struct initializers and enum inference */
+  expectedType: string | null = null;
+  /** Whether we're generating the RHS of a variable declaration initializer.
+   *  When true, struct literals use { .field = value } instead of (Type){ .field = value }
+   *  because plain designated initializers are valid C99 at any scope, while compound
+   *  literals are not constant expressions and fail at file scope on GCC < 13. */
+  inDeclarationInit: boolean = false;
+  /**
+   * Suppress bare enum resolution even when expectedType is set.
+   * Issue #872: MISRA 7.2 requires expectedType for U suffix on function args,
+   * but bare enum resolution in function args was never allowed and changing
+   * that would require ADR approval.
+   */
+  suppressBareEnumResolution: boolean = false;
+
+  /**
+   * Execute a function with a temporary expectedType, restoring on completion.
+   * Issue #872: Extracted to eliminate duplicate save/restore pattern and add exception safety.
+   *
+   * @param type - The expected type to set (if falsy, no change is made)
+   * @param fn - The function to execute
+   * @param suppressEnumResolution - If true, suppress bare enum resolution (for MISRA-only contexts)
+   * @returns The result of the function
+   */
+  withExpectedType<T>(
+    type: string | undefined | null,
+    fn: () => T,
+    suppressEnumResolution: boolean = false,
+  ): T {
+    if (!type) {
+      return fn();
+    }
+    const savedType = this.expectedType;
+    const savedSuppress = this.suppressBareEnumResolution;
+    this.expectedType = type;
+    if (suppressEnumResolution) {
+      this.suppressBareEnumResolution = true;
+    }
+    try {
+      return fn();
+    } finally {
+      this.expectedType = savedType;
+      this.suppressBareEnumResolution = savedSuppress;
+    }
+  }
+  /**
+   * Execute fn with expectedType=null, restoring prior value on exit.
+   * Issue #1032: Used in comparison contexts (relational/equality expressions)
+   * where MISRA 7.2 U suffix should NOT be applied - comparing `i32 < 0`
+   * should not generate `signedIdx < 0U` which changes comparison semantics.
+   */
+  withoutExpectedType<T>(fn: () => T): T {
+    const savedType = this.expectedType;
+    const savedSuppress = this.suppressBareEnumResolution;
+    this.expectedType = null;
+    this.suppressBareEnumResolution = false;
+    try {
+      return fn();
+    } finally {
+      this.expectedType = savedType;
+      this.suppressBareEnumResolution = savedSuppress;
+    }
+  }
+  /** Execute fn with inDeclarationInit=true, restoring prior value on exit. */
+  withDeclarationInit<T>(fn: () => T): T {
+    const saved = this.inDeclarationInit;
+    this.inDeclarationInit = true;
+    try {
+      return fn();
+    } finally {
+      this.inDeclarationInit = saved;
+    }
+  }
+  /** Execute fn with inDeclarationInit=false, restoring prior value on exit.
+   *  Used in sub-expression contexts (function args, ternary arms) where
+   *  plain designated initializers are not valid C. */
+  withoutDeclarationInit<T>(fn: () => T): T {
+    const saved = this.inDeclarationInit;
+    this.inDeclarationInit = false;
+    try {
+      return fn();
+    } finally {
+      this.inDeclarationInit = saved;
+    }
+  }
   /** Cleared per file, at the top of `generate()`. */
   reset(): void {
+    this.inDeclarationInit = false;
+    this.expectedType = null;
+    this.suppressBareEnumResolution = false;
     this.functionSignatures = new Map();
     this.callbackFieldTypes = new Map();
     this.callbackTypeReferences = new Set();

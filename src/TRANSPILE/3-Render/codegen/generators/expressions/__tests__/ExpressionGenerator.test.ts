@@ -19,6 +19,7 @@ import IOrchestrator from "../../IOrchestrator";
 import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type TPlannedTernary from "../../../types/TPlannedTernary";
+import RenderState from "../../../../../../transpiler/state/RenderState";
 
 /** Minimal mock input. */
 function createMockInput(): IGeneratorInput {
@@ -50,14 +51,19 @@ function createMockOrchestrator(): IOrchestrator {
   return {} as unknown as IOrchestrator;
 }
 
+/**
+ * #1452: the generator reads `inDeclarationInit` off the orchestrator's state
+ * now, so the mock and the assertions share ONE instance -- otherwise the test
+ * would set a flag on an object the generator never sees.
+ */
+let renderState = new RenderState();
+
 /** Run the generator on a plan. */
 function generate(planned: TPlannedTernary) {
-  return generateTernaryExpr(
-    planned,
-    createMockInput(),
-    createMockState(),
-    createMockOrchestrator(),
-  );
+  return generateTernaryExpr(planned, createMockInput(), createMockState(), {
+    ...createMockOrchestrator(),
+    state: renderState,
+  } as IOrchestrator);
 }
 
 describe("generateTernaryExpr", () => {
@@ -126,24 +132,25 @@ describe("generateTernaryExpr", () => {
   describe("inDeclarationInit clearing (Issue #992)", () => {
     beforeEach(() => {
       CodeGenState.reset();
+      renderState = new RenderState();
     });
 
     it("clears the flag in both arms and restores it after", () => {
-      CodeGenState.inDeclarationInit = true;
+      renderState.inDeclarationInit = true;
       const seen: Record<string, boolean> = {};
 
       generate({
         kind: "ternary",
         renderCondition: () => {
-          seen.condition = CodeGenState.inDeclarationInit;
+          seen.condition = renderState.inDeclarationInit;
           return "x > 0";
         },
         renderTrue: () => {
-          seen.trueArm = CodeGenState.inDeclarationInit;
+          seen.trueArm = renderState.inDeclarationInit;
           return "a";
         },
         renderFalse: () => {
-          seen.falseArm = CodeGenState.inDeclarationInit;
+          seen.falseArm = renderState.inDeclarationInit;
           return "b";
         },
       });
@@ -154,7 +161,7 @@ describe("generateTernaryExpr", () => {
         trueArm: false,
         falseArm: false,
       });
-      expect(CodeGenState.inDeclarationInit).toBe(true);
+      expect(renderState.inDeclarationInit).toBe(true);
     });
   });
 

@@ -126,7 +126,7 @@ export default class CodeGenerator implements IOrchestrator {
       currentParameters: CodeGenState.currentParameters,
       localVariables: CodeGenState.localVariables,
       localArrays: CodeGenState.localArrays,
-      expectedType: CodeGenState.expectedType,
+      expectedType: this.state.expectedType,
       headerOwnsTypeDefinitions:
         this.state.declarationPlan().headerOwnsTypeDefinitions, // #369/#1450
       // Issue #644: Postfix expression state

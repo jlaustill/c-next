@@ -8,6 +8,7 @@ import ArgumentGenerator from "../ArgumentGenerator";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import IArgumentGeneratorCallbacks from "../types/IArgumentGeneratorCallbacks";
 import enterScope from "../../../../../transpiler/__tests__/enterScope";
+import RenderState from "../../../../../transpiler/state/RenderState";
 
 describe("ArgumentGenerator", () => {
   // #1445: the callbacks are thunks and `generateArg` takes no node, so the 22
@@ -18,6 +19,7 @@ describe("ArgumentGenerator", () => {
   const createMockCallbacks = (
     overrides: Partial<IArgumentGeneratorCallbacks> = {},
   ): IArgumentGeneratorCallbacks => ({
+    state: new RenderState(),
     getLvalueType: () => null,
     getMemberAccessArrayStatus: () => "not-array",
     isCppMemberConversionRequired: () => false,

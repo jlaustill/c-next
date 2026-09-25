@@ -382,7 +382,7 @@ class CodeGenWalker {
     ctx: Parser.ExpressionContext,
     expectedType: string,
   ): string {
-    return CodeGenState.withExpectedType(expectedType, () =>
+    return this.host.state.withExpectedType(expectedType, () =>
       this.generateExpression(ctx),
     );
   }
@@ -1064,6 +1064,7 @@ class CodeGenWalker {
     // private helpers only to hand it back -- so the node stays here, where
     // the tree already is.
     return ArgumentGenerator.generateArg(simpleId, targetParamBaseType, {
+      state: this.host.state,
       generateExpression: () => this.generateExpression(ctx),
       getLvalueType: () => this.getLvalueType(ctx),
       getMemberAccessArrayStatus: () => this.getMemberAccessArrayStatus(ctx),
@@ -3340,8 +3341,8 @@ class CodeGenWalker {
     const initializer = varDecl.expression();
     if (initializer) {
       const typeName = this.generateType(varDecl.type());
-      return CodeGenState.withExpectedType(typeName, () =>
-        CodeGenState.withDeclarationInit(
+      return this.host.state.withExpectedType(typeName, () =>
+        this.host.state.withDeclarationInit(
           () => ` = ${this.generateExpression(initializer)}`,
         ),
       );
@@ -3535,11 +3536,11 @@ class CodeGenWalker {
    */
   private _resolveStructInitializerTypeName(): string {
     invariant(
-      CodeGenState.expectedType,
+      this.host.state.expectedType,
       "a struct initializer takes its type from its position -- E0357 " +
         "rejects this in pass 2.1, before this runs",
     );
-    return CodeGenState.expectedType;
+    return this.host.state.expectedType;
   }
 
   /**
@@ -3586,7 +3587,7 @@ class CodeGenWalker {
     const fields = fieldList.fieldInitializer().map((field) => {
       const fieldName = field.IDENTIFIER().getText();
       const fieldType = this._resolveFieldType(fieldName, structFieldTypes);
-      const value = CodeGenState.withExpectedType(fieldType, () =>
+      const value = this.host.state.withExpectedType(fieldType, () =>
         this.generateExpression(field.expression()),
       );
       return { fieldName, value };
@@ -3626,7 +3627,7 @@ class CodeGenWalker {
     // In a declaration initializer context, use plain designated initializer — no type cast
     // prefix needed, and compound literals are not C99 constant expressions so they fail
     // at file scope on GCC < 13.
-    if (CodeGenState.inDeclarationInit) {
+    if (this.host.state.inDeclarationInit) {
       return initializer;
     }
 
@@ -4382,7 +4383,10 @@ class CodeGenWalker {
 
   private generateVariableDecl(ctx: Parser.VariableDeclarationContext): string {
     // Issue #792: Delegate to VariableDeclHelper
-    return VariableDeclHelper.renderVariableDecl(this.planVariableDecl(ctx));
+    return VariableDeclHelper.renderVariableDecl(
+      this.planVariableDecl(ctx),
+      this.host.state,
+    );
   }
 
   /**
@@ -4734,7 +4738,7 @@ class CodeGenWalker {
     // manually save/restore assignmentContext
     let value: string;
     try {
-      value = CodeGenState.withExpectedType(resolved.expectedType, () =>
+      value = this.host.state.withExpectedType(resolved.expectedType, () =>
         this.generateExpression(ctx.expression()),
       );
     } finally {
@@ -5268,18 +5272,18 @@ class CodeGenWalker {
   private _resolveUnqualifiedEnumMember(id: string): string | null {
     // Issue #872: MISRA contexts set expectedType for U suffix but suppress enum resolution
     // Bare enum resolution in function args was never allowed and requires ADR approval to change
-    if (CodeGenState.suppressBareEnumResolution) {
+    if (this.host.state.suppressBareEnumResolution) {
       // Fall through to error handling below - don't resolve bare enums
     } else if (
       // Type-aware resolution: check only the expected enum type
-      CodeGenState.expectedType &&
-      CodeGenState.symbols!.knownEnums.has(CodeGenState.expectedType)
+      this.host.state.expectedType &&
+      CodeGenState.symbols!.knownEnums.has(this.host.state.expectedType)
     ) {
       const members = CodeGenState.symbols!.enumMembers.get(
-        CodeGenState.expectedType,
+        this.host.state.expectedType,
       );
       if (members?.has(id)) {
-        return `${CodeGenState.expectedType}${this.host.getScopeSeparator(false)}${id}`;
+        return `${this.host.state.expectedType}${this.host.getScopeSeparator(false)}${id}`;
       }
       // Not a member of the expected enum: falls through to the assertion
       // below. Before #1322 this returned null and the bare name was emitted

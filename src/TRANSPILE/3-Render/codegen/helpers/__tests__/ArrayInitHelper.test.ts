@@ -8,11 +8,13 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import ArrayInitHelper from "../ArrayInitHelper";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../../../transpiler/state/RenderState";
 
 /**
  * Default callbacks for testing.
  */
 const defaultCallbacks = {
+  state: new RenderState(),
   generateExpression: vi.fn(() => "{1, 2, 3}"),
   getTypeName: vi.fn(() => "u8"),
   // #1445: a thunk now. It used to compute the suffix from fake dimension
@@ -49,6 +51,7 @@ describe("ArrayInitHelper", () => {
       });
 
       const callbacks = {
+        state: new RenderState(),
         generateExpression: vi.fn(() => {
           // Simulate generateExpression setting array init state
           CodeGenState.lastArrayInitCount = 3;
@@ -74,6 +77,7 @@ describe("ArrayInitHelper", () => {
 
     it("asserts, since #1322, that the fill-all form never reaches an inferred size (E0876 owns it)", () => {
       const callbacks = {
+        state: new RenderState(),
         generateExpression: vi.fn(() => {
           CodeGenState.lastArrayFillValue = "0";
           return "{0}";
@@ -94,6 +98,7 @@ describe("ArrayInitHelper", () => {
 
     it("asserts, since #1322, that a short initializer never reaches emission (E0866 owns it)", () => {
       const callbacks = {
+        state: new RenderState(),
         generateExpression: vi.fn(() => {
           CodeGenState.lastArrayInitCount = 2; // Only 2 elements
           return "{1, 2}";
@@ -114,6 +119,7 @@ describe("ArrayInitHelper", () => {
 
     it("expands fill-all for non-zero values", () => {
       const callbacks = {
+        state: new RenderState(),
         generateExpression: vi.fn(() => {
           CodeGenState.lastArrayFillValue = "1";
           return "{1}";
@@ -135,6 +141,7 @@ describe("ArrayInitHelper", () => {
 
     it("does not expand fill-all for zero value", () => {
       const callbacks = {
+        state: new RenderState(),
         generateExpression: vi.fn(() => {
           CodeGenState.lastArrayFillValue = "0";
           return "{0}";

@@ -23,6 +23,7 @@ import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
 import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import RenderState from "../../../../../../transpiler/state/RenderState";
 
 // ========================================================================
 // Test Helpers - Mock Symbols
@@ -139,6 +140,8 @@ function createMockOrchestrator(overrides?: {
   markFloatShadowCurrent?: (name: string) => void;
 }): IOrchestrator & IPostfixPlannerStub {
   return {
+    // #1452: the generator reads render state off its orchestrator.
+    state: new RenderState(),
     getInput: vi.fn(),
     getState: vi.fn(),
     applyEffects: vi.fn(),
