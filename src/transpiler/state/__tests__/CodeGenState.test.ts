@@ -446,16 +446,6 @@ describe("CodeGenState", () => {
 
       expect(CodeGenState.callbackTypes.get("MyCallback")).toBe(info);
     });
-
-    it("registerCallbackFieldType adds to callbackFieldTypes", () => {
-      CodeGenState.registerCallbackFieldType(
-        "MyStruct_onClick",
-        "ClickHandler",
-      );
-      expect(CodeGenState.callbackFieldTypes.get("MyStruct_onClick")).toBe(
-        "ClickHandler",
-      );
-    });
   });
 
   describe("Variable Type Info API (Issue #786)", () => {
@@ -1197,88 +1187,6 @@ describe("CodeGenState", () => {
       expect(
         CodeGenState.isParameterModifiedAnywhere("localOnly", "target"),
       ).toBe(false);
-    });
-  });
-
-  describe("Opaque Scope Variable Helpers (Issue #948)", () => {
-    it("markOpaqueScopeVariable adds to opaqueScopeVariables", () => {
-      CodeGenState.markOpaqueScopeVariable("MyScope_widget");
-      expect(CodeGenState.isOpaqueScopeVariableAccess("MyScope_widget")).toBe(
-        true,
-      );
-    });
-
-    it("isOpaqueScopeVariableAccess returns false for unknown variable", () => {
-      expect(CodeGenState.isOpaqueScopeVariableAccess("Unknown_var")).toBe(
-        false,
-      );
-    });
-
-    it("isOpaqueScopeVariableAccess returns true for marked variable", () => {
-      CodeGenState.markOpaqueScopeVariable("Gui_display");
-      expect(CodeGenState.isOpaqueScopeVariableAccess("Gui_display")).toBe(
-        true,
-      );
-    });
-
-    it("reset clears opaqueScopeVariables", () => {
-      CodeGenState.markOpaqueScopeVariable("Test_opaque");
-      expect(CodeGenState.isOpaqueScopeVariableAccess("Test_opaque")).toBe(
-        true,
-      );
-
-      CodeGenState.reset();
-
-      expect(CodeGenState.isOpaqueScopeVariableAccess("Test_opaque")).toBe(
-        false,
-      );
-    });
-
-    it("handles multiple opaque scope variables", () => {
-      CodeGenState.markOpaqueScopeVariable("Scope1_widget");
-      CodeGenState.markOpaqueScopeVariable("Scope1_display");
-      CodeGenState.markOpaqueScopeVariable("Scope2_handle");
-
-      expect(CodeGenState.isOpaqueScopeVariableAccess("Scope1_widget")).toBe(
-        true,
-      );
-      expect(CodeGenState.isOpaqueScopeVariableAccess("Scope1_display")).toBe(
-        true,
-      );
-      expect(CodeGenState.isOpaqueScopeVariableAccess("Scope2_handle")).toBe(
-        true,
-      );
-      expect(CodeGenState.isOpaqueScopeVariableAccess("Scope1_other")).toBe(
-        false,
-      );
-    });
-
-    // Issue #996: An element of an opaque-handle array is itself a pointer.
-    it("isOpaqueScopeVariableAccess matches array-element access of an opaque array", () => {
-      CodeGenState.markOpaqueScopeVariable("UI_widgets");
-
-      expect(CodeGenState.isOpaqueScopeVariableAccess("UI_widgets[i]")).toBe(
-        true,
-      );
-      expect(CodeGenState.isOpaqueScopeVariableAccess("UI_widgets[0]")).toBe(
-        true,
-      );
-    });
-
-    it("isOpaqueScopeVariableAccess does not match subscript of a non-opaque array", () => {
-      // Base array name was never marked opaque.
-      expect(CodeGenState.isOpaqueScopeVariableAccess("UI_counts[i]")).toBe(
-        false,
-      );
-    });
-
-    it("isOpaqueScopeVariableAccess does not match a different array that shares a prefix", () => {
-      CodeGenState.markOpaqueScopeVariable("UI_widgets");
-
-      // "UI_widgetsExtra" is a distinct variable, not a subscript of UI_widgets.
-      expect(CodeGenState.isOpaqueScopeVariableAccess("UI_widgetsExtra")).toBe(
-        false,
-      );
     });
   });
 

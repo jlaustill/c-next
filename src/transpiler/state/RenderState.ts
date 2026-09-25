@@ -1,3 +1,7 @@
+import type IProgram from "../types/IProgram";
+import type IDeclarationPlan from "../types/IDeclarationPlan";
+import type IFunctionSignature from "../types/IFunctionSignature";
+import invariant from "../../utils/invariant";
 import ToolchainRequirements from "../../instrumentation/ToolchainRequirements";
 import type TIncludeHeader from "../types/TIncludeHeader";
 import type IAssignmentOverflowContext from "../types/IAssignmentOverflowContext";
@@ -182,8 +186,180 @@ class RenderState {
     this.usedSafeDivOps.add(`${operation}_${cnxType}`);
   }
 
+  /**
+   * 2.2 Plan's declaration decisions for the file being generated.
+   *
+   * Frozen, and set once before any declaration renders. Held here rather than
+   * on `CodeGenerator` because CLAUDE.md gives this class sole ownership of
+   * per-file state; it sits beside `symbols` for the same reason -- a decided
+   * artifact the whole file's generation reads and nothing re-derives.
+   *
+   * Null before `assembleGeneratedOutput` reaches the declarations, which is
+   * also every unit test that drives a generator directly. `declarationPlan()`
+   * is the accessor that refuses the null rather than letting a site read a
+   * silently-wrong default.
+   */
+  declarationPlanOrNull: IDeclarationPlan | null = null;
+  /** ADR-013: Track function parameter const-ness for call-site validation */
+  functionSignatures: Map<string, IFunctionSignature> = new Map();
+  /** Callback field types: "Struct.field" -> callbackTypeName */
+  callbackFieldTypes: Map<string, string> = new Map();
+  /**
+   * ADR-029 / Issues #1200, #1201: every type name referenced by a field or a
+   * parameter, wherever it appears -- top-level struct, scope-nested struct,
+   * scope member, or function parameter.
+   *
+   * Emitting a callback's `_fp` typedef is one decision, and it used to be
+   * derived from callbackFieldTypes alone. That map is populated only while
+   * walking TOP-LEVEL struct declarations, so a callback used anywhere else was
+   * registered as known, referenced in the output, and never given a typedef --
+   * generated C that does not compile.
+   *
+   * Names go in unfiltered: a parameter may name a callback declared later in
+   * the file, so membership is intersected with callbackTypes at query time
+   * rather than at collection time.
+   */
+  callbackTypeReferences: Set<string> = new Set();
+  /**
+   * #1491: the subset of `callbackTypeReferences` named by a declaration that
+   * APPEARS IN THE HEADER -- a struct field, a scope member variable, or a
+   * parameter.
+   *
+   * A local variable inside a function body names a callback type too (#1484),
+   * and that reference must still produce a typedef -- but in the `.c`, not the
+   * header. Treating the two alike put a type in the public interface because
+   * one function body happened to use it, which is neither what C does nor
+   * safe: two files that both named an INCLUDED function-as-type locally each
+   * exported the same typedef, and anything including both headers saw it
+   * twice, which C99 rejects.
+   *
+   * The C practice this follows: a library header typedefs the callback types
+   * ITS OWN API uses -- POSIX's signal-handler typedef, `curl_write_callback`, `sqlite3_callback`
+   * -- and nothing else. `stdlib.h` does not typedef `qsort`'s comparator; it
+   * writes the pointer inline, because no caller needs to name it.
+   */
+  publicCallbackTypeReferences: Set<string> = new Set();
+  /**
+   * Tracks scope variables with opaque (forward-declared) struct types.
+   * These are generated as pointers with NULL initialization and should
+   * be passed directly (not with &) since they're already pointers.
+   * Maps qualified name (e.g., "MyScope_widget") to true.
+   */
+  opaqueScopeVariables: Set<string> = new Set();
+
+  /**
+   * 2.2 Plan's declaration decisions, asserted present.
+   *
+   * A decision read before it was made is a defect, not a default: answering
+   * `false` for "does the header own the type?" emits a duplicate definition
+   * rather than failing, and the C compiler is the first thing that notices.
+   */
+  declarationPlan(): IDeclarationPlan {
+    const plan = this.declarationPlanOrNull;
+    invariant(
+      plan !== null,
+      "2.2 Plan decides declarations before 2.3 Render reads them",
+    );
+    return plan;
+  }
+  /**
+   * Compute unmodified parameters for all functions on-demand.
+   * Returns a map of function name -> Set of parameter names NOT modified.
+   * Computed from `functionSignatures` and the program's modification facts.
+   *
+   * #1452: the artifact is handed in rather than reached for. 1.4 Resolve owns
+   * it, and this is render state -- the two travel together at the call site
+   * instead of one holding a reference to the other.
+   */
+  getUnmodifiedParameters(program: IProgram | null): Map<string, Set<string>> {
+    const result = new Map<string, Set<string>>();
+    for (const [funcName, signature] of this.functionSignatures) {
+      const modifiedSet = program?.modifiedParameters().get(funcName);
+      const unmodified = new Set<string>();
+      for (const param of signature.parameters) {
+        if (!modifiedSet?.has(param.name)) {
+          unmodified.add(param.name);
+        }
+      }
+      result.set(funcName, unmodified);
+    }
+    return result;
+  }
+  /**
+   * Register a callback field type.
+   */
+  registerCallbackFieldType(key: string, typeName: string): void {
+    this.callbackFieldTypes.set(key, typeName);
+  }
+  /**
+   * Record a callback type named by a declaration that APPEARS IN THE HEADER.
+   *
+   * The single writer for that decision, so "does the public interface name
+   * this type" is decided in one place rather than by remembering to update a
+   * second set at each of the three declaration sites.
+   */
+  notePublicCallbackTypeReference(functionName: string): void {
+    this.callbackTypeReferences.add(functionName);
+    this.publicCallbackTypeReferences.add(functionName);
+  }
+  /**
+   * Issue #1164: does the generated header own this callback's typedef?
+   *
+   * When the `.c` includes its own header, whichever typedefs the header emits
+   * must not be emitted a second time -- C99 rejects even an identical typedef
+   * redefinition. Both sides ask this one question so they cannot disagree
+   * about who owns a given typedef.
+   *
+   * Keyed on callbackTypeReferences (#1200/#1201) rather than a set of its own:
+   * that already records every site naming a callback type, so ownership and
+   * emission cannot drift apart.
+   */
+  headerOwnsCallbackTypedef(functionName: string): boolean {
+    return this.publicCallbackTypeReferences.has(functionName);
+  }
+  /**
+   * Check if generated code accesses an opaque scope variable (and is thus
+   * already a pointer). Used during argument generation to decide whether an
+   * address-of (&) prefix is needed.
+   *
+   * Handles two forms:
+   * - Direct access:        "MyScope_widget"     → the handle itself (pointer)
+   * - Array-element access: "MyScope_widgets[i]" → an element of an opaque
+   *   handle array, which is itself a pointer (Issue #996)
+   *
+   * @param generatedCode - The generated access expression (e.g. "UI_widgets[i]")
+   * @returns true if this resolves to an opaque scope variable (already a pointer)
+   */
+  isOpaqueScopeVariableAccess(generatedCode: string): boolean {
+    if (this.opaqueScopeVariables.has(generatedCode)) {
+      return true;
+    }
+    // Issue #996: An element of an opaque-handle array is already a pointer.
+    // Match on the base array name that precedes the subscript.
+    const bracketIndex = generatedCode.indexOf("[");
+    if (bracketIndex === -1) {
+      return false;
+    }
+    return this.opaqueScopeVariables.has(generatedCode.slice(0, bracketIndex));
+  }
+  /**
+   * Mark a scope variable as having an opaque (forward-declared) struct type.
+   * These are generated as pointers with NULL initialization.
+   *
+   * @param qualifiedName - The fully qualified variable name (e.g., "MyScope_widget")
+   */
+  markOpaqueScopeVariable(qualifiedName: string): void {
+    this.opaqueScopeVariables.add(qualifiedName);
+  }
+
   /** Cleared per file, at the top of `generate()`. */
   reset(): void {
+    this.functionSignatures = new Map();
+    this.callbackFieldTypes = new Map();
+    this.callbackTypeReferences = new Set();
+    this.publicCallbackTypeReferences = new Set();
+    this.declarationPlanOrNull = null;
+    this.opaqueScopeVariables = new Set();
     this.usedClampOps = new Set();
     this.usedSafeDivOps = new Set();
     this.needsStdint = false;

@@ -103,12 +103,12 @@ export default class CodeGenerator implements IOrchestrator {
       symbolTable: CodeGenState.symbolTable,
       symbols: CodeGenState.symbols,
       typeRegistry: CodeGenState.getTypeRegistryView(),
-      functionSignatures: CodeGenState.functionSignatures,
+      functionSignatures: this.state.functionSignatures,
       knownFunctions: CodeGenState.knownFunctions,
       knownStructs: CodeGenState.symbols?.knownStructs ?? new Set(),
       constValues: CodeGenState.constValues,
       callbackTypes: CodeGenState.callbackTypes,
-      callbackFieldTypes: CodeGenState.callbackFieldTypes,
+      callbackFieldTypes: this.state.callbackFieldTypes,
       targetCapabilities: CodeGenState.targetCapabilities,
       debugMode: this.state.debugMode,
     };
@@ -128,7 +128,7 @@ export default class CodeGenerator implements IOrchestrator {
       localArrays: CodeGenState.localArrays,
       expectedType: CodeGenState.expectedType,
       headerOwnsTypeDefinitions:
-        CodeGenState.declarationPlan().headerOwnsTypeDefinitions, // #369/#1450
+        this.state.declarationPlan().headerOwnsTypeDefinitions, // #369/#1450
       // Issue #644: Postfix expression state
       scopeMembers: CodeGenState.getAllScopeMembers(),
       mainArgsName: CodeGenState.mainArgsName,
@@ -209,7 +209,7 @@ export default class CodeGenerator implements IOrchestrator {
 
         // Callback effects
         case "register-callback-field":
-          CodeGenState.callbackFieldTypes.set(effect.key, effect.typeName);
+          this.state.callbackFieldTypes.set(effect.key, effect.typeName);
           break;
         case "register-struct-init":
           CodeGenState.generatedStructInits.add(effect.structName);
@@ -470,11 +470,11 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   private isCallbackTypeReferenced(funcName: string): boolean {
-    return CodeGenState.callbackTypeReferences.has(funcName);
+    return this.state.callbackTypeReferences.has(funcName);
   }
 
   // #1322: `isCallbackTypeUsedAsFieldType` stood here, answering ADR-029's
-  // nominal-typing question by scanning `CodeGenState.callbackFieldTypes`.
+  // nominal-typing question by scanning `this.state.callbackFieldTypes`.
   // That map holds the structs emitted SO FAR in the current file, so a struct
   // declared below the assignment, in an enclosing scope, or in an include did
   // not count -- the identity of a type depending on emission order. Pass 2.1
@@ -563,8 +563,8 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #1164: the included header already declares this one.
     if (
-      CodeGenState.declarationPlan().headerOwnsTypeDefinitions &&
-      CodeGenState.headerOwnsCallbackTypedef(funcName)
+      this.state.declarationPlan().headerOwnsTypeDefinitions &&
+      this.state.headerOwnsCallbackTypedef(funcName)
     ) {
       return null;
     }
@@ -586,7 +586,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Computed on-demand from functionSignatures and modifiedParameters.
    */
   getFunctionUnmodifiedParams(): ReadonlyMap<string, Set<string>> {
-    return CodeGenState.getUnmodifiedParameters();
+    return this.state.getUnmodifiedParameters(CodeGenState.program);
   }
 
   /**
@@ -596,8 +596,8 @@ export default class CodeGenerator implements IOrchestrator {
    */
   updateFunctionParamsAutoConst(_functionName: string): void {
     // No-op: Unmodified parameters are now computed on-demand from
-    // CodeGenState.functionSignatures and CodeGenState.modifiedParameters
-    // via CodeGenState.getUnmodifiedParameters().
+    // this.state.functionSignatures and CodeGenState.modifiedParameters
+    // via this.state.getUnmodifiedParameters(CodeGenState.program).
   }
 
   /**
@@ -616,7 +616,7 @@ export default class CodeGenerator implements IOrchestrator {
    */
   isCalleeParameterModified(funcName: string, paramIndex: number): boolean {
     // Get the parameter name at the given index from the function signature
-    const sig = CodeGenState.functionSignatures.get(funcName);
+    const sig = this.state.functionSignatures.get(funcName);
     if (!sig || paramIndex >= sig.parameters.length) {
       // Callee not yet processed - conservatively return false (assume unmodified)
       return false;
@@ -792,7 +792,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   markOpaqueScopeVariable(qualifiedName: string): void {
-    CodeGenState.markOpaqueScopeVariable(qualifiedName);
+    this.state.markOpaqueScopeVariable(qualifiedName);
   }
 
   // ===========================================================================

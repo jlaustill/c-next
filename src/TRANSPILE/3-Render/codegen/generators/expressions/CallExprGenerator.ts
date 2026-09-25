@@ -189,7 +189,8 @@ const _generateCFunctionArg = (
 
   // Issue #948: Check if argument is an opaque scope variable (already a pointer)
   // Issue #996: ...including an element of an opaque-handle array (arr[i])
-  const isOpaqueScopeVar = CodeGenState.isOpaqueScopeVariableAccess(argCode);
+  const isOpaqueScopeVar =
+    orchestrator.state.isOpaqueScopeVariableAccess(argCode);
 
   // Add & if argument needs address-of to match parameter type.
   // Issue #322: struct types passed to pointer params.

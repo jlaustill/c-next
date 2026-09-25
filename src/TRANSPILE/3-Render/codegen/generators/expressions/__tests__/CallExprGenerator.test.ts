@@ -8,6 +8,7 @@ import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
 import TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type IPlannedCallArgument from "../../../types/IPlannedCallArgument";
+import RenderState from "../../../../../../transpiler/state/RenderState";
 
 // ========================================================================
 // Test Helpers
@@ -103,6 +104,9 @@ function createMockOrchestrator(
   overrides: Partial<IOrchestrator & IArgumentPlannerStub> = {},
 ): IOrchestrator & IArgumentPlannerStub {
   return {
+    // #1452: the orchestrator carries 2.3's per-file state, so a generator
+    // reads it from the collaborator it was handed rather than a static class.
+    state: new RenderState(),
     generateExpression: vi.fn((ctx: Parser.ExpressionContext) => ctx.getText()),
     generateFunctionArg: vi.fn(
       (ctx: Parser.ExpressionContext) => `&${ctx.getText()}`,

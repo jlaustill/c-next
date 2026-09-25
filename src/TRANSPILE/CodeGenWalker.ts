@@ -321,7 +321,9 @@ class CodeGenWalker {
     // effects are registered -- returning early would silently drop them,
     // which is how the ADR-029 struct init function was lost (#369/#1164).
     const code = this.invokeGenerator(generate, ctx);
-    return CodeGenState.declarationPlan().headerOwnsTypeDefinitions ? "" : code;
+    return this.host.state.declarationPlan().headerOwnsTypeDefinitions
+      ? ""
+      : code;
   }
 
   /**
@@ -1433,7 +1435,7 @@ class CodeGenWalker {
    * typedef and colliding in anything that includes both.
    */
   private emitTypedefsForUndeclaredCallbackTypes(): void {
-    for (const funcName of CodeGenState.callbackTypeReferences) {
+    for (const funcName of this.host.state.callbackTypeReferences) {
       if (
         !CodeGenState.callbackTypes.has(funcName) ||
         this.host.state.emittedCallbackTypedefs.has(funcName)
@@ -1774,7 +1776,7 @@ class CodeGenWalker {
     // Unlike the emission plan below, neither answer depends on what rendering
     // turns out to produce, so Render reads them rather than interpreting the
     // state they came from.
-    CodeGenState.declarationPlanOrNull = DeclarationPlan.build(
+    this.host.state.declarationPlanOrNull = DeclarationPlan.build(
       tree.declaration().map((decl) => CodeGenWalker.declarationKindOf(decl)),
       this.host.state.selfIncludeAdded,
     );
@@ -1929,7 +1931,7 @@ class CodeGenWalker {
     // lands in the emitted array is arithmetic, and stays here -- the index
     // depends on how many leading-comment lines were pushed, which is a fact
     // about text rather than a decision about what C should exist.
-    const precedes = CodeGenState.declarationPlan().callbackTypedefsPrecede;
+    const precedes = this.host.state.declarationPlan().callbackTypedefsPrecede;
 
     const declarations: string[] = [];
     let firstFunctionIndex: number | null = null;
@@ -2220,7 +2222,7 @@ class CodeGenWalker {
           const varType = this.getTypeName(
             member.variableDeclaration()!.type(),
           );
-          CodeGenState.notePublicCallbackTypeReference(varType);
+          this.host.state.notePublicCallbackTypeReference(varType);
         }
       }
     });
@@ -2249,7 +2251,7 @@ class CodeGenWalker {
       fullName,
       funcDecl.parameterList() ?? null,
     );
-    CodeGenState.functionSignatures.set(fullName, sig);
+    this.host.state.functionSignatures.set(fullName, sig);
     // ADR-029: Register scoped function as callback type
     this.registerCallbackType(fullName, funcDecl);
     // #1484: locals in the body name callback types too.
@@ -2270,12 +2272,12 @@ class CodeGenWalker {
 
       // Track callback field types (needed for typedef generation)
       if (CodeGenState.callbackTypes.has(fieldType)) {
-        CodeGenState.callbackFieldTypes.set(
+        this.host.state.callbackFieldTypes.set(
           `${structName}.${fieldName}`,
           fieldType,
         );
       }
-      CodeGenState.notePublicCallbackTypeReference(fieldType);
+      this.host.state.notePublicCallbackTypeReference(fieldType);
     }
   }
 
@@ -2292,7 +2294,7 @@ class CodeGenWalker {
       name,
       funcDecl.parameterList() ?? null,
     );
-    CodeGenState.functionSignatures.set(name, sig);
+    this.host.state.functionSignatures.set(name, sig);
     // ADR-029: Register function as callback type
     this.registerCallbackType(name, funcDecl);
     // #1484: locals in the body name callback types too.
@@ -2416,7 +2418,7 @@ class CodeGenWalker {
         const baseType = this.getTypeName(param.type());
         // Issue #1201: a parameter naming a callback type needs that type's
         // typedef emitted, exactly as a struct field does.
-        CodeGenState.notePublicCallbackTypeReference(baseType);
+        this.host.state.notePublicCallbackTypeReference(baseType);
         parameters.push({ name: paramName, baseType, isConst, isArray });
       }
     }
@@ -2455,7 +2457,9 @@ class CodeGenWalker {
         node instanceof Parser.VariableDeclarationContext ||
         node instanceof Parser.ForVarDeclContext
       ) {
-        CodeGenState.callbackTypeReferences.add(this.getTypeName(node.type()));
+        this.host.state.callbackTypeReferences.add(
+          this.getTypeName(node.type()),
+        );
       }
       for (let i = 0; i < node.getChildCount(); i++) {
         const child = node.getChild(i);

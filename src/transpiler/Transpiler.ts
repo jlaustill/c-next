@@ -2965,7 +2965,7 @@ class Transpiler {
     // Issue #1164: same predicate the .c uses to decide it must NOT emit these.
     const usedCallbackTypes = new Set<string>();
     for (const funcName of CodeGenState.callbackTypes.keys()) {
-      if (CodeGenState.headerOwnsCallbackTypedef(funcName)) {
+      if (this.codeGenerator.renderState.headerOwnsCallbackTypedef(funcName)) {
         usedCallbackTypes.add(funcName);
       }
     }

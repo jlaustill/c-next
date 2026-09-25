@@ -85,4 +85,67 @@ describe("RenderState", () => {
       expect(state.usedSafeDivOps.has("div_i32")).toBe(true);
     });
   });
+
+  it("registerCallbackFieldType adds to callbackFieldTypes", () => {
+    state.registerCallbackFieldType("MyStruct_onClick", "ClickHandler");
+    expect(state.callbackFieldTypes.get("MyStruct_onClick")).toBe(
+      "ClickHandler",
+    );
+  });
+
+  describe("Opaque Scope Variable Helpers (Issue #948)", () => {
+    it("markOpaqueScopeVariable adds to opaqueScopeVariables", () => {
+      state.markOpaqueScopeVariable("MyScope_widget");
+      expect(state.isOpaqueScopeVariableAccess("MyScope_widget")).toBe(true);
+    });
+
+    it("isOpaqueScopeVariableAccess returns false for unknown variable", () => {
+      expect(state.isOpaqueScopeVariableAccess("Unknown_var")).toBe(false);
+    });
+
+    it("isOpaqueScopeVariableAccess returns true for marked variable", () => {
+      state.markOpaqueScopeVariable("Gui_display");
+      expect(state.isOpaqueScopeVariableAccess("Gui_display")).toBe(true);
+    });
+
+    it("reset clears opaqueScopeVariables", () => {
+      state.markOpaqueScopeVariable("Test_opaque");
+      expect(state.isOpaqueScopeVariableAccess("Test_opaque")).toBe(true);
+
+      state.reset();
+
+      expect(state.isOpaqueScopeVariableAccess("Test_opaque")).toBe(false);
+    });
+
+    it("handles multiple opaque scope variables", () => {
+      state.markOpaqueScopeVariable("Scope1_widget");
+      state.markOpaqueScopeVariable("Scope1_display");
+      state.markOpaqueScopeVariable("Scope2_handle");
+
+      expect(state.isOpaqueScopeVariableAccess("Scope1_widget")).toBe(true);
+      expect(state.isOpaqueScopeVariableAccess("Scope1_display")).toBe(true);
+      expect(state.isOpaqueScopeVariableAccess("Scope2_handle")).toBe(true);
+      expect(state.isOpaqueScopeVariableAccess("Scope1_other")).toBe(false);
+    });
+
+    // Issue #996: An element of an opaque-handle array is itself a pointer.
+    it("isOpaqueScopeVariableAccess matches array-element access of an opaque array", () => {
+      state.markOpaqueScopeVariable("UI_widgets");
+
+      expect(state.isOpaqueScopeVariableAccess("UI_widgets[i]")).toBe(true);
+      expect(state.isOpaqueScopeVariableAccess("UI_widgets[0]")).toBe(true);
+    });
+
+    it("isOpaqueScopeVariableAccess does not match subscript of a non-opaque array", () => {
+      // Base array name was never marked opaque.
+      expect(state.isOpaqueScopeVariableAccess("UI_counts[i]")).toBe(false);
+    });
+
+    it("isOpaqueScopeVariableAccess does not match a different array that shares a prefix", () => {
+      state.markOpaqueScopeVariable("UI_widgets");
+
+      // "UI_widgetsExtra" is a distinct variable, not a subscript of UI_widgets.
+      expect(state.isOpaqueScopeVariableAccess("UI_widgetsExtra")).toBe(false);
+    });
+  });
 });
