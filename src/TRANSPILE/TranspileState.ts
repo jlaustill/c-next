@@ -1372,16 +1372,6 @@ class TranspileState {
   }
 
   /**
-   * Get external struct fields for initialization analysis.
-   */
-  getExternalStructFields(): ReadonlyMap<string, ReadonlySet<string>> {
-    // #1447: derived by 1.4 Resolve, not accumulated here. Which fields a
-    // header's struct has is a cross-file fact, and the pass that owns it is
-    // the one that can see every file.
-    return this.program?.externalStructFields() ?? new Map();
-  }
-
-  /**
    * Get function return type.
    */
   getFunctionReturnType(funcName: string): string | undefined {

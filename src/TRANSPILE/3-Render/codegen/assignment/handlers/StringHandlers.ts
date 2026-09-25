@@ -95,12 +95,11 @@ function getStructFieldType(
   fieldName: string,
   state: TranspileState,
 ): string {
-  // Issue #831: Use SymbolTable as single source of truth for struct fields
+  // Issue #831: one source of truth for struct fields, reached through the
+  // accessor rather than the table -- #1322's scope-declared-struct key
+  // fallback lives there, and a bare table lookup misses it.
   const structType = getStructType(structName, state);
-  const fieldType = state.symbolTable?.getStructFieldType(
-    structType,
-    fieldName,
-  );
+  const fieldType = state.getStructFieldInfo(structType, fieldName)?.type;
   // Same shape as the `structTypeInfo` guard `getStructType` carries: the
   // classifier already required `getStructFieldType` truthy and
   // `TypeCheckUtils.isString` before producing this kind, so a miss here is the

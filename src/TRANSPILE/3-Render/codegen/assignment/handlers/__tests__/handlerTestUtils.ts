@@ -83,9 +83,11 @@ function setupMockGenerator(
   overrides: Record<string, unknown> = {},
 ): void {
   installed = {
-    // #1452: the orchestrator carries 2.3's per-file state, so a handler
-    // reaches it through the API it was given rather than a static class.
-    state,
+    // No `state` member: #1452 put one on `ICodeGenApi` and nothing read it, so
+    // it was deleted (it also closed an import cycle). A handler reaches the
+    // state through `IAssignmentContext.state`. Installing it here anyway would
+    // be a mock of a member the interface does not have, kept alive by the
+    // `as unknown as` cast below.
     generateAssignmentTarget: vi.fn().mockReturnValue("target"),
     generateExpression: vi
       .fn()

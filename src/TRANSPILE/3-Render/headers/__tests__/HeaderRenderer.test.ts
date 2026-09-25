@@ -4,21 +4,14 @@
  * IHeaderEmissionFacts into header text, reading no state.
  */
 
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import HeaderRenderer from "../HeaderRenderer";
 import HeaderGenerator from "../HeaderGenerator";
 import IHeaderEmissionFacts from "../types/IHeaderEmissionFacts";
 import IHeaderSymbol from "../types/IHeaderSymbol";
 import IHeaderOptions from "../../codegen/types/IHeaderOptions";
-import TranspileState from "../../../TranspileState";
-
-let state = new TranspileState();
 
 describe("HeaderRenderer", () => {
-  afterEach(() => {
-    state = new TranspileState();
-  });
-
   function makeVarSymbol(name: string, type: string): IHeaderSymbol {
     return {
       name,
@@ -57,9 +50,13 @@ describe("HeaderRenderer", () => {
         makeFacts("hw.h", undefined, { registerBlocks: [block] }),
       ],
     ]);
-    // TranspileState has moved on, exactly as it has when Stage 5.5 renders.
-    state.exportedRegisterBlocks = [];
-
+    // No state is set up, and none can be: `HeaderRenderer.render` takes the
+    // captured facts and a generator, and nothing else. At BASE this line wrote
+    // the GLOBAL `CodeGenState`, so it was a real negative control -- live and
+    // captured values disagreed on state the renderer could in principle reach.
+    // #1452 made the state an instance the renderer has no handle on, so the
+    // invariant now holds by the signature, and a line writing a module-local
+    // object would be dead setup wearing a control's comment.
     const plan = HeaderRenderer.render(facts, new HeaderGenerator());
 
     const header = plan.headersBySourcePath.get("/src/hw.cnx") ?? "";

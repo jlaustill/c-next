@@ -969,15 +969,18 @@ describe("TranspileState", () => {
     });
   });
 
-  // #1447: the derivation moved to `Program` -- which fields a header's
-  // struct has is a cross-file fact. These still exercise it end to end,
-  // through the accessor analyzers actually call.
+  // #1447: the derivation moved to `Program` -- which fields a header's struct
+  // has is a cross-file fact. These call `program.externalStructFields()`
+  // directly, which IS the route `InitializationAnalyzer` takes
+  // (`context.program.externalStructFields()`). They went through a
+  // `TranspileState` wrapper that said so in a comment while having no
+  // production caller left.
   describe("external struct fields, via Program", () => {
     it("returns empty map when no struct fields exist", () => {
       state.program = Program.build([], {
         headerStructFields: state.symbolTable.getAllStructFields(),
       });
-      const result = state.getExternalStructFields();
+      const result = state.program!.externalStructFields();
       expect(result.size).toBe(0);
     });
 
@@ -1001,7 +1004,7 @@ describe("TranspileState", () => {
       state.program = Program.build([], {
         headerStructFields: state.symbolTable.getAllStructFields(),
       });
-      const result = state.getExternalStructFields();
+      const result = state.program!.externalStructFields();
 
       expect(result.has("Point")).toBe(true);
       const fields = result.get("Point");
@@ -1027,7 +1030,7 @@ describe("TranspileState", () => {
       state.program = Program.build([], {
         headerStructFields: state.symbolTable.getAllStructFields(),
       });
-      const result = state.getExternalStructFields();
+      const result = state.program!.externalStructFields();
 
       expect(result.has("Buffer")).toBe(true);
       const fields = result.get("Buffer");
@@ -1053,7 +1056,7 @@ describe("TranspileState", () => {
       state.program = Program.build([], {
         headerStructFields: state.symbolTable.getAllStructFields(),
       });
-      const result = state.getExternalStructFields();
+      const result = state.program!.externalStructFields();
 
       // Struct should not be included since all fields are arrays
       expect(result.has("ArrayOnly")).toBe(false);
@@ -1088,7 +1091,7 @@ describe("TranspileState", () => {
       state.program = Program.build([], {
         headerStructFields: state.symbolTable.getAllStructFields(),
       });
-      const result = state.getExternalStructFields();
+      const result = state.program!.externalStructFields();
 
       // Mixed struct should have only non-array fields
       expect(result.get("Mixed")?.size).toBe(2);

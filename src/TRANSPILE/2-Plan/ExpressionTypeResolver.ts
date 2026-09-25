@@ -225,7 +225,6 @@ class ExpressionTypeResolver {
     let sawInteger = false;
     for (const operand of ExpressionTypeResolver.collectOperandPostfixes(
       node,
-      state,
     )) {
       const info = ExpressionTypeResolver.operandTypeInfo(operand, state);
       if (info === undefined) continue;
@@ -344,8 +343,8 @@ class ExpressionTypeResolver {
     state: TranspileState,
   ): string | null {
     return PrimitiveKindUtils.widestIntegerOf(
-      ExpressionTypeResolver.collectOperandPostfixes(ctx, state).map(
-        (operand) => ExpressionTypeResolver.typeOperandPostfix(operand, state),
+      ExpressionTypeResolver.collectOperandPostfixes(ctx).map((operand) =>
+        ExpressionTypeResolver.typeOperandPostfix(operand, state),
       ),
     );
   }
@@ -386,7 +385,6 @@ class ExpressionTypeResolver {
    */
   private static collectOperandPostfixes(
     node: ParserRuleContext,
-    state: TranspileState,
   ): Parser.PostfixExpressionContext[] {
     if (node instanceof Parser.PostfixExpressionContext) return [node];
 
@@ -398,7 +396,7 @@ class ExpressionTypeResolver {
     const arms = ExpressionTypeResolver.ternaryValueArms(node);
     if (arms !== null) {
       return arms.flatMap((arm) =>
-        ExpressionTypeResolver.collectOperandPostfixes(arm, state),
+        ExpressionTypeResolver.collectOperandPostfixes(arm),
       );
     }
 
@@ -411,9 +409,7 @@ class ExpressionTypeResolver {
     for (let i = 0; i < node.getChildCount(); i += 1) {
       const child = node.getChild(i);
       if (child instanceof ParserRuleContext) {
-        operands.push(
-          ...ExpressionTypeResolver.collectOperandPostfixes(child, state),
-        );
+        operands.push(...ExpressionTypeResolver.collectOperandPostfixes(child));
       }
     }
     return operands;

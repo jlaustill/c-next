@@ -3345,7 +3345,13 @@ class Transpiler {
    * recovery -- asks the instance that ran.
    */
   getExternalStructFields(): ReadonlyMap<string, ReadonlySet<string>> {
-    return this.codeGenerator.transpileState.getExternalStructFields();
+    // From the artifact, which is what `InitializationAnalyzer` reads
+    // (`context.program.externalStructFields()`). This delegated to a
+    // `TranspileState` method that wrapped the same call and had no production
+    // caller left -- so #985's regression asserted on a route the analyzer does
+    // not take, which is the #1418 shape with an integration test in front of
+    // it.
+    return this.program?.externalStructFields() ?? new Map();
   }
 
   /**

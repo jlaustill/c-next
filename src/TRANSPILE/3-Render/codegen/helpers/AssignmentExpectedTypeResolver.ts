@@ -210,10 +210,12 @@ class AssignmentExpectedTypeResolver {
 
     for (let i = 1; i < identifiers.length && currentStructType; i++) {
       const memberName = identifiers[i];
-      const memberType = state.symbolTable?.getStructFieldType(
+      // Through the accessor -- see `AssignmentClassifier`: a bare
+      // `symbolTable` lookup misses #1322's scope-declared-struct key.
+      const memberType: string | undefined = state.getStructFieldInfo(
         currentStructType,
         memberName,
-      );
+      )?.type;
 
       if (!memberType) {
         break;

@@ -97,6 +97,40 @@ const paths = (end: IRuleEnd | undefined): string[] => {
 };
 
 /**
+ * A pattern's alternatives at paren depth 0, or `[pattern]` when it has none.
+ *
+ * Character classes are skipped, since `[a|b]` is one class rather than two
+ * alternatives, and an escaped `\\|` is a literal pipe.
+ */
+const splitTopLevelAlternation = (path: string): string[] => {
+  const parts: string[] = [];
+  let depth = 0;
+  let inClass = false;
+  let current = "";
+
+  for (let i = 0; i < path.length; i += 1) {
+    const ch = path[i];
+    if (ch === "\\") {
+      current += ch + (path[i + 1] ?? "");
+      i += 1;
+      continue;
+    }
+    if (ch === "[") inClass = true;
+    else if (ch === "]") inClass = false;
+    else if (!inClass && ch === "(") depth += 1;
+    else if (!inClass && ch === ")") depth -= 1;
+    else if (!inClass && depth === 0 && ch === "|") {
+      parts.push(current);
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+  parts.push(current);
+  return parts;
+};
+
+/**
  * A path pattern's alternatives, each as a pattern of its own.
  *
  * `^src/(PARSE|TRANSPILE|WRITE)/` is one regex that matches `src/PARSE/...`, so
@@ -121,6 +155,14 @@ const paths = (end: IRuleEnd | undefined): string[] => {
  */
 const expandAlternations = (path: string): string[] => {
   if (/\(\?/.test(path) || /\)[*+?{]/.test(path)) return [path];
+
+  // A top-level `|` first. Only parenthesized groups were split, so
+  // `^src/a\.ts$|^src/gone/` was tested as ONE pattern and the dead branch hid
+  // behind the live one -- the same defect one spelling over. No rule uses this
+  // form today, but `artifact-lifetime.test.ts` writes its regexes exactly this
+  // way, so it is one edit from mattering.
+  const topLevel = splitTopLevelAlternation(path);
+  if (topLevel.length > 1) return topLevel.flatMap(expandAlternations);
 
   const group = /\(([^()|]+(?:\|[^()|]+)+)\)/;
   let out = [path];

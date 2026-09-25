@@ -994,10 +994,15 @@ class AssignmentClassifier {
       return null;
     }
     // Issue #831: Use SymbolTable as single source of truth for struct fields
-    const fieldType = state.symbolTable?.getStructFieldType(
+    // Through the accessor, not `symbolTable` directly: #1322's
+    // scope-declared-struct key fallback lives there, so a bare table lookup
+    // answers `undefined` for a struct declared inside a scope. `fe474b3f5`
+    // moved two sibling lookups for exactly this reason and left three behind,
+    // which is three answers to "what type is this field".
+    const fieldType = state.getStructFieldInfo(
       structType,
       structFieldNames.fieldName,
-    );
+    )?.type;
     return { structType, fieldType };
   }
 
