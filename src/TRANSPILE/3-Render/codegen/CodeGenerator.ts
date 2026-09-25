@@ -75,6 +75,7 @@ import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
 // Issue #797: Centralized C-style name generation
 import type IRecordedRequirement from "../../../transpiler/types/IRecordedRequirement";
 import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
+import RenderState from "../../../transpiler/state/RenderState";
 
 /**
  * Code Generator - Transpiles C-Next to C
@@ -82,6 +83,13 @@ import ToolchainRequirements from "../../../instrumentation/ToolchainRequirement
  * Implements IOrchestrator to support modular generator extraction.
  */
 export default class CodeGenerator implements IOrchestrator {
+  /**
+   * 2.3 Render's per-file working state (#1452 box 4). Owned here because the
+   * walker reaches this object as `this.host`, so one instance serves both
+   * without a global between them.
+   */
+  readonly state = new RenderState();
+
   // ===========================================================================
   // IOrchestrator Implementation
   // ===========================================================================
@@ -102,7 +110,7 @@ export default class CodeGenerator implements IOrchestrator {
       callbackTypes: CodeGenState.callbackTypes,
       callbackFieldTypes: CodeGenState.callbackFieldTypes,
       targetCapabilities: CodeGenState.targetCapabilities,
-      debugMode: CodeGenState.debugMode,
+      debugMode: this.state.debugMode,
     };
   }
 
@@ -113,7 +121,7 @@ export default class CodeGenerator implements IOrchestrator {
   getState(): IGeneratorState {
     return {
       currentScopePath: CodeGenState.currentScopePath,
-      indentLevel: CodeGenState.indentLevel,
+      indentLevel: this.state.indentLevel,
       inFunctionBody: CodeGenState.inFunctionBody,
       currentParameters: CodeGenState.currentParameters,
       localVariables: CodeGenState.localVariables,
@@ -126,7 +134,7 @@ export default class CodeGenerator implements IOrchestrator {
       mainArgsName: CodeGenState.mainArgsName,
       floatBitShadows: CodeGenState.floatBitShadows,
       floatShadowCurrent: CodeGenState.floatShadowCurrent,
-      lengthCache: CodeGenState.lengthCache,
+      lengthCache: this.state.lengthCache,
     };
   }
 
@@ -233,7 +241,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Get the current indentation string.
    */
   getIndent(): string {
-    return FormatUtils.indent(CodeGenState.indentLevel);
+    return FormatUtils.indent(this.state.indentLevel);
   }
 
   /**
@@ -346,7 +354,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   indent(text: string): string {
-    return FormatUtils.indentAllLines(text, CodeGenState.indentLevel);
+    return FormatUtils.indentAllLines(text, this.state.indentLevel);
   }
 
   // === strlen Optimization ===
@@ -368,7 +376,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     if (declarations.length > 0) {
-      CodeGenState.lengthCache = cache;
+      this.state.lengthCache = cache;
       return declarations.join("\n") + "\n";
     }
 
@@ -380,7 +388,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   clearLengthCache(): void {
-    CodeGenState.lengthCache = null;
+    this.state.lengthCache = null;
   }
 
   /**
@@ -456,8 +464,8 @@ export default class CodeGenerator implements IOrchestrator {
     }
     const typedef = this.generateCallbackTypedef(funcName);
     if (typedef) {
-      CodeGenState.pendingCallbackTypedefs.push(typedef);
-      CodeGenState.emittedCallbackTypedefs.add(funcName);
+      this.state.pendingCallbackTypedefs.push(typedef);
+      this.state.emittedCallbackTypedefs.add(funcName);
     }
   }
 
@@ -493,14 +501,14 @@ export default class CodeGenerator implements IOrchestrator {
    * Used by return statement generation to set expectedType.
    */
   getCurrentFunctionReturnType(): string | null {
-    return CodeGenState.currentFunctionReturnType;
+    return this.state.currentFunctionReturnType;
   }
 
   /**
    * Issue #477: Set the current function's return type for enum inference.
    */
   setCurrentFunctionReturnType(returnType: string | null): void {
-    CodeGenState.currentFunctionReturnType = returnType;
+    this.state.currentFunctionReturnType = returnType;
   }
 
   /**

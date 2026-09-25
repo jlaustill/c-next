@@ -25,6 +25,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import enterScope from "../../__tests__/enterScope";
 import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
+import RenderState from "../RenderState";
 
 /** Repo root, for the source-scanning guard in `scopeTypePredicate`. */
 const repoRootForGuard = join(
@@ -112,16 +113,21 @@ describe("CodeGenState", () => {
       enterScope("TestScope");
       CodeGenState.currentFunctionName = "testFunc";
       CodeGenState.needsStdint = true;
-      CodeGenState.indentLevel = 5;
+      // #1452: `indentLevel` moved to `RenderState`, which owns its own
+      // clearing, so the two resets are asserted side by side rather than one
+      // standing in for the other.
+      const render = new RenderState();
+      render.indentLevel = 5;
 
       // Reset
       CodeGenState.reset();
+      render.reset();
 
       // Verify reset
       expect(CodeGenState.currentScopePath).toBe("");
       expect(CodeGenState.currentFunctionName).toBeNull();
       expect(CodeGenState.needsStdint).toBe(false);
-      expect(CodeGenState.indentLevel).toBe(0);
+      expect(render.indentLevel).toBe(0);
     });
 
     it("resets generator reference", () => {

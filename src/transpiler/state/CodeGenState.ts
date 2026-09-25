@@ -36,7 +36,6 @@ import IFunctionSignature from "../types/IFunctionSignature";
 import ICallbackTypeInfo from "../types/ICallbackTypeInfo";
 import ToolchainRequirements from "../../instrumentation/ToolchainRequirements";
 import ITargetCapabilities from "../types/ITargetCapabilities";
-import IAssignmentOverflowContext from "../types/IAssignmentOverflowContext";
 import TYPE_WIDTH from "../constants/TYPE_WIDTH";
 import UNRESOLVED_DIMENSION from "../constants/UNRESOLVED_DIMENSION";
 import type ICodeGenApi from "../types/ICodeGenApi";
@@ -235,12 +234,6 @@ export default class CodeGenState {
   static publicCallbackTypeReferences: Set<string> = new Set();
 
   /**
-   * Callback typedefs this file has already emitted, so the sweep for types it
-   * does NOT declare cannot emit one twice.
-   */
-  static emittedCallbackTypedefs: Set<string> = new Set();
-
-  /**
    * Record a callback type named by a declaration that APPEARS IN THE HEADER.
    *
    * The single writer for that decision, so "does the public interface name
@@ -267,22 +260,6 @@ export default class CodeGenState {
   static headerOwnsCallbackTypedef(functionName: string): boolean {
     return this.publicCallbackTypeReferences.has(functionName);
   }
-
-  /**
-   * Issue #1212: callback `_fp` typedefs awaiting placement.
-   *
-   * They used to be appended after the function each was derived from, which
-   * only works when every use appears later in the file. A parameter naming a
-   * callback declared further down got a typedef after its first use, and the
-   * generated C did not compile.
-   *
-   * They cannot simply be hoisted into the prelude either: a callback typedef
-   * inherits its parameters' dependencies, so `typedef void (*onReceive_fp)(const
-   * Message*)` must follow `Message`'s definition. Collecting them here lets
-   * generateAllDeclarations place the whole block after the type declarations
-   * and before the first function.
-   */
-  static pendingCallbackTypedefs: string[] = [];
 
   /**
    * Functions that are assigned to C callback typedefs.
@@ -323,9 +300,6 @@ export default class CodeGenState {
   /** Issue #269: Current function for modification tracking */
   static currentFunctionName: string | null = null;
 
-  /** Issue #477: Current function return type for enum inference */
-  static currentFunctionReturnType: string | null = null;
-
   /** ADR-006: Current function parameters for pointer semantics */
   static currentParameters: Map<string, TParameterInfo> = new Map();
 
@@ -365,9 +339,6 @@ export default class CodeGenState {
   // GENERATION STATE
   // ===========================================================================
 
-  /** Current indentation level */
-  static indentLevel: number = 0;
-
   /** Whether we're inside a function body */
   static inFunctionBody: boolean = false;
 
@@ -390,13 +361,6 @@ export default class CodeGenState {
 
   /** Track args parameter name for main() translation */
   static mainArgsName: string | null = null;
-
-  /** ADR-044: Current assignment context for overflow behavior */
-  static assignmentContext: IAssignmentOverflowContext = {
-    targetName: null,
-    targetType: null,
-    overflowBehavior: "clamp",
-  };
 
   /** ADR-035: Element count for array size inference */
   static lastArrayInitCount: number = 0;
@@ -430,9 +394,6 @@ export default class CodeGenState {
   static wasArrayInit(): boolean {
     return this.lastArrayInitCount > 0 || this.lastArrayFillValue !== undefined;
   }
-
-  /** strlen optimization: variable name -> temp variable name */
-  static lengthCache: Map<string, string> | null = null;
 
   /** ADR-049: Target platform capabilities */
   static targetCapabilities: ITargetCapabilities = DEFAULT_TARGET;
@@ -498,9 +459,6 @@ export default class CodeGenState {
     return OutputExtensions.forCppMode(this.cppMode);
   }
 
-  /** Debug mode generates panic-on-overflow helpers (ADR-044) */
-  static debugMode: boolean = false;
-
   /** Pending temp variable declarations for C++ mode */
   static pendingTempDeclarations: string[] = [];
 
@@ -509,9 +467,6 @@ export default class CodeGenState {
 
   /** Issue #517: Pending field assignments for C++ class struct init */
   static pendingCppClassAssignments: string[] = [];
-
-  /** Issue #369: Whether self-include was added */
-  static selfIncludeAdded: boolean = false;
 
   /**
    * 2.2 Plan's declaration decisions for the file being generated.
@@ -551,17 +506,6 @@ export default class CodeGenState {
   /** Source file path for validating includes */
   static sourcePath: string | null = null;
 
-  /**
-   * Issue #1467: author spelling -> resolved header path for this file's `.cnx`
-   * includes. Decided by PathResolver during discovery and handed here; codegen
-   * reads it and derives nothing. Replaces `inputs`/`includeDirs`, which
-   * described a resolution codegen was never given the data to perform.
-   */
-  static cnxIncludeRewrites: ReadonlyMap<string, string> = new Map<
-    string,
-    string
-  >();
-
   // ===========================================================================
   // LIFECYCLE METHODS
   // ===========================================================================
@@ -597,8 +541,6 @@ export default class CodeGenState {
     this.exportedRegisterBlocks = [];
     this.callbackTypeReferences = new Set();
     this.publicCallbackTypeReferences = new Set();
-    this.emittedCallbackTypedefs = new Set();
-    this.pendingCallbackTypedefs = [];
     // persist into code generation. It is cleared at the start of each Transpiler run.
 
     // Pass-by-value analysis
@@ -614,7 +556,6 @@ export default class CodeGenState {
     // Current context
     this.currentScopePath = "";
     this.currentFunctionName = null;
-    this.currentFunctionReturnType = null;
     this.currentParameters = new Map();
     this.localVariables = new Set();
     this.localArrays = new Set();
@@ -624,20 +565,13 @@ export default class CodeGenState {
     this.floatShadowCurrent = new Set();
 
     // Generation state
-    this.indentLevel = 0;
     this.inFunctionBody = false;
     this.inDeclarationInit = false;
     this.expectedType = null;
     this.suppressBareEnumResolution = false;
     this.mainArgsName = null;
-    this.assignmentContext = {
-      targetName: null,
-      targetType: null,
-      overflowBehavior: "clamp",
-    };
     this.lastArrayInitCount = 0;
     this.lastArrayFillValue = undefined;
-    this.lengthCache = null;
     this.targetCapabilities = targetCapabilities ?? DEFAULT_TARGET;
 
     // Include flags
@@ -652,11 +586,9 @@ export default class CodeGenState {
 
     // C++ mode state
     this.cppMode = false;
-    this.debugMode = false;
     this.pendingTempDeclarations = [];
     this.tempVarCounter = 0;
     this.pendingCppClassAssignments = [];
-    this.selfIncludeAdded = false;
     this.declarationPlanOrNull = null;
 
     // Issue #948: Opaque scope variables (reset per-file)
@@ -664,7 +596,6 @@ export default class CodeGenState {
 
     // Source paths
     this.sourcePath = null;
-    this.cnxIncludeRewrites = new Map<string, string>();
   }
 
   /**

@@ -1078,9 +1078,9 @@ class CodeGenWalker {
 
     for (const stmt of ctx.statement()) {
       // Temporarily increment for any nested context that needs absolute level
-      CodeGenState.indentLevel++;
+      this.host.state.indentLevel++;
       const stmtCode = this.generateStatement(stmt);
-      CodeGenState.indentLevel--;
+      this.host.state.indentLevel--;
 
       if (stmtCode) {
         // Add one level of indent to each line (relative indentation)
@@ -1425,14 +1425,14 @@ class CodeGenWalker {
     for (const funcName of CodeGenState.callbackTypeReferences) {
       if (
         !CodeGenState.callbackTypes.has(funcName) ||
-        CodeGenState.emittedCallbackTypedefs.has(funcName)
+        this.host.state.emittedCallbackTypedefs.has(funcName)
       ) {
         continue;
       }
       const typedef = this.host.generateCallbackTypedef(funcName);
       if (typedef) {
-        CodeGenState.pendingCallbackTypedefs.push(typedef);
-        CodeGenState.emittedCallbackTypedefs.add(funcName);
+        this.host.state.pendingCallbackTypedefs.push(typedef);
+        this.host.state.emittedCallbackTypedefs.add(funcName);
       }
     }
   }
@@ -1641,7 +1641,7 @@ class CodeGenWalker {
     options: ICodeGeneratorOptions | undefined,
     tokenStream: CommonTokenStream | undefined,
   ): void {
-    CodeGenState.debugMode = options?.debugMode ?? false;
+    this.host.state.debugMode = options?.debugMode ?? false;
     CodeGenState.sourcePath = options?.sourcePath ?? null;
     // #1241: Transpiler._analyzeFile sets the provenance file before analyzers
     // run; re-assert it here for API callers that drive the generator directly
@@ -1649,7 +1649,7 @@ class CodeGenWalker {
     // hoisted analysis out of it into its own pass -- by the time
     // `_transpileFile` runs, every file's analyzers are already done.)
     AdrProvenance.beginFile(CodeGenState.sourcePath);
-    CodeGenState.cnxIncludeRewrites =
+    this.host.state.cnxIncludeRewrites =
       options?.cnxIncludeRewrites ?? new Map<string, string>();
     CodeGenState.cppMode = options?.cppMode ?? false;
     CodeGenState.pendingTempDeclarations = [];
@@ -1668,6 +1668,7 @@ class CodeGenWalker {
   private resetGeneratorState(targetCapabilities: ITargetCapabilities): void {
     // Reset global state (CodeGenState.reset() handles all field initialization)
     CodeGenState.reset(targetCapabilities);
+    this.host.state.reset();
 
     // Set generator reference for handlers to use
     // #1652 removed `ICodeGenApi`'s four parse-node members, and every one that
@@ -1746,7 +1747,7 @@ class CodeGenWalker {
       const headerName = pathToUse.replace(/\.cnx$|\.cnext$/, ext);
       output.push(`#include "${headerName}"`, "");
       sourceIncludeTargets.push(`"${headerName}"`);
-      CodeGenState.selfIncludeAdded = true;
+      this.host.state.selfIncludeAdded = true;
     }
 
     // Process include directives
@@ -1761,7 +1762,7 @@ class CodeGenWalker {
     // state they came from.
     CodeGenState.declarationPlanOrNull = DeclarationPlan.build(
       tree.declaration().map((decl) => CodeGenWalker.declarationKindOf(decl)),
-      CodeGenState.selfIncludeAdded,
+      this.host.state.selfIncludeAdded,
     );
 
     // Generate declarations
@@ -1935,7 +1936,7 @@ class CodeGenWalker {
 
     this.emitTypedefsForUndeclaredCallbackTypes();
 
-    const typedefs = CodeGenState.pendingCallbackTypedefs;
+    const typedefs = this.host.state.pendingCallbackTypedefs;
     if (typedefs.length > 0) {
       // One blank line either side of the block, and none between the typedefs
       // themselves -- they are one group of related declarations, and the
@@ -1947,7 +1948,7 @@ class CodeGenWalker {
         ...typedefs,
         "",
       );
-      CodeGenState.pendingCallbackTypedefs = [];
+      this.host.state.pendingCallbackTypedefs = [];
     }
 
     return declarations;
@@ -2001,7 +2002,7 @@ class CodeGenWalker {
       needsFloatStaticAssert: CodeGenState.needsFloatStaticAssert,
       needsIrqWrappers: CodeGenState.needsIrqWrappers,
       needsISR: CodeGenState.needsISR,
-      selfIncludeAdded: CodeGenState.selfIncludeAdded,
+      selfIncludeAdded: this.host.state.selfIncludeAdded,
       existingIncludeTargets,
       clampOps: CodeGenState.usedClampOps,
       safeDivOps: CodeGenState.usedSafeDivOps,
@@ -2129,7 +2130,7 @@ class CodeGenWalker {
   private transformIncludeDirective(includeText: string): string {
     return includeTransformIncludeDirective(includeText, {
       sourcePath: CodeGenState.sourcePath,
-      rewrites: CodeGenState.cnxIncludeRewrites,
+      rewrites: this.host.state.cnxIncludeRewrites,
       headerExtension: CodeGenState.outputExtensions.header,
     });
   }
@@ -4688,7 +4689,7 @@ class CodeGenWalker {
 
     // Issue #644: Set expected type for inferred struct initializers and overflow behavior
     // Delegated to AssignmentExpectedTypeResolver helper
-    const savedAssignmentContext = { ...CodeGenState.assignmentContext };
+    const savedAssignmentContext = { ...this.host.state.assignmentContext };
 
     // Issue #644: AssignmentExpectedTypeResolver is now static
     // #1445: the resolver takes the target's SHAPE -- a name, a chain of names
@@ -4708,7 +4709,7 @@ class CodeGenWalker {
       hasPostfixOps: postfixOps.length > 0,
     });
     if (resolved.assignmentContext) {
-      CodeGenState.assignmentContext = resolved.assignmentContext;
+      this.host.state.assignmentContext = resolved.assignmentContext;
     }
 
     // Use withExpectedType for exception safety on expectedType,
@@ -4719,7 +4720,7 @@ class CodeGenWalker {
         this.generateExpression(ctx.expression()),
       );
     } finally {
-      CodeGenState.assignmentContext = savedAssignmentContext;
+      this.host.state.assignmentContext = savedAssignmentContext;
     }
 
     // #1322: the operator was mapped to its C form here and used for nothing
@@ -5458,7 +5459,7 @@ class CodeGenWalker {
   private generateOverflowHelpers(clampOps: readonly string[]): string[] {
     return helperGenerateOverflowHelpers(
       new Set(clampOps),
-      CodeGenState.debugMode,
+      this.host.state.debugMode,
     );
   }
 
@@ -5573,7 +5574,7 @@ class CodeGenWalker {
    * Format leading comments with current indentation
    */
   private formatLeadingComments(comments: IComment[]): string[] {
-    const indent = FormatUtils.indent(CodeGenState.indentLevel);
+    const indent = FormatUtils.indent(this.host.state.indentLevel);
     return commentFormatLeadingComments(
       comments,
       this.commentFormatter,

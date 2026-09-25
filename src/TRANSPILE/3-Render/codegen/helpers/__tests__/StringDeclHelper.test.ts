@@ -61,7 +61,6 @@ describe("StringDeclHelper", () => {
   beforeEach(() => {
     CodeGenState.reset();
     CodeGenState.inFunctionBody = true;
-    CodeGenState.indentLevel = 1;
     vi.clearAllMocks();
   });
 
