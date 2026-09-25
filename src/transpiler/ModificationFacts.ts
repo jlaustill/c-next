@@ -13,13 +13,13 @@
  */
 
 import type IModificationCollector from "../TRANSPILE/2-Plan/types/IModificationCollector";
+import type SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import SymbolRegistry from "../PARSE/3-Declare/SymbolRegistry";
 import PassByValueAnalyzer from "../TRANSPILE/2-Plan/PassByValueAnalyzer";
 import type IFileSymbols from "./types/IFileSymbols";
 import type IParsedFile from "./types/IParsedFile";
 import type IModificationFacts from "./types/IModificationFacts";
 import type ICallGraphEntry from "./types/ICallGraphEntry";
-import type TranspileState from "../TRANSPILE/TranspileState";
 
 class ModificationFacts {
   /**
@@ -43,7 +43,7 @@ class ModificationFacts {
       readonly fileSymbols: IFileSymbols;
     }>,
     registry: SymbolRegistry,
-    state: TranspileState,
+    symbolTable: SymbolTable,
   ): IModificationFacts {
     // #1452 box 4: the accumulation is this call's own, created here and gone
     // when it returns. It used to be three mutable statics on `CodeGenState`
@@ -61,7 +61,6 @@ class ModificationFacts {
       PassByValueAnalyzer.collectFunctionParametersAndModifications(
         collect,
         entry.parsed.tree,
-        state,
       );
     }
 
@@ -81,10 +80,10 @@ class ModificationFacts {
     }
     PassByValueAnalyzer.propagateModifications(
       collect,
-      state,
+      symbolTable,
       (name: string): boolean =>
         cnextValueCNames.has(name) ||
-        state.symbolTable
+        symbolTable
           .getOverloadsByCName(name)
           .some((symbol) => symbol.kind === "variable"),
     );

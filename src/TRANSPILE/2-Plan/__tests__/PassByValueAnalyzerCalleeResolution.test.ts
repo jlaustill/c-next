@@ -76,7 +76,7 @@ const callerParameterIsModified = (callee: string): boolean => {
     { callee, paramIndex: 0, argParamName: "value" },
   ]);
 
-  PassByValueAnalyzer.propagateModifications(collect, state);
+  PassByValueAnalyzer.propagateModifications(collect, state.symbolTable);
 
   return collect.modifiedParameters.get("Caller__forward")!.has("value");
 };
@@ -292,7 +292,7 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
         { callee: "cb", paramIndex: 0, argParamName: "value" },
       ]);
 
-      PassByValueAnalyzer.propagateModifications(collect, state);
+      PassByValueAnalyzer.propagateModifications(collect, state.symbolTable);
 
       expect(collect.modifiedParameters.get("forward")!.has("value")).toBe(
         false,

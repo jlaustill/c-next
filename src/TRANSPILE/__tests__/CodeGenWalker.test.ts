@@ -118,7 +118,7 @@ function installProgramFor(
   const modifications = ModificationFacts.derive(
     [{ parsed: { tree } as never, fileSymbols: declared }],
     registry,
-    state,
+    state.symbolTable,
   );
   state.program = Program.build([declared], {
     modifications,

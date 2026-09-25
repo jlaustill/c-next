@@ -33,11 +33,18 @@ import ExpressionUtils from "../../utils/ExpressionUtils";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import type TranspileState from "../TranspileState";
+import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 
 /**
  * Collects parameter-modification facts and reads the eligibility verdict from
  * the artifact; it no longer decides eligibility itself (#1511).
- * All state is stored in CodeGenState - this class contains pure analysis logic.
+ *
+ * #1452: the collection walk took a `TranspileState` through twelve private
+ * methods and no body read it -- the parameter said "this walk depends on the
+ * per-file render container" and it did not. The propagation path takes the
+ * `SymbolTable` it actually asks, so a WHOLE-PROGRAM derivation no longer names
+ * a per-file container whose other fields belong to the previously rendered
+ * file. Only the eligibility read still takes the state, for `program`.
  */
 class PassByValueAnalyzer {
   /**
@@ -53,9 +60,9 @@ class PassByValueAnalyzer {
    */
   static propagateModifications(
     collect: IModificationCollector,
-    state: TranspileState,
+    symbolTable: SymbolTable,
     isValueSymbol: (name: string) => boolean = (name: string): boolean =>
-      PassByValueAnalyzer.nameIsValueSymbol(name, state),
+      PassByValueAnalyzer.nameIsValueSymbol(name, symbolTable),
   ): void {
     TransitiveModificationPropagator.propagate(
       collect.functionCallGraph,
@@ -68,7 +75,7 @@ class PassByValueAnalyzer {
           callee,
           paramIndex,
           isValueSymbol,
-          state,
+          symbolTable,
         ),
     );
   }
@@ -128,9 +135,9 @@ class PassByValueAnalyzer {
    */
   private static nameIsValueSymbol(
     name: string,
-    state: TranspileState,
+    symbolTable: SymbolTable,
   ): boolean {
-    const symbols = state.symbolTable?.getOverloadsByCName(name) ?? [];
+    const symbols = symbolTable.getOverloadsByCName(name);
     return symbols.some((symbol) => symbol.kind === "variable");
   }
 
@@ -150,7 +157,7 @@ class PassByValueAnalyzer {
     callee: string,
     paramIndex: number,
     isValueSymbol: (name: string) => boolean,
-    state: TranspileState,
+    symbolTable: SymbolTable,
   ): boolean {
     // ADR-029: an indirect call invokes a *value* -- a callback parameter, a
     // scope field, a struct field -- not a function name. Nothing will ever
@@ -169,7 +176,7 @@ class PassByValueAnalyzer {
       return false;
     }
 
-    const symbols = state.symbolTable?.getOverloadsByCName(callee) ?? [];
+    const symbols = symbolTable.getOverloadsByCName(callee);
     let sawCandidate = false;
 
     // Fold across every overload rather than answering from the first one.
@@ -203,7 +210,7 @@ class PassByValueAnalyzer {
           parameter.type ?? "",
           parameter.isArray ?? false,
           parameter.isConst ?? false,
-          state,
+          symbolTable,
         )
       ) {
         return true;
@@ -228,11 +235,11 @@ class PassByValueAnalyzer {
     type: string,
     isArray: boolean,
     isConst: boolean,
-    state: TranspileState,
+    symbolTable: SymbolTable,
   ): boolean {
     if (isConst) return false;
     if (isArray) return true;
-    return PassByValueAnalyzer.typeIsIndirect(type, state);
+    return PassByValueAnalyzer.typeIsIndirect(type, symbolTable);
   }
 
   /**
@@ -241,7 +248,10 @@ class PassByValueAnalyzer {
    * *spi_device_handle_t`), so the alias chain is followed rather than the
    * spelling pattern-matched. Bounded so a self-referential chain cannot spin.
    */
-  private static typeIsIndirect(type: string, state: TranspileState): boolean {
+  private static typeIsIndirect(
+    type: string,
+    symbolTable: SymbolTable,
+  ): boolean {
     let current = type;
     const seen = new Set<string>();
     for (let hop = 0; hop < 8; hop++) {
@@ -257,7 +267,7 @@ class PassByValueAnalyzer {
       // on it; they are aligned so the three exits do not read as disagreeing.
       if (!bare || seen.has(bare)) return true;
       seen.add(bare);
-      const alias = PassByValueAnalyzer.resolveTypedefTarget(bare, state);
+      const alias = PassByValueAnalyzer.resolveTypedefTarget(bare, symbolTable);
       // Deliberate exception: an alias this build never parsed (uint8_t,
       // size_t) is treated as a plain value. Calling it indirection would
       // reintroduce exactly the #957/#995 false positives measured for #1178.
@@ -276,9 +286,9 @@ class PassByValueAnalyzer {
    */
   private static resolveTypedefTarget(
     name: string,
-    state: TranspileState,
+    symbolTable: SymbolTable,
   ): string | null {
-    const symbols = state.symbolTable?.getOverloadsByCName(name) ?? [];
+    const symbols = symbolTable.getOverloadsByCName(name);
     for (const symbol of symbols) {
       if (symbol.kind !== "type") continue;
       const aliased = (symbol as { type?: string }).type;
@@ -299,7 +309,6 @@ class PassByValueAnalyzer {
   static collectFunctionParametersAndModifications(
     collect: IModificationCollector,
     tree: Parser.ProgramContext,
-    state: TranspileState,
   ): void {
     for (const decl of tree.declaration()) {
       // Handle scope-level functions
@@ -320,7 +329,6 @@ class PassByValueAnalyzer {
               collect,
               fullName,
               funcDecl,
-              state,
             );
           }
         }
@@ -334,7 +342,6 @@ class PassByValueAnalyzer {
           collect,
           name,
           funcDecl,
-          state,
         );
       }
     }
@@ -347,7 +354,6 @@ class PassByValueAnalyzer {
     collect: IModificationCollector,
     funcName: string,
     funcDecl: Parser.FunctionDeclarationContext,
-    state: TranspileState,
   ): void {
     // Collect parameter names
     const paramNames: string[] = [];
@@ -371,7 +377,6 @@ class PassByValueAnalyzer {
         funcName,
         paramNames,
         block,
-        state,
       );
     }
   }
@@ -384,7 +389,6 @@ class PassByValueAnalyzer {
     funcName: string,
     paramNames: string[],
     block: Parser.BlockContext,
-    state: TranspileState,
   ): void {
     const paramSet = new Set(paramNames);
 
@@ -394,7 +398,6 @@ class PassByValueAnalyzer {
         funcName,
         paramSet,
         stmt,
-        state,
       );
     }
   }
@@ -408,7 +411,6 @@ class PassByValueAnalyzer {
     funcName: string,
     paramSet: Set<string>,
     stmt: Parser.StatementContext,
-    state: TranspileState,
   ): void {
     // 1. Check for parameter modifications via assignment targets
     if (stmt.assignmentStatement()) {
@@ -427,7 +429,6 @@ class PassByValueAnalyzer {
         funcName,
         paramSet,
         expr,
-        state,
       );
     }
 
@@ -439,7 +440,6 @@ class PassByValueAnalyzer {
         funcName,
         paramSet,
         childStmt,
-        state,
       );
     }
     for (const block of blocks) {
@@ -448,7 +448,6 @@ class PassByValueAnalyzer {
         funcName,
         [...paramSet],
         block,
-        state,
       );
     }
   }
@@ -485,7 +484,6 @@ class PassByValueAnalyzer {
     funcName: string,
     paramSet: Set<string>,
     expr: Parser.ExpressionContext,
-    state: TranspileState,
   ): void {
     // Expression -> TernaryExpression -> OrExpression -> ... -> PostfixExpression
     const ternary = expr.ternaryExpression();
@@ -497,7 +495,6 @@ class PassByValueAnalyzer {
           funcName,
           paramSet,
           orExpr,
-          state,
         );
       }
     }
@@ -522,7 +519,6 @@ class PassByValueAnalyzer {
     funcName: string,
     paramSet: Set<string>,
     orExpr: Parser.OrExpressionContext,
-    state: TranspileState,
   ): void {
     PassByValueAnalyzer.walkOrExpression(
       orExpr,
@@ -532,7 +528,6 @@ class PassByValueAnalyzer {
           funcName,
           paramSet,
           unaryExpr,
-          state,
         );
       },
     );
@@ -546,7 +541,6 @@ class PassByValueAnalyzer {
     funcName: string,
     paramSet: Set<string>,
     unaryExpr: Parser.UnaryExpressionContext,
-    state: TranspileState,
   ): void {
     // Recurse into nested unary
     if (unaryExpr.unaryExpression()) {
@@ -555,7 +549,6 @@ class PassByValueAnalyzer {
         funcName,
         paramSet,
         unaryExpr.unaryExpression()!,
-        state,
       );
       return;
     }
@@ -568,7 +561,6 @@ class PassByValueAnalyzer {
         funcName,
         paramSet,
         postfix,
-        state,
       );
     }
   }
@@ -582,7 +574,6 @@ class PassByValueAnalyzer {
     funcName: string,
     paramSet: Set<string>,
     postfix: Parser.PostfixExpressionContext,
-    state: TranspileState,
   ): void {
     const primary = postfix.primaryExpression();
     const postfixOps = postfix.postfixOp();
@@ -594,7 +585,6 @@ class PassByValueAnalyzer {
       paramSet,
       primary,
       postfixOps,
-      state,
     );
 
     // Issue #365: Handle scope-qualified calls: Scope.method(...) or global.Scope.method(...)
@@ -604,7 +594,6 @@ class PassByValueAnalyzer {
       paramSet,
       primary,
       postfixOps,
-      state,
     );
 
     // Recurse into primary expression if it's a parenthesized expression
@@ -614,7 +603,6 @@ class PassByValueAnalyzer {
         funcName,
         paramSet,
         primary.expression()!,
-        state,
       );
     }
 
@@ -629,7 +617,6 @@ class PassByValueAnalyzer {
         funcName,
         paramSet,
         cast.unaryExpression()!,
-        state,
       );
     }
 
@@ -639,7 +626,6 @@ class PassByValueAnalyzer {
       funcName,
       paramSet,
       postfixOps,
-      state,
     );
   }
 
@@ -653,7 +639,6 @@ class PassByValueAnalyzer {
     paramSet: Set<string>,
     primary: Parser.PrimaryExpressionContext,
     postfixOps: Parser.PostfixOpContext[],
-    state: TranspileState,
   ): void {
     if (!primary.IDENTIFIER() || postfixOps.length === 0) return;
 
@@ -672,7 +657,6 @@ class PassByValueAnalyzer {
       paramSet,
       resolvedCalleeName,
       firstOp,
-      state,
     );
   }
 
@@ -735,7 +719,6 @@ class PassByValueAnalyzer {
     paramSet: Set<string>,
     primary: Parser.PrimaryExpressionContext,
     postfixOps: Parser.PostfixOpContext[],
-    state: TranspileState,
   ): void {
     if (postfixOps.length === 0) return;
 
@@ -765,7 +748,6 @@ class PassByValueAnalyzer {
             paramSet,
             calleeName,
             op,
-            state,
           );
         }
         memberNames.length = 0; // Reset for potential chained calls
@@ -807,7 +789,6 @@ class PassByValueAnalyzer {
     paramSet: Set<string>,
     calleeName: string,
     op: Parser.PostfixOpContext,
-    state: TranspileState,
   ): void {
     const argList = op.argumentList();
     if (!argList) return;
@@ -828,7 +809,6 @@ class PassByValueAnalyzer {
         funcName,
         paramSet,
         arg,
-        state,
       );
     }
   }
@@ -841,7 +821,6 @@ class PassByValueAnalyzer {
     funcName: string,
     paramSet: Set<string>,
     postfixOps: Parser.PostfixOpContext[],
-    state: TranspileState,
   ): void {
     for (const op of postfixOps) {
       if (op.argumentList()) {
@@ -851,7 +830,6 @@ class PassByValueAnalyzer {
             funcName,
             paramSet,
             argExpr,
-            state,
           );
         }
       }
@@ -861,7 +839,6 @@ class PassByValueAnalyzer {
           funcName,
           paramSet,
           expr,
-          state,
         );
       }
     }

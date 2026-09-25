@@ -274,7 +274,7 @@ class TranspileState {
    * be passed directly (not with &) since they're already pointers.
    * Maps qualified name (e.g., "MyScope_widget") to true.
    */
-  opaqueScopeVariables: Set<string> = new Set();
+  private opaqueScopeVariables: Set<string> = new Set();
 
   /**
    * 2.2 Plan's declaration decisions, asserted present.
@@ -309,10 +309,13 @@ class TranspileState {
   getUnmodifiedParameters(): Map<string, Set<string>> {
     const result = new Map<string, Set<string>>();
     for (const [funcName, signature] of this.functionSignatures) {
-      const modifiedSet = this.program?.modifiedParameters().get(funcName);
       const unmodified = new Set<string>();
       for (const param of signature.parameters) {
-        if (!modifiedSet?.has(param.name)) {
+        // Through the predicate, not a fourth inline `program?.…` lookup. The
+        // absent-artifact polarity (`?? false` -> "not modified", so auto-const
+        // applies) is one decision (#1529/#1552); spelling it here as well is
+        // how the four copies came to need four edits.
+        if (!this.isParameterModified(funcName, param.name)) {
           unmodified.add(param.name);
         }
       }
@@ -541,7 +544,7 @@ class TranspileState {
    * PRIVATE: Use getVariableTypeInfo()/setVariableTypeInfo() instead.
    * This ensures cross-file variables from SymbolTable are also found.
    */
-  typeRegistry: Map<string, TTypeInfo> = new Map();
+  private typeRegistry: Map<string, TTypeInfo> = new Map();
 
   /** Bug #8: Compile-time const values for array size resolution */
   constValues: Map<string, number> = new Map();
@@ -644,10 +647,10 @@ class TranspileState {
    * artifact and a reviewer should not have to decode every local. Empty for
    * the overwhelming majority of functions.
    */
-  localRenames: Map<string, string> = new Map();
+  private localRenames: Map<string, string> = new Map();
 
   /** Scope member names: scope -> Set of member names */
-  scopeMembers: Map<string, Set<string>> = new Map();
+  private scopeMembers: Map<string, Set<string>> = new Map();
 
   /** Float bit indexing: declared shadow variables */
   floatBitShadows: Set<string> = new Set();
@@ -778,7 +781,7 @@ class TranspileState {
    * `FunctionContextManager`, which #1450 deleted as production-dead; the point
    * survives it, so it is stated without the name.)
    */
-  clearFunctionLocals(): void {
+  private clearFunctionLocals(): void {
     this.localVariables.clear();
     this.localArrays.clear();
     this.localRenames.clear();
@@ -1044,29 +1047,21 @@ class TranspileState {
   }
 
   /**
-   * Check if a variable type is registered (locally or in SymbolTable).
-   * ADR-055 Phase 7: Uses getTSymbol for typed symbol lookup.
+   * Whether a variable type is registered, asked of the one lookup.
+   *
+   * This was a SECOND implementation of `getVariableTypeInfo`, and the two
+   * disagreed. It called `symbolTable.getTSymbol(name)` bare, where
+   * `DeclaredVariableFacts.symbolOf` falls back to the by-C-name index
+   * (#1303/#1139) -- so for a scoped `u32 value` in `Counter`,
+   * `getVariableTypeInfo("Counter__value")` answered `u32` while this answered
+   * `false`, which reads as "no such variable" rather than "wrong question".
+   * It carried its own copy of the #978 C-struct-global arm too.
+   *
+   * Delegating is what makes "is it registered?" and "what is it?" one decision
+   * rather than two that happen to agree on unscoped names.
    */
   hasVariableTypeInfo(name: string): boolean {
-    if (this.typeRegistry.has(name)) {
-      return true;
-    }
-    const symbol = this.symbolTable.getTSymbol(name);
-    if (symbol?.kind === "variable" && symbol.type !== undefined) {
-      return true;
-    }
-    // Issue #978: Check C symbols for external struct globals only
-    const cSymbol = this.symbolTable.getCSymbol(name);
-    if (cSymbol?.kind === "variable" && cSymbol.type) {
-      const baseType = DeclaredVariableFacts.stripTrailingPointers(
-        cSymbol.type,
-      );
-      return (
-        this.symbolTable.isTypedefStructType(baseType) ||
-        !!this.symbolTable.getStructFields(baseType)
-      );
-    }
-    return false;
+    return this.getVariableTypeInfo(name) !== undefined;
   }
 
   /**
@@ -1115,32 +1110,28 @@ class TranspileState {
   /**
    * #1552/#1529: does this parameter get modified ANYWHERE in the program?
    *
-   * The one modification fact behind every auto-const decision. `Program` owns
-   * it -- 1.4 Resolve settles it for the whole run before any file is planned,
-   * so the answer does not depend on which file is being rendered or on how
-   * far through a file the walk has reached.
+   * The name auto-const reads this fact under, kept because it says WHY the
+   * answer is program-wide at the call site that cares. It is an alias, and the
+   * aliasing is the point: `Program` owns the fact, 1.4 Resolve settles it for
+   * the whole run before any file is planned, so there is nothing for a
+   * per-scope variant to differ about.
    *
-   * Both properties are load-bearing, and each one was a bug:
+   * Both of the bugs behind it were a SECOND source disagreeing with this one:
    *
-   * - The per-file accumulator below is EMPTY while declarations are still
-   *   being walked, so a typedef built at that moment saw a modifying body as
+   * - A per-file accumulator was EMPTY while declarations were still being
+   *   walked, so a typedef built at that moment saw a modifying body as
    *   unmodified and emitted `const` where the prototype emitted none (#1529).
-   * - A function reached through an include is never walked here at all, so the
-   *   fact was absent rather than false, and an included function-as-type lost
-   *   the const its declaring file computed (#1552). Two files then defined one
-   *   typedef name incompatibly, which gcc rejects outright.
+   * - A function reached through an include was never walked, so the fact was
+   *   absent rather than false, and an included function-as-type lost the const
+   *   its declaring file computed (#1552). Two files then defined one typedef
+   *   name incompatibly, which gcc rejects outright.
    *
-   * Polarity matches the prototype's (`?? false`): an absent entry means NOT
-   * modified, so auto-const applies. Reading the absent case the other way is
-   * what made one expression wrong in both directions at once.
+   * That accumulator is gone. This docblock described its fallback as still
+   * present for one revision after it was deleted, which is the comment half of
+   * the same duplication.
    *
-   * The per-file fallback serves unit tests that drive codegen directly, which
-   * are the only callers with no `Program`. NOT single-source transpilation:
-   * `transpile({ kind: "source" })` and `{ kind: "files" }` share one
-   * `_executePipeline`, so `Program.build` runs and this field is set for both.
-   * Naming single-source here would be the kind of claim that survives by
-   * never being checked -- a later reader would preserve the branch for a
-   * production caller that does not exist.
+   * Polarity is `isParameterModified`'s: an absent entry means NOT modified, so
+   * auto-const applies.
    */
   isParameterModifiedAnywhere(funcName: string, paramName: string): boolean {
     return this.isParameterModified(funcName, paramName);
@@ -1277,7 +1268,7 @@ class TranspileState {
    * Nothing that resolved before resolves differently, which is what makes it
    * safe to put under a caller in `output/` as well as the analyzers.
    */
-  resolvedStructKey(structName: string): string | undefined {
+  private resolvedStructKey(structName: string): string | undefined {
     return StructFieldFacts.keyFor(this.symbols, structName);
   }
 
@@ -1556,7 +1547,7 @@ class TranspileState {
    * (`Counter__test`), so this adds one component to the existing encoder
    * rather than inventing a second naming scheme.
    */
-  planShadowingLocalName(name: string): void {
+  private planShadowingLocalName(name: string): void {
     const functionName = this.currentFunctionName;
     if (!functionName || !this.shadowsFileScopeSymbol(name)) {
       return;

@@ -72,7 +72,7 @@ class DeclaredVariableFacts {
    * Strip trailing pointer stars from a C type string (e.g., "font_t*" → "font_t").
    * Uses string operations instead of regex to avoid SonarCloud ReDoS flag (S5852).
    */
-  static stripTrailingPointers(type: string): string {
+  private static stripTrailingPointers(type: string): string {
     let end = type.length;
     while (end > 0 && type[end - 1] === "*") {
       end--;

@@ -759,7 +759,7 @@ class Transpiler {
       const modifications = ModificationFacts.derive(
         declared,
         this.symbolRegistry,
-        this.codeGenerator.transpileState,
+        this.codeGenerator.transpileState.symbolTable,
       );
       // #1511: derived over every tree before anything renders. Accumulated
       // during rendering, this map was partial for whichever file went first.

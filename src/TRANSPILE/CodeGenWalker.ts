@@ -1485,12 +1485,10 @@ class CodeGenWalker {
   private _isCurrentParameterModified(paramName: string): boolean {
     const funcName = this.host.state.currentFunctionName;
     if (!funcName) return false;
-    return (
-      this.host.state.program
-        ?.modifiedParameters()
-        .get(funcName)
-        ?.has(paramName) ?? false
-    );
+    // Through the state's predicate rather than inlining its body a fourth
+    // time. The absent-artifact polarity is #1529/#1552's decision and belongs
+    // in one place.
+    return this.host.state.isParameterModified(funcName, paramName);
   }
 
   /**
