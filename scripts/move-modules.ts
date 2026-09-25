@@ -751,6 +751,23 @@ const MOVES: readonly IMove[] = [
     to: "src/TRANSPILE/__tests__/TranspileState.includes.test.ts",
     because: "Follows its subject, for the reason the row above gives.",
   },
+  {
+    from: "src/transpiler/types/IAssignmentContext.ts",
+    to: "src/TRANSPILE/2-Plan/types/IAssignmentContext.ts",
+    because:
+      "#1657 review. #1452 gave this contract a `state: TranspileState` member " +
+      "so handlers could reach 2.3's per-file state, and that made a SHARED " +
+      "contract depend on a pass-root implementation: adding an " +
+      "`IAssignmentContext` import to `ShiftAnalyzer` made depcruise exit 2 " +
+      "with `analyzers-cannot-reach-codegen-state … via " +
+      "transpiler/types/IAssignmentContext.ts`. `.dependency-cruiser.cjs` " +
+      "calls `transpiler/types/` the place every layer may depend on, so a " +
+      "member that reaches into `src/TRANSPILE/` cannot live there. " +
+      "It is not layer-neutral anyway: `AssignmentContextBuilder` (2.2 Plan) " +
+      "builds it and the handlers (2.3 Render) consume it, which is 2.2 " +
+      "deciding and 2.3 formatting -- the one direction the digit rule allows. " +
+      "Nothing outside `src/TRANSPILE/` imports it.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */

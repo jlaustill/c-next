@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentClassifier from "../AssignmentClassifier";
 import AssignmentKind from "../../../transpiler/types/AssignmentKind";
 import AssignmentHandlerRegistry from "../../3-Render/codegen/assignment/index";
-import IAssignmentContext from "../../../transpiler/types/IAssignmentContext";
+import IAssignmentContext from "../types/IAssignmentContext";
 import TranspileState from "../../TranspileState";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import TTypeInfo from "../../../transpiler/types/TTypeInfo";

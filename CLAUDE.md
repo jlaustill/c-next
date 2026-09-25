@@ -545,7 +545,7 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 | `ISymbol`        | Legacy flat interface          | Removed (Phase 7) |
 | `TSymbolAdapter` | Converts TSymbol[] → ISymbol[] | Removed (Phase 7) |
 
-**Use**: `CNextResolver.resolve(tree, file)` → `TSymbol[]`
+**Use**: `CNextResolver.resolve(tree, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
 **Avoid**: Deleted `SymbolCollector`, `CNextSymbolCollector`
 
 ### C/C++ Resolvers (symbol-resolution Phase 6)
@@ -594,30 +594,35 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
   it reads the run-wide table **and** filters to `ESourceLanguage.CNext`, so it reports
   "exists" in the file that cannot see it and "missing" for every C/C++ header type. Ask the
   per-file sets about a C-Next name and the run-wide table about a foreign one
-- **Test isolation**: Call `SymbolRegistry.reset()` in `beforeEach` for CNextResolver tests
+- **Test isolation**: build a fresh `new SymbolRegistry()` per test and pass it to `CNextResolver.resolve(tree, file, registry)` — there is no global registry to reset (#1452 box 3 deleted the static and its `reset()`)
 - **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` — numbers for resolved constants, strings for C macros
-- **Analyzer state**: external struct fields are **derived by 1.4 Resolve** (`Program.externalStructFields()`) and read via `TranspileState.getExternalStructFields()`. #1447 moved the derivation there because which fields a header's struct has is a cross-file fact, and 1.4 is the pass that can see every file. The `buildExternalStructFields()` this line used to name was removed with the Stage 2b accumulation and does not exist
-- **Analyzer symbols**: `TranspileState.symbols` is set before `runAnalyzers()` in `_analyzeFile()` — analyzers can use `isKnownEnum()`, `getStructFieldType()`, `getFunctionReturnType()`, `getVariableTypeInfo()`
-- **Analyzer-time vs codegen-time state**: `symbols` is the _only_ `TranspileState` type view
-  populated before `runAnalyzers()`. `callbackTypes` and `constValues` are filled by
-  `CodeGenerator` and cleared by `reset()` at the start of `generate()` — **both after the
-  analyzers run**. Since #1320 hoisted 2.1 Analyze whole-program, every file is analyzed
-  before any file is planned, so across an analysis pass these hold the **same** value for
-  every file: empty in a fresh process, or the previous run's last file in a long-lived one
-  (`ServeCommand` holds a static transpiler and serves many requests), because the only
-  production `reset()` call is per-file inside `generate()`. An analyzer reading one is
-  reading nothing about the file it is analyzing — a silent no-op, **not** the
-  order-dependence this entry used to describe, and the two need opposite debugging. That is
-  the whole value of the entry: #1399 shipped an E0426 that fired or not depending on which
-  order the entry listed its two `#include` lines, and the old wording now sends the next
-  reader hunting include ordering for a shape the hoist removed. `typeRegistry` is the sharpest of
-  the three and the reason this entry exists: it is `private`, but `getVariableTypeInfo()`
-  checks it **before** falling back to `SymbolTable`, so an analyzer following the bullet
-  above reads a stale local ahead of the correct cross-file answer — a wrong answer, not a
-  missing one. Three analyzers call it in production today.
-  Use `symbols.functionReturnTypes` for the ADR-029 function-as-type fact — it is the
-  per-file view of the same thing
-- **Analyzer test isolation**: build a fresh `new TranspileState()` per test rather than resetting a shared one. #1452 made it an instance, so `CodeGenState.reset()` in an `afterEach` is now a compile error, and a test that sets `state.symbols` no longer leaks into the next one
+- **What an analyzer may read is `IAnalysisContext`, and nothing else.** #1456
+  made it a parameter: `symbols` (this file's view), `program` (1.4's artifact),
+  `symbolTable`, and `reachesForeignHeader`. `Transpiler._analyzeFile` builds it
+  from artifacts settled before 2.1 begins, and
+  `analyzers-cannot-reach-codegen-state` (`error`, `reachable: true`) makes an
+  analyzer that reaches `TranspileState` fail the **`lint`** job — through a
+  shared helper as readily as directly. `symbols` and `program` are NON-nullable,
+  so `?? []` and `if (!symbols)` in an analyzer are guards that cannot fire and
+  a wrong answer if they ever did: `?? []` for "what consts does this scope
+  have" means "none", not "unknown"
+- **Cross-file facts come from `program`, not from the render state**: external
+  struct fields are derived by 1.4 Resolve and read as
+  `context.program.externalStructFields()`. Use
+  `context.symbols.functionReturnTypes` for the ADR-029 function-as-type fact
+- **Analyzer test isolation**: build the context, not the state —
+  `testAnalysisContext(state, overrides)` in
+  `src/TRANSPILE/1-Analyze/__tests__/`. It reads the facts off a
+  `TranspileState` the test already set up, which is why that helper lives under
+  `__tests__` and is the one place allowed to
+- **The timing hazard this list used to describe is gone.** It said `typeRegistry`
+  is private and "three analyzers call it in production today", so an analyzer
+  could read a stale per-file local ahead of the correct cross-file answer. At
+  HEAD **zero** analyzers call `getVariableTypeInfo` (`grep` finds two mentions,
+  both in comments), because none of them can reach the state at all. Kept as a
+  sentence rather than deleted: the paragraph survived the boundary it described
+  by being renamed `CodeGenState` → `TranspileState`, which is how a hazard note
+  outlives its hazard
 - **Analyzer type tracking**: Use `trackType(typeCtx, identifier)` helper pattern (see `FloatModuloAnalyzer.trackIfFloat()`, `ArrayIndexTypeAnalyzer.trackType()`) to avoid jscpd duplication across `enterVariableDeclaration`/`enterParameter`/`enterForVarDecl`
 - **Ternary grammar**: `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0 — and address them via `orExpression()`, **never `getChild(i)`**: the condition is parenthesized, so `getChild(0)` is `(` and an index-based skip silently does nothing
 - **Callback header params**: `IParameterSymbol.isCallbackPointer`/`isCallbackConst` resolved in `Transpiler.convertToHeaderSymbols()` via `TypedefParamParser` — single source of truth for both `.c` and `.h` generation

@@ -6,7 +6,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import specialHandlers from "../SpecialHandlers";
 import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
-import IAssignmentContext from "../../../../../../transpiler/types/IAssignmentContext";
+import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
 import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
 import enterScope from "../../../../../../transpiler/__tests__/enterScope";

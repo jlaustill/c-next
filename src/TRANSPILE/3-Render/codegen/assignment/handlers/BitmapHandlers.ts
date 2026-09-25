@@ -13,7 +13,7 @@ import invariant from "../../../../../utils/invariant";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import type IBitmapFieldLayout from "../../../../../transpiler/types/IBitmapFieldLayout";
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
-import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
+import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import QualifiedCName from "../../../../../utils/QualifiedCName";

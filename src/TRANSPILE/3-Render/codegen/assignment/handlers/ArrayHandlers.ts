@@ -8,7 +8,7 @@
  */
 import ComplianceAnnotations from "../../../../2-Plan/ComplianceAnnotations";
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
-import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
+import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import TAssignmentHandler from "./TAssignmentHandler";
 import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";

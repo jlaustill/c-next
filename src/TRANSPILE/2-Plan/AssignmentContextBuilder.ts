@@ -20,7 +20,7 @@
  * out of the population for real rather than by spelling.
  */
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import IAssignmentContext from "../../transpiler/types/IAssignmentContext";
+import IAssignmentContext from "./types/IAssignmentContext";
 import IBitAccessAnalysis from "../../transpiler/types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../transpiler/types/TPlannedTargetOp";
 import TTypeInfo from "../../transpiler/types/TTypeInfo";

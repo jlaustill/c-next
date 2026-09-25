@@ -59,7 +59,24 @@ const CONFIG_PATH = join(__dirname, "..", "..", ".dependency-cruiser.cjs");
 // recognized at all -- so all four could have shipped without `reachable: true`
 // while this file passed over them. That is the #1297 shape one level up, and
 // it is what these tests exist to catch.
-const LAYER_ROOTS = ["^src/transpiler/", "^src/PARSE/", "^src/TRANSPILE/"];
+// #1452 added `^src/instrumentation/`, and the omission had the same shape the
+// paragraph above describes: `instrumentation-cannot-import-a-layer` shipped
+// with a `from` no root recognized, so `isLayerRule` skipped it and neither the
+// transitivity assertion nor the roster below covered it. Verified by mutation
+// -- removing its `reachable: true` left this file at 5 passed, while an
+// instrumentation module importing `utils/DeclaredVariableFacts` (which reaches
+// `PARSE/3-Declare/SymbolTable`) is caught only WITH `reachable`.
+const LAYER_ROOTS = [
+  "^src/transpiler/",
+  "^src/PARSE/",
+  "^src/TRANSPILE/",
+  "^src/instrumentation/",
+  // 3.1 Write. A layer root with no modules yet, so it appears only inside
+  // `instrumentation-cannot-import-a-layer`'s alternation -- listed here so
+  // that rule is RECOGNIZED, and in `FORWARD_REFERENCES` so the dead-path
+  // assertion tolerates it. Two different questions about the same absence.
+  "^src/WRITE/",
+];
 
 interface IRuleEnd {
   path?: string | string[];
@@ -77,41 +94,6 @@ const paths = (end: IRuleEnd | undefined): string[] => {
   if (typeof value === "string") return [value];
   if (Array.isArray(value)) return value;
   return [];
-};
-
-/**
- * A layering claim: every path on BOTH ends is inside a layer root.
- *
- * Normalizing arrays matters -- a rule listing several source directories is
- * still a layering claim, and reading only `typeof path === "string"` would let
- * it slip past this assertion silently.
- */
-const isLayerRule = (rule: IRule): boolean => {
-  const from = paths(rule.from);
-  const to = paths(rule.to);
-
-  if (from.length === 0 || to.length === 0) return false;
-
-  return [...from, ...to].every((path) =>
-    LAYER_ROOTS.some((root) => path.startsWith(root)),
-  );
-};
-
-/**
- * Every rule's path literals, layering claim or not.
- *
- * `allRules` rather than `layerRules` because the question below is not about
- * layering: a rule pointing at a deleted path is dead whatever it claims.
- */
-const allRules = (): IRule[] => {
-  const config: unknown = require(CONFIG_PATH);
-  const forbidden = (config as { forbidden?: unknown }).forbidden;
-
-  if (!Array.isArray(forbidden)) {
-    throw new Error(".dependency-cruiser.cjs has no `forbidden` array");
-  }
-
-  return forbidden as IRule[];
 };
 
 /**
@@ -154,6 +136,46 @@ const expandAlternations = (path: string): string[] => {
   }
 
   return out;
+};
+
+/**
+ * A layering claim: every path on BOTH ends is inside a layer root.
+ *
+ * Normalizing arrays matters -- a rule listing several source directories is
+ * still a layering claim, and reading only `typeof path === "string"` would let
+ * it slip past this assertion silently.
+ */
+const isLayerRule = (rule: IRule): boolean => {
+  const from = paths(rule.from);
+  const to = paths(rule.to);
+
+  if (from.length === 0 || to.length === 0) return false;
+
+  // Through `expandAlternations`, because a rule end may be written as one
+  // pattern with alternatives -- `^src/(PARSE|TRANSPILE|WRITE)/` starts with no
+  // root, so a `startsWith` over the raw string failed to recognize
+  // `instrumentation-cannot-import-a-layer` as a layering claim at all, and it
+  // shipped exempt from every assertion in this file.
+  return [...from, ...to]
+    .flatMap(expandAlternations)
+    .every((path) => LAYER_ROOTS.some((root) => path.startsWith(root)));
+};
+
+/**
+ * Every rule's path literals, layering claim or not.
+ *
+ * `allRules` rather than `layerRules` because the question below is not about
+ * layering: a rule pointing at a deleted path is dead whatever it claims.
+ */
+const allRules = (): IRule[] => {
+  const config: unknown = require(CONFIG_PATH);
+  const forbidden = (config as { forbidden?: unknown }).forbidden;
+
+  if (!Array.isArray(forbidden)) {
+    throw new Error(".dependency-cruiser.cjs has no `forbidden` array");
+  }
+
+  return forbidden as IRule[];
 };
 
 /**
@@ -207,6 +229,7 @@ describe("dependency-cruiser layer rules (#1297)", () => {
       "data-cannot-import-logic",
       "data-cannot-import-output",
       "declare-cannot-import-resolve",
+      "instrumentation-cannot-import-a-layer",
       "logic-cannot-import-output",
       "nothing-after-resolve-derives-cross-file-facts",
       "parse-cannot-import-render",

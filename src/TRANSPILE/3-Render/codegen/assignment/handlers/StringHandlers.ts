@@ -10,7 +10,7 @@
  * - STRING_STRUCT_ARRAY_ELEMENT: config.items[0] <- "value"
  */
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
-import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
+import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import StringUtils from "../../../../../utils/StringUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";

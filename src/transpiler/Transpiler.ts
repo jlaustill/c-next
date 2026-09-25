@@ -1121,27 +1121,28 @@ class Transpiler {
   }
 
   /**
-   * Publish the per-file symbol view 2.2 Plan and 2.3 Render read off the state.
+   * The per-file symbol view, required present.
    *
-   * `_analyzeFile` and `_transpileFile` each need it immediately before their
-   * own pass runs -- one during Stage 4d's whole-program analysis, the other
-   * during Stage 5's per-file emission -- so it is established once here rather
-   * than assigned at both sites.
+   * This used to PUBLISH the view onto the state as well, and that write is now
+   * dead in both directions. `_analyzeFile`'s readers are the analyzers, which
+   * take `IAnalysisContext.symbols` since #1456 and are barred from the state by
+   * `analyzers-cannot-reach-codegen-state`. `_transpileFile`'s next state access
+   * is `generate()`, whose `reset()` sets `symbols = null` before the walker
+   * assigns `options.symbolInfo` -- so the value written here was overwritten
+   * before anything could read it. Verified by removing the write: 7435 unit
+   * tests and 1263 fixtures stay green.
    *
-   * It also set `currentFileReachesForeignHeader` from
-   * `file.reachesForeignHeader ?? true`, for the reason this docblock gave: one
-   * place per per-file fact. #1456 then moved the one thing that READ it onto
-   * `IAnalysisContext`, which `_analyzeFile` fills from the same expression --
-   * so the extraction that existed to stop the fact being derived twice was
-   * holding the copy nobody read, and the `?? true` that survives is the only
-   * one. `reset()` also restored the field to `true` at the top of `generate()`,
-   * i.e. immediately after this wrote it, so a render-side reader would have
-   * seen the declining default rather than the file's answer.
+   * It set `currentFileReachesForeignHeader` too, and that went the same way for
+   * the same reason: #1456 moved its one reader onto `IAnalysisContext`, which
+   * `_analyzeFile` fills from the same expression, and `reset()` restored the
+   * declining default over it at the top of `generate()`.
+   *
+   * What is left is the requirement itself, which is why the method stays: both
+   * callers need the view to exist, and `_requireSymbolInfo` throws rather than
+   * returning a nullable that every caller would then guard.
    */
   private _establishPerFileCodeGenState(sourcePath: string): ICodeGenSymbols {
-    const symbolInfo = this._requireSymbolInfo(sourcePath);
-    this.codeGenerator.transpileState.symbols = symbolInfo;
-    return symbolInfo;
+    return this._requireSymbolInfo(sourcePath);
   }
 
   /**
@@ -1497,6 +1498,18 @@ class Transpiler {
     this.discoveredIncludeSearchPaths.clear();
     // ADR-049: the previous run's targets must not decide this run's budget
     this.pragmaTargets = [];
+    // #1662: both are run-scoped and both were initialized ONCE, in the
+    // constructor, so neither was ever cleared. `warnings` is pushed to per run
+    // and copied onto every result, which made three runs of one source on one
+    // transpiler report 1, then 2, then 3 copies of the same missing-header
+    // warning; `anyHeaderPreprocessFailed` latches, so one failed preprocess
+    // left the #985 recovery path armed for every later run. `ServeCommand`
+    // holds a static transpiler, so "later run" is the normal case there.
+    //
+    // `warnings` is `readonly`, so it is emptied rather than replaced -- the
+    // result copies it with a spread, so nothing holds the array itself.
+    this.warnings.length = 0;
+    this.anyHeaderPreprocessFailed = false;
     // #1323: a stale entry here would let one run's header content leak into
     // the next, the same shape #1143's toolchain-requirements leak was.
     this.headerEmissionFactsByPath.clear();

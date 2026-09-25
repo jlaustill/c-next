@@ -5,10 +5,10 @@
  * code for an assignment. Built once by the context extractor, then used
  * by the classifier and handlers.
  */
-import type IBitAccessAnalysis from "./IBitAccessAnalysis";
-import type TPlannedTargetOp from "./TPlannedTargetOp";
-import TTypeInfo from "./TTypeInfo";
-import type TranspileState from "../../TRANSPILE/TranspileState";
+import type IBitAccessAnalysis from "../../../transpiler/types/IBitAccessAnalysis";
+import type TPlannedTargetOp from "../../../transpiler/types/TPlannedTargetOp";
+import TTypeInfo from "../../../transpiler/types/TTypeInfo";
+import type TranspileState from "../../TranspileState";
 
 /**
  * Context extracted from assignment statement for classification.

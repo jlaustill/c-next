@@ -34,7 +34,7 @@ vi.mock("../../../../../2-Plan/ExpressionTypeResolver", () => ({
 
 import arrayHandlers from "../ArrayHandlers";
 import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
-import IAssignmentContext from "../../../../../../transpiler/types/IAssignmentContext";
+import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
 import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
 

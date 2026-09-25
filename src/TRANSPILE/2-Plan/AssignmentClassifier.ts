@@ -8,7 +8,7 @@
  * Migrated to use CodeGenState instead of constructor DI.
  */
 import AssignmentKind from "../../transpiler/types/AssignmentKind";
-import IAssignmentContext from "../../transpiler/types/IAssignmentContext";
+import IAssignmentContext from "./types/IAssignmentContext";
 import SubscriptClassifier from "./SubscriptClassifier";
 import SubscriptDepthValidator from "./SubscriptDepthValidator";
 import TTypeInfo from "../../transpiler/types/TTypeInfo";

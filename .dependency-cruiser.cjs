@@ -287,11 +287,17 @@ module.exports = {
         "this root as the one place mutable cross-pass state is allowed, and " +
         "without this rule that paragraph is prose with nothing behind it. " +
         "`reachable` because the edge arrives through a helper as easily as " +
-        "directly (#1297).",
+        "directly (#1297). " +
+        "The `to` names `transpiler/(data|logic)` as well, and the omission was " +
+        "real: `AdrProvenance` importing `transpiler/data/FileDiscovery` left " +
+        "depcruise at exit 0 while the comment above claimed NONE of the layers " +
+        "was reachable. 1.1 Discover and the logic layer are layers by " +
+        "CLAUDE.md's own table and by the `data-` and `logic-` rules beside " +
+        "this one, so a rule that says 'none' has to name them.",
       severity: "error",
       from: { path: "^src/instrumentation/", pathNot: "__tests__" },
       to: {
-        path: "^src/(PARSE|TRANSPILE|WRITE)/",
+        path: "^src/(PARSE|TRANSPILE|WRITE|transpiler/data|transpiler/logic)/",
         reachable: true,
       },
     },

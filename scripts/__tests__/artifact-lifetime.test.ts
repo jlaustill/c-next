@@ -154,7 +154,7 @@ const ARTIFACTS: ReadonlyArray<readonly [string, string]> = [
   ["src/PARSE/3-Declare/SymbolRegistry.ts", "SymbolRegistry"],
   // The two artifacts whose RUNTIME values retain a tree through closures --
   // included precisely so the return-type check above is exercised on them.
-  ["src/transpiler/types/IAssignmentContext.ts", "IAssignmentContext"],
+  ["src/TRANSPILE/2-Plan/types/IAssignmentContext.ts", "IAssignmentContext"],
   ["src/transpiler/types/TPlannedTargetOp.ts", "TPlannedTargetOp"],
 ];
 

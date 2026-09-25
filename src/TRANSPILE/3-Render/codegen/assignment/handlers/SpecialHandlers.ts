@@ -6,7 +6,7 @@
  * - OVERFLOW_CLAMP: clamp u8 saturated +<- 200
  */
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
-import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
+import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
