@@ -16,7 +16,7 @@ import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import invariant from "../../../../../utils/invariant";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
-import type RenderState from "../../../RenderState";
+import type TranspileState from "../../../../TranspileState";
 
 // #1322: `validateNotCompound` is gone -- E0857 in pass 2.1. It was defined
 // here AND in the sibling handler, verbatim: one rule, two copies, in a group
@@ -29,7 +29,7 @@ import type RenderState from "../../../RenderState";
  * builds differs -- bare, scope-qualified, or an array's base name -- but the
  * question and its answer do not, so only the key is the caller's business.
  */
-function capacityOf(registryKey: string, state: RenderState): number {
+function capacityOf(registryKey: string, state: TranspileState): number {
   const typeInfo = state.getVariableTypeInfo(registryKey);
   return typeInfo!.stringCapacity!;
 }
@@ -93,7 +93,7 @@ function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
 function getStructFieldType(
   structName: string,
   fieldName: string,
-  state: RenderState,
+  state: TranspileState,
 ): string {
   // Issue #831: Use SymbolTable as single source of truth for struct fields
   const structType = getStructType(structName, state);
@@ -118,7 +118,7 @@ function getStructFieldType(
  *
  * Shared helper for struct field handlers.
  */
-function getStructType(structName: string, state: RenderState): string {
+function getStructType(structName: string, state: TranspileState): string {
   const structTypeInfo = state.getVariableTypeInfo(structName);
   // #1322: classified "dead -- delete" by #1321's audit, and it is indeed
   // unreachable: STRING_STRUCT_FIELD is produced only via

@@ -5,7 +5,7 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import TypeRegistrationUtils from "../TypeRegistrationUtils";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 
 /**
  * Mock for `ITypeSymbols` -- the three-field interface TypeRegistrationUtils
@@ -27,11 +27,11 @@ function createMockTypeSymbols(overrides: Record<string, unknown> = {}) {
   };
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("TypeRegistrationUtils", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   describe("tryRegisterEnumType", () => {

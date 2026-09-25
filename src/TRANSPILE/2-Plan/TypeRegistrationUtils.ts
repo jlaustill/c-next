@@ -9,7 +9,7 @@
 import TOverflowBehavior from "../../transpiler/types/TOverflowBehavior";
 import type IDeclaredTypeSets from "../../transpiler/types/IDeclaredTypeSets";
 import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
-import type RenderState from "../3-Render/RenderState";
+import type TranspileState from "../TranspileState";
 
 /**
  * Common options for type registration.
@@ -34,7 +34,7 @@ class TypeRegistrationUtils {
   static tryRegisterEnumType(
     symbols: IDeclaredTypeSets,
     options: ITypeRegistrationOptions,
-    state: RenderState,
+    state: TranspileState,
   ): boolean {
     if (!symbols.knownEnums.has(options.baseType)) {
       return false;
@@ -64,7 +64,7 @@ class TypeRegistrationUtils {
     symbols: IDeclaredTypeSets,
     options: ITypeRegistrationOptions,
     arrayDimensions: number[] | undefined,
-    state: RenderState,
+    state: TranspileState,
   ): boolean {
     if (!symbols.knownBitmaps.has(options.baseType)) {
       return false;

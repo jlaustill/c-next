@@ -11,7 +11,7 @@
  * emitted in both files would redefine every macro.
  */
 import PublicInterface from "../../../../2-Plan/PublicInterface";
-import type RenderState from "../../../RenderState";
+import type TranspileState from "../../../../TranspileState";
 
 class RegisterBlockPlacement {
   /**
@@ -21,7 +21,7 @@ class RegisterBlockPlacement {
    * @param cName - The register's transpiled C name (`GPIO7`, `Board__R`)
    * @param block - The rendered comment-and-`#define` block
    */
-  static place(cName: string, block: string, state: RenderState): string {
+  static place(cName: string, block: string, state: TranspileState): string {
     const definedInHeader =
       state.sourcePath !== null &&
       PublicInterface.definesTypeInHeader(

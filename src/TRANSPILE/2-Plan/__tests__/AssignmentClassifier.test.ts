@@ -6,7 +6,7 @@ import AssignmentClassifier from "../AssignmentClassifier";
 import AssignmentKind from "../../../transpiler/types/AssignmentKind";
 import AssignmentHandlerRegistry from "../../3-Render/codegen/assignment/index";
 import IAssignmentContext from "../../../transpiler/types/IAssignmentContext";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import TTypeInfo from "../../../transpiler/types/TTypeInfo";
 import enterScope from "../../../transpiler/__tests__/enterScope";
@@ -19,7 +19,7 @@ import enterScope from "../../../transpiler/__tests__/enterScope";
  * Create a minimal mock context for testing classification.
  */
 function createMockContext(
-  state: RenderState,
+  state: TranspileState,
   overrides: Partial<IAssignmentContext> = {},
 ): IAssignmentContext {
   // Compute resolvedBaseIdentifier from resolvedTarget if not explicitly provided
@@ -139,11 +139,11 @@ function setupSymbols(
 // ========================================================================
 // SIMPLE Assignment
 // ========================================================================
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("AssignmentClassifier - SIMPLE", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     setupSymbols();
   });
 
@@ -176,7 +176,7 @@ describe("AssignmentClassifier - SIMPLE", () => {
 // ========================================================================
 describe("AssignmentClassifier - Bitmap Fields", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it("classifies single-bit bitmap field", () => {
@@ -268,7 +268,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
 // ========================================================================
 describe("AssignmentClassifier - Integer Bit Access", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     setupSymbols();
   });
 
@@ -309,7 +309,7 @@ describe("AssignmentClassifier - Integer Bit Access", () => {
 // ========================================================================
 describe("AssignmentClassifier - Array Access", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     setupSymbols();
   });
 
@@ -362,7 +362,7 @@ describe("AssignmentClassifier - Array Access", () => {
 // ========================================================================
 describe("AssignmentClassifier - String Assignments", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     setupSymbols();
   });
 
@@ -412,7 +412,7 @@ describe("AssignmentClassifier - String Assignments", () => {
 // ========================================================================
 describe("AssignmentClassifier - Special Compound", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     setupSymbols();
   });
 
@@ -486,7 +486,7 @@ describe("AssignmentClassifier - Special Compound", () => {
 // ========================================================================
 describe("AssignmentClassifier - Prefix Patterns", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it("classifies global.member", () => {
@@ -640,7 +640,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 // ========================================================================
 describe("AssignmentClassifier - Register Bit Access", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it("classifies register single bit", () => {
@@ -703,7 +703,7 @@ describe("AssignmentClassifier - Register Bit Access", () => {
 // ========================================================================
 describe("AssignmentClassifier - Scoped Register Bitmap Field", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it("classifies Scope.REG.MEMBER.field as SCOPED_REGISTER_MEMBER_BITMAP_FIELD", () => {
@@ -753,7 +753,7 @@ describe("AssignmentClassifier - Scoped Register Bitmap Field", () => {
 // ========================================================================
 describe("AssignmentClassifier - Bitmap Array Element Field", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it("classifies bitmapArr[i].field as BITMAP_ARRAY_ELEMENT_FIELD", () => {
@@ -790,7 +790,7 @@ describe("AssignmentClassifier - Bitmap Array Element Field", () => {
 // ========================================================================
 describe("AssignmentClassifier - Multi-dim Array Bit Indexing", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     setupSymbols();
   });
 
@@ -846,7 +846,7 @@ describe("AssignmentClassifier - Multi-dim Array Bit Indexing", () => {
 // ========================================================================
 describe("AssignmentClassifier - Scoped Register Bit Range", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it("classifies this.reg[start, width] as SCOPED_REGISTER_BIT_RANGE", () => {
@@ -884,7 +884,7 @@ describe("AssignmentClassifier - Scoped Register Bit Range", () => {
 // ========================================================================
 describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it("classifies REG.MEMBER[bit] as REGISTER_BIT (non-this, non-global)", () => {
@@ -956,7 +956,7 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
 // ========================================================================
 describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   const scopedRegisterCases: ReadonlyArray<
@@ -1102,7 +1102,7 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
 // ========================================================================
 describe("AssignmentClassifier - This Prefix Register Bitmap", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it("classifies this.REG.MEMBER.field as SCOPED_REGISTER_MEMBER_BITMAP_FIELD", () => {
@@ -1132,7 +1132,7 @@ describe("AssignmentClassifier - This Prefix Register Bitmap", () => {
 // ========================================================================
 describe("AssignmentClassifier - Member Chain", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it("classifies complex member chain as MEMBER_CHAIN", () => {
@@ -1172,7 +1172,7 @@ describe("AssignmentClassifier - Member Chain", () => {
 // ========================================================================
 describe("AssignmentClassifier - previously unnamed kinds", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     setupSymbols();
   });
 

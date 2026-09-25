@@ -10,7 +10,7 @@
  */
 
 import IAssignmentOverflowContext from "../../../../transpiler/types/IAssignmentOverflowContext";
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Result of resolving expected type for an assignment target.
@@ -58,7 +58,7 @@ class AssignmentExpectedTypeResolver {
    */
   static resolve(
     target: IPlannedAssignmentTarget,
-    state: RenderState,
+    state: TranspileState,
   ): IExpectedTypeResult {
     const { baseId, identifiers, hasSubscript } = target;
 
@@ -109,7 +109,7 @@ class AssignmentExpectedTypeResolver {
    */
   private static resolveForSimpleIdentifier(
     id: string,
-    state: RenderState,
+    state: TranspileState,
   ): IExpectedTypeResult {
     const typeInfo = state.getVariableTypeInfo(id);
     if (!typeInfo) {
@@ -137,7 +137,7 @@ class AssignmentExpectedTypeResolver {
    */
   private static resolveForMemberChain(
     identifiers: readonly string[],
-    state: RenderState,
+    state: TranspileState,
   ): IExpectedTypeResult {
     return AssignmentExpectedTypeResolver.walkMemberChain(identifiers, state);
   }
@@ -156,7 +156,7 @@ class AssignmentExpectedTypeResolver {
   private static resolveForArrayElement(
     id: string,
     hasRangeSubscript: boolean,
-    state: RenderState,
+    state: TranspileState,
   ): IExpectedTypeResult {
     const typeInfo = state.getVariableTypeInfo(id);
     if (!typeInfo?.isArray) {
@@ -180,7 +180,7 @@ class AssignmentExpectedTypeResolver {
    */
   private static resolveForMemberArrayElement(
     identifiers: readonly string[],
-    state: RenderState,
+    state: TranspileState,
   ): IExpectedTypeResult {
     return AssignmentExpectedTypeResolver.walkMemberChain(identifiers, state);
   }
@@ -193,7 +193,7 @@ class AssignmentExpectedTypeResolver {
    */
   private static walkMemberChain(
     identifiers: readonly string[],
-    state: RenderState,
+    state: TranspileState,
   ): IExpectedTypeResult {
     if (identifiers.length < 2) {
       return { expectedType: null, assignmentContext: null };

@@ -19,7 +19,7 @@ import type IFileSymbols from "./types/IFileSymbols";
 import type IParsedFile from "./types/IParsedFile";
 import type IModificationFacts from "./types/IModificationFacts";
 import type ICallGraphEntry from "./types/ICallGraphEntry";
-import type RenderState from "../TRANSPILE/3-Render/RenderState";
+import type TranspileState from "../TRANSPILE/TranspileState";
 
 class ModificationFacts {
   /**
@@ -43,7 +43,7 @@ class ModificationFacts {
       readonly fileSymbols: IFileSymbols;
     }>,
     registry: SymbolRegistry,
-    state: RenderState,
+    state: TranspileState,
   ): IModificationFacts {
     // #1452 box 4: the accumulation is this call's own, created here and gone
     // when it returns. It used to be three mutable statics on `CodeGenState`

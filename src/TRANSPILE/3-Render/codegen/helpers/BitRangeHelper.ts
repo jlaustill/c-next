@@ -3,7 +3,7 @@
  * Extracted from CodeGenerator to improve testability.
  */
 
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 import NarrowingCastHelper from "./NarrowingCastHelper";
 
 /**
@@ -31,7 +31,7 @@ interface IIntegerBitReadOptions {
    * 2.3 Render's per-file working state (#1452 box 4), needed only for the
    * MISRA 10.3 cast, which asks the run's C++ mode.
    */
-  state: RenderState;
+  state: TranspileState;
 }
 
 /**

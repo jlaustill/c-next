@@ -50,7 +50,7 @@ import generateEnumHeader from "../../../headers/generators/generateEnumHeader";
 import generateBitmapHeader from "../../../headers/generators/generateBitmapHeader";
 import generateStructHeader from "../../../headers/generators/generateStructHeader";
 import type IHeaderTypeInput from "../../../headers/generators/IHeaderTypeInput";
-import type RenderState from "../../../RenderState";
+import type TranspileState from "../../../../TranspileState";
 
 /**
  * The header's own per-type emitters, by kind.
@@ -82,7 +82,7 @@ const HEADER_TYPE_EMITTERS: Readonly<
 function renderTypeDefinitions(
   plan: IPlannedScope,
   input: IGeneratorInput,
-  state: RenderState,
+  state: TranspileState,
 ): string[] {
   const symbols = input.symbols;
   if (!symbols || plan.typeDefinitions.length === 0) {

@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import StringLengthCounter from "../StringLengthCounter";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 
 /**
  * Parse a C-Next expression and return the expression context.
@@ -31,11 +31,11 @@ function parseBlock(statements: string) {
   return funcDecl.block()!;
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("StringLengthCounter", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   describe("countExpression", () => {

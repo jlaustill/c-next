@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import IntegerConversionAnalyzer from "../IntegerConversionAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -44,13 +44,13 @@ const structs = (fields: Record<string, Record<string, string>>) => {
 };
 
 afterEach(() => {
-  state = new RenderState();
+  state = new TranspileState();
 });
 
 const inMain = (body: string): string =>
   `u32 wide <- 1000;\ni32 neg <- -5;\nu8 byte <- 7;\nu32 main() {\n${body}\n    return 0;\n}`;
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("IntegerConversionAnalyzer", () => {
   describe("E0868 -- a literal must fit", () => {

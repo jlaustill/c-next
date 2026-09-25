@@ -1,20 +1,20 @@
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import Program from "../../../PARSE/4-Resolve/Program";
 import type IAnalysisContext from "../types/IAnalysisContext";
 import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
 
 /**
  * An `IAnalysisContext` built from whatever the test already put on
- * `RenderState`.
+ * `TranspileState`.
  *
  * #1456 made the analyzers take their inputs instead of reaching for them.
  * Production builds this in `Transpiler._analyzeFile`, from the artifacts it
- * is holding. The unit tests set the same facts up on `RenderState` and have
+ * is holding. The unit tests set the same facts up on `TranspileState` and have
  * done since before the boundary existed, so this reads them back rather than
  * rewriting several hundred assertions to construct symbol views by hand.
  *
  * That is deliberate and it is not a fallback: nothing in `src/` outside
- * `__tests__` calls this, so the production path cannot reach `RenderState`
+ * `__tests__` calls this, so the production path cannot reach `TranspileState`
  * through it. A test that wants a specific view passes its own object.
  *
  * `program` is non-nullable on the context because 1.4 Resolve has always
@@ -23,7 +23,7 @@ import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpe
  * fallbacks this replaced, only now it is stated rather than implied.
  */
 const testAnalysisContext = (
-  state: RenderState,
+  state: TranspileState,
   overrides: Partial<IAnalysisContext> = {},
 ): IAnalysisContext => ({
   symbols: state.symbols ?? createMockSymbols(),

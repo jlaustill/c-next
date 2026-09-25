@@ -5,7 +5,7 @@
  * Maintains backward-compatible API.
  */
 
-import type RenderState from "../RenderState";
+import type TranspileState from "../../TranspileState";
 import IHeaderSymbol from "./types/IHeaderSymbol";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import HeaderSymbolAdapter from "./adapters/HeaderSymbolAdapter";
@@ -66,7 +66,7 @@ class HeaderGenerator {
   generateFromSymbolTable(
     symbolTable: SymbolTable,
     sourceFile: string,
-    state: RenderState,
+    state: TranspileState,
     options: IHeaderOptions = {},
   ): string {
     const tSymbols = symbolTable.getTSymbolsByFile(sourceFile);
@@ -83,7 +83,7 @@ class HeaderGenerator {
   generateCNextHeader(
     symbolTable: SymbolTable,
     filename: string,
-    state: RenderState,
+    state: TranspileState,
     options: IHeaderOptions = {},
   ): string {
     const tSymbols = symbolTable.getAllTSymbols();

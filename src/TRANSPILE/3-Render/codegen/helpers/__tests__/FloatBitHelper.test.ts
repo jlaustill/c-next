@@ -3,12 +3,12 @@
  *
  * Issue #644: Tests for the extracted float bit write helper.
  * Issue #857: Updated for union-based type punning (MISRA 21.15 compliance).
- * Migrated to use RenderState instead of constructor DI.
+ * Migrated to use TranspileState instead of constructor DI.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import FloatBitHelper from "../FloatBitHelper";
-import RenderState from "../../../RenderState";
+import TranspileState from "../../../../TranspileState";
 import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import type TIncludeHeader from "../../../../../transpiler/types/TIncludeHeader";
 
@@ -21,13 +21,13 @@ interface IFloatBitCallbacks {
   requireInclude: (header: TIncludeHeader) => void;
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("FloatBitHelper", () => {
   let callbacks: IFloatBitCallbacks;
 
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
 
     callbacks = {
       generateBitMask: vi.fn((width, _is64Bit) => `((1U << ${width}) - 1)`),

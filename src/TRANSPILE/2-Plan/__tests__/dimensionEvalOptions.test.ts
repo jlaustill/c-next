@@ -4,15 +4,15 @@
  */
 
 import { describe, it, expect, afterEach } from "vitest";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import TYPE_WIDTH from "../../../transpiler/constants/TYPE_WIDTH";
 import dimensionEvalOptions from "../dimensionEvalOptions";
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("dimensionEvalOptions", () => {
   afterEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it("supplies the shared TYPE_WIDTH table", () => {

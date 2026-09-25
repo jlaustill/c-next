@@ -11,7 +11,7 @@ import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import TypeResolver from "../../../../utils/TypeResolver";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import type TType from "../../../../transpiler/types/TType";
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Adapter to convert TSymbol to IHeaderSymbol
@@ -20,7 +20,7 @@ class HeaderSymbolAdapter {
   /**
    * Convert a TSymbol to IHeaderSymbol
    */
-  static fromTSymbol(symbol: TSymbol, state: RenderState): IHeaderSymbol {
+  static fromTSymbol(symbol: TSymbol, state: TranspileState): IHeaderSymbol {
     switch (symbol.kind) {
       case "function":
         return HeaderSymbolAdapter.convertFunction(symbol, state);
@@ -42,7 +42,10 @@ class HeaderSymbolAdapter {
   /**
    * Convert an array of TSymbols to IHeaderSymbols
    */
-  static fromTSymbols(symbols: TSymbol[], state: RenderState): IHeaderSymbol[] {
+  static fromTSymbols(
+    symbols: TSymbol[],
+    state: TranspileState,
+  ): IHeaderSymbol[] {
     return symbols.map((s) => HeaderSymbolAdapter.fromTSymbol(s, state));
   }
 
@@ -52,7 +55,7 @@ class HeaderSymbolAdapter {
 
   private static convertFunction(
     func: import("../../../../transpiler/types/symbols/IFunctionSymbol").default,
-    state: RenderState,
+    state: TranspileState,
   ): IHeaderSymbol {
     // Convert TType return type to string
     const returnTypeStr = TypeResolver.getTypeName(func.returnType);
@@ -93,7 +96,7 @@ class HeaderSymbolAdapter {
 
   private static convertVariable(
     variable: import("../../../../transpiler/types/symbols/IVariableSymbol").default,
-    state: RenderState,
+    state: TranspileState,
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(variable);
@@ -142,7 +145,7 @@ class HeaderSymbolAdapter {
       readonly type: TType;
       readonly arrayDimensions?: ReadonlyArray<number | string>;
     },
-    state: RenderState,
+    state: TranspileState,
   ): string[] | undefined {
     const dimensions = parameter.arrayDimensions?.map((d) =>
       typeof d === "number"
@@ -182,7 +185,7 @@ class HeaderSymbolAdapter {
    */
   private static resolveConstDimension(
     dimension: string,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     const constValue = state.constValues.get(dimension);
     return constValue === undefined ? dimension : String(constValue);
@@ -297,7 +300,7 @@ class HeaderSymbolAdapter {
   private static resolveArrayDimension(
     dim: string,
     scopePath: string,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     // Issue #1127: the rule itself lives on ScopeUtils so the struct-field path
     // applies the same one. This wrapper only binds the predicate.

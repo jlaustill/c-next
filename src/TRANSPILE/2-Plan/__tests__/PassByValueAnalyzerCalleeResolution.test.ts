@@ -14,7 +14,7 @@ import type IModificationCollector from "../types/IModificationCollector";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import PassByValueAnalyzer from "../PassByValueAnalyzer";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import type TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
@@ -81,7 +81,7 @@ const callerParameterIsModified = (callee: string): boolean => {
   return collect.modifiedParameters.get("Caller__forward")!.has("value");
 };
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   beforeEach(() => {
@@ -89,7 +89,7 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   afterEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     state.symbolTable = new SymbolTable();
   });
 

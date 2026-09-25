@@ -5,11 +5,11 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import ArgumentGenerator from "../ArgumentGenerator";
-import RenderState from "../../../RenderState";
+import TranspileState from "../../../../TranspileState";
 import IArgumentGeneratorCallbacks from "../types/IArgumentGeneratorCallbacks";
 import enterScope from "../../../../../transpiler/__tests__/enterScope";
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("ArgumentGenerator", () => {
   // #1445: the callbacks are thunks and `generateArg` takes no node, so the 22
@@ -20,7 +20,7 @@ describe("ArgumentGenerator", () => {
   const createMockCallbacks = (
     overrides: Partial<IArgumentGeneratorCallbacks> = {},
   ): IArgumentGeneratorCallbacks => ({
-    state: new RenderState(),
+    state: new TranspileState(),
     getLvalueType: () => null,
     getMemberAccessArrayStatus: () => "not-array",
     isCppMemberConversionRequired: () => false,
@@ -30,7 +30,7 @@ describe("ArgumentGenerator", () => {
   });
 
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   describe("handleIdentifierArg", () => {

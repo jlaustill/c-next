@@ -74,7 +74,7 @@ import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
 // Issue #797: Centralized C-style name generation
 import type IRecordedRequirement from "../../../transpiler/types/IRecordedRequirement";
 import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
-import RenderState from "../RenderState";
+import TranspileState from "../../TranspileState";
 
 /**
  * Code Generator - Transpiles C-Next to C
@@ -87,7 +87,7 @@ export default class CodeGenerator implements IOrchestrator {
    * walker reaches this object as `this.host`, so one instance serves both
    * without a global between them.
    */
-  readonly state = new RenderState();
+  readonly state = new TranspileState();
 
   // ===========================================================================
   // IOrchestrator Implementation

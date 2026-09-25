@@ -7,7 +7,7 @@
 import BitUtils from "../../../../../utils/BitUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
-import type RenderState from "../../../RenderState";
+import type TranspileState from "../../../../TranspileState";
 
 /** Result from extracting bit range expressions */
 interface IBitRangeParams {
@@ -44,7 +44,7 @@ class RegisterUtils {
     startConst: number | undefined,
     widthConst: number | undefined,
     value: string,
-    state: RenderState,
+    state: TranspileState,
   ): IOptimizationResult {
     if (
       startConst === undefined ||

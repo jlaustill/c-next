@@ -4,9 +4,9 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import BitRangeHelper from "../BitRangeHelper";
-import RenderState from "../../../RenderState";
+import TranspileState from "../../../../TranspileState";
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("BitRangeHelper", () => {
   describe("buildFloatBitReadExpr", () => {
@@ -123,7 +123,7 @@ describe("BitRangeHelper", () => {
 
   describe("buildIntegerBitReadExpr with target type", () => {
     beforeEach(() => {
-      state = new RenderState();
+      state = new TranspileState();
       state.cppMode = false;
     });
 

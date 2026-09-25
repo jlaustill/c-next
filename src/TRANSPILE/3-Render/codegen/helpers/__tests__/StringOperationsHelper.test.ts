@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import StringOperationsHelper from "../StringOperationsHelper";
-import RenderState from "../../../RenderState";
+import TranspileState from "../../../../TranspileState";
 
 /** A declared `string<capacity>` in the render-time type registry. */
 function declareString(name: string, capacity: number): void {
@@ -25,11 +25,11 @@ function declareString(name: string, capacity: number): void {
   });
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("StringOperationsHelper", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   // ========================================================================

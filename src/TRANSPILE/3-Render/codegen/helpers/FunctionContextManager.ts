@@ -26,7 +26,7 @@ import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks";
 import TypedefParamParser from "./TypedefParamParser";
 import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
 import type IPlannedType from "../types/IPlannedType";
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Result from resolving parameter type information.
@@ -61,7 +61,7 @@ class FunctionContextManager {
     returnType: string,
     isMainWithArgs: boolean,
     firstParameterName: string | undefined,
-    state: RenderState,
+    state: TranspileState,
   ): IReturnTypeAndParams {
     if (isMainWithArgs) {
       // Special case: main(u8 args[][]) -> int main(int argc, char *argv[])
@@ -83,7 +83,7 @@ class FunctionContextManager {
   static processParameterList(
     params: readonly IPlannedFunctionParameter[] | null,
     callbacks: IFunctionContextCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     state.currentParameters.clear();
     if (!params) return;
@@ -100,7 +100,7 @@ class FunctionContextManager {
     param: IPlannedFunctionParameter,
     callbacks: IFunctionContextCallbacks,
     paramIndex: number,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     const { name, isArray, isConst } = param;
 
@@ -199,7 +199,7 @@ class FunctionContextManager {
   static resolveParameterTypeInfo(
     type: IPlannedType,
     callbacks: IFunctionContextCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): IParameterTypeInfo {
     if (type.isString) {
       return {
@@ -247,7 +247,7 @@ class FunctionContextManager {
   static registerParameterType(
     typeInfo: IParameterTypeInfo,
     param: IPlannedFunctionParameter,
-    state: RenderState,
+    state: TranspileState,
     isTypedefStruct = false,
   ): void {
     const { typeName, isString } = typeInfo;
@@ -301,7 +301,7 @@ class FunctionContextManager {
    * `void onTwo(char* msg, char* tag)` -- `error: conflicting types`, which is
    * the defect #1545 exists to remove, one parameter over.
    */
-  static callbackTypedefType(state: RenderState): string | undefined {
+  static callbackTypedefType(state: TranspileState): string | undefined {
     if (state.currentFunctionName === null) return undefined;
 
     // #1545 review: delegates rather than restating the two steps. This is the
@@ -316,7 +316,7 @@ class FunctionContextManager {
    */
   static getCallbackTypedefParamInfo(
     paramIndex: number,
-    state: RenderState,
+    state: TranspileState,
   ): { isParamPointer: boolean; isParamConst: boolean } | null {
     // main's renamed result fields (#1450), with #1545's extracted lookup --
     // the two steps live in state.callbackTypedefTypeFor now, so this
@@ -344,7 +344,7 @@ class FunctionContextManager {
   /**
    * Clear parameter tracking when leaving a function.
    */
-  static clearParameters(state: RenderState): void {
+  static clearParameters(state: TranspileState): void {
     // ADR-025: Remove parameter types from typeRegistry
     for (const name of state.currentParameters.keys()) {
       state.deleteVariableTypeInfo(name);
@@ -357,7 +357,7 @@ class FunctionContextManager {
    * Enter function body - clears local variables and sets inFunctionBody flag.
    * This is a simpler version used when only body lifecycle is needed.
    */
-  static enterFunctionBody(state: RenderState): void {
+  static enterFunctionBody(state: TranspileState): void {
     state.enterFunctionBody();
   }
 
@@ -365,7 +365,7 @@ class FunctionContextManager {
    * Exit function body - clears local variables and inFunctionBody flag.
    * This is a simpler version used when only body lifecycle is needed.
    */
-  static exitFunctionBody(state: RenderState): void {
+  static exitFunctionBody(state: TranspileState): void {
     state.mainArgsName = null;
     state.exitFunctionBody();
   }

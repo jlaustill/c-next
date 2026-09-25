@@ -17,12 +17,12 @@
  */
 
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
-import type RenderState from "../3-Render/RenderState";
+import type TranspileState from "../TranspileState";
 
 /**
  * Build the constant-folding options for an array dimension from current state.
  */
-function dimensionEvalOptions(state: RenderState) {
+function dimensionEvalOptions(state: TranspileState) {
   return {
     constValues: state.constValues,
     typeWidths: TYPE_WIDTH,

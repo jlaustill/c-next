@@ -12,7 +12,7 @@
  */
 
 import invariant from "../../../../utils/invariant";
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Result from processing array initialization.
@@ -50,7 +50,7 @@ interface IArrayInitCallbacks {
    * Carried on the deps object this helper already receives, rather than read
    * off a static class.
    */
-  readonly state: RenderState;
+  readonly state: TranspileState;
 
   /** Generate the initializer expression's code */
   generateExpression: () => string;
@@ -78,7 +78,7 @@ class ArrayInitHelper {
     hasEmptyArrayDim: boolean,
     declaredSize: number | null,
     callbacks: IArrayInitCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): IArrayInitResult | null {
     // Reset and generate initializer
     state.resetArrayInitTracking();
@@ -122,7 +122,7 @@ class ArrayInitHelper {
    */
   private static _processSizeInference(
     name: string,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     // #1322: E0876 rejects the fill-all form on an inferred size in pass 2.1
     // (ADR-035); the count below is the only size this path can infer.
@@ -148,7 +148,7 @@ class ArrayInitHelper {
   private static _processExplicitSize(
     declaredSize: number | null,
     callbacks: IArrayInitCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     const dimensionSuffix = callbacks.generateArrayDimensions();
 
@@ -172,7 +172,7 @@ class ArrayInitHelper {
   private static _expandFillAllSyntax(
     initValue: string,
     declaredSize: number | null,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     if (state.lastArrayFillValue === undefined || declaredSize === null) {
       return initValue;

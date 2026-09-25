@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import specialHandlers from "../SpecialHandlers";
 import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../../../transpiler/types/IAssignmentContext";
-import RenderState from "../../../../RenderState";
+import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
 import enterScope from "../../../../../../transpiler/__tests__/enterScope";
 
@@ -65,11 +65,11 @@ function createMockContext(
   } as IAssignmentContext;
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("SpecialHandlers", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     HandlerTestUtils.setupMockGenerator(state);
     HandlerTestUtils.setupMockSymbols(state);
   });
@@ -258,9 +258,7 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(state.requireGenerator().state.usedClampOps.has("add_u8")).toBe(
-        true,
-      );
+      expect(state.usedClampOps.has("add_u8")).toBe(true);
       expect(result).toBe("saturated = cnx_clamp_add_u8(saturated, 200);");
     });
 
@@ -281,9 +279,7 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(state.requireGenerator().state.usedClampOps.has("sub_u16")).toBe(
-        true,
-      );
+      expect(state.usedClampOps.has("sub_u16")).toBe(true);
       expect(result).toBe("value = cnx_clamp_sub_u16(value, 100);");
     });
 
@@ -304,9 +300,7 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(state.requireGenerator().state.usedClampOps.has("mul_u32")).toBe(
-        true,
-      );
+      expect(state.usedClampOps.has("mul_u32")).toBe(true);
       expect(result).toBe("result = cnx_clamp_mul_u32(result, 2);");
     });
 
@@ -325,7 +319,7 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(state.requireGenerator().state.usedClampOps.size).toBe(0);
+      expect(state.usedClampOps.size).toBe(0);
       expect(result).toBe("f += 1000.0;");
     });
 
@@ -365,7 +359,7 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(state.requireGenerator().state.usedClampOps.size).toBe(0);
+      expect(state.usedClampOps.size).toBe(0);
       expect(result).toBe("value /= 2;");
     });
 
@@ -387,9 +381,7 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(state.requireGenerator().state.usedClampOps.has("add_u8")).toBe(
-        true,
-      );
+      expect(state.usedClampOps.has("add_u8")).toBe(true);
       expect(result).toBe("Motor__speed = cnx_clamp_add_u8(Motor__speed, 10);");
     });
 
@@ -410,9 +402,7 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(state.requireGenerator().state.usedClampOps.has("add_i16")).toBe(
-        true,
-      );
+      expect(state.usedClampOps.has("add_i16")).toBe(true);
       expect(result).toBe("globalValue = cnx_clamp_add_i16(globalValue, 50);");
     });
   });

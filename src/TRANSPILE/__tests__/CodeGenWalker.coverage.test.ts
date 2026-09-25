@@ -23,7 +23,7 @@ import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import TSymbolInfoAdapter from "../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
-import RenderState from "../3-Render/RenderState";
+import TranspileState from "../TranspileState";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
 import enterScope from "../../transpiler/__tests__/enterScope";
@@ -81,7 +81,7 @@ function setupGenerator(
  * with a real run rather than approximating one.
  */
 function installProgramFor(
-  state: RenderState,
+  state: TranspileState,
   tree: Parser.ProgramContext,
   sourcePath = "test.cnx",
 ): void {
@@ -105,7 +105,7 @@ function generateWithProgram(
   options: Parameters<CodeGenWalker["generate"]>[2],
 ): ReturnType<CodeGenWalker["generate"]> {
   installProgramFor(
-    generator.renderState,
+    generator.transpileState,
     tree,
     options?.sourcePath ?? "test.cnx",
   );

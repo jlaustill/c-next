@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import CNextResolver from "../../../../PARSE/3-Declare/cnext";
 import CNextSourceParser from "../../../../PARSE/2-Parse/CNextSourceParser";
-import RenderState from "../../../3-Render/RenderState";
+import TranspileState from "../../../TranspileState";
 import Program from "../../../../PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../../PARSE/3-Declare/SymbolRegistry";
 import FunctionReference from "../FunctionReference";
@@ -29,7 +29,7 @@ const build = (source: string) => {
 beforeEach(() => {});
 
 afterEach(() => {
-  state = new RenderState();
+  state = new TranspileState();
 });
 
 let registry = new SymbolRegistry();
@@ -38,7 +38,7 @@ beforeEach(() => {
   registry = new SymbolRegistry();
 });
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("FunctionReference.candidates -- the ADR-057 order", () => {
   it("tries the enclosing scope's member before the file-scope name", () => {
@@ -154,7 +154,7 @@ describe("FunctionReference.ofTypeText -- the order, observed", () => {
   });
 
   it("answers null with no program at all, rather than throwing", () => {
-    state = new RenderState();
+    state = new TranspileState();
     expect(
       FunctionReference.ofTypeText("handler", "", testAnalysisContext(state)),
     ).toBeNull();

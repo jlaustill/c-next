@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
@@ -40,10 +40,10 @@ const analyze = (source: string, table: SymbolTable, cppMode = true) =>
   );
 
 afterEach(() => {
-  state = new RenderState();
+  state = new TranspileState();
 });
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("CppClassInitializerAnalyzer (E0508)", () => {
   it("rejects a global initializer at the literal, not at a later declaration", () => {

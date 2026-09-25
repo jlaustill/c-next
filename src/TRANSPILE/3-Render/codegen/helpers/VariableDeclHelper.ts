@@ -37,7 +37,7 @@ import IPlannedArrayDeclaration from "../types/IPlannedArrayDeclaration";
 import TPlannedVariableDecl from "../types/TPlannedVariableDecl";
 import TPlannedVariableInitializer from "../types/TPlannedVariableInitializer";
 import TYPE_MAP from "../types/TYPE_MAP";
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Result from rendering the array half of a declaration.
@@ -83,7 +83,7 @@ class VariableDeclHelper {
   static finalizeCppClassAssignments(
     name: string,
     decl: string,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     if (state.pendingCppClassAssignments.length === 0) {
       return `${decl};`;
@@ -111,7 +111,7 @@ class VariableDeclHelper {
     plan: IPlannedArrayDeclaration,
     sourceName: string,
     decl: string,
-    state: RenderState,
+    state: TranspileState,
   ): IArrayDeclResult {
     if (!plan.isArray) {
       return { handled: false, code: "", decl, isArray: false };
@@ -175,7 +175,7 @@ class VariableDeclHelper {
     plan: TPlannedVariableInitializer,
     decl: string,
     isArray: boolean,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     if (plan.kind === "zero") {
       // ADR-015: Zero initialization for uninitialized variables
@@ -236,7 +236,7 @@ class VariableDeclHelper {
    */
   static renderVariableDecl(
     plan: TPlannedVariableDecl,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     switch (plan.kind) {
       // Issue #375: C++ constructor syntax.
@@ -266,7 +266,7 @@ class VariableDeclHelper {
    */
   private static renderPlainDecl(
     plan: Extract<TPlannedVariableDecl, { kind: "plain" }>,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     // ADR-057: the DECLARED identifier is the emitted one -- a local shadowing a
     // file-scope name carries a distinct C name so `global.x` still reaches

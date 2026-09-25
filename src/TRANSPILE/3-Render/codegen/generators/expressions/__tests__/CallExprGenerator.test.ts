@@ -4,7 +4,7 @@ import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
-import RenderState from "../../../../RenderState";
+import TranspileState from "../../../../../TranspileState";
 import TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type IPlannedCallArgument from "../../../types/IPlannedCallArgument";
@@ -51,12 +51,12 @@ function planArguments(
 function createMockInput(
   overrides: Partial<IGeneratorInput> = {},
 ): IGeneratorInput {
-  // Also populate RenderState with the type registry entries
-  // This is needed because CallExprGenerator now uses RenderState directly
+  // Also populate TranspileState with the type registry entries
+  // This is needed because CallExprGenerator now uses TranspileState directly
   const typeRegistry =
     (overrides.typeRegistry as Map<string, TTypeInfo>) ?? new Map();
   for (const [name, info] of typeRegistry) {
-    sharedRenderState.setVariableTypeInfo(name, info);
+    sharedState.setVariableTypeInfo(name, info);
   }
 
   return {
@@ -103,7 +103,7 @@ interface IArgumentPlannerStub {
  * #1452: the generator reads render state off its orchestrator, so the mock
  * and the assertions share ONE instance.
  */
-let sharedRenderState = new RenderState();
+let sharedState = new TranspileState();
 
 function createMockOrchestrator(
   overrides: Partial<IOrchestrator & IArgumentPlannerStub> = {},
@@ -111,7 +111,7 @@ function createMockOrchestrator(
   return {
     // #1452: the orchestrator carries 2.3's per-file state, so a generator
     // reads it from the collaborator it was handed rather than a static class.
-    state: sharedRenderState,
+    state: sharedState,
     generateExpression: vi.fn((ctx: Parser.ExpressionContext) => ctx.getText()),
     generateFunctionArg: vi.fn(
       (ctx: Parser.ExpressionContext) => `&${ctx.getText()}`,
@@ -140,9 +140,9 @@ function createMockOrchestrator(
 // ========================================================================
 
 describe("CallExprGenerator", () => {
-  // Reset RenderState before each test to avoid state pollution
+  // Reset TranspileState before each test to avoid state pollution
   beforeEach(() => {
-    sharedRenderState = new RenderState();
+    sharedState = new TranspileState();
   });
 
   describe("empty function call", () => {
@@ -437,7 +437,7 @@ describe("CallExprGenerator", () => {
 
       // Set up the render state's currentParameters to simulate a
       // callback-promoted param.
-      sharedRenderState.currentParameters.set("buf", {
+      sharedState.currentParameters.set("buf", {
         name: "buf",
         baseType: "u8",
         isArray: false,
@@ -469,7 +469,7 @@ describe("CallExprGenerator", () => {
       expect(result.code).toBe("draw_bitmap(buf)");
 
       // Clean up
-      sharedRenderState.currentParameters.clear();
+      sharedState.currentParameters.clear();
     });
   });
 
@@ -1505,11 +1505,11 @@ describe("CallExprGenerator", () => {
 
   describe("inDeclarationInit clearing (Issue #992)", () => {
     beforeEach(() => {
-      sharedRenderState = new RenderState();
+      sharedState = new TranspileState();
     });
 
     it("clears inDeclarationInit during function argument generation", () => {
-      sharedRenderState.inDeclarationInit = true;
+      sharedState.inDeclarationInit = true;
 
       const argExpressions = [createMockExpressionContext("myArg")];
       const input = createMockInput();
@@ -1519,7 +1519,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         generateExpression: vi.fn((ctx: Parser.ExpressionContext) => {
-          flagDuringArg = sharedRenderState.inDeclarationInit;
+          flagDuringArg = sharedState.inDeclarationInit;
           return ctx.getText();
         }),
       });
@@ -1533,11 +1533,11 @@ describe("CallExprGenerator", () => {
       );
 
       expect(flagDuringArg).toBe(false);
-      expect(sharedRenderState.inDeclarationInit).toBe(true);
+      expect(sharedState.inDeclarationInit).toBe(true);
     });
 
     it("restores inDeclarationInit after argument generation", () => {
-      sharedRenderState.inDeclarationInit = true;
+      sharedState.inDeclarationInit = true;
 
       const argExpressions = [
         createMockExpressionContext("a"),
@@ -1557,7 +1557,7 @@ describe("CallExprGenerator", () => {
         orchestrator,
       );
 
-      expect(sharedRenderState.inDeclarationInit).toBe(true);
+      expect(sharedState.inDeclarationInit).toBe(true);
     });
   });
 });

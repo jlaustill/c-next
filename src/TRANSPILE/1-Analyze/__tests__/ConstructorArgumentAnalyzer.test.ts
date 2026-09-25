@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ConstructorArgumentAnalyzer from "../ConstructorArgumentAnalyzer";
@@ -29,11 +29,11 @@ const errors = (source: string) => {
   );
 };
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("ConstructorArgumentAnalyzer", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it("rejects a mutable argument, with a real position", () => {

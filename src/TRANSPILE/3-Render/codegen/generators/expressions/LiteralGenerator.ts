@@ -12,7 +12,7 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorState from "../IGeneratorState";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
-import type RenderState from "../../../RenderState";
+import type TranspileState from "../../../../TranspileState";
 
 /**
  * Unsigned type patterns for MISRA Rule 7.2 compliance.
@@ -33,7 +33,7 @@ const UNSIGNED_TYPES = new Set([
  * Resolve typedef aliases to their underlying type.
  * For C typedef'd types (e.g., "byte_t" -> "uint8_t"), look up the symbol table.
  */
-function resolveTypedef(typeName: string, state: RenderState): string {
+function resolveTypedef(typeName: string, state: TranspileState): string {
   const underlyingType = state.getTypedefType(typeName);
   return underlyingType ?? typeName;
 }
@@ -86,7 +86,7 @@ function hasUnsignedSuffix(text: string): boolean {
 const generateLiteral = (
   text: string,
   state: IGeneratorState,
-  renderState: RenderState,
+  transpileState: TranspileState,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
   let literalText = text;
@@ -106,7 +106,7 @@ const generateLiteral = (
         literalText,
         "int",
         expectedType,
-        renderState,
+        transpileState,
       );
       return { code: wrappedCode, effects };
     }
@@ -151,7 +151,7 @@ const generateLiteral = (
     !hasUnsignedSuffix(literalText)
   ) {
     // Resolve typedef aliases (e.g., "byte_t" -> "uint8_t")
-    const resolvedType = resolveTypedef(expectedType, renderState);
+    const resolvedType = resolveTypedef(expectedType, transpileState);
     if (UNSIGNED_64_TYPES.has(resolvedType)) {
       literalText = literalText + "ULL";
     } else if (UNSIGNED_TYPES.has(resolvedType)) {

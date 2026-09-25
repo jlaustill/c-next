@@ -4,7 +4,7 @@
  * (MISRA C:2012 Rule 10.4, ADR-024 / Issue #1091).
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
@@ -25,11 +25,11 @@ function analyze(source: string) {
   );
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("MixedTypeCategoryAnalyzer", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   describe("mixed-category operands (rejected)", () => {

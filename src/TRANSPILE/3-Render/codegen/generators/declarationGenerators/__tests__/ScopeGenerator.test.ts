@@ -26,7 +26,7 @@ import TPlannedScopeMember from "../../../types/TPlannedScopeMember";
 import TPlannedScopeVariable from "../../../types/TPlannedScopeVariable";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import AdrProvenance from "../../../../../../instrumentation/AdrProvenance";
-import RenderState from "../../../../RenderState";
+import TranspileState from "../../../../../TranspileState";
 
 /**
  * A stub that answers only what it was given and throws for anything else, so
@@ -133,11 +133,11 @@ function declarationsOf(code: string): string[] {
   return code.split("\n").filter((line) => line.trim() !== "");
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("ScopeGenerator", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   beforeEach(() => {
@@ -610,7 +610,7 @@ describe("ScopeGenerator", () => {
       expect(enumAt).toBeGreaterThan(-1);
       expect(structAt).toBeGreaterThan(-1);
       expect(enumAt).toBeLessThan(structAt);
-      // The generator reads the table off RenderState rather than the plan.
+      // The generator reads the table off TranspileState rather than the plan.
       expect(state.symbolTable).toBe(symbolTable);
     });
   });

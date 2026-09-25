@@ -22,7 +22,7 @@ import TYPE_LIMITS from "../../types/TYPE_LIMITS";
 import CppModeHelper from "../../helpers/CppModeHelper";
 import CastRequirement from "../../../../2-Plan/CastRequirement";
 import type IPlannedCast from "../../types/IPlannedCast";
-import type RenderState from "../../../RenderState";
+import type TranspileState from "../../../../TranspileState";
 
 /**
  * ADR-024 / Issue #632: a float-to-integer cast clamps rather than invoking
@@ -35,7 +35,7 @@ import type RenderState from "../../../RenderState";
 function renderClampedCast(
   plan: IPlannedCast,
   sourceType: string,
-  state: RenderState,
+  state: TranspileState,
 ): string {
   const maxValue = TYPE_LIMITS.TYPE_MAX[plan.targetTypeName];
   const minValue = TYPE_LIMITS.TYPE_MIN[plan.targetTypeName];
@@ -70,7 +70,7 @@ function renderClampedCast(
  * Issue #267/#644: C++ mode emits `static_cast` for MISRA compliance, which
  * `CppModeHelper.cast` decides.
  */
-function generateCast(plan: IPlannedCast, state: RenderState): string {
+function generateCast(plan: IPlannedCast, state: TranspileState): string {
   if (CastRequirement.requiresClamping(plan.operandType, plan.targetTypeName)) {
     return renderClampedCast(plan, plan.operandType!, state);
   }

@@ -43,7 +43,7 @@ import TPlannedStringDecl from "../types/TPlannedStringDecl";
 import StringOperationsHelper from "./StringOperationsHelper";
 import StringUtils from "../../../../utils/StringUtils";
 import invariant from "../../../../utils/invariant";
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Generates string variable declarations in C.
@@ -62,7 +62,7 @@ class StringDeclHelper {
     name: string,
     modifiers: IRenderedModifiers,
     isConst: boolean,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     switch (plan.kind) {
       case "array":
@@ -99,7 +99,7 @@ class StringDeclHelper {
     plan: Extract<TPlannedStringDecl, { kind: "array" }>,
     name: string,
     modifiers: IRenderedModifiers,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     const {
       extern,
@@ -166,7 +166,7 @@ class StringDeclHelper {
   private static _expandFillAll(
     initValue: string,
     declaredSize: number | null,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     const fillVal = state.lastArrayFillValue;
     if (fillVal === undefined) {
@@ -194,7 +194,7 @@ class StringDeclHelper {
     init: IPlannedStringInit | null,
     name: string,
     modifiers: IRenderedModifiers,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     const {
       extern,
@@ -281,7 +281,7 @@ class StringDeclHelper {
   private static _validateStringInit(
     exprText: string,
     capacity: number,
-    state: RenderState,
+    state: TranspileState,
   ): boolean {
     // Validate string literal fits capacity
     if (exprText.startsWith('"') && exprText.endsWith('"')) {
@@ -318,7 +318,7 @@ class StringDeclHelper {
     concatOps: IStringConcatOps,
     constMod: string,
     qualifiers: string,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     // String concatenation requires runtime function calls (strncpy, strncat)
     // which cannot exist at global scope in C
@@ -360,7 +360,7 @@ class StringDeclHelper {
     substringOps: ISubstringOps,
     constMod: string,
     qualifiers: string,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     // Substring extraction requires runtime function calls (strncpy)
     // which cannot exist at global scope in C
@@ -418,7 +418,7 @@ class StringDeclHelper {
     name: string,
     modifiers: IRenderedModifiers,
     isConst: boolean,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     if (!isConst) {
       invariant(

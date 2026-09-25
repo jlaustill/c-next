@@ -26,7 +26,7 @@ import ISubstringOps from "../types/ISubstringOps";
 import IStringConcatOps from "../types/IStringConcatOps";
 import StringUtils from "../../../../utils/StringUtils";
 import BareIdentifier from "../../../../utils/BareIdentifier";
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Helper for string operation rendering.
@@ -45,7 +45,7 @@ class StringOperationsHelper {
    */
   static getStringExprCapacity(
     exprCode: string,
-    state: RenderState,
+    state: TranspileState,
   ): number | null {
     // String literal - capacity equals content length
     if (exprCode.startsWith('"') && exprCode.endsWith('"')) {
@@ -76,7 +76,7 @@ class StringOperationsHelper {
   static getStringConcatOperands(
     leftText: string,
     rightText: string,
-    state: RenderState,
+    state: TranspileState,
   ): IStringConcatOps | null {
     const leftCapacity = StringOperationsHelper.getStringExprCapacity(
       leftText,
@@ -128,7 +128,7 @@ class StringOperationsHelper {
   static getSubstringOperands(
     sourceName: string,
     generateIndexes: () => readonly string[],
-    state: RenderState,
+    state: TranspileState,
   ): ISubstringOps | null {
     const sourceCapacity = StringOperationsHelper.getStringExprCapacity(
       sourceName,

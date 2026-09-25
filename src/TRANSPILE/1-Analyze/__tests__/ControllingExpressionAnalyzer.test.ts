@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ControllingExpressionAnalyzer from "../ControllingExpressionAnalyzer";
@@ -25,11 +25,11 @@ const errors = (source: string) => {
 const inIf = (condition: string): string =>
   `bool flag <- true;\nu32 n <- 1;\nvoid t() {\n    if (${condition}) { }\n}`;
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("ControllingExpressionAnalyzer", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   describe("E0701 -- a condition must be a comparison", () => {

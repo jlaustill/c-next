@@ -14,7 +14,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import SizeofResolver from "../SizeofResolver";
-import RenderState from "../../../RenderState";
+import TranspileState from "../../../../TranspileState";
 import TParameterInfo from "../../../../../transpiler/types/TParameterInfo";
 import createMockSymbols from "../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 
@@ -35,11 +35,11 @@ function declareParameter(
   });
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("SizeofResolver", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   describe("user-type operand", () => {

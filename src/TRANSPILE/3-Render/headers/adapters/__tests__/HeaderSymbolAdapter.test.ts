@@ -3,7 +3,7 @@
  * ADR-055 Phase 5/7: Converts TSymbol to IHeaderSymbol (ISymbol methods removed in Phase 7)
  */
 import { describe, it, expect } from "vitest";
-import RenderState from "../../../RenderState";
+import TranspileState from "../../../../TranspileState";
 import HeaderSymbolAdapter from "../HeaderSymbolAdapter";
 import IVariableSymbol from "../../../../../transpiler/types/symbols/IVariableSymbol";
 import IFunctionSymbol from "../../../../../transpiler/types/symbols/IFunctionSymbol";
@@ -19,11 +19,11 @@ import TestSourceSpan from "../../../../../transpiler/types/__testUtils__/testSo
 import TestEnumMembers from "../../../../../transpiler/types/__testUtils__/testEnumMembers";
 import TestMembers from "../../../../../transpiler/types/__testUtils__/testMembers";
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("HeaderSymbolAdapter", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   // ========================================================================
@@ -634,7 +634,7 @@ describe("HeaderSymbolAdapter", () => {
       });
 
       it("leaves a bare dotted path unprefixed when the scope has no such enum", () => {
-        // RenderState has no registered enums here, so the bare path resolves
+        // TranspileState has no registered enums here, so the bare path resolves
         // global-first — matching the .c path for a top-level enum.
         const result = HeaderSymbolAdapter.fromTSymbol(
           makeArrayVar("Motor", "Global.COUNT"),

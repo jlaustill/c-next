@@ -3,7 +3,7 @@
  *
  * Issue #644: Tests for the extracted member chain analyzer.
  * Updated to use unified postfixTargetOp grammar after consolidation.
- * Migrated to use RenderState instead of constructor DI.
+ * Migrated to use TranspileState instead of constructor DI.
  *
  * #1445: the chain is `TPlannedTargetOp[]` now, so these build values rather
  * than mock parse contexts cast `as unknown as Parser.AssignmentTargetContext`
@@ -17,7 +17,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import MemberChainAnalyzer from "../MemberChainAnalyzer";
-import RenderState from "../../../RenderState";
+import TranspileState from "../../../../TranspileState";
 import SymbolTable from "../../../../../PARSE/3-Declare/SymbolTable";
 import createMockSymbols from "../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import type TPlannedTargetOp from "../../../../../transpiler/types/TPlannedTargetOp";
@@ -41,11 +41,11 @@ function bitRange(start: string, width: string): TPlannedTargetOp {
   };
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("MemberChainAnalyzer", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   /** A base identifier and the chain applied to it. */

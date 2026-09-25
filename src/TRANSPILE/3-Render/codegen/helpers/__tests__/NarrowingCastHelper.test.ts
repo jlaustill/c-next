@@ -5,13 +5,13 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import NarrowingCastHelper from "../NarrowingCastHelper";
-import RenderState from "../../../RenderState";
+import TranspileState from "../../../../TranspileState";
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("NarrowingCastHelper", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   describe("wrap (C mode)", () => {

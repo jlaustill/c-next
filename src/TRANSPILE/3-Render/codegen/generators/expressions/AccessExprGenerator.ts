@@ -16,7 +16,7 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import invariant from "../../../../../utils/invariant";
-import type RenderState from "../../../RenderState";
+import type TranspileState from "../../../../TranspileState";
 
 /**
  * Generate code for .capacity property access.
@@ -71,7 +71,7 @@ const generateSizeProperty = (
 const generateBitmapFieldAccess = (
   result: string,
   fieldInfo: IBitmapFieldLayout,
-  state: RenderState,
+  state: TranspileState,
 ): IGeneratorOutput => {
   let expr: string;
   if (fieldInfo.width === 1) {

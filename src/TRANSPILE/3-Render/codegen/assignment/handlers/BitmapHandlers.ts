@@ -19,7 +19,7 @@ import TAssignmentHandler from "./TAssignmentHandler";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
-import type RenderState from "../../../RenderState";
+import type TranspileState from "../../../../TranspileState";
 
 /**
  * Calculate mask value and hex string for bitmap field.
@@ -36,7 +36,7 @@ function calculateMask(width: number): { mask: number; maskHex: string } {
 function getBitmapFieldInfo(
   bitmapType: string,
   fieldName: string,
-  state: RenderState,
+  state: TranspileState,
 ): IBitmapFieldLayout {
   const fields = state.symbols!.bitmapFields.get(bitmapType);
   // Two statements, because `asserts condition` narrows a REFERENCE, not an

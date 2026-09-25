@@ -5,13 +5,13 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import CppModeHelper from "../CppModeHelper";
-import RenderState from "../../../RenderState";
+import TranspileState from "../../../../TranspileState";
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("CppModeHelper", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   describe("C mode (cppMode: false)", () => {

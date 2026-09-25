@@ -1,4 +1,4 @@
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 /**
  * CppModeHelper - Utilities for C/C++ mode-specific code generation
  *
@@ -22,7 +22,7 @@ class CppModeHelper {
    * @param expr - The expression to potentially wrap
    * @returns The expression with address-of operator in C mode
    */
-  static maybeAddressOf(expr: string, state: RenderState): string {
+  static maybeAddressOf(expr: string, state: TranspileState): string {
     return state.cppMode ? expr : `&${expr}`;
   }
 
@@ -34,7 +34,7 @@ class CppModeHelper {
    * @param expr - The expression to potentially dereference
    * @returns The expression with dereference in C mode
    */
-  static maybeDereference(expr: string, state: RenderState): string {
+  static maybeDereference(expr: string, state: TranspileState): string {
     return state.cppMode ? expr : `(*${expr})`;
   }
 
@@ -45,7 +45,7 @@ class CppModeHelper {
    *
    * @returns The type modifier character
    */
-  static refOrPtr(state: RenderState): string {
+  static refOrPtr(state: TranspileState): string {
     return state.cppMode ? "&" : "*";
   }
 
@@ -56,7 +56,7 @@ class CppModeHelper {
    *
    * @returns The null pointer literal
    */
-  static nullLiteral(state: RenderState): string {
+  static nullLiteral(state: TranspileState): string {
     return state.cppMode ? "nullptr" : "NULL";
   }
 
@@ -69,7 +69,7 @@ class CppModeHelper {
    * @param expr - The expression to cast
    * @returns The cast expression
    */
-  static cast(type: string, expr: string, state: RenderState): string {
+  static cast(type: string, expr: string, state: TranspileState): string {
     return state.cppMode ? `static_cast<${type}>(${expr})` : `(${type})${expr}`;
   }
 
@@ -85,7 +85,7 @@ class CppModeHelper {
   static reinterpretCast(
     type: string,
     expr: string,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     return state.cppMode
       ? `reinterpret_cast<${type}>(${expr})`

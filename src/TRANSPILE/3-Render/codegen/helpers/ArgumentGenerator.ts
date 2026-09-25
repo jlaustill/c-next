@@ -18,7 +18,7 @@ import CppModeHelper from "./CppModeHelper";
 import TYPE_MAP from "../types/TYPE_MAP";
 import IArgumentGeneratorCallbacks from "./types/IArgumentGeneratorCallbacks";
 import QualifiedNameGenerator from "../../../../utils/QualifiedNameGenerator";
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Generates function arguments with proper pass-by-reference semantics.
@@ -28,7 +28,7 @@ class ArgumentGenerator {
    * Handle simple identifier argument (parameter, local array, scope member, or variable).
    * This is a pure function that only reads from state.
    */
-  static handleIdentifierArg(id: string, state: RenderState): string {
+  static handleIdentifierArg(id: string, state: TranspileState): string {
     // Parameters are already pointers
     if (state.currentParameters.get(id)) {
       return id;
@@ -77,7 +77,7 @@ class ArgumentGenerator {
   static handleRvalueArg(
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     // Issue #872: Early return when no target type - no state management needed
     if (!targetParamBaseType) {
@@ -116,7 +116,7 @@ class ArgumentGenerator {
   static createCppMemberConversionTemp(
     targetParamBaseType: string,
     callbacks: IArgumentGeneratorCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     const cType = TYPE_MAP[targetParamBaseType] || "uint8_t";
     const value = callbacks.generateExpression();
@@ -137,7 +137,7 @@ class ArgumentGenerator {
     expr: string,
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     if (!targetParamBaseType || !callbacks.isStringSubscriptAccess()) {
       return expr;
@@ -158,7 +158,7 @@ class ArgumentGenerator {
   static handleMemberAccessArg(
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): string | null {
     const arrayStatus = callbacks.getMemberAccessArrayStatus();
 
@@ -190,7 +190,7 @@ class ArgumentGenerator {
     lvalueType: "member" | "array",
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     // Member access to array field - arrays decay to pointers
     if (lvalueType === "member") {
@@ -230,7 +230,7 @@ class ArgumentGenerator {
     simpleId: string | null,
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     // Handle simple identifiers
     if (simpleId) {

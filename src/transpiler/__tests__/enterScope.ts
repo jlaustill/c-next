@@ -1,4 +1,4 @@
-import RenderState from "../../TRANSPILE/3-Render/RenderState";
+import TranspileState from "../../TRANSPILE/TranspileState";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import Program from "../../PARSE/4-Resolve/Program";
 
@@ -39,7 +39,7 @@ import Program from "../../PARSE/4-Resolve/Program";
  */
 const registry = new SymbolRegistry();
 
-function enterScope(state: RenderState, path: string | null): void {
+function enterScope(state: TranspileState, path: string | null): void {
   if (path !== null) {
     registry.getOrCreateScope(path);
     state.program = Program.build([], { registry });

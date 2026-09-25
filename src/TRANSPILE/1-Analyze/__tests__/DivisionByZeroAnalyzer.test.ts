@@ -3,7 +3,7 @@
  * Tests detection of division and modulo by zero at compile time (ADR-051)
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
@@ -21,11 +21,11 @@ function parse(source: string) {
   return parser.program();
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("DivisionByZeroAnalyzer", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   // ========================================================================

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import CNextResolver from "../../../PARSE/3-Declare/cnext";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import Program from "../../../PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import ArrayDeclarationAnalyzer from "../ArrayDeclarationAnalyzer";
@@ -35,7 +35,7 @@ const errorsWithProgram = (source: string) => {
 };
 
 afterEach(() => {
-  state = new RenderState();
+  state = new TranspileState();
 });
 
 let registry = new SymbolRegistry();
@@ -44,7 +44,7 @@ beforeEach(() => {
   registry = new SymbolRegistry();
 });
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("ArrayDeclarationAnalyzer", () => {
   describe("E0874 -- C-style declarations and parameters", () => {

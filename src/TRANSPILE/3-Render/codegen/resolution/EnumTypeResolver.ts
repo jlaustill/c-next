@@ -39,7 +39,7 @@
 import QualifiedCName from "../../../../utils/QualifiedCName";
 import QualifiedNameGenerator from "../../../../utils/QualifiedNameGenerator";
 import BareIdentifier from "../../../../utils/BareIdentifier";
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Resolves enum types from expressions.
@@ -53,7 +53,7 @@ export default class EnumTypeResolver {
   static resolve(
     text: string,
     resolvePostfixEnumType: () => string | null,
-    state: RenderState,
+    state: TranspileState,
   ): string | null {
     // Check if it's a function call returning an enum
     const enumReturnType = this.getFunctionCallEnumType(text, state);
@@ -89,7 +89,7 @@ export default class EnumTypeResolver {
    */
   private static getEnumTypeFromMemberAccess(
     parts: string[],
-    state: RenderState,
+    state: TranspileState,
   ): string | null {
     if (parts.length < 2) {
       return null;
@@ -122,7 +122,7 @@ export default class EnumTypeResolver {
    */
   private static getEnumTypeFromThisEnum(
     parts: string[],
-    state: RenderState,
+    state: TranspileState,
   ): string | null {
     if (parts[0] !== "this" || !state.currentScopePath || parts.length < 3) {
       return null;
@@ -140,7 +140,7 @@ export default class EnumTypeResolver {
    */
   private static getEnumTypeFromGlobalEnum(
     parts: string[],
-    state: RenderState,
+    state: TranspileState,
   ): string | null {
     if (parts[0] !== "global" || parts.length < 3) {
       return null;
@@ -154,7 +154,7 @@ export default class EnumTypeResolver {
    */
   private static getEnumTypeFromThisVariable(
     parts: string[],
-    state: RenderState,
+    state: TranspileState,
   ): string | null {
     if (parts[0] !== "this" || !state.currentScopePath || parts.length !== 2) {
       return null;
@@ -176,7 +176,7 @@ export default class EnumTypeResolver {
    */
   private static getEnumTypeFromScopedEnum(
     parts: string[],
-    state: RenderState,
+    state: TranspileState,
   ): string | null {
     if (parts.length < 3) {
       return null;
@@ -202,7 +202,7 @@ export default class EnumTypeResolver {
    */
   private static getFunctionCallEnumType(
     text: string,
-    state: RenderState,
+    state: TranspileState,
   ): string | null {
     // Check if this looks like a function call (contains parentheses)
     const parenIndex = text.indexOf("(");

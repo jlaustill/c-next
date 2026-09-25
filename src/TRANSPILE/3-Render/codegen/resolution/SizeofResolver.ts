@@ -23,7 +23,7 @@
 
 import TSizeofOperand from "../types/TSizeofOperand";
 import invariant from "../../../../utils/invariant";
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Resolves sizeof expressions to C code.
@@ -34,7 +34,7 @@ export default class SizeofResolver {
    * sizeof(type) -> sizeof(c_type)
    * sizeof(variable) -> sizeof(variable)
    */
-  static generate(operand: TSizeofOperand, state: RenderState): string {
+  static generate(operand: TSizeofOperand, state: TranspileState): string {
     switch (operand.kind) {
       case "qualified-type":
         // `a.b` matched the qualified-TYPE alternative, and may still be a
@@ -62,7 +62,7 @@ export default class SizeofResolver {
   private static sizeofQualifiedType(
     firstName: string,
     memberName: string,
-    state: RenderState,
+    state: TranspileState,
   ): string | null {
     // Check if first identifier is a local variable (struct instance)
     if (state.localVariables.has(firstName)) {
@@ -92,7 +92,10 @@ export default class SizeofResolver {
   /**
    * Handle sizeof(identifier) - could be variable or type name
    */
-  private static sizeofUserType(varName: string, state: RenderState): string {
+  private static sizeofUserType(
+    varName: string,
+    state: TranspileState,
+  ): string {
     // Check if it's a known parameter
     const paramInfo = state.currentParameters.get(varName);
     if (paramInfo) {
@@ -147,7 +150,7 @@ export default class SizeofResolver {
    */
   private static sizeofExpression(
     operand: Extract<TSizeofOperand, { kind: "expression" }>,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     // E0601: Check if expression is an array parameter
     if (operand.simpleIdentifier !== null) {

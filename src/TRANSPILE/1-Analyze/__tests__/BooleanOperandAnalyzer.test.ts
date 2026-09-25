@@ -5,7 +5,7 @@
  * (MISRA C:2012 Rule 10.1, Issue #1183).
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
@@ -38,11 +38,11 @@ function inMain(statement: string) {
   `;
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("BooleanOperandAnalyzer", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   describe("bool operands of guarded operators (rejected)", () => {

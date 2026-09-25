@@ -2,18 +2,18 @@
  * Unit tests for ArrayInitHelper
  *
  * Issue #644: Tests for the extracted array initialization helper.
- * Migrated to use RenderState instead of constructor DI.
+ * Migrated to use TranspileState instead of constructor DI.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import ArrayInitHelper from "../ArrayInitHelper";
-import RenderState from "../../../RenderState";
+import TranspileState from "../../../../TranspileState";
 
 /**
  * Default callbacks for testing.
  */
 const defaultCallbacks = {
-  state: new RenderState(),
+  state: new TranspileState(),
   generateExpression: vi.fn(() => "{1, 2, 3}"),
   getTypeName: vi.fn(() => "u8"),
   // #1445: a thunk now. It used to compute the suffix from fake dimension
@@ -21,17 +21,17 @@ const defaultCallbacks = {
   generateArrayDimensions: vi.fn(() => "[3]"),
 };
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("ArrayInitHelper", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     vi.clearAllMocks();
   });
 
   describe("processArrayInit", () => {
     it("returns null when not an array initializer", () => {
-      // RenderState not modified by generateExpression mock (stays at 0)
+      // TranspileState not modified by generateExpression mock (stays at 0)
       const result = ArrayInitHelper.processArrayInit(
         "arr",
         false,
@@ -53,7 +53,7 @@ describe("ArrayInitHelper", () => {
       });
 
       const callbacks = {
-        state: new RenderState(),
+        state: new TranspileState(),
         generateExpression: vi.fn(() => {
           // Simulate generateExpression setting array init state
           state.lastArrayInitCount = 3;
@@ -80,7 +80,7 @@ describe("ArrayInitHelper", () => {
 
     it("asserts, since #1322, that the fill-all form never reaches an inferred size (E0876 owns it)", () => {
       const callbacks = {
-        state: new RenderState(),
+        state: new TranspileState(),
         generateExpression: vi.fn(() => {
           state.lastArrayFillValue = "0";
           return "{0}";
@@ -102,7 +102,7 @@ describe("ArrayInitHelper", () => {
 
     it("asserts, since #1322, that a short initializer never reaches emission (E0866 owns it)", () => {
       const callbacks = {
-        state: new RenderState(),
+        state: new TranspileState(),
         generateExpression: vi.fn(() => {
           state.lastArrayInitCount = 2; // Only 2 elements
           return "{1, 2}";
@@ -124,7 +124,7 @@ describe("ArrayInitHelper", () => {
 
     it("expands fill-all for non-zero values", () => {
       const callbacks = {
-        state: new RenderState(),
+        state: new TranspileState(),
         generateExpression: vi.fn(() => {
           state.lastArrayFillValue = "1";
           return "{1}";
@@ -147,7 +147,7 @@ describe("ArrayInitHelper", () => {
 
     it("does not expand fill-all for zero value", () => {
       const callbacks = {
-        state: new RenderState(),
+        state: new TranspileState(),
         generateExpression: vi.fn(() => {
           state.lastArrayFillValue = "0";
           return "{0}";

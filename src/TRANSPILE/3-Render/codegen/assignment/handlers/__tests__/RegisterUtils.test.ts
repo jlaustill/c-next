@@ -5,10 +5,10 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import RegisterUtils from "../RegisterUtils";
-import RenderState from "../../../../RenderState";
+import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("RegisterUtils", () => {
   describe("isWriteOnlyRegister", () => {
@@ -43,7 +43,7 @@ describe("RegisterUtils", () => {
 
   describe("extractBitRangeParams", () => {
     beforeEach(() => {
-      state = new RenderState();
+      state = new TranspileState();
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
@@ -71,7 +71,7 @@ describe("RegisterUtils", () => {
 
   describe("tryGenerateMMIO", () => {
     beforeEach(() => {
-      state = new RenderState();
+      state = new TranspileState();
       HandlerTestUtils.setupMockSymbols(state, {
         registerBaseAddresses: new Map([["GPIO7", "0x401B8000"]]),
         registerMemberOffsets: new Map([["GPIO7_DR", "0x00"]]),

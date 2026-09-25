@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import TypeRegistrationEngine from "../TypeRegistrationEngine";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import enterScope from "../../../transpiler/__tests__/enterScope";
@@ -29,7 +29,7 @@ function parseTypeContext(source: string): Parser.TypeContext | null {
   return decl?.type() ?? null;
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("TypeRegistrationEngine", () => {
   describe("parseArrayTypeDimension", () => {
@@ -109,12 +109,12 @@ describe("TypeRegistrationEngine", () => {
 
     beforeEach(() => {
       vi.clearAllMocks();
-      state = new RenderState();
+      state = new TranspileState();
       state.symbols = createMockSymbols();
     });
 
     afterEach(() => {
-      state = new RenderState();
+      state = new TranspileState();
     });
 
     it("registers global variable types", () => {

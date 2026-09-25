@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import runAnalyzers from "../runAnalyzers";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import Program from "../../../PARSE/4-Resolve/Program";
@@ -42,12 +42,12 @@ function parseWithComments(source: string) {
   return { tree, comments };
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("runAnalyzers", () => {
-  // Reset RenderState before each test
+  // Reset TranspileState before each test
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     state.symbolTable = new SymbolTable();
   });
 
@@ -306,20 +306,20 @@ describe("runAnalyzers", () => {
   });
 
   // ========================================================================
-  // Options: RenderState integration and symbolTable
+  // Options: TranspileState integration and symbolTable
   // ========================================================================
 
   describe("options", () => {
-    it("should read externalStructFields from RenderState", () => {
+    it("should read externalStructFields from TranspileState", () => {
       // Code that uses a field from an external struct - externalStructFields
-      // are now read from RenderState
+      // are now read from TranspileState
       const { tree, comments } = parseWithComments(`
         void main() {
           u32 x <- 5;
         }
       `);
 
-      // Set up external struct fields in RenderState
+      // Set up external struct fields in TranspileState
       state.symbolTable.addStructField("ExternalStruct", "field1", "u32");
       state.symbolTable.addStructField("ExternalStruct", "field2", "u32");
       state.program = Program.build([], {

@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import SafeDivisionAnalyzer from "../SafeDivisionAnalyzer";
@@ -22,11 +22,11 @@ const errors = (source: string) => {
 const wrap = (body: string) =>
   `void main() {\n    u32 q <- 0;\n    bool err <- false;\n${body}\n}`;
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("SafeDivisionAnalyzer (E0884)", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it.each([

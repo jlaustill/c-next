@@ -91,9 +91,7 @@ function handleOverflowClamp(ctx: IAssignmentContext): string {
     // compound-only fixture without a derivable context. Recorded past the float and
     // helper-lookup gates, so only an actually-lowered clamp claims a cell.
     AdrProvenance.record("044", ctx.targetLine);
-    ctx.state
-      .requireGenerator()
-      .state.markClampOpUsed(helperOp, typeInfo!.baseType);
+    ctx.state.markClampOpUsed(helperOp, typeInfo!.baseType);
     return `${target} = cnx_clamp_${helperOp}_${typeInfo!.baseType}(${target}, ${ctx.generatedValue});`;
   }
 

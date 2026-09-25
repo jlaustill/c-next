@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import registerHandlers from "../RegisterHandlers";
 import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../../../transpiler/types/IAssignmentContext";
-import RenderState from "../../../../RenderState";
+import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
 import enterScope from "../../../../../../transpiler/__tests__/enterScope";
 
@@ -66,11 +66,11 @@ function createMockContext(
   } as IAssignmentContext;
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("RegisterHandlers", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     HandlerTestUtils.setupMockGenerator(state);
     HandlerTestUtils.setupMockSymbols(state);
   });

@@ -8,7 +8,7 @@
  * which MISRA flags when assigned back to narrower types without explicit cast.
  */
 
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 import CppModeHelper from "./CppModeHelper";
 import TYPE_MAP from "../types/TYPE_MAP";
 import CastRequirement from "../../../2-Plan/CastRequirement";
@@ -71,7 +71,7 @@ class NarrowingCastHelper {
     expr: string,
     sourceType: string,
     targetType: string,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     if (!CastRequirement.forConversion(sourceType, targetType)) {
       return expr;
@@ -164,7 +164,7 @@ class NarrowingCastHelper {
   static wrapIntToFloat(
     expr: string,
     targetType: string,
-    state: RenderState,
+    state: TranspileState,
   ): string {
     const floatType = NarrowingCastHelper.getCFloatType(targetType);
     return CppModeHelper.cast(floatType, expr, state);

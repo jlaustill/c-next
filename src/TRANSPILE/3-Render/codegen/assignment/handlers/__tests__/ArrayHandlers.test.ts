@@ -35,7 +35,7 @@ vi.mock("../../../../../2-Plan/ExpressionTypeResolver", () => ({
 import arrayHandlers from "../ArrayHandlers";
 import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../../../transpiler/types/IAssignmentContext";
-import RenderState from "../../../../RenderState";
+import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
 
 /**
@@ -97,11 +97,11 @@ function createMockContext(
   } as IAssignmentContext;
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("ArrayHandlers", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     HandlerTestUtils.setupMockGenerator(state);
     HandlerTestUtils.setupMockSymbols(state);
     // Default: a source whose direct type is null is also unresolved as a
@@ -310,7 +310,7 @@ describe("ArrayHandlers", () => {
           "buffer[3] = (uint8_t)(cnx_tmp0 >> 24U);",
       );
       // No memcpy means <string.h> is not required.
-      expect(state.requireGenerator().state.needsString).toBe(false);
+      expect(state.needsString).toBe(false);
     });
 
     it("writes at element granularity for a u16 slice (offset = element index)", () => {

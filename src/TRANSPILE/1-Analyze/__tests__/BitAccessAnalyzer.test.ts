@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import BitAccessAnalyzer from "../BitAccessAnalyzer";
@@ -16,11 +16,11 @@ const errors = (source: string) => {
   return new BitAccessAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("BitAccessAnalyzer (E0856)", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it("rejects a second subscript on a scalar, as a read AND as a write", () => {

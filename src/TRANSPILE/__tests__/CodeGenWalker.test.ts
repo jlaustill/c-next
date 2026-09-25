@@ -15,7 +15,7 @@ import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import TSymbolInfoAdapter from "../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import TParameterInfo from "../../transpiler/types/TParameterInfo";
-import RenderState from "../3-Render/RenderState";
+import TranspileState from "../TranspileState";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import DeferredTypes from "../../PARSE/4-Resolve/DeferredTypes";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
@@ -73,7 +73,7 @@ function setupGenerator(source: string): {
   const host = new CodeGenerator();
   const generator = new CodeGenWalker(host);
   const state = host.state;
-  // Set symbolTable in RenderState before generate (RenderState owns SymbolTable)
+  // Set symbolTable in TranspileState before generate (TranspileState owns SymbolTable)
   state.symbolTable = symbolTable;
   // #1511: the whole-program facts codegen reads. Without them every small
   // primitive parameter looks ineligible for pass-by-value and comes out a
@@ -110,7 +110,7 @@ function createMinimalGenerator(source: string): {
  * with a real run rather than approximating one.
  */
 function installProgramFor(
-  state: RenderState,
+  state: TranspileState,
   tree: Parser.ProgramContext,
   sourcePath = "test.cnx",
 ): void {
@@ -143,7 +143,7 @@ function generateWithProgram(
   options: Parameters<CodeGenWalker["generate"]>[2],
 ): ReturnType<CodeGenWalker["generate"]> {
   installProgramFor(
-    generator.renderState,
+    generator.transpileState,
     tree,
     options?.sourcePath ?? "test.cnx",
   );

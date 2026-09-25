@@ -1,34 +1,33 @@
 /**
- * Tests for RenderState - centralized code generation state management
+ * Tests for TranspileState - centralized code generation state management
  */
 
-import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
-import type IScopeSymbol from "../../../transpiler/types/symbols/IScopeSymbol";
+import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
+import type IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
 import { describe, it, expect, beforeEach } from "vitest";
-import type IProgram from "../../../transpiler/types/IProgram";
-import installMockSymbols from "../../../transpiler/__tests__/installMockSymbols";
-import RenderState from "../RenderState";
-import TTypeInfo from "../../../transpiler/types/TTypeInfo";
-import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import IVariableSymbol from "../../../transpiler/types/symbols/IVariableSymbol";
-import ICVariableSymbol from "../../../transpiler/types/symbols/c/ICVariableSymbol";
-import TTypeUtils from "../../../utils/TTypeUtils";
-import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
-import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
-import ScopeUtils from "../../../utils/ScopeUtils";
-import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
-import UNRESOLVED_DIMENSION from "../../../transpiler/constants/UNRESOLVED_DIMENSION";
-import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
-import Program from "../../../PARSE/4-Resolve/Program";
+import type IProgram from "../../transpiler/types/IProgram";
+import installMockSymbols from "../../transpiler/__tests__/installMockSymbols";
+import TranspileState from "../TranspileState";
+import TTypeInfo from "../../transpiler/types/TTypeInfo";
+import ESourceLanguage from "../../utils/types/ESourceLanguage";
+import IVariableSymbol from "../../transpiler/types/symbols/IVariableSymbol";
+import ICVariableSymbol from "../../transpiler/types/symbols/c/ICVariableSymbol";
+import TTypeUtils from "../../utils/TTypeUtils";
+import TestSymbolUtils from "../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
+import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
+import ScopeUtils from "../../utils/ScopeUtils";
+import createMockSymbols from "../../transpiler/__tests__/codeGenSymbolsHelpers";
+import UNRESOLVED_DIMENSION from "../../transpiler/constants/UNRESOLVED_DIMENSION";
+import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
+import Program from "../../PARSE/4-Resolve/Program";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import enterScope from "../../../transpiler/__tests__/enterScope";
+import enterScope from "../../transpiler/__tests__/enterScope";
 
 /** Repo root, for the source-scanning guard in `scopeTypePredicate`. */
 const repoRootForGuard = join(
   dirname(fileURLToPath(import.meta.url)),
-  "..",
   "..",
   "..",
   "..",
@@ -99,11 +98,11 @@ function registerScope(path: string): IScopeSymbol {
   return scope;
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
-describe("RenderState", () => {
+describe("TranspileState", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     state.symbolTable = new SymbolTable();
   });
 
@@ -112,15 +111,15 @@ describe("RenderState", () => {
       // Set some state
       enterScope(state, "TestScope");
       state.currentFunctionName = "testFunc";
-      // #1452: `indentLevel` moved to `RenderState`, which owns its own
+      // #1452: `indentLevel` moved to `TranspileState`, which owns its own
       // clearing, so the two resets are asserted side by side rather than one
       // standing in for the other.
-      const render = new RenderState();
+      const render = new TranspileState();
       render.indentLevel = 5;
       render.needsStdint = true;
 
       // Reset
-      state = new RenderState();
+      state = new TranspileState();
       render.reset();
 
       // Verify reset
@@ -135,7 +134,7 @@ describe("RenderState", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       state.generator = {} as any;
 
-      state = new RenderState();
+      state = new TranspileState();
 
       expect(state.generator).toBeNull();
     });
@@ -871,7 +870,7 @@ describe("RenderState", () => {
     });
 
     it("getNextTempVarName returns incrementing names", () => {
-      state = new RenderState(); // Reset counter
+      state = new TranspileState(); // Reset counter
       expect(state.getNextTempVarName()).toBe("cnx_tmp0");
       expect(state.getNextTempVarName()).toBe("cnx_tmp1");
       expect(state.getNextTempVarName()).toBe("cnx_tmp2");
@@ -1147,7 +1146,7 @@ describe("RenderState", () => {
 
     it("answers NOT modified when there is no Program", () => {
       // #1452 retired this test's original subject. It asserted a FALLBACK to a
-      // per-file accumulator on `RenderState` -- the one this method's own
+      // per-file accumulator on `TranspileState` -- the one this method's own
       // docblock named as the bug in #1529 and #1552, empty while declarations
       // are walked and absent entirely for an included function. The
       // accumulator is gone, so there is no second source to fall back to and
@@ -1240,8 +1239,13 @@ describe("RenderState", () => {
     });
 
     it("is the only closure in src/ that binds state.isScopeType", () => {
-      const owner = join("src", "transpiler", "state", "state.ts");
-      const binds = /RenderState\s*\.\s*isScopeType\s*\(/;
+      // #1452: the module that owns the predicate. The path recorded here was
+      // `src/transpiler/state/state.ts`, which has never existed, so the
+      // exclusion covered no file -- it passed only because the owner spells
+      // the call `this.isScopeType(` and the pattern below looks for the class
+      // name. Pointed at the real file so the exclusion means what it says.
+      const owner = join("src", "TRANSPILE", "TranspileState.ts");
+      const binds = /TranspileState\s*\.\s*isScopeType\s*\(/;
 
       const walk = (dir: string): string[] =>
         readdirSync(dir).flatMap((entry) => {
@@ -1290,7 +1294,7 @@ describe("RenderState", () => {
    */
   describe("scope identity comes from the registry, not the caller's string (#1295, #1304)", () => {
     beforeEach(() => {
-      state = new RenderState();
+      state = new TranspileState();
     });
 
     it("resolves a member through the whole path when the scope is registered", () => {

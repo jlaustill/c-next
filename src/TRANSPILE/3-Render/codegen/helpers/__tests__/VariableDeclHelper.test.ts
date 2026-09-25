@@ -16,12 +16,12 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import VariableDeclHelper from "../VariableDeclHelper";
-import RenderState from "../../../RenderState";
+import TranspileState from "../../../../TranspileState";
 import IPlannedArrayDeclaration from "../../types/IPlannedArrayDeclaration";
 import TPlannedVariableDecl from "../../types/TPlannedVariableDecl";
 import TPlannedVariableInitializer from "../../types/TPlannedVariableInitializer";
 
-let state = new RenderState();
+let state = new TranspileState();
 
 /**
  * An initializer render that sets the array-init bookkeeping, the way a real
@@ -55,7 +55,7 @@ function arrayPlan(
 
 describe("VariableDeclHelper", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   describe("finalizeCppClassAssignments", () => {
@@ -236,7 +236,7 @@ describe("VariableDeclHelper", () => {
       let seen: string | null = null;
       // #1452: the window is opened on the instance passed in, so the
       // assertion reads that same object rather than a static class.
-      const state = new RenderState();
+      const state = new TranspileState();
 
       VariableDeclHelper.renderVariableInitializer(
         {

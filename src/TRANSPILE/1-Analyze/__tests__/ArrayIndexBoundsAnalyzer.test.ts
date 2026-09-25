@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import ArrayIndexBoundsAnalyzer from "../ArrayIndexBoundsAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -46,10 +46,10 @@ const structs = (
 };
 
 afterEach(() => {
-  state = new RenderState();
+  state = new TranspileState();
 });
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("ArrayIndexBoundsAnalyzer (E0854)", () => {
   it("rejects an index at the dimension, on a write and on a read, at the subscript", () => {

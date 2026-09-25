@@ -1,5 +1,5 @@
 /**
- * `RenderState` -- 2.3 Render's per-file working state (#1452 box 4).
+ * `TranspileState` -- 2.3 Render's per-file working state (#1452 box 4).
  *
  * These cases moved here with their subject. They were on
  * `CodeGenState.test.ts` while the members were statics; the behavior they
@@ -8,14 +8,14 @@
  * headers with a claiming emitter record a deferred site.
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import RenderState from "../RenderState";
-import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
+import TranspileState from "../TranspileState";
+import ToolchainRequirements from "../../instrumentation/ToolchainRequirements";
 
-describe("RenderState", () => {
-  let state = new RenderState();
+describe("TranspileState", () => {
+  let state = new TranspileState();
 
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     ToolchainRequirements.reset();
   });
 

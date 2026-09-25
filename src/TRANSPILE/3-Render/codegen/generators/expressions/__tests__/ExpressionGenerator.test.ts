@@ -16,7 +16,7 @@ import generateTernaryExpr from "../ExpressionGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
-import RenderState from "../../../../RenderState";
+import TranspileState from "../../../../../TranspileState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type TPlannedTernary from "../../../types/TPlannedTernary";
 
@@ -55,13 +55,13 @@ function createMockOrchestrator(): IOrchestrator {
  * now, so the mock and the assertions share ONE instance -- otherwise the test
  * would set a flag on an object the generator never sees.
  */
-let renderState = new RenderState();
+let transpileState = new TranspileState();
 
 /** Run the generator on a plan. */
 function generate(planned: TPlannedTernary) {
   return generateTernaryExpr(planned, createMockInput(), createMockState(), {
     ...createMockOrchestrator(),
-    state: renderState,
+    state: transpileState,
   } as IOrchestrator);
 }
 
@@ -130,25 +130,25 @@ describe("generateTernaryExpr", () => {
 
   describe("inDeclarationInit clearing (Issue #992)", () => {
     beforeEach(() => {
-      renderState = new RenderState();
+      transpileState = new TranspileState();
     });
 
     it("clears the flag in both arms and restores it after", () => {
-      renderState.inDeclarationInit = true;
+      transpileState.inDeclarationInit = true;
       const seen: Record<string, boolean> = {};
 
       generate({
         kind: "ternary",
         renderCondition: () => {
-          seen.condition = renderState.inDeclarationInit;
+          seen.condition = transpileState.inDeclarationInit;
           return "x > 0";
         },
         renderTrue: () => {
-          seen.trueArm = renderState.inDeclarationInit;
+          seen.trueArm = transpileState.inDeclarationInit;
           return "a";
         },
         renderFalse: () => {
-          seen.falseArm = renderState.inDeclarationInit;
+          seen.falseArm = transpileState.inDeclarationInit;
           return "b";
         },
       });
@@ -159,7 +159,7 @@ describe("generateTernaryExpr", () => {
         trueArm: false,
         falseArm: false,
       });
-      expect(renderState.inDeclarationInit).toBe(true);
+      expect(transpileState.inDeclarationInit).toBe(true);
     });
   });
 

@@ -5,7 +5,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import createMockSymbols from "../../../../transpiler/__tests__/codeGenSymbolsHelpers";
-import RenderState from "../../RenderState";
+import TranspileState from "../../../TranspileState";
 import type ICodeGenSymbols from "../../../../transpiler/types/ICodeGenSymbols";
 import type ICallbackTypeInfo from "../../../../transpiler/types/ICallbackTypeInfo";
 import type TParameterInfo from "../../../../transpiler/types/TParameterInfo";
@@ -32,7 +32,7 @@ interface SetupStateOptions {
 }
 
 function setupState(options: SetupStateOptions = {}): void {
-  state = new RenderState();
+  state = new TranspileState();
   if (options.symbols) {
     state.symbols = options.symbols;
   } else {
@@ -85,11 +85,11 @@ function setupState(options: SetupStateOptions = {}): void {
 // Tests - Include Validation (ADR-010)
 // ========================================================================
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("TypeValidator", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   afterEach(() => {

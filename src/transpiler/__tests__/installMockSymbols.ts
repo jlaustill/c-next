@@ -1,4 +1,4 @@
-import RenderState from "../../TRANSPILE/3-Render/RenderState";
+import TranspileState from "../../TRANSPILE/TranspileState";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import createMockSymbols from "./codeGenSymbolsHelpers";
@@ -22,7 +22,7 @@ import type ISourceSpan from "../types/ISourceSpan";
  * this instead, so the two cannot disagree.
  */
 function installMockSymbols(
-  state: RenderState,
+  state: TranspileState,
   overrides?: Partial<ICodeGenSymbols>,
 ): ICodeGenSymbols {
   const symbols = createMockSymbols(overrides);
@@ -58,7 +58,7 @@ function installMockSymbols(
  * something an author could have written.
  */
 function register(
-  state: RenderState,
+  state: TranspileState,
   names: ReadonlySet<string>,
   build: (base: {
     name: string;

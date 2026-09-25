@@ -102,9 +102,9 @@ const CAPTURES = [
  * values and a test asserting the output cannot tell which was read. The claim
  * is structural, so the check is.
  *
- * #1452 moved these onto `RenderState`, an instance the walker reaches as
+ * #1452 moved these onto `TranspileState`, an instance the walker reaches as
  * `this.host.state`, `CodeGenerator` as `this.state`, and the orchestrator
- * through `CodeGenWalker.renderState`, so the selector names all four
+ * through `CodeGenWalker.transpileState`, so the selector names all four
  * spellings. Adding a spelling is how this guard stays honest across a move:
  * the alternative is dropping the file from the expectation, which would hide
  * a read rather than track it. It keyed on `CodeGenState.` alone and went to zero when
@@ -116,7 +116,7 @@ const CAPTURES = [
  * the questions the plan answers. Reading one at emission time is the defect.
  */
 const FLAG_READ =
-  /(?:CodeGenState|this\.host\.state|this\.state|\w+\.renderState)\.(?:needs[A-Z]\w*|usedClampOps|usedSafeDivOps)(?!\.add\()/g;
+  /(?:CodeGenState|this\.host\.state|this\.state|\w+\.transpileState)\.(?:needs[A-Z]\w*|usedClampOps|usedSafeDivOps)(?!\.add\()/g;
 
 /**
  * The house form of a compliance annotation, keyed on its SHAPE: a C comment

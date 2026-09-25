@@ -7,7 +7,7 @@ import AdrProvenance from "../../../instrumentation/AdrProvenance";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
 import QualifiedCName from "../../../utils/QualifiedCName";
 import QualifiedNameGenerator from "../../../utils/QualifiedNameGenerator";
-import type RenderState from "../RenderState";
+import type TranspileState from "../../TranspileState";
 
 /**
  * TypeValidator class - validates types, assignments, and control flow at compile time.
@@ -78,7 +78,7 @@ class TypeValidator {
     identifier: string,
     isLocalVariable: boolean,
     isKnownStruct: (name: string) => boolean,
-    state: RenderState,
+    state: TranspileState,
     line?: number,
   ): string | null {
     if (isLocalVariable) {
@@ -126,7 +126,7 @@ class TypeValidator {
   private static _resolveScopeMember(
     identifier: string,
     currentScopePath: string,
-    state: RenderState,
+    state: TranspileState,
   ): string | null {
     // #1295: getScopeMembers is keyed by the scope's dotted source path.
     const scopeMembers = state.getScopeMembers(currentScopePath);
@@ -149,7 +149,7 @@ class TypeValidator {
     identifier: string,
     currentScopePath: string,
     isKnownStruct: (name: string) => boolean,
-    state: RenderState,
+    state: TranspileState,
   ): boolean {
     const typeInfo = state.getVariableTypeInfo(identifier);
     if (typeInfo && !QualifiedCName.isQualified(identifier)) {
@@ -186,7 +186,7 @@ class TypeValidator {
 
   static resolveForMemberAccess(
     identifier: string,
-    state: RenderState,
+    state: TranspileState,
   ): string | null {
     if (state.symbols!.knownScopes.has(identifier)) {
       return identifier;

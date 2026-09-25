@@ -10,7 +10,7 @@
  */
 
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import type RenderState from "../3-Render/RenderState";
+import type TranspileState from "../TranspileState";
 
 /**
  * Counts .char_count accesses on string variables in an expression tree.
@@ -22,7 +22,7 @@ class StringLengthCounter {
    */
   static countExpression(
     ctx: Parser.ExpressionContext,
-    state: RenderState,
+    state: TranspileState,
   ): Map<string, number> {
     const counts = new Map<string, number>();
     StringLengthCounter.walkExpression(ctx, counts, state);
@@ -34,7 +34,7 @@ class StringLengthCounter {
    */
   static countBlock(
     ctx: Parser.BlockContext,
-    state: RenderState,
+    state: TranspileState,
   ): Map<string, number> {
     const counts = new Map<string, number>();
     for (const stmt of ctx.statement()) {
@@ -49,7 +49,7 @@ class StringLengthCounter {
   static countBlockInto(
     ctx: Parser.BlockContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     for (const stmt of ctx.statement()) {
       StringLengthCounter.walkStatement(stmt, counts, state);
@@ -63,7 +63,7 @@ class StringLengthCounter {
   private static walkExpression(
     ctx: Parser.ExpressionContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     const ternary = ctx.ternaryExpression();
     if (ternary) {
@@ -74,7 +74,7 @@ class StringLengthCounter {
   private static walkTernary(
     ctx: Parser.TernaryExpressionContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     for (const orExpr of ctx.orExpression()) {
       StringLengthCounter.walkOrExpr(orExpr, counts, state);
@@ -84,7 +84,7 @@ class StringLengthCounter {
   private static walkOrExpr(
     ctx: Parser.OrExpressionContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     for (const andExpr of ctx.andExpression()) {
       StringLengthCounter.walkAndExpr(andExpr, counts, state);
@@ -94,7 +94,7 @@ class StringLengthCounter {
   private static walkAndExpr(
     ctx: Parser.AndExpressionContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     for (const eqExpr of ctx.equalityExpression()) {
       StringLengthCounter.walkEqualityExpr(eqExpr, counts, state);
@@ -104,7 +104,7 @@ class StringLengthCounter {
   private static walkEqualityExpr(
     ctx: Parser.EqualityExpressionContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     for (const relExpr of ctx.relationalExpression()) {
       StringLengthCounter.walkRelationalExpr(relExpr, counts, state);
@@ -114,7 +114,7 @@ class StringLengthCounter {
   private static walkRelationalExpr(
     ctx: Parser.RelationalExpressionContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     for (const borExpr of ctx.bitwiseOrExpression()) {
       StringLengthCounter.walkBitwiseOrExpr(borExpr, counts, state);
@@ -124,7 +124,7 @@ class StringLengthCounter {
   private static walkBitwiseOrExpr(
     ctx: Parser.BitwiseOrExpressionContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     for (const bxorExpr of ctx.bitwiseXorExpression()) {
       StringLengthCounter.walkBitwiseXorExpr(bxorExpr, counts, state);
@@ -134,7 +134,7 @@ class StringLengthCounter {
   private static walkBitwiseXorExpr(
     ctx: Parser.BitwiseXorExpressionContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     for (const bandExpr of ctx.bitwiseAndExpression()) {
       StringLengthCounter.walkBitwiseAndExpr(bandExpr, counts, state);
@@ -144,7 +144,7 @@ class StringLengthCounter {
   private static walkBitwiseAndExpr(
     ctx: Parser.BitwiseAndExpressionContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     for (const shiftExpr of ctx.shiftExpression()) {
       StringLengthCounter.walkShiftExpr(shiftExpr, counts, state);
@@ -154,7 +154,7 @@ class StringLengthCounter {
   private static walkShiftExpr(
     ctx: Parser.ShiftExpressionContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     for (const addExpr of ctx.additiveExpression()) {
       StringLengthCounter.walkAdditiveExpr(addExpr, counts, state);
@@ -164,7 +164,7 @@ class StringLengthCounter {
   private static walkAdditiveExpr(
     ctx: Parser.AdditiveExpressionContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     for (const multExpr of ctx.multiplicativeExpression()) {
       StringLengthCounter.walkMultiplicativeExpr(multExpr, counts, state);
@@ -174,7 +174,7 @@ class StringLengthCounter {
   private static walkMultiplicativeExpr(
     ctx: Parser.MultiplicativeExpressionContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     for (const unaryExpr of ctx.unaryExpression()) {
       StringLengthCounter.walkUnaryExpr(unaryExpr, counts, state);
@@ -184,7 +184,7 @@ class StringLengthCounter {
   private static walkUnaryExpr(
     ctx: Parser.UnaryExpressionContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     const postfix = ctx.postfixExpression();
     if (postfix) {
@@ -203,7 +203,7 @@ class StringLengthCounter {
   private static walkPostfixExpr(
     ctx: Parser.PostfixExpressionContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     const primary = ctx.primaryExpression();
     const primaryId = primary.IDENTIFIER()?.getText();
@@ -240,7 +240,7 @@ class StringLengthCounter {
   private static walkStatement(
     ctx: Parser.StatementContext,
     counts: Map<string, number>,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     // Assignment statement
     if (ctx.assignmentStatement()) {

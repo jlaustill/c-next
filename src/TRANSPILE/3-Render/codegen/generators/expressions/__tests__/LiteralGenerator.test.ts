@@ -10,18 +10,18 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import generateLiteral from "../LiteralGenerator";
 import type IGeneratorState from "../../IGeneratorState";
-import RenderState from "../../../../RenderState";
+import TranspileState from "../../../../../TranspileState";
 
 // #1445: generateLiteral takes the literal's text, so there is no node to
 // fake. The `as unknown as LiteralContext` cast this file used to need is gone
 // with it -- the function's real input was always a string.
 const mockState = {} as IGeneratorState;
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("LiteralGenerator", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   describe("boolean literals", () => {

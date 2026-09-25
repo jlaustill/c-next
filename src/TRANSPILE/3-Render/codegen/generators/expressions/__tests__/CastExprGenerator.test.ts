@@ -13,7 +13,7 @@
  */
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import generateCast from "../CastExprGenerator";
-import RenderState from "../../../../RenderState";
+import TranspileState from "../../../../../TranspileState";
 
 const plan = (
   targetType: string,
@@ -23,14 +23,14 @@ const plan = (
 ) => ({ targetType, targetTypeName, operandCode, operandType });
 
 describe("CastExprGenerator", () => {
-  let state = new RenderState();
+  let state = new TranspileState();
 
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   afterEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   describe("plain casts", () => {

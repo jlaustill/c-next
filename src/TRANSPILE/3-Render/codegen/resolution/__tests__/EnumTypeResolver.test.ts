@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import EnumTypeResolver from "../EnumTypeResolver";
-import RenderState from "../../../RenderState";
+import TranspileState from "../../../../TranspileState";
 import ExpressionUnwrapper from "../../../../../utils/ExpressionUnwrapper";
 import ExpressionTypeResolver from "../../../../2-Plan/ExpressionTypeResolver";
 import SymbolTable from "../../../../../PARSE/3-Declare/SymbolTable";
@@ -16,11 +16,11 @@ import enterScope from "../../../../../transpiler/__tests__/enterScope";
 // `as never` casts these tests carried are gone. The thunk returns null
 // throughout because none of these cases reach the fallback -- the mock never
 // had a tree for it to walk either.
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("EnumTypeResolver", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   describe("resolve() - function call patterns", () => {

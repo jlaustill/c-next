@@ -191,7 +191,7 @@ interface FunctionSignature {
 }
 import CodeGenerator from "./3-Render/codegen/CodeGenerator";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
-import type RenderState from "./3-Render/RenderState";
+import type TranspileState from "./TranspileState";
 
 class CodeGenWalker {
   /**
@@ -210,7 +210,7 @@ class CodeGenWalker {
    * A narrow accessor rather than widening `host`: `Transpiler` needs one flag
    * off it (ADR-040's ISR typedef) and has no business with the rest.
    */
-  get renderState(): RenderState {
+  get transpileState(): TranspileState {
     return this.host.state;
   }
 
@@ -1340,7 +1340,7 @@ class CodeGenWalker {
     // hot path for exactly the divergences this work closes.
     return ArrayDimensionParser.parseSingleDimension(
       ctx,
-      dimensionEvalOptions(this.renderState),
+      dimensionEvalOptions(this.transpileState),
     );
   }
 
@@ -2409,7 +2409,7 @@ class CodeGenWalker {
     if (cStyleDimensions.length > 0) {
       return ArrayDimensionParser.parseDimensions(
         cStyleDimensions,
-        dimensionEvalOptions(this.renderState),
+        dimensionEvalOptions(this.transpileState),
       );
     }
 
@@ -2420,7 +2420,7 @@ class CodeGenWalker {
       if (!expression) return [];
       const size = ArrayDimensionParser.parseSingleDimension(
         expression,
-        dimensionEvalOptions(this.renderState),
+        dimensionEvalOptions(this.transpileState),
       );
       return [size ?? UNRESOLVED_DIMENSION];
     });
@@ -2714,7 +2714,7 @@ class CodeGenWalker {
     isExplicitConst: boolean,
     isStruct: boolean,
     isString: boolean,
-    state: RenderState,
+    state: TranspileState,
   ): boolean {
     if (isExplicitConst) {
       return true;
@@ -2799,7 +2799,7 @@ class CodeGenWalker {
               }
               const folded = ArrayDimensionParser.parseSingleDimension(
                 expr,
-                dimensionEvalOptions(this.renderState),
+                dimensionEvalOptions(this.transpileState),
               );
               return `[${folded ?? this.generateExpression(expr)}]`;
             })
@@ -3939,7 +3939,7 @@ class CodeGenWalker {
 
     const folded = ArrayDimensionParser.parseSingleDimension(
       expression,
-      dimensionEvalOptions(this.renderState),
+      dimensionEvalOptions(this.transpileState),
     );
     return folded === undefined
       ? this.generateExpression(expression)
@@ -4273,7 +4273,7 @@ class CodeGenWalker {
     return (
       ArrayDimensionParser.parseSingleDimension(
         sizeExpr,
-        dimensionEvalOptions(this.renderState),
+        dimensionEvalOptions(this.transpileState),
       ) ?? null
     );
   }
@@ -4405,7 +4405,7 @@ class CodeGenWalker {
         // initialized") and which CLAUDE.md rules out.
         const folded = ArrayDimensionParser.parseSingleDimension(
           sizeExpr,
-          dimensionEvalOptions(this.renderState),
+          dimensionEvalOptions(this.transpileState),
         );
         dimensions += `[${folded ?? sizeExpr.getText()}]`;
       } else {
@@ -5391,7 +5391,7 @@ class CodeGenWalker {
     const result = generateLiteral(
       ctx.getText(),
       this.host.getState(),
-      this.renderState,
+      this.transpileState,
     );
     this.host.applyEffects(result.effects);
 

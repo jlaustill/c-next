@@ -9,7 +9,7 @@ import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import CNextResolver from "../../../PARSE/3-Declare/cnext/index";
 import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import ReturnValueUseAnalyzer from "../ReturnValueUseAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -43,13 +43,13 @@ beforeEach(() => {
   registry = new SymbolRegistry();
 });
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("ReturnValueUseAnalyzer", () => {
   beforeEach(() => {});
 
   afterEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   describe("flags a discarded non-void return (E0708)", () => {

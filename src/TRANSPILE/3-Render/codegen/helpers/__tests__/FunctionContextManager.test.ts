@@ -19,7 +19,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import FunctionContextManager from "../FunctionContextManager";
 import IFunctionContextCallbacks from "../../types/IFunctionContextCallbacks";
-import RenderState from "../../../RenderState";
+import TranspileState from "../../../../TranspileState";
 import type IPlannedType from "../../types/IPlannedType";
 import type IPlannedFunctionParameter from "../../types/IPlannedFunctionParameter";
 import type INamedTypeResolution from "../../../../../transpiler/types/INamedTypeResolution";
@@ -110,11 +110,11 @@ function plannedParam(
   };
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("FunctionContextManager", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     setupSymbols();
   });
 

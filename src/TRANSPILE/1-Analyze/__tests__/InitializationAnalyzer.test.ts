@@ -9,7 +9,7 @@ import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import InitializationAnalyzer from "../InitializationAnalyzer";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import Program from "../../../PARSE/4-Resolve/Program";
@@ -26,12 +26,12 @@ function parse(source: string) {
   return parser.program();
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("InitializationAnalyzer", () => {
-  // Reset RenderState before each test
+  // Reset TranspileState before each test
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     state.symbolTable = new SymbolTable();
   });
 
@@ -49,7 +49,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
 
-      // Set up RenderState with C++ class
+      // Set up TranspileState with C++ class
       state.symbolTable.addCppSymbol({
         name: "CppMessage",
         kind: "class",
@@ -106,7 +106,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
 
-      // Set up RenderState with C++ struct (not class)
+      // Set up TranspileState with C++ struct (not class)
       state.symbolTable.addCppSymbol({
         name: "CppStruct",
         kind: "struct",
@@ -138,7 +138,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
 
-      // Set up RenderState with C struct (not C++)
+      // Set up TranspileState with C struct (not C++)
       state.symbolTable.addCSymbol({
         name: "CStruct",
         kind: "struct",

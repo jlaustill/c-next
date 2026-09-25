@@ -2,7 +2,7 @@
  * Unit tests for StringDeclHelper
  *
  * Issue #644: Tests for the extracted string declaration helper.
- * Migrated to use RenderState instead of constructor DI.
+ * Migrated to use TranspileState instead of constructor DI.
  *
  * #1445 box 3: these took hand-built parse nodes -- `{ stringType: () => ({
  * INTEGER_LITERAL: () => ({ getText: () => "64" }) }) } as never` -- one per
@@ -15,7 +15,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import StringDeclHelper from "../StringDeclHelper";
-import RenderState from "../../../RenderState";
+import TranspileState from "../../../../TranspileState";
 import type IPlannedStringInit from "../../types/IPlannedStringInit";
 import type IRenderedModifiers from "../../types/IRenderedModifiers";
 import type TPlannedStringDecl from "../../types/TPlannedStringDecl";
@@ -57,11 +57,11 @@ function bounded(
 // what prove the net is there. Kept and re-aimed rather than deleted: they
 // were the only coverage of these conditions, and an assertion nothing
 // exercises is the guard-that-cannot-fail shape.
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("StringDeclHelper", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     state.inFunctionBody = true;
     vi.clearAllMocks();
   });

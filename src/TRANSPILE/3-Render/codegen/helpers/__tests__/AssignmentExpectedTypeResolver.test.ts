@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentExpectedTypeResolver from "../AssignmentExpectedTypeResolver";
 import analyzePostfixOps from "../../../../../utils/PostfixAnalysisUtils";
 import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
-import RenderState from "../../../RenderState";
+import TranspileState from "../../../../TranspileState";
 import SymbolTable from "../../../../../PARSE/3-Declare/SymbolTable";
 
 /**
@@ -92,11 +92,11 @@ function setupStructFields(
   (state.symbols.knownStructs as Set<string>).add(structName);
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("AssignmentExpectedTypeResolver", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   describe("resolve()", () => {

@@ -23,7 +23,7 @@
 
 import IBitAccessAnalysis from "../../../../transpiler/types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../../../transpiler/types/TPlannedTargetOp";
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 
 /** Mutable state for tracking types through a member chain. */
 interface IChainState {
@@ -53,7 +53,7 @@ class MemberChainAnalyzer {
   static analyze(
     baseName: string | null,
     ops: readonly TPlannedTargetOp[],
-    renderState: RenderState,
+    transpileState: TranspileState,
   ): IBitAccessAnalysis {
     if (!baseName || ops.length === 0) {
       return { isBitAccess: false };
@@ -71,7 +71,7 @@ class MemberChainAnalyzer {
     const targetInfo = MemberChainAnalyzer.resolveTargetTypeAndArrayStatus(
       baseName,
       leadingOps,
-      renderState,
+      transpileState,
     );
     if (!targetInfo) {
       return { isBitAccess: false };
@@ -108,16 +108,16 @@ class MemberChainAnalyzer {
   private static resolveTargetTypeAndArrayStatus(
     baseId: string,
     ops: readonly TPlannedTargetOp[],
-    renderState: RenderState,
+    transpileState: TranspileState,
   ): { type: string; isArray: boolean } | undefined {
-    const baseTypeInfo = renderState.getVariableTypeInfo(baseId);
+    const baseTypeInfo = transpileState.getVariableTypeInfo(baseId);
     if (!baseTypeInfo) {
       return undefined;
     }
 
     const state: IChainState = {
       currentType: baseTypeInfo.baseType,
-      currentStructType: renderState.isKnownStruct(baseTypeInfo.baseType)
+      currentStructType: transpileState.isKnownStruct(baseTypeInfo.baseType)
         ? baseTypeInfo.baseType
         : undefined,
       isCurrentArray: baseTypeInfo.isArray,
@@ -132,13 +132,13 @@ class MemberChainAnalyzer {
           ops,
           i,
           state,
-          renderState,
+          transpileState,
         );
         if (!result) {
           return undefined;
         }
       } else {
-        MemberChainAnalyzer.processSubscriptOp(state, renderState);
+        MemberChainAnalyzer.processSubscriptOp(state, transpileState);
       }
     }
 
@@ -154,14 +154,14 @@ class MemberChainAnalyzer {
     ops: readonly TPlannedTargetOp[],
     opIndex: number,
     state: IChainState,
-    renderState: RenderState,
+    transpileState: TranspileState,
   ): boolean {
     if (!state.currentStructType) {
       return false;
     }
 
     // Issue #831: Use SymbolTable as single source of truth for struct fields
-    const fieldInfo = renderState.symbolTable?.getStructFieldInfo(
+    const fieldInfo = transpileState.symbolTable?.getStructFieldInfo(
       state.currentStructType,
       fieldName,
     );
@@ -177,7 +177,7 @@ class MemberChainAnalyzer {
       fieldInfo.arrayDimensions.length > 0;
 
     // If the field type is a struct, update currentStructType
-    state.currentStructType = renderState.isKnownStruct(state.currentType)
+    state.currentStructType = transpileState.isKnownStruct(state.currentType)
       ? state.currentType
       : undefined;
 
@@ -205,7 +205,7 @@ class MemberChainAnalyzer {
    */
   private static processSubscriptOp(
     state: IChainState,
-    renderState: RenderState,
+    transpileState: TranspileState,
   ): void {
     if (!state.isCurrentArray || state.arrayDimsRemaining <= 0) {
       return;
@@ -214,7 +214,7 @@ class MemberChainAnalyzer {
     state.arrayDimsRemaining--;
     if (state.arrayDimsRemaining === 0) {
       state.isCurrentArray = false;
-      state.currentStructType = renderState.isKnownStruct(state.currentType)
+      state.currentStructType = transpileState.isKnownStruct(state.currentType)
         ? state.currentType
         : undefined;
     }

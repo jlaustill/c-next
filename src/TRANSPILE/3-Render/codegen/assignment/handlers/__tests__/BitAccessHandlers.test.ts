@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import bitAccessHandlers from "../BitAccessHandlers";
 import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../../../transpiler/types/IAssignmentContext";
-import RenderState from "../../../../RenderState";
+import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
 
 /**
@@ -64,11 +64,11 @@ function createMockContext(
   } as IAssignmentContext;
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("BitAccessHandlers", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     HandlerTestUtils.setupMockGenerator(state);
     HandlerTestUtils.setupMockSymbols(state);
   });

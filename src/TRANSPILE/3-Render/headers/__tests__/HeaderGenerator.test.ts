@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import RenderState from "../../RenderState";
+import TranspileState from "../../../TranspileState";
 import HeaderGenerator from "../HeaderGenerator";
 
 import IHeaderSymbol from "../types/IHeaderSymbol";
@@ -17,11 +17,11 @@ import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TestSymbolUtils from "../../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../../transpiler/types/__testUtils__/testSourceSpan";
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("HeaderGenerator", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   const generator = new HeaderGenerator();

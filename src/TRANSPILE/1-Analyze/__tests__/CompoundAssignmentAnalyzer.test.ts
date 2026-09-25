@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CompoundAssignmentAnalyzer from "../CompoundAssignmentAnalyzer";
@@ -34,11 +34,11 @@ const errors = (source: string) => {
 const inMain = (body: string): string =>
   `u32 main() {\n${body}\n    return 0;\n}`;
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("CompoundAssignmentAnalyzer", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it("rejects a compound operator on a bit index of a scalar", () => {

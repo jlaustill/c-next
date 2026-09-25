@@ -3,7 +3,7 @@
  * Tests detection of modulo operator with floating-point types
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
@@ -21,11 +21,11 @@ function parse(source: string) {
   return parser.program();
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("FloatModuloAnalyzer", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   // ========================================================================

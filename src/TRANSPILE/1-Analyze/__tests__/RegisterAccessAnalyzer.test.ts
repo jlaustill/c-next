@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import RegisterAccessAnalyzer from "../RegisterAccessAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -50,10 +50,10 @@ const errors = (source: string) => {
 const inMain = (body: string): string => `void main() {\n${body}\n}`;
 
 afterEach(() => {
-  state = new RenderState();
+  state = new TranspileState();
 });
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("RegisterAccessAnalyzer", () => {
   describe("E0870 -- a write-only member is read", () => {

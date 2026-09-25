@@ -7,7 +7,7 @@ import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import ArrayIndexTypeAnalyzer from "../ArrayIndexTypeAnalyzer";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -22,11 +22,11 @@ function parse(source: string) {
   return parser.program();
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("ArrayIndexTypeAnalyzer", () => {
   afterEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   // ========================================================================
@@ -393,7 +393,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
   });
 
   // ========================================================================
-  // State-based type resolution (RenderState)
+  // State-based type resolution (TranspileState)
   // ========================================================================
 
   describe("state-based type resolution", () => {
@@ -485,7 +485,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
 
-    it("should pass through unresolvable function call without RenderState", () => {
+    it("should pass through unresolvable function call without TranspileState", () => {
       const tree = parse(`
         u32 getIndex() { return 0; }
         void main() {

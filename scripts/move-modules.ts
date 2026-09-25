@@ -690,15 +690,18 @@ const MOVES: readonly IMove[] = [
     from: "src/transpiler/state/RenderState.ts",
     to: "src/TRANSPILE/3-Render/RenderState.ts",
     because:
-      "#1452 boxes 1 and 4. `CodeGenState` and `TranspilerState` were mutable " +
-      "STATICS, which is why they had a directory of their own rather than a " +
-      "pass: a static belongs to the process, not to a pass, so the admission " +
-      "test at the top of this file had nothing to ask. Merged into one " +
-      "instance owned by `CodeGenerator`, the test applies again and answers " +
-      "2.3: every field is a fact about the ONE file being rendered -- the " +
-      "include flags, the expectedType window, the emitted-name and " +
-      "clamp-mark tables -- and every write is 2.3's. `state/` then holds " +
-      "nothing, which is box 1.",
+      "#1452 boxes 1 and 4, and **superseded by the next entry**. `CodeGenState` " +
+      "and `TranspilerState` were mutable STATICS, which is why they had a " +
+      "directory of their own rather than a pass: a static belongs to the " +
+      "process, not to a pass, so the admission test at the top of this file " +
+      "had nothing to ask. Merged into one instance owned by `CodeGenerator`, " +
+      "the test applies again -- and the answer recorded here was 2.3, on the " +
+      "claim that *every write is 2.3's*. That claim was false and `depcruise` " +
+      "disproved it on the first run after the move: six modules under " +
+      "`2-Plan/` import it and `TypeRegistrationEngine` and " +
+      "`TypeRegistrationUtils` WRITE it, through `setVariableTypeInfo`. Kept " +
+      "in the manifest rather than edited away, because the wrong destination " +
+      "and the reason it was wrong are the reviewable part.",
   },
   {
     from: "src/transpiler/state/__tests__/CodeGenState.test.ts",
@@ -713,6 +716,23 @@ const MOVES: readonly IMove[] = [
       "and the two cannot share a name; this is the half that pins the " +
       "include sink and the toolchain-requirement deferrals, with their " +
       "negative controls.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/RenderState.ts",
+    to: "src/TRANSPILE/TranspileState.ts",
+    because:
+      "The corrected destination. `plan-cannot-import-render` is `error` with " +
+      "`reachable: true`, so a module six `2-Plan/` modules import cannot sit " +
+      "in `3-Render/` -- the same constraint that put `CodeGenWalker.ts` at " +
+      "this level under #1445 box 3, and for the same reason: it spans 2.2 and " +
+      "2.3 rather than belonging to either. Measured, not argued: 2.2 Plan " +
+      "reads `constValues`, `currentScopePath`, `symbols`, `symbolTable`, " +
+      "`program` and `generator` off it, and writes the type registry into it. " +
+      "Renamed with the move, because a class called `RenderState` that 2.2 " +
+      "Plan writes states something untrue in the place most readers look. " +
+      "This does NOT satisfy box 2 -- a fact 2.2 authors still reaches 2.3 " +
+      "through a shared mutable object rather than through 2.2's artifact -- " +
+      "and box 2 stays unchecked on the card, saying so.",
   },
 ];
 

@@ -5,7 +5,7 @@
 
 import { vi } from "vitest";
 import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
-import RenderState from "../../../../RenderState";
+import TranspileState from "../../../../../TranspileState";
 import SymbolTable from "../../../../../../PARSE/3-Declare/SymbolTable";
 import type ICodeGenApi from "../../../../../../transpiler/types/ICodeGenApi";
 import type ICodeGenSymbols from "../../../../../../transpiler/types/ICodeGenSymbols";
@@ -17,7 +17,7 @@ import type TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
  * Issue #831: Also registers struct fields in SymbolTable for single source of truth.
  */
 function setupMockSymbols(
-  state: RenderState,
+  state: TranspileState,
   overrides: Partial<ICodeGenSymbols> = {},
 ): void {
   state.symbols = {
@@ -79,7 +79,7 @@ function planner(): ITestPlanner {
  * Common generator methods are pre-mocked with sensible defaults.
  */
 function setupMockGenerator(
-  state: RenderState,
+  state: TranspileState,
   overrides: Record<string, unknown> = {},
 ): void {
   installed = {
@@ -161,12 +161,12 @@ function createTypeInfo(overrides: Partial<TTypeInfo> = {}): TTypeInfo {
 }
 
 /**
- * Set up RenderState type registry with typed entries.
+ * Set up TranspileState type registry with typed entries.
  * Entries only need to specify the fields relevant to the test.
  * Uses setVariableTypeInfo to properly populate the registry.
  */
 function setupMockTypeRegistry(
-  state: RenderState,
+  state: TranspileState,
   entries: Array<[string, Partial<TTypeInfo>]>,
 ): void {
   for (const [name, partial] of entries) {

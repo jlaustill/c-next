@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import TypeValidator from "../TypeValidator";
-import RenderState from "../../RenderState";
+import TranspileState from "../../../TranspileState";
 import createMockSymbols from "../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import enterScope from "../../../../transpiler/__tests__/enterScope";
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("TypeValidator.resolveBareIdentifier", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     state.setScopeMembers("Motor", new Set(["speed", "maxSpeed"]));
     state.setVariableTypeInfo("globalCounter", {
       baseType: "u32",

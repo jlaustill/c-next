@@ -19,7 +19,7 @@
 import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 import TIncludeHeader from "../../../../transpiler/types/TIncludeHeader";
 import BitRangeHelper from "./BitRangeHelper";
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Callback types for code generation operations.
@@ -68,7 +68,7 @@ class FloatBitHelper {
     width: string | null,
     value: string,
     callbacks: IFloatBitCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): string | null {
     const isFloatType =
       typeInfo.baseType === "f32" || typeInfo.baseType === "f64";

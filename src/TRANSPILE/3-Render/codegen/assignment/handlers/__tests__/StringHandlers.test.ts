@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import stringHandlers from "../StringHandlers";
 import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../../../transpiler/types/IAssignmentContext";
-import RenderState from "../../../../RenderState";
+import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
 import AssignmentClassifier from "../../../../../2-Plan/AssignmentClassifier";
 import enterScope from "../../../../../../transpiler/__tests__/enterScope";
@@ -61,11 +61,11 @@ function createMockContext(
 // over-determined, raised by the effect channel, by `generateType` and by type
 // registration, so six more raisers in the handlers changed nothing. What these
 // tests are FOR is the emitted `strncpy`, and that is untouched.
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("StringHandlers", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     HandlerTestUtils.setupMockGenerator(state);
     HandlerTestUtils.setupMockSymbols(state);
   });

@@ -20,7 +20,7 @@
  * backwards to see what was being asserted.
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import RenderState from "../../../../RenderState";
+import TranspileState from "../../../../../TranspileState";
 import registerGeneratorFor from "../RegisterGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
@@ -92,10 +92,10 @@ function createMockOrchestrator(): IOrchestrator {
   return { state } as unknown as IOrchestrator;
 }
 
-let state = new RenderState();
+let state = new TranspileState();
 
 beforeEach(() => {
-  state = new RenderState();
+  state = new TranspileState();
 });
 
 /** Run the generator for one scope path. */

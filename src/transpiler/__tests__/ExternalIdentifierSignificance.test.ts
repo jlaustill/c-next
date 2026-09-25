@@ -20,7 +20,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
-import RenderState from "../../TRANSPILE/3-Render/RenderState";
+import TranspileState from "../../TRANSPILE/TranspileState";
 import DEFAULT_TARGET from "../constants/DEFAULT_TARGET";
 
 /** Two members that are distinct at 31 characters but collide at 6. */
@@ -33,11 +33,11 @@ i32 main() {
     return 0;
 }`;
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("External identifier significance (#1307)", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   let tempDir: string;

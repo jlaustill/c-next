@@ -13,7 +13,7 @@ import TAssignmentHandler from "./TAssignmentHandler";
 import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 import invariant from "../../../../../utils/invariant";
-import type RenderState from "../../../RenderState";
+import type TranspileState from "../../../../TranspileState";
 
 /** Matches the unsigned C-Next integer types (u8/u16/u32/u64). */
 const UNSIGNED_INT_RE = /^u(8|16|32|64)$/;
@@ -349,7 +349,7 @@ function materializeSliceSource(
   },
   value: string,
   lengthValue: number,
-  state: RenderState,
+  state: TranspileState,
 ): string {
   if (
     src.isComposite &&

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import BitmapAccessAnalyzer from "../BitmapAccessAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -52,10 +52,10 @@ const errors = (source: string) => {
 };
 
 afterEach(() => {
-  state = new RenderState();
+  state = new TranspileState();
 });
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("BitmapAccessAnalyzer (E0881)", () => {
   it("rejects a value wider than the field, in every literal base", () => {

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import LengthPropertyAnalyzer from "../LengthPropertyAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -24,10 +24,10 @@ const inMain = (decls: string, expr: string): string =>
   `${decls}\nu32 main() {\n    u32 n <- ${expr};\n    return n;\n}`;
 
 afterEach(() => {
-  state = new RenderState();
+  state = new TranspileState();
 });
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("LengthPropertyAnalyzer", () => {
   it("rejects .element_count on a scalar, with a real position", () => {

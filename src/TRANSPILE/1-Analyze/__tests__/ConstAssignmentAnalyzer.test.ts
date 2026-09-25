@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ConstAssignmentAnalyzer from "../ConstAssignmentAnalyzer";
@@ -20,11 +20,11 @@ const errors = (source: string) => {
   return new ConstAssignmentAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("ConstAssignmentAnalyzer (E0877)", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it("rejects every assignment operator on a const variable, at the target", () => {

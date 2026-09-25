@@ -7,7 +7,7 @@
 import type IBitmapFieldLayout from "../../../../../../transpiler/types/IBitmapFieldLayout";
 import { describe, it, expect } from "vitest";
 import BitmapAccessHelper from "../BitmapAccessHelper";
-import RenderState from "../../../../RenderState";
+import TranspileState from "../../../../../TranspileState";
 
 describe("BitmapAccessHelper", () => {
   describe("generate", () => {
@@ -22,7 +22,7 @@ describe("BitmapAccessHelper", () => {
         "Status",
         bitmapFields,
         "type 'Status'",
-        new RenderState(),
+        new TranspileState(),
       );
 
       expect(result.code).toBe("((status >> 0) & 1)");
@@ -40,7 +40,7 @@ describe("BitmapAccessHelper", () => {
         "Control",
         bitmapFields,
         "type 'Control'",
-        new RenderState(),
+        new TranspileState(),
       );
 
       expect(result.code).toContain("ctrl");
@@ -61,7 +61,7 @@ describe("BitmapAccessHelper", () => {
           "Status",
           bitmapFields,
           "type 'Status'",
-          new RenderState(),
+          new TranspileState(),
         ),
       ).toThrow("E0882 rejects this in pass 2.1");
     });
@@ -76,7 +76,7 @@ describe("BitmapAccessHelper", () => {
           "CtrlBits",
           bitmapFields,
           "register member 'MOTOR_CTRL' (bitmap type 'CtrlBits')",
-          new RenderState(),
+          new TranspileState(),
         ),
       ).toThrow("E0882 rejects this in pass 2.1");
       expect(() =>
@@ -86,7 +86,7 @@ describe("BitmapAccessHelper", () => {
           "CtrlBits",
           bitmapFields,
           "register member 'MOTOR_CTRL' (bitmap type 'CtrlBits')",
-          new RenderState(),
+          new TranspileState(),
         ),
       ).toThrow("register member");
     });
@@ -101,7 +101,7 @@ describe("BitmapAccessHelper", () => {
           "StatusBits",
           bitmapFields,
           "struct member 'device.flags' (bitmap type 'StatusBits')",
-          new RenderState(),
+          new TranspileState(),
         ),
       ).toThrow("struct member");
     });
@@ -116,7 +116,7 @@ describe("BitmapAccessHelper", () => {
           "Unknown",
           bitmapFields,
           "type 'Unknown'",
-          new RenderState(),
+          new TranspileState(),
         ),
       ).toThrow("E0882 rejects this in pass 2.1");
     });

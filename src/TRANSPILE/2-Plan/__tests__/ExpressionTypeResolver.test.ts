@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import ExpressionTypeResolver from "../ExpressionTypeResolver";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import TTypeInfo from "../../../transpiler/types/TTypeInfo";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
@@ -38,13 +38,13 @@ const postfixOpsFrom = (
     LBRACKET: () => (text.startsWith("[") ? {} : null),
   }));
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("ExpressionTypeResolver", () => {
   let symbolTable: SymbolTable;
 
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
     symbolTable = new SymbolTable();
     state.symbolTable = symbolTable;
   });

@@ -39,7 +39,7 @@ import IHeaderEmissionFacts from "../TRANSPILE/3-Render/headers/types/IHeaderEmi
 import IHeaderCallbackType from "./types/IHeaderCallbackType";
 import IncludeExtractor from "./logic/IncludeExtractor";
 import SymbolTable from "../PARSE/3-Declare/SymbolTable";
-import type RenderState from "../TRANSPILE/3-Render/RenderState";
+import type TranspileState from "../TRANSPILE/TranspileState";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
 import CNextResolver from "../PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "../PARSE/3-Declare/SymbolRegistry";
@@ -758,13 +758,13 @@ class Transpiler {
       const modifications = ModificationFacts.derive(
         declared,
         this.symbolRegistry,
-        this.codeGenerator.renderState,
+        this.codeGenerator.transpileState,
       );
       // #1511: derived over every tree before anything renders. Accumulated
       // during rendering, this map was partial for whichever file went first.
       const callbackCompatible = CallbackCompatibility.derive(
         declared,
-        this.codeGenerator.renderState.symbolTable,
+        this.codeGenerator.transpileState.symbolTable,
         this.symbolRegistry,
       );
 
@@ -772,22 +772,22 @@ class Transpiler {
         declared.map((entry) => entry.fileSymbols),
         {
           headerStructFields:
-            this.codeGenerator.renderState.symbolTable.getAllStructFields(),
+            this.codeGenerator.transpileState.symbolTable.getAllStructFields(),
           // #1511: everything the C/C++ headers contributed. The opacity inputs
           // are the RAW bookkeeping, not the verdict -- `Program` resolves which
           // typedefs never received a body. Read here because #985 phantom-body
           // recovery has already run (Stage 2), so the state is final.
           foreign: {
-            c: this.codeGenerator.renderState.symbolTable.getAllCSymbols(),
-            cpp: this.codeGenerator.renderState.symbolTable.getAllCppSymbols(),
+            c: this.codeGenerator.transpileState.symbolTable.getAllCSymbols(),
+            cpp: this.codeGenerator.transpileState.symbolTable.getAllCppSymbols(),
             opaqueTypedefs: new Set(
-              this.codeGenerator.renderState.symbolTable.getAllOpaqueTypes(),
+              this.codeGenerator.transpileState.symbolTable.getAllOpaqueTypes(),
             ),
             typedefToTag: new Map(
-              this.codeGenerator.renderState.symbolTable.getAllTypedefToTag(),
+              this.codeGenerator.transpileState.symbolTable.getAllTypedefToTag(),
             ),
             structTagsWithBodies: new Set(
-              this.codeGenerator.renderState.symbolTable.getAllStructTagsWithBodies(),
+              this.codeGenerator.transpileState.symbolTable.getAllStructTagsWithBodies(),
             ),
           },
           modifications,
@@ -809,7 +809,7 @@ class Transpiler {
       );
       // Passes after 1.4 read cross-file facts from the artifact rather than
       // re-deriving them. Set once per run, not per file.
-      this.codeGenerator.renderState.program = this.program;
+      this.codeGenerator.transpileState.program = this.program;
     } catch (err) {
       result.errors.push(Transpiler._collectionError(err));
       result.success = false;
@@ -916,7 +916,7 @@ class Transpiler {
       }
 
       // ADR-055 Phase 7: Store TSymbol directly in SymbolTable (no ISymbol conversion)
-      this.codeGenerator.renderState.symbolTable.addTSymbols(tSymbols);
+      this.codeGenerator.transpileState.symbolTable.addTSymbols(tSymbols);
     } catch (err) {
       return [Transpiler._collectionError(err)];
     }
@@ -1017,7 +1017,7 @@ class Transpiler {
         context: {
           symbols,
           program: this.program,
-          symbolTable: this.codeGenerator.renderState.symbolTable,
+          symbolTable: this.codeGenerator.transpileState.symbolTable,
           reachesForeignHeader: file.reachesForeignHeader ?? true,
         },
         includes: {
@@ -1135,11 +1135,11 @@ class Transpiler {
     sourcePath: string,
   ): ICodeGenSymbols {
     const symbolInfo = this._requireSymbolInfo(sourcePath);
-    this.codeGenerator.renderState.symbols = symbolInfo;
+    this.codeGenerator.transpileState.symbols = symbolInfo;
 
     // #1399 review: computed during discovery from the resolver's own
     // categorization, not re-derived from `#include` token text here.
-    this.codeGenerator.renderState.currentFileReachesForeignHeader =
+    this.codeGenerator.transpileState.currentFileReachesForeignHeader =
       file.reachesForeignHeader ?? true;
 
     return symbolInfo;
@@ -1206,7 +1206,7 @@ class Transpiler {
         // #1515: decided here, from the rule's owner. 1.3 Declare used to
         // answer this, which put an emission decision in the parse layer.
         hasPublicInterface: PublicInterface.existsIn(
-          this.codeGenerator.renderState.symbolTable.getTSymbolsByFile(
+          this.codeGenerator.transpileState.symbolTable.getTSymbolsByFile(
             sourcePath,
           ),
         ),
@@ -1244,12 +1244,12 @@ class Transpiler {
       }
 
       // Issue #1143: read after header-facts CAPTURE, and before the next
-      // file's this.codeGenerator.renderState.reset() clears the recording map. This covers a
+      // file's this.codeGenerator.transpileState.reset() clears the recording map. This covers a
       // requirement that capturing a header's facts triggers (e.g. through
       // convertToHeaderSymbols) -- it does NOT cover one the RENDER might
       // trigger, since #1323 moved rendering to Stage 5.5, after every file's
       // requirements have already been read here and reset() has run N times.
-      // Currently unreachable rather than wrong: this.codeGenerator.renderState.requireToolchain
+      // Currently unreachable rather than wrong: this.codeGenerator.transpileState.requireToolchain
       // has no caller under output/headers/, so no render path records one --
       // but this read does not guarantee that stays true, and #1143 is
       // precisely the bug class where an ordering assumption like that broke
@@ -1500,18 +1500,18 @@ class Transpiler {
     // transpiler, so that second run is a real one. Adding the twelfth line
     // would have fixed this instance and left the shape; construction leaves no
     // teardown to drift from.
-    this.codeGenerator.renderState.symbolTable = new SymbolTable();
+    this.codeGenerator.transpileState.symbolTable = new SymbolTable();
     // Reset SymbolRegistry for new run (new IFunctionSymbol type system)
     this.symbolRegistry = new SymbolRegistry();
     // #1452: the callback map needed a per-RUN reset here because it was a
-    // mutable static that `this.codeGenerator.renderState.reset()` deliberately skipped.
+    // mutable static that `this.codeGenerator.transpileState.reset()` deliberately skipped.
     // `CallbackCompatibility.derive` returns it now, so there is nothing to
     // clear -- the run's answer is built fresh and handed to `Program`.
     // #1447: the previous run's Program is not this run's artifact. Nothing
     // may read one across runs, and leaving a stale one reachable is the
     // shape #1323's header-content leak had.
     this.program = null;
-    this.codeGenerator.renderState.program = null;
+    this.codeGenerator.transpileState.program = null;
     // Issue #1241: the previous run's ADR provenance is not this run's evidence
     AdrProvenance.reset();
   }
@@ -1602,13 +1602,13 @@ class Transpiler {
     const cleanState = this._parseRecoveredSlices(recovery.perFileContent);
     Transpiler._clearPhantomStructBodies(
       cleanState,
-      this.codeGenerator.renderState,
+      this.codeGenerator.transpileState,
     );
 
     // Function-like macros have no declaration to parse; register their names for
     // the undeclared-call check only (a by-value macro invocation is correct).
     if (recovery.macroNames.size > 0) {
-      this.codeGenerator.renderState.symbolTable.addExternalDeclarationNames(
+      this.codeGenerator.transpileState.symbolTable.addExternalDeclarationNames(
         recovery.macroNames,
       );
     }
@@ -1690,7 +1690,7 @@ class Transpiler {
    */
   private static _clearPhantomStructBodies(
     cleanState: SymbolTable,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     const cleanBodies = new Set(cleanState.getAllStructTagsWithBodies());
     for (const typedefName of cleanState.getAllOpaqueTypes()) {
@@ -1851,12 +1851,12 @@ class Transpiler {
   private _checkExternalIdentifierSignificance(
     result: ITranspilerResult,
   ): boolean {
-    // NOT this.codeGenerator.renderState.targetCapabilities: codegen assigns that in Stage 5, one
+    // NOT this.codeGenerator.transpileState.targetCapabilities: codegen assigns that in Stage 5, one
     // stage after this runs, so it holds the module default on a fresh process
     // and the previous file's target in a long-lived one (#1307 review). The
     // budget a whole-program check reports against has to be the build's.
     const collisions =
-      this.codeGenerator.renderState.symbolTable.detectMISRA51Conflicts(
+      this.codeGenerator.transpileState.symbolTable.detectMISRA51Conflicts(
         TargetResolver.forRun(this.config.target, this.pragmaTargets),
       );
 
@@ -1963,7 +1963,8 @@ class Transpiler {
     if (warning) {
       result.warnings.push(warning);
     }
-    result.symbolsCollected = this.codeGenerator.renderState.symbolTable.size;
+    result.symbolsCollected =
+      this.codeGenerator.transpileState.symbolTable.size;
     result.warnings = [...result.warnings, ...this.warnings];
     // Issue #1143: union of what each file's emitters recorded.
     result.requirements = RequirementAggregator.merge(result.files);
@@ -2365,7 +2366,9 @@ class Transpiler {
     // Debug: Show symbols found
     if (this.config.debugMode) {
       const symbols =
-        this.codeGenerator.renderState.symbolTable.getSymbolsByFile(file.path);
+        this.codeGenerator.transpileState.symbolTable.getSymbolsByFile(
+          file.path,
+        );
       console.log(`[DEBUG]   Found ${symbols.length} symbols in ${file.path}`);
     }
 
@@ -2374,7 +2377,7 @@ class Transpiler {
     if (this.cacheManager) {
       this.cacheManager.setSymbolsFromTable(
         file.path,
-        this.codeGenerator.renderState.symbolTable,
+        this.codeGenerator.transpileState.symbolTable,
         !usable,
       );
     }
@@ -2406,19 +2409,19 @@ class Transpiler {
       return null;
     }
 
-    this.codeGenerator.renderState.symbolTable.restoreStructFields(
+    this.codeGenerator.transpileState.symbolTable.restoreStructFields(
       cached.structFields,
     );
-    this.codeGenerator.renderState.symbolTable.restoreNeedsStructKeyword(
+    this.codeGenerator.transpileState.symbolTable.restoreNeedsStructKeyword(
       cached.needsStructKeyword,
     );
-    this.codeGenerator.renderState.symbolTable.restoreEnumBitWidths(
+    this.codeGenerator.transpileState.symbolTable.restoreEnumBitWidths(
       cached.enumBitWidth,
     );
 
     // Issue #1225: the whole struct state at once. It used to be four separate
     // restore calls, which is how #1164's pointerTypedefs was missed.
-    this.codeGenerator.renderState.symbolTable.restoreStructState(
+    this.codeGenerator.transpileState.symbolTable.restoreStructState(
       cached.structState,
     );
 
@@ -2556,9 +2559,9 @@ class Transpiler {
 
     for (const symbol of symbols) {
       if (symbol.sourceLanguage === ESourceLanguage.C) {
-        this.codeGenerator.renderState.symbolTable.addCSymbol(symbol);
+        this.codeGenerator.transpileState.symbolTable.addCSymbol(symbol);
       } else {
-        this.codeGenerator.renderState.symbolTable.addCppSymbol(symbol);
+        this.codeGenerator.transpileState.symbolTable.addCppSymbol(symbol);
       }
     }
 
@@ -2680,10 +2683,10 @@ class Transpiler {
       const result = CResolver.resolve(
         tree,
         filePath,
-        this.codeGenerator.renderState.symbolTable,
+        this.codeGenerator.transpileState.symbolTable,
       );
       // ADR-055 Phase 7: Store TCSymbol directly
-      this.codeGenerator.renderState.symbolTable.addCSymbols(result.symbols);
+      this.codeGenerator.transpileState.symbolTable.addCSymbols(result.symbols);
     }
   }
 
@@ -2697,10 +2700,12 @@ class Transpiler {
       const result = CppResolver.resolve(
         tree,
         filePath,
-        this.codeGenerator.renderState.symbolTable,
+        this.codeGenerator.transpileState.symbolTable,
       );
       // ADR-055 Phase 7: Store TCppSymbol directly
-      this.codeGenerator.renderState.symbolTable.addCppSymbols(result.symbols);
+      this.codeGenerator.transpileState.symbolTable.addCppSymbols(
+        result.symbols,
+      );
     }
   }
 
@@ -2744,10 +2749,10 @@ class Transpiler {
    * return value ever reads `CodeGenState` again -- see `IHeaderEmissionFacts`.
    *
    * Still call this exactly once per file, from `_transpileFile()`, while
-   * that file's state is warm: `this.codeGenerator.renderState.needsISR`,
+   * that file's state is warm: `this.codeGenerator.transpileState.needsISR`,
    * `generatedStructInits`, `callbackTypes` and the auto-const/opaque
    * resolution inside `convertToHeaderSymbols` are ALL per-file, cleared by
-   * `this.codeGenerator.renderState.reset()` before the next file transpiles. Capturing them
+   * `this.codeGenerator.transpileState.reset()` before the next file transpiles. Capturing them
    * into `IHeaderEmissionFacts` here, at the only moment they are correct for
    * THIS file, is what lets the render move later.
    *
@@ -2788,7 +2793,7 @@ class Transpiler {
    */
   private static _needsDefiningHeader(
     typeName: string,
-    state: RenderState,
+    state: TranspileState,
   ): boolean {
     if (state.symbolTable.isPointerTypedef(typeName)) {
       return true;
@@ -2838,7 +2843,7 @@ class Transpiler {
    */
   private static _headerNeedsUserCHeaders(
     symbols: TSymbol[],
-    state: RenderState,
+    state: TranspileState,
   ): boolean {
     if (symbols.some(Transpiler._namesMacroDimension)) {
       return true;
@@ -2872,7 +2877,7 @@ class Transpiler {
     // Issues #1161/#1164: the same predicate decides whether this header is
     // written and whether the generated .c includes it. Do not re-derive it.
     const exportedSymbols = PublicInterface.forFile(
-      this.codeGenerator.renderState.symbolTable,
+      this.codeGenerator.transpileState.symbolTable,
       sourcePath,
     );
 
@@ -2897,7 +2902,7 @@ class Transpiler {
     // but does not define, so the header must carry its source include.
     const cHeadersIncluded = Transpiler._headerNeedsUserCHeaders(
       exportedSymbols,
-      this.codeGenerator.renderState,
+      this.codeGenerator.transpileState,
     );
     const userIncludes = cHeadersIncluded
       ? [
@@ -2930,7 +2935,7 @@ class Transpiler {
     const typeInputWithSymbolTable = typeInput
       ? {
           ...typeInput,
-          symbolTable: this.codeGenerator.renderState.symbolTable,
+          symbolTable: this.codeGenerator.transpileState.symbolTable,
           callbackTypes: callbackTypesForHeader,
         }
       : undefined;
@@ -2949,21 +2954,21 @@ class Transpiler {
         userIncludes,
         cHeadersIncluded,
         // ADR-040: same flag the .c consults, so exactly one file emits it.
-        needsIsrTypedef: this.codeGenerator.renderState.needsISR,
+        needsIsrTypedef: this.codeGenerator.transpileState.needsISR,
         // #1205: same shape -- the .c records which init functions it
         // emitted, the header declares exactly those. Copied, not aliased:
-        // this record must stay frozen once captured, and this.codeGenerator.renderState.reset()
+        // this record must stay frozen once captured, and this.codeGenerator.transpileState.reset()
         // happens to rebind this field to a new Set rather than clearing it in
-        // place (this.codeGenerator.renderState.ts) -- true today, but not a contract anything
+        // place (this.codeGenerator.transpileState.ts) -- true today, but not a contract anything
         // enforces, so a live reference here would be correct only by
         // coincidence with reset()'s current implementation.
         generatedStructInits: new Set(
-          this.codeGenerator.renderState.generatedStructInits,
+          this.codeGenerator.transpileState.generatedStructInits,
         ),
         // #1453: same contract, same reason -- copied at capture, never read
         // live by the render.
         registerBlocks: [
-          ...this.codeGenerator.renderState.exportedRegisterBlocks,
+          ...this.codeGenerator.transpileState.exportedRegisterBlocks,
         ],
         externalTypeHeaders,
         cppMode: this.cppMode,
@@ -2973,7 +2978,7 @@ class Transpiler {
         // meant deriving the type mapping a second time.
         systemIncludes: HeaderIncludes.decide(
           exportedSymbols,
-          this.codeGenerator.renderState.symbolTable,
+          this.codeGenerator.transpileState.symbolTable,
         ),
       },
       typeInput: typeInputWithSymbolTable,
@@ -2986,7 +2991,7 @@ class Transpiler {
   /**
    * ADR-029: Build callback types for header generation.
    * Only includes callbacks that are actually used as struct field types.
-   * Converts this.codeGenerator.renderState.callbackTypes to the format expected by IHeaderTypeInput.
+   * Converts this.codeGenerator.transpileState.callbackTypes to the format expected by IHeaderTypeInput.
    */
   private _buildCallbackTypesForHeader(): ReadonlyMap<
     string,
@@ -2996,14 +3001,17 @@ class Transpiler {
 
     // Issue #1164: same predicate the .c uses to decide it must NOT emit these.
     const usedCallbackTypes = new Set<string>();
-    for (const funcName of this.codeGenerator.renderState.callbackTypes.keys()) {
-      if (this.codeGenerator.renderState.headerOwnsCallbackTypedef(funcName)) {
+    for (const funcName of this.codeGenerator.transpileState.callbackTypes.keys()) {
+      if (
+        this.codeGenerator.transpileState.headerOwnsCallbackTypedef(funcName)
+      ) {
         usedCallbackTypes.add(funcName);
       }
     }
 
     for (const funcName of usedCallbackTypes) {
-      const cbInfo = this.codeGenerator.renderState.callbackTypes.get(funcName);
+      const cbInfo =
+        this.codeGenerator.transpileState.callbackTypes.get(funcName);
       if (cbInfo) {
         result.set(funcName, {
           typedefName: cbInfo.typedefName,
@@ -3087,7 +3095,7 @@ class Transpiler {
     return symbols.map((symbol) => {
       const headerSymbol = HeaderSymbolAdapter.fromTSymbol(
         symbol,
-        this.codeGenerator.renderState,
+        this.codeGenerator.transpileState,
       );
 
       if (
@@ -3103,7 +3111,7 @@ class Transpiler {
       // cannot spell the predicate differently -- they used to differ on `""`,
       // truthiness here against `!== undefined` there.
       const callbackTypedefType =
-        this.codeGenerator.renderState.callbackTypedefTypeFor(
+        this.codeGenerator.transpileState.callbackTypedefTypeFor(
           headerSymbol.name,
         );
 
@@ -3125,13 +3133,12 @@ class Transpiler {
       const updatedParams = headerSymbol.parameters.map((param) => {
         // ADR-029 / #1164: a parameter whose declared type IS a callback
         // function takes that function's typedef, exactly as the .c does via
-        // this.codeGenerator.renderState.callbackTypes. Without this the header emitted the bare
+        // this.codeGenerator.transpileState.callbackTypes. Without this the header emitted the bare
         // function name as a type ("const onReceive*"), which both contradicts
         // the .c's "onReceive_fp" and collides with the function's own
         // prototype ("redeclared as different kind of symbol").
-        const callbackType = this.codeGenerator.renderState.callbackTypes.get(
-          param.type ?? "",
-        );
+        const callbackType =
+          this.codeGenerator.transpileState.callbackTypes.get(param.type ?? "");
         if (callbackType) {
           return {
             ...param,
@@ -3144,7 +3151,7 @@ class Transpiler {
 
         // Issue #995: Resolve opaque type info ONCE onto the symbol.
         // This is the single source of truth for both body (.c/.cpp) and header (.h/.hpp).
-        const isOpaque = this.codeGenerator.renderState.isOpaqueType(
+        const isOpaque = this.codeGenerator.transpileState.isOpaqueType(
           param.type ?? "",
         );
 
@@ -3169,7 +3176,7 @@ class Transpiler {
           isArray: param.isArray,
           // #1545 review: this is the WHOLE-PROGRAM enum view (`allKnownEnums`
           // = program.knownEnums()), while the body supplies the PER-FILE one
-          // (this.codeGenerator.renderState.isKnownEnum). CLAUDE.md names that pair as #1312 --
+          // (this.codeGenerator.transpileState.isKnownEnum). CLAUDE.md names that pair as #1312 --
           // a sibling never included is absent from one and present in the
           // other. Deliberate on both sides: each matches the enum view ITS
           // OWN pass-by-value decision reads, so neither introduces a new
@@ -3286,7 +3293,7 @@ class Transpiler {
    * Get the symbol table (for testing/inspection)
    */
   getSymbolTable(): SymbolTable {
-    return this.codeGenerator.renderState.symbolTable;
+    return this.codeGenerator.transpileState.symbolTable;
   }
 
   /**
@@ -3300,7 +3307,7 @@ class Transpiler {
    * recovery -- asks the instance that ran.
    */
   getExternalStructFields(): ReadonlyMap<string, ReadonlySet<string>> {
-    return this.codeGenerator.renderState.getExternalStructFields();
+    return this.codeGenerator.transpileState.getExternalStructFields();
   }
 
   /**

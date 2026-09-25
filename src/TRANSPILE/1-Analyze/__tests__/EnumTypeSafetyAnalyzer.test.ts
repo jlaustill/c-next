@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import EnumTypeSafetyAnalyzer from "../EnumTypeSafetyAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
@@ -32,10 +32,10 @@ const errors = (source: string) => {
 };
 
 afterEach(() => {
-  state = new RenderState();
+  state = new TranspileState();
 });
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("EnumTypeSafetyAnalyzer", () => {
   describe("assignment (E0428)", () => {

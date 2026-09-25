@@ -24,7 +24,7 @@ import IAssignmentContext from "../../transpiler/types/IAssignmentContext";
 import IBitAccessAnalysis from "../../transpiler/types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../transpiler/types/TPlannedTargetOp";
 import TTypeInfo from "../../transpiler/types/TTypeInfo";
-import type RenderState from "../3-Render/RenderState";
+import type TranspileState from "../TranspileState";
 
 /**
  * Dependencies for building context.
@@ -38,7 +38,7 @@ interface IContextBuilderDeps {
    * context so the handlers that receive it have a channel to the same
    * instance rather than reaching for a mutable static.
    */
-  readonly state: RenderState;
+  readonly state: TranspileState;
 
   /**
    * The value expression, already generated.

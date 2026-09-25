@@ -32,7 +32,7 @@ import AssignmentTargetExtractor from "../../utils/ast/AssignmentTargetExtractor
 import ExpressionUtils from "../../utils/ExpressionUtils";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
-import type RenderState from "../3-Render/RenderState";
+import type TranspileState from "../TranspileState";
 
 /**
  * Collects parameter-modification facts and reads the eligibility verdict from
@@ -53,7 +53,7 @@ class PassByValueAnalyzer {
    */
   static propagateModifications(
     collect: IModificationCollector,
-    state: RenderState,
+    state: TranspileState,
     isValueSymbol: (name: string) => boolean = (name: string): boolean =>
       PassByValueAnalyzer.nameIsValueSymbol(name, state),
   ): void {
@@ -126,7 +126,10 @@ class PassByValueAnalyzer {
    * exists to spare -- a wrong answer produced by call ORDER, not by the
    * program. A caller that already holds the symbols passes them instead.
    */
-  private static nameIsValueSymbol(name: string, state: RenderState): boolean {
+  private static nameIsValueSymbol(
+    name: string,
+    state: TranspileState,
+  ): boolean {
     const symbols = state.symbolTable?.getOverloadsByCName(name) ?? [];
     return symbols.some((symbol) => symbol.kind === "variable");
   }
@@ -147,7 +150,7 @@ class PassByValueAnalyzer {
     callee: string,
     paramIndex: number,
     isValueSymbol: (name: string) => boolean,
-    state: RenderState,
+    state: TranspileState,
   ): boolean {
     // ADR-029: an indirect call invokes a *value* -- a callback parameter, a
     // scope field, a struct field -- not a function name. Nothing will ever
@@ -225,7 +228,7 @@ class PassByValueAnalyzer {
     type: string,
     isArray: boolean,
     isConst: boolean,
-    state: RenderState,
+    state: TranspileState,
   ): boolean {
     if (isConst) return false;
     if (isArray) return true;
@@ -238,7 +241,7 @@ class PassByValueAnalyzer {
    * *spi_device_handle_t`), so the alias chain is followed rather than the
    * spelling pattern-matched. Bounded so a self-referential chain cannot spin.
    */
-  private static typeIsIndirect(type: string, state: RenderState): boolean {
+  private static typeIsIndirect(type: string, state: TranspileState): boolean {
     let current = type;
     const seen = new Set<string>();
     for (let hop = 0; hop < 8; hop++) {
@@ -273,7 +276,7 @@ class PassByValueAnalyzer {
    */
   private static resolveTypedefTarget(
     name: string,
-    state: RenderState,
+    state: TranspileState,
   ): string | null {
     const symbols = state.symbolTable?.getOverloadsByCName(name) ?? [];
     for (const symbol of symbols) {
@@ -296,7 +299,7 @@ class PassByValueAnalyzer {
   static collectFunctionParametersAndModifications(
     collect: IModificationCollector,
     tree: Parser.ProgramContext,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     for (const decl of tree.declaration()) {
       // Handle scope-level functions
@@ -344,7 +347,7 @@ class PassByValueAnalyzer {
     collect: IModificationCollector,
     funcName: string,
     funcDecl: Parser.FunctionDeclarationContext,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     // Collect parameter names
     const paramNames: string[] = [];
@@ -381,7 +384,7 @@ class PassByValueAnalyzer {
     funcName: string,
     paramNames: string[],
     block: Parser.BlockContext,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     const paramSet = new Set(paramNames);
 
@@ -405,7 +408,7 @@ class PassByValueAnalyzer {
     funcName: string,
     paramSet: Set<string>,
     stmt: Parser.StatementContext,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     // 1. Check for parameter modifications via assignment targets
     if (stmt.assignmentStatement()) {
@@ -482,7 +485,7 @@ class PassByValueAnalyzer {
     funcName: string,
     paramSet: Set<string>,
     expr: Parser.ExpressionContext,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     // Expression -> TernaryExpression -> OrExpression -> ... -> PostfixExpression
     const ternary = expr.ternaryExpression();
@@ -519,7 +522,7 @@ class PassByValueAnalyzer {
     funcName: string,
     paramSet: Set<string>,
     orExpr: Parser.OrExpressionContext,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     PassByValueAnalyzer.walkOrExpression(
       orExpr,
@@ -543,7 +546,7 @@ class PassByValueAnalyzer {
     funcName: string,
     paramSet: Set<string>,
     unaryExpr: Parser.UnaryExpressionContext,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     // Recurse into nested unary
     if (unaryExpr.unaryExpression()) {
@@ -579,7 +582,7 @@ class PassByValueAnalyzer {
     funcName: string,
     paramSet: Set<string>,
     postfix: Parser.PostfixExpressionContext,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     const primary = postfix.primaryExpression();
     const postfixOps = postfix.postfixOp();
@@ -650,7 +653,7 @@ class PassByValueAnalyzer {
     paramSet: Set<string>,
     primary: Parser.PrimaryExpressionContext,
     postfixOps: Parser.PostfixOpContext[],
-    state: RenderState,
+    state: TranspileState,
   ): void {
     if (!primary.IDENTIFIER() || postfixOps.length === 0) return;
 
@@ -732,7 +735,7 @@ class PassByValueAnalyzer {
     paramSet: Set<string>,
     primary: Parser.PrimaryExpressionContext,
     postfixOps: Parser.PostfixOpContext[],
-    state: RenderState,
+    state: TranspileState,
   ): void {
     if (postfixOps.length === 0) return;
 
@@ -804,7 +807,7 @@ class PassByValueAnalyzer {
     paramSet: Set<string>,
     calleeName: string,
     op: Parser.PostfixOpContext,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     const argList = op.argumentList();
     if (!argList) return;
@@ -838,7 +841,7 @@ class PassByValueAnalyzer {
     funcName: string,
     paramSet: Set<string>,
     postfixOps: Parser.PostfixOpContext[],
-    state: RenderState,
+    state: TranspileState,
   ): void {
     for (const op of postfixOps) {
       if (op.argumentList()) {
@@ -871,7 +874,7 @@ class PassByValueAnalyzer {
   static isParameterPassByValueByName(
     funcName: string,
     paramName: string,
-    state: RenderState,
+    state: TranspileState,
   ): boolean {
     // #1511: read, not recomputed. This used to consult a map that
     // `analyze(tree)` rebuilt PER FILE -- clearing it first, so the whole-program
@@ -889,7 +892,7 @@ class PassByValueAnalyzer {
   static isParameterPassByValue(
     funcName: string,
     paramIndex: number,
-    state: RenderState,
+    state: TranspileState,
   ): boolean {
     // #1452: a RENDER-time read, so it asks the artifact. The collector is
     // 2.2's scratch and does not exist by the time 2.3 calls this.

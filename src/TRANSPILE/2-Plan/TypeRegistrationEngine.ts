@@ -18,7 +18,7 @@ import OverflowBehaviorUtils from "../../utils/OverflowBehaviorUtils";
 import UNRESOLVED_DIMENSION from "../../transpiler/constants/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./dimensionEvalOptions";
 import TypeBinding from "../../PARSE/3-Declare/TypeBinding";
-import type RenderState from "../3-Render/RenderState";
+import type TranspileState from "../TranspileState";
 
 /**
  * Callbacks required for type registration.
@@ -48,7 +48,7 @@ class TypeRegistrationEngine {
   static register(
     tree: Parser.ProgramContext,
     callbacks: ITypeRegistrationCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     for (const decl of tree.declaration()) {
       if (decl.variableDeclaration()) {
@@ -74,7 +74,7 @@ class TypeRegistrationEngine {
   static registerGlobalVariable(
     varDecl: Parser.VariableDeclarationContext,
     callbacks: ITypeRegistrationCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     TypeRegistrationEngine._trackVariableType(varDecl, callbacks, state);
     if (varDecl.constModifier() && varDecl.expression()) {
@@ -92,7 +92,7 @@ class TypeRegistrationEngine {
   static registerScopeMemberTypes(
     scopeDecl: Parser.ScopeDeclarationContext,
     callbacks: ITypeRegistrationCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     const scopeName = scopeDecl.IDENTIFIER().getText();
     state.withScopePath(scopeName, () => {
@@ -128,7 +128,7 @@ class TypeRegistrationEngine {
    */
   static parseArrayTypeDimension(
     arrayTypeCtx: Parser.ArrayTypeContext,
-    state: RenderState,
+    state: TranspileState,
   ): number | undefined {
     const dims = arrayTypeCtx.arrayTypeDimension();
     if (dims.length === 0) {
@@ -158,7 +158,7 @@ class TypeRegistrationEngine {
   static resolveBaseType(
     typeCtx: Parser.TypeContext,
     currentScopePath: string,
-    state: RenderState,
+    state: TranspileState,
   ): string | null {
     return TypeRegistrationEngine._resolveBaseTypeWithCallbacks(
       typeCtx,
@@ -174,7 +174,7 @@ class TypeRegistrationEngine {
   private static _resolveBaseTypeWithCallbacks(
     typeCtx: Parser.TypeContext,
     currentScopePath: string,
-    state: RenderState,
+    state: TranspileState,
     callbacks?: ITypeRegistrationCallbacks,
   ): string | null {
     // #1285: ask for the two alternatives this path accepts -- a named type or
@@ -203,7 +203,7 @@ class TypeRegistrationEngine {
   static trackVariable(
     varDecl: Parser.VariableDeclarationContext,
     callbacks: ITypeRegistrationCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     TypeRegistrationEngine._trackVariableType(varDecl, callbacks, state);
   }
@@ -211,7 +211,7 @@ class TypeRegistrationEngine {
   private static _trackVariableType(
     varDecl: Parser.VariableDeclarationContext,
     callbacks: ITypeRegistrationCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     const name = varDecl.IDENTIFIER().getText();
     TypeRegistrationEngine._trackVariableTypeWithName(
@@ -226,7 +226,7 @@ class TypeRegistrationEngine {
     varDecl: Parser.VariableDeclarationContext,
     registryName: string,
     callbacks: ITypeRegistrationCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     const typeCtx = varDecl.type();
     const arrayDim = varDecl.arrayDimension();
@@ -318,7 +318,7 @@ class TypeRegistrationEngine {
     overflowBehavior: TOverflowBehavior,
     isAtomic: boolean,
     callbacks: ITypeRegistrationCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): boolean {
     const stringCtx = typeCtx.stringType();
     if (!stringCtx) {
@@ -371,7 +371,7 @@ class TypeRegistrationEngine {
     overflowBehavior: TOverflowBehavior,
     isAtomic: boolean,
     callbacks: ITypeRegistrationCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     const stringCtx = arrayTypeCtx.stringType()!;
     const intLiteral = stringCtx.INTEGER_LITERAL();
@@ -430,7 +430,7 @@ class TypeRegistrationEngine {
     overflowBehavior: TOverflowBehavior,
     isAtomic: boolean,
     callbacks: ITypeRegistrationCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     // Issue #1029: Handle string arrays (string<N>[M]) - must check before primitiveType/userType
     if (arrayTypeCtx.stringType()) {
@@ -512,7 +512,7 @@ class TypeRegistrationEngine {
 
   private static _extractArrayBaseTypeInfo(
     arrayTypeCtx: Parser.ArrayTypeContext,
-    state: RenderState,
+    state: TranspileState,
     callbacks?: ITypeRegistrationCallbacks,
   ): { baseType: string; bitWidth: number } {
     // A string element is registered by _registerStringArrayType before this is
@@ -565,7 +565,7 @@ class TypeRegistrationEngine {
     overflowBehavior: TOverflowBehavior,
     isAtomic: boolean,
     callbacks: ITypeRegistrationCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): boolean {
     const baseType = arrayTypeCtx.userType()!.getText();
     const combinedArrayDim = arrayDim ?? [];
@@ -609,7 +609,7 @@ class TypeRegistrationEngine {
     arrayTypeCtx: Parser.ArrayTypeContext,
     arrayDim: Parser.ArrayDimensionContext[] | null,
     callbacks: ITypeRegistrationCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): number[] {
     const arrayDimensions: number[] = [];
 
@@ -644,7 +644,7 @@ class TypeRegistrationEngine {
   private static _evaluateArrayDimensions(
     arrayDim: Parser.ArrayDimensionContext[] | null,
     _callbacks: ITypeRegistrationCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): number[] | undefined {
     return ArrayDimensionParser.parseAllDimensions(
       arrayDim,
@@ -660,7 +660,7 @@ class TypeRegistrationEngine {
     overflowBehavior: TOverflowBehavior,
     isAtomic: boolean,
     callbacks: ITypeRegistrationCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): void {
     const bitWidth = TypeRegistrationEngine._bitWidthOf(baseType);
     const isArray = arrayDim !== null && arrayDim.length > 0;
@@ -695,7 +695,7 @@ class TypeRegistrationEngine {
     overflowBehavior: TOverflowBehavior,
     isAtomic: boolean,
     callbacks: ITypeRegistrationCallbacks,
-    state: RenderState,
+    state: TranspileState,
   ): boolean {
     const registrationOptions = {
       name,

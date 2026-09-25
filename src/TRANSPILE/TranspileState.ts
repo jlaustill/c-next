@@ -1,32 +1,32 @@
-import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
-import TYPE_FORMING_KINDS from "../../PARSE/3-Declare/TYPE_FORMING_KINDS";
-import ESourceLanguage from "../../utils/types/ESourceLanguage";
-import type TSymbolKindCNext from "../../transpiler/types/symbol-kinds/TSymbolKindCNext";
-import ReservedCnxName from "../../utils/ReservedCnxName";
-import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
-import TTypeInfo from "../../transpiler/types/TTypeInfo";
-import TParameterInfo from "../../transpiler/types/TParameterInfo";
-import ICallbackTypeInfo from "../../transpiler/types/ICallbackTypeInfo";
-import ITargetCapabilities from "../../transpiler/types/ITargetCapabilities";
-import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
-import UNRESOLVED_DIMENSION from "../../transpiler/constants/UNRESOLVED_DIMENSION";
-import type ICodeGenApi from "../../transpiler/types/ICodeGenApi";
-import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
-import OutputExtensions from "../../utils/OutputExtensions";
-import type IOutputExtensions from "../../transpiler/types/IOutputExtensions";
-import QualifiedCName from "../../utils/QualifiedCName";
-import ScopeUtils from "../../utils/ScopeUtils";
-import type ITypeBindingDeps from "../../transpiler/types/ITypeBindingDeps";
-import DEFAULT_TARGET from "../../transpiler/constants/DEFAULT_TARGET";
-import StructFieldFacts from "../../utils/StructFieldFacts";
-import DeclaredVariableFacts from "../../utils/DeclaredVariableFacts";
-import type IProgram from "../../transpiler/types/IProgram";
-import type IDeclarationPlan from "../../transpiler/types/IDeclarationPlan";
-import type IFunctionSignature from "../../transpiler/types/IFunctionSignature";
-import invariant from "../../utils/invariant";
-import ToolchainRequirements from "../../instrumentation/ToolchainRequirements";
-import type TIncludeHeader from "../../transpiler/types/TIncludeHeader";
-import type IAssignmentOverflowContext from "../../transpiler/types/IAssignmentOverflowContext";
+import SymbolTable from "../PARSE/3-Declare/SymbolTable";
+import TYPE_FORMING_KINDS from "../PARSE/3-Declare/TYPE_FORMING_KINDS";
+import ESourceLanguage from "../utils/types/ESourceLanguage";
+import type TSymbolKindCNext from "../transpiler/types/symbol-kinds/TSymbolKindCNext";
+import ReservedCnxName from "../utils/ReservedCnxName";
+import ICodeGenSymbols from "../transpiler/types/ICodeGenSymbols";
+import TTypeInfo from "../transpiler/types/TTypeInfo";
+import TParameterInfo from "../transpiler/types/TParameterInfo";
+import ICallbackTypeInfo from "../transpiler/types/ICallbackTypeInfo";
+import ITargetCapabilities from "../transpiler/types/ITargetCapabilities";
+import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
+import UNRESOLVED_DIMENSION from "../transpiler/constants/UNRESOLVED_DIMENSION";
+import type ICodeGenApi from "../transpiler/types/ICodeGenApi";
+import DeclaredTypeFacts from "../utils/DeclaredTypeFacts";
+import OutputExtensions from "../utils/OutputExtensions";
+import type IOutputExtensions from "../transpiler/types/IOutputExtensions";
+import QualifiedCName from "../utils/QualifiedCName";
+import ScopeUtils from "../utils/ScopeUtils";
+import type ITypeBindingDeps from "../transpiler/types/ITypeBindingDeps";
+import DEFAULT_TARGET from "../transpiler/constants/DEFAULT_TARGET";
+import StructFieldFacts from "../utils/StructFieldFacts";
+import DeclaredVariableFacts from "../utils/DeclaredVariableFacts";
+import type IProgram from "../transpiler/types/IProgram";
+import type IDeclarationPlan from "../transpiler/types/IDeclarationPlan";
+import type IFunctionSignature from "../transpiler/types/IFunctionSignature";
+import invariant from "../utils/invariant";
+import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
+import type TIncludeHeader from "../transpiler/types/TIncludeHeader";
+import type IAssignmentOverflowContext from "../transpiler/types/IAssignmentOverflowContext";
 
 /**
  * 2.3 Render's per-file working state, as an INSTANCE.
@@ -53,7 +53,7 @@ import type IAssignmentOverflowContext from "../../transpiler/types/IAssignmentO
  * Owned by `CodeGenerator`, which the walker reaches as `this.host`, so both
  * read one object instead of one global.
  */
-class RenderState {
+class TranspileState {
   /** ADR-044: Current assignment context for overflow behavior */
   assignmentContext: IAssignmentOverflowContext = {
     targetName: null,
@@ -1734,4 +1734,4 @@ class RenderState {
   }
 }
 
-export default RenderState;
+export default TranspileState;

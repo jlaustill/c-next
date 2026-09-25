@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import DeclarationScopeCollector from "../DeclarationScopeCollector";
 import ScopeFrameResolver from "../ScopeFrameResolver";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 
 /**
  * #1322. `IScopeFrame.vars` recorded a declared name against its type TEXT and
@@ -33,11 +33,11 @@ const collect = (source: string): DeclarationScopeCollector => {
 const globalVar = (source: string, name: string) =>
   collect(source).getGlobalFrame().vars.get(name);
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("DeclarationScopeCollector records what a declaration says", () => {
   beforeEach(() => {
-    state = new RenderState();
+    state = new TranspileState();
   });
 
   it("keeps the declared type text, which is what it always recorded", () => {

@@ -16,7 +16,7 @@ import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
 import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
-import type RenderState from "../../RenderState";
+import type TranspileState from "../../../TranspileState";
 
 interface IOrchestrator {
   /**
@@ -27,7 +27,7 @@ interface IOrchestrator {
    * testable without installing a global, as `CastExprGenerator`'s unit tests
    * demonstrated when the ambient route was tried there first.
    */
-  readonly state: RenderState;
+  readonly state: TranspileState;
 
   // === State Access ===
 

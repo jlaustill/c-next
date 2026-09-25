@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CallbackAssignmentAnalyzer from "../CallbackAssignmentAnalyzer";
 import CNextResolver from "../../../PARSE/3-Declare/cnext";
-import RenderState from "../../3-Render/RenderState";
+import TranspileState from "../../TranspileState";
 import Program from "../../../PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
@@ -58,7 +58,7 @@ beforeEach(() => {
   registry = new SymbolRegistry();
 });
 
-let state = new RenderState();
+let state = new TranspileState();
 
 describe("CallbackAssignmentAnalyzer", () => {
   it("returns no findings when the program's symbols are absent", () => {
@@ -137,7 +137,7 @@ describe("CallbackAssignmentAnalyzer", () => {
     ].join("\n");
 
     afterEach(() => {
-      state = new RenderState();
+      state = new TranspileState();
     });
 
     it("reports E0879 when the declared signature differs, in each slot", () => {
