@@ -137,9 +137,10 @@ discriminator above.
 
 ## Not a pass — `src/TRANSPILE/`
 
-| module             | why                                                                                                                                                                                             |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CodeGenWalker.ts` | walks one file's parse tree and drives 2.2 and 2.3 over it — the role `Transpiler` plays for a whole run, which is why `src/transpiler/` already holds three tree-walking modules (#1445 box 3) |
+| module              | why                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CodeGenWalker.ts`  | walks one file's parse tree and drives 2.2 and 2.3 over it — the role `Transpiler` plays for a whole run, which is why `src/transpiler/` already holds three tree-walking modules (#1445 box 3)                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `TranspileState.ts` | the per-file working state 2.2 Plan and 2.3 Render share — `CodeGenState` and `TranspilerState` merged into one instance (#1452 boxes 1 and 4). It sits here for the SAME reason as the row above, and the reason was measured rather than argued: placed in `3-Render/` first, `depcruise` reported **8** `plan-cannot-import-render` errors, because six `2-Plan/` modules import it directly and two more reach it through `IAssignmentContext`. Two of them WRITE it (`TypeRegistrationEngine`, `TypeRegistrationUtils`, both via `setVariableTypeInfo`), so it is not render's state and the name it carried said otherwise |
 
 It is not in `2-Plan/`, and that is a constraint rather than a preference:
 `plan-cannot-import-render` is `error` with `reachable: true`, and the walk
@@ -181,8 +182,10 @@ out of it, and #1452 moved it again — see below.
 
 ## 1.3 Declare — the symbol artifacts (#1452 box 1)
 
-`src/transpiler/state/` is being removed, so the two modules it held that are
-not render state needed a destination that is not "state".
+`src/transpiler/state/` **is removed** — `ls` it and there is nothing there — so the
+two modules it held that are not per-file working state needed a destination that is
+not "state". (The working state itself is `TranspileState.ts`, one section up: it is
+shared by 2.2 and 2.3, so "render state" was the wrong description of it too.)
 
 | module              | destination                             | why                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
