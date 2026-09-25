@@ -25,6 +25,7 @@
  * single module outside the layers is not. See the negative control below.
  */
 
+import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 
 const CONFIG_PATH = join(__dirname, "..", "..", ".dependency-cruiser.cjs");
@@ -96,6 +97,23 @@ const isLayerRule = (rule: IRule): boolean => {
   );
 };
 
+/**
+ * Every rule's path literals, layering claim or not.
+ *
+ * `allRules` rather than `layerRules` because the question below is not about
+ * layering: a rule pointing at a deleted path is dead whatever it claims.
+ */
+const allRules = (): IRule[] => {
+  const config: unknown = require(CONFIG_PATH);
+  const forbidden = (config as { forbidden?: unknown }).forbidden;
+
+  if (!Array.isArray(forbidden)) {
+    throw new Error(".dependency-cruiser.cjs has no `forbidden` array");
+  }
+
+  return forbidden as IRule[];
+};
+
 const layerRules = (): IRule[] => {
   const config: unknown = require(CONFIG_PATH);
   const forbidden = (config as { forbidden?: unknown }).forbidden;
@@ -143,6 +161,43 @@ describe("dependency-cruiser layer rules (#1297)", () => {
       "render-cannot-import-analyzers",
       "state-cannot-import-output",
     ]);
+  });
+
+  /**
+   * #1452: a rule whose path matches no file cannot fail.
+   *
+   * `analyzers-cannot-reach-codegen-state` (#1456) pointed at
+   * `^src/transpiler/state/CodeGenState`, and that file MOVED. An analyzer
+   * importing the state then reported zero errors -- the guard-that-cannot-fail
+   * shape of #1143, #1297 and #1556, arriving through a relocation rather than
+   * through a wrong predicate, which is why none of those three caught it.
+   * `state-cannot-import-output` had gone dead the same way.
+   *
+   * Neither `reachable: true` nor the roster assertions above can see this:
+   * they check what a rule SAYS, and this checks that what it says still names
+   * something. Keyed on `src/` and `scripts/` prefixes only, because a rule may
+   * legitimately name `node_modules`, a bare module specifier or a regex
+   * alternation over non-paths.
+   */
+  it("every rule's paths still match a file in the repo", () => {
+    const tracked = execFileSync("git", ["ls-files"], {
+      cwd: join(__dirname, "..", ".."),
+      encoding: "utf8",
+    })
+      .split("\n")
+      .filter(Boolean);
+
+    const dead = allRules().flatMap((rule) =>
+      [...paths(rule.from), ...paths(rule.to)]
+        .filter((path) => /^\^?(src|scripts)\//.test(path))
+        .filter((path) => {
+          const pattern = new RegExp(path);
+          return !tracked.some((file) => pattern.test(file));
+        })
+        .map((path) => `${rule.name ?? "(unnamed)"}: ${path}`),
+    );
+
+    expect(dead).toEqual([]);
   });
 
   it("does not demand reachability of a rule targeting one module", () => {

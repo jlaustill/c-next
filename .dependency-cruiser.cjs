@@ -109,13 +109,22 @@ module.exports = {
     {
       name: "state-cannot-import-output",
       comment:
-        "State layer must not depend on output layer. #1297: state/ sat " +
-        "outside the layer model entirely, which is precisely why it could " +
-        "become the place facts get stashed instead of carried -- it was the " +
-        "one module nothing forbade the coupling in. Shared contracts belong " +
-        "in transpiler/types/, which both layers may depend on.",
+        "The per-file working state must not depend on the renderer. #1297: " +
+        "`state/` sat outside the layer model entirely, which is precisely " +
+        "why it could become the place facts get stashed instead of carried " +
+        "-- it was the one module nothing forbade the coupling in. Shared " +
+        "contracts belong in transpiler/types/, which both layers may depend " +
+        "on, and that is how the state reaches `ICodeGenApi` for its " +
+        "`generator` slot without naming a renderer module. " +
+        "`from` names the MODULE, not a directory: since #1452 the state is " +
+        "`src/TRANSPILE/TranspileState.ts`, and `CodeGenWalker.ts` sits at " +
+        "that same root while importing sixteen generators from `3-Render/` " +
+        "-- so a root-wide `from` would fail on the walker, whose whole job " +
+        "is to call renderers. The previous `^src/transpiler/state/` matched " +
+        "nothing once the directory was deleted, which is a rule that cannot " +
+        "fail rather than a rule that passes.",
       severity: "error",
-      from: { path: "^src/transpiler/state/" },
+      from: { path: "^src/TRANSPILE/TranspileState\\.ts$" },
       to: {
         path: "^src/TRANSPILE/3-Render/",
         reachable: true,
@@ -233,14 +242,22 @@ module.exports = {
         "helpers twice -- `OperandTypeResolver` and `FunctionReference` each " +
         "reached the container on behalf of an analyzer that did not name it. " +
         "`__tests__` is excluded: `testAnalysisContext` reads the same facts " +
-        "off `CodeGenState` so several hundred existing assertions keep their " +
-        "setup, and nothing outside `__tests__` calls it.",
+        "off the state so several hundred existing assertions keep their " +
+        "setup, and nothing outside `__tests__` calls it. " +
+        "The container is `TranspileState` at the `src/TRANSPILE/` root since " +
+        "#1452. The path below tracked it: written as " +
+        "`^src/transpiler/state/CodeGenState`, it matched nothing once that " +
+        "file was deleted, and an analyzer importing the state reported ZERO " +
+        "errors -- the guard-that-cannot-fail shape (#1143, #1297, #1556) " +
+        "arriving through a MOVE rather than through a wrong predicate. " +
+        "Mutation-checked at the new path, which is the only thing that " +
+        "distinguishes a rule that passes from one that cannot fail.",
       severity: "error",
       from: {
         path: "^src/TRANSPILE/1-Analyze/",
         pathNot: "__tests__",
       },
-      to: { path: "^src/transpiler/state/CodeGenState", reachable: true },
+      to: { path: "^src/TRANSPILE/TranspileState", reachable: true },
     },
     {
       name: "analyze-cannot-import-plan",
