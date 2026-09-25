@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import QualifiedNameGenerator from "../QualifiedNameGenerator";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
+import Program from "../../PARSE/4-Resolve/Program";
 import FunctionUtils from "../../tests/utils/FunctionUtils";
 import TTypeUtils from "../TTypeUtils";
 import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
@@ -137,14 +138,61 @@ describe("QualifiedNameGenerator", () => {
       });
       registry.registerFunction(func);
 
+      // #1452 box 3: the scope graph arrives as an argument. Passing `null`
+      // here took the `if (!program)` fallback, so this test registered a
+      // function the code never looked at and its title was false --
+      // `return "MUTATED"` after the null guard left the file green.
       expect(
-        QualifiedNameGenerator.forFunctionInScope("Motor", "init", null),
+        QualifiedNameGenerator.forFunctionInScope(
+          "Motor",
+          "init",
+          Program.build([], { registry }),
+        ),
       ).toBe("Motor__init");
+    });
+
+    it("resolves through the scope the path names, not the global one", () => {
+      // The `program.scope(scopePath) ?? program.globalScope()` arm. Registering
+      // under `Motor` and asking as `Motor` is the only way to tell the two
+      // apart, since a global lookup would miss.
+      registry.getOrCreateScope("Motor");
+      registry.registerFunction(
+        FunctionUtils.create({
+          name: "spin",
+          scopePath: "Motor",
+          parameters: [],
+          returnType: TTypeUtils.createPrimitive("void"),
+          visibility: "public",
+          sourceFile: "motor.cnx",
+          span: TestSourceSpan.at(1),
+        }),
+      );
+
+      expect(
+        QualifiedNameGenerator.forFunctionInScope(
+          "Motor",
+          "spin",
+          Program.build([], { registry }),
+        ),
+      ).toBe("Motor__spin");
     });
 
     it("falls back to qualifying the bare name when not in the registry", () => {
       registry.getOrCreateScope("Unknown");
 
+      expect(
+        QualifiedNameGenerator.forFunctionInScope(
+          "Unknown",
+          "func",
+          Program.build([], { registry }),
+        ),
+      ).toBe("Unknown__func");
+    });
+
+    it("qualifies without a program at all, which is the null arm", () => {
+      // Kept explicit: `null` is a real caller shape (a site with no artifact
+      // in hand), and it must not be the shape every other case takes by
+      // accident.
       expect(
         QualifiedNameGenerator.forFunctionInScope("Unknown", "func", null),
       ).toBe("Unknown__func");

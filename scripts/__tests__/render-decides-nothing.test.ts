@@ -93,7 +93,7 @@ const CAPTURES = [
 ] as const;
 
 /**
- * A decision read off `CodeGenState`: an include flag, or a helper-op set.
+ * A decision read off the render state: an include flag, or a helper-op set.
  *
  * `usedClampOps` and `usedSafeDivOps` are here because the plan carries them
  * too, and for a while the renderer took them from the state anyway -- the fact
@@ -116,7 +116,7 @@ const CAPTURES = [
  * the questions the plan answers. Reading one at emission time is the defect.
  */
 const FLAG_READ =
-  /(?:CodeGenState|this\.host\.state|this\.state|\w+\.transpileState)\.(?:needs[A-Z]\w*|usedClampOps|usedSafeDivOps)(?!\.add\()/g;
+  /(?:\bstate|\w+\.state|\w+\.transpileState)\.(?:needs[A-Z]\w*|usedClampOps|usedSafeDivOps)(?!\.add\()/g;
 
 /**
  * The house form of a compliance annotation, keyed on its SHAPE: a C comment
@@ -380,7 +380,30 @@ describe("2.3 Render decides nothing (#1449)", () => {
     expect(scan(FLAG_READ).length).toBeGreaterThan(0);
   });
 
-  it("reads a decision off CodeGenState in exactly the two capture files", () => {
+  it.each([
+    ["a bare parameter", "  const x = state.needsString;"],
+    ["the orchestrator's", "  const x = orchestrator.state.needsString;"],
+    ["a handler context's", "  const x = ctx.state.needsString;"],
+    ["the walker's getter", "  const x = this.transpileState.needsString;"],
+  ])("selects a flag read through %s receiver", (_label, line) => {
+    // POPULATION CONTROL per receiver, not one `length > 0` for the lot.
+    //
+    // #1452 made the state an INSTANCE, so a flag read is spelled after whoever
+    // holds it: `IOrchestrator.state` in a generator, `IAssignmentContext.state`
+    // in a handler, a bare `state` parameter in a static helper. The selector
+    // named `CodeGenState` -- the only spelling a static could have -- plus two
+    // `this.` forms, so all three of the spellings CLAUDE.md now prescribes
+    // passed. Verified by mutation: an `orchestrator.state.needsString` at an
+    // emission site left this file 9/9 green.
+    //
+    // A `length > 0` control cannot catch that: the two capture files still
+    // matched through `this.host.state`, so the population was never empty and
+    // the guard looked healthy while three spellings walked past it. One case
+    // per receiver is what makes a dropped arm visible.
+    expect(new RegExp(FLAG_READ.source).test(line)).toBe(true);
+  });
+
+  it("reads a decision off the render state in exactly the two capture files", () => {
     expect(filesMatching(FLAG_READ)).toEqual(
       CAPTURES.map((capture) => capture.file).sort(),
     );

@@ -108,33 +108,30 @@ describe("TranspileState", () => {
 
   describe("reset()", () => {
     it("resets all state to initial values", () => {
-      // Set some state
+      // Dirty ONE instance and call `reset()` on it. #1452 merged two classes
+      // into this one, and for a while this test swapped in a
+      // `new TranspileState()` and asserted that object's INITIALIZERS -- which
+      // is true of any fresh object and says nothing about `reset()`. Under
+      // that shape, deleting `currentScopePath`, `currentFunctionName` and
+      // `generator` from `reset()` left the whole suite green.
       enterScope(state, "TestScope");
       state.currentFunctionName = "testFunc";
-      // #1452: `indentLevel` moved to `TranspileState`, which owns its own
-      // clearing, so the two resets are asserted side by side rather than one
-      // standing in for the other.
-      const render = new TranspileState();
-      render.indentLevel = 5;
-      render.needsStdint = true;
+      state.indentLevel = 5;
+      state.needsStdint = true;
 
-      // Reset
-      state = new TranspileState();
-      render.reset();
+      state.reset();
 
-      // Verify reset
       expect(state.currentScopePath).toBe("");
       expect(state.currentFunctionName).toBeNull();
-      expect(render.indentLevel).toBe(0);
-      expect(render.needsStdint).toBe(false);
+      expect(state.indentLevel).toBe(0);
+      expect(state.needsStdint).toBe(false);
     });
 
     it("resets generator reference", () => {
-      // Simulate having a generator set
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       state.generator = {} as any;
 
-      state = new TranspileState();
+      state.reset();
 
       expect(state.generator).toBeNull();
     });

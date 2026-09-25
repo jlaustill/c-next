@@ -73,6 +73,22 @@ describe("TranspileState", () => {
         recorded,
       );
     });
+
+    // #1452: the sink's third argument. `requireInclude` briefly took
+    // `sourcePath` as a parameter no caller supplied, so every site recorded
+    // `""` -- and `ResultPrinter` filters on `sourcePath.length > 0`, so #1143's
+    // file:line attribution went dark while the row above stayed green. A
+    // `length > 0` assertion cannot see the difference between a located site
+    // and an unlocated one, which is why the path is asserted here.
+    it("records the file the requirement came from, not just that it came", () => {
+      state.sourcePath = "a.cnx";
+
+      state.requireInclude("float_static_assert", 7);
+
+      expect(
+        ToolchainRequirements.takeDeferredSites("float_static_assert"),
+      ).toEqual([{ sourcePath: "a.cnx", line: 7 }]);
+    });
   });
 
   describe("clamp and safe-division helpers", () => {
