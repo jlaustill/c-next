@@ -188,6 +188,15 @@ describe("SymbolRegistry", () => {
   // inward -- so both assertions held whether or not anything had been cleared.
   // What replaces it is the property that made `reset()` unnecessary.
   describe("isolation between instances (#1452 box 3)", () => {
+    // Mutation-checking this needs sharing to be REACHABLE, and it is not: the
+    // only way to make two registries agree is a static, and
+    // `passes-hold-no-mutable-state.test.ts` fails on one added here --
+    // verified, it names `SymbolRegistry.ts` and the line. So the property is
+    // defended upstream by a guard that IS mutation-checked, and this case
+    // states the property that guard exists to preserve.
+    //
+    // Written down because "I could not mutate it" and "it cannot fail" look
+    // identical in a green run, and only one of them is acceptable.
     it("does not share scopes or functions with another registry", () => {
       registry.getOrCreateScope("Test");
       registry.registerFunction(
