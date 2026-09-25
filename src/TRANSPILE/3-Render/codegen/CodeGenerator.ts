@@ -147,10 +147,10 @@ export default class CodeGenerator implements IOrchestrator {
       switch (effect.type) {
         // Include effects - delegate to requireInclude()
         case "include":
-          CodeGenState.requireInclude(effect.header, effect.line ?? null);
+          this.state.requireInclude(effect.header, effect.line ?? null);
           break;
         case "isr":
-          CodeGenState.requireInclude("isr");
+          this.state.requireInclude("isr");
           break;
 
         // Toolchain requirement effects (Issue #1143)
@@ -164,17 +164,17 @@ export default class CodeGenerator implements IOrchestrator {
         case "helper":
           // Route through the single marker rather than writing the set
           // directly, so helper-op bookkeeping has one entry point (#1143).
-          CodeGenState.markClampOpUsed(effect.operation, effect.cnxType);
+          this.state.markClampOpUsed(effect.operation, effect.cnxType);
           break;
         case "safe-div":
           // Internal helper-op key, not a scope-qualified C name
-          CodeGenState.usedSafeDivOps.add(
+          this.state.usedSafeDivOps.add(
             `${effect.operation}_${effect.cnxType}`,
           );
           // ADR-051 safe-div helpers return a bool error flag. Route that
           // dependency through the single include path (#1108) rather than
           // letting the helper emit its own #include <stdbool.h>.
-          CodeGenState.requireInclude("stdbool");
+          this.state.requireInclude("stdbool");
           break;
 
         // Type registration effects
@@ -946,7 +946,7 @@ export default class CodeGenerator implements IOrchestrator {
       {
         generateBitMask: (w, is64Bit) => this.generateBitMask(w, is64Bit),
         foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
-        requireInclude: (header) => CodeGenState.requireInclude(header),
+        requireInclude: (header) => this.state.requireInclude(header),
       },
     );
   }

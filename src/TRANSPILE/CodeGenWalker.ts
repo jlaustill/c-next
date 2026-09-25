@@ -192,6 +192,7 @@ interface FunctionSignature {
 }
 import CodeGenerator from "./3-Render/codegen/CodeGenerator";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
+import type RenderState from "../transpiler/state/RenderState";
 
 class CodeGenWalker {
   /**
@@ -203,6 +204,16 @@ class CodeGenWalker {
    * accumulates. Production never passes one.
    */
   private readonly host: CodeGenerator;
+
+  /**
+   * 2.3 Render's per-file state, for the orchestrator (#1452 box 4).
+   *
+   * A narrow accessor rather than widening `host`: `Transpiler` needs one flag
+   * off it (ADR-040's ISR typedef) and has no business with the rest.
+   */
+  get renderState(): RenderState {
+    return this.host.state;
+  }
 
   constructor(host: CodeGenerator = new CodeGenerator()) {
     this.host = host;
@@ -384,7 +395,7 @@ class CodeGenWalker {
     // Track required includes based on type usage
     const requiredInclude = TypeGenerationHelper.getRequiredInclude(plan);
     if (requiredInclude) {
-      CodeGenState.requireInclude(requiredInclude);
+      this.host.state.requireInclude(requiredInclude);
     }
 
     // Generate the C type using the helper with dependencies
@@ -1470,7 +1481,10 @@ class CodeGenWalker {
     }
     // ADR-017: Cast expression - (u8)State.IDLE
     if (ctx.castExpression()) {
-      return generateCast(this.planCast(ctx.castExpression()!));
+      return generateCast(
+        this.planCast(ctx.castExpression()!),
+        this.host.state,
+      );
     }
     // ADR-014: Struct initializer - Point { x: 10, y: 20 }
     if (ctx.structInitializer()) {
@@ -1994,18 +2008,18 @@ class CodeGenWalker {
   ): IEmissionFacts {
     return {
       cppMode: this.host.isCppMode(),
-      needsStdint: CodeGenState.needsStdint,
-      needsStdbool: CodeGenState.needsStdbool,
-      needsString: CodeGenState.needsString,
-      needsCMSIS: CodeGenState.needsCMSIS,
-      needsLimits: CodeGenState.needsLimits,
-      needsFloatStaticAssert: CodeGenState.needsFloatStaticAssert,
-      needsIrqWrappers: CodeGenState.needsIrqWrappers,
-      needsISR: CodeGenState.needsISR,
+      needsStdint: this.host.state.needsStdint,
+      needsStdbool: this.host.state.needsStdbool,
+      needsString: this.host.state.needsString,
+      needsCMSIS: this.host.state.needsCMSIS,
+      needsLimits: this.host.state.needsLimits,
+      needsFloatStaticAssert: this.host.state.needsFloatStaticAssert,
+      needsIrqWrappers: this.host.state.needsIrqWrappers,
+      needsISR: this.host.state.needsISR,
       selfIncludeAdded: this.host.state.selfIncludeAdded,
       existingIncludeTargets,
-      clampOps: CodeGenState.usedClampOps,
-      safeDivOps: CodeGenState.usedSafeDivOps,
+      clampOps: this.host.state.usedClampOps,
+      safeDivOps: this.host.state.usedSafeDivOps,
       floatAssertSites: ToolchainRequirements.takeDeferredSites(
         "float_static_assert",
       ),
@@ -2295,7 +2309,7 @@ class CodeGenWalker {
   private registerAllVariableTypes(tree: Parser.ProgramContext): void {
     TypeRegistrationEngine.register(tree, {
       tryEvaluateConstant: (ctx) => this.tryEvaluateConstant(ctx),
-      requireInclude: (header) => CodeGenState.requireInclude(header),
+      requireInclude: (header) => this.host.state.requireInclude(header),
       resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
     });
   }
@@ -4548,7 +4562,7 @@ class CodeGenWalker {
 
     TypeRegistrationEngine.trackVariable(ctx, {
       tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
-      requireInclude: (header) => CodeGenState.requireInclude(header),
+      requireInclude: (header) => this.host.state.requireInclude(header),
       resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
     });
     CodeGenState.registerLocalVariable(name);

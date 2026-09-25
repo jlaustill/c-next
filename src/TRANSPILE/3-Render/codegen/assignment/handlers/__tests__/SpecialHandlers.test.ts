@@ -252,7 +252,9 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(CodeGenState.usedClampOps.has("add_u8")).toBe(true);
+      expect(
+        CodeGenState.requireGenerator().state.usedClampOps.has("add_u8"),
+      ).toBe(true);
       expect(result).toBe("saturated = cnx_clamp_add_u8(saturated, 200);");
     });
 
@@ -273,7 +275,9 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(CodeGenState.usedClampOps.has("sub_u16")).toBe(true);
+      expect(
+        CodeGenState.requireGenerator().state.usedClampOps.has("sub_u16"),
+      ).toBe(true);
       expect(result).toBe("value = cnx_clamp_sub_u16(value, 100);");
     });
 
@@ -294,7 +298,9 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(CodeGenState.usedClampOps.has("mul_u32")).toBe(true);
+      expect(
+        CodeGenState.requireGenerator().state.usedClampOps.has("mul_u32"),
+      ).toBe(true);
       expect(result).toBe("result = cnx_clamp_mul_u32(result, 2);");
     });
 
@@ -313,7 +319,7 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(CodeGenState.usedClampOps.size).toBe(0);
+      expect(CodeGenState.requireGenerator().state.usedClampOps.size).toBe(0);
       expect(result).toBe("f += 1000.0;");
     });
 
@@ -353,7 +359,7 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(CodeGenState.usedClampOps.size).toBe(0);
+      expect(CodeGenState.requireGenerator().state.usedClampOps.size).toBe(0);
       expect(result).toBe("value /= 2;");
     });
 
@@ -375,7 +381,9 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(CodeGenState.usedClampOps.has("add_u8")).toBe(true);
+      expect(
+        CodeGenState.requireGenerator().state.usedClampOps.has("add_u8"),
+      ).toBe(true);
       expect(result).toBe("Motor__speed = cnx_clamp_add_u8(Motor__speed, 10);");
     });
 
@@ -396,7 +404,9 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(CodeGenState.usedClampOps.has("add_i16")).toBe(true);
+      expect(
+        CodeGenState.requireGenerator().state.usedClampOps.has("add_i16"),
+      ).toBe(true);
       expect(result).toBe("globalValue = cnx_clamp_add_i16(globalValue, 50);");
     });
   });

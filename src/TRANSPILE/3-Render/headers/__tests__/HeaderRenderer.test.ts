@@ -149,7 +149,8 @@ describe("HeaderRenderer", () => {
 
     // -- then CodeGenState moves on to a later file that needs no such thing,
     // the same way the real per-file loop leaves it before Stage 5.5 runs.
-    CodeGenState.needsISR = false;
+    // #1452: the flag lives on `RenderState` now; the renderer reads it
+    // from the facts it is handed, which is what this case exercises.
 
     const plan = HeaderRenderer.render(facts, new HeaderGenerator());
 

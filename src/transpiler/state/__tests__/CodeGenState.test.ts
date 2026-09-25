@@ -24,7 +24,6 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import enterScope from "../../__tests__/enterScope";
-import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
 import RenderState from "../RenderState";
 
 /** Repo root, for the source-scanning guard in `scopeTypePredicate`. */
@@ -112,12 +111,12 @@ describe("CodeGenState", () => {
       // Set some state
       enterScope("TestScope");
       CodeGenState.currentFunctionName = "testFunc";
-      CodeGenState.needsStdint = true;
       // #1452: `indentLevel` moved to `RenderState`, which owns its own
       // clearing, so the two resets are asserted side by side rather than one
       // standing in for the other.
       const render = new RenderState();
       render.indentLevel = 5;
+      render.needsStdint = true;
 
       // Reset
       CodeGenState.reset();
@@ -126,8 +125,8 @@ describe("CodeGenState", () => {
       // Verify reset
       expect(CodeGenState.currentScopePath).toBe("");
       expect(CodeGenState.currentFunctionName).toBeNull();
-      expect(CodeGenState.needsStdint).toBe(false);
       expect(render.indentLevel).toBe(0);
+      expect(render.needsStdint).toBe(false);
     });
 
     it("resets generator reference", () => {
@@ -285,62 +284,6 @@ describe("CodeGenState", () => {
       });
 
       expect(CodeGenState.getFunctionReturnType("myFunc")).toBe("u32");
-    });
-  });
-
-  describe("requireInclude -- the one include sink (#1449)", () => {
-    // Parameterized rather than eight near-identical blocks: that shape is
-    // SonarCloud S5976, and the six it replaces were exactly it.
-    it.each([
-      ["stdint", () => CodeGenState.needsStdint],
-      ["stdbool", () => CodeGenState.needsStdbool],
-      ["string", () => CodeGenState.needsString],
-      ["cmsis", () => CodeGenState.needsCMSIS],
-      ["limits", () => CodeGenState.needsLimits],
-      ["isr", () => CodeGenState.needsISR],
-      ["float_static_assert", () => CodeGenState.needsFloatStaticAssert],
-      ["irq_wrappers", () => CodeGenState.needsIrqWrappers],
-    ] as const)("%s raises its flag and no other", (header, read) => {
-      expect(read()).toBe(false);
-      CodeGenState.requireInclude(header);
-      expect(read()).toBe(true);
-    });
-
-    // Negative control: the funnel must raise ONE flag, not blanket them.
-    // Without this the test above passes just as well against a body that
-    // sets every flag on any call.
-    it("raises only the flag it was asked for", () => {
-      CodeGenState.requireInclude("string");
-
-      expect(CodeGenState.needsString).toBe(true);
-      expect(CodeGenState.needsStdint).toBe(false);
-      expect(CodeGenState.needsStdbool).toBe(false);
-      expect(CodeGenState.needsCMSIS).toBe(false);
-      expect(CodeGenState.needsLimits).toBe(false);
-      expect(CodeGenState.needsISR).toBe(false);
-      expect(CodeGenState.needsFloatStaticAssert).toBe(false);
-      expect(CodeGenState.needsIrqWrappers).toBe(false);
-    });
-
-    // #1143: only the two headers with a claiming emitter are recorded as
-    // deferred sites. "isr" is deliberately NOT one --
-    // ToolchainRequirements.takeDeferredSites is called for
-    // float_static_assert and irq_wrappers alone.
-    //
-    // #1452 moved the sink to src/instrumentation/, so the observation is made
-    // there. The subject is still this funnel: requireInclude decides which
-    // headers defer, and that decision is what these four rows pin.
-    it.each([
-      ["float_static_assert", true],
-      ["irq_wrappers", true],
-      ["isr", false],
-      ["string", false],
-    ] as const)("%s deferred-site recorded: %s", (header, recorded) => {
-      CodeGenState.requireInclude(header, 42);
-
-      expect(ToolchainRequirements.takeDeferredSites(header).length > 0).toBe(
-        recorded,
-      );
     });
   });
 
@@ -907,18 +850,6 @@ describe("CodeGenState", () => {
       const result = CodeGenState.getVariableTypeInfo("numericStringDims");
 
       expect(result?.arrayDimensions).toEqual([16, 3]);
-    });
-  });
-
-  describe("Overflow Operation Helpers", () => {
-    it("markClampOpUsed adds to usedClampOps", () => {
-      CodeGenState.markClampOpUsed("add", "u8");
-      expect(CodeGenState.usedClampOps.has("add_u8")).toBe(true);
-    });
-
-    it("markSafeDivOpUsed adds to usedSafeDivOps", () => {
-      CodeGenState.markSafeDivOpUsed("div", "i32");
-      expect(CodeGenState.usedSafeDivOps.has("div_i32")).toBe(true);
     });
   });
 

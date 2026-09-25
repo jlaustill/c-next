@@ -10,6 +10,7 @@ import SymbolTable from "../../../../../../PARSE/3-Declare/SymbolTable";
 import type ICodeGenApi from "../../../../../../transpiler/types/ICodeGenApi";
 import type ICodeGenSymbols from "../../../../../../transpiler/types/ICodeGenSymbols";
 import type TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
+import RenderState from "../../../../../../transpiler/state/RenderState";
 
 /**
  * Set up mock symbols on CodeGenState.
@@ -81,6 +82,9 @@ function planner(): ITestPlanner {
  */
 function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
   installed = {
+    // #1452: the orchestrator carries 2.3's per-file state, so a handler
+    // reaches it through the API it was given rather than a static class.
+    state: new RenderState(),
     generateAssignmentTarget: vi.fn().mockReturnValue("target"),
     generateExpression: vi
       .fn()

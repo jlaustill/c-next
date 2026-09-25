@@ -2921,7 +2921,7 @@ class Transpiler {
         userIncludes,
         cHeadersIncluded,
         // ADR-040: same flag the .c consults, so exactly one file emits it.
-        needsIsrTypedef: CodeGenState.needsISR,
+        needsIsrTypedef: this.codeGenerator.renderState.needsISR,
         // #1205: same shape -- the .c records which init functions it
         // emitted, the header declares exactly those. Copied, not aliased:
         // this record must stay frozen once captured, and CodeGenState.reset()

@@ -5,8 +5,18 @@
  * Handlers cast CodeGenState.generator to this interface.
  */
 import type TTypeInfo from "./TTypeInfo";
+import type RenderState from "../state/RenderState";
 
 interface ICodeGenApi {
+  /**
+   * 2.3 Render's per-file working state (#1452 box 4).
+   *
+   * Handlers reach it through the orchestrator they were already given,
+   * rather than through a static class. The remaining ambient hop is
+   * `CodeGenState.generator` itself, which dissolves with the rest.
+   */
+  readonly state: RenderState;
+
   /** Generate atomic read-modify-write operation */
   generateAtomicRMW(
     target: string,
