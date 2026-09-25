@@ -112,7 +112,7 @@ class SwitchStatementListener extends CNextListener {
   ): boolean {
     const symbols = this.context.symbols;
     const name = label.IDENTIFIER()?.getText();
-    if (!symbols || name === undefined) return false;
+    if (name === undefined) return false;
     if (switchEnum !== null && symbols.enumMembers.get(switchEnum)?.has(name)) {
       return false;
     }

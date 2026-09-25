@@ -133,7 +133,6 @@ class VariableDeclHelper {
           plan.hasEmptyDimension,
           plan.declaredSize,
           {
-            state,
             // Lazy, not pre-generated: each must run inside the
             // `withExpectedType` window the helper opens.
             generateExpression: init.renderExpression,

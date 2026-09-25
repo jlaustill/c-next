@@ -20,7 +20,6 @@ describe("ArgumentGenerator", () => {
   const createMockCallbacks = (
     overrides: Partial<IArgumentGeneratorCallbacks> = {},
   ): IArgumentGeneratorCallbacks => ({
-    state: new TranspileState(),
     getLvalueType: () => null,
     getMemberAccessArrayStatus: () => "not-array",
     isCppMemberConversionRequired: () => false,

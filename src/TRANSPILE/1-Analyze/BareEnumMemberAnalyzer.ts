@@ -89,7 +89,7 @@ class BareEnumMemberListener extends CNextListener {
     const symbols = this.context.symbols;
     const primary = ctx.primaryExpression();
     const name = primary?.IDENTIFIER()?.getText();
-    if (!symbols || !primary || name === undefined) return;
+    if (!primary || name === undefined) return;
     // `name(...)` is a call, and `name.x` / `name[i]` is a chain rooted in a
     // declared value; a bare member has no operations.
     if (ctx.postfixOp().length > 0) return;

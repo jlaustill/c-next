@@ -1,4 +1,3 @@
-import type TranspileState from "../../../../TranspileState";
 /**
  * Callbacks required for argument generation.
  * These need CodeGenerator context and cannot be replaced with static state.
@@ -15,14 +14,6 @@ import type TranspileState from "../../../../TranspileState";
  */
 
 interface IArgumentGeneratorCallbacks {
-  /**
-   * 2.3 Render's per-file working state (#1452 box 4).
-   *
-   * Carried on the deps object this helper already receives, rather than read
-   * off a static class.
-   */
-  readonly state: TranspileState;
-
   /** Determine if expression is an lvalue (member access or array access) */
   getLvalueType: () => "member" | "array" | null;
 

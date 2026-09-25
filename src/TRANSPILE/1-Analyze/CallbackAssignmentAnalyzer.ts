@@ -258,7 +258,7 @@ class CallbackAssignmentListener extends CNextListener {
   /** Field types of the structs this file declares. */
   private fieldTypesInFileView(): string[] {
     const types: string[] = [];
-    for (const fields of this.context.symbols.structFields.values() ?? []) {
+    for (const fields of this.context.symbols.structFields.values()) {
       types.push(...fields.values());
     }
     return types;
@@ -267,7 +267,6 @@ class CallbackAssignmentListener extends CNextListener {
   /** Field types of every struct the program declares, in any file. */
   private fieldTypesInProgram(): string[] {
     const program = this.context.program;
-    if (!program) return [];
     const types: string[] = [];
     for (const sourceFile of program.sourceFiles()) {
       for (const symbol of program.symbolsInFile(sourceFile)) {

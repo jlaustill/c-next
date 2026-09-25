@@ -239,10 +239,7 @@ class UndeclaredValueAnalyzer {
           scopes,
           this.context.symbolTable,
           this.context,
-        ) ||
-        (symbols !== null &&
-          symbols !== undefined &&
-          NameExistence.isKnownEnumMember(name, symbols))
+        ) || NameExistence.isKnownEnumMember(name, symbols)
       );
     }
 

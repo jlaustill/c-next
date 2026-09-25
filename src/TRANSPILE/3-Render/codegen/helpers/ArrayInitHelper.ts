@@ -44,14 +44,6 @@ interface IArrayInitResult {
  * would evaluate them at the call site, outside it.
  */
 interface IArrayInitCallbacks {
-  /**
-   * 2.3 Render's per-file working state (#1452 box 4).
-   *
-   * Carried on the deps object this helper already receives, rather than read
-   * off a static class.
-   */
-  readonly state: TranspileState;
-
   /** Generate the initializer expression's code */
   generateExpression: () => string;
   /** Get the declared type's C name */
@@ -83,7 +75,7 @@ class ArrayInitHelper {
     // Reset and generate initializer
     state.resetArrayInitTracking();
 
-    const initValue = ArrayInitHelper._generateArrayInitValue(callbacks);
+    const initValue = ArrayInitHelper._generateArrayInitValue(callbacks, state);
 
     // Check if it was an array initializer
     if (!state.wasArrayInit()) {
@@ -110,9 +102,10 @@ class ArrayInitHelper {
    */
   private static _generateArrayInitValue(
     callbacks: IArrayInitCallbacks,
+    state: TranspileState,
   ): string {
     const typeName = callbacks.getTypeName();
-    return callbacks.state.withExpectedType(typeName, () =>
+    return state.withExpectedType(typeName, () =>
       callbacks.generateExpression(),
     );
   }

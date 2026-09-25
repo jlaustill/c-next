@@ -209,7 +209,6 @@ class ConstAssignmentListener extends CNextListener {
   /** A const the program declares under this name -- here, or in an include. */
   private constSymbol(name: string, scopePath: string): TConstKind {
     const program = this.context.program;
-    if (!program) return null;
     const candidates = [name];
     if (scopePath !== "") {
       candidates.unshift(ScopeUtils.getTranspiledCName({ scopePath, name }));

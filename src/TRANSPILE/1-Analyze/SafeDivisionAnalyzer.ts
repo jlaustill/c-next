@@ -99,7 +99,7 @@ class SafeDivisionListener extends CNextListener {
     if (this.isVariable(name, at)) return true;
     const symbols = this.context.symbols;
     return (
-      symbols?.functionReturnTypes.has(name) === true ||
+      symbols.functionReturnTypes.has(name) ||
       this.context.program.symbolByCName(name) !== undefined
     );
   }

@@ -238,7 +238,7 @@ class ScopeAccessListener extends CNextListener {
       scopePath: access.scope,
       name: access.member,
     });
-    return this.context.symbols.scopedRegisters?.has(cName) ?? false;
+    return this.context.symbols.scopedRegisters.has(cName);
   }
 
   private report(

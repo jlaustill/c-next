@@ -1081,7 +1081,6 @@ class CodeGenWalker {
       simpleId,
       targetParamBaseType,
       {
-        state: this.host.state,
         generateExpression: () => this.generateExpression(ctx),
         getLvalueType: () => this.getLvalueType(ctx),
         getMemberAccessArrayStatus: () => this.getMemberAccessArrayStatus(ctx),

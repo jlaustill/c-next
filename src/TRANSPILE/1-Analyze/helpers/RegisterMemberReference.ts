@@ -146,7 +146,7 @@ class RegisterMemberReference {
     context: IAnalysisContext,
   ): IRegisterMember | null {
     const symbols = context.symbols;
-    if (!symbols || chain.length < 2) return null;
+    if (chain.length < 2) return null;
 
     const frame = scopes.frameFor(node);
     const isShadowed =
