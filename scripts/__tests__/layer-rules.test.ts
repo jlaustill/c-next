@@ -278,6 +278,7 @@ describe("dependency-cruiser layer rules (#1297)", () => {
       "parse-cannot-import-transpile",
       "plan-cannot-import-render",
       "render-cannot-import-analyzers",
+      "shared-contracts-cannot-import-a-pass",
       "state-cannot-import-output",
     ]);
   });

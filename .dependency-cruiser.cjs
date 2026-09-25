@@ -275,6 +275,39 @@ module.exports = {
       to: { path: "^src/TRANSPILE/2-Plan/", reachable: true },
     },
     {
+      name: "shared-contracts-cannot-import-a-pass",
+      comment:
+        "`transpiler/types/` is what CLAUDE.md and this file both call the " +
+        "place EVERY layer may depend on, and until now that was prose with " +
+        "nothing behind it. A contract that imports a pass root drags the pass " +
+        "into every layer that names the contract -- transitively and " +
+        "invisibly, because the importer names only the type. " +
+        "#1452 broke it twice: `IAssignmentContext` gained a " +
+        "`TranspileState` member, so adding that import to an analyzer made " +
+        "`analyzers-cannot-reach-codegen-state` fire THROUGH it, and " +
+        "`ITranspilerResult` named a 2.1 type for a `grammarCoverage?` field. " +
+        "Both are moved; this is what stops a third. " +
+        "`reachable` because the drag is the whole defect: a contract two hops " +
+        "from a pass root is as coupled as one that names it. " +
+        "The exceptions are the sanctioned carriers that already have their " +
+        "own rules -- `IParsedFile`/`ITypeAccessors` carry the parse tree by " +
+        "design (see `parse-tree-confined-to-parser`), and `symbols/` names " +
+        "`SymbolRegistry` for the scope back-reference `no-circular` exempts.",
+      severity: "error",
+      from: {
+        path: "^src/transpiler/types/",
+        pathNot: "(__tests__|__testUtils__)",
+      },
+      to: {
+        path: "^src/(PARSE|TRANSPILE|WRITE)/",
+        pathNot: [
+          "^src/PARSE/2-Parse/.*grammar/",
+          "^src/PARSE/3-Declare/SymbolRegistry\\.ts$",
+        ],
+        reachable: true,
+      },
+    },
+    {
       name: "instrumentation-cannot-import-a-layer",
       comment:
         "#1452: `instrumentation/` records facts about the RUN -- where an " +

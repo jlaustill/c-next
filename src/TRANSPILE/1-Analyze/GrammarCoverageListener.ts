@@ -15,7 +15,7 @@ import {
   ParseTreeListener,
   TerminalNode,
 } from "antlr4ng";
-import IGrammarCoverageReport from "./types/IGrammarCoverageReport";
+import IGrammarCoverageReport from "../../transpiler/types/IGrammarCoverageReport";
 import GrammarCoverageReportBuilder from "./types/GrammarCoverageReportBuilder";
 
 class GrammarCoverageListener implements ParseTreeListener {

@@ -262,7 +262,12 @@ as a direct edge. `state-cannot-import-output` names the MODULE now
 `src/transpiler/state/` and `CodeGenWalker.ts` sits beside the state at the `src/TRANSPILE/`
 root while importing sixteen generators — so a root-wide `from` would fail on the walker whose
 whole job is calling renderers. Check import dependencies before choosing extraction location; shared contracts
-go in `transpiler/types/`, which every layer may depend on. Until #1297 these matched direct
+go in `transpiler/types/`, which every layer may depend on — and which may depend on no
+pass in return, enforced by `shared-contracts-cannot-import-a-pass` (`error`, `reachable`).
+That claim was prose with nothing behind it until #1452 broke it twice: `IAssignmentContext`
+gained a `TranspileState` member, so an analyzer importing the CONTRACT reached a pass root
+through it, and `ITranspilerResult` named a 2.1 type. Both moved; the rule is what stops a
+third. Until #1297 these matched direct
 edges only, so `logic/ -> state/ -> output/` was live through `CodeGenState` while CI printed
 `no dependency violations found` — ten analyzers coupled to codegen's type vocabulary with the
 guard green. A rule that cannot fail on the case it exists to catch is the

@@ -801,6 +801,23 @@ const MOVES: readonly IMove[] = [
       "which is where it is -- both of those are entries below, with their " +
       "reasons.",
   },
+  {
+    from: "src/TRANSPILE/1-Analyze/types/IGrammarCoverageReport.ts",
+    to: "src/transpiler/types/IGrammarCoverageReport.ts",
+    because:
+      "#1657 review follow-up. The admission test at the top of this file has a " +
+      "third destination for a type NAMED by more than one layer, and this is " +
+      "one: `ITranspilerResult` (the public result) declares a " +
+      "`grammarCoverage?` field of this type, `GrammarCoverageListener` (2.1) " +
+      "produces it, and `scripts/grammar-coverage.ts` consumes it. It is a leaf " +
+      "-- zero imports of its own -- so nothing travels with it. " +
+      "Left where it was, `transpiler/types/` imported a pass root, which is " +
+      "the same boundary break that moved `IAssignmentContext` OUT of that " +
+      "directory earlier in this PR, in the opposite direction. CLAUDE.md calls " +
+      "`transpiler/types/` the place every layer may depend on; that claim now " +
+      "holds with no exception rather than with one recorded in a commit " +
+      "message.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */
