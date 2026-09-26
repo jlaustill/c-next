@@ -66,6 +66,7 @@ describe("knownFunctions does not survive a run (#1430)", () => {
       includeDirs: [dir],
       outDir: "",
       headerOutDir: "",
+      target: "host",
     });
 
   const borrowRun = async (

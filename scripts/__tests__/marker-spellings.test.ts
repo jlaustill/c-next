@@ -52,6 +52,7 @@ describe("fixture markers are written in a spelling the harness reads (#1555)", 
       "test-cpp-only",
       "test-transpile-only",
       "test-no-warnings",
+      "test-no-target",
       "test-adr",
       "test-link",
     ]);

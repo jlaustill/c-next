@@ -11,14 +11,14 @@
  *      A program names its target or describes it, not both.
  *   2. The target option.
  *   3. The build system: PlatformIO's board for the environment being built.
- *   4. The fallback, `host`, until the missing-target error lands.
+ *
+ * A program none of them names has no defined meaning, and is E0515.
  *
  * Every name given -- in source or as the option -- must be a catalog name,
  * even when a higher rung decides: a misspelled `--target` is an error, not a
  * setting that happens to be overridden.
  */
 import TargetDescriptions from "./TargetDescriptions";
-import invariant from "../../utils/invariant";
 import DeclarationSite from "../../utils/DeclarationSite";
 import TARGET_DESCRIPTION_FIELDS from "../../transpiler/constants/TARGET_DESCRIPTION_FIELDS";
 import type ITranspileError from "../../lib/types/ITranspileError";
@@ -29,8 +29,6 @@ import type TRunTarget from "../../transpiler/types/TRunTarget";
 import type TTargetFieldValue from "../../transpiler/types/TTargetFieldValue";
 import type IPlatformIOEnv from "../../transpiler/types/IPlatformIOEnv";
 import type IPlatformIOProject from "../../transpiler/types/IPlatformIOProject";
-
-const FALLBACK_TARGET = "host";
 
 /** The name a run reports for a target described inline */
 const INLINE_NAME = "inline";
@@ -122,13 +120,15 @@ class RunTarget {
     if (fromBuild) {
       return fromBuild;
     }
-    const fallback = inputs.catalog.get(FALLBACK_TARGET);
-    invariant(fallback, `the target catalog defines '${FALLBACK_TARGET}'`);
     return {
-      kind: "resolved",
-      name: FALLBACK_TARGET,
-      source: "fallback",
-      description: fallback,
+      kind: "rejected",
+      errors: [
+        RunTarget.unplaced(
+          "E0515",
+          "the program names no target",
+          `A program has exactly one target (ADR-049). Name it with '#pragma target <name>', --target <name>, "target" in cnext.config.json, or the board of a PlatformIO environment. Known targets: ${[...inputs.catalog.keys()].join(", ")}.`,
+        ),
+      ],
     };
   }
 

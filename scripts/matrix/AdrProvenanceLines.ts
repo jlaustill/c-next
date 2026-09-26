@@ -19,6 +19,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import Transpiler from "../../src/transpiler/Transpiler";
+import TestUtils from "../test-utils";
 
 /** Throwaway output directory; the matrix cares about provenance, not files. */
 function scratchDir(): string {
@@ -41,6 +42,7 @@ async function forFixture(fixturePath: string): Promise<Map<string, number[]>> {
     const transpiler = new Transpiler({
       input: fixturePath,
       outDir: scratchDir(),
+      target: TestUtils.harnessTarget(source),
     });
     result = await transpiler.transpile({
       kind: "source",

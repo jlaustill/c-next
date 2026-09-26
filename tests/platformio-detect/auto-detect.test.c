@@ -23,6 +23,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+// test-no-target
 // ADR-049's build-system rung: no pragma and no --target, so the
 // platformio.ini beside this file names the target -- board teensy41, whose
 // atomic read-modify-write lowers to LDREX/STREX.

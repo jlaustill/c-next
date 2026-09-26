@@ -24,6 +24,7 @@ describe("the shipped target catalog", () => {
         outDir: dir,
         headerOutDir: dir,
         noCache: true,
+        target: "host",
       }).transpile({ kind: "source", source: SHIPPED, sourcePath });
 
       expect(result.errors).toEqual([]);

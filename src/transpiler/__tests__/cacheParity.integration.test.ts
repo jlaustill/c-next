@@ -86,6 +86,7 @@ describe("cache parity (integration, #1225)", () => {
       includeDirs: [dir],
       outDir: join(dir, "out"),
       cppRequired: true,
+      target: "host",
     });
 
     const result = await transpiler.transpile({ kind: "files" });

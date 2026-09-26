@@ -1,3 +1,4 @@
+// test-no-target
 // ADR-049's build-system rung: no pragma and no --target, so the
 // platformio.ini beside this file names the target -- board teensy41, whose
 // atomic read-modify-write lowers to LDREX/STREX.

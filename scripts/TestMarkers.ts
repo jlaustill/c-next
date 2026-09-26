@@ -71,6 +71,7 @@ class TestMarkers {
     ["test-cpp-only", /^[ \t]*\/\/[ \t]*test-cpp-only[ \t]*$/m],
     ["test-transpile-only", /^[ \t]*\/\/[ \t]*test-transpile-only[ \t]*$/m],
     ["test-no-warnings", /^[ \t]*\/\/[ \t]*test-no-warnings[ \t]*$/m],
+    ["test-no-target", /^[ \t]*\/\/[ \t]*test-no-target[ \t]*$/m],
     ["test-adr", /^[ \t]*\/\/[ \t]*test-adr:[ \t]*(.+)$/m],
     ["test-link", /^[ \t]*\/\/[ \t]*test-link:[ \t]*(.+)$/m],
   ]);

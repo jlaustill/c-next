@@ -157,7 +157,9 @@ cnext examples/teensy4/blink.cnx --parse
 # Output as C++ (.cpp)
 cnext examples/teensy4/blink.cnx --cpp
 
-# Target platform for atomic code generation (ADR-049)
+# Target platform (ADR-049). Every program names exactly one target: a
+# `#pragma target` in the source, this option, "target" in cnext.config.json,
+# or a PlatformIO environment's board. `cnext --help` lists the known targets.
 cnext examples/teensy4/blink.cnx --target teensy41
 
 # Separate output directories for code and headers

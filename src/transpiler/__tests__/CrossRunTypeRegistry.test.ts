@@ -67,6 +67,7 @@ describe("the type registry does not survive a run (#1432)", () => {
       includeDirs: [dir],
       outDir: "",
       headerOutDir: "",
+      target: "host",
     });
 
   const subscriptRun = async (

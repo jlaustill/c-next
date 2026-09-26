@@ -124,7 +124,7 @@ describe("ServeCommand", () => {
       const response = await sendRequest({
         id: 2,
         method: "transpile",
-        params: { source: "u8 x <- 5;" },
+        params: { source: "#pragma target host\nu8 x <- 5;" },
       });
 
       expect(response).toMatchObject({
@@ -133,6 +133,35 @@ describe("ServeCommand", () => {
           success: true,
           code: expect.stringContaining("uint8_t x = 5U;"),
           errors: [],
+        },
+      });
+    });
+
+    // ADR-049: generating code needs a target. The workspace here has no
+    // config and no platformio.ini, and the source names none.
+    it("reports E0515 for a program that names no target", async () => {
+      await sendRequest({
+        id: 104,
+        method: "initialize",
+        params: { workspacePath: "/tmp" },
+      });
+      stdoutWriteSpy.mockClear();
+
+      const response = await sendRequest({
+        id: 4,
+        method: "transpile",
+        params: { source: "u8 x <- 5;" },
+      });
+
+      expect(response).toMatchObject({
+        id: 4,
+        result: {
+          success: false,
+          errors: [
+            expect.objectContaining({
+              message: "error[E0515]: the program names no target",
+            }),
+          ],
         },
       });
     });

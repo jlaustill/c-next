@@ -23,11 +23,16 @@ function resolve(files: ReturnType<typeof file>[], option?: string) {
 }
 
 describe("RunTarget.resolve", () => {
-  it("falls back to host when nothing names a target", () => {
-    expect(resolve([file("main.cnx")])).toMatchObject({
-      kind: "resolved",
-      name: "host",
-      source: "fallback",
+  it("rejects a program nothing names a target for (E0515)", () => {
+    expect(resolve([file("main.cnx")])).toEqual({
+      kind: "rejected",
+      errors: [
+        expect.objectContaining({
+          line: 1,
+          message: "error[E0515]: the program names no target",
+          helpText: expect.stringContaining("Known targets: cortex-m7"),
+        }),
+      ],
     });
   });
 
@@ -55,9 +60,11 @@ describe("RunTarget.resolve", () => {
   });
 
   it("treats an empty option as absent", () => {
-    expect(resolve([file("main.cnx")], "")).toMatchObject({
-      name: "host",
-      source: "fallback",
+    expect(resolve([file("main.cnx")], "")).toEqual({
+      kind: "rejected",
+      errors: [
+        expect.objectContaining({ message: expect.stringContaining("E0515") }),
+      ],
     });
   });
 
@@ -387,7 +394,14 @@ describe("RunTarget.resolve", () => {
     });
 
     it("says nothing when the file has no environments", () => {
-      expect(build(project([]))).toMatchObject({ source: "fallback" });
+      expect(build(project([]))).toEqual({
+        kind: "rejected",
+        errors: [
+          expect.objectContaining({
+            message: expect.stringContaining("E0515"),
+          }),
+        ],
+      });
     });
   });
 });

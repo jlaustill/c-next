@@ -690,6 +690,7 @@ The compiler tracks ISR vs main access per-member, not per-scope, so mixed atomi
 | E0512 | A pragma's key is neither `target` nor a description field                                                                  | `tests/bugs/issue-1668-targets/pragma-unknown-key.test.cnx`                                |
 | E0513 | A pragma's value is wrong in count, kind or range                                                                           | `tests/bugs/issue-1668-targets/pragma-bad-value.test.cnx`, `inline-bad-values.test.cnx`    |
 | E0514 | An inline description leaves a field out                                                                                    | `tests/bugs/issue-1668-targets/inline-incomplete.test.cnx`                                 |
+| E0515 | Nothing names the program's target: no pragma, no option, no build-system board                                             | `tests/bugs/issue-1668-targets/target-required/no-target.test.cnx`                         |
 
 `atomic` is `volatile` plus the guarantee that a read or write cannot be torn,
 so writing both says one of two different things and the author has to be asked

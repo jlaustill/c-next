@@ -179,7 +179,11 @@ test("single file transpiles to .c alongside input", () => {
       readFileSync("tests/basics/hello-world.test.cnx", "utf-8"),
     );
 
-    const result = runCliInDir(tempInputDir, [tempInputFile]);
+    const result = runCliInDir(tempInputDir, [
+      tempInputFile,
+      "--target",
+      "host",
+    ]);
     assert(result.success, `Command should succeed: ${result.output}`);
     assert(
       existsSync(tempOutputFile),
@@ -207,6 +211,8 @@ test("-o flag overrides output path", () => {
       tempInputFile,
       "-o",
       customOutput,
+      "--target",
+      "host",
     ]);
     assert(result.success, `Command should succeed: ${result.output}`);
     assert(
@@ -231,7 +237,12 @@ test("--cpp flag outputs .cpp extension", () => {
       readFileSync("tests/basics/hello-world.test.cnx", "utf-8"),
     );
 
-    const result = runCliInDir(tempInputDir, [tempInputFile, "--cpp"]);
+    const result = runCliInDir(tempInputDir, [
+      tempInputFile,
+      "--cpp",
+      "--target",
+      "host",
+    ]);
     assert(result.success, `Command should succeed: ${result.output}`);
     assert(
       existsSync(tempOutputFile),
@@ -631,6 +642,20 @@ test("--target with an unknown target is E0510", () => {
   });
 });
 
+// ADR-049: a program with no pragma, no option, no config target and no
+// PlatformIO board names no target, and has no defined meaning.
+test("a program that names no target is E0515", () => {
+  withTempTest("cnext-target-test-", ({ tempDir, cnxFile }) => {
+    writeFileSync(cnxFile, atomicCnx, "utf-8");
+    const result = runCliInDir(tempDir, [cnxFile], true);
+    assert(!result.success, "A program with no target must fail the run");
+    assert(
+      result.stderr.includes("error[E0515]: the program names no target"),
+      `Should report E0515: ${result.stderr}`,
+    );
+  });
+});
+
 // ADR-049: source first -- a file's #pragma target decides over --target.
 test("#pragma target decides over --target", () => {
   withTempTest("cnext-target-test-", ({ tempDir, cnxFile, cFile }) => {
@@ -809,7 +834,12 @@ test("Issue #565: multi-file transitive const inference propagates correctly", (
     writeFileSync(join(tempDir, "Serial.cnx"), multiFileConstSerial, "utf-8");
 
     // Transpile with --cpp flag (const inference only applies in C++ mode)
-    const result = runCliInDir(tempDir, ["Serial.cnx", "--cpp"]);
+    const result = runCliInDir(tempDir, [
+      "Serial.cnx",
+      "--cpp",
+      "--target",
+      "host",
+    ]);
     assert(result.success, `Compile should succeed: ${result.output}`);
 
     // Read the generated Serial.cpp
@@ -882,7 +912,12 @@ scope Serial {
     writeFileSync(join(tempDir, "Handler.cnx"), readOnlyHandler, "utf-8");
     writeFileSync(join(tempDir, "Serial.cnx"), readOnlySerial, "utf-8");
 
-    const result = runCliInDir(tempDir, ["Serial.cnx", "--cpp"]);
+    const result = runCliInDir(tempDir, [
+      "Serial.cnx",
+      "--cpp",
+      "--target",
+      "host",
+    ]);
     assert(result.success, `Compile should succeed: ${result.output}`);
 
     // All functions should have const since none modify
@@ -968,7 +1003,12 @@ test("Issue #580: C++ mode gives correct transitive const inference", () => {
     // #1319: declare C++. This test is about transitive const inference, not
     // about how the mode is arrived at -- it used to omit --cpp and rely on the
     // header being sniffed, which now reports E0507 instead.
-    const result = runCliInDir(tempDir, ["Handler.cnx", "--cpp"]);
+    const result = runCliInDir(tempDir, [
+      "Handler.cnx",
+      "--cpp",
+      "--target",
+      "host",
+    ]);
     assert(result.success, `Compile should succeed: ${result.output}`);
 
     // Should generate .cpp file (C++ mode detected from header)
@@ -1095,6 +1135,8 @@ function runIncludePathCase(
       "include",
       "--include",
       includeArg,
+      "--target",
+      "host",
     ],
     true,
   );

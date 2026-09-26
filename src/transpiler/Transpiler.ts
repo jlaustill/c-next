@@ -1954,6 +1954,11 @@ class Transpiler {
   private _checkExternalIdentifierSignificance(
     result: ITranspilerResult,
   ): boolean {
+    // ADR-049: a parse-only run needs no target, and without one there is no
+    // budget to check against. Every other run reaches here with one (3b).
+    if (this.config.parseOnly && this.program?.target().kind !== "resolved") {
+      return true;
+    }
     // NOT TranspileState.targetDescription: codegen assigns that in Stage 5, one
     // stage after this runs, so it holds nothing on a fresh process and the
     // previous file's target in a long-lived one (#1307 review). The budget a

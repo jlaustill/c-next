@@ -77,6 +77,7 @@ describe("compile_commands.json auto-discovery (integration)", () => {
       outDir: join(dir, "out"),
       cppRequired: true,
       noCache: true,
+      target: "host",
     });
 
     const result = await transpiler.transpile({ kind: "files" });

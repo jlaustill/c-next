@@ -65,6 +65,7 @@ describe("cross-file struct parameter (integration, #1139)", () => {
       input: join(dir, "consumer.cnx"),
       outDir: join(dir, "out"),
       noCache: true,
+      target: "host",
     });
     const result = await transpiler.transpile({ kind: "files" });
     expect(result.success).toBe(true);

@@ -29,6 +29,8 @@ import type TTestMode from "./types/TTestMode";
 import type IModeResult from "./types/ITestMode";
 import detectCppSyntax from "../src/transpiler/logic/detectCppSyntax";
 import TestMarkers from "./TestMarkers";
+import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
+import TargetResolver from "../src/utils/TargetResolver";
 
 // Project root for CLI invocation (this file is in /workspace/scripts/)
 const PROJECT_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -119,6 +121,8 @@ interface ICliTranspileResult {
    * detection. Reading the CLI's own report removes the inference entirely.
    */
   generatedImplPaths: string[];
+  /** The `Target: <name> (<source>)` line the CLI printed, if any */
+  target?: { name: string; source: string };
   /**
    * Header files the CLI reported writing, as absolute paths -- everything in
    * the "Generated N output files:" block after the impl files. For a multi-file
@@ -181,6 +185,11 @@ function transpileViaCli(
   // Build CLI args - use PROJECT_ROOT for CLI/includes, but cnxFile is the actual test file path
   // Note: We don't clean up stale files - the CLI overwrites them and they're tracked in git
   const cliArgs = [cnxFile, "--include", join(PROJECT_ROOT, "tests/include")];
+
+  const target = TestUtils.harnessTarget(readFileSync(cnxFile, "utf-8"));
+  if (target !== undefined) {
+    cliArgs.push("--target", target);
+  }
 
   if (cppMode) {
     cliArgs.push("--cpp");
@@ -371,6 +380,7 @@ function transpileViaCli(
     generatedImplPaths,
     generatedHeaderPaths,
     headerPath: actualHeaderPath,
+    target: TestUtils.parseTarget(result.stdout || ""),
   };
 }
 
@@ -381,6 +391,61 @@ const C_TYPES =
   "void|int|char|float|double|long|short|unsigned|signed|bool|enum|struct|union|static|extern|const|volatile|inline|u?int\\d+_t|size_t";
 
 class TestUtils {
+  /**
+   * The target option every fixture-driven transpile passes (#1668).
+   *
+   * ADR-049: every program names a target. A fixture that pins none runs for
+   * the build machine; `// test-no-target` opts out, for fixtures about where
+   * the target comes from. A pin still decides -- source outranks the option.
+   * One function, so the harness, the format-fidelity gate, the matrix's
+   * provenance run and the C++ snapshot generator cannot disagree.
+   */
+  static harnessTarget(source: string): string | undefined {
+    return TestMarkers.has("test-no-target", source) ? undefined : "host";
+  }
+
+  /** The `Target: <name> (<source>)` line of CLI output, if printed */
+  static parseTarget(
+    stdout: string,
+  ): { name: string; source: string } | undefined {
+    const match = /^Target: (\S+) \((\w+)\)$/m.exec(stdout);
+    return match ? { name: match[1], source: match[2] } : undefined;
+  }
+
+  /**
+   * Why a successful run's target is not the one the fixture asked for, or
+   * null (#1668). A fixture that pins a name runs for that name; one that
+   * does not runs for the harness's `--target host`. A pin in an included
+   * helper decides as a pragma, which is also right. `// test-no-target`
+   * fixtures are about where the target comes from, and assert it themselves.
+   */
+  static targetProblem(
+    source: string,
+    target: { name: string; source: string } | undefined,
+  ): string | null {
+    if (TestMarkers.has("test-no-target", source)) {
+      return null;
+    }
+    if (!target) {
+      return "the CLI printed no Target: line (ADR-049)";
+    }
+    const pin = CNextSourceParser.parse(source).targetDirectives.find(
+      (directive) => directive.key === "target",
+    )?.values[0];
+    // Compared as descriptions, as E0511 compares them: a program whose helper
+    // names teensy41 and whose entry names cortex-m7 has one target.
+    if (
+      pin !== undefined &&
+      TargetResolver.byName(pin) !== TargetResolver.byName(target.name)
+    ) {
+      return `ran for target '${target.name}' (${target.source}), but the fixture pins '${pin}'`;
+    }
+    if (target.source === "option" && target.name !== "host") {
+      return `ran for target '${target.name}' from the option, but the harness passes host`;
+    }
+    return null;
+  }
+
   // First word of a line that is NOT a C++ constructor (keywords + C types)
   static readonly NON_CONSTRUCTOR_FIRST_WORD = new RegExp(
     `^(${C_KEYWORDS}|${C_TYPES})$`,
@@ -1125,6 +1190,15 @@ class TestUtils {
         .map((e) => renderDiagnostic(e, cnxFile))
         .join("\n");
       result.error = `Transpilation failed: ${errors || transpileResult.stderr}`;
+      return result;
+    }
+
+    const targetProblem = TestUtils.targetProblem(
+      readFileSync(cnxFile, "utf-8"),
+      transpileResult.target,
+    );
+    if (targetProblem) {
+      result.error = targetProblem;
       return result;
     }
 

@@ -37,6 +37,7 @@ describe("Header/implementation agreement (#1164)", () => {
       includeDirs: [tempDir],
       outDir: tempDir,
       headerOutDir: tempDir,
+      target: "host",
     };
     const result = await new Transpiler(config).transpile({
       kind: "source",

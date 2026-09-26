@@ -54,6 +54,7 @@ describe("header render failure promotion (#1323)", () => {
       input: join(dir, "entry.cnx"),
       outDir: dir,
       noCache: true,
+      target: "host",
     });
     const result = await transpiler.transpile({ kind: "files" });
 

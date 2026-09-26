@@ -16,12 +16,12 @@ codes that already have a fixture.
 | E02xx     | Identifier/Param Naming | 5       |
 | E03xx     | Struct Fields/Init      | 4       |
 | E04xx     | Symbol Resolution       | 16      |
-| E05xx     | Include/Preprocessor    | 14      |
+| E05xx     | Include/Preprocessor    | 15      |
 | E06xx     | Sizeof Expressions      | 2       |
 | E07xx     | Control Flow            | 12      |
 | E08xx     | Arithmetic/Array Safety | 49      |
 | E09xx     | NULL Safety             | 8       |
-| **Total** |                         | **111** |
+| **Total** |                         | **112** |
 
 ---
 
@@ -175,6 +175,7 @@ include-visibility is not derivable for a C or C++ name.
 | E0512 | Unknown pragma                                                      | A pragma names the program's target: `target`, or a target description field (ADR-049)                                                                                                                                                 | `PARSE/4-Resolve/RunTarget.ts`                       |
 | E0513 | Invalid value for a pragma key                                      | An integer field takes decimal digits from the schema's allowed values, a Boolean field takes `true` or `false`, and each key takes exactly one value (ADR-049)                                                                        | `PARSE/4-Resolve/RunTarget.ts`                       |
 | E0514 | Incomplete target description                                       | An inline description gives every field, like a catalog row; the help lists what is missing (ADR-049)                                                                                                                                  | `PARSE/4-Resolve/RunTarget.ts`                       |
+| E0515 | The program names no target                                         | Name one with `#pragma target <name>`, `--target <name>`, `"target"` in `cnext.config.json`, or a PlatformIO environment's board (ADR-049)                                                                                             | `PARSE/4-Resolve/RunTarget.ts`                       |
 
 ---
 

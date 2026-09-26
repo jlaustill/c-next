@@ -44,6 +44,7 @@ describe("Transpiler coverage tests", () => {
           outDir: "/project/build",
           cppRequired: true,
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -58,7 +59,7 @@ describe("Transpiler coverage tests", () => {
 
     it("transpileSource respects cppRequired config", async () => {
       const transpiler = new Transpiler(
-        { input: "", cppRequired: true, noCache: true },
+        { input: "", cppRequired: true, noCache: true, target: "host" },
         mockFs,
       );
 
@@ -96,6 +97,7 @@ describe("Transpiler coverage tests", () => {
           noCache: true,
           // #1319: C++ is declared, not discovered from the header below.
           cppRequired: true,
+          target: "host",
         },
         mockFs,
       );
@@ -126,6 +128,7 @@ describe("Transpiler coverage tests", () => {
           noCache: true,
           // #1319: C++ is declared, not discovered from the header below.
           cppRequired: true,
+          target: "host",
         },
         mockFs,
       );
@@ -169,6 +172,7 @@ describe("Transpiler coverage tests", () => {
           outDir: "/project/build",
           noCache: true,
           cppRequired,
+          target: "host",
         },
         mockFs,
       ).transpile({ kind: "files" });
@@ -248,6 +252,7 @@ describe("Transpiler coverage tests", () => {
           outDir: "/project/build",
           debugMode: true,
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -292,6 +297,7 @@ describe("Transpiler coverage tests", () => {
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -320,6 +326,7 @@ describe("Transpiler coverage tests", () => {
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -354,6 +361,7 @@ describe("Transpiler coverage tests", () => {
           noCache: true,
           // #1319: a namespace header is C++; the run must declare it.
           cppRequired: true,
+          target: "host",
         },
         mockFs,
       );
@@ -378,6 +386,7 @@ describe("Transpiler coverage tests", () => {
           outDir: "/project/build",
           parseOnly: true,
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -397,7 +406,10 @@ describe("Transpiler coverage tests", () => {
   describe("Result builders", () => {
     it("buildCatchResult handles Error objects", async () => {
       // Create a transpiler that will fail during generation
-      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+      const transpiler = new Transpiler(
+        { input: "", noCache: true, target: "host" },
+        mockFs,
+      );
 
       // Mock an internal failure by transpiling invalid code that passes parsing
       // but fails in a later stage
@@ -415,7 +427,10 @@ describe("Transpiler coverage tests", () => {
 
     it("buildCatchResult handles non-Error objects", async () => {
       // Use transpileSource with a scenario that might throw
-      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+      const transpiler = new Transpiler(
+        { input: "", noCache: true, target: "host" },
+        mockFs,
+      );
 
       // Test with valid code to ensure normal path works
       const result = (
@@ -446,6 +461,7 @@ describe("Transpiler coverage tests", () => {
         {
           input: "/project/src/main.cnx",
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -478,6 +494,7 @@ describe("Transpiler coverage tests", () => {
           includeDirs: ["/project/src"],
           outDir: "/project/build",
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -515,6 +532,7 @@ describe("Transpiler coverage tests", () => {
           input: "/project/src/bad.cnx",
           outDir: "/project/build",
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -550,6 +568,7 @@ describe("Transpiler coverage tests", () => {
           input: "/project/src/main.cnx",
           outDir: "/project/build",
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -583,6 +602,7 @@ describe("Transpiler coverage tests", () => {
           outDir: "/project/build",
           cppRequired: true,
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -613,6 +633,7 @@ describe("Transpiler coverage tests", () => {
           input: "/project/src/internal.cnx",
           outDir: "/project/build",
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -645,6 +666,7 @@ describe("Transpiler coverage tests", () => {
           outDir: "/project/build",
           cppRequired: true,
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -694,6 +716,7 @@ describe("Transpiler coverage tests", () => {
           input: "",
           cppRequired: true,
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -740,6 +763,7 @@ describe("Transpiler coverage tests", () => {
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -757,7 +781,10 @@ describe("Transpiler coverage tests", () => {
 
   describe("getSymbolTable", () => {
     it("returns the symbol table instance", () => {
-      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+      const transpiler = new Transpiler(
+        { input: "", noCache: true, target: "host" },
+        mockFs,
+      );
 
       const symbolTable = transpiler.getSymbolTable();
 
@@ -779,6 +806,7 @@ describe("Transpiler coverage tests", () => {
         {
           input: "/project/main.cnx", // Needed for project root detection
           noCache: false, // Enable cache
+          target: "host",
         },
         mockFs,
       );
@@ -818,6 +846,7 @@ describe("Transpiler coverage tests", () => {
           outDir: "/project/build",
           cppRequired: true,
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -837,7 +866,10 @@ describe("Transpiler coverage tests", () => {
 
   describe("Analyzer errors", () => {
     it("returns error result for MISRA violations", async () => {
-      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+      const transpiler = new Transpiler(
+        { input: "", noCache: true, target: "host" },
+        mockFs,
+      );
 
       // Code with MISRA violation - function call in if condition (Rule 13.5)
       // Note: This may or may not trigger depending on analyzer config
@@ -859,7 +891,10 @@ describe("Transpiler coverage tests", () => {
     });
 
     it("returns error result for analyzer errors via transpileSource", async () => {
-      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+      const transpiler = new Transpiler(
+        { input: "", noCache: true, target: "host" },
+        mockFs,
+      );
 
       // Code that triggers initialization analyzer error
       const result = (
@@ -909,6 +944,7 @@ describe("Transpiler coverage tests", () => {
         noCache: false,
         // #1319: C++ is declared, not discovered from the header below.
         cppRequired: true,
+        target: "host",
       };
 
       const transpiler1 = new Transpiler(config, mockFs);
@@ -942,6 +978,7 @@ describe("Transpiler coverage tests", () => {
         noCache: false,
         // #1319: C++ is declared, not discovered from the header below.
         cppRequired: true,
+        target: "host",
       };
 
       // First run
@@ -985,6 +1022,7 @@ describe("Transpiler coverage tests", () => {
           noCache: true,
           // #1319: C++ is declared, not discovered from the header below.
           cppRequired: true,
+          target: "host",
         },
         mockFs,
       );
@@ -1031,6 +1069,7 @@ describe("Transpiler coverage tests", () => {
         noCache: false, // Enable cache
         // #1319: C++ is declared, not discovered from the header below.
         cppRequired: true,
+        target: "host",
       };
 
       // First run - populates cache and detects C++
@@ -1075,6 +1114,7 @@ describe("Transpiler coverage tests", () => {
         noCache: false, // Enable cache
         // #1319: C++ is declared, not discovered from the header below.
         cppRequired: true,
+        target: "host",
       };
 
       // First run - populates cache
@@ -1135,6 +1175,7 @@ int main() { LED_on(); return 0; }`,
           input: "/project/src/main.cpp",
           outDir: "/project/build",
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -1168,6 +1209,7 @@ int main() { helper(); return 0; }`,
           input: "/project/src/main.cpp",
           outDir: "/project/build",
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -1200,6 +1242,7 @@ int main() { return 0; }`,
           input: "/project/src/main.cpp",
           outDir: "/project/build",
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -1260,6 +1303,7 @@ int main() { LED_on(); Motor_start(); return 0; }`,
           input: "/project/src/main.cpp",
           outDir: "/project/build",
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -1293,6 +1337,7 @@ int main() { LED_on(); return 0; }`,
           input: "/project/src/main.c",
           outDir: "/project/build",
           noCache: true,
+          target: "host",
         },
         mockFs,
       );
@@ -1336,6 +1381,7 @@ int main() { LED_on(); return 0; }`,
           outDir: "/project/build",
           noCache: true,
           cppRequired: true,
+          target: "host",
         },
         mockFs,
       ).transpile({ kind: "files" });
@@ -1397,6 +1443,7 @@ int main() { LED_on(); return 0; }`,
           outDir: "/project/build",
           noCache: true,
           cppRequired: true,
+          target: "host",
         },
         mockFs,
       ).transpile({ kind: "files" });
@@ -1458,6 +1505,7 @@ describe("Transpiler coverage integration tests", () => {
       // Without this the generated header lands in process.cwd().
       headerOutDir: testDir,
       noCache: true,
+      target: "host",
     });
 
     const result = await transpiler.transpile({ kind: "files" });
@@ -1501,6 +1549,7 @@ describe("Transpiler coverage integration tests", () => {
       noCache: false, // Enable caching
       // #1319: C++ is declared, not discovered from the header below.
       cppRequired: true,
+      target: "host",
     };
 
     // First run - populates cache
@@ -1545,6 +1594,7 @@ describe("Transpiler coverage integration tests", () => {
       noCache: false, // Enable caching
       // #1319: C++ is declared, not discovered from the header below.
       cppRequired: true,
+      target: "host",
     };
 
     // First run - populates cache
@@ -1581,6 +1631,7 @@ describe("Transpiler coverage integration tests", () => {
       outDir: testDir,
       headerOutDir: testDir,
       noCache: false,
+      target: "host",
     };
 
     // Warm the cache with C++ declared, so the header parses and is cached.
@@ -1648,6 +1699,7 @@ describe("Transpiler coverage integration tests", () => {
       // Without this the generated header lands in process.cwd().
       headerOutDir: testDir,
       noCache: true,
+      target: "host",
     });
 
     const result = await transpiler.transpile({ kind: "files" });
@@ -1675,6 +1727,7 @@ describe("Transpiler coverage integration tests", () => {
       // Without this the generated header lands in process.cwd().
       headerOutDir: testDir,
       noCache: false, // Enable cache
+      target: "host",
     };
 
     // First run - should populate cache
@@ -1709,6 +1762,7 @@ describe("Transpiler coverage integration tests", () => {
       outDir: buildDir,
       headerOutDir: includeDir,
       noCache: true,
+      target: "host",
     });
 
     const result = await transpiler.transpile({ kind: "files" });
@@ -1758,6 +1812,7 @@ describe("Transpiler coverage integration tests", () => {
       outDir: testDir,
       headerOutDir: testDir,
       noCache: true,
+      target: "host",
     });
 
     const result = await transpiler.transpile({ kind: "files" });
@@ -1796,6 +1851,7 @@ describe("Transpiler coverage integration tests", () => {
       outDir: testDir,
       headerOutDir: testDir,
       noCache: true,
+      target: "host",
     });
 
     const result = await transpiler.transpile({ kind: "files" });
@@ -1851,6 +1907,7 @@ describe("Transpiler coverage integration tests", () => {
       outDir: testDir,
       headerOutDir: testDir,
       noCache: true,
+      target: "host",
     });
 
     const result = await transpiler.transpile({ kind: "files" });
@@ -1895,6 +1952,7 @@ describe("Transpiler coverage integration tests", () => {
       outDir: testDir,
       headerOutDir: testDir,
       noCache: true,
+      target: "host",
     });
 
     // Should succeed even if preprocessing fails (falls back to raw content)
@@ -1915,7 +1973,7 @@ describe("Transpiler coverage integration tests", () => {
   describe("sizeof side effects (E0602)", () => {
     const transpileSource = async (body: string) => {
       const transpiler = new Transpiler(
-        { input: "", noCache: true },
+        { input: "", noCache: true, target: "host" },
         new MockFileSystem(),
       );
       return await transpiler.transpile({

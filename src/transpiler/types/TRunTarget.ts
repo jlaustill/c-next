@@ -13,7 +13,7 @@ type TRunTarget =
       readonly kind: "resolved";
       readonly name: string;
       /** Where the target came from, highest rung first */
-      readonly source: "pragma" | "option" | "platformio" | "fallback";
+      readonly source: "pragma" | "option" | "platformio";
       readonly description: ITargetDescription;
     }
   | {

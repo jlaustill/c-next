@@ -94,6 +94,7 @@ describe("external-symbol recovery (integration)", () => {
       outDir: join(dir, "out"),
       cppRequired: true,
       noCache: true,
+      target: "host",
     });
 
     const result = await transpiler.transpile({ kind: "files" });
@@ -138,6 +139,7 @@ describe("external-symbol recovery (integration)", () => {
       outDir: join(dir, "out"),
       cppRequired: true,
       noCache: true,
+      target: "host",
     });
 
     const result = await transpiler.transpile({ kind: "files" });
@@ -173,6 +175,7 @@ describe("external-symbol recovery (integration)", () => {
           includeDirs: [cacheDir],
           outDir: join(cacheDir, "out"),
           cppRequired: true,
+          target: "host",
         }).transpile({ kind: "files" });
 
       // Cold cache: populates .cnx/ with the degraded header symbols.
@@ -213,6 +216,7 @@ describe("external-symbol recovery (integration)", () => {
         input: join(cleanDir, "main.cnx"),
         outDir: join(cleanDir, "out"),
         noCache: true,
+        target: "host",
       });
       const result = await transpiler.transpile({ kind: "files" });
       expect(result.success).toBe(true);
@@ -289,6 +293,7 @@ describe("diagnostics on a recovery slice (#1319, integration)", () => {
       outDir: join(dir, "out"),
       cppRequired,
       noCache: true,
+      target: "host",
     }).transpile({ kind: "files" });
 
   it("no header looks like C++ before preprocessing", async (ctx) => {

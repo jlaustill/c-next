@@ -71,6 +71,7 @@ describe("External identifier significance (#1307)", () => {
         outDir: tempDir,
         headerOutDir: tempDir,
         noCache: true,
+        target: "host",
         ...(target ? { target } : {}),
       }),
       sourcePath,

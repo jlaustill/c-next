@@ -32,6 +32,7 @@ describe("Dual Code Paths (Issue #634)", () => {
       includeDirs: [tempDir],
       outDir: tempDir,
       headerOutDir: tempDir,
+      target: "host",
     };
     return new Transpiler(config);
   }
@@ -456,6 +457,7 @@ void increment() {
           includeDirs: [tempDir],
           outDir: tempDir,
           headerOutDir: tempDir,
+          target: "host",
           ...(option ? { target: option } : {}),
         });
       const files = await configure(mainPath).transpile({ kind: "files" });
@@ -492,6 +494,36 @@ void increment() {
         expect(result.success).toBe(false);
         expect(result.errors.map((e) => e.message.slice(0, 16))).toEqual([
           "error[E0511]: th",
+        ]);
+      }
+    });
+
+    it("reports a program that names no target as E0515 in both modes", async () => {
+      writeFileSync(join(tempDir, "helper.cnx"), "u32 helperValue <- 1;\n");
+      const mainPath = join(tempDir, "main.cnx");
+      writeFileSync(mainPath, atomicMain);
+      const withoutTarget = (input: string) =>
+        new Transpiler({
+          input,
+          includeDirs: [tempDir],
+          outDir: tempDir,
+          headerOutDir: tempDir,
+        });
+      const files = await withoutTarget(mainPath).transpile({ kind: "files" });
+      const source = await withoutTarget("").transpile({
+        kind: "source",
+        source: atomicMain,
+        workingDir: tempDir,
+        sourcePath: mainPath,
+      });
+      for (const result of [files, source]) {
+        expect(result.success).toBe(false);
+        expect(result.errors).toEqual([
+          expect.objectContaining({
+            sourcePath: mainPath,
+            line: 1,
+            message: "error[E0515]: the program names no target",
+          }),
         ]);
       }
     });
