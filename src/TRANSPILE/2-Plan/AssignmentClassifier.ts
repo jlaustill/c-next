@@ -17,6 +17,13 @@ import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import type TranspileState from "../TranspileState";
 
+/** ADR-044: the clamp helper each overflowing compound operator lowers to. */
+const CLAMP_HELPER_FOR_COMPOUND: Readonly<Partial<Record<string, string>>> = {
+  "+=": "add",
+  "-=": "sub",
+  "*=": "mul",
+};
+
 /**
  * Classifies assignment statements by analyzing their structure.
  *
@@ -73,8 +80,13 @@ class AssignmentClassifier {
    * Recorded rather than simplified: the next reader will measure exactly what
    * is measured above, conclude the qualification is redundant, and remove the
    * thing the contract requires.
+   *
+   * #1668: there was a third copy. The atomic and overflow-clamp handlers
+   * resolved the target again, with `QualifiedNameGenerator.forMember` in
+   * place of `qualifyInScope` and an unreachable fallback. They only run
+   * after this method has classified the assignment, so they ask here now.
    */
-  private static targetTypeInfo(
+  static targetTypeInfo(
     ctx: IAssignmentContext,
     state: TranspileState,
   ): TTypeInfo | undefined {
@@ -903,19 +915,36 @@ class AssignmentClassifier {
       return AssignmentKind.ATOMIC_RMW;
     }
 
-    // Overflow clamp (integers only, not floats)
-    // Only applies to arithmetic compound ops (+= -= *=) which can overflow
-    // Bitwise ops (&= |= ^= <<= >>=) don't overflow, so they go to SIMPLE
-    const ARITHMETIC_COMPOUND_OPS = new Set(["+=", "-=", "*="]);
-    if (
-      typeInfo.overflowBehavior === "clamp" &&
-      TypeCheckUtils.isInteger(typeInfo.baseType) &&
-      ARITHMETIC_COMPOUND_OPS.has(ctx.cOp)
-    ) {
+    if (AssignmentClassifier.compoundClampOp(ctx, typeInfo) !== null) {
       return AssignmentKind.OVERFLOW_CLAMP;
     }
 
     return null;
+  }
+
+  /**
+   * ADR-044: the saturating helper operation (`add`, `sub`, `mul`) that a
+   * compound assignment lowers to, or null when it is plain C arithmetic.
+   *
+   * Only a `clamp` integer target qualifies, and only for the arithmetic
+   * operators that can overflow; a bitwise compound cannot, so it stays plain.
+   * This is the one decision: the classifier asks it to pick OVERFLOW_CLAMP,
+   * the overflow handler asks it for the helper, and the atomic handler asks it
+   * for the inner operation of its read-modify-write. The atomic generator used
+   * to decide the same thing from its own operator map and its own integer test.
+   *
+   * #1668: null when the value has a floating operand. `y *<- 2.5` is
+   * `y <- y * 2.5`, and routing it into `cnx_clamp_mul_u32` truncated the 2.5
+   * to 2 before multiplying.
+   */
+  static compoundClampOp(
+    ctx: IAssignmentContext,
+    typeInfo: TTypeInfo,
+  ): string | null {
+    if (typeInfo.overflowBehavior !== "clamp") return null;
+    if (!TypeCheckUtils.isInteger(typeInfo.baseType)) return null;
+    if (ctx.valueHasFloatingOperand()) return null;
+    return CLAMP_HELPER_FOR_COMPOUND[ctx.cOp] ?? null;
   }
 
   /**

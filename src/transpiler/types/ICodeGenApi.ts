@@ -14,12 +14,16 @@
 import type TTypeInfo from "./TTypeInfo";
 
 interface ICodeGenApi {
-  /** Generate atomic read-modify-write operation */
+  /**
+   * Generate atomic read-modify-write operation. `clampOp` is the ADR-044
+   * helper the inner operation saturates with, or null for plain arithmetic.
+   */
   generateAtomicRMW(
     target: string,
     op: string,
     value: string,
     typeInfo: TTypeInfo,
+    clampOp: string | null,
   ): string;
 
   /** Generate float bit write operation (returns null if not applicable) */

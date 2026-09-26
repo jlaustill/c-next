@@ -31,7 +31,9 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IScopeFrame from "./types/IScopeFrame";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import TypeResolver from "../../utils/TypeResolver";
+import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import QualifiedCName from "../../utils/QualifiedCName";
+import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
 import ChainRoot from "./helpers/ChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -79,11 +81,11 @@ class OperandTypeResolver {
     ctx: Parser.TernaryExpressionContext,
     frame: IScopeFrame,
   ): string | null {
-    const branches = ctx.orExpression();
-    if (branches.length !== 3) return null;
+    const arms = ParserUtils.ternaryValueArms(ctx);
+    if (arms === null) return null;
 
-    const whenTrue = this.typeOfOperand(branches[1], frame);
-    const whenFalse = this.typeOfOperand(branches[2], frame);
+    const whenTrue = this.typeOfOperand(arms[0], frame);
+    const whenFalse = this.typeOfOperand(arms[1], frame);
     // Arms that disagree are a separate defect; report no type rather than
     // guessing which one the expression takes.
     return whenTrue !== null && whenTrue === whenFalse ? whenTrue : null;
@@ -148,7 +150,11 @@ class OperandTypeResolver {
       field,
     );
     if (base === undefined) {
-      return this.importedFieldType(structType, field);
+      // #1668: a C header struct last, through the rule 2.2 reads it by.
+      return (
+        this.importedFieldType(structType, field) ??
+        ForeignTypeFacts.fieldType(this.context.symbolTable, structType, field)
+      );
     }
     const dimensions = StructFieldFacts.dimensionsOf(
       this.context.symbols,
@@ -203,6 +209,7 @@ class OperandTypeResolver {
   ): string | null {
     let current = base;
     const nameParts = [baseName];
+    let called = false;
 
     for (const step of steps) {
       if (step.isCall) {
@@ -212,11 +219,24 @@ class OperandTypeResolver {
         // functionReturnTypes is keyed by transpiled C name, so the key is
         // built with QualifiedCName -- the single encoder -- rather than
         // re-derived by hand (CLAUDE.md).
-        return (
-          this.context.symbols.functionReturnTypes.get(
-            QualifiedCName.fromParts(nameParts),
-          ) ?? null
+        //
+        // #1668: the walk CONTINUES from the result, so `get().v` is `v`'s
+        // type. Returning here typed every member after a call as the callee's
+        // own result. A C header function answers too, when it is floating. A
+        // second call has no callee name to key on, so it stays unresolved.
+        if (called) return null;
+        called = true;
+        // A value whose type is a function (ADR-029) is called by that type,
+        // not by the path that reached it: `s.fn()` returns what `fn`'s type
+        // returns. A function name has no value type, so it is keyed by name.
+        const callee = current ?? QualifiedCName.fromParts(nameParts);
+        current = ForeignTypeFacts.returnTypeOf(
+          this.context.symbols.functionReturnTypes.get(callee),
+          this.context.symbolTable,
+          callee,
         );
+        if (!current) return null;
+        continue;
       }
       if (step.member) {
         nameParts.push(step.member);
@@ -288,9 +308,9 @@ class OperandTypeResolver {
   }
 
   /**
-   * Declared type of a postfix expression operand. A call anywhere in the chain
-   * makes the type unresolvable here -- the result type is a function's, not a
-   * declaration's.
+   * Declared type of a postfix expression operand. A call step continues from
+   * the callee's result type (#1668); a second call in one chain is not
+   * resolved.
    */
   public typeOfPostfixExpression(
     ctx: Parser.PostfixExpressionContext,

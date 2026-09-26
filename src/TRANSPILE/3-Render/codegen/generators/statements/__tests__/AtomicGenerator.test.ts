@@ -51,7 +51,7 @@ describe("AtomicGenerator", () => {
   describe("generateInnerAtomicOp", () => {
     it("generates clamp helper for += with clamp behavior", () => {
       const typeInfo = createTypeInfo("u32", "clamp");
-      const result = generateInnerAtomicOp("+=", "5", typeInfo);
+      const result = generateInnerAtomicOp("+=", "5", typeInfo, "add");
 
       expect(result.code).toBe("cnx_clamp_add_u32(__old, 5)");
       expect(result.effects).toHaveLength(1);
@@ -64,7 +64,7 @@ describe("AtomicGenerator", () => {
 
     it("generates clamp helper for -= with clamp behavior", () => {
       const typeInfo = createTypeInfo("u16", "clamp");
-      const result = generateInnerAtomicOp("-=", "value", typeInfo);
+      const result = generateInnerAtomicOp("-=", "value", typeInfo, "sub");
 
       expect(result.code).toBe("cnx_clamp_sub_u16(__old, value)");
       expect(result.effects[0]).toEqual({
@@ -76,7 +76,7 @@ describe("AtomicGenerator", () => {
 
     it("generates clamp helper for *= with clamp behavior", () => {
       const typeInfo = createTypeInfo("i8", "clamp");
-      const result = generateInnerAtomicOp("*=", "2", typeInfo);
+      const result = generateInnerAtomicOp("*=", "2", typeInfo, "mul");
 
       expect(result.code).toBe("cnx_clamp_mul_i8(__old, 2)");
       expect(result.effects[0]).toEqual({
@@ -86,9 +86,9 @@ describe("AtomicGenerator", () => {
       });
     });
 
-    it("generates natural arithmetic for wrap behavior", () => {
+    it("generates natural arithmetic when no clamp helper is chosen", () => {
       const typeInfo = createTypeInfo("u32", "wrap");
-      const result = generateInnerAtomicOp("+=", "5", typeInfo);
+      const result = generateInnerAtomicOp("+=", "5", typeInfo, null);
 
       expect(result.code).toBe("__old + 5");
       expect(result.effects).toHaveLength(0);
@@ -96,7 +96,7 @@ describe("AtomicGenerator", () => {
 
     it("generates natural arithmetic for non-clamp ops", () => {
       const typeInfo = createTypeInfo("u32", "clamp");
-      const result = generateInnerAtomicOp("/=", "2", typeInfo);
+      const result = generateInnerAtomicOp("/=", "2", typeInfo, null);
 
       expect(result.code).toBe("__old / 2");
       expect(result.effects).toHaveLength(0);
@@ -105,13 +105,13 @@ describe("AtomicGenerator", () => {
     it("generates natural arithmetic for bitwise ops", () => {
       const typeInfo = createTypeInfo("u32", "clamp");
 
-      expect(generateInnerAtomicOp("&=", "0xFF", typeInfo).code).toBe(
+      expect(generateInnerAtomicOp("&=", "0xFF", typeInfo, null).code).toBe(
         "__old & 0xFF",
       );
-      expect(generateInnerAtomicOp("|=", "0x01", typeInfo).code).toBe(
+      expect(generateInnerAtomicOp("|=", "0x01", typeInfo, null).code).toBe(
         "__old | 0x01",
       );
-      expect(generateInnerAtomicOp("^=", "mask", typeInfo).code).toBe(
+      expect(generateInnerAtomicOp("^=", "mask", typeInfo, null).code).toBe(
         "__old ^ mask",
       );
     });
@@ -119,17 +119,17 @@ describe("AtomicGenerator", () => {
     it("generates natural arithmetic for shift ops", () => {
       const typeInfo = createTypeInfo("u32", "clamp");
 
-      expect(generateInnerAtomicOp("<<=", "2", typeInfo).code).toBe(
+      expect(generateInnerAtomicOp("<<=", "2", typeInfo, null).code).toBe(
         "__old << 2",
       );
-      expect(generateInnerAtomicOp(">>=", "4", typeInfo).code).toBe(
+      expect(generateInnerAtomicOp(">>=", "4", typeInfo, null).code).toBe(
         "__old >> 4",
       );
     });
 
     it("generates natural arithmetic for floats even with clamp", () => {
       const typeInfo = createTypeInfo("f32", "clamp");
-      const result = generateInnerAtomicOp("+=", "1.0f", typeInfo);
+      const result = generateInnerAtomicOp("+=", "1.0f", typeInfo, null);
 
       expect(result.code).toBe("__old + 1.0f");
       expect(result.effects).toHaveLength(0);
@@ -137,7 +137,7 @@ describe("AtomicGenerator", () => {
 
     it("handles unknown operator with default +", () => {
       const typeInfo = createTypeInfo("u32", "wrap");
-      const result = generateInnerAtomicOp("??=", "5", typeInfo);
+      const result = generateInnerAtomicOp("??=", "5", typeInfo, null);
 
       expect(result.code).toBe("__old + 5");
     });
@@ -235,7 +235,13 @@ describe("AtomicGenerator", () => {
   describe("generatePrimaskWrapper", () => {
     it("generates PRIMASK wrapper for simple op", () => {
       const typeInfo = createTypeInfo("u32", "wrap");
-      const result = generatePrimaskWrapper("counter", "+=", "1", typeInfo);
+      const result = generatePrimaskWrapper(
+        "counter",
+        "+=",
+        "1",
+        typeInfo,
+        null,
+      );
 
       expect(result.code).toContain("uint32_t __primask = __get_PRIMASK();");
       expect(result.code).toContain("__disable_irq();");
@@ -249,7 +255,13 @@ describe("AtomicGenerator", () => {
 
     it("generates PRIMASK wrapper with clamp helper for +=", () => {
       const typeInfo = createTypeInfo("u32", "clamp");
-      const result = generatePrimaskWrapper("counter", "+=", "5", typeInfo);
+      const result = generatePrimaskWrapper(
+        "counter",
+        "+=",
+        "5",
+        typeInfo,
+        "add",
+      );
 
       expect(result.code).toContain("counter = cnx_clamp_add_u32(counter, 5);");
       expect(result.effects).toContainEqual({
@@ -261,21 +273,33 @@ describe("AtomicGenerator", () => {
 
     it("generates PRIMASK wrapper with clamp helper for -=", () => {
       const typeInfo = createTypeInfo("u16", "clamp");
-      const result = generatePrimaskWrapper("value", "-=", "10", typeInfo);
+      const result = generatePrimaskWrapper(
+        "value",
+        "-=",
+        "10",
+        typeInfo,
+        "sub",
+      );
 
       expect(result.code).toContain("value = cnx_clamp_sub_u16(value, 10);");
     });
 
     it("generates PRIMASK wrapper with clamp helper for *=", () => {
       const typeInfo = createTypeInfo("i8", "clamp");
-      const result = generatePrimaskWrapper("factor", "*=", "2", typeInfo);
+      const result = generatePrimaskWrapper(
+        "factor",
+        "*=",
+        "2",
+        typeInfo,
+        "mul",
+      );
 
       expect(result.code).toContain("factor = cnx_clamp_mul_i8(factor, 2);");
     });
 
     it("generates PRIMASK wrapper without clamp for /=", () => {
       const typeInfo = createTypeInfo("u32", "clamp");
-      const result = generatePrimaskWrapper("value", "/=", "2", typeInfo);
+      const result = generatePrimaskWrapper("value", "/=", "2", typeInfo, null);
 
       expect(result.code).toContain("value /= 2;");
       // Should not have helper effect for division
@@ -284,7 +308,13 @@ describe("AtomicGenerator", () => {
 
     it("generates PRIMASK wrapper without clamp for floats", () => {
       const typeInfo = createTypeInfo("f32", "clamp");
-      const result = generatePrimaskWrapper("value", "+=", "1.0f", typeInfo);
+      const result = generatePrimaskWrapper(
+        "value",
+        "+=",
+        "1.0f",
+        typeInfo,
+        null,
+      );
 
       expect(result.code).toContain("value += 1.0f;");
       // Floats don't use clamp helpers
@@ -300,7 +330,14 @@ describe("AtomicGenerator", () => {
     it("uses LDREX/STREX when available for supported type", () => {
       const typeInfo = createTypeInfo("u32");
       const caps = createCapabilities(true);
-      const result = generateAtomicRMW("counter", "+=", "1", typeInfo, caps);
+      const result = generateAtomicRMW(
+        "counter",
+        "+=",
+        "1",
+        typeInfo,
+        "add",
+        caps,
+      );
 
       expect(result.code).toContain("__LDREXW");
       expect(result.code).toContain("__STREXW");
@@ -309,7 +346,14 @@ describe("AtomicGenerator", () => {
     it("falls back to PRIMASK when LDREX/STREX not available", () => {
       const typeInfo = createTypeInfo("u32");
       const caps = createCapabilities(false);
-      const result = generateAtomicRMW("counter", "+=", "1", typeInfo, caps);
+      const result = generateAtomicRMW(
+        "counter",
+        "+=",
+        "1",
+        typeInfo,
+        "add",
+        caps,
+      );
 
       expect(result.code).toContain("__get_PRIMASK()");
       expect(result.code).toContain("__disable_irq()");
@@ -318,7 +362,14 @@ describe("AtomicGenerator", () => {
     it("falls back to PRIMASK for u64 (no LDREX support)", () => {
       const typeInfo = createTypeInfo("u64");
       const caps = createCapabilities(true);
-      const result = generateAtomicRMW("counter", "+=", "1", typeInfo, caps);
+      const result = generateAtomicRMW(
+        "counter",
+        "+=",
+        "1",
+        typeInfo,
+        "add",
+        caps,
+      );
 
       // u64 doesn't have LDREX support, should use PRIMASK
       expect(result.code).toContain("__get_PRIMASK()");
@@ -327,7 +378,14 @@ describe("AtomicGenerator", () => {
     it("includes clamp helper effect when using clamp behavior", () => {
       const typeInfo = createTypeInfo("u32", "clamp");
       const caps = createCapabilities(true);
-      const result = generateAtomicRMW("counter", "+=", "5", typeInfo, caps);
+      const result = generateAtomicRMW(
+        "counter",
+        "+=",
+        "5",
+        typeInfo,
+        "add",
+        caps,
+      );
 
       expect(result.effects).toContainEqual({
         type: "helper",
@@ -339,7 +397,14 @@ describe("AtomicGenerator", () => {
     it("includes cmsis header effect", () => {
       const typeInfo = createTypeInfo("u32");
       const caps = createCapabilities(true);
-      const result = generateAtomicRMW("counter", "+=", "1", typeInfo, caps);
+      const result = generateAtomicRMW(
+        "counter",
+        "+=",
+        "1",
+        typeInfo,
+        "add",
+        caps,
+      );
 
       expect(result.effects).toContainEqual({
         type: "include",

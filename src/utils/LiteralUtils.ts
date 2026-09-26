@@ -101,14 +101,64 @@ class LiteralUtils {
    * @returns true if the literal is a float
    */
   static isFloat(ctx: Parser.LiteralContext): boolean {
-    // Check for FLOAT_LITERAL token
-    if (ctx.FLOAT_LITERAL()) {
-      return true;
+    return LiteralUtils.floatLiteralWidth(ctx.getText()) !== null;
+  }
+
+  /**
+   * The width of a floating literal's type, read from its text: 32 for
+   * `2.5f32`, 64 for `2.5f64` and for an unsuffixed `2.5` (a C `double`).
+   * Null when the text is not a floating literal.
+   *
+   * #1668: the one decision of whether a literal is floating. It used to be
+   * made three ways, each by a partial test that some other literal also
+   * passes. A trailing `f32` also ends the hex integer `0xFF32`, which the
+   * render layer then emitted as `0xFf`. A `.` also occurs in the char literal
+   * `'.'`, which E0804 then rejected as a floating modulo operand. So the text
+   * must match the grammar's FLOAT_LITERAL / SUFFIXED_FLOAT shape as a whole.
+   */
+  static floatLiteralWidth(text: string): 32 | 64 | null {
+    const match =
+      /^(?:\d+\.\d+(?:[eE][+-]?\d+)?|\d+[eE][+-]?\d+)(?:[fF](32|64))?$/.exec(
+        text,
+      );
+    if (!match) return null;
+    return match[1] === "32" ? 32 : 64;
+  }
+
+  /**
+   * ADR-024: Get the type from a literal (suffixed or unsuffixed).
+   *
+   * #1668: moved here from 2.2's ExpressionTypeResolver so that 2.1 can type a
+   * composite's literal operand with the same rule 2.2 uses. Composite typing is
+   * one decision (`PrimitiveKindUtils.widestIntegerOf`) made in both layers, and
+   * it now treats a floating operand as a veto, so the two layers have to agree
+   * on which literal operands are floating.
+   */
+  static typeOf(ctx: Parser.LiteralContext): string | null {
+    const text = ctx.getText();
+
+    if (text === "true" || text === "false") return "bool";
+
+    const suffixMatch = /([uUiI])(8|16|32|64)$/.exec(text);
+    if (suffixMatch) {
+      const signChar = suffixMatch[1].toLowerCase();
+      const width = suffixMatch[2];
+      return (signChar === "u" ? "u" : "i") + width;
     }
 
-    // Fallback: check text for decimal point (not in strings)
-    const text = ctx.getText();
-    return text.includes(".") && !text.startsWith('"');
+    // A plain float literal (no suffix) has type double in C
+    const floatWidth = LiteralUtils.floatLiteralWidth(text);
+    if (floatWidth !== null) {
+      return `f${floatWidth}`;
+    }
+
+    // Plain integer literals (no suffix) have type int in C
+    // Check for integer: starts with digit, no decimal point
+    if (/^\d+$/.test(text) || /^0[xXbBoO][\da-fA-F]+$/.test(text)) {
+      return "int";
+    }
+
+    return null;
   }
 
   /**

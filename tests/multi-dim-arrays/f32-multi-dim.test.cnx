@@ -48,7 +48,7 @@ u32 main() {
     // Nested loop iteration - populate 2D array with decimal pattern
     for (u32 i <- 0; i < 4; i +<- 1) {
         for (u32 j <- 0; j < 8; j +<- 1) {
-            matrix2d[i][j] <- i * 2.5 + j * 0.5;
+            matrix2d[i][j] <- (f32)i * 2.5 + (f32)j * 0.5;
         }
     }
 
@@ -63,7 +63,7 @@ u32 main() {
     for (u32 i <- 0; i < 2; i +<- 1) {
         for (u32 j <- 0; j < 3; j +<- 1) {
             for (u32 k <- 0; k < 4; k +<- 1) {
-                cube3d[i][j][k] <- i * 10.5 + j * 2.25 + k * 0.5;
+                cube3d[i][j][k] <- (f32)i * 10.5 + (f32)j * 2.25 + (f32)k * 0.5;
                 sum +<- cube3d[i][j][k];
             }
         }

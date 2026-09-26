@@ -1,0 +1,50 @@
+// test-error
+// test-adr: 024
+// Issue #1668: a C header's floating operand is floating to E0810 too -- a
+// global, a typedef of float, a struct field and a function result. Neither
+// pass could type any of them, so `u32 i * apiScale` compiled and was routed
+// into cnx_clamp_mul_u32, which truncated the float.
+// The functions after the flagged ones are negative controls and must stay silent.
+
+#include "float_api.h"
+
+f32 globalFloat() {
+    u32 i <- 3;
+    f32 x <- i * apiScale;
+    return x;
+}
+
+f32 typedefFloat() {
+    u32 i <- 3;
+    f32 x <- i * apiScale32;
+    return x;
+}
+
+f32 structField() {
+    u32 i <- 3;
+    f32 x <- i * apiSample.v;
+    return x;
+}
+
+f32 floatFunction() {
+    u32 i <- 3;
+    f32 x <- i * apiHalf();
+    return x;
+}
+
+f32 floatOnly() {
+    f32 x <- apiScale * 2.5;
+    return x;
+}
+
+f32 castInteger() {
+    u32 i <- 3;
+    f32 x <- (f32)i * apiScale;
+    return x;
+}
+
+u32 integerGlobal() {
+    u32 i <- 3;
+    u32 x <- i + apiCount;
+    return x;
+}

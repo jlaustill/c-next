@@ -12,7 +12,6 @@ import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import ITargetCapabilities from "../../../../../transpiler/types/ITargetCapabilities";
-import TYPE_WIDTH from "../../../../../transpiler/constants/TYPE_WIDTH";
 import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY";
 
 /**
@@ -56,30 +55,6 @@ const STREX_MAP: Record<string, string> = {
 };
 
 /**
- * Map compound operators to clamp helper operation names
- */
-const CLAMP_OP_MAP: Record<string, string> = {
-  "+=": "add",
-  "-=": "sub",
-  "*=": "mul",
-};
-
-/**
- * Check if clamp behavior applies and return helper operation name.
- * Returns null if clamp doesn't apply (wrap behavior, float, or unsupported op).
- */
-function getClampHelperOp(cOp: string, typeInfo: TTypeInfo): string | null {
-  if (
-    typeInfo.overflowBehavior === "clamp" &&
-    TYPE_WIDTH[typeInfo.baseType] &&
-    !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic
-  ) {
-    return CLAMP_OP_MAP[cOp] || null;
-  }
-  return null;
-}
-
-/**
  * Generate the inner operation for atomic RMW.
  * Handles clamp/wrap behavior for arithmetic operations.
  *
@@ -89,12 +64,12 @@ function generateInnerAtomicOp(
   cOp: string,
   value: string,
   typeInfo: TTypeInfo,
+  helperOp: string | null,
 ): IGeneratorOutput {
   const effects: TGeneratorEffect[] = [];
   const simpleOp = COMPOUND_TO_BINARY[cOp] || "+";
 
-  // Handle clamp behavior for arithmetic operations (integers only)
-  const helperOp = getClampHelperOp(cOp, typeInfo);
+  // Saturate when the classifier chose a clamp helper
   if (helperOp) {
     effects.push({
       type: "helper",
@@ -159,6 +134,7 @@ function generatePrimaskWrapper(
   cOp: string,
   value: string,
   typeInfo: TTypeInfo,
+  helperOp: string | null,
 ): IGeneratorOutput {
   const effects: TGeneratorEffect[] = [];
 
@@ -175,8 +151,7 @@ function generatePrimaskWrapper(
   // Generate the actual assignment operation inside the critical section
   let assignment: string;
 
-  // Handle clamp behavior (integers only)
-  const helperOp = getClampHelperOp(cOp, typeInfo);
+  // Saturate when the classifier chose a clamp helper
   if (helperOp) {
     effects.push({
       type: "helper",
@@ -207,6 +182,8 @@ function generatePrimaskWrapper(
  * @param cOp - The C compound assignment operator (+=, -=, etc.)
  * @param value - The value expression
  * @param typeInfo - Type information for the target
+ * @param clampOp - ADR-044 helper operation from
+ *   `AssignmentClassifier.compoundClampOp`, or null for plain arithmetic
  * @param targetCapabilities - Platform capabilities
  * @returns Generated code and effects
  */
@@ -215,12 +192,13 @@ function generateAtomicRMW(
   cOp: string,
   value: string,
   typeInfo: TTypeInfo,
+  clampOp: string | null,
   targetCapabilities: ITargetCapabilities,
 ): IGeneratorOutput {
   const baseType = typeInfo.baseType;
 
   // Generate the inner operation (handles clamp/wrap)
-  const innerResult = generateInnerAtomicOp(cOp, value, typeInfo);
+  const innerResult = generateInnerAtomicOp(cOp, value, typeInfo, clampOp);
 
   // Use LDREX/STREX if available for this type, otherwise PRIMASK fallback
   if (targetCapabilities.hasLdrexStrex && LDREX_MAP[baseType]) {
@@ -231,7 +209,7 @@ function generateAtomicRMW(
       innerResult.effects,
     );
   } else {
-    return generatePrimaskWrapper(target, cOp, value, typeInfo);
+    return generatePrimaskWrapper(target, cOp, value, typeInfo, clampOp);
   }
 }
 

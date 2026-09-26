@@ -19,7 +19,7 @@ void test_f32_array() {
 
     // Loop iteration
     for (u32 i <- 0; i < 10; i +<- 1) {
-        samples_f32[i] <- i * 1.5;
+        samples_f32[i] <- (f32)i * 1.5;
     }
 }
 

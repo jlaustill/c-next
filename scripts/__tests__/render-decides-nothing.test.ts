@@ -220,6 +220,13 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
     // with the walk, which is outside the render pass, so it is no longer a
     // RENDER site consulting a plan. That is precisely the transition this
     // roster exists to make visible in a diff.
+    //
+    // #1668: the atomic and overflow-clamp handlers re-derived the target's
+    // type and whether a compound saturates, and `AtomicGenerator` decided the
+    // latter a third time from its own operator map. They ask the classifier
+    // for both now, and the atomic generator is handed the answer -- a
+    // decision moving toward the planner.
+    "codegen/assignment/handlers/SpecialHandlers.ts",
   ],
   CastRequirement: [
     // #1445 box 3 slice 38: `CodeGenerator` consulted this inline while

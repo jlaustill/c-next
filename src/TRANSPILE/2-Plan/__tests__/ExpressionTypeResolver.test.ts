@@ -11,6 +11,9 @@ import TTypeInfo from "../../../transpiler/types/TTypeInfo";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import enterScope from "../../../transpiler/__tests__/enterScope";
+import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 
 /** Parse a standalone C-Next expression into an ExpressionContext. */
 function parseExpression(source: string) {
@@ -1019,127 +1022,6 @@ describe("ExpressionTypeResolver", () => {
   });
 
   // ========================================================================
-  // Literal Type Detection
-  // ========================================================================
-
-  describe("getLiteralType", () => {
-    const mockLiteral = (text: string) =>
-      ({ getText: () => text }) as Parameters<
-        typeof ExpressionTypeResolver.getLiteralType
-      >[0];
-
-    describe("boolean literals", () => {
-      it("should return bool for true", () => {
-        expect(ExpressionTypeResolver.getLiteralType(mockLiteral("true"))).toBe(
-          "bool",
-        );
-      });
-
-      it("should return bool for false", () => {
-        expect(
-          ExpressionTypeResolver.getLiteralType(mockLiteral("false")),
-        ).toBe("bool");
-      });
-    });
-
-    describe("integer suffixes", () => {
-      it("should detect u8 suffix", () => {
-        expect(
-          ExpressionTypeResolver.getLiteralType(mockLiteral("255u8")),
-        ).toBe("u8");
-        expect(ExpressionTypeResolver.getLiteralType(mockLiteral("0U8"))).toBe(
-          "u8",
-        );
-      });
-
-      it("should detect u16 suffix", () => {
-        expect(
-          ExpressionTypeResolver.getLiteralType(mockLiteral("1000u16")),
-        ).toBe("u16");
-      });
-
-      it("should detect u32 suffix", () => {
-        expect(
-          ExpressionTypeResolver.getLiteralType(mockLiteral("1000000u32")),
-        ).toBe("u32");
-      });
-
-      it("should detect u64 suffix", () => {
-        expect(
-          ExpressionTypeResolver.getLiteralType(mockLiteral("1000000000u64")),
-        ).toBe("u64");
-      });
-
-      it("should detect i8 suffix", () => {
-        expect(
-          ExpressionTypeResolver.getLiteralType(mockLiteral("-50i8")),
-        ).toBe("i8");
-        expect(ExpressionTypeResolver.getLiteralType(mockLiteral("50I8"))).toBe(
-          "i8",
-        );
-      });
-
-      it("should detect i16 suffix", () => {
-        expect(
-          ExpressionTypeResolver.getLiteralType(mockLiteral("1000i16")),
-        ).toBe("i16");
-      });
-
-      it("should detect i32 suffix", () => {
-        expect(
-          ExpressionTypeResolver.getLiteralType(mockLiteral("1000000i32")),
-        ).toBe("i32");
-      });
-
-      it("should detect i64 suffix", () => {
-        expect(
-          ExpressionTypeResolver.getLiteralType(mockLiteral("1000000000i64")),
-        ).toBe("i64");
-      });
-    });
-
-    describe("float suffixes", () => {
-      it("should detect f32 suffix", () => {
-        expect(
-          ExpressionTypeResolver.getLiteralType(mockLiteral("3.14f32")),
-        ).toBe("f32");
-        expect(
-          ExpressionTypeResolver.getLiteralType(mockLiteral("3.14F32")),
-        ).toBe("f32");
-      });
-
-      it("should detect f64 suffix", () => {
-        expect(
-          ExpressionTypeResolver.getLiteralType(mockLiteral("3.14159f64")),
-        ).toBe("f64");
-        expect(
-          ExpressionTypeResolver.getLiteralType(mockLiteral("3.14159F64")),
-        ).toBe("f64");
-      });
-    });
-
-    describe("unsuffixed literals (MISRA 10.3 compliance)", () => {
-      it("should return int for unsuffixed integer", () => {
-        expect(ExpressionTypeResolver.getLiteralType(mockLiteral("42"))).toBe(
-          "int",
-        );
-      });
-
-      it("should return int for unsuffixed hex", () => {
-        expect(ExpressionTypeResolver.getLiteralType(mockLiteral("0xFF"))).toBe(
-          "int",
-        );
-      });
-
-      it("should return f64 for unsuffixed float", () => {
-        expect(ExpressionTypeResolver.getLiteralType(mockLiteral("3.14"))).toBe(
-          "f64",
-        );
-      });
-    });
-  });
-
-  // ========================================================================
   // Member Type Info
   // ========================================================================
 
@@ -1182,6 +1064,69 @@ describe("ExpressionTypeResolver", () => {
       expect(
         ExpressionTypeResolver.getMemberTypeInfo("Point", "z", state),
       ).toBeUndefined();
+    });
+  });
+  // #1668: a composite with a floating operand is not an integer composite,
+  // however the float is reached -- a call, a member after a call, an ADR-029
+  // callback, or a C header symbol -- so it never selects an integer clamp.
+  describe("floating operands reached through calls and headers (#1668)", () => {
+    beforeEach(() => {
+      state.symbols = createMockSymbols({
+        functionReturnTypes: new Map([
+          ["half", "f32"],
+          ["makeSample", "Sample"],
+          ["scaleFn", "f32"],
+          ["count", "u32"],
+        ]),
+      });
+      symbolTable.addStructField("Sample", "v", "f32");
+      symbolTable.addStructField("Sample", "n", "u32");
+      symbolTable.addStructField("Scaler", "fn", "scaleFn");
+      setTypeInfo("i", {
+        baseType: "u32",
+        bitWidth: 32,
+        isArray: false,
+        isConst: false,
+      });
+      setTypeInfo("s", {
+        baseType: "Scaler",
+        bitWidth: 0,
+        isArray: false,
+        isConst: false,
+      });
+      symbolTable.addCSymbol({
+        kind: "function",
+        name: "apiHalf",
+        type: "float",
+        sourceFile: "api.h",
+        span: TestSourceSpan.at(1),
+        sourceLanguage: ESourceLanguage.C,
+        visibility: "public",
+      });
+    });
+
+    it.each([
+      ["a call result", "i * half()"],
+      ["a member after a call", "i * makeSample().v"],
+      ["an ADR-029 callback", "i * s.fn()"],
+      ["a C header function", "i * apiHalf()"],
+    ])("reports %s as floating and not integer", (_label, source) => {
+      const ctx = parseExpression(source);
+      expect(ExpressionTypeResolver.hasFloatingOperand(ctx, state)).toBe(true);
+      expect(
+        ExpressionTypeResolver.getIntegerExpressionType(ctx, state),
+      ).toBeNull();
+    });
+
+    it.each([
+      ["an integer call result", "i + count()", "u32"],
+      ["an integer member after a call", "i + makeSample().n", "u32"],
+    ])("keeps %s integer", (_label, source, expected) => {
+      const ctx = parseExpression(source);
+      expect(ExpressionTypeResolver.hasFloatingOperand(ctx, state)).toBe(false);
+      expect(ExpressionTypeResolver.getIntegerExpressionType(ctx, state)).toBe(
+        expected,
+      );
     });
   });
 });

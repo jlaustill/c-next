@@ -58,6 +58,7 @@ import IScopeFrame from "./types/IScopeFrame";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import PrimitiveKindUtils from "../../utils/PrimitiveKindUtils";
+import LiteralUtils from "../../utils/LiteralUtils";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
@@ -276,6 +277,12 @@ class IntegerConversionListener extends CNextListener {
       }
       return null;
     }
+    // #1668: a literal operand is typed as 2.2 types it, so that
+    // `widestIntegerOf`'s floating veto reads `arr[0] * 2.5` the same in both
+    // layers. An integer literal types as `int`, which the rule skips.
+    const literal =
+      ops.length === 0 ? leaf.primaryExpression()?.literal() : null;
+    if (literal) return LiteralUtils.typeOf(literal);
     return this.types.typeOfOperand(leaf, frame);
   }
 

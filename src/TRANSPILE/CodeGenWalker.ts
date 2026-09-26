@@ -4851,6 +4851,8 @@ class CodeGenWalker {
         ExpressionTypeResolver.getExpressionType(expr, this.host.state),
       integerExpressionType: (expr) =>
         ExpressionTypeResolver.getIntegerExpressionType(expr, this.host.state),
+      hasFloatingOperand: (expr) =>
+        ExpressionTypeResolver.hasFloatingOperand(expr, this.host.state),
       toCOperator: (cnextOp, line) =>
         AssignmentOperatorMapper.toCOperator(cnextOp, line),
     });

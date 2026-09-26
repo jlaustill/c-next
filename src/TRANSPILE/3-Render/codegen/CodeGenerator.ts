@@ -949,12 +949,14 @@ export default class CodeGenerator implements IOrchestrator {
     cOp: string,
     value: string,
     typeInfo: TTypeInfo,
+    clampOp: string | null,
   ): string {
     const result = atomicGenerators.generateAtomicRMW(
       target,
       cOp,
       value,
       typeInfo,
+      clampOp,
       this.state.targetCapabilities,
     );
     this.applyEffects(result.effects);

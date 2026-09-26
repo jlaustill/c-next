@@ -56,4 +56,18 @@ describe("TPrimitiveKind", () => {
       expect(PrimitiveKindUtils.isPrimitive("array")).toBe(false);
     });
   });
+  // #1668: a composite with a floating operand is not an integer composite.
+  describe("widestIntegerOf", () => {
+    it.each([
+      ["integer operands", ["u8", "u32"], "u32"],
+      ["an untyped literal beside an integer", [null, "int", "u16"], "u16"],
+      ["nothing typed", [null, "int"], null],
+      ["an f32 operand", ["u32", "f32"], null],
+      ["an f64 literal", ["u32", "f64"], null],
+      ["a C float operand", ["i32", "float"], null],
+      ["a C double operand first", ["double", "i32"], null],
+    ])("%s", (_label, types, expected) => {
+      expect(PrimitiveKindUtils.widestIntegerOf(types)).toBe(expected);
+    });
+  });
 });

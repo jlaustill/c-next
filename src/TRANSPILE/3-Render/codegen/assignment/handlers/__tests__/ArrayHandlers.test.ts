@@ -74,6 +74,7 @@ function createMockContext(
     hasValue: true,
     valueExpressionType: () => mockGetExpressionType(null),
     valueIntegerType: () => mockGetIntegerExpressionType(null),
+    valueHasFloatingOperand: () => false,
     foldValue: () =>
       HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     postfixOps: [],

@@ -352,11 +352,132 @@ describe("LiteralUtils", () => {
       expect(literal).not.toBeNull();
       expect(LiteralUtils.isFloat(literal!)).toBe(false);
     });
+
+    // #1668: the text fallback this replaced read a char '.' as a float and
+    // missed a suffixed exponent with no dot.
+    it.each([
+      ["'.'", false],
+      ["0xFF32", false],
+      ["1e5f32", true],
+    ])("classifies %s as float: %s", (text, expected) => {
+      const literal = extractLiteral(text);
+      expect(literal).not.toBeNull();
+      expect(LiteralUtils.isFloat(literal!)).toBe(expected);
+    });
   });
 
   // ========================================================================
   // parseIntegerLiteral (Issue #455)
   // ========================================================================
+
+  // ========================================================================
+  // Literal Type Detection
+  // ========================================================================
+
+  // #1668: the one decision of whether a literal is floating, read from the
+  // whole literal rather than from a suffix or a dot.
+  describe("floatLiteralWidth", () => {
+    it.each([
+      ["2.5", 64],
+      ["2.5f64", 64],
+      ["2.5f32", 32],
+      ["2.5F32", 32],
+      ["1e5", 64],
+      ["1e5f32", 32],
+      ["1.5e-3", 64],
+      ["0xFF32", null],
+      ["0xABCDEF64", null],
+      ["42", null],
+      ["42u32", null],
+      ["'.'", null],
+      ['"2.5"', null],
+      ["true", null],
+    ])("%s -> %s", (text, expected) => {
+      expect(LiteralUtils.floatLiteralWidth(text)).toBe(expected);
+    });
+  });
+
+  describe("typeOf", () => {
+    const mockLiteral = (text: string) =>
+      ({ getText: () => text }) as Parameters<typeof LiteralUtils.typeOf>[0];
+
+    describe("boolean literals", () => {
+      it("should return bool for true", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("true"))).toBe("bool");
+      });
+
+      it("should return bool for false", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("false"))).toBe("bool");
+      });
+    });
+
+    describe("integer suffixes", () => {
+      it("should detect u8 suffix", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("255u8"))).toBe("u8");
+        expect(LiteralUtils.typeOf(mockLiteral("0U8"))).toBe("u8");
+      });
+
+      it("should detect u16 suffix", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("1000u16"))).toBe("u16");
+      });
+
+      it("should detect u32 suffix", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("1000000u32"))).toBe("u32");
+      });
+
+      it("should detect u64 suffix", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("1000000000u64"))).toBe("u64");
+      });
+
+      it("should detect i8 suffix", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("-50i8"))).toBe("i8");
+        expect(LiteralUtils.typeOf(mockLiteral("50I8"))).toBe("i8");
+      });
+
+      it("should detect i16 suffix", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("1000i16"))).toBe("i16");
+      });
+
+      it("should detect i32 suffix", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("1000000i32"))).toBe("i32");
+      });
+
+      it("should detect i64 suffix", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("1000000000i64"))).toBe("i64");
+      });
+    });
+
+    describe("float suffixes", () => {
+      it("should detect f32 suffix", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("3.14f32"))).toBe("f32");
+        expect(LiteralUtils.typeOf(mockLiteral("3.14F32"))).toBe("f32");
+      });
+
+      it("should detect f64 suffix", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("3.14159f64"))).toBe("f64");
+        expect(LiteralUtils.typeOf(mockLiteral("3.14159F64"))).toBe("f64");
+      });
+    });
+
+    describe("unsuffixed literals (MISRA 10.3 compliance)", () => {
+      it("should return int for unsuffixed integer", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("42"))).toBe("int");
+      });
+
+      it("should return int for unsuffixed hex", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("0xFF"))).toBe("int");
+      });
+
+      it("should return int for a hex literal ending in F32 or F64 (#1668)", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("0xFF32"))).toBe("int");
+        expect(LiteralUtils.typeOf(mockLiteral("0xABCDEF64"))).toBe("int");
+      });
+
+      it("should return f64 for unsuffixed float", () => {
+        expect(LiteralUtils.typeOf(mockLiteral("3.14"))).toBe("f64");
+      });
+    });
+  });
 
   describe("parseIntegerLiteral", () => {
     describe("decimal literals", () => {

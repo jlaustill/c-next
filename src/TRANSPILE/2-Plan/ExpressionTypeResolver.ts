@@ -2,7 +2,7 @@
  * ExpressionTypeResolver - Handles type inference, classification, and validation
  * Static class that reads from CodeGenState directly.
  */
-import { ParserRuleContext } from "antlr4ng";
+import { ParserRuleContext, ParseTree } from "antlr4ng";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
 import dimensionEvalOptions from "./dimensionEvalOptions";
@@ -17,6 +17,9 @@ import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import PrimitiveKindUtils from "../../utils/PrimitiveKindUtils";
+import LiteralUtils from "../../utils/LiteralUtils";
+import ParserUtils from "../../utils/ParserUtils";
+import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import type TranspileState from "../TranspileState";
 
 /**
@@ -85,43 +88,6 @@ class ExpressionTypeResolver {
   }
 
   /**
-   * ADR-024: Get the type from a literal (suffixed or unsuffixed).
-   */
-  static getLiteralType(ctx: Parser.LiteralContext): string | null {
-    const text = ctx.getText();
-
-    if (text === "true" || text === "false") return "bool";
-
-    const suffixMatch = /([uUiI])(8|16|32|64)$/.exec(text);
-    if (suffixMatch) {
-      const signChar = suffixMatch[1].toLowerCase();
-      const width = suffixMatch[2];
-      return (signChar === "u" ? "u" : "i") + width;
-    }
-
-    const floatMatch = /[fF](32|64)$/.exec(text);
-    if (floatMatch) {
-      return "f" + floatMatch[1];
-    }
-
-    // Plain integer literals (no suffix) have type int in C
-    // Check for integer: starts with digit, no decimal point
-    if (/^\d+$/.test(text) || /^0[xXbBoO][\da-fA-F]+$/.test(text)) {
-      return "int";
-    }
-
-    // Plain float literals (no suffix) have type double in C
-    if (
-      /^\d*\.\d+([eE][+-]?\d+)?$/.test(text) ||
-      /^\d+[eE][+-]?\d+$/.test(text)
-    ) {
-      return "f64";
-    }
-
-    return null;
-  }
-
-  /**
    * ADR-024: Get the type of an expression for type checking.
    */
   static getExpressionType(
@@ -165,14 +131,19 @@ class ExpressionTypeResolver {
    * Resolve the C-Next integer type of an expression, including composite
    * arithmetic/bitwise expressions that `getExpressionType` leaves unresolved.
    *
-   * MISRA C:2012 Rule 10.4 (enforced by MixedTypeCategoryAnalyzer) guarantees a
-   * binary operator's operands share an essential type category, so a composite
-   * integer expression's category is uniform; its essential width is the widest
-   * integer operand. This is what lets slice-assignment serialize an arithmetic
-   * source (e.g. `a + b`) MISRA Rule 10.8-clean instead of guessing a width.
+   * MISRA C:2012 Rule 10.4 (E0810, MixedTypeCategoryAnalyzer) rejects a binary
+   * operator whose operands have different essential type categories, where it
+   * can classify both. So a composite integer expression's category is
+   * uniform, and its essential width is the widest integer operand. This is
+   * what lets slice-assignment serialize an arithmetic source (e.g. `a + b`)
+   * MISRA Rule 10.8-clean instead of guessing a width.
    *
-   * Returns null when no integer-typed variable leaf can be resolved (e.g. a
-   * struct-field or function-call composite — left for a later pass).
+   * E0810 cannot yet classify every operand (#1092). That is why a floating
+   * operand is a veto here rather than an assumption: see
+   * `PrimitiveKindUtils.widestIntegerOf` (#1668).
+   *
+   * Returns null when no integer-typed leaf can be resolved, or when any leaf
+   * is floating.
    */
   static getIntegerExpressionType(
     ctx: Parser.ExpressionContext,
@@ -343,9 +314,32 @@ class ExpressionTypeResolver {
     state: TranspileState,
   ): string | null {
     return PrimitiveKindUtils.widestIntegerOf(
-      ExpressionTypeResolver.collectOperandPostfixes(ctx).map((operand) =>
-        ExpressionTypeResolver.typeOperandPostfix(operand, state),
-      ),
+      ExpressionTypeResolver.operandTypes(ctx, state),
+    );
+  }
+
+  /**
+   * #1668: whether any value operand of an expression is floating. A compound
+   * assignment asks this of its value: `y *<- v` is `y <- y * v`, and it takes
+   * the integer clamp helper only if that product would. The operands are
+   * typed exactly as `resolveCompositeIntegerType` types them.
+   */
+  static hasFloatingOperand(
+    ctx: ParserRuleContext,
+    state: TranspileState,
+  ): boolean {
+    return PrimitiveKindUtils.anyFloating(
+      ExpressionTypeResolver.operandTypes(ctx, state),
+    );
+  }
+
+  /** The VALUE type of each leaf operand of an expression, in source order. */
+  private static operandTypes(
+    ctx: ParserRuleContext,
+    state: TranspileState,
+  ): (string | null)[] {
+    return ExpressionTypeResolver.collectOperandPostfixes(ctx).map((operand) =>
+      ExpressionTypeResolver.typeOperandPostfix(operand, state),
     );
   }
 
@@ -354,8 +348,10 @@ class ExpressionTypeResolver {
    * `x[start, width]` yields an unsigned value of the extracted width; a simple
    * function call `name(...)` yields its declared return type; everything else
    * (variable, array element, struct field, member chain) defers to
-   * getPostfixExpressionType. Returns null for an operand it cannot classify
-   * (e.g. a literal, which is contextually typed).
+   * getPostfixExpressionType. A literal types by `LiteralUtils.typeOf`: an
+   * integer literal is `int`, which composite typing skips because it is
+   * contextually typed, and a float literal is `f32`/`f64`, which vetoes an
+   * integer composite (#1668). Returns null for an operand it cannot classify.
    */
   private static typeOperandPostfix(
     postfix: Parser.PostfixExpressionContext,
@@ -393,7 +389,7 @@ class ExpressionTypeResolver {
     // `(val > 0) ? 1 : -1` by `val`, reporting an i32 result as u32.
     // Addressed via orExpression() rather than child indices because the
     // condition is parenthesised, so it sits at child index 1, not 0.
-    const arms = ExpressionTypeResolver.ternaryValueArms(node);
+    const arms = ParserUtils.ternaryValueArms(node);
     if (arms !== null) {
       return arms.flatMap((arm) =>
         ExpressionTypeResolver.collectOperandPostfixes(arm),
@@ -426,19 +422,6 @@ class ExpressionTypeResolver {
       node.getChildCount() === 2 &&
       node.getChild(0)?.getText() === "&"
     );
-  }
-
-  /**
-   * The two value arms of a conditional ternary, or null when this node is not
-   * one. A ternaryExpression with a single orExpression child is a
-   * pass-through and has no condition to exclude.
-   */
-  private static ternaryValueArms(
-    node: ParserRuleContext,
-  ): Parser.OrExpressionContext[] | null {
-    if (!(node instanceof Parser.TernaryExpressionContext)) return null;
-    const branches = node.orExpression();
-    return branches.length === 3 ? [branches[1]!, branches[2]!] : null;
   }
 
   /**
@@ -495,18 +478,34 @@ class ExpressionTypeResolver {
   }
 
   /**
-   * If a postfix expression is a simple function call `name(...)`, return the
-   * function's declared return type — a call operand's width comes from its
-   * return type, not from being ignored (Issue #1085 review).
+   * If a postfix expression starts with a function call `name(...)`, its type
+   * from the function's declared return type — a call operand's width comes
+   * from its return type, not from being ignored (Issue #1085 review).
+   *
+   * #1668: the chain continues from that result, so `get().v` is `v`'s type,
+   * and a C header function answers when its result is floating. Without
+   * either, `u32 i * cHalf()` and `i * get().v` read as integer arithmetic
+   * and were routed into the integer clamp helper.
    */
   private static callReturnType(
     postfix: Parser.PostfixExpressionContext,
     state: TranspileState,
   ): string | null {
     const ops = postfix.postfixOp();
-    if (ops.length !== 1 || !ops[0].getText().startsWith("(")) return null;
+    if (ops.length === 0 || !ops[0].getText().startsWith("(")) return null;
     const name = postfix.primaryExpression()?.IDENTIFIER()?.getText();
-    return name ? (state.getFunctionReturnType(name) ?? null) : null;
+    if (!name) return null;
+    const result = ForeignTypeFacts.returnTypeOf(
+      state.getFunctionReturnType(name),
+      state.symbolTable,
+      name,
+    );
+    if (result === null) return null;
+    return ExpressionTypeResolver.walkSuffixes(
+      postfix.children.slice(2),
+      { baseType: result, isArray: false },
+      state,
+    );
   }
 
   /**
@@ -567,7 +566,20 @@ class ExpressionTypeResolver {
       }
     }
 
-    const suffixes = ctx.children?.slice(1) || [];
+    return ExpressionTypeResolver.walkSuffixes(
+      ctx.children?.slice(1) || [],
+      current,
+      state,
+    );
+  }
+
+  /** Apply each postfix suffix in turn, from the type `current` holds. */
+  private static walkSuffixes(
+    suffixes: readonly ParseTree[],
+    start: InternalTypeInfo,
+    state: TranspileState,
+  ): string | null {
+    let current = start;
     for (const suffix of suffixes) {
       const result = ExpressionTypeResolver.processPostfixSuffix(
         suffix.getText(),
@@ -579,7 +591,6 @@ class ExpressionTypeResolver {
       }
       current = result.info;
     }
-
     return current.baseType;
   }
 
@@ -602,6 +613,17 @@ class ExpressionTypeResolver {
 
     if (text.startsWith("[") && text.endsWith("]")) {
       return ExpressionTypeResolver.processIndexingSuffix(text, current);
+    }
+
+    // #1668: a call on a value whose type is a function (ADR-029) yields that
+    // function's result. Passing the callback type through typed `s.fn()` as
+    // `scaleFn`, so `i * s.fn()` read as integer arithmetic and was routed
+    // into the integer clamp helper.
+    if (text.startsWith("(")) {
+      const result = state.getFunctionReturnType(current.baseType);
+      if (result !== undefined) {
+        return { stop: false, info: { baseType: result, isArray: false } };
+      }
     }
 
     return { stop: false, info: current };
@@ -730,7 +752,7 @@ class ExpressionTypeResolver {
 
     const literal = ctx.literal();
     if (literal) {
-      const litType = ExpressionTypeResolver.getLiteralType(literal);
+      const litType = LiteralUtils.typeOf(literal);
       return litType ? { baseType: litType, isArray: false } : null;
     }
 

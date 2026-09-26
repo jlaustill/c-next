@@ -40,6 +40,7 @@ function createMockContext(
     hasValue: false,
     valueExpressionType: () => null,
     valueIntegerType: () => null,
+    valueHasFloatingOperand: () => false,
     foldValue: () => undefined,
     identifiers: ["x"],
     subscriptCount: 0,
@@ -478,6 +479,51 @@ describe("AssignmentClassifier - Special Compound", () => {
     expect(AssignmentClassifier.classify(ctx, state)).toBe(
       AssignmentKind.SIMPLE,
     );
+  });
+
+  // #1668: `y *<- 2.5` is `y <- y * 2.5`. With a floating operand it is not
+  // integer arithmetic, so it must not reach an integer clamp helper.
+  it("does not classify a floating value as overflow clamp", () => {
+    state.setVariableTypeInfo(
+      "scaled",
+      createTypeInfo({ baseType: "u32", overflowBehavior: "clamp" }),
+    );
+
+    const ctx = createMockContext(state, {
+      identifiers: ["scaled"],
+      isSimpleIdentifier: true,
+      isCompound: true,
+      cOp: "*=",
+      valueHasFloatingOperand: () => true,
+    });
+
+    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+      AssignmentKind.SIMPLE,
+    );
+  });
+});
+
+describe("AssignmentClassifier.compoundClampOp (#1668)", () => {
+  it.each([
+    ["clamp u32 +=", "u32", "clamp", "+=", false, "add"],
+    ["clamp i8 -=", "i8", "clamp", "-=", false, "sub"],
+    ["clamp u16 *=", "u16", "clamp", "*=", false, "mul"],
+    ["a floating value", "u32", "clamp", "*=", true, null],
+    ["a wrap target", "u32", "wrap", "+=", false, null],
+    ["a float target", "f32", "clamp", "+=", false, null],
+    ["division, which has no helper", "u32", "clamp", "/=", false, null],
+    ["a bitwise operator", "u32", "clamp", "&=", false, null],
+  ])("%s", (_label, baseType, overflowBehavior, cOp, floating, expected) => {
+    const ctx = createMockContext(new TranspileState(), {
+      cOp,
+      valueHasFloatingOperand: () => floating,
+    });
+    const typeInfo = createTypeInfo({
+      baseType,
+      overflowBehavior: overflowBehavior as "clamp" | "wrap",
+    });
+
+    expect(AssignmentClassifier.compoundClampOp(ctx, typeInfo)).toBe(expected);
   });
 });
 

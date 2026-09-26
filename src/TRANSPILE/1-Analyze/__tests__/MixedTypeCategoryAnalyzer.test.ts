@@ -10,6 +10,9 @@ import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import MixedTypeCategoryAnalyzer from "../MixedTypeCategoryAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
+import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 
 function parse(source: string) {
   const charStream = CharStream.fromString(source);
@@ -351,6 +354,193 @@ describe("MixedTypeCategoryAnalyzer", () => {
         }
       `);
       expect(errors).toHaveLength(1);
+    });
+  });
+  // #1668: an integer and a floating operand are different categories, and a
+  // compound assignment is the same operator as its binary form.
+  describe("floating category and compound assignment (#1668)", () => {
+    it.each([
+      [
+        "an unsigned times a float literal",
+        "u32 i <- 3; f32 x <- i * 2.5;",
+        "integer and floating",
+      ],
+      [
+        "a float first",
+        "f32 k <- 1.0; u32 i <- 3; f32 x <- k * i;",
+        "integer and floating",
+      ],
+      [
+        "a signed plus a float",
+        "i32 i <- 3; f32 k <- 1.0; f32 x <- i + k;",
+        "integer and floating",
+      ],
+      [
+        "a comparison with a float literal",
+        "u32 i <- 3; bool b <- (i < 2.5);",
+        "integer and floating",
+      ],
+      [
+        "a compound times a float literal",
+        "u32 y <- 3; y *<- 2.5;",
+        "integer and floating",
+      ],
+      [
+        "a float target plus an unsigned",
+        "f32 x <- 1.0; u32 i <- 3; x +<- i;",
+        "integer and floating",
+      ],
+      [
+        "a compound signed into unsigned",
+        "u32 y <- 3; i32 b <- 2; y +<- b;",
+        "signed and unsigned",
+      ],
+      [
+        "a for-update by a signed step",
+        "i32 step <- 1; for (u32 i <- 0; i < 8; i +<- step) { }",
+        "signed and unsigned",
+      ],
+    ])("rejects %s", (_label, body, pair) => {
+      const errors = analyze(`void main() { ${body} }`);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0810");
+      expect(errors[0].message).toContain(`(${pair})`);
+    });
+
+    it.each([
+      ["an explicit cast", "u32 i <- 3; f32 x <- (f32)i * 2.5;"],
+      ["a float times an integer literal", "f32 k <- 1.0; f32 x <- k * 3;"],
+      ["a char literal containing a dot", "u8 c <- 100; u8 d <- c + '.';"],
+      ["a hex literal ending in F32", "u32 y <- 3; y +<- 0xFF32;"],
+      ["a compound with an integer literal", "u32 y <- 3; y +<- 1;"],
+      ["a shift compound", "u32 y <- 3; y <<<- 2;"],
+      [
+        "a plain assignment, which is Rule 10.3 (#1682)",
+        "u32 y <- 3; f32 k <- 1.0; y <- k;",
+      ],
+      ["a same-category compound", "u32 y <- 3; u8 s <- 1; y +<- s;"],
+    ])("accepts %s", (_label, body) => {
+      expect(analyze(`void main() { ${body} }`)).toHaveLength(0);
+    });
+  });
+  // #1092 item 1, folded into #1668: an operand is classified by its declared
+  // type whatever the path to it. Each of these contributed no category before.
+  describe("operands classified by declared type (#1092, #1668)", () => {
+    function analyzeWithSymbols(source: string) {
+      const symbols = createMockSymbols({
+        structFields: new Map([
+          [
+            "Sample",
+            new Map([
+              ["v", "f32"],
+              ["offset", "i32"],
+              ["count", "u32"],
+            ]),
+          ],
+        ]),
+        functionReturnTypes: new Map([
+          ["half", "f32"],
+          ["minusOne", "i32"],
+          ["makeSample", "Sample"],
+          ["scaleFn", "f32"],
+        ]),
+      });
+      return new MixedTypeCategoryAnalyzer(
+        testAnalysisContext(state, { symbols }),
+      ).analyze(parse(source));
+    }
+
+    const PRELUDE = "struct Sample { f32 v; i32 offset; u32 count; }";
+
+    it.each([
+      [
+        "an array element",
+        "u32 a <- 5; i32[2] s <- [1, 2]; u32 r <- a + s[0];",
+        "signed and unsigned",
+      ],
+      [
+        "a struct field",
+        "Sample p; u32 i <- 3; f32 x <- i * p.v;",
+        "integer and floating",
+      ],
+      [
+        "a call result",
+        "u32 a <- 5; u32 r <- a + minusOne();",
+        "signed and unsigned",
+      ],
+      [
+        "a member after a call",
+        "u32 i <- 3; f32 x <- i * makeSample().v;",
+        "integer and floating",
+      ],
+      [
+        "a cast",
+        "u32 i <- 3; u32 j <- 4; f32 x <- (f32)i * j;",
+        "integer and floating",
+      ],
+      [
+        "a ternary's float arm",
+        "f32 k <- 1.0; u32 i <- 3; f32 x <- ((i > 0) ? k : k) * i;",
+        "integer and floating",
+      ],
+      [
+        "a compound into an element",
+        "u32[1] arr <- [3]; arr[0] *<- 2.5;",
+        "integer and floating",
+      ],
+      [
+        "a compound into a field",
+        "Sample p; p.count +<- p.offset;",
+        "signed and unsigned",
+      ],
+      [
+        "a compound in a for initializer",
+        "u32 i <- 0; i32 step <- 2; for (i +<- step; i < 8; i +<- 1) { }",
+        "signed and unsigned",
+      ],
+    ])("rejects %s", (_label, body, pair) => {
+      const errors = analyzeWithSymbols(`${PRELUDE} void main() { ${body} }`);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain(`(${pair})`);
+    });
+
+    it.each([
+      ["a bit extraction", "i32 b <- 1; u32 a <- 5; u32 r <- a + b[0, 32];"],
+      [
+        "a same-category element",
+        "u32[1] arr <- [3]; u32 a <- 5; u32 r <- a + arr[0];",
+      ],
+      ["a float field times a float literal", "Sample p; f32 x <- p.v * 2.5;"],
+      [
+        "a cast of the integer beside a float field",
+        "Sample p; u32 i <- 3; f32 x <- (f32)i * p.v;",
+      ],
+      [
+        "a signed operand only in a ternary condition",
+        "i32 s <- 1; u32 i <- 3; u32 j <- 4; u32 x <- ((s > 0) ? i : j) + i;",
+      ],
+      ["a float call result times a float", "f32 x <- half() * 2.5;"],
+    ])("accepts %s", (_label, body) => {
+      expect(
+        analyzeWithSymbols(`${PRELUDE} void main() { ${body} }`),
+      ).toHaveLength(0);
+    });
+
+    it("rejects an integer times a C header float", () => {
+      state.symbolTable.addCSymbol({
+        kind: "variable",
+        name: "apiScale",
+        type: "float",
+        sourceFile: "api.h",
+        span: TestSourceSpan.at(1),
+        sourceLanguage: ESourceLanguage.C,
+        visibility: "public",
+      });
+      const errors = analyze(
+        "void main() { u32 i <- 3; f32 x <- i * apiScale; }",
+      );
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain("(integer and floating)");
     });
   });
 });

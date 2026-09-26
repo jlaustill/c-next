@@ -1,0 +1,6 @@
+// Helper (not a test): the floating operand the cross-file #1668 fixtures
+// combine with an integer. E0810 has to find its category here, across the
+// include.
+f32 sharedScale <- 2.5;
+
+u32 sharedCount <- 3;

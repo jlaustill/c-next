@@ -239,6 +239,24 @@ class ParserUtils {
    * @param ctx - The parser rule context containing operands and operators
    * @returns Array of operator strings in the order they appear
    */
+  /**
+   * The two VALUE arms of a real ternary, or null for anything else.
+   *
+   * A ternary's value is one of its arms; its condition is a separate
+   * expression that is never a value operand of the enclosing operator.
+   * Addressed through `orExpression()`, never child indices: the condition is
+   * parenthesized, so child 0 is `(` (CLAUDE.md). #1668: 2.1 and 2.2 each
+   * picked the arms by hand, and E0810 did not skip the condition at all, so
+   * `((i > 0) ? k : k) * i` read as internally mixed and went unchecked.
+   */
+  static ternaryValueArms(
+    node: ParserRuleContext,
+  ): [Parser.OrExpressionContext, Parser.OrExpressionContext] | null {
+    if (!(node instanceof Parser.TernaryExpressionContext)) return null;
+    const branches = node.orExpression();
+    return branches.length === 3 ? [branches[1], branches[2]] : null;
+  }
+
   static getOperatorsFromChildren(ctx: ParserRuleContext): string[] {
     const operators: string[] = [];
     for (const child of ctx.children) {

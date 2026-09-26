@@ -1,4 +1,5 @@
 import DeclaredTypeFacts from "./DeclaredTypeFacts";
+import ForeignTypeFacts from "./ForeignTypeFacts";
 import QualifiedCName from "./QualifiedCName";
 import TypeResolver from "./TypeResolver";
 import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
@@ -69,18 +70,6 @@ class DeclaredVariableFacts {
     const byCName = symbolTable.getTOverloadsByCName(name)[0];
     return byCName?.kind === "variable" && byCName.type ? byCName : undefined;
   }
-  /**
-   * Strip trailing pointer stars from a C type string (e.g., "font_t*" → "font_t").
-   * Uses string operations instead of regex to avoid SonarCloud ReDoS flag (S5852).
-   */
-  private static stripTrailingPointers(type: string): string {
-    let end = type.length;
-    while (end > 0 && type[end - 1] === "*") {
-      end--;
-    }
-    return type.slice(0, end).trim();
-  }
-
   /**
    * A declared variable symbol as type info.
    *
@@ -164,7 +153,9 @@ class DeclaredVariableFacts {
    */
   static typeNameOf(symbolTable: SymbolTable, name: string): string | null {
     const symbol = DeclaredVariableFacts.symbolOf(symbolTable, name);
-    if (!symbol) return null;
+    // #1668: a C header variable answers through the same fallback as
+    // `typeInfoOf`, so 2.1 and 2.2 read one type for it.
+    if (!symbol) return ForeignTypeFacts.variableType(symbolTable, name);
     // #1322: WITH its dimensions. `IDeclaredVar.typeText` records `u32[4]` for
     // a lexical declaration, and every chain walk reads array-ness off the type
     // text, so the run-wide fallback has to say the same thing or an imported
@@ -209,26 +200,19 @@ class DeclaredVariableFacts {
       return DeclaredVariableFacts.fromSymbol(symbols, symbol);
     }
 
-    // Issue #978: Fall back to C symbols for external struct globals from .h headers.
-    // Only return type info for struct-typed variables — returning info for all
-    // C types would cause regressions (e.g., array indexing misread as bit extraction).
+    // Issue #978 / #1668: a C header variable, where C-Next may use its type
+    // at all -- a struct global, or a floating scalar. `ForeignTypeFacts` owns
+    // that decision, and `typeNameOf` asks the same question.
+    const foreign = ForeignTypeFacts.variableType(symbolTable, name);
     const cSymbol = symbolTable.getCSymbol(name);
-    if (cSymbol?.kind === "variable" && cSymbol.type) {
-      const baseType = DeclaredVariableFacts.stripTrailingPointers(
-        cSymbol.type,
-      );
-      if (
-        symbolTable.isTypedefStructType(baseType) ||
-        symbolTable.getStructFields(baseType)
-      ) {
-        return {
-          baseType,
-          bitWidth: 0,
-          isArray: cSymbol.isArray || false,
-          isConst: cSymbol.isConst || false,
-          isPointer: cSymbol.type.endsWith("*"),
-        };
-      }
+    if (foreign !== null && cSymbol?.kind === "variable") {
+      return {
+        baseType: foreign,
+        bitWidth: TYPE_WIDTH[foreign] ?? 0,
+        isArray: cSymbol.isArray || false,
+        isConst: cSymbol.isConst || false,
+        isPointer: cSymbol.type.endsWith("*"),
+      };
     }
 
     return undefined;

@@ -66,6 +66,13 @@ interface IAssignmentContext {
   readonly valueIntegerType: () => string | null;
   readonly foldValue: () => number | undefined;
 
+  /**
+   * #1668: whether any operand of the value is floating. A compound assignment
+   * with a floating operand is not integer arithmetic, so it must not reach an
+   * integer clamp helper. False when there is no value.
+   */
+  readonly valueHasFloatingOperand: () => boolean;
+
   // === Extracted identifiers and expressions ===
 
   /** All identifiers in the target chain */

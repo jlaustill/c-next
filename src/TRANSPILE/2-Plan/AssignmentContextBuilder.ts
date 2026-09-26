@@ -69,6 +69,9 @@ interface IContextBuilderDeps {
   /** The value expression's integer type */
   integerExpressionType(ctx: Parser.ExpressionContext): string | null;
 
+  /** #1668: whether any operand of the value expression is floating */
+  hasFloatingOperand(ctx: Parser.ExpressionContext): boolean;
+
   /**
    * ADR-001's assignment operator mapping, injected rather than imported.
    *
@@ -257,6 +260,8 @@ function buildAssignmentContext(
     hasValue: valueCtx !== null,
     valueExpressionType: () => deps.expressionType(valueCtx),
     valueIntegerType: () => deps.integerExpressionType(valueCtx),
+    valueHasFloatingOperand: () =>
+      valueCtx !== null && deps.hasFloatingOperand(valueCtx),
     foldValue: () => deps.tryEvaluateConstant(valueCtx),
     identifiers,
     subscriptCount: subscripts.length,

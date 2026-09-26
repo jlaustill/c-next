@@ -1,4 +1,5 @@
 import TPrimitiveKind from "../transpiler/types/TPrimitiveKind";
+import TypeConstants from "./constants/TypeConstants";
 
 /**
  * Utility functions for working with C-Next primitive types.
@@ -42,8 +43,16 @@ class PrimitiveKindUtils {
    * way of enumerating and typing operands.
    *
    * Operands it cannot type are skipped rather than failing the whole
-   * expression: a literal is contextually typed and has no width of its own.
-   * Null when nothing typed at all.
+   * expression: an integer literal is contextually typed and has no width of
+   * its own. Null when nothing typed at all.
+   *
+   * **Null when any operand is floating (#1668).** A composite with a floating
+   * operand is not an integer composite, whatever its integer operands are.
+   * Skipping that operand like an untyped one made `i * k` (`u32 i`, `f32 k`)
+   * a `u32` composite, and codegen then routed it into the integer clamp
+   * helper, truncating `k`. E0810 rejects the mix when it can classify both
+   * operands. This veto covers the operands it cannot classify yet (#1092),
+   * such as a struct field or a call result.
    *
    * ## One of the two rules here is unexercised, and it is not the obvious one
    *
@@ -64,7 +73,10 @@ class PrimitiveKindUtils {
    *
    * @param operandTypes each operand's type, in source order; nulls allowed
    */
-  static widestIntegerOf(operandTypes: Iterable<string | null>): string | null {
+  static widestIntegerOf(
+    operandTypes: readonly (string | null)[],
+  ): string | null {
+    if (PrimitiveKindUtils.anyFloating(operandTypes)) return null;
     let category: "i" | "u" | null = null;
     let width = 0;
     for (const operandType of operandTypes) {
@@ -76,6 +88,18 @@ class PrimitiveKindUtils {
       width = Math.max(width, Number.parseInt(match[2], 10));
     }
     return category && width > 0 ? `${category}${width}` : null;
+  }
+
+  /**
+   * #1668: whether any operand is floating. Arithmetic with a floating operand
+   * is not integer arithmetic, which is what `widestIntegerOf` vetoes on and
+   * what keeps a compound assignment out of the integer clamp helpers.
+   */
+  static anyFloating(operandTypes: readonly (string | null)[]): boolean {
+    return operandTypes.some(
+      (operandType) =>
+        operandType !== null && TypeConstants.FLOAT_TYPES.includes(operandType),
+    );
   }
 
   static isPrimitive(type: string): type is TPrimitiveKind {
