@@ -83,7 +83,7 @@ interface IResolvedIncludes {
 class IncludeResolver {
   private readonly resolvedPaths: Set<string> = new Set();
   private readonly fs: IFileSystem;
-  private readonly headerExtension: THeaderExtension | null;
+  private readonly headerExtension: THeaderExtension;
 
   /**
    * Issue #1467: asked where the generated header for a `.cnx` is reachable,
@@ -100,15 +100,16 @@ class IncludeResolver {
    *   `.cnx` is reachable, relative to the header output root. See the field
    *   above for why it may be null.
    * @param headerExtension The extension generated headers get in this run
-   *   (".h" or ".hpp"), or `null` for a caller that does not read
-   *   `headerIncludeDirectives` from the result.
+   *   (".h" or ".hpp").
    *
    *   Issue #1319: this parameter was a mode with a `false` default, and the
    *   default was load-bearing in the wrong direction -- `IncludeTreeWalker`
    *   never passed it, so that instance answered ".h" for every C++ run. It
-   *   went unnoticed because the walker returns only `cnextIncludes` and drops
-   *   the one field the extension feeds. `null` states that intent, so the
-   *   mistake it used to make is no longer expressible.
+   *   went unnoticed because the walker returned only `cnextIncludes` and
+   *   dropped the one field the extension feeds. #1319 let that caller pass
+   *   `null`; #1435 deleted the walker, the one caller that read no directive,
+   *   so the parameter is required and never null. With no default, no caller
+   *   can inherit a wrong extension.
    *
    *   This used to be readable before the fact settled: cppDetected was raised
    *   by discovering a header, which could happen after IncludeResolver ran, so
@@ -119,7 +120,7 @@ class IncludeResolver {
    */
   constructor(
     private readonly searchPaths: string[],
-    headerExtension: THeaderExtension | null,
+    headerExtension: THeaderExtension,
     fs: IFileSystem = defaultFs,
     headerIncludePathFor: ((cnxPath: string) => string | null) | null = null,
   ) {
@@ -223,21 +224,17 @@ class IncludeResolver {
       // Issue #854: Track header directive for cnext includes so their types
       // can be mapped by ExternalTypeHeaderBuilder, preventing duplicate
       // forward declarations (MISRA Rule 5.6)
-      // Issue #1319: a caller that never reads headerIncludeDirectives passes
-      // null, so it cannot contribute a wrong extension to a map it ignores.
-      if (this.headerExtension !== null) {
-        // Issue #1467: ask the owner where the header is reachable. The
-        // extension swap below is the fallback for a caller with no resolver
-        // and for a header outside the output root -- not a second answer.
-        const headerPath =
-          this.headerIncludePathFor?.(absolutePath) ??
-          includeInfo.path.replace(/\.cnx$|\.cnext$/, this.headerExtension);
-        const directive = includeInfo.isLocal
-          ? `#include "${headerPath}"`
-          : `#include <${headerPath}>`;
-        result.headerIncludeDirectives.set(absolutePath, directive);
-        result.cnextIncludeRewrites.set(includeInfo.path, headerPath);
-      }
+      // Issue #1467: ask the owner where the header is reachable. The
+      // extension swap below is the fallback for a caller with no resolver
+      // and for a header outside the output root -- not a second answer.
+      const headerPath =
+        this.headerIncludePathFor?.(absolutePath) ??
+        includeInfo.path.replace(/\.cnx$|\.cnext$/, this.headerExtension);
+      const directive = includeInfo.isLocal
+        ? `#include "${headerPath}"`
+        : `#include <${headerPath}>`;
+      result.headerIncludeDirectives.set(absolutePath, directive);
+      result.cnextIncludeRewrites.set(includeInfo.path, headerPath);
     }
   }
 

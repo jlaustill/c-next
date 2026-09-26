@@ -9,7 +9,6 @@
 
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import type ITransitiveIncludes from "../../transpiler/types/ITransitiveIncludes";
-import IncludeTreeWalker from "../../transpiler/data/IncludeTreeWalker";
 
 /**
  * Collects symbol information by traversing the include graph.
@@ -21,79 +20,52 @@ import IncludeTreeWalker from "../../transpiler/data/IncludeTreeWalker";
  */
 class TransitiveEnumCollector {
   /**
-   * Collect symbol info from all transitively included .cnx files.
+   * Collect symbol info from every file `filePath` transitively includes.
    *
-   * Performs depth-first traversal of the include graph, collecting
-   * ICodeGenSymbols from each visited file. Files are only visited once
-   * to handle circular includes.
+   * #1435: the closure is taken over the include graph discovery resolved, and
+   * over nothing else. There were two entry points here, and neither read that
+   * graph: one re-read each file from disk and rebuilt a search path without
+   * the PlatformIO and Arduino tiers or the injected filesystem, so an include
+   * discovery had compiled was invisible to its includer (E0426); the other
+   * started its walk without the root, so a cycle handed the root its own
+   * symbols as an "external" source. One entry point over one graph cannot
+   * disagree with discovery, or with itself.
+   *
+   * Depth-first, each file before its includes, each file once. The root is
+   * visited first and is never a source of its own view.
    *
    * @param filePath - The root file to start collecting from
+   * @param includesByFile - Each file's direct includes, as discovery resolved
+   *   them. A file with no entry includes nothing.
    * @param symbolInfoByFile - Map of file paths to their symbol info
-   * @param includeDirs - Additional directories to search for includes
    * @returns the closure's `ICodeGenSymbols` and the paths they came from
    */
   static collect(
     filePath: string,
-    symbolInfoByFile: ReadonlyMap<string, ICodeGenSymbols>,
-    includeDirs: readonly string[],
-  ): ITransitiveIncludes {
-    return TransitiveEnumCollector._gather(
-      (visit) => IncludeTreeWalker.walkFromFile(filePath, includeDirs, visit),
-      symbolInfoByFile,
-    );
-  }
-
-  /**
-   * The body both entry points share.
-   *
-   * #1472: these two methods differed only in which `IncludeTreeWalker` entry
-   * they called -- the per-file work was written out twice, so adding `paths`
-   * to the walk would have been two edits that had to agree. They are one edit
-   * now, which is the point: "if two code paths must produce identical output,
-   * they MUST share the same logic" (CLAUDE.md).
-   *
-   * @param walk - invokes the appropriate walker with the visitor given to it
-   * @param symbolInfoByFile - Map of file paths to their symbol info
-   */
-  private static _gather(
-    walk: (visit: (file: { path: string }) => void) => void,
+    includesByFile: ReadonlyMap<string, ReadonlyArray<{ path: string }>>,
     symbolInfoByFile: ReadonlyMap<string, ICodeGenSymbols>,
   ): ITransitiveIncludes {
     const sources: ICodeGenSymbols[] = [];
     const paths: string[] = [];
+    const visited = new Set<string>([filePath]);
 
-    walk((file) => {
-      paths.push(file.path);
-      const externalInfo = symbolInfoByFile.get(file.path);
-      if (externalInfo) {
-        sources.push(externalInfo);
+    const visit = (from: string): void => {
+      for (const include of includesByFile.get(from) ?? []) {
+        if (visited.has(include.path)) {
+          continue;
+        }
+        visited.add(include.path);
+        paths.push(include.path);
+        const externalInfo = symbolInfoByFile.get(include.path);
+        if (externalInfo) {
+          sources.push(externalInfo);
+        }
+        visit(include.path);
       }
-    });
+    };
+    visit(filePath);
 
     return { sources, paths };
-  }
-
-  /**
-   * Collect symbol info for standalone mode from resolved includes.
-   *
-   * Issue #591: Extracted to unify enum collection across transpilation modes.
-   * Unlike collect() which starts from a file path and parses it, this method
-   * starts from already-resolved includes (from IncludeResolver.resolve()).
-   *
-   * @param cnextIncludes - Array of resolved C-Next include files
-   * @param symbolInfoByFile - Map of file paths to their symbol info
-   * @param includeDirs - Additional directories to search for nested includes
-   * @returns the closure's `ICodeGenSymbols` and the paths they came from
-   */
-  static collectForStandalone(
-    cnextIncludes: ReadonlyArray<{ path: string }>,
-    symbolInfoByFile: ReadonlyMap<string, ICodeGenSymbols>,
-    includeDirs: readonly string[],
-  ): ITransitiveIncludes {
-    return TransitiveEnumCollector._gather(
-      (visit) => IncludeTreeWalker.walk(cnextIncludes, includeDirs, visit),
-      symbolInfoByFile,
-    );
   }
 }
 

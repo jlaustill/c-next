@@ -89,8 +89,8 @@ const NO_DISCOVERY: IDiscoveryFacts = {
   includeSearchPaths: new Map(),
 };
 
+/** A program built without include information: each file sees only itself. */
 const NO_VISIBILITY: IVisibilityInput = {
-  includeDirs: [],
   cnextIncludesByFile: new Map(),
 };
 
@@ -313,21 +313,15 @@ class Program {
 
     const visible = new Map<string, ICodeGenSymbols>();
     for (const [sourceFile, own] of ownView) {
-      const declaredIncludes = visibility.cnextIncludesByFile.get(sourceFile);
-      // Two entry points, and which one applies is a property of how the file
-      // arrived: a standalone run states its includes, a discovered file has
-      // them on disk to walk from.
-      const sources = declaredIncludes
-        ? TransitiveEnumCollector.collectForStandalone(
-            declaredIncludes,
-            ownView,
-            visibility.includeDirs,
-          ).sources
-        : TransitiveEnumCollector.collect(
-            sourceFile,
-            ownView,
-            visibility.includeDirs,
-          ).sources;
+      // #1435: one closure, over the graph discovery resolved. How the file
+      // arrived -- from disk or as a standalone run's text -- used to pick
+      // between two walks that each re-derived that graph, and disagreed with
+      // discovery and with each other.
+      const sources = TransitiveEnumCollector.collect(
+        sourceFile,
+        visibility.cnextIncludesByFile,
+        ownView,
+      ).sources;
       visible.set(
         sourceFile,
         sources.length > 0
