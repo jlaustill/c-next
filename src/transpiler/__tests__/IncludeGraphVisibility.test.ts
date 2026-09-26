@@ -92,7 +92,6 @@ describe("include-graph visibility (Issue #1435)", () => {
       }).transpile({
         kind: "source",
         source: MAIN_USES_ENUM,
-        workingDir: join(project, "src"),
         sourcePath: mainPath,
       });
 
@@ -100,6 +99,27 @@ describe("include-graph visibility (Issue #1435)", () => {
       expect(
         result.files.find((f) => f.sourcePath === mainPath)?.code,
       ).toContain("EColor c = EColor__GREEN;");
+    });
+
+    it("text with no path discovers the project's tiers from its workingDir, and so does an empty path", async () => {
+      const lib = join(project, ".pio", "libdeps", "teensy41", "colors", "src");
+      mkdirSync(lib, { recursive: true });
+      writeFileSync(join(lib, "colors.cnx"), COLORS);
+
+      for (const sourcePath of [undefined, ""]) {
+        const result = await new Transpiler({
+          input: "",
+          noCache: true,
+        }).transpile({
+          kind: "source",
+          source: MAIN_USES_ENUM,
+          workingDir: project,
+          sourcePath,
+        });
+
+        expect(result.errors).toEqual([]);
+        expect(result.files[0]?.code).toContain("EColor c = EColor__GREEN;");
+      }
     });
   });
 
@@ -262,7 +282,7 @@ void main() {
     });
 
     it("a sourcePath decides the directory, whatever the workingDir", async () => {
-      // `scripts/format-fidelity.ts` passes the repository root as workingDir
+      // `scripts/format-fidelity.ts` passed the repository root as workingDir
       // and a fixture's absolute path as sourcePath.
       const result = await transpile({
         workingDir: join(project, "other"),

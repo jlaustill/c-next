@@ -488,11 +488,13 @@ class Transpiler {
     // root IS and where it resolves FROM cannot come apart. `workingDir` is
     // where text with no path is resolved from. One directory, decided here,
     // for discovery and for the 2.1 rules that ask where a quoted include is.
+    // An empty path is no path, and is decided so once for both fields.
+    const sourcePath = input.sourcePath === "" ? undefined : input.sourcePath;
     return this._discoverFromSource({
-      path: input.sourcePath ?? "<string>",
+      path: sourcePath ?? "<string>",
       source: input.source,
-      directory: input.sourcePath
-        ? dirname(resolve(input.sourcePath))
+      directory: sourcePath
+        ? dirname(resolve(sourcePath))
         : (input.workingDir ?? process.cwd()),
       includeDirs: input.includeDirs ?? [],
     });
