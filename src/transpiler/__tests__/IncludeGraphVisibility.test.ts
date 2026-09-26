@@ -60,14 +60,7 @@ describe("include-graph visibility (Issue #1435)", () => {
     }
 
     it("an enum declared in a .pio/libdeps include is visible to the includer", async () => {
-      const lib = join(
-        project,
-        ".pio",
-        "libdeps",
-        "teensy41",
-        "colorlib",
-        "src",
-      );
+      const lib = join(project, ".pio", "libdeps", "teensy41", "colors", "src");
       mkdirSync(lib, { recursive: true });
       writeFileSync(join(lib, "colors.cnx"), COLORS);
 
@@ -87,14 +80,7 @@ describe("include-graph visibility (Issue #1435)", () => {
     });
 
     it("an in-memory root resolves a .pio/libdeps include as its file on disk does", async () => {
-      const lib = join(
-        project,
-        ".pio",
-        "libdeps",
-        "teensy41",
-        "colorlib",
-        "src",
-      );
+      const lib = join(project, ".pio", "libdeps", "teensy41", "colors", "src");
       mkdirSync(lib, { recursive: true });
       writeFileSync(join(lib, "colors.cnx"), COLORS);
       const mainPath = join(project, "src", "main.cnx");
