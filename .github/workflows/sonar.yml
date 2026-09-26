@@ -1,0 +1,113 @@
+name: SonarCloud (fork PRs)
+
+# #1680: GitHub gives a pull_request run from a FORK no repository secrets, so
+# the Sonar job in pr-checks.yml cannot authenticate there and every fork PR
+# failed it. This workflow runs after PR Quality Checks completes, in the base
+# repository's context and WITH SONAR_TOKEN. It scans fork pull requests only;
+# pr-checks.yml keeps pushes and same-repository pull requests until #1680's
+# second PR moves them here too.
+#
+# The fork's files are on disk while the token is in scope, so:
+#   - nothing from the checkout is executed: no npm/node step, ever
+#   - Sonar settings come from the default branch (-Dproject.settings). The
+#     fork's sonar-project.properties could otherwise set sonar.host.url (send
+#     the token elsewhere) or sonar.nodejs.executable (run its own binary)
+#   - no event payload is interpolated into a script: head_branch is chosen by
+#     the fork's author, so it reaches the shell only through env
+#   - GitHub-hosted runner only
+# Known ceiling: the coverage report was produced by the fork's own run, so a
+# fork can misreport its coverage. It cannot reach the token through it.
+#
+# workflow_run runs from the DEFAULT BRANCH's copy of this file, so a change
+# here takes effect only once merged.
+
+on:
+  workflow_run:
+    workflows: [PR Quality Checks]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
+jobs:
+  scan:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.head_repository.full_name != github.repository
+
+    steps:
+      # workflow_run.pull_requests is empty for a fork, so find the PR by its
+      # head and require exactly one open PR at the commit PR Quality Checks ran on.
+      - name: Resolve pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          matches=$(gh api --paginate --method GET "repos/$REPO/pulls" \
+            -f state=open -f "head=$HEAD_OWNER:$HEAD_BRANCH" -F per_page=100 \
+            --jq '.[] | select(.head.sha == env.HEAD_SHA) | {number, base: .base.ref, branch: .head.ref} | @json')
+          if [ "$(printf '%s\n' "$matches" | grep -c .)" -ne 1 ]; then
+            echo "::error::expected one open PR at $HEAD_SHA, found: $matches"
+            exit 1
+          fi
+          number=$(printf '%s' "$matches" | jq -r .number)
+          case "$number" in ''|*[!0-9]*) echo "::error::bad PR number"; exit 1 ;; esac
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+          # One line of JSON: jq escapes the branch name, and a git ref cannot
+          # hold a newline, so it cannot break out of the output file.
+          params=$(printf '%s' "$matches" | jq -c --arg sha "$HEAD_SHA" '{
+            "sonar.pullrequest.key": (.number | tostring),
+            "sonar.pullrequest.branch": .branch,
+            "sonar.pullrequest.base": .base,
+            "sonar.scm.revision": $sha
+          }')
+          echo "params=$params" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout pull request
+        uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ steps.pr.outputs.number }}/head
+          fetch-depth: 0 # full history: blame data, and the base branch for new-code detection
+          persist-credentials: false
+
+      - name: Assert checkout matches the analyzed run
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          actual=$(git rev-parse HEAD)
+          if [ "$actual" != "$HEAD_SHA" ]; then
+            echo "::error::checked out $actual, PR Quality Checks ran on $HEAD_SHA"
+            exit 1
+          fi
+
+      - name: Checkout trusted Sonar settings
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .sonar-trusted
+          sparse-checkout: sonar-project.properties
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: ./coverage
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@ba9859eae8dd6bd29e412f25ddbbef3d032000f4 # v8.2.2
+        with:
+          args: -Dproject.settings=.sonar-trusted/sonar-project.properties
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+          SONARQUBE_SCANNER_PARAMS: ${{ steps.pr.outputs.params }}

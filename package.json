@@ -148,7 +148,8 @@
     "prettier": "^3.8.1",
     "ts-morph": "^28.0.0",
     "ts-prune": "^0.10.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "yaml": "^2.9.1"
   },
   "dependencies": {
     "@n1ru4l/toposort": "^0.0.1",
