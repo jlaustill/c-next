@@ -98,6 +98,23 @@ class TargetDescriptions {
   }
 
   /**
+   * Whether two descriptions describe the same platform: every required fact
+   * equal, whatever the names. So an alias agrees with its target, and an
+   * inline description agrees with the catalog row it spells out. The
+   * toolchain fields are not compared -- they never change a program's
+   * meaning.
+   */
+  static equal(a: ITargetDescription, b: ITargetDescription): boolean {
+    return Object.entries(TARGET_DESCRIPTION_FIELDS).every(
+      ([field, spec]) =>
+        spec.optional ||
+        field === "name" ||
+        a[field as keyof ITargetDescription] ===
+          b[field as keyof ITargetDescription],
+    );
+  }
+
+  /**
    * Every name the catalog defines, aliases included, mapped to the
    * description it denotes. Throws on any defect, listing all of them.
    */

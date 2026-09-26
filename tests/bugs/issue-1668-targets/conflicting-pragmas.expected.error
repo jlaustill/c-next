@@ -1,0 +1,2 @@
+7:0 error[E0511]: this file declares target 'teensy41', but tests/bugs/issue-1668-targets/conflict-helper.cnx:2 declares 'cortex-m0'
+       help: A program has exactly one target (ADR-049). Declare the same target in every file that declares one; a file that declares none takes the program's.

@@ -1,4 +1,5 @@
 import type IFunctionSymbol from "./symbols/IFunctionSymbol";
+import type TRunTarget from "./TRunTarget";
 import type IScopeSymbol from "./symbols/IScopeSymbol";
 import type TSymbol from "./symbols/TSymbol";
 import type IConflict from "./IConflict";
@@ -184,6 +185,13 @@ interface IProgram {
    * default.
    */
   cnxIncludeRewrites(sourceFile: string): ReadonlyMap<string, string>;
+
+  /**
+   * ADR-049: the run's one target, settled from every file's pragmas and the
+   * target option. Asking a program built without target inputs is a caller
+   * error: only a test builds one, and only a test that never asks.
+   */
+  target(): TRunTarget;
 
   /**
    * Issue #1322: the directories an angle include from `sourceFile` is searched

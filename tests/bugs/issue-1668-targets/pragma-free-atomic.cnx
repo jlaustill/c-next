@@ -1,0 +1,6 @@
+// Helper for program-pragma: declares no target, so it takes the program's.
+atomic u32 helperCounter <- 0;
+
+void helperIncrement() {
+    helperCounter +<- 1;
+}

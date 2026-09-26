@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-387 fixture(s) assert a diagnostic; 372 carry a code.
+389 fixture(s) assert a diagnostic; 374 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -326,6 +326,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1668-int-float-clamp/mixed-int-float-imported-transitive.test.cnx               | E0810               |
 | tests/bugs/issue-1668-int-float-clamp/mixed-int-float-rejected.test.cnx                          | E0810               |
 | tests/bugs/issue-1668-int-float-clamp/postfix-operands-rejected.test.cnx                         | E0810               |
+| tests/bugs/issue-1668-targets/conflicting-pragmas.test.cnx                                       | E0511               |
+| tests/bugs/issue-1668-targets/unknown-pragma.test.cnx                                            | E0510               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/cross-file-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx                             | E0708               |

@@ -22,6 +22,9 @@
  * not declaring them on `IProgram`.
  */
 
+import RunTarget from "./RunTarget";
+import type TRunTarget from "../../transpiler/types/TRunTarget";
+import invariant from "../../utils/invariant";
 import type IFunctionSymbol from "../../transpiler/types/symbols/IFunctionSymbol";
 import ScopeUtils from "../../utils/ScopeUtils";
 import type IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
@@ -149,6 +152,8 @@ class Program {
       symbolsByFile,
       modifications.modifiedParameters,
     );
+    // Settled once, with the program, so every pass reads one answer.
+    const target = inputs.target ? RunTarget.resolve(inputs.target) : null;
     const conflicts = ConflictDetector.detect(
       registry,
       [...symbolsByFile.values()].flat(),
@@ -192,6 +197,13 @@ class Program {
         callbackCompatibleFunctions,
       cnxIncludeRewrites: (sourceFile: string): ReadonlyMap<string, string> =>
         discovery.cnxIncludeRewrites.get(sourceFile) ?? EMPTY_REWRITES,
+      target: (): TRunTarget => {
+        invariant(
+          target,
+          "a program built without target inputs has no target",
+        );
+        return target;
+      },
       includeSearchPaths: (sourceFile: string): readonly string[] =>
         discovery.includeSearchPaths.get(sourceFile) ?? EMPTY_PATHS,
       scope: (path: string): IScopeSymbol | null =>

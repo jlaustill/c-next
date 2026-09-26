@@ -429,6 +429,7 @@ describe("Program", () => {
         "sourceFiles",
         "symbolByCName",
         "symbolsInFile",
+        "target",
         "typesDeclaredIn",
       ]);
     });

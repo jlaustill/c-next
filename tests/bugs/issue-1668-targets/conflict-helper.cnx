@@ -1,0 +1,4 @@
+// Helper for conflicting-pragmas: declares a target the entry contradicts.
+#pragma target cortex-m0
+
+u32 helperValue <- 7;

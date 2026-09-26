@@ -9,6 +9,7 @@
  * ONE pipeline for all transpilation.
  */
 
+import type TRunTarget from "./types/TRunTarget";
 import { join, basename, dirname, resolve, relative } from "node:path";
 import type IConflict from "./types/IConflict";
 
@@ -94,7 +95,7 @@ import TypedefParamParser from "../TRANSPILE/3-Render/codegen/helpers/TypedefPar
 import type IRecordedRequirement from "./types/IRecordedRequirement";
 import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../utils/RequirementAggregator";
-import TargetResolver from "../utils/TargetResolver";
+import TargetCatalogFile from "./data/TargetCatalogFile";
 
 /**
  * Unified transpiler
@@ -144,14 +145,6 @@ class Transpiler {
    */
   private anyHeaderPreprocessFailed = false;
 
-  /**
-   * ADR-049: `#pragma target` names declared by this run's C-Next files.
-   *
-   * Collected in Stage 3 so the whole-program Rule 5.1 check can resolve one
-   * budget for the build. Cleared per run by `_initializeRun()` — a stale entry
-   * here would reintroduce exactly the cross-run leak it exists to fix.
-   */
-  private pragmaTargets: string[] = [];
   /** Issue #587: Encapsulated state for accumulated Maps/Sets */
   /**
    * The run's own accumulations (#1452 box 1).
@@ -521,6 +514,12 @@ class Transpiler {
       return;
     }
 
+    // Stage 3b: the program's one target (ADR-049), settled by 1.4. Nothing
+    // below may run for a program whose target is unknown or contested.
+    if (!this._checkRunTarget(input, result)) {
+      return;
+    }
+
     // Stage 4: Check for symbol conflicts
     if (!this._checkSymbolConflicts(result)) {
       return;
@@ -806,6 +805,14 @@ class Transpiler {
             includeSearchPaths: this.discoveredIncludeSearchPaths,
           },
           registry: this.symbolRegistry,
+          target: {
+            option: this.config.target,
+            catalog: TargetCatalogFile.targets(),
+            files: declared.map((entry) => ({
+              sourcePath: entry.file.path,
+              directives: entry.parsed.targetDirectives,
+            })),
+          },
         },
       );
       // Passes after 1.4 read cross-file facts from the artifact rather than
@@ -867,13 +874,6 @@ class Transpiler {
           sourcePath: file.path,
         })),
       };
-    }
-
-    // ADR-049: record the file's declared target while its tree is in hand, so
-    // Stage 4c can resolve a run-level budget without re-parsing or re-deriving.
-    const pragmaTarget = TargetResolver.fromPragma(parsed.tree);
-    if (pragmaTarget) {
-      this.pragmaTargets.push(pragmaTarget);
     }
 
     try {
@@ -1197,10 +1197,7 @@ class Transpiler {
         this.pathResolver.getSourceRelativePath(sourcePath);
       const code = this.codeGenerator.generate(tree, tokenStream, {
         debugMode: this.config.debugMode,
-        targetDescription: TargetResolver.forFile(
-          this.config.target,
-          TargetResolver.fromPragma(tree),
-        ),
+        targetDescription: this._runTarget().description,
         sourcePath,
         cppMode: this.cppMode,
         symbolInfo,
@@ -1499,8 +1496,6 @@ class Transpiler {
     // so a retained entry answers for a file the run never saw.
     this.discoveredCnxIncludeRewrites.clear();
     this.discoveredIncludeSearchPaths.clear();
-    // ADR-049: the previous run's targets must not decide this run's budget
-    this.pragmaTargets = [];
     // #1662: both are run-scoped and both were initialized ONCE, in the
     // constructor, so neither was ever cleared. `warnings` is pushed to per run
     // and copied onto every result, which made three runs of one source on one
@@ -1877,6 +1872,51 @@ class Transpiler {
   }
 
   /**
+   * Stage 3b: report the run's target, or why it has none (ADR-049).
+   *
+   * 1.4 settled it with the program; this only reports. An error with no
+   * position is about the target option rather than a line of source, and is
+   * placed on the entry file -- the last file in pipeline order, which lists
+   * dependencies first. Parse-only runs need no target, so it is not checked.
+   *
+   * @returns true when the run has a target
+   */
+  private _checkRunTarget(
+    input: IPipelineInput,
+    result: ITranspilerResult,
+  ): boolean {
+    if (this.config.parseOnly) {
+      return true;
+    }
+    invariant(this.program, "Stage 3 built the program");
+    const target = this.program.target();
+    if (target.kind === "resolved") {
+      result.target = { name: target.name, source: target.source };
+      return true;
+    }
+    const entry = input.cnextFiles.at(-1)?.path;
+    for (const error of target.errors) {
+      result.errors.push(
+        error.sourcePath === undefined && entry !== undefined
+          ? { ...error, sourcePath: entry }
+          : error,
+      );
+    }
+    result.success = false;
+    return false;
+  }
+
+  /** The run's target; valid once Stage 3b has passed */
+  private _runTarget(): Extract<TRunTarget, { kind: "resolved" }> {
+    const target = this.program?.target();
+    invariant(
+      target?.kind === "resolved",
+      "Stage 3b halts a run whose target did not resolve",
+    );
+    return target;
+  }
+
+  /**
    * Stage 4c: Reject external identifiers that are not distinct within the
    * target's significant-character limit (MISRA C:2012 Rule 5.1, issue #1307).
    *
@@ -1893,12 +1933,13 @@ class Transpiler {
     result: ITranspilerResult,
   ): boolean {
     // NOT TranspileState.targetDescription: codegen assigns that in Stage 5, one
-    // stage after this runs, so it holds the module default on a fresh process
-    // and the previous file's target in a long-lived one (#1307 review). The
-    // budget a whole-program check reports against has to be the build's.
+    // stage after this runs, so it holds nothing on a fresh process and the
+    // previous file's target in a long-lived one (#1307 review). The budget a
+    // whole-program check reports against has to be the build's, which 1.4
+    // settled once.
     const collisions =
       this.codeGenerator.transpileState.symbolTable.detectMISRA51Conflicts(
-        TargetResolver.forRun(this.config.target, this.pragmaTargets),
+        this._runTarget().description,
       );
 
     for (const collision of collisions) {

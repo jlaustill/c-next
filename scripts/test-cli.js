@@ -605,14 +605,49 @@ test("--target avr generates PRIMASK fallback code", () => {
   });
 });
 
-test("--target with unknown target still compiles (uses default)", () => {
+// ADR-049: every name given must be a known target. An unknown --target used
+// to warn and fall back, so a misspelling compiled for the wrong platform.
+test("--target with an unknown target is E0510", () => {
   withTempTest("cnext-target-test-", ({ tempDir, cnxFile }) => {
     writeFileSync(cnxFile, atomicCnx, "utf-8");
-    // Unknown target should fall back to default (PRIMASK)
-    const result = runCliInDir(tempDir, ["--target", "unknown-board", cnxFile]);
+    const result = runCliInDir(
+      tempDir,
+      ["--target", "unknown-board", cnxFile],
+      true,
+    );
+    assert(!result.success, "An unknown target must fail the run");
     assert(
-      result.success,
-      "Should compile with unknown target (using default)",
+      result.stderr.includes(
+        "error[E0510]: the target option names 'unknown-board'",
+      ),
+      `Should report E0510: ${result.stderr}`,
+    );
+  });
+});
+
+// ADR-049: source first -- a file's #pragma target decides over --target.
+test("#pragma target decides over --target", () => {
+  withTempTest("cnext-target-test-", ({ tempDir, cnxFile, cFile }) => {
+    writeFileSync(cnxFile, `#pragma target teensy41\n${atomicCnx}`, "utf-8");
+    const result = runCliInDir(tempDir, ["--target", "cortex-m0", cnxFile]);
+    assert(result.success, `Compile should succeed: ${result.output}`);
+    assertFileContains(cFile, "__LDREXW", "The pragma's teensy41 decides");
+    assert(
+      result.output.includes("Target: teensy41 (pragma)"),
+      `Should report the target and its source: ${result.output}`,
+    );
+  });
+});
+
+// ...but the option must still be a known name, even when the pragma decides.
+test("an unknown --target is E0510 even when a pragma decides", () => {
+  withTempTest("cnext-target-test-", ({ tempDir, cnxFile }) => {
+    writeFileSync(cnxFile, `#pragma target teensy41\n${atomicCnx}`, "utf-8");
+    const result = runCliInDir(tempDir, ["--target", "bogus", cnxFile], true);
+    assert(!result.success, "An unknown option must fail the run");
+    assert(
+      result.stderr.includes("error[E0510]"),
+      `Should report E0510: ${result.stderr}`,
     );
   });
 });
@@ -626,19 +661,21 @@ test("cnext.config.json target is respected", () => {
     "cnext-config-test-",
     ({ tempDir, cnxFile, cFile, configFile }) => {
       writeFileSync(cnxFile, atomicCnx, "utf-8");
+      // teensy41 has LDREX; the fallback does not, so the output shows
+      // whether the config was read.
       writeFileSync(
         configFile,
-        JSON.stringify({ target: "cortex-m0" }, null, 2),
+        JSON.stringify({ target: "teensy41" }, null, 2),
         "utf-8",
       );
 
       const result = runCliInDir(tempDir, [cnxFile]);
       assert(result.success, `Compile should succeed: ${result.output}`);
 
-      assertFileContains(
-        cFile,
-        "__get_PRIMASK",
-        "Config target should be used",
+      assertFileContains(cFile, "__LDREXW", "Config target should be used");
+      assert(
+        result.output.includes("Target: teensy41 (option)"),
+        `The config's target is the option's default: ${result.output}`,
       );
     },
   );

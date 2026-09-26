@@ -682,14 +682,24 @@ The compiler tracks ISR vs main access per-member, not per-scope, so mixed atomi
 
 ## Diagnostics
 
-| Code  | Reported when                                      | Asserted by                                    |
-| ----- | -------------------------------------------------- | ---------------------------------------------- |
-| E0889 | A declaration carries both `atomic` and `volatile` | `tests/adr-049/atomic-volatile-error.test.cnx` |
+| Code  | Reported when                                                                      | Asserted by                                                  |
+| ----- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| E0889 | A declaration carries both `atomic` and `volatile`                                 | `tests/adr-049/atomic-volatile-error.test.cnx`               |
+| E0510 | A name given as a target, in source or as the target option, is not a known target | `tests/bugs/issue-1668-targets/unknown-pragma.test.cnx`      |
+| E0511 | Two target declarations in one program describe different platforms                | `tests/bugs/issue-1668-targets/conflicting-pragmas.test.cnx` |
 
 `atomic` is `volatile` plus the guarantee that a read or write cannot be torn,
 so writing both says one of two different things and the author has to be asked
 which. The rule is entirely syntactic -- two modifier tokens on one declaration
 -- so it needs no type, no scope and no symbols.
+
+E0510 and E0511 are the two ways a program's one target can fail to exist
+(Q6). E0510 is reported at the naming pragma, or on the entry file when the
+option named it -- even when a pragma decides, because a misspelled option
+is an error rather than a setting that happens to be overridden. E0511 is
+reported at the declaration that disagrees with the first. Declarations agree
+when they describe the same platform, whatever the names, so an alias agrees
+with the target it names.
 
 ## Scope-Context Matrix (#1219)
 

@@ -26,6 +26,9 @@ interface ITranspilerResult {
   /** Warnings (non-fatal issues) */
   warnings: string[];
 
+  /** ADR-049: the run's one target, and where it came from */
+  target?: { readonly name: string; readonly source: string };
+
   /** Output files generated */
   outputFiles: string[];
 

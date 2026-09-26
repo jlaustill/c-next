@@ -1,0 +1,11 @@
+// #1668 / ADR-049: declarations agree when they describe the same platform,
+// whatever the names. teensy41 is an alias of cortex-m7, so this program has
+// one target -- and its atomic lowers to LDREX/STREX -- rather than E0511.
+#include "teensy-pinned.cnx"
+#pragma target cortex-m7
+
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- pinnedValue;
+}

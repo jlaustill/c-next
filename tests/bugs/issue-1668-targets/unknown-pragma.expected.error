@@ -1,0 +1,2 @@
+4:0 error[E0510]: 'bogus' is not a known target
+       help: Known targets: cortex-m7, cortex-m4, cortex-m3, cortex-m0+, cortex-m0, atmega328p, esp32, host, teensy41, teensy40, stm32f4, avr, arduino-uno. Names match exactly (ADR-049).

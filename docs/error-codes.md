@@ -16,12 +16,12 @@ codes that already have a fixture.
 | E02xx     | Identifier/Param Naming | 5       |
 | E03xx     | Struct Fields/Init      | 4       |
 | E04xx     | Symbol Resolution       | 16      |
-| E05xx     | Include/Preprocessor    | 9       |
+| E05xx     | Include/Preprocessor    | 11      |
 | E06xx     | Sizeof Expressions      | 2       |
 | E07xx     | Control Flow            | 12      |
 | E08xx     | Arithmetic/Array Safety | 49      |
 | E09xx     | NULL Safety             | 8       |
-| **Total** |                         | **106** |
+| **Total** |                         | **108** |
 
 ---
 
@@ -65,12 +65,9 @@ identifier, so a join that is injective can still land on one identifier once th
 target truncates it. The `__` separator costs two characters per level and the
 scope name costs its full length, so the budget is consumed by the encoding, not
 by the author's naming (#1307). Reported against
-`ITargetCapabilities.significantExternalIdentifierChars`, not a hardcoded 31 —
-the limit belongs to the C target. Because Rule 5.1 is a whole-program property,
-the budget is resolved once per run rather than per file: an explicit `--target`
-names one target for every translation unit and wins outright; otherwise the
-narrowest budget among the files' `#pragma target` declarations applies, since a
-pair that collides for the strictest target in a build collides in that build. Scoped to identifiers C-Next generates with
+the target description's `external_identifier_chars`, not a hardcoded 31 —
+the limit belongs to the C target. Rule 5.1 is a whole-program property, and a
+program has exactly one target (ADR-049), so the budget is that target's. Scoped to identifiers C-Next generates with
 external linkage: `private` members are `static` and get the 63-character
 internal budget (#1338), types have no linkage, and a C/C++ header's identifiers
 are not C-Next's to rename. The message names `cnxScopedName` rather than the
@@ -173,6 +170,8 @@ include-visibility is not derivable for a C or C++ name.
 | E0507 | C++ header in a run that does not target C++                        | Set `cppRequired: true` in the config, or pass `--cpp`                                                                                                                                                                                 | `Transpiler.ts`                                      |
 | E0508 | C++ class with a constructor initialized outside a function body    | A class with a constructor is not an aggregate, so its fields are assigned one at a time, and a declaration outside a function body has no statement to assign them in                                                                 | `TRANSPILE/1-Analyze/CppClassInitializerAnalyzer.ts` |
 | E0509 | Generated header names a C-Next source that is not there            | A generated header records the source it was written from; check that source is present and reachable from the include path                                                                                                            | `Transpiler.ts`                                      |
+| E0510 | Not a known target                                                  | Name a target from the catalog, exactly as it is spelled there; `cnext --help` lists them (ADR-049)                                                                                                                                    | `PARSE/4-Resolve/RunTarget.ts`                       |
+| E0511 | Target declarations in one program disagree                         | A program has one target: declare the same one in every file that declares one, or declare it once (ADR-049)                                                                                                                           | `PARSE/4-Resolve/RunTarget.ts`                       |
 
 ---
 

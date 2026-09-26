@@ -409,7 +409,7 @@ Generates optimized code based on target platform:
 - **Cortex-M3/M4/M7**: LDREX/STREX retry loops (lock-free)
 - **Cortex-M0/M0+**: PRIMASK disable/restore (interrupt masking)
 
-Target detection priority: `--target` CLI flag > `platformio.ini` > `#pragma target` > default
+A program has exactly one target (ADR-049): `#pragma target` in any file, else the `--target` option (a config file's `target` is its default). Every name must be a known target — `cnext --help` lists them — and every file that declares one must declare the same.
 
 ### Volatile Variables (ADR-064)
 

@@ -31,11 +31,11 @@ one.
 | ----------------------- | ------: |
 | `src/TRANSPILE/`        |      67 |
 | `src/PARSE/`            |      18 |
-| `src/utils/`            |      11 |
+| `src/utils/`            |      10 |
 | `src/transpiler/`       |       3 |
 | `src/transpiler/types/` |       2 |
 | `src/transpiler/logic/` |       1 |
-| **total**               | **102** |
+| **total**               | **101** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -146,6 +146,5 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/OverflowBehaviorUtils.ts`                         | grammar           |
 | `src/utils/ParserUtils.ts`                                   | antlr4ng, grammar |
 | `src/utils/PostfixAnalysisUtils.ts`                          | grammar           |
-| `src/utils/TargetResolver.ts`                                | grammar           |
 
-102 module(s).
+101 module(s).

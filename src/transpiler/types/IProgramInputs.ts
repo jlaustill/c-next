@@ -19,6 +19,7 @@
  * Every field is optional and carries the same empty default the positional
  * form did, so a caller that supplied nothing still supplies nothing.
  */
+import type IRunTargetInputs from "./IRunTargetInputs";
 import type IDiscoveryFacts from "./IDiscoveryFacts";
 import type IForeignSymbols from "./IForeignSymbols";
 import type IModificationFacts from "./IModificationFacts";
@@ -61,6 +62,12 @@ interface IProgramInputs {
    * supplies the registry the run constructed.
    */
   readonly registry?: SymbolRegistry;
+
+  /**
+   * ADR-049: what the run's one target is settled from. Absent only where a
+   * test builds a program that never asks for its target.
+   */
+  readonly target?: IRunTargetInputs;
 }
 
 export default IProgramInputs;

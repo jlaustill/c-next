@@ -1,0 +1,9 @@
+// #1668 / ADR-049: a file that declares no target takes the program's. The
+// helper's atomic read-modify-write lowers to LDREX/STREX because this file
+// names teensy41; it used to get the default platform's PRIMASK masking.
+#pragma target teensy41
+#include "pragma-free-atomic.cnx"
+
+void tick() {
+    helperIncrement();
+}
