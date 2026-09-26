@@ -275,6 +275,12 @@ i32 signedVal <- -100;
 // u32 unsigned <- signedVal;   // ERROR: sign change forbidden
 u32 asBits <- signedVal[0, 32]; // OK: explicit reinterpret
 
+// Mixing integer and float (FORBIDDEN - cast the integer)
+u32 count <- 3;
+f32 scale <- 2.5;
+// f32 total <- count * scale;  // ERROR: integer and floating categories
+f32 total <- (f32)count * scale; // OK: 7.5
+
 // =============================================================================
 // 8. OVERFLOW BEHAVIOR
 // =============================================================================

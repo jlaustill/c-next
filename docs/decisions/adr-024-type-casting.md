@@ -206,6 +206,54 @@ u32 c <- a + b[0, 32];   // OK: b reinterpreted as 32 unsigned bits, then added
 
 **Same-category widening stays implicit** — `u8 + u32` combines two unsigned values and needs no cast (only the width widens, the category is unchanged).
 
+**Integer and floating are different categories** (owner ruling, 2026-09-26, #1668). Rule 10.4's categories are signed, unsigned and floating, so combining an integer with a floating value is the same compile error as a signed/unsigned mix, in arithmetic and in a comparison alike:
+
+```cnx
+u32 i <- 3;
+f32 k <- 2.5;
+f32 x <- i * k;       // ERROR: mixed essential type category (u32 * f32)
+f32 y <- i * 2.5;     // ERROR: a float literal is floating
+bool b <- (i < 2.5);  // ERROR: in a comparison too
+```
+
+To combine them, convert the integer with an explicit cast. The conversion is then written where it happens, and the arithmetic is floating:
+
+```cnx
+f32 x <- (f32)i * k;     // OK
+f32 y <- (f32)i * 2.5;   // OK: 7.5
+```
+
+**A float literal is not exempt.** The exemption above rests on an integer literal adopting the other operand's category, and no integer operand can adopt a float literal, so `i * 2.5` mixes unsigned with floating. An integer literal beside a floating operand stays exempt: `k * 3` is floating arithmetic.
+
+Until this ruling the mix was accepted, and it computed the wrong value. The integer operand selected integer saturating arithmetic (ADR-044), which converted the float operand to the integer type before multiplying, so `u32` 3 × 2.5 evaluated to 6.0.
+
+**An operand's category is its declared type, however the operand is reached** (owner ruling, 2026-09-26, #1668, which folds in #1092's first item). That covers:
+
+- a variable and a scope member;
+- a struct field and an array element;
+- a function result, including a member of that result (`get().v`) and the result of an ADR-029 callback (`s.fn()`);
+- a cast, whose category is the type it names;
+- the value arms of a ternary, but never its condition;
+- a variable, struct field or function declared in a C or C++ header, when its type is floating, including through a typedef such as `float32_t`.
+
+A subscript into a scalar is a bit index and has no declared type, so the bit-indexed reinterpretation `b[0, 32]` stays exempt. Each of these used to contribute no category, so `u32 + p.offset` (a signed field) compiled, and `u8 x <- arr[0] * 2.5` was rejected only by accident, as a `u32` narrowing.
+
+**A float macro has no type C-Next can read.** `u32 i * SCALE_F`, with `#define SCALE_F 2.5f` in a header, is not rejected. How such an operand is typed is open, and is tracked as #1688.
+
+#### Compound assignment is the same operator
+
+Owner ruling, 2026-09-26 (#1668). The section above spoke of binary operators and was silent on compound assignment, which compiled a signed/unsigned mix too. A compound assignment (`+<-`, `-<-`, `*<-`, `/<-`, `%<-`, `&<-`, `|<-`, `^<-`) combines its target and its value with the operator it names, so Rule 10.4 compares the target's category with the value's. `y *<- 2.5` is `y <- y * 2.5`, and `y +<- b` is `y <- y + b`:
+
+```cnx
+u32 y <- 3;
+i32 b <- 2;
+y *<- 2.5;   // ERROR: unsigned target, floating value
+y +<- b;     // ERROR: unsigned target, signed value
+y +<- 1;     // OK: an integer literal is exempt
+```
+
+The shift compounds (`<<<-`, `>><-`) are not covered, because Rule 10.4 does not govern a shift: its count is promoted independently of the value shifted. A plain assignment (`<-`) combines nothing. What it may convert is Rule 10.3's question, under _Where a conversion is checked_ below.
+
 ### Boolean Extraction (Use Bit Indexing)
 
 In C, you might write:
@@ -282,6 +330,7 @@ CNX does not support:
 | i32 → u32 (sign change) | **Error** - use `val[0, 32]`             | Sign semantics change         |
 | u32 → i32 (sign change) | **Error** - use `val[0, 32]`             | Sign semantics change         |
 | f32 → u32 (truncate)    | Supported - `(u32)floatVal`              | Truncates fractional part     |
+| u32 × f32 (mixed)       | **Error** - use `(f32)intVal * floatVal` | Rule 10.4 category mix        |
 | f32 → u32 (reinterpret) | Use float bit indexing `floatVal[0, 32]` | Raw IEEE-754 access (ADR-007) |
 | int → pointer           | **Not supported**                        | Use `register` (ADR-004)      |
 
@@ -295,6 +344,12 @@ through a chain, and a cast are all conversions and all checked the same way.
 **A composite source (`a + b`) is typed** — category from the first integer
 operand, width from the widest — in every position except a cast, where writing
 `(u8)(a + b)` is the author stating the width they mean.
+
+**A composite with a floating operand is not an integer composite** (#1668). It
+is floating arithmetic, so integer saturation (ADR-044) never applies to it, and
+it has no integer width to check. Rule 10.4 above rejects the mix wherever the
+float's type is known, so what this sentence still decides is an operand no
+pass can type (#1688).
 
 Two exceptions to that were live until #1322 and are recorded because the code
 they permitted is the code this decision exists to reject:
