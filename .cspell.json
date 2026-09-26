@@ -612,7 +612,10 @@
     "xtensa",
     "xthal",
     "xtruntime",
-    "xyzzy"
+    "xyzzy",
+    "typer",
+    "typers",
+    "Typer"
   ],
   "ignorePaths": [
     "tests-gtest/**",
