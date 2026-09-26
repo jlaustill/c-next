@@ -75,6 +75,11 @@ jobs:
           ref: refs/pull/${{ steps.pr.outputs.number }}/head
           fetch-depth: 0 # full history: blame data, and the base branch for new-code detection
           persist-credentials: false
+          # Required to check out a fork's code from workflow_run. The risk it
+          # names is EXECUTING that code with the token in scope; this workflow
+          # only reads it (see the header), and sonar-workflow.test.ts holds
+          # each property that keeps it that way. This step only, never another.
+          allow-unsafe-pr-checkout: true
 
       - name: Assert checkout matches the analyzed run
         env:

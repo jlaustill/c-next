@@ -94,6 +94,20 @@ describe("sonar.yml — scans fork pull requests from a trusted context", () => 
     expect(prCheckout[0].with?.["persist-credentials"]).toBe(false);
   });
 
+  /**
+   * actions/checkout refuses fork code in a `workflow_run` unless the step opts
+   * in (first live run, 36252707112). The opt-in is what every test above makes
+   * safe, so it belongs on the one step that needs fork code and nowhere else.
+   */
+  it("opts into fork checkout on the pull request step only", () => {
+    const optedIn = stepUsing("actions/checkout").filter(
+      (step) => step.with?.["allow-unsafe-pr-checkout"] !== undefined,
+    );
+    expect(optedIn).toHaveLength(1);
+    expect(optedIn[0].with?.path).toBeUndefined();
+    expect(optedIn[0].with?.["allow-unsafe-pr-checkout"]).toBe(true);
+  });
+
   it("asserts the checked-out commit is the one PR Quality Checks ran on", () => {
     const assertion = runScripts.filter((script) =>
       script.includes("git rev-parse HEAD"),
