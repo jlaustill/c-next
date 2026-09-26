@@ -1,9 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import TranspileState from "../../TranspileState";
 import StringDeclarationAnalyzer from "../StringDeclarationAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. ADR-045's string declaration rules -- E0862 (a capacity has to be
@@ -17,20 +15,12 @@ import testAnalysisContext from "./testAnalysisContext";
  * is a single check with three shapes exercised below.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new StringDeclarationAnalyzer(testAnalysisContext(state)).analyze(
-    tree,
-  );
+  const { tree, context } = testAnalysisContextFor(source);
+  return new StringDeclarationAnalyzer(context).analyze(tree);
 };
 
 const codes = (source: string) => errors(source).map((e) => e.code);
 const inMain = (body: string) => `void f() {\n${body}\n}`;
-
-afterEach(() => {
-  state = new TranspileState();
-});
-
-let state = new TranspileState();
 
 describe("StringDeclarationAnalyzer", () => {
   describe("E0862 -- a capacity has to be stated, or inferable", () => {

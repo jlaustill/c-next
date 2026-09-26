@@ -1,9 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import TranspileState from "../../TranspileState";
 import ArrayIndexBoundsAnalyzer from "../ArrayIndexBoundsAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. ADR-036's constant index bounds (E0854), replacing
@@ -12,44 +10,12 @@ import testAnalysisContext from "./testAnalysisContext";
  * field's dimensions.
  *
  * Dimensions come from the lexical frames; a struct field's come from the
- * per-file symbol view, set directly here and reset after each test.
+ * struct the source declares, through the program 1.4 built for it.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new ArrayIndexBoundsAnalyzer(testAnalysisContext(state)).analyze(tree);
+  const { tree, context } = testAnalysisContextFor(source);
+  return new ArrayIndexBoundsAnalyzer(context).analyze(tree);
 };
-
-const structs = (
-  fields: Record<string, Record<string, [string, number[]]>>,
-) => {
-  state.symbols = {
-    knownStructs: new Set(Object.keys(fields)),
-    structFields: new Map(
-      Object.entries(fields).map(([name, f]) => [
-        name,
-        new Map(Object.entries(f).map(([k, [t]]) => [k, t])),
-      ]),
-    ),
-    structFieldDimensions: new Map(
-      Object.entries(fields).map(([name, f]) => [
-        name,
-        new Map(Object.entries(f).map(([k, [, d]]) => [k, d])),
-      ]),
-    ),
-    knownEnums: new Set<string>(),
-    knownScopes: new Set<string>(),
-    knownRegisters: new Set<string>(),
-    knownBitmaps: new Set<string>(),
-    functionReturnTypes: new Map(),
-    scopeMembers: new Map(),
-  } as unknown as typeof state.symbols;
-};
-
-afterEach(() => {
-  state = new TranspileState();
-});
-
-let state = new TranspileState();
 
 describe("ArrayIndexBoundsAnalyzer (E0854)", () => {
   it("rejects an index at the dimension, on a write and on a read, at the subscript", () => {
@@ -102,8 +68,11 @@ describe("ArrayIndexBoundsAnalyzer (E0854)", () => {
   });
 
   it("bounds a struct field like a variable (the closed hole)", () => {
-    structs({ Frame: { data: ["u8", [4]], grid: ["u8", [2, 3]] } });
     const source = [
+      "struct Frame {",
+      "    u8[4] data;",
+      "    u8[2][3] grid;",
+      "}",
       "void f(Frame s) {",
       "    u8 a <- s.data[3];",
       "    u8 b <- s.data[4];",
@@ -112,8 +81,8 @@ describe("ArrayIndexBoundsAnalyzer (E0854)", () => {
     ].join("\n");
     const found = errors(source);
     expect(found.map((e) => [e.line, e.message])).toEqual([
-      [3, "Array index out of bounds: 4 >= 4 for 's.data' dimension 1"],
-      [4, "Array index out of bounds: 3 >= 3 for 's.grid[1]' dimension 2"],
+      [7, "Array index out of bounds: 4 >= 4 for 's.data' dimension 1"],
+      [8, "Array index out of bounds: 3 >= 3 for 's.grid[1]' dimension 2"],
     ]);
   });
 

@@ -1,9 +1,7 @@
-import { describe, expect, it, beforeEach } from "vitest";
-import TranspileState from "../../TranspileState";
+import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ConstAssignmentAnalyzer from "../ConstAssignmentAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. ADR-013's const enforcement: E0877 (an assignment to or through a
@@ -11,22 +9,16 @@ import testAnalysisContext from "./testAnalysisContext";
  * parameter), replacing four codegen throws that reported `1:0`.
  *
  * Const-ness comes from the lexical frames; a callee's parameters and a const
- * from an include come from the program's symbols, which a unit test does not
- * build, so `tests/adr-013/const-uncovered-arms-error` and the imported
- * fixtures assert those arms end to end.
+ * from an include come from the program's symbols. The cases here assert only
+ * the lexical arms; `tests/adr-013/const-uncovered-arms-error` and the imported
+ * fixtures assert the program arms end to end.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new ConstAssignmentAnalyzer(testAnalysisContext(state)).analyze(tree);
+  const { tree, context } = testAnalysisContextFor(source);
+  return new ConstAssignmentAnalyzer(context).analyze(tree);
 };
 
-let state = new TranspileState();
-
 describe("ConstAssignmentAnalyzer (E0877)", () => {
-  beforeEach(() => {
-    state = new TranspileState();
-  });
-
   it("rejects every assignment operator on a const variable, at the target", () => {
     const found = errors(
       "const u32 K <- 1;\nvoid f() {\n    K <- 2;\n    K +<- 1;\n    K <<<- 1;\n}",

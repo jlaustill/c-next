@@ -1,12 +1,10 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import TranspileState from "../../TranspileState";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import CppClassInitializerAnalyzer from "../CppClassInitializerAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. Issue #517's rule (E0508), replacing a codegen throw that reported
@@ -14,7 +12,8 @@ import testAnalysisContext from "./testAnalysisContext";
  * queue rather than the initializer that filled it.
  *
  * A C++ class's constructor lives in the symbol table, which a unit test builds
- * directly; the struct types come from the per-file view.
+ * directly and hands to 1.4 as the C++ header facts; the struct types come
+ * from the per-file view 1.3 and 1.4 build from the source.
  */
 const withCppClass = (className: string) => {
   const table = new SymbolTable();
@@ -32,18 +31,17 @@ const withCppClass = (className: string) => {
   return table;
 };
 
-const analyze = (source: string, table: SymbolTable, cppMode = true) =>
-  new CppClassInitializerAnalyzer(testAnalysisContext(state)).analyze(
-    CNextSourceParser.parse(source).tree,
+const analyze = (source: string, table: SymbolTable, cppMode = true) => {
+  const { tree, context } = testAnalysisContextFor(source, {
+    symbolTable: table,
+  });
+  // Production hands the analyzer the same table its context carries.
+  return new CppClassInitializerAnalyzer(context).analyze(
+    tree,
     cppMode,
-    table,
+    context.symbolTable,
   );
-
-afterEach(() => {
-  state = new TranspileState();
-});
-
-let state = new TranspileState();
+};
 
 describe("CppClassInitializerAnalyzer (E0508)", () => {
   it("rejects a global initializer at the literal, not at a later declaration", () => {

@@ -1,9 +1,7 @@
-import { describe, expect, it, beforeEach } from "vitest";
-import TranspileState from "../../TranspileState";
+import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import SafeDivisionAnalyzer from "../SafeDivisionAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. ADR-051's call shape: E0884 (four arguments) and E0885 (the first is
@@ -11,24 +9,18 @@ import testAnalysisContext from "./testAnalysisContext";
  *
  * The arity rule and the "not a variable at all" arm are pure parse-tree work
  * and are asserted here. The arm that separates a declared FUNCTION from a
- * declared VARIABLE reads the program's symbols, which a unit test does not
- * build, so `tests/adr-051/` asserts it end to end.
+ * declared VARIABLE reads the program's symbols; `tests/adr-051/` asserts it
+ * end to end.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new SafeDivisionAnalyzer(testAnalysisContext(state)).analyze(tree);
+  const { tree, context } = testAnalysisContextFor(source);
+  return new SafeDivisionAnalyzer(context).analyze(tree);
 };
 
 const wrap = (body: string) =>
   `void main() {\n    u32 q <- 0;\n    bool err <- false;\n${body}\n}`;
 
-let state = new TranspileState();
-
 describe("SafeDivisionAnalyzer (E0884)", () => {
-  beforeEach(() => {
-    state = new TranspileState();
-  });
-
   it.each([
     ["too few", "    err <- safe_div(q, 10, 2);", 3],
     ["too many", "    err <- safe_mod(q, 10, 2, 0, 1);", 5],

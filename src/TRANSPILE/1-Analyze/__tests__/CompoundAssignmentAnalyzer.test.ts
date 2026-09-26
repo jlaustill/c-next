@@ -1,9 +1,7 @@
-import { describe, expect, it, beforeEach } from "vitest";
-import TranspileState from "../../TranspileState";
+import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CompoundAssignmentAnalyzer from "../CompoundAssignmentAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. A compound operator (`+<-`, `|<-`, …) is a read-modify-write, and
@@ -25,22 +23,14 @@ import testAnalysisContext from "./testAnalysisContext";
  * the keystone commit.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new CompoundAssignmentAnalyzer(testAnalysisContext(state)).analyze(
-    tree,
-  );
+  const { tree, context } = testAnalysisContextFor(source);
+  return new CompoundAssignmentAnalyzer(context).analyze(tree);
 };
 
 const inMain = (body: string): string =>
   `u32 main() {\n${body}\n    return 0;\n}`;
 
-let state = new TranspileState();
-
 describe("CompoundAssignmentAnalyzer", () => {
-  beforeEach(() => {
-    state = new TranspileState();
-  });
-
   it("rejects a compound operator on a bit index of a scalar", () => {
     const found = errors(inMain("    u32 flags <- 0;\n    flags[0] +<- 1;"));
     expect(found).toHaveLength(1);
@@ -125,10 +115,10 @@ describe("CompoundAssignmentAnalyzer", () => {
     // `u8[8]` field -- was reported as a bit index. Three real fixtures caught
     // it. The subscript's shape comes from the field, not the variable.
     //
-    // Struct field dimensions come from `CodeGenState.symbols`, which is not
-    // populated in a unit test, so this asserts the CONSERVATIVE half of the
-    // rule: an unestablished shape never rejects. `tests/array-struct-member/`
-    // exercises the resolved half end to end.
+    // Struct field dimensions come from the file's resolved symbols, which this
+    // test now builds (#1668), so this asserts the RESOLVED half: the field's
+    // `u8[8]` makes the subscript an element. `tests/array-struct-member/`
+    // exercises it end to end.
     const source = [
       "struct Buf { u8[8] data; }",
       "u32 main() {",

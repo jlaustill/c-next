@@ -2,71 +2,49 @@ import { describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CallbackAssignmentAnalyzer from "../CallbackAssignmentAnalyzer";
-import CNextResolver from "../../../PARSE/3-Declare/cnext";
 import TranspileState from "../../TranspileState";
-import Program from "../../../PARSE/4-Resolve/Program";
-import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
-import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. ADR-029's callback typing: E0879 (a function whose declared signature
  * does not match the slot's callback type) and E0880 (a function that is
  * itself a callback type standing in for another -- nominal typing).
  *
- * Both rules resolve a name to a function symbol through `Program`, which a
- * unit test does not build, so the rules themselves are asserted end to end by
- * `tests/adr-029/`. What is asserted here is the part that is pure parse-tree
- * work and would otherwise only be observable through a fixture: the analyzer
- * finds the four slots a function name can land in, and stays silent on
- * everything a slot is not.
+ * Both rules resolve a name to a function symbol through `Program`, so every
+ * case but the first runs against a real, declared and resolved one (#1668,
+ * `testAnalysisContextFor`); `tests/adr-029/` asserts the rules end to end.
+ * The walk cases assert "does not throw" over the four slots a function name
+ * can land in and the shapes that are not slots.
  *
- * Written as "reaches the rule / does not reach the rule" rather than as
- * "reports / does not report" because with no program the rule can never
- * report -- a test asserting an empty array for both would pass whatever the
- * walk did, which is the guard-that-cannot-fail shape.
+ * The first case keeps an EMPTY program on purpose: it is the precondition
+ * that with nothing declared neither rule can report, so an empty result
+ * there says nothing about the walk -- the guard-that-cannot-fail shape the
+ * reporting cases below exist to avoid.
  *
- * #1322 review: the `with a program behind it` block below builds a real
- * `Program` so the two rules actually fire. Without it neither reporting path
- * ran here at all -- the walk was covered and the decisions were not, which is
- * the same distinction the paragraph above draws and the reason the fixtures
- * were carrying the whole rule.
+ * #1322 review: the `with a program behind it` block below asserts the two
+ * rules actually fire, with a control beside each.
  */
 const build = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  state.program = Program.build([
-    CNextResolver.resolve(tree, "a.cnx", registry),
-  ]);
-  state.symbols = TSymbolInfoAdapter.convert(
-    CNextResolver.resolve(tree, "a.cnx", registry).symbols,
-  );
-  return new CallbackAssignmentAnalyzer(testAnalysisContext(state)).analyze(
-    tree,
-  );
+  const { tree, context } = testAnalysisContextFor(source);
+  return new CallbackAssignmentAnalyzer(context).analyze(tree);
 };
 
+// Only the empty-program precondition below: it asserts what an EMPTY program
+// yields, which a real declared program cannot stand in for.
 const findings = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new CallbackAssignmentAnalyzer(testAnalysisContext(state)).analyze(
-    tree,
-  );
+  return new CallbackAssignmentAnalyzer(
+    testAnalysisContext(new TranspileState()),
+  ).analyze(tree);
 };
-
-let registry = new SymbolRegistry();
-
-beforeEach(() => {
-  registry = new SymbolRegistry();
-});
-
-let state = new TranspileState();
 
 describe("CallbackAssignmentAnalyzer", () => {
   // Same as `FunctionReference`: the context always carries a program, so
   // "absent" is unrepresentable. What this checks is an empty one.
   it("returns no findings when the program declares no struct fields", () => {
-    // The precondition every case below shares: without `Program` neither
-    // rule can name a function, so the analyzer is silent by construction.
-    // This is what makes the fixtures, not this file, the rules' evidence.
+    // Without a declared `Program` neither rule can name a function, so the
+    // analyzer is silent by construction.
     expect(
       findings(
         [
@@ -102,7 +80,7 @@ describe("CallbackAssignmentAnalyzer", () => {
       "    h.down(h.down);", // a call THROUGH a value, which names no function
       "}",
     ].join("\n");
-    expect(() => findings(source)).not.toThrow();
+    expect(() => build(source)).not.toThrow();
   });
 
   it("types an inferred struct initializer from each establishing node", () => {
@@ -123,7 +101,7 @@ describe("CallbackAssignmentAnalyzer", () => {
       "    a <- { inner: { v: 4 } };",
       "}",
     ].join("\n");
-    expect(() => findings(source)).not.toThrow();
+    expect(() => build(source)).not.toThrow();
   });
   describe("with a program behind it, the rules fire", () => {
     // ADR-029 compares DECLARED signatures. The types below differ only in the
@@ -137,10 +115,6 @@ describe("CallbackAssignmentAnalyzer", () => {
       "struct H { onDown down; }",
       "void takesDown(onDown cb) { }",
     ].join("\n");
-
-    afterEach(() => {
-      state = new TranspileState();
-    });
 
     it("reports E0879 when the declared signature differs, in each slot", () => {
       // One slot per line, so a dropped slot is a count change.

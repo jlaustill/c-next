@@ -1,46 +1,24 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import TranspileState from "../../TranspileState";
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import EnumTypeSafetyAnalyzer from "../EnumTypeSafetyAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. ADR-017 enum type safety: E0428 (assignment) and E0434 (comparison),
  * replacing EIGHT throws in `output/` -- five in `EnumAssignmentValidator` and
  * three in `BinaryExprUtils`.
  *
- * The rule needs `knownEnums`, which lives on `state.symbols` and is
- * populated before `runAnalyzers`. These tests set it directly, which is why
- * `reset()` runs after each one (CLAUDE.md, analyzer test isolation).
+ * The rule needs `knownEnums`, which 1.3 and 1.4 settle from the enums each
+ * test's source declares -- the same path as production.
  */
-const withEnums = (...names: string[]): void => {
-  state.symbols = {
-    knownEnums: new Set(names),
-    knownStructs: new Set<string>(),
-    knownScopes: new Set<string>(),
-    knownBitmaps: new Set<string>(),
-    structFields: new Map(),
-    structFieldDimensions: new Map(),
-    functionReturnTypes: new Map(),
-  } as unknown as typeof state.symbols;
-};
-
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new EnumTypeSafetyAnalyzer(testAnalysisContext(state)).analyze(tree);
+  const { tree, context } = testAnalysisContextFor(source);
+  return new EnumTypeSafetyAnalyzer(context).analyze(tree);
 };
-
-afterEach(() => {
-  state = new TranspileState();
-});
-
-let state = new TranspileState();
 
 describe("EnumTypeSafetyAnalyzer", () => {
   describe("assignment (E0428)", () => {
     it("rejects an integer literal, with a real position", () => {
-      withEnums("State");
       const found = errors(
         "enum State { IDLE, RUNNING }\nvoid main() {\n    State s <- State.IDLE;\n    s <- 1;\n}",
       );
@@ -55,7 +33,6 @@ describe("EnumTypeSafetyAnalyzer", () => {
       // REGRESSION. The codegen check matched the source text against a pattern for a bare
       // integer literal, so `1 + 1` was not one; constant folding to `2`
       // happens later, in codegen, and it emitted `State d = 2;`.
-      withEnums("State");
       const found = errors(
         "enum State { IDLE, RUNNING }\nvoid main() {\n    State d <- 1 + 1;\n}",
       );
@@ -64,7 +41,6 @@ describe("EnumTypeSafetyAnalyzer", () => {
     });
 
     it("rejects a member of a different enum", () => {
-      withEnums("State", "Power");
       const found = errors(
         "enum State { IDLE }\nenum Power { ON }\nvoid main() {\n    State s <- Power.ON;\n}",
       );
@@ -95,12 +71,10 @@ describe("EnumTypeSafetyAnalyzer", () => {
         "enum State { IDLE }\nvoid main() {\n    State s <- undeclared;\n}",
       ],
     ])("accepts %s", (_reason, source) => {
-      withEnums("State");
       expect(errors(source)).toEqual([]);
     });
 
     it("reports every offending assignment, not just the first", () => {
-      withEnums("State");
       const found = errors(
         "enum State { IDLE }\nvoid main() {\n    State a <- 1;\n    State b <- 2;\n}",
       );
@@ -109,7 +83,6 @@ describe("EnumTypeSafetyAnalyzer", () => {
 
     it("says nothing about a compound operator, which is E0857's", () => {
       // One mistake must not yield two diagnostics.
-      withEnums("State");
       expect(
         errors(
           "enum State { IDLE }\nvoid main() {\n    State s <- State.IDLE;\n    s +<- 1;\n}",
@@ -120,7 +93,6 @@ describe("EnumTypeSafetyAnalyzer", () => {
 
   describe("comparison (E0434)", () => {
     it("rejects an enum compared to an integer", () => {
-      withEnums("State");
       const found = errors(
         "enum State { IDLE }\nvoid main() {\n    State s <- State.IDLE;\n    if (s = 0) { }\n}",
       );
@@ -130,7 +102,6 @@ describe("EnumTypeSafetyAnalyzer", () => {
     });
 
     it("rejects two different enum types", () => {
-      withEnums("State", "Power");
       const found = errors(
         "enum State { IDLE }\nenum Power { ON }\nvoid main() {\n    State s <- State.IDLE;\n    if (s = Power.ON) { }\n}",
       );
@@ -139,7 +110,6 @@ describe("EnumTypeSafetyAnalyzer", () => {
     });
 
     it("accepts an enum compared to its own member", () => {
-      withEnums("State");
       expect(
         errors(
           "enum State { IDLE }\nvoid main() {\n    State s <- State.IDLE;\n    if (s = State.IDLE) { }\n}",
@@ -148,7 +118,6 @@ describe("EnumTypeSafetyAnalyzer", () => {
     });
 
     it("accepts a comparison with no enum on either side", () => {
-      withEnums("State");
       expect(
         errors(
           "enum State { IDLE }\nvoid main() {\n    u32 n <- 1;\n    if (n = 0) { }\n}",
@@ -162,7 +131,6 @@ describe("EnumTypeSafetyAnalyzer", () => {
       // The three spellings of one type. An earlier version resolved only some
       // of them, which INVERTED the rule inside a scope: correct assignments
       // were reported as non-enum values, and twelve fixtures caught it.
-      withEnums("Motor__Mode");
       const source = [
         "scope Motor {",
         "    public enum Mode { SLOW, FAST }",
@@ -180,7 +148,6 @@ describe("EnumTypeSafetyAnalyzer", () => {
       // `global.` states FILE scope, so it must NOT be qualified by the
       // enclosing scope -- doing so produced a name matching nothing, which
       // read as "not an enum".
-      withEnums("EGlobal");
       const source = [
         "enum EGlobal { A, B }",
         "scope S {",

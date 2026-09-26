@@ -1,9 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import TranspileState from "../../TranspileState";
 import IntegerConversionAnalyzer from "../IntegerConversionAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. ADR-024's integer conversions -- E0868 (a literal out of range) and
@@ -11,46 +9,18 @@ import testAnalysisContext from "./testAnalysisContext";
  * wrappers spread across `TypeResolver`, `TypeValidator`, `CodeGenerator` and
  * two helpers. One rule, three spellings, one analyzer.
  */
-const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new IntegerConversionAnalyzer(testAnalysisContext(state)).analyze(
-    tree,
-  );
-};
-
 /**
- * A struct field's type comes from the per-file symbol view, which a unit test
- * does not build. Reaching the chain-resolution arm therefore needs it set --
- * without it the analyzer cannot type `p.col` and stays silent, which looks
- * exactly like the rule not firing.
+ * A struct field's type comes from the per-file symbol view, which 1.3 and 1.4
+ * build from the struct the source declares. Without it the analyzer cannot
+ * type `p.col` and stays silent, which looks exactly like the rule not firing.
  */
-const structs = (fields: Record<string, Record<string, string>>) => {
-  state.symbols = {
-    knownStructs: new Set(Object.keys(fields)),
-    structFields: new Map(
-      Object.entries(fields).map(([name, f]) => [
-        name,
-        new Map(Object.entries(f)),
-      ]),
-    ),
-    structFieldDimensions: new Map(),
-    knownEnums: new Set<string>(),
-    knownScopes: new Set<string>(),
-    knownRegisters: new Set<string>(),
-    knownBitmaps: new Set<string>(),
-    functionReturnTypes: new Map(),
-    scopeMembers: new Map(),
-  } as unknown as typeof state.symbols;
+const errors = (source: string) => {
+  const { tree, context } = testAnalysisContextFor(source);
+  return new IntegerConversionAnalyzer(context).analyze(tree);
 };
-
-afterEach(() => {
-  state = new TranspileState();
-});
 
 const inMain = (body: string): string =>
   `u32 wide <- 1000;\ni32 neg <- -5;\nu8 byte <- 7;\nu32 main() {\n${body}\n    return 0;\n}`;
-
-let state = new TranspileState();
 
 describe("IntegerConversionAnalyzer", () => {
   describe("E0868 -- a literal must fit", () => {
@@ -168,7 +138,6 @@ describe("IntegerConversionAnalyzer", () => {
       expect(
         errors(inMain("    u8[4] arr;\n    arr[0] <- wide;")),
       ).toHaveLength(1);
-      structs({ P: { col: "u8", data: "u32" } });
       expect(
         errors(
           "struct P { u8 col; u32 data; }\nu32 wide <- 9;\nu32 main() {\n    P p;\n    p.col <- wide;\n    return 0;\n}",

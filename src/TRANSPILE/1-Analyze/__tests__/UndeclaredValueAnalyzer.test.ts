@@ -7,50 +7,20 @@
  * case, and it is also what #1336 made the value position responsible for --
  * `isValueName` answers yes for a register while `isTypeName` answers no.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
-import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
-import CNextResolver from "../../../PARSE/3-Declare/cnext/index";
-import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
-import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
-import TranspileState from "../../TranspileState";
+import { describe, it, expect } from "vitest";
 import UndeclaredValueAnalyzer from "../UndeclaredValueAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
-
-function parse(source: string) {
-  const charStream = CharStream.fromString(source);
-  const lexer = new CNextLexer(charStream);
-  const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
-  return parser.program();
-}
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 function analyze(source: string) {
-  const tree = parse(source);
-  state.symbols = TSymbolInfoAdapter.convert(
-    CNextResolver.resolve(tree, "test.cnx", registry).symbols,
-  );
   // Same precondition as E0426: the analyzer declines unless the transpiler
   // knows the file's whole name universe. These sources include nothing.
-  return new UndeclaredValueAnalyzer(
-    testAnalysisContext(state, { reachesForeignHeader: false }),
-  ).analyze(tree);
+  const { tree, context } = testAnalysisContextFor(source, {
+    overrides: { reachesForeignHeader: false },
+  });
+  return new UndeclaredValueAnalyzer(context).analyze(tree);
 }
 
-let registry = new SymbolRegistry();
-
-beforeEach(() => {
-  registry = new SymbolRegistry();
-});
-
-let state = new TranspileState();
-
 describe("UndeclaredValueAnalyzer", () => {
-  afterEach(() => {
-    state = new TranspileState();
-  });
-
   describe("the scope-qualified spelling", () => {
     it("accepts a scope-declared register named bare inside its scope", () => {
       // `Control` resolves only as `Board__Control`, and only through

@@ -1,67 +1,31 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import TranspileState from "../../TranspileState";
 import BitmapAccessAnalyzer from "../BitmapAccessAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. ADR-034's three access rules: E0881 (a literal too wide for the
  * field), E0882 (a member the bitmap does not declare) and E0883 (bracket
  * indexing where a named field is required).
  *
- * A bitmap's layouts come from the per-file symbol view, set directly here and
- * reset after each test. The register route needs `knownRegisters` and
- * `registerMemberTypes` as well, which is what separates the two ways a bitmap
- * is reached.
+ * A bitmap's layouts come from the per-file symbol view, which the program
+ * 1.4 builds from the declarations below. The register route needs a register
+ * whose member is typed by the bitmap as well, which is what separates the
+ * two ways a bitmap is reached.
  */
-const symbols = (overrides: Record<string, unknown>) => {
-  state.symbols = {
-    knownStructs: new Set<string>(),
-    knownEnums: new Set<string>(),
-    knownScopes: new Set<string>(),
-    knownRegisters: new Set<string>(),
-    knownBitmaps: new Set<string>(),
-    knownVariables: new Set<string>(),
-    structFields: new Map(),
-    structFieldArrays: new Map(),
-    structFieldDimensions: new Map(),
-    scopeMembers: new Map(),
-    bitmapFields: new Map(),
-    registerMemberAccess: new Map(),
-    registerMemberTypes: new Map(),
-    functionReturnTypes: new Map(),
-    ...overrides,
-  } as unknown as typeof state.symbols;
-};
-
-const flags = () =>
-  new Map([
-    [
-      "Flags",
-      new Map([
-        ["Mode", { offset: 0, width: 3 }],
-        ["Enable", { offset: 3, width: 1 }],
-      ]),
-    ],
-  ]);
+const FLAGS = "bitmap8 Flags { Mode[3], Enable, Reserved[4] }";
+const REGISTER = "register R @ 0x40000000 { CTRL: Flags rw @ 0x00, }";
 
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new BitmapAccessAnalyzer(testAnalysisContext(state)).analyze(tree);
+  const { tree, context } = testAnalysisContextFor(source);
+  return new BitmapAccessAnalyzer(context).analyze(tree);
 };
-
-afterEach(() => {
-  state = new TranspileState();
-});
-
-let state = new TranspileState();
 
 describe("BitmapAccessAnalyzer (E0881)", () => {
   it("rejects a value wider than the field, in every literal base", () => {
-    symbols({ bitmapFields: flags() });
     const found = errors(
       [
+        FLAGS,
         "Flags f;",
         "void t() {",
         "    f.Mode <- 8;",
@@ -71,9 +35,9 @@ describe("BitmapAccessAnalyzer (E0881)", () => {
       ].join("\n"),
     );
     expect(found.map((e) => [e.code, e.line])).toEqual([
-      ["E0881", 3],
       ["E0881", 4],
       ["E0881", 5],
+      ["E0881", 6],
     ]);
     expect(found[0].message).toBe(
       "Value 8 exceeds 3-bit field 'Mode' maximum of 7",
@@ -81,10 +45,10 @@ describe("BitmapAccessAnalyzer (E0881)", () => {
   });
 
   it("accepts the widest value the field holds, and declines a runtime one", () => {
-    symbols({ bitmapFields: flags() });
     expect(
       errors(
         [
+          FLAGS,
           "Flags f;",
           "void t(u8 v) {",
           "    f.Mode <- 7;",
@@ -99,8 +63,9 @@ describe("BitmapAccessAnalyzer (E0881)", () => {
 
 describe("BitmapAccessAnalyzer (E0882)", () => {
   it("rejects a member the bitmap does not declare, and names the ones it does", () => {
-    symbols({ bitmapFields: flags() });
-    const [found] = errors("Flags f;\nvoid t() {\n    f.Missing <- 1;\n}");
+    const [found] = errors(
+      `${FLAGS}\nFlags f;\nvoid t() {\n    f.Missing <- 1;\n}`,
+    );
     expect(found.code).toBe("E0882");
     expect(found.message).toBe("Unknown bitmap field 'Missing' on 'Flags'");
     expect(found.helpText).toContain("'Mode'");
@@ -110,10 +75,9 @@ describe("BitmapAccessAnalyzer (E0882)", () => {
     // They describe the type rather than name a field. Both analyzers read one
     // shared list so this cannot drift; before it was shared, `f.bit_length`
     // reported "Unknown bitmap field" while ADR-058 defined it.
-    symbols({ bitmapFields: flags() });
     expect(
       errors(
-        "Flags f;\nvoid t() {\n    u8 a <- f.bit_length;\n    u8 b <- f.byte_length;\n}",
+        `${FLAGS}\nFlags f;\nvoid t() {\n    u8 a <- f.bit_length;\n    u8 b <- f.byte_length;\n}`,
       ),
     ).toEqual([]);
   });
@@ -121,8 +85,9 @@ describe("BitmapAccessAnalyzer (E0882)", () => {
 
 describe("BitmapAccessAnalyzer (E0883)", () => {
   it("rejects bracket indexing on a bitmap VARIABLE -- the route codegen could not see", () => {
-    symbols({ bitmapFields: flags() });
-    const [found] = errors("Flags f;\nvoid t() {\n    bool b <- f[0];\n}");
+    const [found] = errors(
+      `${FLAGS}\nFlags f;\nvoid t() {\n    bool b <- f[0];\n}`,
+    );
     expect(found.code).toBe("E0883");
     expect(found.message).toBe(
       "Cannot use bracket indexing on bitmap type 'Flags'",
@@ -130,14 +95,10 @@ describe("BitmapAccessAnalyzer (E0883)", () => {
   });
 
   it("rejects it through a register member typed by a bitmap, read and written", () => {
-    symbols({
-      bitmapFields: flags(),
-      knownRegisters: new Set(["R"]),
-      registerMemberAccess: new Map([["R__CTRL", "rw"]]),
-      registerMemberTypes: new Map([["R__CTRL", "Flags"]]),
-    });
     const found = errors(
       [
+        FLAGS,
+        REGISTER,
         "void t() {",
         "    bool b <- R.CTRL[0];",
         "    R.CTRL[1] <- true;",
@@ -145,21 +106,17 @@ describe("BitmapAccessAnalyzer (E0883)", () => {
       ].join("\n"),
     );
     expect(found.map((e) => [e.code, e.line])).toEqual([
-      ["E0883", 2],
-      ["E0883", 3],
+      ["E0883", 4],
+      ["E0883", 5],
     ]);
   });
 
   it("accepts the named-field form on both routes", () => {
-    symbols({
-      bitmapFields: flags(),
-      knownRegisters: new Set(["R"]),
-      registerMemberAccess: new Map([["R__CTRL", "rw"]]),
-      registerMemberTypes: new Map([["R__CTRL", "Flags"]]),
-    });
     expect(
       errors(
         [
+          FLAGS,
+          REGISTER,
           "Flags f;",
           "void t() {",
           "    bool a <- f.Enable;",

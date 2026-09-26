@@ -1,28 +1,21 @@
-import { describe, expect, it, beforeEach } from "vitest";
-import TranspileState from "../../TranspileState";
+import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import BitAccessAnalyzer from "../BitAccessAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. ADR-007's bit access: E0856 (deeper than the base's shape allows) and
  * E0888 (a float bit range read at file scope).
  *
- * Both read the lexical frames only, so they are testable without a `Program`.
+ * Both read the lexical frames, run against the program 1.4 built for the
+ * source.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new BitAccessAnalyzer(testAnalysisContext(state)).analyze(tree);
+  const { tree, context } = testAnalysisContextFor(source);
+  return new BitAccessAnalyzer(context).analyze(tree);
 };
 
-let state = new TranspileState();
-
 describe("BitAccessAnalyzer (E0856)", () => {
-  beforeEach(() => {
-    state = new TranspileState();
-  });
-
   it("rejects a second subscript on a scalar, as a read AND as a write", () => {
     // A target is an `assignmentTarget`, not a postfix expression -- a
     // different node type. Reading only expressions caught neither fixture.

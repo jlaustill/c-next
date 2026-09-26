@@ -3,38 +3,19 @@
  * Tests detection of binary operators combining mixed essential type categories
  * (MISRA C:2012 Rule 10.4, ADR-024 / Issue #1091).
  */
-import { describe, it, expect, beforeEach } from "vitest";
-import TranspileState from "../../TranspileState";
-import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
-import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
+import { describe, it, expect } from "vitest";
 import MixedTypeCategoryAnalyzer from "../MixedTypeCategoryAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
-import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import testAnalysisContextFor from "./testAnalysisContextFor";
+import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 
-function parse(source: string) {
-  const charStream = CharStream.fromString(source);
-  const lexer = new CNextLexer(charStream);
-  const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
-  return parser.program();
+function analyze(source: string, symbolTable?: SymbolTable) {
+  const { tree, context } = testAnalysisContextFor(source, { symbolTable });
+  return new MixedTypeCategoryAnalyzer(context).analyze(tree);
 }
-
-function analyze(source: string) {
-  return new MixedTypeCategoryAnalyzer(testAnalysisContext(state)).analyze(
-    parse(source),
-  );
-}
-
-let state = new TranspileState();
 
 describe("MixedTypeCategoryAnalyzer", () => {
-  beforeEach(() => {
-    state = new TranspileState();
-  });
-
   describe("mixed-category operands (rejected)", () => {
     it("rejects unsigned + signed (u32 + i32)", () => {
       const errors = analyze(`
@@ -426,31 +407,12 @@ describe("MixedTypeCategoryAnalyzer", () => {
   // #1092 item 1, folded into #1668: an operand is classified by its declared
   // type whatever the path to it. Each of these contributed no category before.
   describe("operands classified by declared type (#1092, #1668)", () => {
-    function analyzeWithSymbols(source: string) {
-      const symbols = createMockSymbols({
-        structFields: new Map([
-          [
-            "Sample",
-            new Map([
-              ["v", "f32"],
-              ["offset", "i32"],
-              ["count", "u32"],
-            ]),
-          ],
-        ]),
-        functionReturnTypes: new Map([
-          ["half", "f32"],
-          ["minusOne", "i32"],
-          ["makeSample", "Sample"],
-          ["scaleFn", "f32"],
-        ]),
-      });
-      return new MixedTypeCategoryAnalyzer(
-        testAnalysisContext(state, { symbols }),
-      ).analyze(parse(source));
-    }
-
-    const PRELUDE = "struct Sample { f32 v; i32 offset; u32 count; }";
+    const PRELUDE = [
+      "struct Sample { f32 v; i32 offset; u32 count; }",
+      "f32 half() { return 2.5; }",
+      "i32 minusOne() { return -1; }",
+      "Sample makeSample() { Sample s <- { v: 2.5, offset: -1, count: 3 }; return s; }",
+    ].join(" ");
 
     it.each([
       [
@@ -499,7 +461,7 @@ describe("MixedTypeCategoryAnalyzer", () => {
         "signed and unsigned",
       ],
     ])("rejects %s", (_label, body, pair) => {
-      const errors = analyzeWithSymbols(`${PRELUDE} void main() { ${body} }`);
+      const errors = analyze(`${PRELUDE} void main() { ${body} }`);
       expect(errors).toHaveLength(1);
       expect(errors[0].message).toContain(`(${pair})`);
     });
@@ -521,13 +483,12 @@ describe("MixedTypeCategoryAnalyzer", () => {
       ],
       ["a float call result times a float", "f32 x <- half() * 2.5;"],
     ])("accepts %s", (_label, body) => {
-      expect(
-        analyzeWithSymbols(`${PRELUDE} void main() { ${body} }`),
-      ).toHaveLength(0);
+      expect(analyze(`${PRELUDE} void main() { ${body} }`)).toHaveLength(0);
     });
 
     it("rejects an integer times a C header float", () => {
-      state.symbolTable.addCSymbol({
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
         kind: "variable",
         name: "apiScale",
         type: "float",
@@ -538,6 +499,7 @@ describe("MixedTypeCategoryAnalyzer", () => {
       });
       const errors = analyze(
         "void main() { u32 i <- 3; f32 x <- i * apiScale; }",
+        symbolTable,
       );
       expect(errors).toHaveLength(1);
       expect(errors[0].message).toContain("(integer and floating)");

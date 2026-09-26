@@ -1,9 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import TranspileState from "../../TranspileState";
 import SwitchStatementAnalyzer from "../SwitchStatementAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. ADR-025's switch rules, E0711-E0714, replacing five throws in
@@ -15,29 +13,10 @@ import testAnalysisContext from "./testAnalysisContext";
  * where a mock and the grammar could quietly disagree, since `-0x1` reaches it
  * as a MINUS token plus a HEX_LITERAL rather than as one negative literal.
  */
-const withEnum = (name: string, ...members: string[]): void => {
-  state.symbols = {
-    knownEnums: new Set([name]),
-    knownStructs: new Set<string>(),
-    knownScopes: new Set<string>(),
-    knownBitmaps: new Set<string>(),
-    structFields: new Map(),
-    structFieldDimensions: new Map(),
-    functionReturnTypes: new Map(),
-    enumMembers: new Map([[name, new Map(members.map((m, i) => [m, i]))]]),
-  } as unknown as typeof state.symbols;
-};
-
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new SwitchStatementAnalyzer(testAnalysisContext(state)).analyze(tree);
+  const { tree, context } = testAnalysisContextFor(source);
+  return new SwitchStatementAnalyzer(context).analyze(tree);
 };
-
-afterEach(() => {
-  state = new TranspileState();
-});
-
-let state = new TranspileState();
 
 describe("SwitchStatementAnalyzer", () => {
   it("rejects a switch on a bool, with a real position", () => {
@@ -164,7 +143,6 @@ describe("SwitchStatementAnalyzer", () => {
       ].join("\n");
 
     it("rejects a switch that misses a variant", () => {
-      withEnum("EState", "IDLE", "RUNNING", "STOPPED");
       const found = errors(
         source("        case EState.IDLE { }\n        case EState.RUNNING { }"),
       );
@@ -174,7 +152,6 @@ describe("SwitchStatementAnalyzer", () => {
     });
 
     it("accepts a switch that covers every variant", () => {
-      withEnum("EState", "IDLE", "RUNNING", "STOPPED");
       expect(
         errors(
           source(
@@ -185,14 +162,12 @@ describe("SwitchStatementAnalyzer", () => {
     });
 
     it("counts what a `default(N)` says it absorbs", () => {
-      withEnum("EState", "IDLE", "RUNNING", "STOPPED");
       expect(
         errors(source("        case EState.IDLE { }\n        default(2) { }")),
       ).toEqual([]);
     });
 
     it("rejects a `default(N)` whose count does not add up", () => {
-      withEnum("EState", "IDLE", "RUNNING", "STOPPED");
       const found = errors(
         source("        case EState.IDLE { }\n        default(1) { }"),
       );
@@ -205,14 +180,12 @@ describe("SwitchStatementAnalyzer", () => {
       // A `default` with no number makes no claim about how many variants it
       // absorbs, so there is nothing to check. Treating it as covering zero
       // would reject every switch that uses one.
-      withEnum("EState", "IDLE", "RUNNING", "STOPPED");
       expect(
         errors(source("        case EState.IDLE { }\n        default { }")),
       ).toEqual([]);
     });
 
     it("says nothing when the switch expression is not an enum", () => {
-      withEnum("EState", "IDLE", "RUNNING", "STOPPED");
       expect(
         errors(
           [
