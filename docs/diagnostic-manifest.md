@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-380 fixture(s) assert a diagnostic; 365 carry a code.
+387 fixture(s) assert a diagnostic; 372 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -319,6 +319,13 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-consumer-first.test.cnx   | E0427               |
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-source-first.test.cnx     | E0427               |
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-target.test.cnx                   | E0427               |
+| tests/bugs/issue-1668-int-float-clamp/foreign-float-rejected-cpp.test.cnx                        | E0810               |
+| tests/bugs/issue-1668-int-float-clamp/foreign-float-rejected.test.cnx                            | E0810               |
+| tests/bugs/issue-1668-int-float-clamp/mixed-category-compound-rejected.test.cnx                  | E0810               |
+| tests/bugs/issue-1668-int-float-clamp/mixed-int-float-imported-direct.test.cnx                   | E0810               |
+| tests/bugs/issue-1668-int-float-clamp/mixed-int-float-imported-transitive.test.cnx               | E0810               |
+| tests/bugs/issue-1668-int-float-clamp/mixed-int-float-rejected.test.cnx                          | E0810               |
+| tests/bugs/issue-1668-int-float-clamp/postfix-operands-rejected.test.cnx                         | E0810               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/cross-file-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx                             | E0708               |
