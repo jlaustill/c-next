@@ -34,17 +34,31 @@ describe("TargetResolver", () => {
       expect(TargetResolver.byName(name)).toBeUndefined();
     });
 
-    it("resolves an alias to the very description it names", () => {
-      expect(TargetResolver.byName("teensy41")).toBe(
-        TargetResolver.byName("cortex-m7"),
-      );
+    it.each([
+      ["teensy41", "cortex-m7"],
+      ["teensy40", "cortex-m7"],
+      ["stm32f4", "cortex-m4"],
+      ["avr", "atmega328p"],
+      ["arduino-uno", "atmega328p"],
+    ])("resolves the alias %s to %s's description", (alias, target) => {
+      expect(TargetResolver.byName(alias)).toBe(TargetResolver.byName(target));
     });
   });
 
   describe("names", () => {
     it("lists every catalog name, aliases included", () => {
       expect(TargetResolver.names()).toEqual(
-        expect.arrayContaining(["cortex-m7", "teensy41", "teensy40", "host"]),
+        expect.arrayContaining([
+          "cortex-m7",
+          "teensy41",
+          "teensy40",
+          "stm32f4",
+          "atmega328p",
+          "avr",
+          "arduino-uno",
+          "esp32",
+          "host",
+        ]),
       );
     });
   });

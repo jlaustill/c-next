@@ -96,6 +96,8 @@ const TargetDescription CORTEX_M4 <- {
     toolchain_cpu: "cortex-m4"
 };
 
+const TargetAlias STM32F4 <- { name: "stm32f4", target: "cortex-m4" };
+
 // ARMv7-M
 const TargetDescription CORTEX_M3 <- {
     name: "cortex-m3",
@@ -168,9 +170,9 @@ const TargetDescription CORTEX_M0 <- {
     toolchain_cpu: "cortex-m0"
 };
 
-// 8-bit AVR (ATmega328P data model): 16-bit int, 32-bit double
-const TargetDescription AVR <- {
-    name: "avr",
+// 8-bit AVR: 16-bit int, 32-bit double
+const TargetDescription ATMEGA328P <- {
+    name: "atmega328p",
     word_size: 8,
     ldrex_strex: false,
     basepri: false,
@@ -190,6 +192,32 @@ const TargetDescription AVR <- {
     internal_identifier_chars: 63,
     toolchain_triple: "avr",
     toolchain_cpu: "atmega328p"
+};
+
+const TargetAlias AVR <- { name: "avr", target: "atmega328p" };
+const TargetAlias ARDUINO_UNO <- { name: "arduino-uno", target: "atmega328p" };
+
+// Xtensa LX6, ILP32. From GCC's xtensa.h and LLVM's Xtensa target; no
+// compiler in the test matrix checks it, so it names no toolchain.
+const TargetDescription ESP32 <- {
+    name: "esp32",
+    word_size: 32,
+    ldrex_strex: false,
+    basepri: false,
+    char_bits: 8,
+    char_signed: false,
+    short_bits: 16,
+    int_bits: 32,
+    long_bits: 32,
+    long_long_bits: 64,
+    size_t_bits: 32,
+    pointer_bits: 32,
+    float_bits: 32,
+    double_bits: 64,
+    long_double_bits: 64,
+    big_endian: false,
+    external_identifier_chars: 31,
+    internal_identifier_chars: 63
 };
 
 // The build machine: x86-64 Linux, LP64
