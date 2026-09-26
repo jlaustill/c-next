@@ -1,13 +1,13 @@
-name: SonarCloud (fork PRs)
+name: SonarCloud
 
 # #1680: GitHub gives a pull_request run from a FORK no repository secrets, so
-# the Sonar job in pr-checks.yml cannot authenticate there and every fork PR
+# a Sonar job inside pr-checks.yml cannot authenticate there and every fork PR
 # failed it. This workflow runs after PR Quality Checks completes, in the base
-# repository's context and WITH SONAR_TOKEN. It scans fork pull requests only;
-# pr-checks.yml keeps pushes and same-repository pull requests until #1680's
-# second PR moves them here too.
+# repository's context and WITH SONAR_TOKEN, and scans every pull request (fork
+# or not) and every push -- one path, whoever opened the PR. (pr-checks.yml
+# keeps its old job for one cycle; see sonar-workflow.test.ts.)
 #
-# The fork's files are on disk while the token is in scope, so:
+# For a fork, the fork's files are on disk while the token is in scope, so:
 #   - nothing from the checkout is executed: no npm/node step, ever
 #   - Sonar settings come from the default branch (-Dproject.settings). The
 #     fork's sonar-project.properties could otherwise set sonar.host.url (send
@@ -30,25 +30,35 @@ permissions:
   actions: read
   contents: read
   pull-requests: read
+  statuses: write # to report the scan's outcome on the analyzed commit
 
 jobs:
   scan:
     name: SonarCloud
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.head_repository.full_name != github.repository
+    if: github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'push'
 
     steps:
-      # workflow_run.pull_requests is empty for a fork, so find the PR by its
-      # head and require exactly one open PR at the commit PR Quality Checks ran on.
-      - name: Resolve pull request
-        id: pr
+      # A push is analyzed as its branch. A pull request is found by its head,
+      # because workflow_run.pull_requests is empty for a fork, and must be
+      # exactly one open PR at the commit PR Quality Checks ran on.
+      - name: Resolve what to analyze
+        id: target
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          EVENT: ${{ github.event.workflow_run.event }}
           HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login }}
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
+          if [ "$EVENT" = "push" ]; then
+            echo "ref=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+            params=$(jq -cn --arg branch "$HEAD_BRANCH" --arg sha "$HEAD_SHA" \
+              '{"sonar.branch.name": $branch, "sonar.scm.revision": $sha}')
+            echo "params=$params" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           matches=$(gh api --paginate --method GET "repos/$REPO/pulls" \
             -f state=open -f "head=$HEAD_OWNER:$HEAD_BRANCH" -F per_page=100 \
             --jq '.[] | select(.head.sha == env.HEAD_SHA) | {number, base: .base.ref, branch: .head.ref} | @json')
@@ -58,7 +68,7 @@ jobs:
           fi
           number=$(printf '%s' "$matches" | jq -r .number)
           case "$number" in ''|*[!0-9]*) echo "::error::bad PR number"; exit 1 ;; esac
-          echo "number=$number" >> "$GITHUB_OUTPUT"
+          echo "ref=refs/pull/$number/head" >> "$GITHUB_OUTPUT"
           # One line of JSON: jq escapes the branch name, and a git ref cannot
           # hold a newline, so it cannot break out of the output file.
           params=$(printf '%s' "$matches" | jq -c --arg sha "$HEAD_SHA" '{
@@ -69,10 +79,10 @@ jobs:
           }')
           echo "params=$params" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout pull request
+      - name: Checkout the analyzed commit
         uses: actions/checkout@v4
         with:
-          ref: refs/pull/${{ steps.pr.outputs.number }}/head
+          ref: ${{ steps.target.outputs.ref }}
           fetch-depth: 0 # full history: blame data, and the base branch for new-code detection
           persist-credentials: false
           # Required to check out a fork's code from workflow_run. The risk it
@@ -115,4 +125,23 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
-          SONARQUBE_SCANNER_PARAMS: ${{ steps.pr.outputs.params }}
+          SONARQUBE_SCANNER_PARAMS: ${{ steps.target.outputs.params }}
+
+      # A workflow_run's own result is reported on the default branch's commit,
+      # not on the pull request, so without this a broken scan shows on the PR
+      # only as a required check that never arrives. Posted for every outcome:
+      # a status context keeps its last state, so failure-only would leave a
+      # stale red after a successful re-run.
+      - name: Report the outcome on the analyzed commit
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          case "$JOB_STATUS" in success) state=success ;; *) state=failure ;; esac
+          gh api --method POST "repos/$REPO/statuses/$HEAD_SHA" \
+            -f state="$state" -f context="SonarCloud scan (sonar.yml)" \
+            -f description="Sonar scan: $JOB_STATUS" -f target_url="$RUN_URL" > /dev/null
