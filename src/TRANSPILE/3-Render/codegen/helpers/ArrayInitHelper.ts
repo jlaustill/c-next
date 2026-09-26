@@ -11,8 +11,8 @@
  * Migrated to use CodeGenState instead of constructor DI.
  */
 
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import invariant from "../../../../utils/invariant";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Result from processing array initialization.
@@ -39,7 +39,7 @@ interface IArrayInitResult {
  *
  * Thunks rather than pre-generated strings, deliberately. `getTypeName` must
  * run BEFORE `generateExpression`, and `generateExpression` must run INSIDE
- * the `CodeGenState.withExpectedType` window that this helper opens -- that
+ * the `callbacks.state.withExpectedType` window that this helper opens -- that
  * window is the whole point of `_generateArrayInitValue`. Passing strings
  * would evaluate them at the call site, outside it.
  */
@@ -70,26 +70,28 @@ class ArrayInitHelper {
     hasEmptyArrayDim: boolean,
     declaredSize: number | null,
     callbacks: IArrayInitCallbacks,
+    state: TranspileState,
   ): IArrayInitResult | null {
     // Reset and generate initializer
-    CodeGenState.resetArrayInitTracking();
+    state.resetArrayInitTracking();
 
-    const initValue = ArrayInitHelper._generateArrayInitValue(callbacks);
+    const initValue = ArrayInitHelper._generateArrayInitValue(callbacks, state);
 
     // Check if it was an array initializer
-    if (!CodeGenState.wasArrayInit()) {
+    if (!state.wasArrayInit()) {
       return null;
     }
 
-    CodeGenState.localArrays.add(name);
+    state.localArrays.add(name);
 
     const dimensionSuffix = hasEmptyArrayDim
-      ? ArrayInitHelper._processSizeInference(name)
-      : ArrayInitHelper._processExplicitSize(declaredSize, callbacks);
+      ? ArrayInitHelper._processSizeInference(name, state)
+      : ArrayInitHelper._processExplicitSize(declaredSize, callbacks, state);
 
     const finalInitValue = ArrayInitHelper._expandFillAllSyntax(
       initValue,
       declaredSize,
+      state,
     );
 
     return { isArrayInit: true, dimensionSuffix, initValue: finalInitValue };
@@ -100,9 +102,10 @@ class ArrayInitHelper {
    */
   private static _generateArrayInitValue(
     callbacks: IArrayInitCallbacks,
+    state: TranspileState,
   ): string {
     const typeName = callbacks.getTypeName();
-    return CodeGenState.withExpectedType(typeName, () =>
+    return state.withExpectedType(typeName, () =>
       callbacks.generateExpression(),
     );
   }
@@ -110,23 +113,26 @@ class ArrayInitHelper {
   /**
    * Process size inference for empty array dimension (u8 data[] <- [1, 2, 3])
    */
-  private static _processSizeInference(name: string): string {
+  private static _processSizeInference(
+    name: string,
+    state: TranspileState,
+  ): string {
     // #1322: E0876 rejects the fill-all form on an inferred size in pass 2.1
     // (ADR-035); the count below is the only size this path can infer.
     invariant(
-      CodeGenState.lastArrayFillValue === undefined,
+      state.lastArrayFillValue === undefined,
       `an inferred array size comes from a list -- E0876 rejects the fill-all ` +
-        `form [${CodeGenState.lastArrayFillValue}*] on '${name}' in pass 2.1, before this runs`,
+        `form [${state.lastArrayFillValue}*] on '${name}' in pass 2.1, before this runs`,
     );
 
     // Update type registry with inferred size for .length support
-    const existingType = CodeGenState.getVariableTypeInfo(name);
+    const existingType = state.getVariableTypeInfo(name);
     if (existingType) {
-      existingType.arrayDimensions = [CodeGenState.lastArrayInitCount];
-      CodeGenState.setVariableTypeInfo(name, existingType);
+      existingType.arrayDimensions = [state.lastArrayInitCount];
+      state.setVariableTypeInfo(name, existingType);
     }
 
-    return `[${CodeGenState.lastArrayInitCount}]`;
+    return `[${state.lastArrayInitCount}]`;
   }
 
   /**
@@ -135,6 +141,7 @@ class ArrayInitHelper {
   private static _processExplicitSize(
     declaredSize: number | null,
     callbacks: IArrayInitCallbacks,
+    state: TranspileState,
   ): string {
     const dimensionSuffix = callbacks.generateArrayDimensions();
 
@@ -143,10 +150,10 @@ class ArrayInitHelper {
     // partial initialization, which MISRA 9.3 forbids, so it is asserted.
     invariant(
       declaredSize === null ||
-        CodeGenState.lastArrayFillValue !== undefined ||
-        CodeGenState.lastArrayInitCount === declaredSize,
+        state.lastArrayFillValue !== undefined ||
+        state.lastArrayInitCount === declaredSize,
       `an array initializer has the declared number of elements -- E0866 rejects ` +
-        `${CodeGenState.lastArrayInitCount} for [${declaredSize}] in pass 2.1, before this runs`,
+        `${state.lastArrayInitCount} for [${declaredSize}] in pass 2.1, before this runs`,
     );
 
     return dimensionSuffix;
@@ -158,15 +165,13 @@ class ArrayInitHelper {
   private static _expandFillAllSyntax(
     initValue: string,
     declaredSize: number | null,
+    state: TranspileState,
   ): string {
-    if (
-      CodeGenState.lastArrayFillValue === undefined ||
-      declaredSize === null
-    ) {
+    if (state.lastArrayFillValue === undefined || declaredSize === null) {
       return initValue;
     }
 
-    const fillVal = CodeGenState.lastArrayFillValue;
+    const fillVal = state.lastArrayFillValue;
     // C handles {0} correctly, no need to expand
     if (fillVal === "0") {
       return initValue;

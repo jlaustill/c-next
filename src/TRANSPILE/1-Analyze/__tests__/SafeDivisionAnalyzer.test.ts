@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
+import TranspileState from "../../TranspileState";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import SafeDivisionAnalyzer from "../SafeDivisionAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-051's call shape: E0884 (four arguments) and E0885 (the first is
@@ -14,13 +16,19 @@ import SafeDivisionAnalyzer from "../SafeDivisionAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new SafeDivisionAnalyzer().analyze(tree);
+  return new SafeDivisionAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 const wrap = (body: string) =>
   `void main() {\n    u32 q <- 0;\n    bool err <- false;\n${body}\n}`;
 
+let state = new TranspileState();
+
 describe("SafeDivisionAnalyzer (E0884)", () => {
+  beforeEach(() => {
+    state = new TranspileState();
+  });
+
   it.each([
     ["too few", "    err <- safe_div(q, 10, 2);", 3],
     ["too many", "    err <- safe_mod(q, 10, 2, 0, 1);", 5],

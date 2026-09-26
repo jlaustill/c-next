@@ -1,5 +1,5 @@
 import type IBitmapFieldLayout from "../../../../transpiler/types/IBitmapFieldLayout";
-import SymbolTable from "../../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../../../PARSE/3-Declare/SymbolTable";
 import IHeaderCallbackType from "../../../../transpiler/types/IHeaderCallbackType";
 
 /**

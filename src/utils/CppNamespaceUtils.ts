@@ -9,7 +9,7 @@
  * - generateStructHeader.ts (isCppNamespace, convertToCppNamespaceIfNeeded)
  */
 
-import SymbolTable from "../transpiler/state/SymbolTable";
+import SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "./types/ESourceLanguage";
 import QualifiedCName from "./QualifiedCName";
 

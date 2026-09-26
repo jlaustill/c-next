@@ -109,13 +109,22 @@ module.exports = {
     {
       name: "state-cannot-import-output",
       comment:
-        "State layer must not depend on output layer. #1297: state/ sat " +
-        "outside the layer model entirely, which is precisely why it could " +
-        "become the place facts get stashed instead of carried -- it was the " +
-        "one module nothing forbade the coupling in. Shared contracts belong " +
-        "in transpiler/types/, which both layers may depend on.",
+        "The per-file working state must not depend on the renderer. #1297: " +
+        "`state/` sat outside the layer model entirely, which is precisely " +
+        "why it could become the place facts get stashed instead of carried " +
+        "-- it was the one module nothing forbade the coupling in. Shared " +
+        "contracts belong in transpiler/types/, which both layers may depend " +
+        "on, and that is how the state reaches `ICodeGenApi` for its " +
+        "`generator` slot without naming a renderer module. " +
+        "`from` names the MODULE, not a directory: since #1452 the state is " +
+        "`src/TRANSPILE/TranspileState.ts`, and `CodeGenWalker.ts` sits at " +
+        "that same root while importing sixteen generators from `3-Render/` " +
+        "-- so a root-wide `from` would fail on the walker, whose whole job " +
+        "is to call renderers. The previous `^src/transpiler/state/` matched " +
+        "nothing once the directory was deleted, which is a rule that cannot " +
+        "fail rather than a rule that passes.",
       severity: "error",
-      from: { path: "^src/transpiler/state/" },
+      from: { path: "^src/TRANSPILE/TranspileState\\.ts$" },
       to: {
         path: "^src/TRANSPILE/3-Render/",
         reachable: true,
@@ -217,6 +226,40 @@ module.exports = {
       to: { path: "^src/PARSE/4-Resolve/", reachable: true },
     },
     {
+      name: "analyzers-cannot-reach-codegen-state",
+      comment:
+        "#1456: 2.1 Analyze must not reach `CodeGenState`. It is 2.3 Render's " +
+        "container, and it mixes facts that exist when the analyzers run with " +
+        "facts a LATER pass populates -- so an analyzer reading the second " +
+        "kind gets whatever the previous file, or the previous RUN, left " +
+        "there. That is not hypothetical: #1430 suppressed E0427 through a " +
+        "stale `knownFunctions`, and #1432 let a SIGNED ARRAY SUBSCRIPT reach " +
+        "generated C at exit 0 because `typeRegistry` still held an unrelated " +
+        "run's `u8 idx`. " +
+        "What an analyzer may read now travels on `IAnalysisContext`, built " +
+        "by the orchestrator from artifacts that are settled before 2.1 " +
+        "begins. `reachable: true` because the coupling came back through " +
+        "helpers twice -- `OperandTypeResolver` and `FunctionReference` each " +
+        "reached the container on behalf of an analyzer that did not name it. " +
+        "`__tests__` is excluded: `testAnalysisContext` reads the same facts " +
+        "off the state so several hundred existing assertions keep their " +
+        "setup, and nothing outside `__tests__` calls it. " +
+        "The container is `TranspileState` at the `src/TRANSPILE/` root since " +
+        "#1452. The path below tracked it: written as " +
+        "`^src/transpiler/state/CodeGenState`, it matched nothing once that " +
+        "file was deleted, and an analyzer importing the state reported ZERO " +
+        "errors -- the guard-that-cannot-fail shape (#1143, #1297, #1556) " +
+        "arriving through a MOVE rather than through a wrong predicate. " +
+        "Mutation-checked at the new path, which is the only thing that " +
+        "distinguishes a rule that passes from one that cannot fail.",
+      severity: "error",
+      from: {
+        path: "^src/TRANSPILE/1-Analyze/",
+        pathNot: "__tests__",
+      },
+      to: { path: "^src/TRANSPILE/TranspileState", reachable: true },
+    },
+    {
       name: "analyze-cannot-import-plan",
       comment:
         "#1322: 2.1 Analyze answers *is this program legal?* and 2.2 Plan " +
@@ -230,6 +273,66 @@ module.exports = {
       severity: "error",
       from: { path: "^src/TRANSPILE/1-Analyze/", pathNot: "__tests__" },
       to: { path: "^src/TRANSPILE/2-Plan/", reachable: true },
+    },
+    {
+      name: "shared-contracts-cannot-import-a-pass",
+      comment:
+        "`transpiler/types/` is what CLAUDE.md and this file both call the " +
+        "place EVERY layer may depend on, and until now that was prose with " +
+        "nothing behind it. A contract that imports a pass root drags the pass " +
+        "into every layer that names the contract -- transitively and " +
+        "invisibly, because the importer names only the type. " +
+        "#1452 broke it twice: `IAssignmentContext` gained a " +
+        "`TranspileState` member, so adding that import to an analyzer made " +
+        "`analyzers-cannot-reach-codegen-state` fire THROUGH it, and " +
+        "`ITranspilerResult` named a 2.1 type for a `grammarCoverage?` field. " +
+        "Both are moved; this is what stops a third. " +
+        "`reachable` because the drag is the whole defect: a contract two hops " +
+        "from a pass root is as coupled as one that names it. " +
+        "The exceptions are the sanctioned carriers that already have their " +
+        "own rules -- `IParsedFile`/`ITypeAccessors` carry the parse tree by " +
+        "design (see `parse-tree-confined-to-parser`), and `symbols/` names " +
+        "`SymbolRegistry` for the scope back-reference `no-circular` exempts.",
+      severity: "error",
+      from: {
+        path: "^src/transpiler/types/",
+        pathNot: "(__tests__|__testUtils__)",
+      },
+      to: {
+        path: "^src/(PARSE|TRANSPILE|WRITE)/",
+        pathNot: [
+          "^src/PARSE/2-Parse/.*grammar/",
+          "^src/PARSE/3-Declare/SymbolRegistry\\.ts$",
+        ],
+        reachable: true,
+      },
+    },
+    {
+      name: "instrumentation-cannot-import-a-layer",
+      comment:
+        "#1452: `instrumentation/` records facts about the RUN -- where an " +
+        "ADR's rule fired, which toolchain features a run required. Any layer " +
+        "may write to it, which is the point, and it may reach back into " +
+        "NONE of them. A module that observed a pass would be deriving the " +
+        "report from the thing being reported on, and a pass that could be " +
+        "reached from instrumentation could branch on its own observation. " +
+        "That is the line `docs/architecture/README.md` draws when it admits " +
+        "this root as the one place mutable cross-pass state is allowed, and " +
+        "without this rule that paragraph is prose with nothing behind it. " +
+        "`reachable` because the edge arrives through a helper as easily as " +
+        "directly (#1297). " +
+        "The `to` names `transpiler/(data|logic)` as well, and the omission was " +
+        "real: `AdrProvenance` importing `transpiler/data/FileDiscovery` left " +
+        "depcruise at exit 0 while the comment above claimed NONE of the layers " +
+        "was reachable. 1.1 Discover and the logic layer are layers by " +
+        "CLAUDE.md's own table and by the `data-` and `logic-` rules beside " +
+        "this one, so a rule that says 'none' has to name them.",
+      severity: "error",
+      from: { path: "^src/instrumentation/", pathNot: "__tests__" },
+      to: {
+        path: "^src/(PARSE|TRANSPILE|WRITE|transpiler/data|transpiler/logic)/",
+        reachable: true,
+      },
     },
     {
       name: "analyze-cannot-import-render",

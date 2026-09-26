@@ -49,7 +49,6 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import EnumMemberSuggestion from "./helpers/EnumMemberSuggestion";
@@ -60,6 +59,8 @@ import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import UndeclaredValueAnalyzer from "./UndeclaredValueAnalyzer";
 import TypeText from "./helpers/TypeText";
+import type IAnalysisContext from "./types/IAnalysisContext";
+import StructFieldFacts from "../../utils/StructFieldFacts";
 
 /** A type name as written at the position that establishes it, or null. */
 type TExpected = string | null;
@@ -69,10 +70,13 @@ class BareEnumMemberListener extends CNextListener {
   private readonly types: OperandTypeResolver;
   private readonly values: EnumValueResolver;
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
-    this.types = new OperandTypeResolver(scopes);
-    this.values = new EnumValueResolver(scopes);
+    this.types = new OperandTypeResolver(scopes, context);
+    this.values = new EnumValueResolver(scopes, context);
   }
 
   public errors(): IBareEnumMemberError[] {
@@ -82,10 +86,10 @@ class BareEnumMemberListener extends CNextListener {
   override enterPostfixExpression = (
     ctx: Parser.PostfixExpressionContext,
   ): void => {
-    const symbols = CodeGenState.symbols;
+    const symbols = this.context.symbols;
     const primary = ctx.primaryExpression();
     const name = primary?.IDENTIFIER()?.getText();
-    if (!symbols || !primary || name === undefined) return;
+    if (!primary || name === undefined) return;
     // `name(...)` is a call, and `name.x` / `name[i]` is a chain rooted in a
     // declared value; a bare member has no operations.
     if (ctx.postfixOp().length > 0) return;
@@ -100,6 +104,8 @@ class BareEnumMemberListener extends CNextListener {
         frame,
         frame.scopePath,
         this.scopes,
+        this.context.symbolTable,
+        this.context,
       )
     ) {
       return;
@@ -253,7 +259,11 @@ class BareEnumMemberListener extends CNextListener {
       structText,
       frame,
     )) {
-      const type = CodeGenState.getStructFieldType(spelling, fieldName);
+      const type = StructFieldFacts.typeOf(
+        this.context.symbols,
+        spelling,
+        fieldName,
+      );
       if (type !== undefined) return type;
     }
     return null;
@@ -304,12 +314,16 @@ class BareEnumMemberListener extends CNextListener {
 }
 
 class BareEnumMemberAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): IBareEnumMemberError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new BareEnumMemberListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

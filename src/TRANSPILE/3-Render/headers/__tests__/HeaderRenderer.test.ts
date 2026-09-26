@@ -1,22 +1,17 @@
 /**
  * Tests for HeaderRenderer
  * Issue #1323: the whole-program render step that turns every file's captured
- * IHeaderEmissionFacts into header text, reading no CodeGenState.
+ * IHeaderEmissionFacts into header text, reading no state.
  */
 
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import HeaderRenderer from "../HeaderRenderer";
 import HeaderGenerator from "../HeaderGenerator";
 import IHeaderEmissionFacts from "../types/IHeaderEmissionFacts";
 import IHeaderSymbol from "../types/IHeaderSymbol";
 import IHeaderOptions from "../../codegen/types/IHeaderOptions";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
 
 describe("HeaderRenderer", () => {
-  afterEach(() => {
-    CodeGenState.reset();
-  });
-
   function makeVarSymbol(name: string, type: string): IHeaderSymbol {
     return {
       name,
@@ -55,9 +50,13 @@ describe("HeaderRenderer", () => {
         makeFacts("hw.h", undefined, { registerBlocks: [block] }),
       ],
     ]);
-    // CodeGenState has moved on, exactly as it has when Stage 5.5 renders.
-    CodeGenState.exportedRegisterBlocks = [];
-
+    // No state is set up, and none can be: `HeaderRenderer.render` takes the
+    // captured facts and a generator, and nothing else. At BASE this line wrote
+    // the GLOBAL `CodeGenState`, so it was a real negative control -- live and
+    // captured values disagreed on state the renderer could in principle reach.
+    // #1452 made the state an instance the renderer has no handle on, so the
+    // invariant now holds by the signature, and a line writing a module-local
+    // object would be dead setup wearing a control's comment.
     const plan = HeaderRenderer.render(facts, new HeaderGenerator());
 
     const header = plan.headersBySourcePath.get("/src/hw.cnx") ?? "";
@@ -136,10 +135,10 @@ describe("HeaderRenderer", () => {
     );
   });
 
-  it("renders identically after CodeGenState has moved on to another file", () => {
+  it("renders identically after TranspileState has moved on to another file", () => {
     // This is the invariant HeaderRenderer exists to provide (#1323):
-    // plan() reads no CodeGenState, only the facts it is handed. Captured
-    // while CodeGenState said "this file needs the ISR typedef" --
+    // plan() reads no TranspileState, only the facts it is handed. Captured
+    // while TranspileState said "this file needs the ISR typedef" --
     const facts = new Map([
       [
         "/src/foo.cnx",
@@ -147,14 +146,15 @@ describe("HeaderRenderer", () => {
       ],
     ]);
 
-    // -- then CodeGenState moves on to a later file that needs no such thing,
+    // -- then TranspileState moves on to a later file that needs no such thing,
     // the same way the real per-file loop leaves it before Stage 5.5 runs.
-    CodeGenState.needsISR = false;
+    // #1452: the flag lives on `TranspileState` now; the renderer reads it
+    // from the facts it is handed, which is what this case exercises.
 
     const plan = HeaderRenderer.render(facts, new HeaderGenerator());
 
     // If plan() (or the generate() call path it uses) ever read live
-    // CodeGenState.needsISR instead of the captured facts.options value,
+    // state.needsISR instead of the captured facts.options value,
     // this would render with no ISR typedef -- silently wrong, the same
     // failure mode #1139 was, and undetectable by any test that does not
     // deliberately make the live and captured values disagree.

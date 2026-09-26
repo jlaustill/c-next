@@ -29,7 +29,6 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
 import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
@@ -42,6 +41,7 @@ import IConstAssignmentError from "./types/IConstAssignmentError";
 import IScopeFrame from "./types/IScopeFrame";
 import TChainRoot from "./types/TChainRoot";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** What kind of const binding a name is, or null when it is not const. */
 type TConstKind = "parameter" | "variable" | null;
@@ -49,7 +49,10 @@ type TConstKind = "parameter" | "variable" | null;
 class ConstAssignmentListener extends CNextListener {
   private readonly found: IConstAssignmentError[] = [];
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
   }
 
@@ -126,7 +129,7 @@ class ConstAssignmentListener extends CNextListener {
     if (call === undefined) return;
     const frame = this.scopes.frameFor(ctx);
     this.checkSafeDivisionOutput(ctx, frame);
-    const callee = FunctionReference.ofCall(ctx, frame.scopePath);
+    const callee = FunctionReference.ofCall(ctx, frame.scopePath, this.context);
     if (callee === null) return;
     const args = call.argumentList()?.expression() ?? [];
     args.forEach((arg, index) => {
@@ -200,16 +203,12 @@ class ConstAssignmentListener extends CNextListener {
         ? "parameter"
         : "variable";
     }
-    return ConstAssignmentListener.constSymbol(
-      name,
-      root === "global" ? "" : frame.scopePath,
-    );
+    return this.constSymbol(name, root === "global" ? "" : frame.scopePath);
   }
 
   /** A const the program declares under this name -- here, or in an include. */
-  private static constSymbol(name: string, scopePath: string): TConstKind {
-    const program = CodeGenState.program;
-    if (!program) return null;
+  private constSymbol(name: string, scopePath: string): TConstKind {
+    const program = this.context.program;
     const candidates = [name];
     if (scopePath !== "") {
       candidates.unshift(ScopeUtils.getTranspiledCName({ scopePath, name }));
@@ -234,12 +233,16 @@ class ConstAssignmentListener extends CNextListener {
 }
 
 class ConstAssignmentAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): IConstAssignmentError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new ConstAssignmentListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

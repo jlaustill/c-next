@@ -18,7 +18,7 @@ import generateUnaryExpr from "../UnaryExprGenerator";
 import type IGeneratorInput from "../../IGeneratorInput";
 import type IGeneratorState from "../../IGeneratorState";
 import type IOrchestrator from "../../IOrchestrator";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import TranspileState from "../../../../../TranspileState";
 
 vi.mock("../../../../../2-Plan/ExpressionTypeResolver", () => {
   return {
@@ -36,7 +36,11 @@ import ExpressionTypeResolver from "../../../../../2-Plan/ExpressionTypeResolver
 
 const mockInput = {} as IGeneratorInput;
 const mockState = {} as IGeneratorState;
-const mockOrchestrator = {} as IOrchestrator;
+const state = new TranspileState();
+
+// #1452: the generator reads the run's C++ mode off the orchestrator's render
+// state, for the MISRA 10.1/10.3 cast. That is the only member it touches.
+const mockOrchestrator = { state } as unknown as IOrchestrator;
 
 /** The generator's whole input: an operator, the operand's code, its type. */
 function planned(
@@ -66,7 +70,7 @@ const run = (
 describe("UnaryExprGenerator", () => {
   afterEach(() => {
     vi.mocked(ExpressionTypeResolver.isUnsignedType).mockReset();
-    CodeGenState.cppMode = false;
+    state.cppMode = false;
   });
 
   describe("bitwise NOT on unsigned types", () => {
@@ -89,7 +93,7 @@ describe("UnaryExprGenerator", () => {
     });
 
     it("should use static_cast in C++ mode", () => {
-      CodeGenState.cppMode = true;
+      state.cppMode = true;
       vi.mocked(ExpressionTypeResolver.isUnsignedType).mockReturnValue(true);
 
       const result = run("~", "c", "u8");

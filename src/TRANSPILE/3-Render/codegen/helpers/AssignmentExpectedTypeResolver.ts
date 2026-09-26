@@ -10,7 +10,7 @@
  */
 
 import IAssignmentOverflowContext from "../../../../transpiler/types/IAssignmentOverflowContext";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Result of resolving expected type for an assignment target.
@@ -56,12 +56,18 @@ class AssignmentExpectedTypeResolver {
    * @param target - The target's resolved shape
    * @returns The resolved expected type and assignment context
    */
-  static resolve(target: IPlannedAssignmentTarget): IExpectedTypeResult {
+  static resolve(
+    target: IPlannedAssignmentTarget,
+    state: TranspileState,
+  ): IExpectedTypeResult {
     const { baseId, identifiers, hasSubscript } = target;
 
     // Case 1: Simple identifier (x <- value) - no postfix ops
     if (baseId && !target.hasPostfixOps) {
-      return AssignmentExpectedTypeResolver.resolveForSimpleIdentifier(baseId);
+      return AssignmentExpectedTypeResolver.resolveForSimpleIdentifier(
+        baseId,
+        state,
+      );
     }
 
     // Case 2: Has postfix ops - the chain was extracted by the caller
@@ -70,6 +76,7 @@ class AssignmentExpectedTypeResolver {
       if (identifiers.length >= 2 && !hasSubscript) {
         return AssignmentExpectedTypeResolver.resolveForMemberChain(
           identifiers,
+          state,
         );
       }
 
@@ -79,6 +86,7 @@ class AssignmentExpectedTypeResolver {
         return AssignmentExpectedTypeResolver.resolveForArrayElement(
           baseId,
           target.hasRangeSubscript,
+          state,
         );
       }
 
@@ -87,6 +95,7 @@ class AssignmentExpectedTypeResolver {
       if (identifiers.length >= 2 && hasSubscript) {
         return AssignmentExpectedTypeResolver.resolveForMemberArrayElement(
           identifiers,
+          state,
         );
       }
     }
@@ -98,8 +107,11 @@ class AssignmentExpectedTypeResolver {
   /**
    * Resolve expected type for a simple identifier target.
    */
-  private static resolveForSimpleIdentifier(id: string): IExpectedTypeResult {
-    const typeInfo = CodeGenState.getVariableTypeInfo(id);
+  private static resolveForSimpleIdentifier(
+    id: string,
+    state: TranspileState,
+  ): IExpectedTypeResult {
+    const typeInfo = state.getVariableTypeInfo(id);
     if (!typeInfo) {
       return { expectedType: null, assignmentContext: null };
     }
@@ -125,8 +137,9 @@ class AssignmentExpectedTypeResolver {
    */
   private static resolveForMemberChain(
     identifiers: readonly string[],
+    state: TranspileState,
   ): IExpectedTypeResult {
-    return AssignmentExpectedTypeResolver.walkMemberChain(identifiers);
+    return AssignmentExpectedTypeResolver.walkMemberChain(identifiers, state);
   }
 
   /**
@@ -143,8 +156,9 @@ class AssignmentExpectedTypeResolver {
   private static resolveForArrayElement(
     id: string,
     hasRangeSubscript: boolean,
+    state: TranspileState,
   ): IExpectedTypeResult {
-    const typeInfo = CodeGenState.getVariableTypeInfo(id);
+    const typeInfo = state.getVariableTypeInfo(id);
     if (!typeInfo?.isArray) {
       return { expectedType: null, assignmentContext: null };
     }
@@ -166,8 +180,9 @@ class AssignmentExpectedTypeResolver {
    */
   private static resolveForMemberArrayElement(
     identifiers: readonly string[],
+    state: TranspileState,
   ): IExpectedTypeResult {
-    return AssignmentExpectedTypeResolver.walkMemberChain(identifiers);
+    return AssignmentExpectedTypeResolver.walkMemberChain(identifiers, state);
   }
 
   /**
@@ -178,15 +193,16 @@ class AssignmentExpectedTypeResolver {
    */
   private static walkMemberChain(
     identifiers: readonly string[],
+    state: TranspileState,
   ): IExpectedTypeResult {
     if (identifiers.length < 2) {
       return { expectedType: null, assignmentContext: null };
     }
 
     const rootName = identifiers[0];
-    const rootTypeInfo = CodeGenState.getVariableTypeInfo(rootName);
+    const rootTypeInfo = state.getVariableTypeInfo(rootName);
 
-    if (!rootTypeInfo || !CodeGenState.isKnownStruct(rootTypeInfo.baseType)) {
+    if (!rootTypeInfo || !state.isKnownStruct(rootTypeInfo.baseType)) {
       return { expectedType: null, assignmentContext: null };
     }
 
@@ -194,10 +210,12 @@ class AssignmentExpectedTypeResolver {
 
     for (let i = 1; i < identifiers.length && currentStructType; i++) {
       const memberName = identifiers[i];
-      const memberType = CodeGenState.symbolTable?.getStructFieldType(
+      // Through the accessor -- see `AssignmentClassifier`: a bare
+      // `symbolTable` lookup misses #1322's scope-declared-struct key.
+      const memberType: string | undefined = state.getStructFieldInfo(
         currentStructType,
         memberName,
-      );
+      )?.type;
 
       if (!memberType) {
         break;
@@ -205,7 +223,7 @@ class AssignmentExpectedTypeResolver {
 
       if (i === identifiers.length - 1) {
         return { expectedType: memberType, assignmentContext: null };
-      } else if (CodeGenState.isKnownStruct(memberType)) {
+      } else if (state.isKnownStruct(memberType)) {
         currentStructType = memberType;
       } else {
         break;

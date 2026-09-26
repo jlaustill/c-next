@@ -13,7 +13,7 @@ import ScopeUtils from "../../../../utils/ScopeUtils";
 import TSymbol from "../../../../transpiler/types/symbols/TSymbol";
 import TVisibility from "../../../../transpiler/types/TVisibility";
 import IScopeCollectorResult from "../types/IScopeCollectorResult";
-import SymbolRegistry from "../../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../SymbolRegistry";
 import BitmapCollector from "./BitmapCollector";
 import EnumCollector from "./EnumCollector";
 import StructCollector from "./StructCollector";
@@ -31,9 +31,9 @@ class ScopeCollector {
    * Uses SymbolRegistry to get/create the scope, ensuring proper scope
    * references in all member symbols.
    *
-   * **Side-effect**: This method calls SymbolRegistry.getOrCreateScope(),
+   * **Side-effect**: This method calls registry.getOrCreateScope(),
    * which creates the scope in global state if it doesn't exist. Tests
-   * should call SymbolRegistry.reset() in beforeEach to ensure isolation.
+   * constructs its own registry, so there is nothing to reset (#1452 box 3).
    *
    * @param ctx The scope declaration context
    * @param sourceFile Source file path
@@ -46,6 +46,7 @@ class ScopeCollector {
    * @returns The scope symbol and all member symbols
    */
   static collect(
+    registry: SymbolRegistry,
     ctx: Parser.ScopeDeclarationContext,
     sourceFile: string,
     knownBitmaps: Set<string>,
@@ -56,7 +57,7 @@ class ScopeCollector {
     const span = ParserUtils.getSpan(ctx);
 
     // Get or create the scope via SymbolRegistry
-    const scope = SymbolRegistry.getOrCreateScope(scopeName);
+    const scope = registry.getOrCreateScope(scopeName);
 
     // #1298: members carry the scope's PATH, not the scope object. Derived once
     // here so the six member collectors below cannot disagree about it.
@@ -163,6 +164,7 @@ class ScopeCollector {
 
         // Use collectAndRegister to populate both memberSymbols and SymbolRegistry
         const funcSymbol = FunctionCollector.collectAndRegister(
+          registry,
           funcDecl,
           sourceFile,
           scopePath,

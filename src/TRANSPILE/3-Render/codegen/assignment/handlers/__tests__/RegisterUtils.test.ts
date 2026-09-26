@@ -5,8 +5,10 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import RegisterUtils from "../RegisterUtils";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
+
+let state = new TranspileState();
 
 describe("RegisterUtils", () => {
   describe("isWriteOnlyRegister", () => {
@@ -41,8 +43,8 @@ describe("RegisterUtils", () => {
 
   describe("extractBitRangeParams", () => {
     beforeEach(() => {
-      CodeGenState.reset();
-      HandlerTestUtils.setupMockGenerator({
+      state = new TranspileState();
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockImplementation((ctx) => ctx?.mockExpr ?? "0"),
@@ -69,15 +71,15 @@ describe("RegisterUtils", () => {
 
   describe("tryGenerateMMIO", () => {
     beforeEach(() => {
-      CodeGenState.reset();
-      HandlerTestUtils.setupMockSymbols({
+      state = new TranspileState();
+      HandlerTestUtils.setupMockSymbols(state, {
         registerBaseAddresses: new Map([["GPIO7", "0x401B8000"]]),
         registerMemberOffsets: new Map([["GPIO7_DR", "0x00"]]),
       });
     });
 
     it("returns success:false when start is not constant", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi.fn().mockReturnValue(undefined),
       });
 
@@ -87,13 +89,14 @@ describe("RegisterUtils", () => {
         undefined,
         undefined,
         "0xFF",
+        state,
       );
 
       expect(result.success).toBe(false);
     });
 
     it("returns success:false when start is not byte-aligned", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(3) // start = 3 (not byte-aligned)
@@ -106,13 +109,14 @@ describe("RegisterUtils", () => {
         3,
         8,
         "0xFF",
+        state,
       );
 
       expect(result.success).toBe(false);
     });
 
     it("returns success:false when width is not standard (8, 16, 32)", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0) // start = 0
@@ -125,19 +129,20 @@ describe("RegisterUtils", () => {
         0,
         12,
         "0xFF",
+        state,
       );
 
       expect(result.success).toBe(false);
     });
 
     it("returns success:false when base address not found", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
           .mockReturnValueOnce(8),
       });
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         registerBaseAddresses: new Map(), // No base address
         registerMemberOffsets: new Map([["GPIO7_DR", "0x00"]]),
       });
@@ -148,13 +153,14 @@ describe("RegisterUtils", () => {
         0,
         8,
         "0xFF",
+        state,
       );
 
       expect(result.success).toBe(false);
     });
 
     it("generates MMIO for byte-aligned 8-bit write at offset 0", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0) // start = 0
@@ -167,6 +173,7 @@ describe("RegisterUtils", () => {
         0,
         8,
         "0xFF",
+        state,
       );
 
       expect(result.success).toBe(true);
@@ -176,7 +183,7 @@ describe("RegisterUtils", () => {
     });
 
     it("generates MMIO for byte-aligned 16-bit write with byte offset", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(8) // start = 8 (1 byte offset)
@@ -189,6 +196,7 @@ describe("RegisterUtils", () => {
         8,
         16,
         "0xABCD",
+        state,
       );
 
       expect(result.success).toBe(true);
@@ -198,7 +206,7 @@ describe("RegisterUtils", () => {
     });
 
     it("generates MMIO for 32-bit write", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0) // start = 0
@@ -211,6 +219,7 @@ describe("RegisterUtils", () => {
         0,
         32,
         "0xDEADBEEF",
+        state,
       );
 
       expect(result.success).toBe(true);

@@ -21,7 +21,10 @@ import IArrayIndexTypeError from "./types/IArrayIndexTypeError";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import TypeConstants from "../../utils/constants/TypeConstants";
-import CodeGenState from "../../transpiler/state/CodeGenState";
+import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
+import StructFieldFacts from "../../utils/StructFieldFacts";
+import type IAnalysisContext from "./types/IAnalysisContext";
+import DeclaredVariableFacts from "../../utils/DeclaredVariableFacts";
 
 /**
  * First pass: Collect variable declarations with their types
@@ -86,7 +89,11 @@ class IndexTypeListener extends CNextListener {
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private readonly varTypes: Map<string, string>;
 
-  constructor(analyzer: ArrayIndexTypeAnalyzer, varTypes: Map<string, string>) {
+  constructor(
+    analyzer: ArrayIndexTypeAnalyzer,
+    varTypes: Map<string, string>,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
     this.analyzer = analyzer;
     this.varTypes = varTypes;
@@ -149,7 +156,7 @@ class IndexTypeListener extends CNextListener {
       }
 
       // Enum types are valid indices (ADR-054: transpile to unsigned constants)
-      if (CodeGenState.isKnownEnum(resolvedType)) {
+      if (DeclaredTypeFacts.isEnum(this.context.symbols, resolvedType)) {
         continue;
       }
 
@@ -266,7 +273,11 @@ class IndexTypeListener extends CNextListener {
     if (localType) return localType;
 
     // Fall back to CodeGenState for cross-file variables
-    const typeInfo = CodeGenState.getVariableTypeInfo(varName);
+    const typeInfo = DeclaredVariableFacts.typeInfoOf(
+      this.context.symbols,
+      this.context.symbolTable,
+      varName,
+    );
     if (typeInfo) return typeInfo.baseType;
 
     return null;
@@ -286,10 +297,15 @@ class IndexTypeListener extends CNextListener {
       const fieldName = fieldId.getText();
 
       // Check if it's an enum access — always valid
-      if (CodeGenState.isKnownEnum(currentType)) return null;
+      if (DeclaredTypeFacts.isEnum(this.context.symbols, currentType))
+        return null;
 
       // Check struct field type
-      const fieldType = CodeGenState.getStructFieldType(currentType, fieldName);
+      const fieldType = StructFieldFacts.typeOf(
+        this.context.symbols,
+        currentType,
+        fieldName,
+      );
       return fieldType ?? null;
     }
 
@@ -321,7 +337,8 @@ class IndexTypeListener extends CNextListener {
 
     // Function call (e.g., getIndex())
     if (op.LPAREN()) {
-      const returnType = CodeGenState.getFunctionReturnType(currentType);
+      const returnType =
+        this.context.symbols.functionReturnTypes.get(currentType);
       return returnType ?? null;
     }
 
@@ -333,6 +350,9 @@ class IndexTypeListener extends CNextListener {
  * Analyzer that detects non-unsigned-integer types used as subscript indexes
  */
 class ArrayIndexTypeAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   private errors: IArrayIndexTypeError[] = [];
 
   /**
@@ -347,7 +367,7 @@ class ArrayIndexTypeAnalyzer {
     const varTypes = collector.getVarTypes();
 
     // Second pass: validate subscript index expressions
-    const listener = new IndexTypeListener(this, varTypes);
+    const listener = new IndexTypeListener(this, varTypes, this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
 
     return this.errors;

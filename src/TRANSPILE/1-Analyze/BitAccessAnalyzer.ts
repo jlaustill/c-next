@@ -40,6 +40,7 @@ import IBitAccessError from "./types/IBitAccessError";
 import TChainRoot from "./types/TChainRoot";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import SHARED_FLOAT_TYPES from "../../transpiler/types/FLOAT_TYPES";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
  * The floats a bit range is lowered through a union for.
@@ -233,11 +234,14 @@ class BitAccessListener extends CNextListener {
 }
 
 class BitAccessAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): IBitAccessError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
     const listener = new BitAccessListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

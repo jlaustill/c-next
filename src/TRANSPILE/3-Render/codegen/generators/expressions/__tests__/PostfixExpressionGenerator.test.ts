@@ -20,7 +20,7 @@ import type ICodeGenSymbols from "../../../../../../transpiler/types/ICodeGenSym
 import type TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
 import type TParameterInfo from "../../../../../../transpiler/types/TParameterInfo";
 import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import TranspileState from "../../../../../TranspileState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 
@@ -46,15 +46,17 @@ interface IPostfixPlannerStub {
   tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined;
 }
 
+let sharedState = new TranspileState();
+
 function createMockInput(overrides?: {
   symbols?: ICodeGenSymbols;
   typeRegistry?: Map<string, TTypeInfo>;
 }): IGeneratorInput {
-  // Also populate CodeGenState with the type registry entries
-  // This is needed because PostfixExpressionGenerator now uses CodeGenState directly
+  // Also populate TranspileState with the type registry entries
+  // This is needed because PostfixExpressionGenerator now uses TranspileState directly
   const typeRegistry = overrides?.typeRegistry ?? new Map<string, TTypeInfo>();
   for (const [name, info] of typeRegistry) {
-    CodeGenState.setVariableTypeInfo(name, info);
+    sharedState.setVariableTypeInfo(name, info);
   }
 
   return {
@@ -64,6 +66,7 @@ function createMockInput(overrides?: {
     functionSignatures: new Map(),
     knownFunctions: new Set(),
     knownStructs: new Set(),
+    knownScopes: new Set<string>(),
     constValues: new Map(),
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
@@ -138,6 +141,8 @@ function createMockOrchestrator(overrides?: {
   markFloatShadowCurrent?: (name: string) => void;
 }): IOrchestrator & IPostfixPlannerStub {
   return {
+    // #1452: the generator reads render state off its orchestrator.
+    state: sharedState,
     getInput: vi.fn(),
     getState: vi.fn(),
     applyEffects: vi.fn(),
@@ -362,9 +367,9 @@ function runPostfix(
 // ========================================================================
 
 describe("PostfixExpressionGenerator", () => {
-  // Reset CodeGenState before each test to avoid state pollution
+  // Reset TranspileState before each test to avoid state pollution
   beforeEach(() => {
-    CodeGenState.reset();
+    sharedState = new TranspileState();
   });
 
   describe("basic expression generation", () => {
@@ -2309,6 +2314,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const symbols = createMockSymbols({
         knownStructs: new Set(["MyStruct"]),
+        knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
         createMockPostfixOp({ identifier: "name" }),
@@ -2342,6 +2348,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const symbols = createMockSymbols({
         knownStructs: new Set(["MyStruct"]),
+        knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
         createMockPostfixOp({ identifier: "value" }),
@@ -2375,6 +2382,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const symbols = createMockSymbols({
         knownStructs: new Set(["MyStruct"]),
+        knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
         createMockPostfixOp({ identifier: "data" }),
@@ -2409,6 +2417,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const symbols = createMockSymbols({
         knownStructs: new Set(["MyStruct"]),
+        knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
         createMockPostfixOp({ identifier: "value" }),
@@ -2443,6 +2452,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const symbols = createMockSymbols({
         knownStructs: new Set(["MyStruct"]),
+        knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
         createMockPostfixOp({ identifier: "name" }),
@@ -2476,6 +2486,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const symbols = createMockSymbols({
         knownStructs: new Set(["MyStruct"]),
+        knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
         createMockPostfixOp({ identifier: "value" }),

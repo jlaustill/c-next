@@ -10,13 +10,13 @@ import CodeGenWalker from "../CodeGenWalker";
 import CodeGenerator from "../3-Render/codegen/CodeGenerator";
 import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import SymbolTable from "../../transpiler/state/SymbolTable";
+import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import TSymbolInfoAdapter from "../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import TParameterInfo from "../../transpiler/types/TParameterInfo";
-import CodeGenState from "../../transpiler/state/CodeGenState";
-import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
+import TranspileState from "../TranspileState";
+import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import DeferredTypes from "../../PARSE/4-Resolve/DeferredTypes";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
 
@@ -33,7 +33,7 @@ function declareAndResolveAs(
   tree: Parser.ProgramContext,
   sourcePath: string,
 ): TSymbol[] {
-  const declared = CNextResolver.resolve(tree, sourcePath);
+  const declared = CNextResolver.resolve(tree, sourcePath, registry);
   return DeferredTypes.settle(declared.symbols, (qualifiedName) =>
     declared.declaredScopeTypes.has(qualifiedName),
   );
@@ -72,12 +72,13 @@ function setupGenerator(source: string): {
   // the walk accumulates read the SAME instance the walk drove.
   const host = new CodeGenerator();
   const generator = new CodeGenWalker(host);
-  // Set symbolTable in CodeGenState before generate (CodeGenState owns SymbolTable)
-  CodeGenState.symbolTable = symbolTable;
+  const state = host.state;
+  // Set symbolTable in TranspileState before generate (TranspileState owns SymbolTable)
+  state.symbolTable = symbolTable;
   // #1511: the whole-program facts codegen reads. Without them every small
   // primitive parameter looks ineligible for pass-by-value and comes out a
   // pointer.
-  installProgramFor(tree);
+  installProgramFor(state, tree);
   // Generate to initialize the generator state
   generateWithProgram(generator, tree, tokenStream, {
     symbolInfo: symbols,
@@ -109,19 +110,20 @@ function createMinimalGenerator(source: string): {
  * with a real run rather than approximating one.
  */
 function installProgramFor(
+  state: TranspileState,
   tree: Parser.ProgramContext,
   sourcePath = "test.cnx",
 ): void {
-  const declared = CNextResolver.resolve(tree, sourcePath);
-  const modifications = ModificationFacts.derive([
-    { parsed: { tree } as never, fileSymbols: declared },
-  ]);
-  CodeGenState.program = Program.build(
-    [declared],
-    new Map(),
-    undefined,
-    modifications,
+  const declared = CNextResolver.resolve(tree, sourcePath, registry);
+  const modifications = ModificationFacts.derive(
+    [{ parsed: { tree } as never, fileSymbols: declared }],
+    registry,
+    state.symbolTable,
   );
+  state.program = Program.build([declared], {
+    modifications,
+    registry,
+  });
 }
 
 /**
@@ -140,20 +142,27 @@ function generateWithProgram(
   tokenStream: Parameters<CodeGenWalker["generate"]>[1],
   options: Parameters<CodeGenWalker["generate"]>[2],
 ): ReturnType<CodeGenWalker["generate"]> {
-  installProgramFor(tree, options?.sourcePath ?? "test.cnx");
+  installProgramFor(
+    generator.transpileState,
+    tree,
+    options?.sourcePath ?? "test.cnx",
+  );
   return generator.generate(tree, tokenStream, options);
 }
 
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
+
 describe("CodeGenWalker", () => {
-  // Reset SymbolRegistry before each test to prevent state pollution
-  beforeEach(() => {
-    SymbolRegistry.reset();
-    // CodeGenState.symbolTable is a run-wide singleton. ADR-057's shadow
-    // predicate asks it whether a bare name is already taken at file scope, so
-    // symbols left by an earlier test in this file make an unrelated local look
-    // like it shadows something and change the generated name.
-    CodeGenState.symbolTable.clear();
-  });
+  // #1452 box 4: each test builds its own `CodeGenerator`, so its `SymbolTable`
+  // arrives empty with the instance. The reset that stood here existed because
+  // the table was a mutable static that carried an earlier test's symbols into
+  // the next one -- ADR-057's shadow predicate then read an unrelated local as
+  // shadowing something and changed the generated name. There is nothing left
+  // to reset.
 
   describe("generate()", () => {
     it("should generate basic C code from empty program", () => {
@@ -357,35 +366,12 @@ describe("CodeGenWalker", () => {
         expect(host.getState()).toBeDefined();
       });
 
-      it("should process register-local effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
-
-        host.applyEffects([
-          { type: "register-local", name: "myVar", isArray: false },
-        ]);
-
-        const state = host.getState();
-        expect(state.localVariables.has("myVar")).toBe(true);
-      });
-
-      it("should process register-local array effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
-
-        host.applyEffects([
-          { type: "register-local", name: "myArray", isArray: true },
-        ]);
-
-        const state = host.getState();
-        expect(state.localVariables.has("myArray")).toBe(true);
-        expect(state.localArrays.has("myArray")).toBe(true);
-      });
-
       it("should process set-scope effects", () => {
         const { host } = createMinimalGenerator(`void foo() { }`);
         // #1304: entering a scope the registry does not hold is an invariant
         // violation now, not a silent orphan. A unit test that skips the
         // symbols pass registers the scope itself.
-        SymbolRegistry.getOrCreateScope("MyScope");
+        registry.getOrCreateScope("MyScope");
 
         host.applyEffects([{ type: "set-scope", name: "MyScope" }]);
 
@@ -398,10 +384,12 @@ describe("CodeGenWalker", () => {
       it("should process enter-function-body effects", () => {
         const { host } = createMinimalGenerator(`void foo() { }`);
 
-        // First add a local
-        host.applyEffects([
-          { type: "register-local", name: "myVar", isArray: false },
-        ]);
+        // Set the local directly. This used to go through a `register-local`
+        // EFFECT, which no generator ever emitted -- so the setup for this test
+        // was the only thing keeping that arm of `applyEffects` alive (#1452
+        // box 2). What is under test here is `enter-function-body`, which is
+        // emitted.
+        host.state.registerLocalVariable("myVar");
         expect(host.getState().localVariables.has("myVar")).toBe(true);
 
         // Then enter function body (clears locals)
@@ -482,49 +470,6 @@ describe("CodeGenWalker", () => {
 
         // Generator should track the safe division operation
         expect(host.getState()).toBeDefined();
-      });
-
-      it("should process register-type effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
-
-        // Apply register-type effect with full TTypeInfo
-        expect(() =>
-          host.applyEffects([
-            {
-              type: "register-type",
-              name: "myVar",
-              info: {
-                baseType: "u32",
-                bitWidth: 32,
-                isArray: false,
-                isConst: false,
-              },
-            },
-          ]),
-        ).not.toThrow();
-
-        // Type should be registered
-        const input = host.getInput();
-        expect(input.typeRegistry.has("myVar")).toBe(true);
-        const typeInfo = input.typeRegistry.get("myVar");
-        expect(typeInfo?.baseType).toBe("u32");
-        expect(typeInfo?.bitWidth).toBe(32);
-      });
-
-      it("should process register-const-value effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
-
-        // Apply register const value effect
-        expect(() =>
-          host.applyEffects([
-            { type: "register-const-value", name: "MY_CONST", value: 42 },
-          ]),
-        ).not.toThrow();
-
-        // Const should be registered
-        const input = host.getInput();
-        expect(input.constValues.has("MY_CONST")).toBe(true);
-        expect(input.constValues.get("MY_CONST")).toBe(42);
       });
 
       it("should process set-parameters effects", () => {
@@ -780,7 +725,7 @@ describe("CodeGenWalker", () => {
       it("should set and track current scope", () => {
         const { host } = createMinimalGenerator(`void foo() { }`);
         // #1304: see the note on "should process set-scope effects".
-        SymbolRegistry.getOrCreateScope("MyScope");
+        registry.getOrCreateScope("MyScope");
 
         host.setCurrentScope("MyScope");
         expect(host.getState().currentScopePath).toBe("MyScope");
@@ -992,19 +937,6 @@ describe("CodeGenWalker", () => {
       });
     });
 
-    describe("getModifiedParameters()", () => {
-      it("should return map of modified parameters", () => {
-        const { host } = createMinimalGenerator(`
-          void modify(u32 param) {
-            param <- 42;
-          }
-        `);
-
-        const modifiedParams = host.getModifiedParameters();
-        expect(modifiedParams).toBeInstanceOf(Map);
-      });
-    });
-
     describe("getFunctionUnmodifiedParams()", () => {
       it("should return map of unmodified parameters", () => {
         const { generator } = createMinimalGenerator(`
@@ -1013,17 +945,6 @@ describe("CodeGenWalker", () => {
 
         const unmodifiedParams = generator.getFunctionUnmodifiedParams();
         expect(unmodifiedParams).toBeInstanceOf(Map);
-      });
-    });
-
-    describe("getFunctionParamLists()", () => {
-      it("should return function parameter lists", () => {
-        const { host } = createMinimalGenerator(`
-          void test(u32 a, u32 b) { }
-        `);
-
-        const paramLists = host.getFunctionParamLists();
-        expect(paramLists).toBeInstanceOf(Map);
       });
     });
 
@@ -9156,7 +9077,7 @@ describe("CodeGenWalker", () => {
         // produced the right output for the wrong reason.
         const symbolTable = new SymbolTable();
         symbolTable.addTSymbols(tSymbols);
-        CodeGenState.symbolTable = symbolTable;
+        host.state.symbolTable = symbolTable;
 
         const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
@@ -9281,12 +9202,12 @@ describe("CodeGenWalker", () => {
         const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         // #831/#1285: register the symbols, as Transpiler.ts:429 does. Passing only
-        // `symbolInfo` leaves CodeGenState.symbolTable empty -- a state the real
+        // `symbolInfo` leaves state.symbolTable empty -- a state the real
         // pipeline never reaches, and one in which kind-aware type resolution
         // silently finds nothing. 390 sites in this file share this shape and pass
         // because they do not assert on scope-qualified names; these two do.
-        CodeGenState.symbolTable = new SymbolTable();
-        CodeGenState.symbolTable.addTSymbols(tSymbols);
+        host.state.symbolTable = new SymbolTable();
+        host.state.symbolTable.addTSymbols(tSymbols);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
@@ -9394,7 +9315,7 @@ describe("CodeGenWalker", () => {
         // Issue #831: Register TSymbols in SymbolTable (single source of truth)
         const symbolTable = new SymbolTable();
         symbolTable.addTSymbols(tSymbols);
-        CodeGenState.symbolTable = symbolTable;
+        host.state.symbolTable = symbolTable;
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
@@ -10129,12 +10050,12 @@ describe("CodeGenWalker", () => {
         const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         // #831/#1285: register the symbols, as Transpiler.ts:429 does. Passing only
-        // `symbolInfo` leaves CodeGenState.symbolTable empty -- a state the real
+        // `symbolInfo` leaves state.symbolTable empty -- a state the real
         // pipeline never reaches, and one in which kind-aware type resolution
         // silently finds nothing. 390 sites in this file share this shape and pass
         // because they do not assert on scope-qualified names; these two do.
-        CodeGenState.symbolTable = new SymbolTable();
-        CodeGenState.symbolTable.addTSymbols(tSymbols);
+        host.state.symbolTable = new SymbolTable();
+        host.state.symbolTable.addTSymbols(tSymbols);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {

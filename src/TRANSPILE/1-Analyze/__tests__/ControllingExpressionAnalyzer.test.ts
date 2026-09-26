@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
+import TranspileState from "../../TranspileState";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ControllingExpressionAnalyzer from "../ControllingExpressionAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-022's controlling-expression rule -- E0701 (MISRA C:2012 Rule
@@ -15,13 +17,21 @@ import ControllingExpressionAnalyzer from "../ControllingExpressionAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new ControllingExpressionAnalyzer().analyze(tree);
+  return new ControllingExpressionAnalyzer(testAnalysisContext(state)).analyze(
+    tree,
+  );
 };
 
 const inIf = (condition: string): string =>
   `bool flag <- true;\nu32 n <- 1;\nvoid t() {\n    if (${condition}) { }\n}`;
 
+let state = new TranspileState();
+
 describe("ControllingExpressionAnalyzer", () => {
+  beforeEach(() => {
+    state = new TranspileState();
+  });
+
   describe("E0701 -- a condition must be a comparison", () => {
     it("rejects a bare value, with a real position", () => {
       const found = errors(inIf("n"));

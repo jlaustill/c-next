@@ -20,7 +20,7 @@
 
 import DeclarationSite from "../../utils/DeclarationSite";
 import ScopeUtils from "../../utils/ScopeUtils";
-import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../3-Declare/SymbolRegistry";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import type IConflict from "../../transpiler/types/IConflict";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
@@ -36,6 +36,7 @@ class ConflictDetector {
    * each name's definitions gathered in that same order.
    */
   static detect(
+    registry: SymbolRegistry | null,
     cnext: ReadonlyArray<TSymbol>,
     c: ReadonlyArray<TCSymbol>,
     cpp: ReadonlyArray<TCppSymbol>,
@@ -59,7 +60,7 @@ class ConflictDetector {
       );
       if (symbols.length <= 1) continue;
 
-      const conflict = ConflictDetector.detectConflict(symbols);
+      const conflict = ConflictDetector.detectConflict(registry, symbols);
       if (conflict) {
         conflicts.push(conflict);
       }
@@ -167,10 +168,13 @@ class ConflictDetector {
    * in different blocks of a scope spread across several files. Naming only the
    * member definitions leaves the reader to find those blocks themselves.
    */
-  private static scopeDeclarationNote(symbol: TSymbol): string {
+  private static scopeDeclarationNote(
+    registry: SymbolRegistry | null,
+    symbol: TSymbol,
+  ): string {
     // #1298: the symbol names its scope by path; the object -- and the mutable
     // `declarationSites` on it -- is one registry lookup away.
-    const scope = SymbolRegistry.getScope(symbol.scopePath);
+    const scope = registry?.getScope(symbol.scopePath) ?? null;
     // The global-scope disjunct is stated, not merely implied. It never decides
     // the result -- the only `declarationSites` writer targets a grammar-
     // guaranteed non-empty identifier, so the global scope's set is always empty
@@ -232,7 +236,10 @@ class ConflictDetector {
   /**
    * Detect if a set of symbols with the same name represents a conflict
    */
-  private static detectConflict(symbols: TAnySymbol[]): IConflict | null {
+  private static detectConflict(
+    registry: SymbolRegistry | null,
+    symbols: TAnySymbol[],
+  ): IConflict | null {
     // Filter out pure declarations (extern in C) - they don't count as definitions
     const definitions = symbols.filter(
       (s) => !("isDeclaration" in s && s.isDeclaration),
@@ -320,7 +327,10 @@ class ConflictDetector {
     }
 
     // Multiple definitions in same language (excluding overloads) = ERROR
-    const cnextConflict = ConflictDetector.detectCNextDuplicate(cnextDefs);
+    const cnextConflict = ConflictDetector.detectCNextDuplicate(
+      registry,
+      cnextDefs,
+    );
     if (cnextConflict) {
       return cnextConflict;
     }
@@ -345,6 +355,7 @@ class ConflictDetector {
    * cognitive-complexity limit; the #1333 scope-reopening branch pushed it over.
    */
   private static detectCNextDuplicate(
+    registry: SymbolRegistry | null,
     cnextDefs: TAnySymbol[],
   ): IConflict | null {
     if (cnextDefs.length <= 1) {
@@ -387,7 +398,10 @@ class ConflictDetector {
       // This is also what makes declarationSites observable: without a consumer
       // it would be a write-only field, testable only by unit tests that reach
       // into it -- the shape #1330's review caught as a method with no caller.
-      const scopeSites = ConflictDetector.scopeDeclarationNote(symbols[0]);
+      const scopeSites = ConflictDetector.scopeDeclarationNote(
+        registry,
+        symbols[0],
+      );
       return {
         code: "E0425",
         symbolName: displayName,

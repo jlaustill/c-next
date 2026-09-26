@@ -8,7 +8,7 @@
  * u8, u16), expands to explicit cast: `target = (type)(target OP value);`
  * Also handles int-to-float conversions with explicit casts.
  */
-import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
+import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import TYPE_MAP from "../../types/TYPE_MAP";
 import CppModeHelper from "../../helpers/CppModeHelper";
@@ -40,7 +40,7 @@ function tryHandleCompoundNarrowingCast(
 
   const cType = TYPE_MAP[baseType] ?? baseType;
   const expr = `(${target} ${binaryOp} ${ctx.generatedValue})`;
-  const castExpr = CppModeHelper.cast(cType, expr);
+  const castExpr = CppModeHelper.cast(cType, expr, ctx.state);
   return `${target} = ${castExpr};`;
 }
 
@@ -79,6 +79,7 @@ function tryHandleIntToFloatConversion(
   const castedValue = NarrowingCastHelper.wrapIntToFloat(
     ctx.generatedValue,
     targetType,
+    ctx.state,
   );
   return `${target} ${ctx.cOp} ${castedValue};`;
 }

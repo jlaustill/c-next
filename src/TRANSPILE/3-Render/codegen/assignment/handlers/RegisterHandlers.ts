@@ -9,12 +9,11 @@
  * - SCOPED_REGISTER_BIT_RANGE: this.GPIO7.ICR1[6, 2] <- value
  */
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
-import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
+import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterUtils from "./RegisterUtils";
 import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
 /**
@@ -26,9 +25,9 @@ function handleRegisterBit(ctx: IAssignmentContext): string {
   const { fullName } =
     AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
       ctx.identifiers,
-      (name) => CodeGenState.isKnownScope(name),
+      (name) => ctx.state.isKnownScope(name),
     );
-  const accessMod = CodeGenState.symbols!.registerMemberAccess.get(fullName);
+  const accessMod = ctx.state.symbols!.registerMemberAccess.get(fullName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
   const bitIndex = ctx.renderSubscript(0);
@@ -55,9 +54,9 @@ function handleRegisterBitRange(ctx: IAssignmentContext): string {
   const { fullName, regName } =
     AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
       ctx.identifiers,
-      (name) => CodeGenState.isKnownScope(name),
+      (name) => ctx.state.isKnownScope(name),
     );
-  const accessMod = CodeGenState.symbols!.registerMemberAccess.get(fullName);
+  const accessMod = ctx.state.symbols!.registerMemberAccess.get(fullName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
   const { start, width, mask } = RegisterUtils.extractBitRangeParams(
@@ -80,6 +79,7 @@ function handleRegisterBitRange(ctx: IAssignmentContext): string {
       ctx.foldSubscript(0),
       ctx.foldSubscript(1),
       ctx.generatedValue,
+      ctx.state,
     );
     if (mmio.success) {
       return mmio.statement!;
@@ -111,11 +111,11 @@ function handleScopedRegisterBit(ctx: IAssignmentContext): string {
 
   // Build scoped name: Scope_Register_Member
   const regName = AssignmentHandlerUtils.buildScopedRegisterName(
-    CodeGenState.currentScopePath,
+    ctx.state.currentScopePath,
     ctx.identifiers,
   );
 
-  const accessMod = CodeGenState.symbols!.registerMemberAccess.get(regName);
+  const accessMod = ctx.state.symbols!.registerMemberAccess.get(regName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
   const bitIndex = ctx.renderSubscript(0);
@@ -142,7 +142,7 @@ function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
   // #1298: `currentScopePath` IS the whole enclosing path. A scope's leaf name
   // discards every outer component -- the exact leaf-only encoder #1285 removed
   // -- so pass the path on unmodified.
-  const declaringScopePath = CodeGenState.currentScopePath;
+  const declaringScopePath = ctx.state.currentScopePath;
   const parts = ctx.identifiers;
   const regName = AssignmentHandlerUtils.buildScopedRegisterName(
     declaringScopePath,
@@ -153,7 +153,7 @@ function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
     parts[0],
   );
 
-  const accessMod = CodeGenState.symbols!.registerMemberAccess.get(regName);
+  const accessMod = ctx.state.symbols!.registerMemberAccess.get(regName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
   const { start, width, mask } = RegisterUtils.extractBitRangeParams(
@@ -176,6 +176,7 @@ function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
       ctx.foldSubscript(0),
       ctx.foldSubscript(1),
       ctx.generatedValue,
+      ctx.state,
     );
     if (mmio.success) {
       return mmio.statement!;

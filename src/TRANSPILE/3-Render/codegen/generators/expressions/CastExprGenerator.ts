@@ -20,9 +20,9 @@
  */
 import TYPE_LIMITS from "../../types/TYPE_LIMITS";
 import CppModeHelper from "../../helpers/CppModeHelper";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import CastRequirement from "../../../../2-Plan/CastRequirement";
 import type IPlannedCast from "../../types/IPlannedCast";
+import type TranspileState from "../../../../TranspileState";
 
 /**
  * ADR-024 / Issue #632: a float-to-integer cast clamps rather than invoking
@@ -32,17 +32,21 @@ import type IPlannedCast from "../../types/IPlannedCast";
  * the target type before use (the naive form assigns an `int` expression to a
  * narrower essential type).
  */
-function renderClampedCast(plan: IPlannedCast, sourceType: string): string {
+function renderClampedCast(
+  plan: IPlannedCast,
+  sourceType: string,
+  state: TranspileState,
+): string {
   const maxValue = TYPE_LIMITS.TYPE_MAX[plan.targetTypeName];
   const minValue = TYPE_LIMITS.TYPE_MIN[plan.targetTypeName];
 
   if (!maxValue) {
     // Unknown type, fall back to raw cast - Issue #644
-    return CppModeHelper.cast(plan.targetType, plan.operandCode);
+    return CppModeHelper.cast(plan.targetType, plan.operandCode, state);
   }
 
   // Mark that we need limits.h for the type limit macros
-  CodeGenState.requireInclude("limits");
+  state.requireInclude("limits");
 
   // Use appropriate float suffix and type for comparisons
   const floatSuffix = sourceType === "f32" ? "f" : "";
@@ -54,9 +58,9 @@ function renderClampedCast(plan: IPlannedCast, sourceType: string): string {
   const maxComparison = `((${floatCastType})${maxValue})`;
 
   const expr = plan.operandCode;
-  const finalCast = CppModeHelper.cast(plan.targetType, `(${expr})`);
-  const castMax = CppModeHelper.cast(plan.targetType, maxValue);
-  const castMin = CppModeHelper.cast(plan.targetType, minValue);
+  const finalCast = CppModeHelper.cast(plan.targetType, `(${expr})`, state);
+  const castMax = CppModeHelper.cast(plan.targetType, maxValue, state);
+  const castMin = CppModeHelper.cast(plan.targetType, minValue, state);
   return `((${expr}) > ${maxComparison} ? ${castMax} : (${expr}) < ${minComparison} ? ${castMin} : ${finalCast})`;
 }
 
@@ -66,12 +70,12 @@ function renderClampedCast(plan: IPlannedCast, sourceType: string): string {
  * Issue #267/#644: C++ mode emits `static_cast` for MISRA compliance, which
  * `CppModeHelper.cast` decides.
  */
-function generateCast(plan: IPlannedCast): string {
+function generateCast(plan: IPlannedCast, state: TranspileState): string {
   if (CastRequirement.requiresClamping(plan.operandType, plan.targetTypeName)) {
-    return renderClampedCast(plan, plan.operandType!);
+    return renderClampedCast(plan, plan.operandType!, state);
   }
 
-  return CppModeHelper.cast(plan.targetType, plan.operandCode);
+  return CppModeHelper.cast(plan.targetType, plan.operandCode, state);
 }
 
 export default generateCast;

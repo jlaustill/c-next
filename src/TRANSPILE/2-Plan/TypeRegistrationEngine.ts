@@ -11,7 +11,6 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TIncludeHeader from "../../transpiler/types/TIncludeHeader";
 import TOverflowBehavior from "../../transpiler/types/TOverflowBehavior";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import TypeRegistrationUtils from "./TypeRegistrationUtils";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
@@ -19,6 +18,7 @@ import OverflowBehaviorUtils from "../../utils/OverflowBehaviorUtils";
 import UNRESOLVED_DIMENSION from "../../transpiler/constants/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./dimensionEvalOptions";
 import TypeBinding from "../../PARSE/3-Declare/TypeBinding";
+import type TranspileState from "../TranspileState";
 
 /**
  * Callbacks required for type registration.
@@ -31,6 +31,25 @@ interface ITypeRegistrationCallbacks {
   requireInclude: (header: TIncludeHeader) => void;
   /** Resolve qualified type names (optional, for C++ namespace support) */
   resolveQualifiedType?: (identifiers: string[]) => string;
+}
+
+/**
+ * How a variable is declared, independent of which type branch handles it.
+ *
+ * Six private branches took these four as loose parameters, in the same order,
+ * alongside the name, the type carrier and the two collaborators -- eight
+ * apiece, which SonarCloud S107 flags at seven. Passing them as one value is
+ * not a count trick: the four travel together through every branch and no
+ * branch varies them, so a fifth declaration modifier is one edit rather than
+ * six signatures. Deliberately NOT merged with `ITypeRegistrationCallbacks`,
+ * which is the collaborator surface and has a different lifetime.
+ */
+interface IDeclaredShape {
+  /** Trailing `[N]` dimensions on the declarator, if any. */
+  arrayDim: Parser.ArrayDimensionContext[] | null;
+  isConst: boolean;
+  overflowBehavior: TOverflowBehavior;
+  isAtomic: boolean;
 }
 
 /**
@@ -48,18 +67,21 @@ class TypeRegistrationEngine {
   static register(
     tree: Parser.ProgramContext,
     callbacks: ITypeRegistrationCallbacks,
+    state: TranspileState,
   ): void {
     for (const decl of tree.declaration()) {
       if (decl.variableDeclaration()) {
         TypeRegistrationEngine.registerGlobalVariable(
           decl.variableDeclaration()!,
           callbacks,
+          state,
         );
       }
       if (decl.scopeDeclaration()) {
         TypeRegistrationEngine.registerScopeMemberTypes(
           decl.scopeDeclaration()!,
           callbacks,
+          state,
         );
       }
     }
@@ -71,13 +93,14 @@ class TypeRegistrationEngine {
   static registerGlobalVariable(
     varDecl: Parser.VariableDeclarationContext,
     callbacks: ITypeRegistrationCallbacks,
+    state: TranspileState,
   ): void {
-    TypeRegistrationEngine._trackVariableType(varDecl, callbacks);
+    TypeRegistrationEngine._trackVariableType(varDecl, callbacks, state);
     if (varDecl.constModifier() && varDecl.expression()) {
       const constName = varDecl.IDENTIFIER().getText();
       const constValue = callbacks.tryEvaluateConstant(varDecl.expression()!);
       if (constValue !== undefined) {
-        CodeGenState.constValues.set(constName, constValue);
+        state.constValues.set(constName, constValue);
       }
     }
   }
@@ -88,9 +111,10 @@ class TypeRegistrationEngine {
   static registerScopeMemberTypes(
     scopeDecl: Parser.ScopeDeclarationContext,
     callbacks: ITypeRegistrationCallbacks,
+    state: TranspileState,
   ): void {
     const scopeName = scopeDecl.IDENTIFIER().getText();
-    CodeGenState.withScopePath(scopeName, () => {
+    state.withScopePath(scopeName, () => {
       for (const member of scopeDecl.scopeMember()) {
         if (member.variableDeclaration()) {
           const varDecl = member.variableDeclaration()!;
@@ -99,13 +123,14 @@ class TypeRegistrationEngine {
           // qualify through that rather than re-joining one level from the leaf
           // name it was resolved FROM.
           const fullName = QualifiedNameGenerator.forMember(
-            CodeGenState.currentScopePath,
+            state.currentScopePath,
             varName,
           );
           TypeRegistrationEngine._trackVariableTypeWithName(
             varDecl,
             fullName,
             callbacks,
+            state,
           );
         }
       }
@@ -122,6 +147,7 @@ class TypeRegistrationEngine {
    */
   static parseArrayTypeDimension(
     arrayTypeCtx: Parser.ArrayTypeContext,
+    state: TranspileState,
   ): number | undefined {
     const dims = arrayTypeCtx.arrayTypeDimension();
     if (dims.length === 0) {
@@ -139,7 +165,7 @@ class TypeRegistrationEngine {
     // subscript bounds check had nothing to check against.
     return ArrayDimensionParser.parseSingleDimension(
       sizeExpr,
-      dimensionEvalOptions(),
+      dimensionEvalOptions(state),
     );
   }
 
@@ -151,10 +177,12 @@ class TypeRegistrationEngine {
   static resolveBaseType(
     typeCtx: Parser.TypeContext,
     currentScopePath: string,
+    state: TranspileState,
   ): string | null {
     return TypeRegistrationEngine._resolveBaseTypeWithCallbacks(
       typeCtx,
       currentScopePath,
+      state,
     );
   }
 
@@ -165,6 +193,7 @@ class TypeRegistrationEngine {
   private static _resolveBaseTypeWithCallbacks(
     typeCtx: Parser.TypeContext,
     currentScopePath: string,
+    state: TranspileState,
     callbacks?: ITypeRegistrationCallbacks,
   ): string | null {
     // #1285: ask for the two alternatives this path accepts -- a named type or
@@ -178,7 +207,7 @@ class TypeRegistrationEngine {
     return TypeBinding.resolveNamedOrPrimitiveType(
       typeCtx,
       currentScopePath,
-      CodeGenState.typeBindingDeps(callbacks?.resolveQualifiedType),
+      state.typeBindingDeps(callbacks?.resolveQualifiedType),
     );
   }
 
@@ -193,22 +222,30 @@ class TypeRegistrationEngine {
   static trackVariable(
     varDecl: Parser.VariableDeclarationContext,
     callbacks: ITypeRegistrationCallbacks,
+    state: TranspileState,
   ): void {
-    TypeRegistrationEngine._trackVariableType(varDecl, callbacks);
+    TypeRegistrationEngine._trackVariableType(varDecl, callbacks, state);
   }
 
   private static _trackVariableType(
     varDecl: Parser.VariableDeclarationContext,
     callbacks: ITypeRegistrationCallbacks,
+    state: TranspileState,
   ): void {
     const name = varDecl.IDENTIFIER().getText();
-    TypeRegistrationEngine._trackVariableTypeWithName(varDecl, name, callbacks);
+    TypeRegistrationEngine._trackVariableTypeWithName(
+      varDecl,
+      name,
+      callbacks,
+      state,
+    );
   }
 
   private static _trackVariableTypeWithName(
     varDecl: Parser.VariableDeclarationContext,
     registryName: string,
     callbacks: ITypeRegistrationCallbacks,
+    state: TranspileState,
   ): void {
     const typeCtx = varDecl.type();
     const arrayDim = varDecl.arrayDimension();
@@ -222,15 +259,20 @@ class TypeRegistrationEngine {
 
     const isAtomic = varDecl.atomicModifier() !== null;
 
+    const shape: IDeclaredShape = {
+      arrayDim,
+      isConst,
+      overflowBehavior,
+      isAtomic,
+    };
+
     if (
       TypeRegistrationEngine._tryRegisterStringType(
         registryName,
         typeCtx,
-        arrayDim,
-        isConst,
-        overflowBehavior,
-        isAtomic,
+        shape,
         callbacks,
+        state,
       )
     ) {
       return;
@@ -240,18 +282,17 @@ class TypeRegistrationEngine {
       TypeRegistrationEngine._registerArrayTypeVariable(
         registryName,
         typeCtx.arrayType()!,
-        arrayDim,
-        isConst,
-        overflowBehavior,
-        isAtomic,
+        shape,
         callbacks,
+        state,
       );
       return;
     }
 
     const baseType = TypeRegistrationEngine._resolveBaseTypeWithCallbacks(
       typeCtx,
-      CodeGenState.currentScopePath,
+      state.currentScopePath,
+      state,
       callbacks,
     );
     if (!baseType) {
@@ -262,11 +303,9 @@ class TypeRegistrationEngine {
       TypeRegistrationEngine._tryRegisterEnumOrBitmapType(
         registryName,
         baseType,
-        isConst,
-        arrayDim,
-        overflowBehavior,
-        isAtomic,
+        shape,
         callbacks,
+        state,
       )
     ) {
       return;
@@ -275,11 +314,9 @@ class TypeRegistrationEngine {
     TypeRegistrationEngine._registerStandardType(
       registryName,
       baseType,
-      arrayDim,
-      isConst,
-      overflowBehavior,
-      isAtomic,
+      shape,
       callbacks,
+      state,
     );
   }
 
@@ -290,12 +327,11 @@ class TypeRegistrationEngine {
   private static _tryRegisterStringType(
     registryName: string,
     typeCtx: Parser.TypeContext,
-    arrayDim: Parser.ArrayDimensionContext[] | null,
-    isConst: boolean,
-    overflowBehavior: TOverflowBehavior,
-    isAtomic: boolean,
+    shape: IDeclaredShape,
     callbacks: ITypeRegistrationCallbacks,
+    state: TranspileState,
   ): boolean {
+    const { arrayDim, isConst, overflowBehavior, isAtomic } = shape;
     const stringCtx = typeCtx.stringType();
     if (!stringCtx) {
       return false;
@@ -314,7 +350,7 @@ class TypeRegistrationEngine {
     const allDims =
       additionalDims.length > 0 ? [...additionalDims, stringDim] : [stringDim];
 
-    CodeGenState.setVariableTypeInfo(registryName, {
+    state.setVariableTypeInfo(registryName, {
       baseType: "char",
       bitWidth: 8,
       isArray: true,
@@ -342,12 +378,11 @@ class TypeRegistrationEngine {
   private static _registerStringArrayType(
     registryName: string,
     arrayTypeCtx: Parser.ArrayTypeContext,
-    arrayDim: Parser.ArrayDimensionContext[] | null,
-    isConst: boolean,
-    overflowBehavior: TOverflowBehavior,
-    isAtomic: boolean,
+    shape: IDeclaredShape,
     callbacks: ITypeRegistrationCallbacks,
+    state: TranspileState,
   ): void {
+    const { arrayDim, isConst, overflowBehavior, isAtomic } = shape;
     const stringCtx = arrayTypeCtx.stringType()!;
     const intLiteral = stringCtx.INTEGER_LITERAL();
     if (!intLiteral) {
@@ -374,13 +409,13 @@ class TypeRegistrationEngine {
         (expr) =>
           ArrayDimensionParser.parseSingleDimension(
             expr,
-            dimensionEvalOptions(),
+            dimensionEvalOptions(state),
           ) ?? UNRESOLVED_DIMENSION,
       );
     const additionalDims = ArrayDimensionParser.parseDimensions(arrayDim);
     const dimensions = [...arrayTypeDims, ...additionalDims, stringDim];
 
-    CodeGenState.setVariableTypeInfo(registryName, {
+    state.setVariableTypeInfo(registryName, {
       baseType: "char",
       bitWidth: 8,
       isArray: true,
@@ -400,22 +435,19 @@ class TypeRegistrationEngine {
   private static _registerArrayTypeVariable(
     registryName: string,
     arrayTypeCtx: Parser.ArrayTypeContext,
-    arrayDim: Parser.ArrayDimensionContext[] | null,
-    isConst: boolean,
-    overflowBehavior: TOverflowBehavior,
-    isAtomic: boolean,
+    shape: IDeclaredShape,
     callbacks: ITypeRegistrationCallbacks,
+    state: TranspileState,
   ): void {
+    const { arrayDim, isConst, overflowBehavior, isAtomic } = shape;
     // Issue #1029: Handle string arrays (string<N>[M]) - must check before primitiveType/userType
     if (arrayTypeCtx.stringType()) {
       TypeRegistrationEngine._registerStringArrayType(
         registryName,
         arrayTypeCtx,
-        arrayDim,
-        isConst,
-        overflowBehavior,
-        isAtomic,
+        shape,
         callbacks,
+        state,
       );
       return;
     }
@@ -425,11 +457,9 @@ class TypeRegistrationEngine {
       const registered = TypeRegistrationEngine._tryRegisterUserTypeArray(
         registryName,
         arrayTypeCtx,
-        arrayDim,
-        isConst,
-        overflowBehavior,
-        isAtomic,
+        shape,
         callbacks,
+        state,
       );
       if (registered) {
         return;
@@ -439,6 +469,7 @@ class TypeRegistrationEngine {
     // Extract base type and bit width from array type
     const typeInfo = TypeRegistrationEngine._extractArrayBaseTypeInfo(
       arrayTypeCtx,
+      state,
       callbacks,
     );
     if (!typeInfo.baseType) {
@@ -449,9 +480,10 @@ class TypeRegistrationEngine {
       arrayTypeCtx,
       arrayDim,
       callbacks,
+      state,
     );
 
-    CodeGenState.setVariableTypeInfo(registryName, {
+    state.setVariableTypeInfo(registryName, {
       baseType: typeInfo.baseType,
       bitWidth: typeInfo.bitWidth,
       isArray: true,
@@ -482,6 +514,7 @@ class TypeRegistrationEngine {
 
   private static _extractArrayBaseTypeInfo(
     arrayTypeCtx: Parser.ArrayTypeContext,
+    state: TranspileState,
     callbacks?: ITypeRegistrationCallbacks,
   ): { baseType: string; bitWidth: number } {
     // A string element is registered by _registerStringArrayType before this is
@@ -499,7 +532,7 @@ class TypeRegistrationEngine {
     //
     // No generated output moves either way today, and that is worth stating so
     // the threading does not look like dead ceremony: what this feeds is
-    // CodeGenState.setVariableTypeInfo, whose baseType drives bit widths,
+    // state.setVariableTypeInfo, whose baseType drives bit widths,
     // array dimensions and overflow behavior. The type NAME that reaches the
     // emitted declaration comes from getTypeName/TypeGenerationHelper instead.
     // Verified by removing the threading and re-transpiling a `MockLib.Config[4]`
@@ -508,8 +541,8 @@ class TypeRegistrationEngine {
     const baseType =
       TypeBinding.resolveName(
         arrayTypeCtx,
-        CodeGenState.currentScopePath,
-        CodeGenState.typeBindingDeps(callbacks?.resolveQualifiedType),
+        state.currentScopePath,
+        state.typeBindingDeps(callbacks?.resolveQualifiedType),
       ) ?? "";
 
     // TYPE_WIDTH is a plain object literal, and this lookup now sees every
@@ -529,23 +562,21 @@ class TypeRegistrationEngine {
   private static _tryRegisterUserTypeArray(
     registryName: string,
     arrayTypeCtx: Parser.ArrayTypeContext,
-    arrayDim: Parser.ArrayDimensionContext[] | null,
-    isConst: boolean,
-    overflowBehavior: TOverflowBehavior,
-    isAtomic: boolean,
+    shape: IDeclaredShape,
     callbacks: ITypeRegistrationCallbacks,
+    state: TranspileState,
   ): boolean {
     const baseType = arrayTypeCtx.userType()!.getText();
-    const combinedArrayDim = arrayDim ?? [];
+    const combinedArrayDim = shape.arrayDim ?? [];
 
     const registered = TypeRegistrationEngine._tryRegisterEnumOrBitmapType(
       registryName,
       baseType,
-      isConst,
-      combinedArrayDim,
-      overflowBehavior,
-      isAtomic,
+      // The declarator's trailing dimensions, defaulted to none: an
+      // `arrayType` carries its own and the two are combined below.
+      { ...shape, arrayDim: combinedArrayDim },
       callbacks,
+      state,
     );
 
     if (!registered) {
@@ -553,14 +584,16 @@ class TypeRegistrationEngine {
     }
 
     // Add arrayType dimensions to existing info
-    const existingInfo = CodeGenState.getVariableTypeInfo(registryName);
+    const existingInfo = state.getVariableTypeInfo(registryName);
     if (existingInfo) {
-      const arrayTypeDim =
-        TypeRegistrationEngine.parseArrayTypeDimension(arrayTypeCtx);
+      const arrayTypeDim = TypeRegistrationEngine.parseArrayTypeDimension(
+        arrayTypeCtx,
+        state,
+      );
       const allDims = arrayTypeDim
         ? [arrayTypeDim, ...(existingInfo.arrayDimensions ?? [])]
         : existingInfo.arrayDimensions;
-      CodeGenState.setVariableTypeInfo(registryName, {
+      state.setVariableTypeInfo(registryName, {
         ...existingInfo,
         isArray: true,
         arrayDimensions: allDims,
@@ -574,6 +607,7 @@ class TypeRegistrationEngine {
     arrayTypeCtx: Parser.ArrayTypeContext,
     arrayDim: Parser.ArrayDimensionContext[] | null,
     callbacks: ITypeRegistrationCallbacks,
+    state: TranspileState,
   ): number[] {
     const arrayDimensions: number[] = [];
 
@@ -587,7 +621,7 @@ class TypeRegistrationEngine {
         // with their subscripts in TypeValidator.checkArrayBounds().
         const size = ArrayDimensionParser.parseSingleDimension(
           sizeExpr,
-          dimensionEvalOptions(),
+          dimensionEvalOptions(state),
         );
         arrayDimensions.push(size ?? UNRESOLVED_DIMENSION);
       }
@@ -596,6 +630,7 @@ class TypeRegistrationEngine {
     const additionalDims = TypeRegistrationEngine._evaluateArrayDimensions(
       arrayDim,
       callbacks,
+      state,
     );
     if (additionalDims) {
       arrayDimensions.push(...additionalDims);
@@ -607,29 +642,33 @@ class TypeRegistrationEngine {
   private static _evaluateArrayDimensions(
     arrayDim: Parser.ArrayDimensionContext[] | null,
     _callbacks: ITypeRegistrationCallbacks,
+    state: TranspileState,
   ): number[] | undefined {
     return ArrayDimensionParser.parseAllDimensions(
       arrayDim,
-      dimensionEvalOptions(),
+      dimensionEvalOptions(state),
     );
   }
 
   private static _registerStandardType(
     registryName: string,
     baseType: string,
-    arrayDim: Parser.ArrayDimensionContext[] | null,
-    isConst: boolean,
-    overflowBehavior: TOverflowBehavior,
-    isAtomic: boolean,
+    shape: IDeclaredShape,
     callbacks: ITypeRegistrationCallbacks,
+    state: TranspileState,
   ): void {
+    const { arrayDim, isConst, overflowBehavior, isAtomic } = shape;
     const bitWidth = TypeRegistrationEngine._bitWidthOf(baseType);
     const isArray = arrayDim !== null && arrayDim.length > 0;
     const arrayDimensions = isArray
-      ? TypeRegistrationEngine._evaluateArrayDimensions(arrayDim, callbacks)
+      ? TypeRegistrationEngine._evaluateArrayDimensions(
+          arrayDim,
+          callbacks,
+          state,
+        )
       : undefined;
 
-    CodeGenState.setVariableTypeInfo(registryName, {
+    state.setVariableTypeInfo(registryName, {
       baseType,
       bitWidth,
       isArray,
@@ -647,12 +686,11 @@ class TypeRegistrationEngine {
   private static _tryRegisterEnumOrBitmapType(
     name: string,
     baseType: string,
-    isConst: boolean,
-    arrayDim: Parser.ArrayDimensionContext[] | null,
-    overflowBehavior: TOverflowBehavior,
-    isAtomic: boolean,
+    shape: IDeclaredShape,
     callbacks: ITypeRegistrationCallbacks,
+    state: TranspileState,
   ): boolean {
+    const { arrayDim, isConst, overflowBehavior, isAtomic } = shape;
     const registrationOptions = {
       name,
       baseType,
@@ -663,8 +701,9 @@ class TypeRegistrationEngine {
 
     if (
       TypeRegistrationUtils.tryRegisterEnumType(
-        CodeGenState.symbols!,
+        state.symbols!,
         registrationOptions,
+        state,
       )
     ) {
       return true;
@@ -673,12 +712,14 @@ class TypeRegistrationEngine {
     const bitmapDimensions = TypeRegistrationEngine._evaluateArrayDimensions(
       arrayDim,
       callbacks,
+      state,
     );
     if (
       TypeRegistrationUtils.tryRegisterBitmapType(
-        CodeGenState.symbols!,
+        state.symbols!,
         registrationOptions,
         bitmapDimensions,
+        state,
       )
     ) {
       return true;

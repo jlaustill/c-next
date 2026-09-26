@@ -3,7 +3,7 @@
  *
  * Issue #644: Tests for the extracted member chain analyzer.
  * Updated to use unified postfixTargetOp grammar after consolidation.
- * Migrated to use CodeGenState instead of constructor DI.
+ * Migrated to use TranspileState instead of constructor DI.
  *
  * #1445: the chain is `TPlannedTargetOp[]` now, so these build values rather
  * than mock parse contexts cast `as unknown as Parser.AssignmentTargetContext`
@@ -17,8 +17,8 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import MemberChainAnalyzer from "../MemberChainAnalyzer";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
-import SymbolTable from "../../../../../transpiler/state/SymbolTable";
+import TranspileState from "../../../../TranspileState";
+import SymbolTable from "../../../../../PARSE/3-Declare/SymbolTable";
 import createMockSymbols from "../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import type TPlannedTargetOp from "../../../../../transpiler/types/TPlannedTargetOp";
 
@@ -41,9 +41,11 @@ function bitRange(start: string, width: string): TPlannedTargetOp {
   };
 }
 
+let state = new TranspileState();
+
 describe("MemberChainAnalyzer", () => {
   beforeEach(() => {
-    CodeGenState.reset();
+    state = new TranspileState();
   });
 
   /** A base identifier and the chain applied to it. */
@@ -55,7 +57,7 @@ describe("MemberChainAnalyzer", () => {
   }
 
   /**
-   * Helper to set up struct fields in CodeGenState.symbolTable
+   * Helper to set up struct fields in state.symbolTable
    * Issue #831: SymbolTable is now the single source of truth for struct fields
    */
   function setupStructFields(
@@ -64,14 +66,14 @@ describe("MemberChainAnalyzer", () => {
     arrayFields: Set<string> = new Set(),
   ): void {
     // Initialize symbolTable if not set
-    if (!CodeGenState.symbolTable) {
-      CodeGenState.symbolTable = new SymbolTable();
+    if (!state.symbolTable) {
+      state.symbolTable = new SymbolTable();
     }
 
     // Register struct fields in SymbolTable
     for (const [fieldName, fieldType] of fields) {
       const isArray = arrayFields.has(fieldName);
-      CodeGenState.symbolTable.addStructField(
+      state.symbolTable.addStructField(
         structName,
         fieldName,
         fieldType,
@@ -82,26 +84,34 @@ describe("MemberChainAnalyzer", () => {
     // Also mark struct as known (for isKnownStruct checks).
     // #1445: this wrote out all 23 fields of ICodeGenSymbols by hand, a copy
     // of `createMockSymbols` that a new field would have broken silently.
-    CodeGenState.symbols ??= createMockSymbols({});
-    (CodeGenState.symbols.knownStructs as Set<string>).add(structName);
+    state.symbols ??= createMockSymbols({});
+    (state.symbols.knownStructs as Set<string>).add(structName);
   }
 
   describe("analyze", () => {
     it("returns isBitAccess false when no base identifier", () => {
       const target = createTarget(null, []);
-      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
+      const result = MemberChainAnalyzer.analyze(
+        target.baseName,
+        target.ops,
+        state,
+      );
       expect(result.isBitAccess).toBe(false);
     });
 
     it("returns isBitAccess false when no postfix operations", () => {
       const target = createTarget("x", []);
-      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
+      const result = MemberChainAnalyzer.analyze(
+        target.baseName,
+        target.ops,
+        state,
+      );
       expect(result.isBitAccess).toBe(false);
     });
 
     it("returns isBitAccess false when last op is member access", () => {
       // point.flags (no subscript at end)
-      CodeGenState.setVariableTypeInfo("point", {
+      state.setVariableTypeInfo("point", {
         baseType: "Point",
         bitWidth: 0,
         isArray: false,
@@ -112,13 +122,17 @@ describe("MemberChainAnalyzer", () => {
       setupStructFields("Point", pointFields);
 
       const target = createTarget("point", [member("flags")]);
-      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
+      const result = MemberChainAnalyzer.analyze(
+        target.baseName,
+        target.ops,
+        state,
+      );
       expect(result.isBitAccess).toBe(false);
     });
 
     it("returns isBitAccess false when last subscript has 2 expressions (bit range)", () => {
       // flags[0, 8] - bit range, not single bit access
-      CodeGenState.setVariableTypeInfo("flags", {
+      state.setVariableTypeInfo("flags", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -126,7 +140,11 @@ describe("MemberChainAnalyzer", () => {
       });
 
       const target = createTarget("flags", [bitRange("0", "8")]);
-      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
+      const result = MemberChainAnalyzer.analyze(
+        target.baseName,
+        target.ops,
+        state,
+      );
       expect(result.isBitAccess).toBe(false);
     });
 
@@ -136,7 +154,7 @@ describe("MemberChainAnalyzer", () => {
       pointFields.set("flags", "u8");
       setupStructFields("Point", pointFields);
 
-      CodeGenState.setVariableTypeInfo("point", {
+      state.setVariableTypeInfo("point", {
         baseType: "Point",
         bitWidth: 0,
         isArray: false,
@@ -145,7 +163,11 @@ describe("MemberChainAnalyzer", () => {
 
       const target = createTarget("point", [member("flags"), subscript("3")]);
 
-      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
+      const result = MemberChainAnalyzer.analyze(
+        target.baseName,
+        target.ops,
+        state,
+      );
 
       expect(result.isBitAccess).toBe(true);
       expect(result.baseTarget).toBe("point.flags");
@@ -159,7 +181,7 @@ describe("MemberChainAnalyzer", () => {
       gridFields.set("items", "u8");
       setupStructFields("Grid", gridFields, new Set(["items"]));
 
-      CodeGenState.setVariableTypeInfo("grid", {
+      state.setVariableTypeInfo("grid", {
         baseType: "Grid",
         bitWidth: 0,
         isArray: false,
@@ -168,7 +190,11 @@ describe("MemberChainAnalyzer", () => {
 
       const target = createTarget("grid", [member("items"), subscript("0")]);
 
-      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
+      const result = MemberChainAnalyzer.analyze(
+        target.baseName,
+        target.ops,
+        state,
+      );
 
       // items is an array, so [0] is array access, not bit access
       expect(result.isBitAccess).toBe(false);
@@ -180,7 +206,7 @@ describe("MemberChainAnalyzer", () => {
       pointFields.set("name", "string");
       setupStructFields("Point", pointFields);
 
-      CodeGenState.setVariableTypeInfo("point", {
+      state.setVariableTypeInfo("point", {
         baseType: "Point",
         bitWidth: 0,
         isArray: false,
@@ -189,7 +215,11 @@ describe("MemberChainAnalyzer", () => {
 
       const target = createTarget("point", [member("name"), subscript("0")]);
 
-      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
+      const result = MemberChainAnalyzer.analyze(
+        target.baseName,
+        target.ops,
+        state,
+      );
 
       // name is a string, not an integer, so no bit access
       expect(result.isBitAccess).toBe(false);
@@ -201,7 +231,7 @@ describe("MemberChainAnalyzer", () => {
       deviceFields.set("flags", "u8");
       setupStructFields("Device", deviceFields);
 
-      CodeGenState.setVariableTypeInfo("devices", {
+      state.setVariableTypeInfo("devices", {
         baseType: "Device",
         bitWidth: 0,
         isArray: true,
@@ -215,7 +245,11 @@ describe("MemberChainAnalyzer", () => {
         subscript("7"),
       ]);
 
-      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
+      const result = MemberChainAnalyzer.analyze(
+        target.baseName,
+        target.ops,
+        state,
+      );
 
       expect(result.isBitAccess).toBe(true);
       expect(result.baseTarget).toBe("devices[0].flags");
@@ -225,7 +259,7 @@ describe("MemberChainAnalyzer", () => {
 
     it("returns false for 2D array element: matrix[0][1]", () => {
       // matrix[0][1] is array access, not bit access
-      CodeGenState.setVariableTypeInfo("matrix", {
+      state.setVariableTypeInfo("matrix", {
         baseType: "u8",
         bitWidth: 8,
         isArray: true,
@@ -235,7 +269,11 @@ describe("MemberChainAnalyzer", () => {
 
       const target = createTarget("matrix", [subscript("0"), subscript("1")]);
 
-      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
+      const result = MemberChainAnalyzer.analyze(
+        target.baseName,
+        target.ops,
+        state,
+      );
 
       // This is 2D array access, not bit access
       expect(result.isBitAccess).toBe(false);
@@ -244,7 +282,7 @@ describe("MemberChainAnalyzer", () => {
     it("detects bit access on 2D array element: matrix[0][1][3]", () => {
       // matrix[0][1][3] where matrix is u8[4][4]
       // The third subscript [3] is bit access on the u8 element
-      CodeGenState.setVariableTypeInfo("matrix", {
+      state.setVariableTypeInfo("matrix", {
         baseType: "u8",
         bitWidth: 8,
         isArray: true,
@@ -258,7 +296,11 @@ describe("MemberChainAnalyzer", () => {
         subscript("3"),
       ]);
 
-      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
+      const result = MemberChainAnalyzer.analyze(
+        target.baseName,
+        target.ops,
+        state,
+      );
 
       expect(result.isBitAccess).toBe(true);
       expect(result.baseTarget).toBe("matrix[0][1]");
@@ -273,7 +315,11 @@ describe("MemberChainAnalyzer", () => {
         subscript("0"),
       ]);
 
-      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
+      const result = MemberChainAnalyzer.analyze(
+        target.baseName,
+        target.ops,
+        state,
+      );
 
       expect(result.isBitAccess).toBe(false);
     });
@@ -284,7 +330,7 @@ describe("MemberChainAnalyzer", () => {
      * must render nothing -- and most chains are rejected.
      */
     it("renders no index for a chain that is not bit access", () => {
-      CodeGenState.setVariableTypeInfo("matrix", {
+      state.setVariableTypeInfo("matrix", {
         baseType: "u8",
         bitWidth: 8,
         isArray: true,
@@ -303,10 +349,11 @@ describe("MemberChainAnalyzer", () => {
       });
 
       // matrix[0][1] is 2D array access, so the walk rejects it.
-      const result = MemberChainAnalyzer.analyze("matrix", [
-        counting("0"),
-        counting("1"),
-      ]);
+      const result = MemberChainAnalyzer.analyze(
+        "matrix",
+        [counting("0"), counting("1")],
+        state,
+      );
 
       expect(result.isBitAccess).toBe(false);
       expect(rendered).toBe(0);
@@ -314,7 +361,7 @@ describe("MemberChainAnalyzer", () => {
 
     it("returns false for member access on non-struct", () => {
       // x.field[0] where x is a primitive
-      CodeGenState.setVariableTypeInfo("x", {
+      state.setVariableTypeInfo("x", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -323,7 +370,11 @@ describe("MemberChainAnalyzer", () => {
 
       const target = createTarget("x", [member("field"), subscript("0")]);
 
-      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
+      const result = MemberChainAnalyzer.analyze(
+        target.baseName,
+        target.ops,
+        state,
+      );
 
       expect(result.isBitAccess).toBe(false);
     });

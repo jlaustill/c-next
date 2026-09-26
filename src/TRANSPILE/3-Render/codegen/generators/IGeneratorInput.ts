@@ -7,7 +7,7 @@ import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 import IFunctionSignature from "../../../../transpiler/types/IFunctionSignature";
 import ICallbackTypeInfo from "../../../../transpiler/types/ICallbackTypeInfo";
 import ITargetCapabilities from "../../../../transpiler/types/ITargetCapabilities";
-import SymbolTable from "../../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../../../PARSE/3-Declare/SymbolTable";
 import ICodeGenSymbols from "../../../../transpiler/types/ICodeGenSymbols";
 
 interface IGeneratorInput {

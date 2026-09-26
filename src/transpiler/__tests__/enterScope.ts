@@ -1,10 +1,11 @@
-import CodeGenState from "../state/CodeGenState";
-import SymbolRegistry from "../state/SymbolRegistry";
+import TranspileState from "../../TRANSPILE/TranspileState";
+import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
+import Program from "../../PARSE/4-Resolve/Program";
 
 /**
  * Enter a scope in a unit test, registering it with the symbol registry first.
  *
- * #1304: `CodeGenState.setCurrentScopeByPath` now asserts that the path is one
+ * #1304: `state.setCurrentScopeByPath` now asserts that the path is one
  * the symbols pass registered. It used to call `getOrCreateScope`, so a path the
  * registry did not know was silently CREATED as a fresh scope parented to global
  * -- after which `currentScopePath` was that orphan's one-level name, #1295's
@@ -13,7 +14,7 @@ import SymbolRegistry from "../state/SymbolRegistry";
  * pass therefore has to register it.
  *
  * This wrapper exists so that fact lives in ONE place. Inlining
- * `SymbolRegistry.getOrCreateScope(path)` above each of the sixty-odd
+ * `registry.getOrCreateScope(path)` above each of the sixty-odd
  * `setCurrentScopeByPath` calls in the suite would be the same sentence written
  * sixty times, and the next change to what entering a scope requires would have
  * to find every one of them -- the duplicate-decision shape this line of work
@@ -25,11 +26,33 @@ import SymbolRegistry from "../state/SymbolRegistry";
  * itself: a guard's own test must call the guarded method directly, or it tests
  * the wrapper instead.
  */
-function enterScope(path: string | null): void {
-  if (path !== null) {
-    SymbolRegistry.getOrCreateScope(path);
+/**
+ * #1452 box 3: the registry is an instance now, and `setCurrentScopeByPath`
+ * reads the scope graph off `state.program` rather than a global. Both
+ * facts live HERE rather than at the sixty-odd call sites, which is the whole
+ * reason this wrapper exists -- adding a parameter would have been the sentence
+ * written sixty times, one indirection later.
+ *
+ * One registry per module, which under vitest is one per test FILE, and it
+ * accumulates exactly as the static it replaces did. A test wanting a clean
+ * graph builds its own registry rather than remembering to reset this one.
+ */
+const registry = new SymbolRegistry();
+
+function enterScope(state: TranspileState, path: string | null): void {
+  // Only when the state's own program cannot already answer for the path.
+  // Rebuilding unconditionally REPLACED whatever program the test had set with
+  // an empty one built from this module's private registry -- so a test that
+  // installed the real resolver output (`#1511`: without it pass-by-value
+  // eligibility answers "not eligible" for everything and emits pointers where
+  // a real run emits values) silently lost it on the next `enterScope` call,
+  // and every later assertion ran against the degenerate program the helper it
+  // shares a card with exists to prevent.
+  if (path !== null && state.program?.scope(path) == null) {
+    registry.getOrCreateScope(path);
+    state.program = Program.build([], { registry });
   }
-  CodeGenState.setCurrentScopeByPath(path);
+  state.setCurrentScopeByPath(path);
 }
 
 export default enterScope;

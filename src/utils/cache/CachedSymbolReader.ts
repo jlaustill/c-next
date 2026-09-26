@@ -3,7 +3,7 @@ import ESourceLanguage from "../types/ESourceLanguage";
 import TJsonValue from "../types/TJsonValue";
 import TCSymbol from "../../transpiler/types/symbols/c/TCSymbol";
 import TCppSymbol from "../../transpiler/types/symbols/cpp/TCppSymbol";
-import SymbolTable from "../../transpiler/state/SymbolTable";
+import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import IStructSymbolState from "../../transpiler/types/symbols/IStructSymbolState";
 import TJsonSafe from "../types/TJsonSafe";
 

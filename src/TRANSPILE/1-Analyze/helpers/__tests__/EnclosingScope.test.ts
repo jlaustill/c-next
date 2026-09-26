@@ -1,7 +1,6 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 import EnclosingScope from "../EnclosingScope";
-import SymbolRegistry from "../../../../transpiler/state/SymbolRegistry";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 
 /**
@@ -13,10 +12,6 @@ import ScopeUtils from "../../../../utils/ScopeUtils";
  * exist here at all, and why they cannot be fixtures.
  */
 describe("EnclosingScope", () => {
-  beforeEach(() => {
-    SymbolRegistry.reset();
-  });
-
   describe("current", () => {
     it("is the empty path at file scope", () => {
       expect(new EnclosingScope().current()).toBe("");

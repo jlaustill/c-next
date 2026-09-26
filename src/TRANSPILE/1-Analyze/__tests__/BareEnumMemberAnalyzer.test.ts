@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import TranspileState from "../../TranspileState";
 import BareEnumMemberAnalyzer from "../BareEnumMemberAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-017's bare-member rule (E0424): an enum member written bare is
@@ -18,7 +19,7 @@ const symbols = (
   enums: Record<string, string[]>,
   structs: Record<string, Record<string, string>> = {},
 ): void => {
-  CodeGenState.symbols = {
+  state.symbols = {
     knownScopes: new Set<string>(),
     knownEnums: new Set(Object.keys(enums)),
     knownRegisters: new Set<string>(),
@@ -44,17 +45,19 @@ const symbols = (
     ),
     structFieldDimensions: new Map(),
     functionReturnTypes: new Map(),
-  } as unknown as typeof CodeGenState.symbols;
+  } as unknown as typeof state.symbols;
 };
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new BareEnumMemberAnalyzer().analyze(tree);
+  return new BareEnumMemberAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new TranspileState();
 });
+
+let state = new TranspileState();
 
 describe("BareEnumMemberAnalyzer (E0424)", () => {
   it("accepts a bare member where the position names its enum", () => {

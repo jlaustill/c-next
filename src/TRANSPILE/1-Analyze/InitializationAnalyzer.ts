@@ -20,11 +20,10 @@ import ScopeStack from "./ScopeStack";
 import ExpressionUtils from "../../utils/ExpressionUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import analyzePostfixOps from "../../utils/PostfixAnalysisUtils";
-import SymbolTable from "../../transpiler/state/SymbolTable";
-import CodeGenState from "../../transpiler/state/CodeGenState";
+import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../utils/ScopeUtils";
-import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
  * Tracks the initialization state of a variable
@@ -426,6 +425,9 @@ class InitializationListener extends CNextListener {
  * Analyzes C-Next AST for use-before-initialization errors
  */
 class InitializationAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   private errors: IInitializationError[] = [];
 
   private scopeStack: ScopeStack<IVariableState> = new ScopeStack();
@@ -454,7 +456,7 @@ class InitializationAnalyzer {
     }
 
     // Check external structs from CodeGenState
-    return CodeGenState.getExternalStructFields().get(structName);
+    return this.context.program.externalStructFields().get(structName);
   }
 
   /**
@@ -556,8 +558,11 @@ class InitializationAnalyzer {
 
     // #1298: the whole scope PATH, not its leaf name, so a nested scope keeps
     // its outer components when its members are qualified.
-    const scopePath = ScopeUtils.pathOf(
-      SymbolRegistry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
+    // No `??` fallback: `IProgram.scopePathOf` returns `string` and already
+    // answers the bare name on a miss, so a second fallback here is a guard
+    // that cannot fire and reads as if the method could answer null.
+    const scopePath = this.context.program.scopePathOf(
+      scopeDecl.IDENTIFIER().getText(),
     );
 
     // Phase 1: Find all members assigned in any scope function

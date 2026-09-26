@@ -19,11 +19,11 @@ import CodeGenWalker from "../CodeGenWalker";
 import CodeGenerator from "../3-Render/codegen/CodeGenerator";
 import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import SymbolTable from "../../transpiler/state/SymbolTable";
+import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import CNextResolver from "../../PARSE/3-Declare/cnext/index";
-import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import TSymbolInfoAdapter from "../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
-import CodeGenState from "../../transpiler/state/CodeGenState";
+import TranspileState from "../TranspileState";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
 import enterScope from "../../transpiler/__tests__/enterScope";
@@ -50,17 +50,17 @@ function setupGenerator(
   }
 
   const symbolTable = new SymbolTable();
-  const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+  const tSymbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
   // Issue #831: Register TSymbols in SymbolTable (single source of truth)
   symbolTable.addTSymbols(tSymbols);
   const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
   // #1445 box 3: the walk and the render-side services are two objects now.
-  // The host is constructed here and injected, so assertions about the state
+  // The host is constructed here and injected, so assertions about the host.state
   // the walk accumulates read the SAME instance the walk drove.
   const host = new CodeGenerator();
   const generator = new CodeGenWalker(host);
-  CodeGenState.symbolTable = symbolTable;
+  host.state.symbolTable = symbolTable;
   const code = generateWithProgram(generator, tree, tokenStream, {
     symbolInfo: symbols,
     sourcePath: "test.cnx",
@@ -81,19 +81,20 @@ function setupGenerator(
  * with a real run rather than approximating one.
  */
 function installProgramFor(
+  state: TranspileState,
   tree: Parser.ProgramContext,
   sourcePath = "test.cnx",
 ): void {
-  const declared = CNextResolver.resolve(tree, sourcePath);
-  const modifications = ModificationFacts.derive([
-    { parsed: { tree } as never, fileSymbols: declared },
-  ]);
-  CodeGenState.program = Program.build(
-    [declared],
-    new Map(),
-    undefined,
-    modifications,
+  const declared = CNextResolver.resolve(tree, sourcePath, registry);
+  const modifications = ModificationFacts.derive(
+    [{ parsed: { tree } as never, fileSymbols: declared }],
+    registry,
+    state.symbolTable,
   );
+  state.program = Program.build([declared], {
+    modifications,
+    registry,
+  });
 }
 
 /** Generate with the whole-program artifact in place — see #1511. */
@@ -103,19 +104,21 @@ function generateWithProgram(
   tokenStream: Parameters<CodeGenWalker["generate"]>[1],
   options: Parameters<CodeGenWalker["generate"]>[2],
 ): ReturnType<CodeGenWalker["generate"]> {
-  installProgramFor(tree, options?.sourcePath ?? "test.cnx");
+  installProgramFor(
+    generator.transpileState,
+    tree,
+    options?.sourcePath ?? "test.cnx",
+  );
   return generator.generate(tree, tokenStream, options);
 }
 
-describe("CodeGenWalker Coverage Tests", () => {
-  beforeEach(() => {
-    CodeGenState.reset();
-    // CLAUDE.md, "Test isolation": this file drives CNextResolver, which writes
-    // to the SymbolRegistry. Without this, every test inherits the scopes the
-    // previous one registered.
-    SymbolRegistry.reset();
-  });
+let registry = new SymbolRegistry();
 
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
+
+describe("CodeGenWalker Coverage Tests", () => {
   // ==========================================================================
   // NEW CODE IN PR: _isArrayAccessStringExpression (lines 811-852)
   // ==========================================================================
@@ -269,8 +272,8 @@ describe("CodeGenWalker Coverage Tests", () => {
       const { host } = setupGenerator(source);
 
       // Manually set up scope context to test the resolution path
-      enterScope("Motor");
-      CodeGenState.setScopeMembers("Motor", new Set(["speed", "setSpeed"]));
+      enterScope(host.state, "Motor");
+      host.state.setScopeMembers("Motor", new Set(["speed", "setSpeed"]));
 
       // Now resolve should return prefixed name (line 633)
       const resolved = host.resolveIdentifier("speed");
@@ -280,8 +283,8 @@ describe("CodeGenWalker Coverage Tests", () => {
     it("should return unchanged identifier when not a scope member", () => {
       const { host } = setupGenerator("u32 globalVar; void main() {}");
 
-      enterScope("Motor");
-      CodeGenState.setScopeMembers("Motor", new Set(["speed"]));
+      enterScope(host.state, "Motor");
+      host.state.setScopeMembers("Motor", new Set(["speed"]));
 
       // globalVar is not in Motor scope members
       const resolved = host.resolveIdentifier("globalVar");
@@ -291,7 +294,7 @@ describe("CodeGenWalker Coverage Tests", () => {
     it("should return unchanged identifier when not in any scope", () => {
       const { host } = setupGenerator("u32 globalVar; void main() {}");
 
-      enterScope(null);
+      enterScope(host.state, null);
 
       const resolved = host.resolveIdentifier("globalVar");
       expect(resolved).toBe("globalVar");
@@ -564,13 +567,13 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code, host } = setupGenerator(source);
       // The member write lands in the .c; the accessor block itself is
       // recorded for the header, which is the only file a #define can be
       // exported from (#1453).
       expect(code).toContain("GPIO__PORTA__DR = val");
       expect(code).not.toContain("#define GPIO__PORTA__DR");
-      const block = CodeGenState.exportedRegisterBlocks.join("\n");
+      const block = host.state.exportedRegisterBlocks.join("\n");
       expect(block).toContain("/* Register: GPIO__PORTA @ 0x40000000 */");
       // Address format is 0x40000000 + 0x00
       expect(block).toContain(
@@ -682,15 +685,19 @@ describe("CodeGenWalker Coverage Tests", () => {
       // Mark NamedPoint as requiring 'struct' keyword (simulates C header import)
       symbolTable.markNeedsStructKeyword("NamedPoint");
 
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const tSymbols = CNextResolver.resolve(
+        tree,
+        "test.cnx",
+        registry,
+      ).symbols;
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
+      // The host is constructed here and injected, so assertions about the host.state
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      CodeGenState.symbolTable = symbolTable;
+      host.state.symbolTable = symbolTable;
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -725,15 +732,19 @@ describe("CodeGenWalker Coverage Tests", () => {
       const symbolTable = new SymbolTable();
       // Do NOT mark as needing struct keyword (simulates typedef'd struct)
 
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const tSymbols = CNextResolver.resolve(
+        tree,
+        "test.cnx",
+        registry,
+      ).symbols;
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
+      // The host is constructed here and injected, so assertions about the host.state
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      CodeGenState.symbolTable = symbolTable;
+      host.state.symbolTable = symbolTable;
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -759,15 +770,19 @@ describe("CodeGenWalker Coverage Tests", () => {
       const symbolTable = new SymbolTable();
       symbolTable.markNeedsStructKeyword("CppPoint");
 
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const tSymbols = CNextResolver.resolve(
+        tree,
+        "test.cnx",
+        registry,
+      ).symbols;
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
+      // The host is constructed here and injected, so assertions about the host.state
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      CodeGenState.symbolTable = symbolTable;
+      host.state.symbolTable = symbolTable;
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1244,7 +1259,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       const { tree, tokenStream } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const tSymbols = CNextResolver.resolve(
+        tree,
+        "test.cnx",
+        registry,
+      ).symbols;
       symbolTable.addTSymbols(tSymbols);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1263,11 +1282,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       }
 
       // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
+      // The host is constructed here and injected, so assertions about the host.state
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      CodeGenState.symbolTable = symbolTable;
+      host.state.symbolTable = symbolTable;
 
       return generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
@@ -1439,7 +1458,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       const { tree, tokenStream } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const tSymbols = CNextResolver.resolve(
+        tree,
+        "test.cnx",
+        registry,
+      ).symbols;
       symbolTable.addTSymbols(tSymbols);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1457,11 +1480,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       symbolTable.addStructField("Outer", "dummy", "SeaDash_Parse_Result");
 
       // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
+      // The host is constructed here and injected, so assertions about the host.state
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      CodeGenState.symbolTable = symbolTable;
+      host.state.symbolTable = symbolTable;
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1483,7 +1506,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       const { tree, tokenStream } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const tSymbols = CNextResolver.resolve(
+        tree,
+        "test.cnx",
+        registry,
+      ).symbols;
       symbolTable.addTSymbols(tSymbols);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1491,11 +1518,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       symbolTable.addStructField("Data", "value", "some_plain_type");
 
       // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
+      // The host is constructed here and injected, so assertions about the host.state
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      CodeGenState.symbolTable = symbolTable;
+      host.state.symbolTable = symbolTable;
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",

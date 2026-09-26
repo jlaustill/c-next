@@ -11,9 +11,9 @@
  * string for both would pass while conflating them, so every case below gives
  * them different values.
  */
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import generateCast from "../CastExprGenerator";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import TranspileState from "../../../../../TranspileState";
 
 const plan = (
   targetType: string,
@@ -23,13 +23,19 @@ const plan = (
 ) => ({ targetType, targetTypeName, operandCode, operandType });
 
 describe("CastExprGenerator", () => {
+  let state = new TranspileState();
+
+  beforeEach(() => {
+    state = new TranspileState();
+  });
+
   afterEach(() => {
-    CodeGenState.reset();
+    state = new TranspileState();
   });
 
   describe("plain casts", () => {
     it("renders a C cast when the source is not a float", () => {
-      expect(generateCast(plan("uint8_t", "u8", "x", "u32"))).toBe(
+      expect(generateCast(plan("uint8_t", "u8", "x", "u32"), state)).toBe(
         "(uint8_t)x",
       );
     });
@@ -37,15 +43,15 @@ describe("CastExprGenerator", () => {
     it("renders a C cast when the source type is unresolved", () => {
       // null means "not known to be a float", so no clamp -- the negative
       // control for the clamping cases below.
-      expect(generateCast(plan("int32_t", "i32", "x", null))).toBe(
+      expect(generateCast(plan("int32_t", "i32", "x", null), state)).toBe(
         "(int32_t)x",
       );
     });
 
     it("uses static_cast in C++ mode", () => {
-      CodeGenState.cppMode = true;
+      state.cppMode = true;
 
-      expect(generateCast(plan("uint8_t", "u8", "x", "u32"))).toBe(
+      expect(generateCast(plan("uint8_t", "u8", "x", "u32"), state)).toBe(
         "static_cast<uint8_t>(x)",
       );
     });
@@ -53,7 +59,7 @@ describe("CastExprGenerator", () => {
 
   describe("float-to-integer clamping (ADR-024, Issue #632)", () => {
     it("clamps f32 to u8 against the type's limit macros", () => {
-      const result = generateCast(plan("uint8_t", "u8", "f", "f32"));
+      const result = generateCast(plan("uint8_t", "u8", "f", "f32"), state);
 
       // (f) > MAX ? MAX : (f) < MIN ? MIN : (uint8_t)(f)
       expect(result).toBe(
@@ -62,7 +68,7 @@ describe("CastExprGenerator", () => {
     });
 
     it("compares against double for an f64 source", () => {
-      const result = generateCast(plan("int8_t", "i8", "d", "f64"));
+      const result = generateCast(plan("int8_t", "i8", "d", "f64"), state);
 
       expect(result).toContain("((double)INT8_MAX)");
       expect(result).toContain("((double)INT8_MIN)");
@@ -76,8 +82,8 @@ describe("CastExprGenerator", () => {
       // `i8` and asserted `not.toContain("0.0f")`, which held for a reason
       // that had nothing to do with the suffix: there was no `0.0` in the
       // output. Mutating the suffix to a constant `"f"` left it green.
-      const f64 = generateCast(plan("uint16_t", "u16", "d", "f64"));
-      const f32 = generateCast(plan("uint16_t", "u16", "x", "f32"));
+      const f64 = generateCast(plan("uint16_t", "u16", "d", "f64"), state);
+      const f32 = generateCast(plan("uint16_t", "u16", "x", "f32"), state);
 
       expect(f64).toContain("< 0.0 ?");
       expect(f64).not.toContain("0.0f");
@@ -85,19 +91,21 @@ describe("CastExprGenerator", () => {
     });
 
     it("requires limits.h only when it actually clamps", () => {
-      generateCast(plan("uint8_t", "u8", "x", "u32"));
-      const afterPlain = CodeGenState.needsLimits;
+      generateCast(plan("uint8_t", "u8", "x", "u32"), state);
+      const afterPlain = state.needsLimits;
 
-      generateCast(plan("uint8_t", "u8", "f", "f32"));
+      generateCast(plan("uint8_t", "u8", "f", "f32"), state);
 
       expect(afterPlain).toBe(false);
-      expect(CodeGenState.needsLimits).toBe(true);
+      expect(state.needsLimits).toBe(true);
     });
 
     it("falls back to a raw cast for a target with no limit macros", () => {
       // Issue #644: `bool` is in INTEGER_TYPES but has no TYPE_MAX entry, so
       // the clamp cannot be built and the plain cast is the correct answer.
-      expect(generateCast(plan("bool", "bool", "f", "f32"))).toBe("(bool)f");
+      expect(generateCast(plan("bool", "bool", "f", "f32"), state)).toBe(
+        "(bool)f",
+      );
     });
   });
 });

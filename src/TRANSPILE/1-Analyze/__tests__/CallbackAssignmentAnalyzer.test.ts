@@ -3,10 +3,11 @@ import { describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CallbackAssignmentAnalyzer from "../CallbackAssignmentAnalyzer";
 import CNextResolver from "../../../PARSE/3-Declare/cnext";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import TranspileState from "../../TranspileState";
 import Program from "../../../PARSE/4-Resolve/Program";
-import SymbolRegistry from "../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-029's callback typing: E0879 (a function whose declared signature
@@ -32,22 +33,37 @@ import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolI
  * were carrying the whole rule.
  */
 const build = (source: string) => {
-  SymbolRegistry.reset();
   const { tree } = CNextSourceParser.parse(source);
-  CodeGenState.program = Program.build([CNextResolver.resolve(tree, "a.cnx")]);
-  CodeGenState.symbols = TSymbolInfoAdapter.convert(
-    CNextResolver.resolve(tree, "a.cnx").symbols,
+  state.program = Program.build([
+    CNextResolver.resolve(tree, "a.cnx", registry),
+  ]);
+  state.symbols = TSymbolInfoAdapter.convert(
+    CNextResolver.resolve(tree, "a.cnx", registry).symbols,
   );
-  return new CallbackAssignmentAnalyzer().analyze(tree);
+  return new CallbackAssignmentAnalyzer(testAnalysisContext(state)).analyze(
+    tree,
+  );
 };
 
 const findings = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new CallbackAssignmentAnalyzer().analyze(tree);
+  return new CallbackAssignmentAnalyzer(testAnalysisContext(state)).analyze(
+    tree,
+  );
 };
 
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
+
+let state = new TranspileState();
+
 describe("CallbackAssignmentAnalyzer", () => {
-  it("returns no findings when the program's symbols are absent", () => {
+  // Same as `FunctionReference`: the context always carries a program, so
+  // "absent" is unrepresentable. What this checks is an empty one.
+  it("returns no findings when the program declares no struct fields", () => {
     // The precondition every case below shares: without `Program` neither
     // rule can name a function, so the analyzer is silent by construction.
     // This is what makes the fixtures, not this file, the rules' evidence.
@@ -123,7 +139,7 @@ describe("CallbackAssignmentAnalyzer", () => {
     ].join("\n");
 
     afterEach(() => {
-      CodeGenState.reset();
+      state = new TranspileState();
     });
 
     it("reports E0879 when the declared signature differs, in each slot", () => {

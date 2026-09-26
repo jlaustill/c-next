@@ -9,7 +9,7 @@ import * as Parser from "../../2-Parse/grammar/CNextParser";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TSymbol from "../../../transpiler/types/symbols/TSymbol";
 import IFileSymbols from "../../../transpiler/types/IFileSymbols";
-import SymbolRegistry from "../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../SymbolRegistry";
 import LiteralUtils from "../../../utils/LiteralUtils";
 import BitmapCollector from "./collectors/BitmapCollector";
 import EnumCollector from "./collectors/EnumCollector";
@@ -51,6 +51,7 @@ class CNextResolver {
   static resolve(
     tree: Parser.ProgramContext,
     sourceFile: string,
+    registry: SymbolRegistry,
   ): IFileSymbols {
     const symbols: TSymbol[] = [];
     const knownBitmaps = new Set<string>();
@@ -76,7 +77,7 @@ class CNextResolver {
     // closure. Collecting into one shared set made "declared here" and "visible
     // here" the same object, so neither could be read back afterwards.
     const declaredScopeTypes = new Set<string>();
-    CNextResolver.collectScopeTypesPass0b(tree, declaredScopeTypes);
+    CNextResolver.collectScopeTypesPass0b(registry, tree, declaredScopeTypes);
 
     // What this file can SEE: its own declarations plus its includes'. Same set
     // as before the split, built in the other order -- union is commutative, so
@@ -93,6 +94,7 @@ class CNextResolver {
     // Pass 1: Collect all bitmap names (needed before registers reference them)
     // This includes bitmaps in scopes
     CNextResolver.collectBitmapsPass1(
+      registry,
       tree,
       sourceFile,
       symbols,
@@ -103,6 +105,7 @@ class CNextResolver {
 
     // Pass 2: Collect everything else (with bitmap set and const values available)
     CNextResolver.collectAllPass2(
+      registry,
       tree,
       sourceFile,
       symbols,
@@ -251,6 +254,7 @@ class CNextResolver {
    * whether the declaration appears above or below its use.
    */
   private static collectScopeTypesPass0b(
+    registry: SymbolRegistry,
     tree: Parser.ProgramContext,
     scopeTypes: Set<string>,
   ): void {
@@ -264,7 +268,7 @@ class CNextResolver {
       // names, so a leaf-built key here never matched at depth two and the
       // lookup fell silently through to the bare name.
       const scopePath = ScopeUtils.pathOf(
-        SymbolRegistry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
+        registry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
       );
       for (const member of scopeDecl.scopeMember()) {
         const typeDecl = CNextResolver.typeFormingDeclaration(member);
@@ -286,6 +290,7 @@ class CNextResolver {
    * SonarCloud S3776: Refactored to use helper methods.
    */
   private static collectBitmapsPass1(
+    registry: SymbolRegistry,
     tree: Parser.ProgramContext,
     sourceFile: string,
     symbols: TSymbol[],
@@ -315,6 +320,7 @@ class CNextResolver {
       // Bitmaps and structs inside scopes (collected early)
       if (decl.scopeDeclaration()) {
         CNextResolver.collectScopedBitmapsAndStructs(
+          registry,
           decl.scopeDeclaration()!,
           sourceFile,
           symbols,
@@ -331,6 +337,7 @@ class CNextResolver {
    * SonarCloud S3776: Extracted from collectBitmapsPass1().
    */
   private static collectScopedBitmapsAndStructs(
+    registry: SymbolRegistry,
     scopeDecl: Parser.ScopeDeclarationContext,
     sourceFile: string,
     symbols: TSymbol[],
@@ -339,9 +346,7 @@ class CNextResolver {
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
     const scopeName = scopeDecl.IDENTIFIER().getText();
-    const scopePath = ScopeUtils.pathOf(
-      SymbolRegistry.getOrCreateScope(scopeName),
-    );
+    const scopePath = ScopeUtils.pathOf(registry.getOrCreateScope(scopeName));
 
     for (const member of scopeDecl.scopeMember()) {
       // #1300: these are the scoped bitmap and struct symbols that SURVIVE --
@@ -386,6 +391,7 @@ class CNextResolver {
    * Bitmaps and scoped structs were already collected in pass 1.
    */
   private static collectAllPass2(
+    registry: SymbolRegistry,
     tree: Parser.ProgramContext,
     sourceFile: string,
     symbols: TSymbol[],
@@ -400,6 +406,7 @@ class CNextResolver {
       }
 
       CNextResolver._collectDeclaration(
+        registry,
         decl,
         sourceFile,
         symbols,
@@ -417,6 +424,7 @@ class CNextResolver {
    * qualification only applies on the scope path.
    */
   private static _collectDeclaration(
+    registry: SymbolRegistry,
     decl: Parser.DeclarationContext,
     sourceFile: string,
     symbols: TSymbol[],
@@ -430,6 +438,7 @@ class CNextResolver {
     // Scopes (ScopeCollector handles nested members)
     if (decl.scopeDeclaration()) {
       CNextResolver._collectScopeDeclaration(
+        registry,
         decl.scopeDeclaration()!,
         sourceFile,
         symbols,
@@ -483,6 +492,7 @@ class CNextResolver {
       const funcDecl = decl.functionDeclaration()!;
       // Use collectAndRegister to populate both old symbols and SymbolRegistry
       const symbol = FunctionCollector.collectAndRegister(
+        registry,
         funcDecl,
         sourceFile,
         "",
@@ -512,6 +522,7 @@ class CNextResolver {
    * Collect scope declaration and its non-bitmap/non-struct members.
    */
   private static _collectScopeDeclaration(
+    registry: SymbolRegistry,
     scopeCtx: Parser.ScopeDeclarationContext,
     sourceFile: string,
     symbols: TSymbol[],
@@ -520,6 +531,7 @@ class CNextResolver {
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
     const result = ScopeCollector.collect(
+      registry,
       scopeCtx,
       sourceFile,
       knownBitmaps,

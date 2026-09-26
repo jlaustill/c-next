@@ -1,8 +1,15 @@
 /**
- * Interface for CodeGenerator methods accessible via CodeGenState.generator.
+ * Interface for CodeGenerator methods accessible via the render state's
+ * `generator` slot.
  *
  * Defines the subset of CodeGenerator methods needed by assignment handlers.
- * Handlers cast CodeGenState.generator to this interface.
+ *
+ * #1452 box 4: this carried a `state` member for one revision and NOTHING read
+ * it -- handlers reach the state through `IAssignmentContext.state` and
+ * generators through `IOrchestrator.state`, both of which the caller already
+ * holds. It also closed a cycle, because the state holds a `generator` of this
+ * type, so the two modules imported each other. A member that no caller needs
+ * is not a channel; it is a second way to ask, which is what this card removes.
  */
 import type TTypeInfo from "./TTypeInfo";
 

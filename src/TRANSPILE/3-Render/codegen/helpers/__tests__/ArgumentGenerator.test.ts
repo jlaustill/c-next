@@ -5,9 +5,11 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import ArgumentGenerator from "../ArgumentGenerator";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import TranspileState from "../../../../TranspileState";
 import IArgumentGeneratorCallbacks from "../types/IArgumentGeneratorCallbacks";
 import enterScope from "../../../../../transpiler/__tests__/enterScope";
+
+let state = new TranspileState();
 
 describe("ArgumentGenerator", () => {
   // #1445: the callbacks are thunks and `generateArg` takes no node, so the 22
@@ -27,13 +29,13 @@ describe("ArgumentGenerator", () => {
   });
 
   beforeEach(() => {
-    CodeGenState.reset();
+    state = new TranspileState();
   });
 
   describe("handleIdentifierArg", () => {
     describe("parameters", () => {
       it("returns parameter name unchanged (already pointers)", () => {
-        CodeGenState.currentParameters.set("cfg", {
+        state.currentParameters.set("cfg", {
           name: "cfg",
           baseType: "Config",
           isArray: false,
@@ -43,30 +45,33 @@ describe("ArgumentGenerator", () => {
           isString: false,
         });
 
-        const result = ArgumentGenerator.handleIdentifierArg("cfg");
+        const result = ArgumentGenerator.handleIdentifierArg("cfg", state);
         expect(result).toBe("cfg");
       });
     });
 
     describe("local arrays", () => {
       it("returns array name unchanged (decay to pointers)", () => {
-        CodeGenState.localArrays.add("buffer");
+        state.localArrays.add("buffer");
 
-        const result = ArgumentGenerator.handleIdentifierArg("buffer");
+        const result = ArgumentGenerator.handleIdentifierArg("buffer", state);
         expect(result).toBe("buffer");
       });
     });
 
     describe("global arrays", () => {
       it("returns global array name unchanged", () => {
-        CodeGenState.setVariableTypeInfo("globalArr", {
+        state.setVariableTypeInfo("globalArr", {
           baseType: "u8",
           bitWidth: 8,
           isArray: true,
           isConst: false,
         });
 
-        const result = ArgumentGenerator.handleIdentifierArg("globalArr");
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "globalArr",
+          state,
+        );
         expect(result).toBe("globalArr");
       });
 
@@ -77,8 +82,8 @@ describe("ArgumentGenerator", () => {
       // committed snapshots came to hold it too; `&x` and `x` share a value, so
       // execution tests passed and only `-Werror` could tell.
       it("lets a global string decay, like any other array", () => {
-        CodeGenState.cppMode = false;
-        CodeGenState.setVariableTypeInfo("name", {
+        state.cppMode = false;
+        state.setVariableTypeInfo("name", {
           baseType: "char",
           bitWidth: 8,
           isArray: true,
@@ -86,43 +91,49 @@ describe("ArgumentGenerator", () => {
           isString: true,
         });
 
-        const result = ArgumentGenerator.handleIdentifierArg("name");
+        const result = ArgumentGenerator.handleIdentifierArg("name", state);
         expect(result).toBe("name");
       });
     });
 
     describe("scope members", () => {
       it("prefixes scope member and adds & in C mode", () => {
-        CodeGenState.cppMode = false;
-        enterScope("LED");
-        CodeGenState.setScopeMembers("LED", new Set(["brightness"]));
+        state.cppMode = false;
+        enterScope(state, "LED");
+        state.setScopeMembers("LED", new Set(["brightness"]));
 
-        const result = ArgumentGenerator.handleIdentifierArg("brightness");
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "brightness",
+          state,
+        );
         expect(result).toBe("&LED__brightness");
       });
 
       it("prefixes scope member without & in C++ mode", () => {
-        CodeGenState.cppMode = true;
-        enterScope("LED");
-        CodeGenState.setScopeMembers("LED", new Set(["brightness"]));
+        state.cppMode = true;
+        enterScope(state, "LED");
+        state.setScopeMembers("LED", new Set(["brightness"]));
 
-        const result = ArgumentGenerator.handleIdentifierArg("brightness");
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "brightness",
+          state,
+        );
         expect(result).toBe("LED__brightness");
       });
     });
 
     describe("local variables", () => {
       it("adds & for local variable in C mode", () => {
-        CodeGenState.cppMode = false;
+        state.cppMode = false;
 
-        const result = ArgumentGenerator.handleIdentifierArg("value");
+        const result = ArgumentGenerator.handleIdentifierArg("value", state);
         expect(result).toBe("&value");
       });
 
       it("returns local variable unchanged in C++ mode", () => {
-        CodeGenState.cppMode = true;
+        state.cppMode = true;
 
-        const result = ArgumentGenerator.handleIdentifierArg("value");
+        const result = ArgumentGenerator.handleIdentifierArg("value", state);
         expect(result).toBe("value");
       });
     });
@@ -134,7 +145,11 @@ describe("ArgumentGenerator", () => {
         generateExpression: () => "42",
       });
 
-      const result = ArgumentGenerator.handleRvalueArg(undefined, callbacks);
+      const result = ArgumentGenerator.handleRvalueArg(
+        undefined,
+        callbacks,
+        state,
+      );
       expect(result).toBe("42");
     });
 
@@ -143,45 +158,49 @@ describe("ArgumentGenerator", () => {
         generateExpression: () => "doSomething()",
       });
 
-      const result = ArgumentGenerator.handleRvalueArg("void", callbacks);
+      const result = ArgumentGenerator.handleRvalueArg(
+        "void",
+        callbacks,
+        state,
+      );
       expect(result).toBe("doSomething()");
     });
 
     it("returns expression unchanged in C++ mode (rvalues bind to const T&)", () => {
-      CodeGenState.cppMode = true;
+      state.cppMode = true;
       const callbacks = createMockCallbacks({
         generateExpression: () => "42",
       });
 
-      const result = ArgumentGenerator.handleRvalueArg("u8", callbacks);
+      const result = ArgumentGenerator.handleRvalueArg("u8", callbacks, state);
       expect(result).toBe("42");
     });
 
     it("wraps in compound literal for C mode", () => {
-      CodeGenState.cppMode = false;
+      state.cppMode = false;
       const callbacks = createMockCallbacks({
         generateExpression: () => "42",
       });
 
-      const result = ArgumentGenerator.handleRvalueArg("u8", callbacks);
+      const result = ArgumentGenerator.handleRvalueArg("u8", callbacks, state);
       expect(result).toBe("&(uint8_t){42}");
     });
 
     it("uses correct C type for compound literal", () => {
-      CodeGenState.cppMode = false;
+      state.cppMode = false;
       const callbacks = createMockCallbacks({
         generateExpression: () => "1000",
       });
 
-      const result = ArgumentGenerator.handleRvalueArg("i32", callbacks);
+      const result = ArgumentGenerator.handleRvalueArg("i32", callbacks, state);
       expect(result).toBe("&(int32_t){1000}");
     });
   });
 
   describe("createCppMemberConversionTemp", () => {
     it("creates temp variable with static_cast in C++ mode", () => {
-      CodeGenState.cppMode = true;
-      CodeGenState.tempVarCounter = 0;
+      state.cppMode = true;
+      state.tempVarCounter = 0;
       const callbacks = createMockCallbacks({
         generateExpression: () => "cfg.value",
       });
@@ -189,18 +208,19 @@ describe("ArgumentGenerator", () => {
       const result = ArgumentGenerator.createCppMemberConversionTemp(
         "u8",
         callbacks,
+        state,
       );
 
       expect(result).toBe("cnx_tmp0");
-      expect(CodeGenState.pendingTempDeclarations).toContain(
+      expect(state.pendingTempDeclarations).toContain(
         "uint8_t cnx_tmp0 = static_cast<uint8_t>(cfg.value);",
       );
-      expect(CodeGenState.tempVarCounter).toBe(1);
+      expect(state.tempVarCounter).toBe(1);
     });
 
     it("increments temp counter for multiple temps", () => {
-      CodeGenState.cppMode = true;
-      CodeGenState.tempVarCounter = 5;
+      state.cppMode = true;
+      state.tempVarCounter = 5;
       const callbacks = createMockCallbacks({
         generateExpression: () => "x",
       });
@@ -208,10 +228,11 @@ describe("ArgumentGenerator", () => {
       const result = ArgumentGenerator.createCppMemberConversionTemp(
         "i16",
         callbacks,
+        state,
       );
 
       expect(result).toBe("cnx_tmp5");
-      expect(CodeGenState.tempVarCounter).toBe(6);
+      expect(state.tempVarCounter).toBe(6);
     });
   });
 
@@ -225,6 +246,7 @@ describe("ArgumentGenerator", () => {
         "&buf[0]",
         undefined,
         callbacks,
+        state,
       );
       expect(result).toBe("&buf[0]");
     });
@@ -238,6 +260,7 @@ describe("ArgumentGenerator", () => {
         "&arr[0]",
         "u8",
         callbacks,
+        state,
       );
       expect(result).toBe("&arr[0]");
     });
@@ -258,7 +281,7 @@ describe("ArgumentGenerator", () => {
       ["does not cast for float types", false, "f32", "&buf[0]"],
       ["does not cast for bool type", false, "bool", "&buf[0]"],
     ])("%s", (_label, source, argument2, expected) => {
-      CodeGenState.cppMode = source;
+      state.cppMode = source;
       const callbacks = createMockCallbacks({
         isStringSubscriptAccess: () => true,
       });
@@ -267,6 +290,7 @@ describe("ArgumentGenerator", () => {
         "&buf[0]",
         argument2,
         callbacks,
+        state,
       );
       expect(result).toBe(expected);
     });
@@ -279,23 +303,31 @@ describe("ArgumentGenerator", () => {
         generateExpression: () => "result.data",
       });
 
-      const result = ArgumentGenerator.handleMemberAccessArg("u8", callbacks);
+      const result = ArgumentGenerator.handleMemberAccessArg(
+        "u8",
+        callbacks,
+        state,
+      );
       expect(result).toBe("result.data");
     });
 
     it("creates temp for C++ conversion when needed", () => {
-      CodeGenState.cppMode = true;
-      CodeGenState.tempVarCounter = 0;
+      state.cppMode = true;
+      state.tempVarCounter = 0;
       const callbacks = createMockCallbacks({
         getMemberAccessArrayStatus: () => "not-array",
         isCppMemberConversionRequired: () => true,
         generateExpression: () => "cfg.enabled",
       });
 
-      const result = ArgumentGenerator.handleMemberAccessArg("u8", callbacks);
+      const result = ArgumentGenerator.handleMemberAccessArg(
+        "u8",
+        callbacks,
+        state,
+      );
 
       expect(result).toBe("cnx_tmp0");
-      expect(CodeGenState.pendingTempDeclarations).toHaveLength(1);
+      expect(state.pendingTempDeclarations).toHaveLength(1);
     });
 
     it("returns null for default lvalue handling", () => {
@@ -304,7 +336,11 @@ describe("ArgumentGenerator", () => {
         isCppMemberConversionRequired: () => false,
       });
 
-      const result = ArgumentGenerator.handleMemberAccessArg("u8", callbacks);
+      const result = ArgumentGenerator.handleMemberAccessArg(
+        "u8",
+        callbacks,
+        state,
+      );
       expect(result).toBeNull();
     });
 
@@ -314,7 +350,11 @@ describe("ArgumentGenerator", () => {
         isCppMemberConversionRequired: () => false,
       });
 
-      const result = ArgumentGenerator.handleMemberAccessArg("u8", callbacks);
+      const result = ArgumentGenerator.handleMemberAccessArg(
+        "u8",
+        callbacks,
+        state,
+      );
       expect(result).toBeNull();
     });
   });
@@ -330,12 +370,13 @@ describe("ArgumentGenerator", () => {
         "member",
         "u8",
         callbacks,
+        state,
       );
       expect(result).toBe("result.buffer");
     });
 
     it("generates expression with & for member when not array", () => {
-      CodeGenState.cppMode = false;
+      state.cppMode = false;
       const callbacks = createMockCallbacks({
         getMemberAccessArrayStatus: () => "not-array",
         isCppMemberConversionRequired: () => false,
@@ -346,12 +387,13 @@ describe("ArgumentGenerator", () => {
         "member",
         "u8",
         callbacks,
+        state,
       );
       expect(result).toBe("&obj.field");
     });
 
     it("handles array access with & and string subscript cast", () => {
-      CodeGenState.cppMode = false;
+      state.cppMode = false;
       const callbacks = createMockCallbacks({
         generateExpression: () => "buf[0]",
         isStringSubscriptAccess: () => true,
@@ -361,12 +403,13 @@ describe("ArgumentGenerator", () => {
         "array",
         "u8",
         callbacks,
+        state,
       );
       expect(result).toBe("(uint8_t*)&buf[0]");
     });
 
     it("returns expression with & for array without string cast", () => {
-      CodeGenState.cppMode = false;
+      state.cppMode = false;
       const callbacks = createMockCallbacks({
         generateExpression: () => "arr[i]",
         isStringSubscriptAccess: () => false,
@@ -376,6 +419,7 @@ describe("ArgumentGenerator", () => {
         "array",
         "u8",
         callbacks,
+        state,
       );
       expect(result).toBe("&arr[i]");
     });
@@ -383,17 +427,22 @@ describe("ArgumentGenerator", () => {
 
   describe("generateArg (main dispatcher)", () => {
     it("handles simple identifier", () => {
-      CodeGenState.cppMode = false;
+      state.cppMode = false;
       const callbacks = createMockCallbacks({
         getLvalueType: () => null,
       });
 
-      const result = ArgumentGenerator.generateArg("value", "u8", callbacks);
+      const result = ArgumentGenerator.generateArg(
+        "value",
+        "u8",
+        callbacks,
+        state,
+      );
       expect(result).toBe("&value");
     });
 
     it("handles parameter identifier", () => {
-      CodeGenState.currentParameters.set("cfg", {
+      state.currentParameters.set("cfg", {
         name: "cfg",
         baseType: "Config",
         isArray: false,
@@ -406,12 +455,17 @@ describe("ArgumentGenerator", () => {
         getLvalueType: () => null,
       });
 
-      const result = ArgumentGenerator.generateArg("cfg", "Config", callbacks);
+      const result = ArgumentGenerator.generateArg(
+        "cfg",
+        "Config",
+        callbacks,
+        state,
+      );
       expect(result).toBe("cfg");
     });
 
     it("handles lvalue expressions", () => {
-      CodeGenState.cppMode = false;
+      state.cppMode = false;
       const callbacks = createMockCallbacks({
         getLvalueType: () => "member",
         getMemberAccessArrayStatus: () => "not-array",
@@ -423,12 +477,13 @@ describe("ArgumentGenerator", () => {
         null, // no simple identifier
         "u8",
         callbacks,
+        state,
       );
       expect(result).toBe("&obj.field");
     });
 
     it("handles rvalue expressions", () => {
-      CodeGenState.cppMode = false;
+      state.cppMode = false;
       const callbacks = createMockCallbacks({
         getLvalueType: () => null,
         generateExpression: () => "42",
@@ -438,6 +493,7 @@ describe("ArgumentGenerator", () => {
         null, // no simple identifier
         "u8",
         callbacks,
+        state,
       );
       expect(result).toBe("&(uint8_t){42}");
     });

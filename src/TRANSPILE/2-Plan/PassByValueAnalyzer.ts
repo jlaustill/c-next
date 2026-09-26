@@ -22,9 +22,8 @@
  * ADR-006) are excluded — via the isArray check below.
  */
 
+import type IModificationCollector from "./types/IModificationCollector";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
-import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
 import ScopeUtils from "../../utils/ScopeUtils";
 import TransitiveModificationPropagator from "./TransitiveModificationPropagator";
 import StatementExpressionCollector from "../../utils/ast/StatementExpressionCollector";
@@ -33,11 +32,19 @@ import AssignmentTargetExtractor from "../../utils/ast/AssignmentTargetExtractor
 import ExpressionUtils from "../../utils/ExpressionUtils";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
+import type TranspileState from "../TranspileState";
+import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 
 /**
  * Collects parameter-modification facts and reads the eligibility verdict from
  * the artifact; it no longer decides eligibility itself (#1511).
- * All state is stored in CodeGenState - this class contains pure analysis logic.
+ *
+ * #1452: the collection walk took a `TranspileState` through twelve private
+ * methods and no body read it -- the parameter said "this walk depends on the
+ * per-file render container" and it did not. The propagation path takes the
+ * `SymbolTable` it actually asks, so a WHOLE-PROGRAM derivation no longer names
+ * a per-file container whose other fields belong to the previously rendered
+ * file. Only the eligibility read still takes the state, for `program`.
  */
 class PassByValueAnalyzer {
   /**
@@ -52,20 +59,23 @@ class PassByValueAnalyzer {
    * predicate rather than depending on when a mutable table happens to fill.
    */
   static propagateModifications(
-    isValueSymbol: (
-      name: string,
-    ) => boolean = PassByValueAnalyzer.nameIsValueSymbol,
+    collect: IModificationCollector,
+    symbolTable: SymbolTable,
+    isValueSymbol: (name: string) => boolean = (name: string): boolean =>
+      PassByValueAnalyzer.nameIsValueSymbol(name, symbolTable),
   ): void {
     TransitiveModificationPropagator.propagate(
-      CodeGenState.functionCallGraph,
-      CodeGenState.functionParamLists,
-      CodeGenState.modifiedParameters,
+      collect.functionCallGraph,
+      collect.functionParamLists,
+      collect.modifiedParameters,
       (callerName: string, callee: string, paramIndex: number): boolean =>
         PassByValueAnalyzer.calleeMayMutateParameter(
+          collect,
           callerName,
           callee,
           paramIndex,
           isValueSymbol,
+          symbolTable,
         ),
     );
   }
@@ -80,13 +90,13 @@ class PassByValueAnalyzer {
    * somewhere this build cannot see".
    */
   private static calleeIsIndirectCall(
+    collect: IModificationCollector,
     callerName: string,
     callee: string,
     isValueSymbol: (name: string) => boolean,
   ): boolean {
     const root = QualifiedCName.split(callee)[0];
-    const callerParameters =
-      CodeGenState.functionParamLists.get(callerName) ?? [];
+    const callerParameters = collect.functionParamLists.get(callerName) ?? [];
     if (callerParameters.includes(callee) || callerParameters.includes(root)) {
       return true;
     }
@@ -123,8 +133,11 @@ class PassByValueAnalyzer {
    * exists to spare -- a wrong answer produced by call ORDER, not by the
    * program. A caller that already holds the symbols passes them instead.
    */
-  private static nameIsValueSymbol(name: string): boolean {
-    const symbols = CodeGenState.symbolTable?.getOverloadsByCName(name) ?? [];
+  private static nameIsValueSymbol(
+    name: string,
+    symbolTable: SymbolTable,
+  ): boolean {
+    const symbols = symbolTable.getOverloadsByCName(name);
     return symbols.some((symbol) => symbol.kind === "variable");
   }
 
@@ -139,10 +152,12 @@ class PassByValueAnalyzer {
    * assumption that it mutates.
    */
   private static calleeMayMutateParameter(
+    collect: IModificationCollector,
     callerName: string,
     callee: string,
     paramIndex: number,
     isValueSymbol: (name: string) => boolean,
+    symbolTable: SymbolTable,
   ): boolean {
     // ADR-029: an indirect call invokes a *value* -- a callback parameter, a
     // scope field, a struct field -- not a function name. Nothing will ever
@@ -152,6 +167,7 @@ class PassByValueAnalyzer {
     // target is tracked separately.
     if (
       PassByValueAnalyzer.calleeIsIndirectCall(
+        collect,
         callerName,
         callee,
         isValueSymbol,
@@ -160,7 +176,7 @@ class PassByValueAnalyzer {
       return false;
     }
 
-    const symbols = CodeGenState.symbolTable?.getOverloadsByCName(callee) ?? [];
+    const symbols = symbolTable.getOverloadsByCName(callee);
     let sawCandidate = false;
 
     // Fold across every overload rather than answering from the first one.
@@ -194,6 +210,7 @@ class PassByValueAnalyzer {
           parameter.type ?? "",
           parameter.isArray ?? false,
           parameter.isConst ?? false,
+          symbolTable,
         )
       ) {
         return true;
@@ -218,10 +235,11 @@ class PassByValueAnalyzer {
     type: string,
     isArray: boolean,
     isConst: boolean,
+    symbolTable: SymbolTable,
   ): boolean {
     if (isConst) return false;
     if (isArray) return true;
-    return PassByValueAnalyzer.typeIsIndirect(type);
+    return PassByValueAnalyzer.typeIsIndirect(type, symbolTable);
   }
 
   /**
@@ -230,7 +248,10 @@ class PassByValueAnalyzer {
    * *spi_device_handle_t`), so the alias chain is followed rather than the
    * spelling pattern-matched. Bounded so a self-referential chain cannot spin.
    */
-  private static typeIsIndirect(type: string): boolean {
+  private static typeIsIndirect(
+    type: string,
+    symbolTable: SymbolTable,
+  ): boolean {
     let current = type;
     const seen = new Set<string>();
     for (let hop = 0; hop < 8; hop++) {
@@ -246,7 +267,7 @@ class PassByValueAnalyzer {
       // on it; they are aligned so the three exits do not read as disagreeing.
       if (!bare || seen.has(bare)) return true;
       seen.add(bare);
-      const alias = PassByValueAnalyzer.resolveTypedefTarget(bare);
+      const alias = PassByValueAnalyzer.resolveTypedefTarget(bare, symbolTable);
       // Deliberate exception: an alias this build never parsed (uint8_t,
       // size_t) is treated as a plain value. Calling it indirection would
       // reintroduce exactly the #957/#995 false positives measured for #1178.
@@ -263,8 +284,11 @@ class PassByValueAnalyzer {
    * The underlying type of a C/C++ typedef, or null when the name is not a
    * typedef this build has seen.
    */
-  private static resolveTypedefTarget(name: string): string | null {
-    const symbols = CodeGenState.symbolTable?.getOverloadsByCName(name) ?? [];
+  private static resolveTypedefTarget(
+    name: string,
+    symbolTable: SymbolTable,
+  ): string | null {
+    const symbols = symbolTable.getOverloadsByCName(name);
     for (const symbol of symbols) {
       if (symbol.kind !== "type") continue;
       const aliased = (symbol as { type?: string }).type;
@@ -283,6 +307,7 @@ class PassByValueAnalyzer {
    * tree to derive the whole-program facts (#1511).
    */
   static collectFunctionParametersAndModifications(
+    collect: IModificationCollector,
     tree: Parser.ProgramContext,
   ): void {
     for (const decl of tree.declaration()) {
@@ -291,8 +316,8 @@ class PassByValueAnalyzer {
         const scopeDecl = decl.scopeDeclaration()!;
         // #1298: the whole scope PATH, so qualification keeps every outer
         // component.
-        const scopePath = ScopeUtils.pathOf(
-          SymbolRegistry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
+        const scopePath = collect.registry.scopePathOf(
+          scopeDecl.IDENTIFIER().getText(),
         );
 
         for (const member of scopeDecl.scopeMember()) {
@@ -301,6 +326,7 @@ class PassByValueAnalyzer {
             const funcName = funcDecl.IDENTIFIER().getText();
             const fullName = ScopeUtils.qualifyInScope(funcName, scopePath);
             PassByValueAnalyzer.analyzeFunctionForModifications(
+              collect,
               fullName,
               funcDecl,
             );
@@ -312,7 +338,11 @@ class PassByValueAnalyzer {
       if (decl.functionDeclaration()) {
         const funcDecl = decl.functionDeclaration()!;
         const name = funcDecl.IDENTIFIER().getText();
-        PassByValueAnalyzer.analyzeFunctionForModifications(name, funcDecl);
+        PassByValueAnalyzer.analyzeFunctionForModifications(
+          collect,
+          name,
+          funcDecl,
+        );
       }
     }
   }
@@ -321,6 +351,7 @@ class PassByValueAnalyzer {
    * Analyze a single function for parameter modifications and call graph edges.
    */
   private static analyzeFunctionForModifications(
+    collect: IModificationCollector,
     funcName: string,
     funcDecl: Parser.FunctionDeclarationContext,
   ): void {
@@ -332,16 +363,17 @@ class PassByValueAnalyzer {
         paramNames.push(param.IDENTIFIER().getText());
       }
     }
-    CodeGenState.functionParamLists.set(funcName, paramNames);
+    collect.functionParamLists.set(funcName, paramNames);
 
     // Initialize modified set
-    CodeGenState.modifiedParameters.set(funcName, new Set());
-    CodeGenState.functionCallGraph.set(funcName, []);
+    collect.modifiedParameters.set(funcName, new Set());
+    collect.functionCallGraph.set(funcName, []);
 
     // Walk the function body to find modifications and calls
     const block = funcDecl.block();
     if (block) {
       PassByValueAnalyzer.walkBlockForModifications(
+        collect,
         funcName,
         paramNames,
         block,
@@ -353,6 +385,7 @@ class PassByValueAnalyzer {
    * Walk a block to find parameter modifications and function calls.
    */
   private static walkBlockForModifications(
+    collect: IModificationCollector,
     funcName: string,
     paramNames: string[],
     block: Parser.BlockContext,
@@ -361,6 +394,7 @@ class PassByValueAnalyzer {
 
     for (const stmt of block.statement()) {
       PassByValueAnalyzer.walkStatementForModifications(
+        collect,
         funcName,
         paramSet,
         stmt,
@@ -373,6 +407,7 @@ class PassByValueAnalyzer {
    * Issue #566: Refactored to use helper methods for expression and child collection.
    */
   private static walkStatementForModifications(
+    collect: IModificationCollector,
     funcName: string,
     paramSet: Set<string>,
     stmt: Parser.StatementContext,
@@ -380,6 +415,7 @@ class PassByValueAnalyzer {
     // 1. Check for parameter modifications via assignment targets
     if (stmt.assignmentStatement()) {
       PassByValueAnalyzer.trackAssignmentModifications(
+        collect,
         funcName,
         paramSet,
         stmt,
@@ -388,13 +424,19 @@ class PassByValueAnalyzer {
 
     // 2. Walk all expressions in this statement for function calls
     for (const expr of StatementExpressionCollector.collectAll(stmt)) {
-      PassByValueAnalyzer.walkExpressionForCalls(funcName, paramSet, expr);
+      PassByValueAnalyzer.walkExpressionForCalls(
+        collect,
+        funcName,
+        paramSet,
+        expr,
+      );
     }
 
     // 3. Recurse into child statements and blocks
     const { statements, blocks } = ChildStatementCollector.collectAll(stmt);
     for (const childStmt of statements) {
       PassByValueAnalyzer.walkStatementForModifications(
+        collect,
         funcName,
         paramSet,
         childStmt,
@@ -402,6 +444,7 @@ class PassByValueAnalyzer {
     }
     for (const block of blocks) {
       PassByValueAnalyzer.walkBlockForModifications(
+        collect,
         funcName,
         [...paramSet],
         block,
@@ -414,6 +457,7 @@ class PassByValueAnalyzer {
    * SonarCloud S3776: Extracted from walkStatementForModifications().
    */
   private static trackAssignmentModifications(
+    collect: IModificationCollector,
     funcName: string,
     paramSet: Set<string>,
     stmt: Parser.StatementContext,
@@ -427,7 +471,7 @@ class PassByValueAnalyzer {
     // writes like `x[i] <- value` / `x[4] <- true` — both change x's value,
     // so x must pass by pointer for the caller to observe the change)
     if (baseIdentifier && paramSet.has(baseIdentifier)) {
-      CodeGenState.modifiedParameters.get(funcName)!.add(baseIdentifier);
+      collect.modifiedParameters.get(funcName)!.add(baseIdentifier);
     }
   }
 
@@ -436,6 +480,7 @@ class PassByValueAnalyzer {
    * Uses recursive descent through the expression hierarchy.
    */
   private static walkExpressionForCalls(
+    collect: IModificationCollector,
     funcName: string,
     paramSet: Set<string>,
     expr: Parser.ExpressionContext,
@@ -446,6 +491,7 @@ class PassByValueAnalyzer {
       // Walk all orExpression children
       for (const orExpr of ternary.orExpression()) {
         PassByValueAnalyzer.walkOrExpressionForCalls(
+          collect,
           funcName,
           paramSet,
           orExpr,
@@ -469,23 +515,29 @@ class PassByValueAnalyzer {
    * Walk an orExpression tree for function calls.
    */
   private static walkOrExpressionForCalls(
+    collect: IModificationCollector,
     funcName: string,
     paramSet: Set<string>,
     orExpr: Parser.OrExpressionContext,
   ): void {
-    PassByValueAnalyzer.walkOrExpression(orExpr, (unaryExpr) => {
-      PassByValueAnalyzer.walkUnaryExpressionForCalls(
-        funcName,
-        paramSet,
-        unaryExpr,
-      );
-    });
+    PassByValueAnalyzer.walkOrExpression(
+      orExpr,
+      (unaryExpr: Parser.UnaryExpressionContext) => {
+        PassByValueAnalyzer.walkUnaryExpressionForCalls(
+          collect,
+          funcName,
+          paramSet,
+          unaryExpr,
+        );
+      },
+    );
   }
 
   /**
    * Walk a unaryExpression tree for function calls.
    */
   private static walkUnaryExpressionForCalls(
+    collect: IModificationCollector,
     funcName: string,
     paramSet: Set<string>,
     unaryExpr: Parser.UnaryExpressionContext,
@@ -493,6 +545,7 @@ class PassByValueAnalyzer {
     // Recurse into nested unary
     if (unaryExpr.unaryExpression()) {
       PassByValueAnalyzer.walkUnaryExpressionForCalls(
+        collect,
         funcName,
         paramSet,
         unaryExpr.unaryExpression()!,
@@ -504,6 +557,7 @@ class PassByValueAnalyzer {
     const postfix = unaryExpr.postfixExpression();
     if (postfix) {
       PassByValueAnalyzer.walkPostfixExpressionForCalls(
+        collect,
         funcName,
         paramSet,
         postfix,
@@ -516,6 +570,7 @@ class PassByValueAnalyzer {
    * This is where function calls are found: primaryExpr followed by '(' args ')'
    */
   private static walkPostfixExpressionForCalls(
+    collect: IModificationCollector,
     funcName: string,
     paramSet: Set<string>,
     postfix: Parser.PostfixExpressionContext,
@@ -525,6 +580,7 @@ class PassByValueAnalyzer {
 
     // Handle simple function calls: IDENTIFIER followed by '(' ... ')'
     PassByValueAnalyzer.handleSimpleFunctionCall(
+      collect,
       funcName,
       paramSet,
       primary,
@@ -533,6 +589,7 @@ class PassByValueAnalyzer {
 
     // Issue #365: Handle scope-qualified calls: Scope.method(...) or global.Scope.method(...)
     PassByValueAnalyzer.handleScopeQualifiedCalls(
+      collect,
       funcName,
       paramSet,
       primary,
@@ -542,6 +599,7 @@ class PassByValueAnalyzer {
     // Recurse into primary expression if it's a parenthesized expression
     if (primary.expression()) {
       PassByValueAnalyzer.walkExpressionForCalls(
+        collect,
         funcName,
         paramSet,
         primary.expression()!,
@@ -555,6 +613,7 @@ class PassByValueAnalyzer {
     const cast = primary.castExpression();
     if (cast?.unaryExpression()) {
       PassByValueAnalyzer.walkUnaryExpressionForCalls(
+        collect,
         funcName,
         paramSet,
         cast.unaryExpression()!,
@@ -563,6 +622,7 @@ class PassByValueAnalyzer {
 
     // Walk arguments in any postfix function call ops (for nested calls)
     PassByValueAnalyzer.walkPostfixOpsRecursively(
+      collect,
       funcName,
       paramSet,
       postfixOps,
@@ -574,6 +634,7 @@ class PassByValueAnalyzer {
    * Issue #797: Resolve bare function names to scope-qualified names when inside a scope.
    */
   private static handleSimpleFunctionCall(
+    collect: IModificationCollector,
     funcName: string,
     paramSet: Set<string>,
     primary: Parser.PrimaryExpressionContext,
@@ -586,10 +647,12 @@ class PassByValueAnalyzer {
 
     const bareCalleeName = primary.IDENTIFIER()!.getText();
     const resolvedCalleeName = PassByValueAnalyzer.resolveCalleeNameInScope(
+      collect,
       funcName,
       bareCalleeName,
     );
     PassByValueAnalyzer.recordCallsFromArgList(
+      collect,
       funcName,
       paramSet,
       resolvedCalleeName,
@@ -604,14 +667,16 @@ class PassByValueAnalyzer {
    * Uses SymbolRegistry for proper scope-aware resolution instead of string parsing.
    */
   private static resolveCalleeNameInScope(
+    collect: IModificationCollector,
     callerFuncName: string,
     bareCalleeName: string,
   ): string {
     // Try to resolve using SymbolRegistry (new type system)
-    const callerScope = SymbolRegistry.getScopeByCFunctionName(callerFuncName);
+    const callerScope =
+      collect.registry.getScopeByCFunctionName(callerFuncName);
     if (callerScope) {
-      // Use SymbolRegistry.resolveFunction to find the callee in scope chain
-      const callee = SymbolRegistry.resolveFunction(
+      // Use registry.resolveFunction to find the callee in scope chain
+      const callee = collect.registry.resolveFunction(
         bareCalleeName,
         callerScope,
       );
@@ -637,7 +702,7 @@ class PassByValueAnalyzer {
     );
     const qualifiedName = scopePrefix + bareCalleeName;
 
-    if (CodeGenState.functionParamLists.has(qualifiedName)) {
+    if (collect.functionParamLists.has(qualifiedName)) {
       return qualifiedName;
     }
 
@@ -649,6 +714,7 @@ class PassByValueAnalyzer {
    * Track member accesses to build the transpiled C name (e.g., Storage_load)
    */
   private static handleScopeQualifiedCalls(
+    collect: IModificationCollector,
     funcName: string,
     paramSet: Set<string>,
     primary: Parser.PrimaryExpressionContext,
@@ -677,6 +743,7 @@ class PassByValueAnalyzer {
         if (opIndex > 0 && memberNames.length >= 1) {
           const calleeName = QualifiedCName.fromParts(memberNames);
           PassByValueAnalyzer.recordCallsFromArgList(
+            collect,
             funcName,
             paramSet,
             calleeName,
@@ -717,6 +784,7 @@ class PassByValueAnalyzer {
    * Also recurses into argument expressions.
    */
   private static recordCallsFromArgList(
+    collect: IModificationCollector,
     funcName: string,
     paramSet: Set<string>,
     calleeName: string,
@@ -730,13 +798,18 @@ class PassByValueAnalyzer {
       const arg = args[i];
       const argName = ExpressionUtils.extractIdentifier(arg);
       if (argName && paramSet.has(argName)) {
-        CodeGenState.functionCallGraph.get(funcName)!.push({
+        collect.functionCallGraph.get(funcName)!.push({
           callee: calleeName,
           paramIndex: i,
           argParamName: argName,
         });
       }
-      PassByValueAnalyzer.walkExpressionForCalls(funcName, paramSet, arg);
+      PassByValueAnalyzer.walkExpressionForCalls(
+        collect,
+        funcName,
+        paramSet,
+        arg,
+      );
     }
   }
 
@@ -744,6 +817,7 @@ class PassByValueAnalyzer {
    * Walk postfix ops recursively for nested calls and array subscripts.
    */
   private static walkPostfixOpsRecursively(
+    collect: IModificationCollector,
     funcName: string,
     paramSet: Set<string>,
     postfixOps: Parser.PostfixOpContext[],
@@ -752,6 +826,7 @@ class PassByValueAnalyzer {
       if (op.argumentList()) {
         for (const argExpr of op.argumentList()!.expression()) {
           PassByValueAnalyzer.walkExpressionForCalls(
+            collect,
             funcName,
             paramSet,
             argExpr,
@@ -759,7 +834,12 @@ class PassByValueAnalyzer {
         }
       }
       for (const expr of op.expression()) {
-        PassByValueAnalyzer.walkExpressionForCalls(funcName, paramSet, expr);
+        PassByValueAnalyzer.walkExpressionForCalls(
+          collect,
+          funcName,
+          paramSet,
+          expr,
+        );
       }
     }
   }
@@ -771,13 +851,14 @@ class PassByValueAnalyzer {
   static isParameterPassByValueByName(
     funcName: string,
     paramName: string,
+    state: TranspileState,
   ): boolean {
     // #1511: read, not recomputed. This used to consult a map that
     // `analyze(tree)` rebuilt PER FILE -- clearing it first, so the whole-program
     // answer was discarded and re-derived from one file plus whatever had been
     // injected. Eligibility depends on whether anything downstream modifies the
     // parameter, which is a property of the call chain and not of a file.
-    const passByValue = CodeGenState.program?.passByValueParams().get(funcName);
+    const passByValue = state.program?.passByValueParams().get(funcName);
     return passByValue?.has(paramName) ?? false;
   }
 
@@ -785,8 +866,14 @@ class PassByValueAnalyzer {
    * Issue #269: Check if a parameter should be passed by value (by index).
    * Part of IOrchestrator interface - used by CallExprGenerator.
    */
-  static isParameterPassByValue(funcName: string, paramIndex: number): boolean {
-    const paramList = CodeGenState.functionParamLists.get(funcName);
+  static isParameterPassByValue(
+    funcName: string,
+    paramIndex: number,
+    state: TranspileState,
+  ): boolean {
+    // #1452: a RENDER-time read, so it asks the artifact. The collector is
+    // 2.2's scratch and does not exist by the time 2.3 calls this.
+    const paramList = state.program?.functionParamLists().get(funcName);
     if (!paramList || paramIndex < 0 || paramIndex >= paramList.length) {
       return false;
     }
@@ -794,6 +881,7 @@ class PassByValueAnalyzer {
     return PassByValueAnalyzer.isParameterPassByValueByName(
       funcName,
       paramName,
+      state,
     );
   }
 }

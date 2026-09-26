@@ -8,9 +8,10 @@ import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import CNextResolver from "../../../PARSE/3-Declare/cnext/index";
 import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
-import SymbolRegistry from "../../../transpiler/state/SymbolRegistry";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
+import TranspileState from "../../TranspileState";
 import ReturnValueUseAnalyzer from "../ReturnValueUseAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 function parse(source: string) {
   const charStream = CharStream.fromString(source);
@@ -26,19 +27,27 @@ function parse(source: string) {
  */
 function analyze(source: string) {
   const tree = parse(source);
-  CodeGenState.symbols = TSymbolInfoAdapter.convert(
-    CNextResolver.resolve(tree, "test.cnx").symbols,
+  state.symbols = TSymbolInfoAdapter.convert(
+    CNextResolver.resolve(tree, "test.cnx", registry).symbols,
   );
-  return ReturnValueUseAnalyzer.analyze(tree);
+  return ReturnValueUseAnalyzer.analyze(
+    tree,
+    state.symbolTable,
+    testAnalysisContext(state),
+  );
 }
 
-describe("ReturnValueUseAnalyzer", () => {
-  beforeEach(() => {
-    SymbolRegistry.reset();
-  });
+let registry = new SymbolRegistry();
 
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
+
+let state = new TranspileState();
+
+describe("ReturnValueUseAnalyzer", () => {
   afterEach(() => {
-    CodeGenState.reset();
+    state = new TranspileState();
   });
 
   describe("flags a discarded non-void return (E0708)", () => {

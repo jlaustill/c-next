@@ -25,8 +25,8 @@ import IPlannedScope from "../../../types/IPlannedScope";
 import TPlannedScopeMember from "../../../types/TPlannedScopeMember";
 import TPlannedScopeVariable from "../../../types/TPlannedScopeVariable";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
-import AdrProvenance from "../../../../../../transpiler/state/AdrProvenance";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import AdrProvenance from "../../../../../../instrumentation/AdrProvenance";
+import TranspileState from "../../../../../TranspileState";
 
 /**
  * A stub that answers only what it was given and throws for anything else, so
@@ -72,6 +72,7 @@ function createMockOrchestrator(options?: {
   isTypedefStruct?: boolean;
 }): IOrchestrator {
   return strictStub<IOrchestrator>({
+    state,
     setCurrentScope: vi.fn(),
     getCallbackTypedefName: vi.fn(() => options?.callbackTypedef ?? null),
     isOpaqueType: vi.fn(() => options?.isOpaque ?? false),
@@ -132,7 +133,13 @@ function declarationsOf(code: string): string[] {
   return code.split("\n").filter((line) => line.trim() !== "");
 }
 
+let state = new TranspileState();
+
 describe("ScopeGenerator", () => {
+  beforeEach(() => {
+    state = new TranspileState();
+  });
+
   beforeEach(() => {
     AdrProvenance.reset();
     // `record` silently ignores a call with no current file, so the provenance
@@ -585,7 +592,7 @@ describe("ScopeGenerator", () => {
 
   describe("type definitions (#1300)", () => {
     it("emits each planned definition through its kind's emitter, in plan order", () => {
-      const symbolTable = CodeGenState.symbolTable;
+      const symbolTable = state.symbolTable;
       const result = generateScope(
         scope({
           typeDefinitions: [
@@ -603,8 +610,8 @@ describe("ScopeGenerator", () => {
       expect(enumAt).toBeGreaterThan(-1);
       expect(structAt).toBeGreaterThan(-1);
       expect(enumAt).toBeLessThan(structAt);
-      // The generator reads the table off CodeGenState rather than the plan.
-      expect(CodeGenState.symbolTable).toBe(symbolTable);
+      // The generator reads the table off TranspileState rather than the plan.
+      expect(state.symbolTable).toBe(symbolTable);
     });
   });
 

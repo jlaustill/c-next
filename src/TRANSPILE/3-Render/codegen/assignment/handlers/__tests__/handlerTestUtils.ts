@@ -5,35 +5,34 @@
 
 import { vi } from "vitest";
 import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
-import SymbolTable from "../../../../../../transpiler/state/SymbolTable";
+import TranspileState from "../../../../../TranspileState";
+import SymbolTable from "../../../../../../PARSE/3-Declare/SymbolTable";
 import type ICodeGenApi from "../../../../../../transpiler/types/ICodeGenApi";
 import type ICodeGenSymbols from "../../../../../../transpiler/types/ICodeGenSymbols";
 import type TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
 
 /**
- * Set up mock symbols on CodeGenState.
+ * Set up mock symbols on state.
  * Provides comprehensive defaults that can be overridden.
  * Issue #831: Also registers struct fields in SymbolTable for single source of truth.
  */
-function setupMockSymbols(overrides: Partial<ICodeGenSymbols> = {}): void {
-  CodeGenState.symbols = {
+function setupMockSymbols(
+  state: TranspileState,
+  overrides: Partial<ICodeGenSymbols> = {},
+): void {
+  state.symbols = {
     ...createMockSymbols(),
     ...overrides,
   };
 
   // Also register struct fields in SymbolTable (single source of truth)
   if (overrides.structFields) {
-    if (!CodeGenState.symbolTable) {
-      CodeGenState.symbolTable = new SymbolTable();
+    if (!state.symbolTable) {
+      state.symbolTable = new SymbolTable();
     }
     for (const [structName, fields] of overrides.structFields) {
       for (const [fieldName, fieldType] of fields) {
-        CodeGenState.symbolTable.addStructField(
-          structName,
-          fieldName,
-          fieldType,
-        );
+        state.symbolTable.addStructField(structName, fieldName, fieldType);
       }
     }
   }
@@ -62,7 +61,7 @@ interface ITestPlanner {
  * The mock the current test installed, reached DIRECTLY.
  *
  * #1652: the helpers used to route back through
- * `CodeGenState.requireGenerator()`, which is what kept the four members alive
+ * `state.requireGenerator()`, which is what kept the four members alive
  * on the production interface. A test holding its own mock needs no production
  * contract to hand it back.
  */
@@ -70,17 +69,25 @@ let installed: (ICodeGenApi & ITestPlanner) | null = null;
 
 function planner(): ITestPlanner {
   if (!installed) {
-    throw new Error("call HandlerTestUtils.setupMockGenerator() first");
+    throw new Error("call HandlerTestUtils.setupMockGenerator(state) first");
   }
   return installed;
 }
 
 /**
- * Set up mock generator on CodeGenState.
+ * Set up mock generator on state.
  * Common generator methods are pre-mocked with sensible defaults.
  */
-function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
+function setupMockGenerator(
+  state: TranspileState,
+  overrides: Record<string, unknown> = {},
+): void {
   installed = {
+    // No `state` member: #1452 put one on `ICodeGenApi` and nothing read it, so
+    // it was deleted (it also closed an import cycle). A handler reaches the
+    // state through `IAssignmentContext.state`. Installing it here anyway would
+    // be a mock of a member the interface does not have, kept alive by the
+    // `as unknown as` cast below.
     generateAssignmentTarget: vi.fn().mockReturnValue("target"),
     generateExpression: vi
       .fn()
@@ -98,7 +105,7 @@ function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
   } as unknown as ICodeGenApi & ITestPlanner;
 
   // Only the members production actually reaches through this door.
-  CodeGenState.generator = installed;
+  state.generator = installed;
 }
 
 /**
@@ -156,15 +163,16 @@ function createTypeInfo(overrides: Partial<TTypeInfo> = {}): TTypeInfo {
 }
 
 /**
- * Set up CodeGenState type registry with typed entries.
+ * Set up TranspileState type registry with typed entries.
  * Entries only need to specify the fields relevant to the test.
  * Uses setVariableTypeInfo to properly populate the registry.
  */
 function setupMockTypeRegistry(
+  state: TranspileState,
   entries: Array<[string, Partial<TTypeInfo>]>,
 ): void {
   for (const [name, partial] of entries) {
-    CodeGenState.setVariableTypeInfo(name, createTypeInfo(partial));
+    state.setVariableTypeInfo(name, createTypeInfo(partial));
   }
 }
 

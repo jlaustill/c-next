@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import TranspileState from "../../TranspileState";
 import ArrayIndexBoundsAnalyzer from "../ArrayIndexBoundsAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-036's constant index bounds (E0854), replacing
@@ -15,13 +16,13 @@ import ArrayIndexBoundsAnalyzer from "../ArrayIndexBoundsAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new ArrayIndexBoundsAnalyzer().analyze(tree);
+  return new ArrayIndexBoundsAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 const structs = (
   fields: Record<string, Record<string, [string, number[]]>>,
 ) => {
-  CodeGenState.symbols = {
+  state.symbols = {
     knownStructs: new Set(Object.keys(fields)),
     structFields: new Map(
       Object.entries(fields).map(([name, f]) => [
@@ -41,12 +42,14 @@ const structs = (
     knownBitmaps: new Set<string>(),
     functionReturnTypes: new Map(),
     scopeMembers: new Map(),
-  } as unknown as typeof CodeGenState.symbols;
+  } as unknown as typeof state.symbols;
 };
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new TranspileState();
 });
+
+let state = new TranspileState();
 
 describe("ArrayIndexBoundsAnalyzer (E0854)", () => {
   it("rejects an index at the dimension, on a write and on a read, at the subscript", () => {

@@ -24,7 +24,6 @@
  */
 
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
 import IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../utils/QualifiedCName";
@@ -32,6 +31,7 @@ import ScopeUtils from "../../../utils/ScopeUtils";
 import TypeText from "./TypeText";
 import CalleeNameResolver from "./CalleeNameResolver";
 import ScopeCandidates from "./ScopeCandidates";
+import type IAnalysisContext from "../types/IAnalysisContext";
 
 class FunctionReference {
   /**
@@ -84,11 +84,12 @@ class FunctionReference {
   static ofCall(
     postfix: Parser.PostfixExpressionContext,
     scopePath: string,
+    context: IAnalysisContext,
   ): IFunctionSymbol | null {
     const resolved = CalleeNameResolver.resolveDetailed(
       postfix,
       scopePath,
-      (name) => CodeGenState.isKnownScope(name),
+      (name) => context.symbols.knownScopes.has(name),
     );
     if (resolved === null) return null;
     return FunctionReference.lookup(
@@ -97,6 +98,7 @@ class FunctionReference {
         scopePath,
         resolved.isGlobalCall,
       ),
+      context,
     );
   }
 
@@ -108,6 +110,7 @@ class FunctionReference {
   static ofValue(
     expression: Parser.ExpressionContext,
     scopePath: string,
+    context: IAnalysisContext,
   ): IFunctionSymbol | null {
     const postfix = ExpressionUnwrapper.getPostfixExpression(expression);
     if (postfix === null) return null;
@@ -121,7 +124,7 @@ class FunctionReference {
         name,
         op,
         scopePath,
-        (name) => CodeGenState.isKnownScope(name),
+        (name) => context.symbols.knownScopes.has(name),
       );
       if (next === null) return null;
       name = next;
@@ -129,6 +132,7 @@ class FunctionReference {
     if (name === "this" || name === "global") return null;
     return FunctionReference.lookup(
       FunctionReference.candidates(name, scopePath, base === "global"),
+      context,
     );
   }
 
@@ -136,9 +140,11 @@ class FunctionReference {
   static ofTypeText(
     typeText: string,
     scopePath: string,
+    context: IAnalysisContext,
   ): IFunctionSymbol | null {
     return FunctionReference.lookup(
       FunctionReference.candidatesForTypeText(typeText, scopePath),
+      context,
     );
   }
 
@@ -147,9 +153,11 @@ class FunctionReference {
     return ScopeUtils.getTranspiledCName(symbol);
   }
 
-  private static lookup(candidates: readonly string[]): IFunctionSymbol | null {
-    const program = CodeGenState.program;
-    if (!program) return null;
+  private static lookup(
+    candidates: readonly string[],
+    context: IAnalysisContext,
+  ): IFunctionSymbol | null {
+    const program = context.program;
     for (const cName of candidates) {
       const symbol = program.symbolByCName(cName);
       if (symbol?.kind === "function") return symbol;

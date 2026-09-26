@@ -3,11 +3,11 @@
  * Static class using CodeGenState for all state access.
  * Issue #63: Validation logic separated for independent testing
  */
-import CodeGenState from "../../../transpiler/state/CodeGenState";
-import AdrProvenance from "../../../transpiler/state/AdrProvenance";
+import AdrProvenance from "../../../instrumentation/AdrProvenance";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
 import QualifiedCName from "../../../utils/QualifiedCName";
 import QualifiedNameGenerator from "../../../utils/QualifiedNameGenerator";
+import type TranspileState from "../../TranspileState";
 
 /**
  * TypeValidator class - validates types, assignments, and control flow at compile time.
@@ -78,13 +78,14 @@ class TypeValidator {
     identifier: string,
     isLocalVariable: boolean,
     isKnownStruct: (name: string) => boolean,
+    state: TranspileState,
     line?: number,
   ): string | null {
     if (isLocalVariable) {
       // ADR-057: a local normally emits under its own name (null = "leave it
       // alone"). One that shadows a file-scope symbol was given a distinct C
       // identifier at its declaration, and every reference must follow it.
-      const emitted = CodeGenState.emittedLocalName(identifier);
+      const emitted = state.emittedLocalName(identifier);
       if (emitted === identifier) {
         return null;
       }
@@ -94,12 +95,13 @@ class TypeValidator {
       return emitted;
     }
 
-    const currentScopePath = CodeGenState.currentScopePath;
+    const currentScopePath = state.currentScopePath;
 
     if (currentScopePath) {
       const scopeResolved = TypeValidator._resolveScopeMember(
         identifier,
         currentScopePath,
+        state,
       );
       if (scopeResolved) {
         AdrProvenance.record("057", line);
@@ -112,6 +114,7 @@ class TypeValidator {
         identifier,
         currentScopePath,
         isKnownStruct,
+        state,
       )
     ) {
       return currentScopePath ? identifier : null;
@@ -123,9 +126,10 @@ class TypeValidator {
   private static _resolveScopeMember(
     identifier: string,
     currentScopePath: string,
+    state: TranspileState,
   ): string | null {
     // #1295: getScopeMembers is keyed by the scope's dotted source path.
-    const scopeMembers = CodeGenState.getScopeMembers(currentScopePath);
+    const scopeMembers = state.getScopeMembers(currentScopePath);
     if (scopeMembers?.has(identifier)) {
       return QualifiedNameGenerator.forMember(currentScopePath, identifier);
     }
@@ -134,7 +138,7 @@ class TypeValidator {
       currentScopePath,
       identifier,
     );
-    if (CodeGenState.knownFunctions.has(scopedFuncName)) {
+    if (state.knownFunctions.has(scopedFuncName)) {
       return scopedFuncName;
     }
 
@@ -145,14 +149,15 @@ class TypeValidator {
     identifier: string,
     currentScopePath: string,
     isKnownStruct: (name: string) => boolean,
+    state: TranspileState,
   ): boolean {
-    const typeInfo = CodeGenState.getVariableTypeInfo(identifier);
+    const typeInfo = state.getVariableTypeInfo(identifier);
     if (typeInfo && !QualifiedCName.isQualified(identifier)) {
       return true;
     }
 
     if (
-      CodeGenState.knownFunctions.has(identifier) &&
+      state.knownFunctions.has(identifier) &&
       // #1295: pass the PATH, not its leaf. `isInScope` needs no help encoding
       // it -- `prefixFor` runs the path through `toParts`, which splits on the
       // source separator, so `Outer.Inner` becomes the prefix `Outer__Inner__`
@@ -173,14 +178,17 @@ class TypeValidator {
     }
 
     return (
-      CodeGenState.symbols!.knownEnums.has(identifier) ||
+      state.symbols!.knownEnums.has(identifier) ||
       isKnownStruct(identifier) ||
-      CodeGenState.symbols!.knownRegisters.has(identifier)
+      state.symbols!.knownRegisters.has(identifier)
     );
   }
 
-  static resolveForMemberAccess(identifier: string): string | null {
-    if (CodeGenState.symbols!.knownScopes.has(identifier)) {
+  static resolveForMemberAccess(
+    identifier: string,
+    state: TranspileState,
+  ): string | null {
+    if (state.symbols!.knownScopes.has(identifier)) {
       return identifier;
     }
     return null;

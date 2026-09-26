@@ -1,3 +1,5 @@
+import type IFunctionSymbol from "./symbols/IFunctionSymbol";
+import type IScopeSymbol from "./symbols/IScopeSymbol";
 import type TSymbol from "./symbols/TSymbol";
 import type IConflict from "./IConflict";
 import type ICallGraphEntry from "./ICallGraphEntry";
@@ -175,6 +177,51 @@ interface IProgram {
    * signatures on a partial answer (#1511).
    */
   callbackCompatibleFunctions(): ReadonlyMap<string, string>;
+
+  /**
+   * Issue #1467: where each `.cnx` include of `sourceFile` resolves to. Empty
+   * when the file was never reached through discovery -- a real answer, not a
+   * default.
+   */
+  cnxIncludeRewrites(sourceFile: string): ReadonlyMap<string, string>;
+
+  /**
+   * Issue #1322: the directories an angle include from `sourceFile` is searched
+   * along, in discovery's priority order. Empty when the file was never
+   * discovered, which is also a real answer: a rule that guessed a search path
+   * would report against directories the run does not use.
+   */
+  includeSearchPaths(sourceFile: string): readonly string[];
+
+  /**
+   * The run's scope graph, for the passes after 1.4 (#1452 box 3).
+   *
+   * 2.2 Plan does NOT read it here: `ModificationFacts.derive` runs before
+   * `Program.build`, so a fact needed to BUILD this artifact cannot be reached
+   * through it. It takes the registry directly for that reason.
+   */
+  scope(path: string): IScopeSymbol | null;
+
+  /**
+   * The full scope PATH for a scope named `name`, or `name` itself when none
+   * exists.
+   *
+   * This is the question 2.1 and 2.3 were asking through
+   * `ScopeUtils.pathOf(getOrCreateScope(name))` -- a name-to-path lookup where
+   * the create arm was never taken. Measured across 120 fixtures: those passes
+   * produced ZERO creations, and the probe fires from 1.3, so the zero is real.
+   * Stated once, with the fallback explicit, instead of four times.
+   */
+  scopePathOf(name: string): string;
+
+  /** The global scope for this run. */
+  globalScope(): IScopeSymbol;
+
+  /** Resolve `name` from `fromScope`, walking current -> parent -> global. */
+  resolveFunction(
+    name: string,
+    fromScope: IScopeSymbol,
+  ): IFunctionSymbol | null;
 }
 
 export default IProgram;

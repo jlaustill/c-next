@@ -1,5 +1,12 @@
 # Symbol views and their scopes
 
+> **Renamed (#1452).** `CodeGenState` below is the class now called `TranspileState`,
+> at `src/TRANSPILE/TranspileState.ts` — merged with `TranspilerState`, made an
+> instance owned by `CodeGenerator`, and moved out of the deleted
+> `src/transpiler/state/`. The measurements and the classification are unchanged;
+> only the name and the path are. Left as written rather than rewritten, because
+> this document records what was measured when it was measured.
+
 How C-Next's symbol and type facts are stored today, which of those stores are views of one
 fact set, whether they agree, and what to do about it.
 
@@ -332,7 +339,7 @@ That is exactly [#1433](https://github.com/jlaustill/c-next/issues/1433), where
 the general property, not a patch to one walk.
 
 **And one gate is shippable now, independent of any of this.** A rule forbidding
-`logic/analysis/` from reaching `state/CodeGenState.ts`, with `reachable: true`, reports **26
+`logic/analysis/` from reaching the state class (then `state/CodeGenState.ts`), with `reachable: true`, reports **26
 violations across 15 non-test source modules** on the current tree — several only transitively,
 so the reachability flag is doing real work. It fails on exactly the #1430 / #1432 case, needs
 no dependency and no type work, and is the precondition for phase-typing that boundary later:

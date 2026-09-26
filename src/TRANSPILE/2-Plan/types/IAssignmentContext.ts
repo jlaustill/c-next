@@ -5,14 +5,24 @@
  * code for an assignment. Built once by the context extractor, then used
  * by the classifier and handlers.
  */
-import type IBitAccessAnalysis from "./IBitAccessAnalysis";
-import type TPlannedTargetOp from "./TPlannedTargetOp";
-import TTypeInfo from "./TTypeInfo";
+import type IBitAccessAnalysis from "../../../transpiler/types/IBitAccessAnalysis";
+import type TPlannedTargetOp from "../../../transpiler/types/TPlannedTargetOp";
+import TTypeInfo from "../../../transpiler/types/TTypeInfo";
+import type TranspileState from "../../TranspileState";
 
 /**
  * Context extracted from assignment statement for classification.
  */
 interface IAssignmentContext {
+  /**
+   * 2.3 Render's per-file working state (#1452 box 4).
+   *
+   * Handlers are module-level functions that receive only this context, so it
+   * is their channel to the state -- the same role the orchestrator plays for
+   * the generators.
+   */
+  readonly state: TranspileState;
+
   // === The target, as renders rather than as a node ===
 
   /**

@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import TranspileState from "../../TranspileState";
 import BitmapAccessAnalyzer from "../BitmapAccessAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-034's three access rules: E0881 (a literal too wide for the
@@ -15,7 +16,7 @@ import BitmapAccessAnalyzer from "../BitmapAccessAnalyzer";
  * is reached.
  */
 const symbols = (overrides: Record<string, unknown>) => {
-  CodeGenState.symbols = {
+  state.symbols = {
     knownStructs: new Set<string>(),
     knownEnums: new Set<string>(),
     knownScopes: new Set<string>(),
@@ -31,7 +32,7 @@ const symbols = (overrides: Record<string, unknown>) => {
     registerMemberTypes: new Map(),
     functionReturnTypes: new Map(),
     ...overrides,
-  } as unknown as typeof CodeGenState.symbols;
+  } as unknown as typeof state.symbols;
 };
 
 const flags = () =>
@@ -47,12 +48,14 @@ const flags = () =>
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new BitmapAccessAnalyzer().analyze(tree);
+  return new BitmapAccessAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new TranspileState();
 });
+
+let state = new TranspileState();
 
 describe("BitmapAccessAnalyzer (E0881)", () => {
   it("rejects a value wider than the field, in every literal base", () => {

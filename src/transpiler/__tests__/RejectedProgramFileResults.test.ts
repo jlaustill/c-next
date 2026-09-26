@@ -3,8 +3,6 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
-import CodeGenState from "../state/CodeGenState";
-import SymbolRegistry from "../state/SymbolRegistry";
 
 /**
  * #1320: 2.1 Analyze decides "is this PROGRAM legal?" once, whole-program,
@@ -22,8 +20,6 @@ describe("a rejected program plans no file, including a clean one (#1320)", () =
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-rejected-program-"));
-    SymbolRegistry.reset();
-    CodeGenState.reset();
   });
 
   afterEach(() => {

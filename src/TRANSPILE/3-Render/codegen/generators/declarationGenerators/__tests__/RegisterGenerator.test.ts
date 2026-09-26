@@ -19,7 +19,8 @@
  * sharper test than routing it through a mock type map that had to be read
  * backwards to see what was being asserted.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
+import TranspileState from "../../../../../TranspileState";
 import registerGeneratorFor from "../RegisterGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
@@ -83,12 +84,19 @@ function createMockState(): IGeneratorState {
 }
 
 /**
- * The generator names the orchestrator and reads nothing from it now -- every
- * operand arrives planned -- so an empty object is the honest mock.
+ * #1452: the generator reads 2.3's per-file state off the orchestrator, to
+ * decide whether the accessor block belongs in the header or the `.c`. That is
+ * the only member it touches, so the mock carries it and nothing else.
  */
 function createMockOrchestrator(): IOrchestrator {
-  return {} as unknown as IOrchestrator;
+  return { state } as unknown as IOrchestrator;
 }
+
+let state = new TranspileState();
+
+beforeEach(() => {
+  state = new TranspileState();
+});
 
 /** Run the generator for one scope path. */
 function generate(scopePath: string, register: IPlannedRegister) {

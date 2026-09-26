@@ -9,6 +9,7 @@
  * name, so push order and grouped order produce the same report -- the move is
  * order-preserving rather than merely order-compatible.
  */
+import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 import { describe, it, expect, beforeEach } from "vitest";
 import ConflictDetector from "../ConflictDetector";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
@@ -19,6 +20,8 @@ import TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
 import TCppSymbol from "../../../transpiler/types/symbols/cpp/TCppSymbol";
 import TestSymbolUtils from "../../3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+
+const registry = new SymbolRegistry();
 
 describe("ConflictDetector", () => {
   let cnext: TSymbol[];
@@ -45,7 +48,7 @@ describe("ConflictDetector", () => {
    * `cnxScopedName` (`Lib.useIt`), not the bare name a caller asks about.
    */
   const hasConflict = (name: string): boolean =>
-    ConflictDetector.detect(cnext, c, cpp).some(
+    ConflictDetector.detect(registry, cnext, c, cpp).some(
       (conflict) =>
         conflict.symbolName === name ||
         conflict.definitions.some((definition) => definition.name === name),
@@ -381,7 +384,7 @@ describe("ConflictDetector", () => {
         });
       }
 
-      const conflicts = ConflictDetector.detect(cnext, c, cpp);
+      const conflicts = ConflictDetector.detect(registry, cnext, c, cpp);
 
       expect(conflicts).toHaveLength(1);
       // Not "tick" (no scope at all) and not "Inner.tick" (the leaf only, which

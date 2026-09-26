@@ -39,14 +39,14 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import BUILTIN_TYPE_NAMES from "../../transpiler/constants/BUILTIN_TYPE_NAMES";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import EnclosingScope from "./helpers/EnclosingScope";
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import IUndeclaredTypeError from "./types/IUndeclaredTypeError";
 import NameExistence from "../../PARSE/3-Declare/NameExistence";
-import SymbolTable from "../../transpiler/state/SymbolTable";
+import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 class UndeclaredTypeListener extends CNextListener {
   private readonly analyzer: UndeclaredTypeAnalyzer;
@@ -121,6 +121,14 @@ class UndeclaredTypeListener extends CNextListener {
 class UndeclaredTypeAnalyzer {
   private readonly errors: IUndeclaredTypeError[] = [];
 
+  /**
+   * #1456: what the program declares, handed in rather than read off
+   * `CodeGenState`. Constructor rather than a parameter on `analyze`, because
+   * `isVisibleType` and `isRegister` are called by the listener and need it
+   * too -- a parameter would have to reach them through the walk.
+   */
+  constructor(private readonly context: IAnalysisContext) {}
+
   analyze(tree: Parser.ProgramContext): IUndeclaredTypeError[] {
     this.errors.length = 0;
 
@@ -140,7 +148,7 @@ class UndeclaredTypeAnalyzer {
     // spelling of "is this a C-Next include?" (it missed `.cnext`) and stopped
     // at one hop -- so a macro reached through a `.cnx` include was REJECTED,
     // code that main compiles.
-    if (CodeGenState.currentFileReachesForeignHeader) {
+    if (this.context.reachesForeignHeader) {
       return this.errors;
     }
 
@@ -157,22 +165,13 @@ class UndeclaredTypeAnalyzer {
     typeName: string,
     scope: ReturnType<EnclosingScope["current"]>,
   ): boolean {
-    const symbols = CodeGenState.symbols;
-    if (!symbols) {
-      // Nothing to check against; stay silent rather than reject on no evidence.
-      // This is the ONLY answer to "no symbol view" in this class: `isRegister`
-      // runs only after this returned false, which cannot happen when `symbols`
-      // is null, so a second guard there would be unreachable AND would answer
-      // the opposite way.
-      return true;
-    }
-
     return UndeclaredTypeAnalyzer._eitherSpelling(
       typeName,
       scope,
-      symbols,
-      (name, fileSymbols, symbolTable) =>
-        NameExistence.isTypeName(name, fileSymbols, symbolTable),
+      this.context.symbols,
+      this.context.symbolTable,
+      (name, fileSymbols, table) =>
+        NameExistence.isTypeName(name, fileSymbols, table),
     );
   }
 
@@ -200,7 +199,8 @@ class UndeclaredTypeAnalyzer {
       scope,
       // Reached only after `isVisibleType` returned false, which requires a
       // symbol view -- see its guard.
-      CodeGenState.symbols!,
+      this.context.symbols,
+      this.context.symbolTable,
       (name, fileSymbols) => NameExistence.isRegisterName(name, fileSymbols),
     );
   }
@@ -219,14 +219,13 @@ class UndeclaredTypeAnalyzer {
     typeName: string,
     scope: ReturnType<EnclosingScope["current"]>,
     symbols: ICodeGenSymbols,
+    symbolTable: SymbolTable,
     test: (
       name: string,
       symbols: ICodeGenSymbols,
       symbolTable: SymbolTable,
     ) => boolean,
   ): boolean {
-    const symbolTable = CodeGenState.symbolTable;
-
     if (scope) {
       const qualified = ScopeUtils.qualifyInScope(typeName, scope);
       if (test(qualified, symbols, symbolTable)) {

@@ -9,10 +9,9 @@
  */
 import invariant from "../../../../../utils/invariant";
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
-import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
+import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 
 // #1322: `validateNotCompound` is gone -- E0857 in pass 2.1. It was defined
 // here AND in the sibling handler, verbatim: one rule, two copies, in a group
@@ -28,11 +27,11 @@ function handleIntegerBit(ctx: IAssignmentContext): string {
   // e.g., "ArrayBug_flags" instead of "flags"
   const name = ctx.resolvedBaseIdentifier;
   const bitIndex = ctx.renderSubscript(0);
-  const typeInfo = CodeGenState.getVariableTypeInfo(name);
+  const typeInfo = ctx.state.getVariableTypeInfo(name);
 
   // Check for float bit indexing
   if (typeInfo) {
-    const floatResult = CodeGenState.requireGenerator().generateFloatBitWrite(
+    const floatResult = ctx.state.requireGenerator().generateFloatBitWrite(
       name,
       typeInfo,
       bitIndex,
@@ -63,11 +62,11 @@ function handleIntegerBitRange(ctx: IAssignmentContext): string {
   const name = ctx.resolvedBaseIdentifier;
   const start = ctx.renderSubscript(0);
   const width = ctx.renderSubscript(1);
-  const typeInfo = CodeGenState.getVariableTypeInfo(name);
+  const typeInfo = ctx.state.getVariableTypeInfo(name);
 
   // Check for float bit indexing
   if (typeInfo) {
-    const floatResult = CodeGenState.requireGenerator().generateFloatBitWrite(
+    const floatResult = ctx.state.requireGenerator().generateFloatBitWrite(
       name,
       typeInfo,
       start,
@@ -96,7 +95,7 @@ function handleIntegerBitRange(ctx: IAssignmentContext): string {
 function handleArrayElementBit(ctx: IAssignmentContext): string {
   // Use resolvedBaseIdentifier for type lookup and code generation
   const arrayName = ctx.resolvedBaseIdentifier;
-  const typeInfo = CodeGenState.getVariableTypeInfo(arrayName);
+  const typeInfo = ctx.state.getVariableTypeInfo(arrayName);
 
   invariant(
     typeInfo?.arrayDimensions,

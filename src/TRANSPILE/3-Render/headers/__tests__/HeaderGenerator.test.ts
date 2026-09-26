@@ -4,11 +4,12 @@
  * Issue #522: Tests for C++ namespace type filtering
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
+import TranspileState from "../../../TranspileState";
 import HeaderGenerator from "../HeaderGenerator";
 
 import IHeaderSymbol from "../types/IHeaderSymbol";
-import SymbolTable from "../../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../../../PARSE/3-Declare/SymbolTable";
 import IHeaderTypeInput from "../generators/IHeaderTypeInput";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import type IFunctionSymbol from "../../../../transpiler/types/symbols/IFunctionSymbol";
@@ -16,7 +17,13 @@ import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TestSymbolUtils from "../../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../../transpiler/types/__testUtils__/testSourceSpan";
 
+let state = new TranspileState();
+
 describe("HeaderGenerator", () => {
+  beforeEach(() => {
+    state = new TranspileState();
+  });
+
   const generator = new HeaderGenerator();
 
   // Helper to create a variable symbol
@@ -386,6 +393,7 @@ describe("HeaderGenerator", () => {
       const header = generator.generateFromSymbolTable(
         symbolTable,
         "module.cnx",
+        state,
       );
 
       expect(header).toContain("myFunc");
@@ -414,6 +422,7 @@ describe("HeaderGenerator", () => {
       const header = generator.generateFromSymbolTable(
         symbolTable,
         "src/utils/helper.cnx",
+        state,
       );
 
       // Should generate guard based on filename
@@ -458,7 +467,11 @@ describe("HeaderGenerator", () => {
         sourceLanguage: ESourceLanguage.C,
       });
 
-      const header = generator.generateCNextHeader(symbolTable, "output.h");
+      const header = generator.generateCNextHeader(
+        symbolTable,
+        "output.h",
+        state,
+      );
 
       expect(header).toContain("cnextFunc");
       expect(header).not.toContain("cppFunc");
@@ -482,7 +495,11 @@ describe("HeaderGenerator", () => {
         visibility: "public",
       } as IFunctionSymbol);
 
-      const header = generator.generateCNextHeader(symbolTable, "custom_api.h");
+      const header = generator.generateCNextHeader(
+        symbolTable,
+        "custom_api.h",
+        state,
+      );
 
       expect(header).toContain("#ifndef CNX_CUSTOM_API_H");
       expect(header).toContain("#define CNX_CUSTOM_API_H");

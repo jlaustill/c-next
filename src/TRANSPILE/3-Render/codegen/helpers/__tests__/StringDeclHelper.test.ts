@@ -2,7 +2,7 @@
  * Unit tests for StringDeclHelper
  *
  * Issue #644: Tests for the extracted string declaration helper.
- * Migrated to use CodeGenState instead of constructor DI.
+ * Migrated to use TranspileState instead of constructor DI.
  *
  * #1445 box 3: these took hand-built parse nodes -- `{ stringType: () => ({
  * INTEGER_LITERAL: () => ({ getText: () => "64" }) }) } as never` -- one per
@@ -15,7 +15,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import StringDeclHelper from "../StringDeclHelper";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import TranspileState from "../../../../TranspileState";
 import type IPlannedStringInit from "../../types/IPlannedStringInit";
 import type IRenderedModifiers from "../../types/IRenderedModifiers";
 import type TPlannedStringDecl from "../../types/TPlannedStringDecl";
@@ -57,11 +57,12 @@ function bounded(
 // what prove the net is there. Kept and re-aimed rather than deleted: they
 // were the only coverage of these conditions, and an assertion nothing
 // exercises is the guard-that-cannot-fail shape.
+let state = new TranspileState();
+
 describe("StringDeclHelper", () => {
   beforeEach(() => {
-    CodeGenState.reset();
-    CodeGenState.inFunctionBody = true;
-    CodeGenState.indentLevel = 1;
+    state = new TranspileState();
+    state.inFunctionBody = true;
     vi.clearAllMocks();
   });
 
@@ -72,6 +73,7 @@ describe("StringDeclHelper", () => {
         "greeting",
         NO_MODS,
         false,
+        state,
       );
 
       expect(code).toBe('char greeting[65] = "Hello";');
@@ -83,6 +85,7 @@ describe("StringDeclHelper", () => {
         "buffer",
         NO_MODS,
         false,
+        state,
       );
 
       expect(code).toBe('char buffer[33] = "";');
@@ -94,6 +97,7 @@ describe("StringDeclHelper", () => {
         "label",
         { ...NO_MODS, const: "const " },
         true,
+        state,
       );
 
       expect(code).toBe('const char label[11] = "Test";');
@@ -105,6 +109,7 @@ describe("StringDeclHelper", () => {
         "shared",
         { ...NO_MODS, extern: "extern " },
         false,
+        state,
       );
 
       expect(code).toBe('extern char shared[17] = "";');
@@ -117,6 +122,7 @@ describe("StringDeclHelper", () => {
           "small",
           NO_MODS,
           false,
+          state,
         ),
       ).toThrow("a string literal fits its declared capacity");
     });
@@ -131,7 +137,13 @@ describe("StringDeclHelper", () => {
 
     it("carries them with no initializer", () => {
       expect(
-        StringDeclHelper.generateStringDecl(bounded(16), "s", ATOMIC, false),
+        StringDeclHelper.generateStringDecl(
+          bounded(16),
+          "s",
+          ATOMIC,
+          false,
+          state,
+        ),
       ).toBe('volatile char s[17] = "";');
     });
 
@@ -142,12 +154,13 @@ describe("StringDeclHelper", () => {
           "s",
           ATOMIC,
           false,
+          state,
         ),
       ).toBe('volatile char s[17] = "a";');
     });
 
     it("carries them on the copy arm", () => {
-      CodeGenState.setVariableTypeInfo("src", {
+      state.setVariableTypeInfo("src", {
         baseType: "char",
         bitWidth: 8,
         isArray: true,
@@ -161,6 +174,7 @@ describe("StringDeclHelper", () => {
         "s",
         ATOMIC,
         false,
+        state,
       );
 
       expect(code.split("\n")[0]).toBe('volatile char s[17] = "";');
@@ -182,6 +196,7 @@ describe("StringDeclHelper", () => {
         "s",
         ATOMIC,
         false,
+        state,
       );
 
       expect(code.split("\n")[0]).toBe('volatile char s[17] = "";');
@@ -203,6 +218,7 @@ describe("StringDeclHelper", () => {
         "s",
         ATOMIC,
         false,
+        state,
       );
 
       expect(code.split("\n")[0]).toBe('volatile char s[17] = "";');
@@ -238,6 +254,7 @@ describe("StringDeclHelper", () => {
         "s",
         NO_MODS,
         false,
+        state,
       );
 
       expect(renderSubstring).not.toHaveBeenCalled();
@@ -263,6 +280,7 @@ describe("StringDeclHelper", () => {
         "s",
         NO_MODS,
         false,
+        state,
       );
 
       expect(render).not.toHaveBeenCalled();
@@ -276,6 +294,7 @@ describe("StringDeclHelper", () => {
         "s",
         NO_MODS,
         false,
+        state,
       );
 
       expect(render).toHaveBeenCalledTimes(1);
@@ -284,7 +303,7 @@ describe("StringDeclHelper", () => {
 
   describe("string variable assignment validation", () => {
     function declareSource(name: string, capacity: number): void {
-      CodeGenState.setVariableTypeInfo(name, {
+      state.setVariableTypeInfo(name, {
         baseType: "char",
         bitWidth: 8,
         isArray: true,
@@ -303,6 +322,7 @@ describe("StringDeclHelper", () => {
           "small",
           NO_MODS,
           false,
+          state,
         ),
       ).toThrow("a string source fits its destination");
     });
@@ -315,6 +335,7 @@ describe("StringDeclHelper", () => {
         "dest",
         NO_MODS,
         false,
+        state,
       );
 
       expect(code).toContain("char dest[51]");
@@ -329,6 +350,7 @@ describe("StringDeclHelper", () => {
         "dest",
         NO_MODS,
         false,
+        state,
       );
 
       for (const line of code.split("\n").slice(1)) {
@@ -337,7 +359,7 @@ describe("StringDeclHelper", () => {
     });
 
     it("asserts the invariant for string variable initialization at global scope", () => {
-      CodeGenState.inFunctionBody = false;
+      state.inFunctionBody = false;
       declareSource("src", 20);
 
       expect(() =>
@@ -346,6 +368,7 @@ describe("StringDeclHelper", () => {
           "dest",
           NO_MODS,
           false,
+          state,
         ),
       ).toThrow("a string at file scope is initialized by a literal");
     });
@@ -365,6 +388,7 @@ describe("StringDeclHelper", () => {
         "full",
         NO_MODS,
         false,
+        state,
       );
 
       expect(code).toContain('char full[51] = "";');
@@ -373,7 +397,7 @@ describe("StringDeclHelper", () => {
     });
 
     it("asserts the invariant for concatenation at global scope", () => {
-      CodeGenState.inFunctionBody = false;
+      state.inFunctionBody = false;
 
       expect(() =>
         StringDeclHelper.generateStringDecl(
@@ -381,6 +405,7 @@ describe("StringDeclHelper", () => {
           "full",
           NO_MODS,
           false,
+          state,
         ),
       ).toThrow("a string at file scope is initialized by a literal");
     });
@@ -397,6 +422,7 @@ describe("StringDeclHelper", () => {
           "tooSmall",
           NO_MODS,
           false,
+          state,
         ),
       ).toThrow("a concatenation fits its destination");
     });
@@ -407,6 +433,7 @@ describe("StringDeclHelper", () => {
         "full",
         { ...NO_MODS, const: "const " },
         true,
+        state,
       );
 
       expect(code).toContain('const char full[51] = "";');
@@ -439,6 +466,7 @@ describe("StringDeclHelper", () => {
         "part",
         NO_MODS,
         false,
+        state,
       );
 
       expect(code).toContain('char part[11] = "";');
@@ -446,7 +474,7 @@ describe("StringDeclHelper", () => {
     });
 
     it("asserts the invariant for substring at global scope", () => {
-      CodeGenState.inFunctionBody = false;
+      state.inFunctionBody = false;
 
       expect(() =>
         StringDeclHelper.generateStringDecl(
@@ -454,6 +482,7 @@ describe("StringDeclHelper", () => {
           "part",
           NO_MODS,
           false,
+          state,
         ),
       ).toThrow("a string at file scope is initialized by a literal");
     });
@@ -472,6 +501,7 @@ describe("StringDeclHelper", () => {
           "part",
           NO_MODS,
           false,
+          state,
         ),
       ).toThrow("substring bounds stay within the source");
     });
@@ -490,6 +520,7 @@ describe("StringDeclHelper", () => {
           "part",
           NO_MODS,
           false,
+          state,
         ),
       ).toThrow("a substring fits its destination");
     });
@@ -500,6 +531,7 @@ describe("StringDeclHelper", () => {
         "part",
         NO_MODS,
         false,
+        state,
       );
 
       expect(code).toContain('char part[51] = "";');
@@ -511,6 +543,7 @@ describe("StringDeclHelper", () => {
         "part",
         NO_MODS,
         false,
+        state,
       );
 
       expect(code).toContain('char part[6] = "";');
@@ -522,6 +555,7 @@ describe("StringDeclHelper", () => {
         "part",
         { ...NO_MODS, const: "const " },
         true,
+        state,
       );
 
       expect(code).toContain('const char part[11] = "";');
@@ -540,6 +574,7 @@ describe("StringDeclHelper", () => {
         "message",
         { ...NO_MODS, const: "const " },
         true,
+        state,
       );
 
       expect(code).toBe('const char message[12] = "Hello World";');
@@ -551,6 +586,7 @@ describe("StringDeclHelper", () => {
         "flag",
         { extern: "", const: "const ", atomic: "", volatile: "volatile " },
         true,
+        state,
       );
 
       // The header derives the qualifier from the SYMBOL, so a definition
@@ -566,6 +602,7 @@ describe("StringDeclHelper", () => {
           "loose",
           NO_MODS,
           true,
+          state,
         ),
       ).toThrow(/unsized string is const/);
     });
@@ -576,9 +613,10 @@ describe("StringDeclHelper", () => {
         "msg",
         { ...NO_MODS, const: "const " },
         true,
+        state,
       );
 
-      expect(CodeGenState.getVariableTypeInfo("msg")?.stringCapacity).toBe(3);
+      expect(state.getVariableTypeInfo("msg")?.stringCapacity).toBe(3);
     });
 
     it("asserts the invariant for non-const unsized string", () => {
@@ -588,6 +626,7 @@ describe("StringDeclHelper", () => {
           "bad",
           { ...NO_MODS, const: "const " },
           false,
+          state,
         ),
       ).toThrow("a non-const string states its capacity");
     });
@@ -599,6 +638,7 @@ describe("StringDeclHelper", () => {
           "bad",
           { ...NO_MODS, const: "const " },
           true,
+          state,
         ),
       ).toThrow("an unsized const string has an initializer to infer from");
     });
@@ -610,6 +650,7 @@ describe("StringDeclHelper", () => {
           "bad",
           { ...NO_MODS, const: "const " },
           true,
+          state,
         ),
       ).toThrow("an unsized const string infers from a LITERAL");
     });
@@ -631,7 +672,13 @@ describe("StringDeclHelper", () => {
 
     it("generates string array without initializer", () => {
       expect(
-        StringDeclHelper.generateStringDecl(array(), "items", NO_MODS, false),
+        StringDeclHelper.generateStringDecl(
+          array(),
+          "items",
+          NO_MODS,
+          false,
+          state,
+        ),
       ).toBe("char items[4][33] = {0};");
     });
 
@@ -642,14 +689,15 @@ describe("StringDeclHelper", () => {
           dimensions: "[2]",
           declaredSize: 2,
           renderInit: () => {
-            CodeGenState.lastArrayInitCount = 2;
-            CodeGenState.lastArrayFillValue = undefined;
+            state.lastArrayInitCount = 2;
+            state.lastArrayFillValue = undefined;
             return '{"One", "Two"}';
           },
         }),
         "labels",
         NO_MODS,
         false,
+        state,
       );
 
       expect(code).toContain("char labels[2][11]");
@@ -663,6 +711,7 @@ describe("StringDeclHelper", () => {
           "matrix",
           NO_MODS,
           false,
+          state,
         ),
       ).toBe("char matrix[2][3][11] = {0};");
     });
@@ -674,14 +723,15 @@ describe("StringDeclHelper", () => {
             elementCapacity: 10,
             declaredSize: 4,
             renderInit: () => {
-              CodeGenState.lastArrayInitCount = 2;
-              CodeGenState.lastArrayFillValue = undefined;
+              state.lastArrayInitCount = 2;
+              state.lastArrayFillValue = undefined;
               return '{"One", "Two"}';
             },
           }),
           "items",
           NO_MODS,
           false,
+          state,
         ),
       ).toThrow(
         "a string array initializer matches its declared size -- E0866 rejects [4] against 2 element(s)",
@@ -695,6 +745,7 @@ describe("StringDeclHelper", () => {
           "items",
           NO_MODS,
           false,
+          state,
         ),
       ).toThrow("a string array is initialized from literals");
     });
@@ -709,14 +760,15 @@ describe("StringDeclHelper", () => {
           dimensions: "[3]",
           declaredSize: 3,
           renderInit: () => {
-            CodeGenState.lastArrayInitCount = 1;
-            CodeGenState.lastArrayFillValue = '"ab"';
+            state.lastArrayInitCount = 1;
+            state.lastArrayFillValue = '"ab"';
             return '{"ab"}';
           },
         }),
         "filled",
         NO_MODS,
         false,
+        state,
       );
 
       expect(code).toContain('{"ab", "ab", "ab"}');
@@ -729,14 +781,15 @@ describe("StringDeclHelper", () => {
           dimensions: "[SIZE]",
           declaredSize: null,
           renderInit: () => {
-            CodeGenState.lastArrayInitCount = 1;
-            CodeGenState.lastArrayFillValue = '"ab"';
+            state.lastArrayInitCount = 1;
+            state.lastArrayFillValue = '"ab"';
             return '{"ab"}';
           },
         }),
         "unfolded",
         NO_MODS,
         false,
+        state,
       );
 
       expect(code).toContain('{"ab"}');
@@ -749,14 +802,15 @@ describe("StringDeclHelper", () => {
           dimensions: "[3]",
           declaredSize: 3,
           renderInit: () => {
-            CodeGenState.lastArrayInitCount = 1;
-            CodeGenState.lastArrayFillValue = '""';
+            state.lastArrayInitCount = 1;
+            state.lastArrayFillValue = '""';
             return '{""}';
           },
         }),
         "empties",
         NO_MODS,
         false,
+        state,
       );
 
       expect(code).toContain('{""}');
@@ -768,9 +822,10 @@ describe("StringDeclHelper", () => {
         "tracked",
         NO_MODS,
         false,
+        state,
       );
 
-      expect(CodeGenState.localArrays.has("tracked")).toBe(true);
+      expect(state.localArrays.has("tracked")).toBe(true);
     });
 
     it("generates string array with modifiers", () => {
@@ -784,6 +839,7 @@ describe("StringDeclHelper", () => {
           volatile: "volatile ",
         },
         true,
+        state,
       );
 
       expect(code).toContain("extern const volatile char data[2][9]");

@@ -6,8 +6,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import stringHandlers from "../StringHandlers";
 import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
-import IAssignmentContext from "../../../../../../transpiler/types/IAssignmentContext";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
+import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
 import AssignmentClassifier from "../../../../../2-Plan/AssignmentClassifier";
 import enterScope from "../../../../../../transpiler/__tests__/enterScope";
@@ -48,20 +48,26 @@ function createMockContext(
     postfixOps: [],
     resolvedTarget,
     resolvedBaseIdentifier,
+    // #1452 box 4: a handler reaches 2.3's per-file state through the context
+    // it is handed, so the mock context carries the same instance the test
+    // set its facts up on.
+    state,
     ...overrides,
   } as IAssignmentContext;
 }
 
-// #1450: five `expect(CodeGenState.needsString).toBe(true)` assertions stood
+// #1450: five `expect(state.needsString).toBe(true)` assertions stood
 // here, one per handler. The handlers no longer raise it -- `needsString` is
 // over-determined, raised by the effect channel, by `generateType` and by type
 // registration, so six more raisers in the handlers changed nothing. What these
 // tests are FOR is the emitted `strncpy`, and that is untouched.
+let state = new TranspileState();
+
 describe("StringHandlers", () => {
   beforeEach(() => {
-    CodeGenState.reset();
-    HandlerTestUtils.setupMockGenerator();
-    HandlerTestUtils.setupMockSymbols();
+    state = new TranspileState();
+    HandlerTestUtils.setupMockGenerator(state);
+    HandlerTestUtils.setupMockSymbols(state);
   });
 
   describe("handler registration", () => {
@@ -90,7 +96,7 @@ describe("StringHandlers", () => {
 
   describe("handleSimpleStringAssignment (STRING_SIMPLE)", () => {
     it("generates strncpy with null terminator", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["testVar", { stringCapacity: 32, baseType: "string" }],
       ]);
       const ctx = createMockContext();
@@ -115,8 +121,8 @@ describe("StringHandlers", () => {
 
   describe("handleStringThisMember (STRING_THIS_MEMBER)", () => {
     it("generates strncpy for scoped member", () => {
-      enterScope("TestScope");
-      HandlerTestUtils.setupMockTypeRegistry([
+      enterScope(state, "TestScope");
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["TestScope__memberName", { stringCapacity: 64, baseType: "string" }],
       ]);
       const ctx = createMockContext({ identifiers: ["memberName"] });
@@ -145,8 +151,8 @@ describe("StringHandlers", () => {
       // routes a member the handler cannot find, so the `!` throws at generation
       // time. They agree at depth one whichever encoder each uses, so only depth
       // two can tell a shared decision from a coincidence.
-      enterScope("Outer.Inner");
-      HandlerTestUtils.setupMockTypeRegistry([
+      enterScope(state, "Outer.Inner");
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         [
           "Outer__Inner__memberName",
           { stringCapacity: 48, baseType: "string", isString: true },
@@ -162,7 +168,7 @@ describe("StringHandlers", () => {
       });
 
       // Half one: the classifier must recognize it through the whole chain.
-      expect(AssignmentClassifier.classify(ctx)).toBe(
+      expect(AssignmentClassifier.classify(ctx, state)).toBe(
         AssignmentKind.STRING_THIS_MEMBER,
       );
 
@@ -183,10 +189,10 @@ describe("StringHandlers", () => {
 
   describe("handleStringStructField (STRING_STRUCT_FIELD)", () => {
     it("generates strncpy for struct field", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["person", { baseType: "Person" }],
       ]);
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         structFields: new Map([["Person", new Map([["name", "string<50>"]])]]),
       });
       const ctx = createMockContext({ identifiers: ["person", "name"] });
@@ -204,7 +210,7 @@ describe("StringHandlers", () => {
 
   describe("handleStringArrayElement (STRING_ARRAY_ELEMENT)", () => {
     it("generates strncpy for array element", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["names", { stringCapacity: 20, baseType: "string" }],
       ]);
       const ctx = createMockContext({
@@ -225,10 +231,10 @@ describe("StringHandlers", () => {
 
   describe("handleStringStructArrayElement (STRING_STRUCT_ARRAY_ELEMENT)", () => {
     it("generates strncpy for struct field array element", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["config", { baseType: "Config" }],
       ]);
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         structFieldDimensions: new Map([
           ["Config", new Map([["items", [10, 33]]])], // 10 items, capacity 32+1
         ]),

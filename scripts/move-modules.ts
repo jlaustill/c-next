@@ -27,7 +27,8 @@
  * notice in review.
  */
 
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -309,7 +310,14 @@ const MOVES: readonly IMove[] = [
       "nothing from `output/` or `TRANSPILE/`, so `state-cannot-import-output` " +
       "was already satisfied, and 1.3 Declare already imports `state/`, so the " +
       "edge that blocked 4-Resolve does not arise. Changed with maintainer " +
-      "approval, since a decided destination is not a call to make in passing.",
+      "approval, since a decided destination is not a call to make in passing." +
+      "\n\nSUPERSEDED by the `3-Declare/` entry at the end of this list " +
+      "(#1452 box 1). The move above happened and is kept as the record of it; " +
+      "`state/` is no longer a destination, because the card that owns it is " +
+      "removing the directory. The premise that needed re-examining is the " +
+      'sentence "it computes none: it ACCUMULATES" -- every write to the ' +
+      "table is ONE file's declarations, and the accumulation across files is " +
+      "`Transpiler`'s loop rather than the table's doing.",
   },
   {
     from: "src/transpiler/logic/symbols/__tests__/SymbolTable.test.ts",
@@ -628,6 +636,189 @@ const MOVES: readonly IMove[] = [
       "render thunks for exactly this reason, because the builder has always " +
       "needed render capabilities it must not import.",
   },
+  // --- 1.3 Declare: what does this file declare? (#1452 box 1) ------------
+  {
+    from: "src/transpiler/state/SymbolRegistry.ts",
+    to: "src/PARSE/3-Declare/SymbolRegistry.ts",
+    because:
+      "#1452 box 1. The scope graph, and 1.3 Declare authors it: after the " +
+      "scope-creation fix, every `getOrCreateScope` caller is under " +
+      "`3-Declare/` and the guard in `passes-hold-no-mutable-state.test.ts` " +
+      "keeps it that way. It is an instance rather than a static class since " +
+      "box 3, so this is a relocation and not a dissolution -- there is no " +
+      "mutable static to carry into a pass root. It imports only `utils/` and " +
+      "`transpiler/types/`, so no rule constrains it from its own side.",
+  },
+  {
+    from: "src/transpiler/state/SymbolTable.ts",
+    to: "src/PARSE/3-Declare/SymbolTable.ts",
+    because:
+      "#1452 box 1, and this REVERSES the destination #1511 recorded, which " +
+      "is why the reasoning is spelled out.\n\n" +
+      "#1511 sent it to `state/` on the grounds that it is a mutable " +
+      "accumulator filled during Stage 2 and read by every later pass, which " +
+      "is what `state/` holds. That is a property of how it is USED, and the " +
+      "admission test at the top of this file asks a different question: what " +
+      "does the module COMPUTE, and with how many files open? Every write to " +
+      "the table is one file's declarations -- four collectors under " +
+      "`3-Declare/` plus the orchestrator that drives them per file -- so " +
+      "each thing it computes is computable with one parse tree open. The " +
+      "accumulation across files is `Transpiler`'s doing, not the table's.\n\n" +
+      "#1511 also recorded `4-Resolve/` as unreachable, and that part stands: " +
+      "`nothing-after-resolve-derives-cross-file-facts` forbids any pass after " +
+      "1.4 from importing it, and 34 modules under `TRANSPILE/` read the " +
+      "table. But that rule names `4-Resolve/` specifically. `3-Declare/` is " +
+      "already imported from `TRANSPILE/`, so the edge that blocked the one " +
+      "destination does not exist for this one.",
+  },
+  {
+    from: "src/transpiler/state/__tests__/SymbolRegistry.test.ts",
+    to: "src/PARSE/3-Declare/__tests__/SymbolRegistry.test.ts",
+    because: "Follows its subject.",
+  },
+  {
+    from: "src/transpiler/state/__tests__/SymbolTable.test.ts",
+    to: "src/PARSE/3-Declare/__tests__/SymbolTable.test.ts",
+    because: "Follows its subject.",
+  },
+  {
+    from: "src/transpiler/state/__tests__/SymbolTableRunIsolation.test.ts",
+    to: "src/PARSE/3-Declare/__tests__/SymbolTableRunIsolation.test.ts",
+    because: "Follows its subject -- #1452 box 5's teardown-absence guard.",
+  },
+  // --- 2.3 Render: the per-file working state ----------------------------
+  {
+    from: "src/transpiler/state/RenderState.ts",
+    to: "src/TRANSPILE/3-Render/RenderState.ts",
+    because:
+      "#1452 boxes 1 and 4, and **superseded by the next entry**. `CodeGenState` " +
+      "and `TranspilerState` were mutable STATICS, which is why they had a " +
+      "directory of their own rather than a pass: a static belongs to the " +
+      "process, not to a pass, so the admission test at the top of this file " +
+      "had nothing to ask. Merged into one instance owned by `CodeGenerator`, " +
+      "the test applies again -- and the answer recorded here was 2.3, on the " +
+      "claim that *every write is 2.3's*. That claim was false and `depcruise` " +
+      "disproved it on the first run after the move: six modules under " +
+      "`2-Plan/` import it and `TypeRegistrationEngine` and " +
+      "`TypeRegistrationUtils` WRITE it, through `setVariableTypeInfo`. Kept " +
+      "in the manifest rather than edited away, because the wrong destination " +
+      "and the reason it was wrong are the reviewable part.",
+  },
+  {
+    from: "src/transpiler/state/__tests__/CodeGenState.test.ts",
+    to: "src/TRANSPILE/3-Render/__tests__/RenderState.test.ts",
+    because: "Follows its subject, under the name of the class it now tests.",
+  },
+  {
+    from: "src/transpiler/state/__tests__/RenderState.test.ts",
+    to: "src/TRANSPILE/3-Render/__tests__/RenderState.includes.test.ts",
+    because:
+      "Follows its subject. Renamed because it lands beside the file above " +
+      "and the two cannot share a name; this is the half that pins the " +
+      "include sink and the toolchain-requirement deferrals, with their " +
+      "negative controls.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/RenderState.ts",
+    to: "src/TRANSPILE/TranspileState.ts",
+    because:
+      "The corrected destination. `plan-cannot-import-render` is `error` with " +
+      "`reachable: true`, so a module six `2-Plan/` modules import cannot sit " +
+      "in `3-Render/` -- the same constraint that put `CodeGenWalker.ts` at " +
+      "this level under #1445 box 3, and for the same reason: it spans 2.2 and " +
+      "2.3 rather than belonging to either. Measured, not argued: 2.2 Plan " +
+      "reads `constValues`, `currentScopePath`, `symbols`, `symbolTable`, " +
+      "`program` and `generator` off it, and writes the type registry into it. " +
+      "Renamed with the move, because a class called `RenderState` that 2.2 " +
+      "Plan writes states something untrue in the place most readers look. " +
+      "This does NOT satisfy box 2 -- a fact 2.2 authors still reaches 2.3 " +
+      "through a shared mutable object rather than through 2.2's artifact -- " +
+      "and box 2 stays unchecked on the card, saying so.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/__tests__/RenderState.test.ts",
+    to: "src/TRANSPILE/__tests__/TranspileState.test.ts",
+    because:
+      "Follows its subject to the corrected destination above. The row that " +
+      "sent it to `3-Render/__tests__/` was left uncorrected while the " +
+      "implementation's was fixed, so replaying the manifest landed the class " +
+      "at `src/TRANSPILE/` and its tests one directory deeper, with their " +
+      "relative imports pointing at a tree the branch does not have. Two of " +
+      "the three stale `to:` paths in this file carry a `SUPERSEDED` note; " +
+      "these two carried none, so they read as current answers.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/__tests__/RenderState.includes.test.ts",
+    to: "src/TRANSPILE/__tests__/TranspileState.includes.test.ts",
+    because: "Follows its subject, for the reason the row above gives.",
+  },
+  {
+    from: "src/transpiler/types/IAssignmentContext.ts",
+    to: "src/TRANSPILE/2-Plan/types/IAssignmentContext.ts",
+    because:
+      "#1657 review. #1452 gave this contract a `state: TranspileState` member " +
+      "so handlers could reach 2.3's per-file state, and that made a SHARED " +
+      "contract depend on a pass-root implementation: adding an " +
+      "`IAssignmentContext` import to `ShiftAnalyzer` made depcruise exit 2 " +
+      "with `analyzers-cannot-reach-codegen-state … via " +
+      "transpiler/types/IAssignmentContext.ts`. `.dependency-cruiser.cjs` " +
+      "calls `transpiler/types/` the place every layer may depend on, so a " +
+      "member that reaches into `src/TRANSPILE/` cannot live there. " +
+      "It is not layer-neutral anyway: `AssignmentContextBuilder` (2.2 Plan) " +
+      "builds it and the handlers (2.3 Render) consume it, which is 2.2 " +
+      "deciding and 2.3 formatting -- the one direction the digit rule allows. " +
+      "Nothing outside `src/TRANSPILE/` imports it.",
+  },
+  {
+    from: "src/transpiler/state/AdrProvenance.ts",
+    to: "src/instrumentation/AdrProvenance.ts",
+    because:
+      "#1452. Records where an ADR's rule fired, so matrix occupancy can derive " +
+      "from codegen decisions and not only from diagnostic positions. It is " +
+      "genuinely cross-pass -- 17 `record` sites across 2.1 Analyze and 2.3 " +
+      "Render, read once at the end -- which is why it is instrumentation " +
+      "rather than a pass artifact, and why box 4 exempts it by the owner's " +
+      "call on 2026-09-23 that box 4 governs PROGRAM state. " +
+      "Added by the #1657 review: the module moved with the rest of this card " +
+      "and had no entry, so `npm run move:modules` against a BASE export left " +
+      "it behind. A manifest that cannot replay the move it records is a " +
+      "reviewable artifact that cannot be reviewed.",
+  },
+  {
+    from: "src/transpiler/state/__tests__/AdrProvenance.test.ts",
+    to: "src/instrumentation/__tests__/AdrProvenance.test.ts",
+    because: "Follows its subject.",
+  },
+  {
+    from: "src/transpiler/state/CodeGenState.ts",
+    to: "src/transpiler/state/RenderState.ts",
+    because:
+      "The step the chain below starts AFTER, recorded so a replay does not " +
+      "begin at a path that never existed at BASE. This is a rename in place, " +
+      "not a relocation: `CodeGenState` and `TranspilerState` were merged into " +
+      "one class here before anything moved, because the destination question " +
+      "cannot be asked of two classes at once. `RenderState` then moved to " +
+      "`3-Render/`, which was wrong, and then to `src/TRANSPILE/TranspileState.ts`, " +
+      "which is where it is -- both of those are entries below, with their " +
+      "reasons.",
+  },
+  {
+    from: "src/TRANSPILE/1-Analyze/types/IGrammarCoverageReport.ts",
+    to: "src/transpiler/types/IGrammarCoverageReport.ts",
+    because:
+      "#1657 review follow-up. The admission test at the top of this file has a " +
+      "third destination for a type NAMED by more than one layer, and this is " +
+      "one: `ITranspilerResult` (the public result) declares a " +
+      "`grammarCoverage?` field of this type, `GrammarCoverageListener` (2.1) " +
+      "produces it, and `scripts/grammar-coverage.ts` consumes it. It is a leaf " +
+      "-- zero imports of its own -- so nothing travels with it. " +
+      "Left where it was, `transpiler/types/` imported a pass root, which is " +
+      "the same boundary break that moved `IAssignmentContext` OUT of that " +
+      "directory earlier in this PR, in the opposite direction. CLAUDE.md calls " +
+      "`transpiler/types/` the place every layer may depend on; that claim now " +
+      "holds with no exception rather than with one recorded in a commit " +
+      "message.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */
@@ -715,6 +906,73 @@ function main(): void {
 
   project.saveSync();
   console.log("\nWritten.");
+
+  reportStaleImporters();
+}
+
+/**
+ * Importers OUTSIDE the tsconfig program that still name a moved module's old path.
+ *
+ * ts-morph rewrites the importers it can see, and it sees the root tsconfig's
+ * program -- which does not include `scripts/`. So a move can leave a `scripts/`
+ * import pointing at a path that no longer exists, and because a missing module
+ * resolves to `any`/`unknown` rather than erroring at the import line, the
+ * failure surfaces later as `TS18046: 'a' is of type 'unknown'` somewhere else
+ * entirely. `npx tsc --noEmit` does not catch it either, since that is the root
+ * config; only `typecheck:scripts` does.
+ *
+ * That is exactly how `IGrammarCoverageReport` moved with `scripts/grammar-coverage.ts`
+ * left behind: the mover reported success, the root typecheck reported 0, and the
+ * gate failed six lines into an unrelated sort comparator.
+ *
+ * The existing "not in the project" error covers a moved FILE the program cannot
+ * see. This covers an IMPORTER it cannot see, which is the other half.
+ */
+function reportStaleImporters(): void {
+  const tracked = execFileSync("git", ["ls-files", "*.ts"], {
+    cwd: rootDir,
+    encoding: "utf8",
+  })
+    .split("\n")
+    .filter(Boolean);
+
+  const movedFrom = new Set(
+    MOVES.map((move) => move.from.replace(/\.ts$/, "")),
+  );
+
+  const stale: string[] = [];
+  for (const file of tracked) {
+    // The manifest records every old path on purpose, and so do the guards
+    // whose subject IS a path string.
+    if (file === "scripts/move-modules.ts") continue;
+
+    const source = readFileSync(join(rootDir, file), "utf8");
+    // Only real module specifiers. Matching any OCCURRENCE reports every test
+    // that feeds a path to a path-classifying function as a literal --
+    // `unused-code.test.ts` and `layer-rules.test.ts` both do, so the first
+    // draft of this cried wolf on two files it had no business naming. A guard
+    // that over-reports gets switched off, which is the failure mode that
+    // matters here.
+    for (const [, specifier] of source.matchAll(
+      /(?:from|require\()\s*["']([^"']+)["']/g,
+    )) {
+      if (!specifier.startsWith(".")) continue;
+      const resolved = relative(
+        rootDir,
+        resolve(dirname(join(rootDir, file)), specifier),
+      );
+      if (movedFrom.has(resolved)) {
+        stale.push(`  ! ${file} imports ${resolved}, which moved`);
+      }
+    }
+  }
+
+  if (stale.length === 0) return;
+  console.error(
+    "\nImporters outside the tsconfig program still name a moved path:\n" +
+      stale.join("\n"),
+  );
+  process.exitCode = 1;
 }
 
 main();

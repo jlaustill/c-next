@@ -61,7 +61,7 @@ const generateUnaryExpr: TGeneratorFn<IPlannedUnary> = (
   unary: IPlannedUnary,
   _input: IGeneratorInput,
   _state: IGeneratorState,
-  _orchestrator: IOrchestrator,
+  orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const inner = unary.operandCode;
 
@@ -86,7 +86,10 @@ const generateUnaryExpr: TGeneratorFn<IPlannedUnary> = (
     const innerType = unary.operandType();
     if (innerType && ExpressionTypeResolver.isUnsignedType(innerType)) {
       const cType = TYPE_MAP[innerType] ?? innerType;
-      return { code: CppModeHelper.cast(cType, `~${inner}`), effects: [] };
+      return {
+        code: CppModeHelper.cast(cType, `~${inner}`, orchestrator.state),
+        effects: [],
+      };
     }
     return { code: `~${inner}`, effects: [] };
   }

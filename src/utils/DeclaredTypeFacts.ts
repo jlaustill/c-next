@@ -34,6 +34,7 @@
  */
 import type IDeclaredTypeFacts from "../transpiler/types/IDeclaredTypeFacts";
 import type IDeclaredTypeSets from "../transpiler/types/IDeclaredTypeSets";
+import type IStructFieldLookup from "../transpiler/types/IStructFieldLookup";
 
 class DeclaredTypeFacts {
   /**
@@ -49,10 +50,8 @@ class DeclaredTypeFacts {
     sets: IDeclaredTypeSets | null,
     fallbackBitWidth: number,
   ): IDeclaredTypeFacts {
-    // An absent symbol view means "nothing is known yet", never "not an enum"
-    // -- the reading `isKnownEnum`/`isKnownBitmap` already encode with `?? false`.
-    const isEnum = sets?.knownEnums.has(baseType) ?? false;
-    const isBitmap = sets?.knownBitmaps.has(baseType) ?? false;
+    const isEnum = DeclaredTypeFacts.isEnum(sets, baseType);
+    const isBitmap = DeclaredTypeFacts.isBitmap(sets, baseType);
 
     return {
       isEnum,
@@ -63,6 +62,69 @@ class DeclaredTypeFacts {
         ? (sets?.bitmapBitWidth.get(baseType) ?? 0)
         : fallbackBitWidth,
     };
+  }
+
+  /**
+   * Is this name a declared enum / bitmap / scope?
+   *
+   * #1456: one-line set lookups, but they had exactly one home --
+   * `CodeGenState.isKnownEnum` and friends -- so 2.1 Analyze had to read
+   * render state to ask. Both callers share these now: `CodeGenState`
+   * delegates, and an analyzer passes the view its `IAnalysisContext` carries.
+   *
+   * The `?? false` is the existing reading of an absent symbol view: "nothing
+   * is known yet", never "not an enum".
+   */
+  static isEnum(sets: IDeclaredTypeSets | null, name: string): boolean {
+    return sets?.knownEnums.has(name) ?? false;
+  }
+
+  /** @see isEnum */
+  static isBitmap(sets: IDeclaredTypeSets | null, name: string): boolean {
+    return sets?.knownBitmaps.has(name) ?? false;
+  }
+
+  /** @see isEnum */
+  static isScope(sets: IDeclaredTypeSets | null, name: string): boolean {
+    return sets?.knownScopes.has(name) ?? false;
+  }
+
+  /**
+   * Is this type name a struct? Bitmaps count -- they are struct-like and take
+   * the same pass-by-reference `->` treatment (#551).
+   *
+   * ## Why this is here and not at three call sites (#1656)
+   *
+   * It was at three, spelled the same way each time and reached by 19 callers:
+   * `CodeGenState.isKnownStruct`, `SymbolLookupHelper.isKnownStruct` (through
+   * `IOrchestrator`), and `ExpressionTypeResolver.isStructType` in 2-Plan,
+   * which alone has ten sites through `IOrchestrator.isStructType`. All three
+   * ran the identical three checks in the identical order; the 2-Plan copy
+   * differed from the `state/` copy only in `CodeGenState.` versus `this.`.
+   *
+   * They had not diverged in RESULT, which is why nothing caught them -- they
+   * had diverged in FAILURE MODE. See `IStructFieldLookup` for that, and for
+   * why the lookup is required rather than optional here.
+   *
+   * The per-file sets answer first because they are the file's own view; the
+   * run-wide table answers for a struct declared in an included header, which
+   * the per-file sets do not carry. Both are needed, which is why this takes
+   * two arguments rather than pretending one source suffices (#1312).
+   *
+   * `!== undefined` is deliberate. `getStructFields` returns a `Map`, and an
+   * empty `Map` is truthy, so all three call sites read a zero-field struct as
+   * known by accident rather than by decision. No such struct is reachable
+   * today -- `SymbolTable.addStructField` always sets a field on creation --
+   * so this states the existing behavior rather than changing it.
+   */
+  static isStruct(
+    sets: IDeclaredTypeSets | null,
+    fields: IStructFieldLookup,
+    typeName: string,
+  ): boolean {
+    if (sets?.knownStructs.has(typeName)) return true;
+    if (sets?.knownBitmaps.has(typeName)) return true;
+    return fields.getStructFields(typeName) !== undefined;
   }
 }
 

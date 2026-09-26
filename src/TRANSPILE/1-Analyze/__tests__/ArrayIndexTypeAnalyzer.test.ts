@@ -7,8 +7,9 @@ import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import ArrayIndexTypeAnalyzer from "../ArrayIndexTypeAnalyzer";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import TranspileState from "../../TranspileState";
 import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * Helper to parse C-Next code and return the AST
@@ -21,9 +22,11 @@ function parse(source: string) {
   return parser.program();
 }
 
+let state = new TranspileState();
+
 describe("ArrayIndexTypeAnalyzer", () => {
   afterEach(() => {
-    CodeGenState.reset();
+    state = new TranspileState();
   });
 
   // ========================================================================
@@ -35,7 +38,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u8[10] arr; u8 idx <- 0; arr[idx] <- 1; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -44,7 +47,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u8[10] arr; u16 idx <- 0; arr[idx] <- 1; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -53,7 +56,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u8[10] arr; u32 idx <- 0; arr[idx] <- 1; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -62,7 +65,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u8[10] arr; u64 idx <- 0; arr[idx] <- 1; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -71,14 +74,14 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u8[2] arr; bool idx <- 0; arr[idx] <- 1; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
 
     it("should allow integer literal as array index", () => {
       const tree = parse(`void main() { u8[10] arr; arr[3] <- 1; }`);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -88,10 +91,10 @@ describe("ArrayIndexTypeAnalyzer", () => {
         enum EColor { RED, GREEN, BLUE, COUNT }
         void main() { u8[4] arr; arr[EColor.RED] <- 1; }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
-      CodeGenState.symbols = createMockSymbols({
+      state.symbols = createMockSymbols({
         knownEnums: new Set(["EColor"]),
       });
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -104,10 +107,10 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[color] <- 1;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
-      CodeGenState.symbols = createMockSymbols({
+      state.symbols = createMockSymbols({
         knownEnums: new Set(["EColor"]),
       });
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -120,10 +123,10 @@ describe("ArrayIndexTypeAnalyzer", () => {
           stateCounts[state] <- stateCounts[state] + 1;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
-      CodeGenState.symbols = createMockSymbols({
+      state.symbols = createMockSymbols({
         knownEnums: new Set(["EState"]),
       });
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -137,7 +140,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           }
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -148,7 +151,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[idx] <- 1;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -163,7 +166,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u8[10] arr; i8 idx <- 0; arr[idx] <- 1; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0850");
@@ -176,7 +179,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u8[10] arr; i16 idx <- 0; arr[idx] <- 1; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0850");
@@ -187,7 +190,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u8[10] arr; i32 idx <- 0; arr[idx] <- 1; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0850");
@@ -198,7 +201,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u8[10] arr; i64 idx <- 0; arr[idx] <- 1; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0850");
@@ -214,7 +217,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           }
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0850");
@@ -227,7 +230,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[idx] <- 1;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0850");
@@ -244,7 +247,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u8[10] arr; f32 idx <- 0.0; arr[idx] <- 1; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0851");
@@ -257,7 +260,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u8[10] arr; f64 idx <- 0.0; arr[idx] <- 1; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0851");
@@ -274,7 +277,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u32 flags <- 0; i32 bit <- 0; u8 val <- flags[bit]; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0850");
@@ -285,7 +288,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u32 flags <- 0; i32 start <- 0; u8 val <- flags[start, 4]; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0850");
@@ -295,7 +298,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u32 flags <- 0; i32 width <- 4; u8 val <- flags[0, width]; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0850");
@@ -305,7 +308,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u32 flags <- 0; u8 bit <- 0; u8 val <- flags[bit]; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -324,7 +327,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[x + 1] <- 5;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0850");
@@ -339,7 +342,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[(x)] <- 5;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0850");
@@ -355,7 +358,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[x * 2 + y] <- 5;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0850");
@@ -370,7 +373,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[x + 1] <- 5;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -382,7 +385,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[1 + 2.0] <- 5;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0851");
@@ -390,13 +393,14 @@ describe("ArrayIndexTypeAnalyzer", () => {
   });
 
   // ========================================================================
-  // State-based type resolution (CodeGenState)
+  // State-based type resolution (TranspileState)
   // ========================================================================
 
   describe("state-based type resolution", () => {
     it("should reject arr[config.value] where Config.value is i32", () => {
-      CodeGenState.symbols = createMockSymbols({
+      state.symbols = createMockSymbols({
         knownStructs: new Set(["Config"]),
+        knownScopes: new Set<string>(),
         structFields: new Map([["Config", new Map([["value", "i32"]])]]),
       });
       const tree = parse(`
@@ -406,7 +410,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[config.value] <- 5;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0850");
@@ -414,8 +418,9 @@ describe("ArrayIndexTypeAnalyzer", () => {
     });
 
     it("should allow arr[config.index] where Config.index is u32", () => {
-      CodeGenState.symbols = createMockSymbols({
+      state.symbols = createMockSymbols({
         knownStructs: new Set(["Config"]),
+        knownScopes: new Set<string>(),
         structFields: new Map([["Config", new Map([["index", "u32"]])]]),
       });
       const tree = parse(`
@@ -425,13 +430,13 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[config.index] <- 5;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
 
     it("should reject arr[getIndex()] where getIndex returns i32", () => {
-      CodeGenState.symbols = createMockSymbols({
+      state.symbols = createMockSymbols({
         functionReturnTypes: new Map([["getIndex", "i32"]]),
       });
       const tree = parse(`
@@ -441,7 +446,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[getIndex()] <- 1;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0850");
@@ -449,7 +454,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
     });
 
     it("should allow arr[getIndex()] where getIndex returns u32", () => {
-      CodeGenState.symbols = createMockSymbols({
+      state.symbols = createMockSymbols({
         functionReturnTypes: new Map([["getIndex", "u32"]]),
       });
       const tree = parse(`
@@ -459,13 +464,14 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[getIndex()] <- 1;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
 
-    it("should allow arr[EColor.RED] via CodeGenState.isKnownEnum", () => {
-      CodeGenState.symbols = createMockSymbols({
+    // The route is `context.symbols.knownEnums`; 2.1 cannot reach the state.
+    it("should allow arr[EColor.RED] for a known enum member", () => {
+      state.symbols = createMockSymbols({
         knownEnums: new Set(["EColor"]),
       });
       const tree = parse(`
@@ -475,12 +481,12 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[EColor.RED] <- 1;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
 
-    it("should pass through unresolvable function call without CodeGenState", () => {
+    it("should pass through unresolvable function call without TranspileState", () => {
       const tree = parse(`
         u32 getIndex() { return 0; }
         void main() {
@@ -488,7 +494,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[getIndex()] <- 1;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -509,7 +515,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[b] <- 2;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(2);
       expect(errors[0].code).toBe("E0850");
@@ -530,7 +536,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[data[2]] <- 5;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -543,7 +549,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[data[2] - 1] <- 5;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -555,7 +561,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           inputs[data[2] - 1] <- data[1];
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -568,7 +574,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[data[2]] <- 5;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0850");
@@ -583,7 +589,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[matrix[1][2]] <- 5;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -598,7 +604,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[lookup[0]] <- 5;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -613,7 +619,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[x] <- 5;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       // No mock symbols - UnknownType is not a known enum
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(1);
@@ -624,8 +630,9 @@ describe("ArrayIndexTypeAnalyzer", () => {
     it("should handle struct type in subscript chain (branch coverage)", () => {
       // Tests the branch where array stripping doesn't find brackets
       // Covers the case where strippedType === currentType (not an array)
-      CodeGenState.symbols = createMockSymbols({
+      state.symbols = createMockSymbols({
         knownStructs: new Set(["Wrapper"]),
+        knownScopes: new Set<string>(),
         structFields: new Map([["Wrapper", new Map([["idx", "u32"]])]]),
       });
       const tree = parse(`
@@ -635,7 +642,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[w.idx] <- 5;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -650,7 +657,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
           arr[signedFlags[0]] <- 5;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -665,7 +672,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const tree = parse(
         `void main() { u8[10] arr; i32 idx <- 0; arr[idx] <- 1; }`,
       );
-      const analyzer = new ArrayIndexTypeAnalyzer();
+      const analyzer = new ArrayIndexTypeAnalyzer(testAnalysisContext(state));
       analyzer.analyze(tree);
 
       const errors = analyzer.getErrors();

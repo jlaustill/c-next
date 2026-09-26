@@ -6,19 +6,19 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import SymbolTable from "../SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import TSymbol from "../../types/symbols/TSymbol";
-import IVariableSymbol from "../../types/symbols/IVariableSymbol";
-import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
-import IStructSymbol from "../../types/symbols/IStructSymbol";
-import IEnumSymbol from "../../types/symbols/IEnumSymbol";
-import ITargetCapabilities from "../../types/ITargetCapabilities";
+import TSymbol from "../../../transpiler/types/symbols/TSymbol";
+import IVariableSymbol from "../../../transpiler/types/symbols/IVariableSymbol";
+import IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
+import IStructSymbol from "../../../transpiler/types/symbols/IStructSymbol";
+import IEnumSymbol from "../../../transpiler/types/symbols/IEnumSymbol";
+import ITargetCapabilities from "../../../transpiler/types/ITargetCapabilities";
 import TTypeUtils from "../../../utils/TTypeUtils";
-import TCSymbol from "../../types/symbols/c/TCSymbol";
-import TCppSymbol from "../../types/symbols/cpp/TCppSymbol";
-import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
-import TVisibility from "../../types/TVisibility";
-import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
-import TestEnumMembers from "../../types/__testUtils__/testEnumMembers";
+import TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
+import TCppSymbol from "../../../transpiler/types/symbols/cpp/TCppSymbol";
+import TestSymbolUtils from "../cnext/__tests__/testSymbolUtils";
+import TVisibility from "../../../transpiler/types/TVisibility";
+import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import TestEnumMembers from "../../../transpiler/types/__testUtils__/testEnumMembers";
 
 describe("SymbolTable", () => {
   let symbolTable: SymbolTable;
@@ -505,12 +505,6 @@ describe("SymbolTable", () => {
       expect(all).toHaveLength(2);
     });
 
-    it("should clear opaque types on clear()", () => {
-      symbolTable.markOpaqueType("widget_t");
-      symbolTable.clear();
-      expect(symbolTable.isOpaqueType("widget_t")).toBe(false);
-    });
-
     it("should restore opaque types from cache", () => {
       // Issue #1225: round-trip through the real serializer rather than a
       // hand-built payload -- a payload the production path never writes can
@@ -608,12 +602,6 @@ describe("SymbolTable", () => {
       expect(all).toContainEqual(["context_t", "context.h"]);
     });
 
-    it("should clear typedef struct types on clear()", () => {
-      symbolTable.markTypedefStructType("widget_t", "widget.h");
-      symbolTable.clear();
-      expect(symbolTable.isTypedefStructType("widget_t")).toBe(false);
-    });
-
     it("should restore typedef struct types from cache", () => {
       const source = new SymbolTable();
       source.markTypedefStructType("widget_t", "widget_types.h");
@@ -704,56 +692,11 @@ describe("SymbolTable", () => {
 
       expect(symbolTable.isPointerTypedef("handle_t")).toBe(true);
     });
-
-    it("should clear all struct state on clear()", () => {
-      symbolTable.registerStructTagAlias("_foo", "foo_t");
-      symbolTable.markStructTagHasBody("_foo");
-      symbolTable.clear();
-      expect(symbolTable.getStructTagAlias("_foo")).toBeUndefined();
-      expect(symbolTable.getAllStructTagsWithBodies()).toHaveLength(0);
-    });
   });
 
   // ========================================================================
   // Clear
   // ========================================================================
-
-  describe("clear", () => {
-    it("should clear all symbols", () => {
-      symbolTable.addTSymbol({
-        ...TestSymbolUtils.base({
-          kind: "variable",
-          name: "test",
-          scopePath: "",
-          sourceFile: "test.cnx",
-          span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
-          visibility: "public",
-        }),
-        type: TTypeUtils.createPrimitive("u32"),
-        isArray: false,
-        isConst: false,
-        isAtomic: false,
-        isVolatile: false,
-        overflowBehavior: "clamp",
-      });
-
-      symbolTable.addStructField("Point", "x", "int");
-      symbolTable.markNeedsStructKeyword("RawStruct");
-      symbolTable.markOpaqueType("widget_t");
-      symbolTable.addEnumBitWidth("SmallEnum", 8);
-      symbolTable.markTypedefStructType("handle_t", "handle.h");
-
-      symbolTable.clear();
-
-      expect(symbolTable.getAllSymbols()).toHaveLength(0);
-      expect(symbolTable.getStructFieldType("Point", "x")).toBeUndefined();
-      expect(symbolTable.checkNeedsStructKeyword("RawStruct")).toBe(false);
-      expect(symbolTable.isOpaqueType("widget_t")).toBe(false);
-      expect(symbolTable.getEnumBitWidth("SmallEnum")).toBeUndefined();
-      expect(symbolTable.isTypedefStructType("handle_t")).toBe(false);
-    });
-  });
 
   // ========================================================================
   // MISRA C:2012 Rule 5.1 - External Identifier Length (issue #1307)

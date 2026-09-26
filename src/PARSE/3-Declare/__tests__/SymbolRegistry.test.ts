@@ -5,16 +5,18 @@ import { describe, it, expect, beforeEach } from "vitest";
 import SymbolRegistry from "../SymbolRegistry";
 import FunctionUtils from "../../../tests/utils/FunctionUtils";
 import TTypeUtils from "../../../utils/TTypeUtils";
-import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
 
 describe("SymbolRegistry", () => {
-  beforeEach(() => {
-    SymbolRegistry.reset();
-  });
-
   describe("getGlobalScope", () => {
     it("returns the global scope singleton", () => {
-      const global = SymbolRegistry.getGlobalScope();
+      const global = registry.getGlobalScope();
       expect(global.kind).toBe("scope");
       expect(global.name).toBe("");
       // #1298: no self-reference. The global scope states where it sits with an
@@ -23,43 +25,43 @@ describe("SymbolRegistry", () => {
     });
 
     it("returns same instance on multiple calls", () => {
-      const g1 = SymbolRegistry.getGlobalScope();
-      const g2 = SymbolRegistry.getGlobalScope();
+      const g1 = registry.getGlobalScope();
+      const g2 = registry.getGlobalScope();
       expect(g1).toBe(g2);
     });
   });
 
   describe("getOrCreateScope", () => {
     it("returns global scope for empty path", () => {
-      const scope = SymbolRegistry.getOrCreateScope("");
-      expect(scope).toBe(SymbolRegistry.getGlobalScope());
+      const scope = registry.getOrCreateScope("");
+      expect(scope).toBe(registry.getGlobalScope());
     });
 
     it("creates scope with global parent for simple name", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Test");
+      const scope = registry.getOrCreateScope("Test");
       expect(scope.name).toBe("Test");
       expect(scope.scopePath).toBe("");
     });
 
     it("returns same scope for same path", () => {
-      const s1 = SymbolRegistry.getOrCreateScope("Test");
-      const s2 = SymbolRegistry.getOrCreateScope("Test");
+      const s1 = registry.getOrCreateScope("Test");
+      const s2 = registry.getOrCreateScope("Test");
       expect(s1).toBe(s2);
     });
 
     it("creates nested scopes for dotted path", () => {
-      const inner = SymbolRegistry.getOrCreateScope("Outer.Inner");
+      const inner = registry.getOrCreateScope("Outer.Inner");
       expect(inner.name).toBe("Inner");
       expect(inner.scopePath).toBe("Outer");
       // The intermediate scope is still created eagerly, so members can be
       // registered into it -- a child names it by path rather than pointing at it.
-      expect(SymbolRegistry.getScope("Outer")?.scopePath).toBe("");
+      expect(registry.getScope("Outer")?.scopePath).toBe("");
     });
   });
 
   describe("registerFunction", () => {
     it("adds function to its scope", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Test");
+      const scope = registry.getOrCreateScope("Test");
       const func = FunctionUtils.create({
         name: "fillData",
         scopePath: "Test",
@@ -69,7 +71,7 @@ describe("SymbolRegistry", () => {
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(1),
       });
-      SymbolRegistry.registerFunction(func);
+      registry.registerFunction(func);
 
       expect(scope.functions).toContain(func);
     });
@@ -82,7 +84,7 @@ describe("SymbolRegistry", () => {
     // this test and the negative control below are now the guard's live callers,
     // holding it as a ratchet against a second unconditional pass reappearing.
     it("is idempotent -- re-registering the same declaration does not duplicate it", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Test");
+      const scope = registry.getOrCreateScope("Test");
       const make = () =>
         FunctionUtils.create({
           name: "fillData",
@@ -100,8 +102,8 @@ describe("SymbolRegistry", () => {
       const second = make();
       expect(first).not.toBe(second);
 
-      SymbolRegistry.registerFunction(first);
-      SymbolRegistry.registerFunction(second);
+      registry.registerFunction(first);
+      registry.registerFunction(second);
 
       expect(scope.functions).toHaveLength(1);
     });
@@ -111,7 +113,7 @@ describe("SymbolRegistry", () => {
     // A fix that keyed on the SCOPE rather than the symbol would pass the
     // idempotence test and break this one.
     it("still merges two different functions declared in the same scope from different files", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Motor");
+      const scope = registry.getOrCreateScope("Motor");
       const start = FunctionUtils.create({
         name: "start",
         scopePath: "Motor",
@@ -131,8 +133,8 @@ describe("SymbolRegistry", () => {
         span: TestSourceSpan.at(2),
       });
 
-      SymbolRegistry.registerFunction(start);
-      SymbolRegistry.registerFunction(stop);
+      registry.registerFunction(start);
+      registry.registerFunction(stop);
 
       expect(scope.functions.map((f) => f.name)).toEqual(["start", "stop"]);
     });
@@ -140,7 +142,7 @@ describe("SymbolRegistry", () => {
 
   describe("resolveFunction", () => {
     it("finds function in current scope", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Test");
+      const scope = registry.getOrCreateScope("Test");
       const func = FunctionUtils.create({
         name: "fillData",
         scopePath: "Test",
@@ -150,9 +152,9 @@ describe("SymbolRegistry", () => {
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(1),
       });
-      SymbolRegistry.registerFunction(func);
+      registry.registerFunction(func);
 
-      const found = SymbolRegistry.resolveFunction("fillData", scope);
+      const found = registry.resolveFunction("fillData", scope);
       expect(found).toBe(func);
     });
 
@@ -166,41 +168,78 @@ describe("SymbolRegistry", () => {
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(1),
       });
-      SymbolRegistry.registerFunction(func);
+      registry.registerFunction(func);
 
-      const childScope = SymbolRegistry.getOrCreateScope("Test");
-      const found = SymbolRegistry.resolveFunction("helper", childScope);
+      const childScope = registry.getOrCreateScope("Test");
+      const found = registry.resolveFunction("helper", childScope);
       expect(found).toBe(func);
     });
 
     it("returns null for unknown function", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Test");
-      const found = SymbolRegistry.resolveFunction("unknown", scope);
+      const scope = registry.getOrCreateScope("Test");
+      const found = registry.resolveFunction("unknown", scope);
       expect(found).toBeNull();
     });
   });
 
-  describe("reset", () => {
-    it("clears all registered symbols", () => {
-      SymbolRegistry.getOrCreateScope("Test");
-      const func = FunctionUtils.create({
-        name: "foo",
-        scopePath: "Test",
-        parameters: [],
-        returnType: TTypeUtils.createPrimitive("void"),
-        visibility: "private",
-        sourceFile: "test.cnx",
-        span: TestSourceSpan.at(1),
-      });
-      SymbolRegistry.registerFunction(func);
+  // #1452 box 3 deleted `reset()`, and the block that tested it could not fail
+  // once the call went: it registered `foo` in scope `Test` and then asserted
+  // on the GLOBAL scope, where `resolveFunction` walks outward and never
+  // inward -- so both assertions held whether or not anything had been cleared.
+  // What replaces it is the property that made `reset()` unnecessary.
+  describe("isolation between instances (#1452 box 3)", () => {
+    // Mutation-checking this needs sharing to be REACHABLE, and it is not: the
+    // only way to make two registries agree is a static, and
+    // `passes-hold-no-mutable-state.test.ts` fails on one added here --
+    // verified, it names `SymbolRegistry.ts` and the line. So the property is
+    // defended upstream by a guard that IS mutation-checked, and this case
+    // states the property that guard exists to preserve.
+    //
+    // Written down because "I could not mutate it" and "it cannot fail" look
+    // identical in a green run, and only one of them is acceptable.
+    it("does not share scopes or functions with another registry", () => {
+      registry.getOrCreateScope("Test");
+      registry.registerFunction(
+        FunctionUtils.create({
+          name: "foo",
+          scopePath: "Test",
+          parameters: [],
+          returnType: TTypeUtils.createPrimitive("void"),
+          visibility: "private",
+          sourceFile: "test.cnx",
+          span: TestSourceSpan.at(1),
+        }),
+      );
 
-      SymbolRegistry.reset();
+      const other = new SymbolRegistry();
 
-      const newGlobal = SymbolRegistry.getGlobalScope();
-      expect(newGlobal.functions).toHaveLength(0);
+      expect(other.getScope("Test")).toBeNull();
+      expect(other.resolveFunction("foo", other.getGlobalScope())).toBeNull();
+      // Control: the registry that DID register it still has it, so the
+      // assertions above are about isolation rather than about registration
+      // silently failing.
+      expect(registry.getScope("Test")).not.toBeNull();
+    });
+  });
 
-      const found = SymbolRegistry.resolveFunction("foo", newGlobal);
-      expect(found).toBeNull();
+  describe("scopePathOf", () => {
+    it("does not create the scope it is asked about", () => {
+      // The non-creating property #1452 leans on: two call sites outside 1.3
+      // Declare turned a name-to-path lookup into a scope CREATION, which is
+      // what `passes-hold-no-mutable-state.test.ts` keeps out of the later
+      // passes. Nothing pinned the behavior itself.
+      expect(registry.scopePathOf("NeverRegistered")).toBe("NeverRegistered");
+
+      expect(registry.getScope("NeverRegistered")).toBeNull();
+    });
+
+    it("answers with the registered path for a scope it knows", () => {
+      registry.getOrCreateScope("Outer.Inner");
+
+      // Keyed on the path `getScope` accepts, which is the full dotted path --
+      // a leaf name is NOT a key, and falls through to the identity answer.
+      expect(registry.scopePathOf("Outer.Inner")).toBe("Outer.Inner");
+      expect(registry.scopePathOf("Inner")).toBe("Inner");
     });
   });
 
@@ -215,14 +254,14 @@ describe("SymbolRegistry", () => {
         sourceFile: "main.cnx",
         span: TestSourceSpan.at(1),
       });
-      SymbolRegistry.registerFunction(func);
+      registry.registerFunction(func);
 
-      const found = SymbolRegistry.findByCName("main");
+      const found = registry.findByCName("main");
       expect(found).toBe(func);
     });
 
     it("finds scoped function by transpiled C name", () => {
-      SymbolRegistry.getOrCreateScope("Test");
+      registry.getOrCreateScope("Test");
       const func = FunctionUtils.create({
         name: "fillData",
         scopePath: "Test",
@@ -232,14 +271,14 @@ describe("SymbolRegistry", () => {
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(10),
       });
-      SymbolRegistry.registerFunction(func);
+      registry.registerFunction(func);
 
-      const found = SymbolRegistry.findByCName("Test__fillData");
+      const found = registry.findByCName("Test__fillData");
       expect(found).toBe(func);
     });
 
     it("finds nested scope function by transpiled C name", () => {
-      SymbolRegistry.getOrCreateScope("Outer.Inner");
+      registry.getOrCreateScope("Outer.Inner");
       const func = FunctionUtils.create({
         name: "deepFunc",
         scopePath: "Outer.Inner",
@@ -249,21 +288,21 @@ describe("SymbolRegistry", () => {
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(20),
       });
-      SymbolRegistry.registerFunction(func);
+      registry.registerFunction(func);
 
-      const found = SymbolRegistry.findByCName("Outer__Inner__deepFunc");
+      const found = registry.findByCName("Outer__Inner__deepFunc");
       expect(found).toBe(func);
     });
 
     it("returns null for unknown function", () => {
-      const found = SymbolRegistry.findByCName("Unknown__func");
+      const found = registry.findByCName("Unknown__func");
       expect(found).toBeNull();
     });
   });
 
   describe("getScopeByCFunctionName", () => {
     it("returns scope for scoped function", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Motor");
+      const scope = registry.getOrCreateScope("Motor");
       const func = FunctionUtils.create({
         name: "init",
         scopePath: "Motor",
@@ -273,14 +312,14 @@ describe("SymbolRegistry", () => {
         sourceFile: "motor.cnx",
         span: TestSourceSpan.at(5),
       });
-      SymbolRegistry.registerFunction(func);
+      registry.registerFunction(func);
 
-      const foundScope = SymbolRegistry.getScopeByCFunctionName("Motor__init");
+      const foundScope = registry.getScopeByCFunctionName("Motor__init");
       expect(foundScope).toBe(scope);
     });
 
     it("returns global scope for global function", () => {
-      const global = SymbolRegistry.getGlobalScope();
+      const global = registry.getGlobalScope();
       const func = FunctionUtils.create({
         name: "helper",
         scopePath: "",
@@ -290,15 +329,14 @@ describe("SymbolRegistry", () => {
         sourceFile: "helpers.cnx",
         span: TestSourceSpan.at(1),
       });
-      SymbolRegistry.registerFunction(func);
+      registry.registerFunction(func);
 
-      const foundScope = SymbolRegistry.getScopeByCFunctionName("helper");
+      const foundScope = registry.getScopeByCFunctionName("helper");
       expect(foundScope).toBe(global);
     });
 
     it("returns null for unknown function", () => {
-      const foundScope =
-        SymbolRegistry.getScopeByCFunctionName("Unknown__func");
+      const foundScope = registry.getScopeByCFunctionName("Unknown__func");
       expect(foundScope).toBeNull();
     });
   });

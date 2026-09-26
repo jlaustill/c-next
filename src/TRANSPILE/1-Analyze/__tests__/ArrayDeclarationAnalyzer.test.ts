@@ -2,10 +2,11 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import CNextResolver from "../../../PARSE/3-Declare/cnext";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import TranspileState from "../../TranspileState";
 import Program from "../../../PARSE/4-Resolve/Program";
-import SymbolRegistry from "../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import ArrayDeclarationAnalyzer from "../ArrayDeclarationAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-036's declaration shape (E0874 C-style, E0875 unbounded
@@ -17,7 +18,7 @@ import ArrayDeclarationAnalyzer from "../ArrayDeclarationAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new ArrayDeclarationAnalyzer().analyze(tree);
+  return new ArrayDeclarationAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 /**
@@ -27,16 +28,23 @@ const errors = (source: string) => {
  */
 const errorsWithProgram = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  SymbolRegistry.reset();
-  CodeGenState.program = Program.build([
-    CNextResolver.resolve(tree, "collide.cnx"),
+  state.program = Program.build([
+    CNextResolver.resolve(tree, "collide.cnx", registry),
   ]);
-  return new ArrayDeclarationAnalyzer().analyze(tree);
+  return new ArrayDeclarationAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new TranspileState();
 });
+
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
+
+let state = new TranspileState();
 
 describe("ArrayDeclarationAnalyzer", () => {
   describe("E0874 -- C-style declarations and parameters", () => {

@@ -18,8 +18,41 @@
  * threading a path through helpers that deliberately take injected deps
  * (TypeGenerationHelper) would have made those helpers know about global state
  * purely to report on themselves.
+ *
+ * ## #1452, and what this module does NOT satisfy
+ *
+ * It moved out of `src/transpiler/state/` for box 1, and it does not satisfy
+ * box 4 -- "no module reachable from the pipeline holds mutable cross-pass
+ * state". It holds two mutable statics, written at 17 `record` sites across
+ * 2.1 Analyze and 2.3 Render plus four `beginFile` sites, and read once at the
+ * end of the run. That is cross-pass by the box's literal text.
+ *
+ * Neither alternative is better. Splitting the sink per pass yields three
+ * accumulators where there is one, and the only consumer
+ * (`scripts/matrix/AdrProvenanceLines.ts`) reads `adr` and `line` and never
+ * `sourcePath`, so the attribution a split changes is unobservable to the only
+ * gate watching it. Threading an instance through the call sites contradicts
+ * the paragraph above, which is a recorded design decision, not an oversight.
+ *
+ * The owner's call, taken 2026-09-23: box 4 governs PROGRAM state. A fact about
+ * the run is not one, so `src/instrumentation/` is admitted by
+ * `docs/architecture/README.md` as a fourth kind of root beside the layers, the
+ * shared contracts and the host -- and as the one root that may hold mutable
+ * state, because what it accumulates is an observation rather than a fact
+ * carried between passes. Nothing downstream branches on it.
+ *
+ * That exemption is stated, not incidental. `passes-hold-no-mutable-state.test.ts`
+ * scans the layers and not this root because instrumentation is not a pass, and
+ * the line it rests on is enforced: `instrumentation-cannot-import-a-layer`
+ * (`reachable: true`) stops this module reaching back into the thing it reports
+ * on. Mutation-checked -- an import of a 1-Analyze module produces twelve
+ * violations naming this file.
+ *
+ * The sibling arrives with the rest of #1452: the toolchain-requirement
+ * accumulator, still inside `CodeGenState` today, is the same kind of fact and
+ * belongs here too.
  */
-import type IRecordedAdrSite from "../types/IRecordedAdrSite";
+import type IRecordedAdrSite from "../transpiler/types/IRecordedAdrSite";
 
 class AdrProvenance {
   private static sites: IRecordedAdrSite[] = [];

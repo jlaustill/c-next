@@ -22,7 +22,7 @@ import IDivisionByZeroError from "./types/IDivisionByZeroError";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ExpressionUtils from "../../utils/ExpressionUtils";
 import ParserUtils from "../../utils/ParserUtils";
-import CodeGenState from "../../transpiler/state/CodeGenState";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
  * First pass: Collect const declarations that are zero
@@ -73,7 +73,11 @@ class DivisionByZeroListener extends CNextListener {
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private readonly constZeros: Set<string>;
 
-  constructor(analyzer: DivisionByZeroAnalyzer, constZeros: Set<string>) {
+  constructor(
+    analyzer: DivisionByZeroAnalyzer,
+    constZeros: Set<string>,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
     this.analyzer = analyzer;
     this.constZeros = constZeros;
@@ -144,7 +148,7 @@ class DivisionByZeroListener extends CNextListener {
     if (identifier) {
       const name = identifier.getText();
       return (
-        this.constZeros.has(name) || CodeGenState.getCNextConstValue(name) === 0
+        this.constZeros.has(name) || this.context.program.constValue(name) === 0
       );
     }
 
@@ -156,6 +160,9 @@ class DivisionByZeroListener extends CNextListener {
  * Analyzer that detects division by zero
  */
 class DivisionByZeroAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   private errors: IDivisionByZeroError[] = [];
 
   /**
@@ -173,7 +180,7 @@ class DivisionByZeroAnalyzer {
     const constZeros = collector.getConstZeros();
 
     // Second pass: detect division by zero
-    const listener = new DivisionByZeroListener(this, constZeros);
+    const listener = new DivisionByZeroListener(this, constZeros, this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
 
     return this.errors;

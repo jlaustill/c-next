@@ -27,6 +27,7 @@ import ParserUtils from "../../utils/ParserUtils";
 import TypeConstants from "../../utils/constants/TypeConstants";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
  * Second pass: Detect modulo operations with float operands
@@ -110,6 +111,9 @@ class FloatModuloListener extends CNextListener {
  * Analyzer that detects modulo operations with floating-point types
  */
 class FloatModuloAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   private errors: IFloatModuloError[] = [];
 
   /**
@@ -125,7 +129,7 @@ class FloatModuloAnalyzer {
     // Second pass: detect modulo with floats
     const listener = new FloatModuloListener(
       this,
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
 

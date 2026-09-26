@@ -38,13 +38,13 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import IScopeAccessError from "./types/IScopeAccessError";
 import IScopeFrame from "./types/IScopeFrame";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** `Scope.member`, as written, with where it was written. */
 interface IAccess {
@@ -57,7 +57,10 @@ interface IAccess {
 class ScopeAccessListener extends CNextListener {
   private readonly found: IScopeAccessError[] = [];
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
   }
 
@@ -152,7 +155,7 @@ class ScopeAccessListener extends CNextListener {
     // before any of the three checks here could run, so it is exempt from all
     // three. `scopedRegisters` is keyed by the transpiled C name, so the key
     // goes through the single encoder rather than being spelled by hand.
-    if (ScopeAccessListener.isScopedRegister(access)) return;
+    if (this.isScopedRegister(access)) return;
 
     const frame = this.scopes.frameFor(node);
     const here = frame.scopePath;
@@ -176,9 +179,9 @@ class ScopeAccessListener extends CNextListener {
 
   /** E0436: a private member reached from another scope or from file scope. */
   private reportPrivate(access: IAccess, here: string): boolean {
-    if (!CodeGenState.symbols?.knownScopes.has(access.scope)) return false;
+    if (!this.context.symbols.knownScopes.has(access.scope)) return false;
     if (access.scope === here) return false;
-    const visibility = CodeGenState.symbols.scopeMemberVisibility
+    const visibility = this.context.symbols.scopeMemberVisibility
       .get(access.scope)
       ?.get(access.member);
     if (visibility !== "private") return false;
@@ -205,8 +208,7 @@ class ScopeAccessListener extends CNextListener {
     frame: IScopeFrame,
   ): void {
     if (access.viaGlobal || here === "") return;
-    const symbols = CodeGenState.symbols;
-    if (!symbols) return;
+    const symbols = this.context.symbols;
 
     const isEnum = symbols.knownEnums.has(access.scope);
     const isRegister = symbols.knownRegisters.has(access.scope);
@@ -231,12 +233,12 @@ class ScopeAccessListener extends CNextListener {
     );
   }
 
-  private static isScopedRegister(access: IAccess): boolean {
+  private isScopedRegister(access: IAccess): boolean {
     const cName = ScopeUtils.getTranspiledCName({
       scopePath: access.scope,
       name: access.member,
     });
-    return CodeGenState.symbols?.scopedRegisters?.has(cName) ?? false;
+    return this.context.symbols.scopedRegisters.has(cName);
   }
 
   private report(
@@ -251,12 +253,16 @@ class ScopeAccessListener extends CNextListener {
 }
 
 class ScopeAccessAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): IScopeAccessError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new ScopeAccessListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

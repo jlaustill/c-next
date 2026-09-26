@@ -42,8 +42,8 @@ import ISubstringOps from "../types/ISubstringOps";
 import TPlannedStringDecl from "../types/TPlannedStringDecl";
 import StringOperationsHelper from "./StringOperationsHelper";
 import StringUtils from "../../../../utils/StringUtils";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import invariant from "../../../../utils/invariant";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Generates string variable declarations in C.
@@ -62,16 +62,23 @@ class StringDeclHelper {
     name: string,
     modifiers: IRenderedModifiers,
     isConst: boolean,
+    state: TranspileState,
   ): string {
     switch (plan.kind) {
       case "array":
-        return StringDeclHelper._generateStringArray(plan, name, modifiers);
+        return StringDeclHelper._generateStringArray(
+          plan,
+          name,
+          modifiers,
+          state,
+        );
       case "bounded":
         return StringDeclHelper._generateBoundedStringDecl(
           plan.capacity,
           plan.init,
           name,
           modifiers,
+          state,
         );
       case "unsized":
         return StringDeclHelper._generateUnsizedStringDecl(
@@ -79,6 +86,7 @@ class StringDeclHelper {
           name,
           modifiers,
           isConst,
+          state,
         );
     }
   }
@@ -91,6 +99,7 @@ class StringDeclHelper {
     plan: Extract<TPlannedStringDecl, { kind: "array" }>,
     name: string,
     modifiers: IRenderedModifiers,
+    state: TranspileState,
   ): string {
     const {
       extern,
@@ -104,7 +113,7 @@ class StringDeclHelper {
     // Track as local array
     // ADR-057: `name` is the EMITTED identifier; every registry keys on the
     // source spelling, which is what references in the source say.
-    CodeGenState.localArrays.add(CodeGenState.sourceLocalName(name));
+    state.localArrays.add(state.sourceLocalName(name));
 
     // No initializer - zero-initialize
     if (!plan.renderInit) {
@@ -113,11 +122,11 @@ class StringDeclHelper {
 
     // The array-initializer bookkeeping is written BY the render below and read
     // immediately after, so the reset, the render and the reads are one window.
-    CodeGenState.resetArrayInitTracking();
+    state.resetArrayInitTracking();
     const initValue = plan.renderInit();
 
     // Check if it was an array initializer
-    if (!CodeGenState.wasArrayInit()) {
+    if (!state.wasArrayInit()) {
       invariant(
         false,
         `a string array is initialized from literals -- E0866 rejects a variable initializer in pass 2.1`,
@@ -126,8 +135,8 @@ class StringDeclHelper {
 
     // Validate element count if declared size is available
     if (plan.declaredSize !== null) {
-      const isFillAll = CodeGenState.lastArrayFillValue !== undefined;
-      const elementCount = CodeGenState.lastArrayInitCount;
+      const isFillAll = state.lastArrayFillValue !== undefined;
+      const elementCount = state.lastArrayInitCount;
 
       if (!isFillAll && elementCount !== plan.declaredSize) {
         invariant(
@@ -141,6 +150,7 @@ class StringDeclHelper {
     const finalInitValue = StringDeclHelper._expandFillAll(
       initValue,
       plan.declaredSize,
+      state,
     );
 
     // MISRA C:2012 Rules 9.3/9.4 - String literals don't fill all inner array bytes,
@@ -156,8 +166,9 @@ class StringDeclHelper {
   private static _expandFillAll(
     initValue: string,
     declaredSize: number | null,
+    state: TranspileState,
   ): string {
-    const fillVal = CodeGenState.lastArrayFillValue;
+    const fillVal = state.lastArrayFillValue;
     if (fillVal === undefined) {
       return initValue;
     }
@@ -183,6 +194,7 @@ class StringDeclHelper {
     init: IPlannedStringInit | null,
     name: string,
     modifiers: IRenderedModifiers,
+    state: TranspileState,
   ): string {
     const {
       extern,
@@ -211,6 +223,7 @@ class StringDeclHelper {
         init.concat,
         constMod,
         qualifiers,
+        state,
       );
     }
 
@@ -222,11 +235,16 @@ class StringDeclHelper {
         substringOps,
         constMod,
         qualifiers,
+        state,
       );
     }
 
     // Validate and check if it's a literal or variable
-    const isLiteral = StringDeclHelper._validateStringInit(init.text, capacity);
+    const isLiteral = StringDeclHelper._validateStringInit(
+      init.text,
+      capacity,
+      state,
+    );
 
     if (isLiteral) {
       // String literal: can use direct initialization
@@ -238,7 +256,7 @@ class StringDeclHelper {
     // (strncpy + explicit null terminator via StringUtils.copyWithNull) rather
     // than an unbounded strcpy, which flawfinder flags as CWE-120.
     // Issue #1030: string-to-string initialization
-    if (!CodeGenState.inFunctionBody) {
+    if (!state.inFunctionBody) {
       invariant(
         false,
         `a string at file scope is initialized by a literal -- E0863 rejects a copy from a variable in pass 2.1`,
@@ -263,6 +281,7 @@ class StringDeclHelper {
   private static _validateStringInit(
     exprText: string,
     capacity: number,
+    state: TranspileState,
   ): boolean {
     // Validate string literal fits capacity
     if (exprText.startsWith('"') && exprText.endsWith('"')) {
@@ -277,7 +296,10 @@ class StringDeclHelper {
     }
 
     // Check for string variable assignment
-    const srcCapacity = StringOperationsHelper.getStringExprCapacity(exprText);
+    const srcCapacity = StringOperationsHelper.getStringExprCapacity(
+      exprText,
+      state,
+    );
     if (srcCapacity !== null && srcCapacity > capacity) {
       invariant(
         false,
@@ -296,10 +318,11 @@ class StringDeclHelper {
     concatOps: IStringConcatOps,
     constMod: string,
     qualifiers: string,
+    state: TranspileState,
   ): string {
     // String concatenation requires runtime function calls (strncpy, strncat)
     // which cannot exist at global scope in C
-    if (!CodeGenState.inFunctionBody) {
+    if (!state.inFunctionBody) {
       invariant(
         false,
         `a string at file scope is initialized by a literal -- E0863 rejects a concatenation in pass 2.1`,
@@ -337,10 +360,11 @@ class StringDeclHelper {
     substringOps: ISubstringOps,
     constMod: string,
     qualifiers: string,
+    state: TranspileState,
   ): string {
     // Substring extraction requires runtime function calls (strncpy)
     // which cannot exist at global scope in C
-    if (!CodeGenState.inFunctionBody) {
+    if (!state.inFunctionBody) {
       invariant(
         false,
         `a string at file scope is initialized by a literal -- E0863 rejects a substring in pass 2.1`,
@@ -394,6 +418,7 @@ class StringDeclHelper {
     name: string,
     modifiers: IRenderedModifiers,
     isConst: boolean,
+    state: TranspileState,
   ): string {
     if (!isConst) {
       invariant(
@@ -420,7 +445,7 @@ class StringDeclHelper {
     const inferredCapacity = StringUtils.literalLength(initText);
 
     // Register in type registry with inferred capacity
-    CodeGenState.setVariableTypeInfo(CodeGenState.sourceLocalName(name), {
+    state.setVariableTypeInfo(state.sourceLocalName(name), {
       baseType: "char",
       bitWidth: 8,
       isArray: true,

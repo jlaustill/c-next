@@ -10,7 +10,7 @@ import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IFunctionSymbol from "../../../../transpiler/types/symbols/IFunctionSymbol";
 import IParameterInfo from "../../../../transpiler/types/symbols/IParameterInfo";
 import TypeUtils from "../utils/TypeUtils";
-import SymbolRegistry from "../../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../SymbolRegistry";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../transpiler/types/TVisibility";
 import ParserUtils from "../../../../utils/ParserUtils";
@@ -94,6 +94,7 @@ class FunctionCollector {
    * @returns The function symbol
    */
   static collectAndRegister(
+    registry: SymbolRegistry,
     ctx: Parser.FunctionDeclarationContext,
     sourceFile: string,
     scopePath: string,
@@ -112,7 +113,7 @@ class FunctionCollector {
     );
 
     // 3. Register in SymbolRegistry
-    SymbolRegistry.registerFunction(symbol);
+    registry.registerFunction(symbol);
 
     return symbol;
   }

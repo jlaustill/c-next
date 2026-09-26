@@ -4,21 +4,51 @@
  * Provides centralized storage and lookup for all symbols in the C-Next transpiler.
  *
  * Design decisions:
- * - Static class with global state (reset between transpilation runs)
+ * - One instance per RUN, threaded; there is no global to clear (#1452 box 3)
  * - `getOrCreateScope` handles scope merging across files (same scope path = same object)
  * - `resolveFunction` walks scope chain (current -> parent -> global)
  * - String keys in Maps for lookup, but values are proper symbol objects
+ *
+ * ## An instance per run, not a static (#1452 box 3)
+ *
+ * The clearing was a correctness requirement tests had to remember: 23
+ * `beforeEach` calls across 22 files. Measured before changing it -- deleting
+ * all 23 reddens 5 files and 12 tests, so the requirement was real, not
+ * vestigial. The failures are `Object.is` assertions, because
+ * `getOrCreateScope` returns a CACHED object and a test that did not reset
+ * received the previous test's scope.
+ *
+ * A run now constructs one registry and threads it, so isolation is what you
+ * get by default rather than what you must remember. It also closes #1378 by
+ * construction: `parseWithSymbols` never reset the global, so scopes from a
+ * previously parsed source leaked into the next call. It builds its own now.
+ *
+ * **Per-RUN, not per-file, and that distinction is load-bearing.** The
+ * cross-file merge and the object ALIASING 1.4 depends on both survive because
+ * it is still one registry for the whole run: `DeferredTypes.settle` writes
+ * into `IScopeSymbol.functions` in place and deliberately skips entries another
+ * file settled, on the grounds that they share the object through here, and
+ * `ScopeCollector` accumulates `declarationSites` across reopening blocks,
+ * which #1334 needs. A per-file registry would break both.
+ *
+ * **Only 1.3 Declare creates.** Measured across 120 fixtures with a stack-frame
+ * probe: 2.1 Analyze, 2.2 Plan and 2.3 Render produced ZERO creations, and the
+ * probe fires from `CNextResolver`, so the zero is a real zero rather than a
+ * broken instrument. Their `getOrCreateScope` calls are all
+ * `ScopeUtils.pathOf(getOrCreateScope(name))` -- a name-to-path lookup where
+ * the create arm is never taken. That is why the later passes reach this
+ * through `IProgram`'s read surface and only 1.3 holds the registry itself.
  */
 import ScopeUtils from "../../utils/ScopeUtils";
-import type IScopeSymbol from "../types/symbols/IScopeSymbol";
-import type IFunctionSymbol from "../types/symbols/IFunctionSymbol";
+import type IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
+import type IFunctionSymbol from "../../transpiler/types/symbols/IFunctionSymbol";
 
 class SymbolRegistry {
-  /** The global scope singleton (recreated on reset) */
-  private static globalScope: IScopeSymbol = ScopeUtils.createGlobalScope();
+  /** The global scope for this run. */
+  private readonly globalScope: IScopeSymbol = ScopeUtils.createGlobalScope();
 
   /** Map from scope path (e.g., "Outer.Inner") to scope object */
-  private static readonly scopes: Map<string, IScopeSymbol> = new Map();
+  private readonly scopes: Map<string, IScopeSymbol> = new Map();
 
   // ============================================================================
   // Scope Management
@@ -32,7 +62,7 @@ class SymbolRegistry {
    * - scopePath: "" (it has no enclosing scope; #1298 removed the
    *   self-reference that made the symbol graph cyclic)
    */
-  static getGlobalScope(): IScopeSymbol {
+  getGlobalScope(): IScopeSymbol {
     return this.globalScope;
   }
 
@@ -42,9 +72,31 @@ class SymbolRegistry {
    * Use this for read-only lookups where you don't want to create
    * orphaned scopes. Returns null if the scope doesn't exist.
    */
-  static getScope(path: string): IScopeSymbol | null {
+  getScope(path: string): IScopeSymbol | null {
     if (path === "") return this.globalScope;
     return this.scopes.get(path) ?? null;
+  }
+
+  /**
+   * The dotted path a scope NAME resolves to, without creating anything.
+   *
+   * #1452: two passes after 1.3 Declare asked this question by calling
+   * `getOrCreateScope(name)` and reading `pathOf` off the result -- the exact
+   * misuse the method below warns against, written out twice. It answered
+   * correctly only because a name it had not seen produces a scope whose
+   * `cnxScopedName` IS that name, so the orphan it created was equal to the
+   * fallback and nothing downstream noticed.
+   *
+   * The cost was that 2.1 Analyze and 2.2 Plan could both grow the registry, so
+   * "a later pass never mutates 1.3's artifact" was a property that held by
+   * measurement (120 fixtures, zero creations) rather than by construction.
+   * With this it holds by construction, and the duplicated derivation becomes
+   * one decision -- which is also the question `IProgram.scopePathOf` answers,
+   * for the caller that has the program rather than the registry.
+   */
+  scopePathOf(name: string): string {
+    const scope = this.getScope(name);
+    return scope ? ScopeUtils.pathOf(scope) : name;
   }
 
   /**
@@ -59,7 +111,7 @@ class SymbolRegistry {
    * Note: This creates scopes that don't exist. For read-only lookups,
    * use getScope() instead to avoid creating orphaned scopes.
    */
-  static getOrCreateScope(path: string): IScopeSymbol {
+  getOrCreateScope(path: string): IScopeSymbol {
     if (ScopeUtils.isGlobalScopePath(path)) return this.globalScope;
     if (this.scopes.has(path)) return this.scopes.get(path)!;
 
@@ -107,7 +159,7 @@ class SymbolRegistry {
    * spanned across two files merges (#1333); suppressing registration for an
    * already-seen scope would break spanned scopes, which are a designed feature.
    */
-  static registerFunction(func: IFunctionSymbol): void {
+  registerFunction(func: IFunctionSymbol): void {
     if (this.isAlreadyRegistered(func)) return;
     this.getOrCreateScope(func.scopePath).functions.push(func);
   }
@@ -135,7 +187,7 @@ class SymbolRegistry {
    * suppressing registration for an already-seen scope would break spanned
    * scopes. The negative control in the tests covers exactly that.
    */
-  private static isAlreadyRegistered(func: IFunctionSymbol): boolean {
+  private isAlreadyRegistered(func: IFunctionSymbol): boolean {
     return this.getOrCreateScope(func.scopePath).functions.some(
       (existing: IFunctionSymbol) =>
         existing.fullyQualifiedCName === func.fullyQualifiedCName,
@@ -158,7 +210,7 @@ class SymbolRegistry {
    * termination guard this replaces compared object identity, which is precisely
    * the test that could not fire on a proxy chain.
    */
-  static resolveFunction(
+  resolveFunction(
     name: string,
     fromScope: IScopeSymbol,
   ): IFunctionSymbol | null {
@@ -178,17 +230,6 @@ class SymbolRegistry {
   // Reset
   // ============================================================================
 
-  /**
-   * Reset all registry state.
-   *
-   * Creates a fresh global scope and clears all registered scopes.
-   * Call this between transpilation runs.
-   */
-  static reset(): void {
-    this.globalScope = ScopeUtils.createGlobalScope();
-    this.scopes.clear();
-  }
-
   // ============================================================================
   // Bridge Methods (for gradual migration from string-based lookups)
   // ============================================================================
@@ -202,7 +243,7 @@ class SymbolRegistry {
    * @param cName Transpiled C function name (e.g., "Test_fillData", "main")
    * @returns The function symbol, or null if not found
    */
-  static findByCName(cName: string): IFunctionSymbol | null {
+  findByCName(cName: string): IFunctionSymbol | null {
     // Check global scope first (no underscore = global function)
     for (const func of this.globalScope.functions) {
       if (func.name === cName) {
@@ -230,7 +271,7 @@ class SymbolRegistry {
    * @param cName Transpiled C function name
    * @returns The scope the function belongs to, or null if not found
    */
-  static getScopeByCFunctionName(cName: string): IScopeSymbol | null {
+  getScopeByCFunctionName(cName: string): IScopeSymbol | null {
     const func = this.findByCName(cName);
     return func === null ? null : this.getScope(func.scopePath);
   }

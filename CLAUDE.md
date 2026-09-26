@@ -246,6 +246,10 @@ from another cannot both be right under one regex.
 move is reviewable in the diff rather than a tool call nobody can inspect afterwards. It is
 idempotent — add entries and re-run.
 
+`move:modules` rewrites the importers **ts-morph can see**, which is the root tsconfig's
+program — not `scripts/`. It reports importers outside that program by name after
+`--apply`; run `npm run typecheck:scripts` as well as `npx tsc --noEmit` after any move.
+
 **Do not use the transitively-installed ts-morph 13.** It bundles TypeScript ~4.x, which
 predates `moduleResolution: "bundler"`: it cannot resolve directory-index specifiers such as
 `./cnext` and leaves them broken **with no error**. Import the direct dependency.
@@ -255,10 +259,19 @@ MCP server is configured for this repo (`claude mcp list`, and no `mcpServers` e
 project or user config), and the successor package no longer exposes those names, so the
 instruction could not be followed as written.
 
-**Layer constraints (depcruise)**: `data/` cannot import from `logic/` or `output/`, and
-`logic/` and `state/` cannot import from `output/` — all four **transitively**, not just as a
-direct edge. Check import dependencies before choosing extraction location; shared contracts
-go in `transpiler/types/`, which every layer may depend on. Until #1297 these matched direct
+**Layer constraints (depcruise)**: `data/` cannot import from `logic/` or 2.3 Render, and
+`logic/` and the per-file state cannot import 2.3 Render — all four **transitively**, not just
+as a direct edge. `state-cannot-import-output` names the MODULE now
+(`src/TRANSPILE/TranspileState.ts`) rather than a directory, because #1452 deleted
+`src/transpiler/state/` and `CodeGenWalker.ts` sits beside the state at the `src/TRANSPILE/`
+root while importing sixteen generators — so a root-wide `from` would fail on the walker whose
+whole job is calling renderers. Check import dependencies before choosing extraction location; shared contracts
+go in `transpiler/types/`, which every layer may depend on — and which may depend on no
+pass in return, enforced by `shared-contracts-cannot-import-a-pass` (`error`, `reachable`).
+That claim was prose with nothing behind it until #1452 broke it twice: `IAssignmentContext`
+gained a `TranspileState` member, so an analyzer importing the CONTRACT reached a pass root
+through it, and `ITranspilerResult` named a 2.1 type. Both moved; the rule is what stops a
+third. Until #1297 these matched direct
 edges only, so `logic/ -> state/ -> output/` was live through `CodeGenState` while CI printed
 `no dependency violations found` — ten analyzers coupled to codegen's type vocabulary with the
 guard green. A rule that cannot fail on the case it exists to catch is the
@@ -313,6 +326,13 @@ ever prompts anyone to look** — which is the whole argument for deriving the c
 asserting it. `scripts/gate.sh` runs all of them, reports each against the CI job that owns it,
 and does **not** stop at the first failure.
 
+**`npx tsc --noEmit` is the ROOT tsconfig, which excludes `scripts/`.**
+`npm run typecheck:scripts` (`tsconfig.scripts.json`) is a separate CI check, so "tsc is
+clean" after the first and meaning both is a claim you have not made. A `scripts/` import
+of a moved module resolves to `unknown` rather than erroring at the import line, so it
+surfaces far away: one move produced six `TS18046: 'a' is of type 'unknown'` in a sort
+comparator.
+
 **Run the gate ALONE, from a committed tree.** Its last two checks assert over the whole
 working directory (`git diff --exit-code tests/`, `working tree clean`), so a second gate
 running beside it — or any uncommitted change — fails them for reasons that read exactly like
@@ -356,13 +376,19 @@ which must stay update-free to remain a gate. It fails when a listed fixture los
 green). Growth never fails it. Removing a diagnostic on purpose means deleting its row in
 the same commit. Regenerate with `npm run diagnostics:manifest`.
 
-**C vs C++ const linkage**: C const at file scope has external linkage; C++ const has internal linkage (needs `extern`). `CodeGenState.cppMode` controls this.
+**C vs C++ const linkage**: C const at file scope has external linkage; C++ const has internal linkage (needs `extern`). `TranspileState.cppMode` controls this.
 
 ---
 
 ## Code Quality
 
 **Pre-commit hooks handle formatting automatically.** Manual if needed: `npm run prettier:fix && npm run oxlint:check`
+
+**A pre-commit `prettier … terminated with SIGKILL` is not prettier.** `lint-staged` runs
+prettier and oxlint concurrently and kills the survivor when one fails, so the oxlint error
+scrolls past above while the SIGKILL's huge argv dump lands at the tail. Run
+`npx lint-staged` directly and read the whole output — splitting the commit or raising the
+heap does nothing.
 
 ### SonarCloud — Never Merge a New Issue — ZERO EXCEPTIONS
 
@@ -509,14 +535,14 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 
 ### 4-Layer Structure (`src/transpiler/`)
 
-| Layer        | Path                      | Purpose                                                                                         |
-| ------------ | ------------------------- | ----------------------------------------------------------------------------------------------- |
-| Data         | `data/`                   | Discovery (FileDiscovery, IncludeResolver, DependencyGraph)                                     |
-| Logic        | `logic/`                  | Business logic (parser/, preprocessor/) — `symbols/` and `analysis/` left under #1511 and #1322 |
-| Render       | `src/TRANSPILE/3-Render/` | 2.3 Render — codegen/, headers/. Moved out of `transpiler/output/` by #1450 box 5               |
-| State        | `state/`                  | Global state (CodeGenState, SymbolRegistry)                                                     |
-| Constants    | `constants/`              | Runtime lookups (BITMAP_SIZE, BITMAP_BACKING_TYPE)                                              |
-| Orchestrator | `Transpiler.ts`           | Coordinates all layers                                                                          |
+| Layer        | Path                      | Purpose                                                                                                                                                                                           |
+| ------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Data         | `data/`                   | Discovery (FileDiscovery, IncludeResolver, DependencyGraph)                                                                                                                                       |
+| Logic        | `logic/`                  | Business logic (parser/, preprocessor/) — `symbols/` and `analysis/` left under #1511 and #1322                                                                                                   |
+| Render       | `src/TRANSPILE/3-Render/` | 2.3 Render — codegen/, headers/. Moved out of `transpiler/output/` by #1450 box 5                                                                                                                 |
+| State        | _(gone)_                  | `src/transpiler/state/` was deleted by #1452. The per-file working state 2.2 and 2.3 share is `TranspileState` at the `src/TRANSPILE/` root; `SymbolRegistry` and `SymbolTable` are 1.3 Declare's |
+| Constants    | `constants/`              | Runtime lookups (BITMAP_SIZE, BITMAP_BACKING_TYPE)                                                                                                                                                |
+| Orchestrator | `Transpiler.ts`           | Coordinates all layers                                                                                                                                                                            |
 
 ### Utility Locations
 
@@ -524,7 +550,7 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 | ----------------------------------------------------------- | --------------------------- |
 | Type utilities (`ScopeUtils`, `TTypeUtils`, `TypeResolver`) | `src/utils/`                |
 | Type definitions (interfaces, enums)                        | `src/transpiler/types/`     |
-| Stateful classes (`CodeGenState`)                           | `src/transpiler/state/`     |
+| Stateful classes (`TranspileState`)                         | `src/TRANSPILE/`            |
 | Runtime lookups                                             | `src/transpiler/constants/` |
 
 ---
@@ -541,7 +567,7 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 | `ISymbol`        | Legacy flat interface          | Removed (Phase 7) |
 | `TSymbolAdapter` | Converts TSymbol[] → ISymbol[] | Removed (Phase 7) |
 
-**Use**: `CNextResolver.resolve(tree, file)` → `TSymbol[]`
+**Use**: `CNextResolver.resolve(tree, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
 **Avoid**: Deleted `SymbolCollector`, `CNextSymbolCollector`
 
 ### C/C++ Resolvers (symbol-resolution Phase 6)
@@ -577,7 +603,7 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 
 ### Key Patterns
 
-- **SymbolTable ownership**: `CodeGenState.symbolTable` is single owner
+- **SymbolTable ownership**: `TranspileState.symbolTable` is single owner
 - **TSymbols use bare names**: `name: "init"` with `scopePath: string` -- the dotted path of the enclosing scope (`""` at file scope), never the scope object. #1298: holding the object gave every symbol a chain to walk and a cycle to represent, which made the graph unserializable and left `getScopePath`'s identity-based guard unable to fire on a proxy chain. The scope object is one `SymbolRegistry.getScope(path)` away where a mutable member list is genuinely needed
 - **Lookup key by layer**: `getOverloads(bareName)` answers "what does `init` mean _here_?" and needs ADR-057 scope context; `getOverloadsByCName("Motor__init")` answers "which symbol _is_ this?" and is an exact canonical identity. Codegen and anything downstream of it holds the latter — asking the bare-name index with a transpiled C name returns empty for every scoped symbol, which reads as "no such symbol" rather than "wrong question" (#1139). Build the key with `ScopeUtils.getTranspiledCName()`, the single encoder; never re-derive a qualified name by hand
 - **Per-file vs run-wide symbol views**: `ICodeGenSymbols.known*` is built by
@@ -586,38 +612,43 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
   since #1472 takes only `(tree, sourcePath)` — it returns `IFileSymbols`;
   `SymbolTable.getOverloadsByCName` accumulates the **whole run** and is cleared once. A
   sibling that was never included is absent from the first and present in the second — that
-  disagreement _is_ #1312. `CodeGenState.isScopeType()` answers neither visibility question:
+  disagreement _is_ #1312. `TranspileState.isScopeType()` answers neither visibility question:
   it reads the run-wide table **and** filters to `ESourceLanguage.CNext`, so it reports
   "exists" in the file that cannot see it and "missing" for every C/C++ header type. Ask the
   per-file sets about a C-Next name and the run-wide table about a foreign one
-- **Test isolation**: Call `SymbolRegistry.reset()` in `beforeEach` for CNextResolver tests
+- **Test isolation**: build a fresh `new SymbolRegistry()` per test and pass it to `CNextResolver.resolve(tree, file, registry)` — there is no global registry to reset (#1452 box 3 deleted the static and its `reset()`)
 - **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` — numbers for resolved constants, strings for C macros
-- **Analyzer state**: external struct fields are **derived by 1.4 Resolve** (`Program.externalStructFields()`) and read via `CodeGenState.getExternalStructFields()`. #1447 moved the derivation there because which fields a header's struct has is a cross-file fact, and 1.4 is the pass that can see every file. The `buildExternalStructFields()` this line used to name was removed with the Stage 2b accumulation and does not exist
-- **Analyzer symbols**: `CodeGenState.symbols` is set before `runAnalyzers()` in `_analyzeFile()` — analyzers can use `isKnownEnum()`, `getStructFieldType()`, `getFunctionReturnType()`, `getVariableTypeInfo()`
-- **Analyzer-time vs codegen-time state**: `symbols` is the _only_ `CodeGenState` type view
-  populated before `runAnalyzers()`. `callbackTypes` and `constValues` are filled by
-  `CodeGenerator` and cleared by `reset()` at the start of `generate()` — **both after the
-  analyzers run**. Since #1320 hoisted 2.1 Analyze whole-program, every file is analyzed
-  before any file is planned, so across an analysis pass these hold the **same** value for
-  every file: empty in a fresh process, or the previous run's last file in a long-lived one
-  (`ServeCommand` holds a static transpiler and serves many requests), because the only
-  production `reset()` call is per-file inside `generate()`. An analyzer reading one is
-  reading nothing about the file it is analyzing — a silent no-op, **not** the
-  order-dependence this entry used to describe, and the two need opposite debugging. That is
-  the whole value of the entry: #1399 shipped an E0426 that fired or not depending on which
-  order the entry listed its two `#include` lines, and the old wording now sends the next
-  reader hunting include ordering for a shape the hoist removed. `typeRegistry` is the sharpest of
-  the three and the reason this entry exists: it is `private`, but `getVariableTypeInfo()`
-  checks it **before** falling back to `SymbolTable`, so an analyzer following the bullet
-  above reads a stale local ahead of the correct cross-file answer — a wrong answer, not a
-  missing one. Three analyzers call it in production today.
-  Use `symbols.functionReturnTypes` for the ADR-029 function-as-type fact — it is the
-  per-file view of the same thing
-- **Analyzer test isolation**: Use `CodeGenState.reset()` in `afterEach` when tests set `CodeGenState.symbols`
+- **What an analyzer may read is `IAnalysisContext`, and nothing else.** #1456
+  made it a parameter: `symbols` (this file's view), `program` (1.4's artifact),
+  `symbolTable`, and `reachesForeignHeader`. `Transpiler._analyzeFile` builds it
+  from artifacts settled before 2.1 begins, and
+  `analyzers-cannot-reach-codegen-state` (`error`, `reachable: true`) makes an
+  analyzer that reaches `TranspileState` fail the **`lint`** job — through a
+  shared helper as readily as directly. `symbols` and `program` are NON-nullable,
+  so `?? []` and `if (!symbols)` in an analyzer are guards that cannot fire and
+  a wrong answer if they ever did: `?? []` for "what consts does this scope
+  have" means "none", not "unknown"
+- **Cross-file facts come from `program`, not from the render state**: external
+  struct fields are derived by 1.4 Resolve and read as
+  `context.program.externalStructFields()`. Use
+  `context.symbols.functionReturnTypes` for the ADR-029 function-as-type fact
+- **Analyzer test isolation**: build the context, not the state —
+  `testAnalysisContext(state, overrides)` in
+  `src/TRANSPILE/1-Analyze/__tests__/`. It reads the facts off a
+  `TranspileState` the test already set up, which is why that helper lives under
+  `__tests__` and is the one place allowed to
+- **The timing hazard this list used to describe is gone.** It said `typeRegistry`
+  is private and "three analyzers call it in production today", so an analyzer
+  could read a stale per-file local ahead of the correct cross-file answer. At
+  HEAD **zero** analyzers call `getVariableTypeInfo` (`grep` finds two mentions,
+  both in comments), because none of them can reach the state at all. Kept as a
+  sentence rather than deleted: the paragraph survived the boundary it described
+  by being renamed `CodeGenState` → `TranspileState`, which is how a hazard note
+  outlives its hazard
 - **Analyzer type tracking**: Use `trackType(typeCtx, identifier)` helper pattern (see `FloatModuloAnalyzer.trackIfFloat()`, `ArrayIndexTypeAnalyzer.trackType()`) to avoid jscpd duplication across `enterVariableDeclaration`/`enterParameter`/`enterForVarDecl`
 - **Ternary grammar**: `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0 — and address them via `orExpression()`, **never `getChild(i)`**: the condition is parenthesized, so `getChild(0)` is `(` and an index-based skip silently does nothing
 - **Callback header params**: `IParameterSymbol.isCallbackPointer`/`isCallbackConst` resolved in `Transpiler.convertToHeaderSymbols()` via `TypedefParamParser` — single source of truth for both `.c` and `.h` generation
-- **Scope type predicate**: `CodeGenState.isScopeType(qualifiedName)` checks if a qualified name is a known enum/struct/bitmap. Codegen sites should call `CodeGenState.qualifyScopeType(bareName)`, which binds that predicate to `currentScopePath` — don't re-pair the two at each site, and don't inline `knownEnums || knownStructs || knownBitmaps`.
+- **Scope type predicate**: `TranspileState.isScopeType(qualifiedName)` checks if a qualified name is a known enum/struct/bitmap. Codegen sites bind it through `TranspileState.typeBindingDeps()`, which pairs `TranspileState.scopeTypePredicate` with the caller's `resolveQualifiedType` — don't re-pair the predicate with `currentScopePath` at each site, and don't inline `knownEnums || knownStructs || knownBitmaps`. This used to name `CodeGenState.qualifyScopeType(bareName)`; that method had **no production caller** and is deleted (#1452), because a rule naming a helper nothing uses teaches the next reader a pattern the codebase does not have.
 
 ---
 
@@ -733,6 +764,22 @@ foo.expected.error    # Expected error (if test-error)
   unrelated-looking reason, because the mutation _and_ the change under test had both
   vanished. Commit before mutating, or `cp` the file aside and copy it back, then grep for
   the mutation marker to confirm it is gone
+- **A mutation must imitate the defect, not fit the guard.** Both are green-to-red, and
+  only one is evidence. Twice in #1657 a guard was re-aimed and "mutation-checked" with a
+  probe written to match its own pattern: the `isScopeType` guard kept the STATIC spelling
+  (`Class.method(`), which occurs **0** times since the class became an instance, and
+  `FLAG_READ` gained a receiver the code does not use. Both passed their checks and stayed
+  dead against real code. Write the probe the way production spells it, then confirm it
+  reddens
+- **A `length > 0` population control cannot catch a dropped alternative.** The other
+  alternatives keep the population non-empty, so the guard looks healthy while three
+  spellings walk past it. Give an alternation **one control per arm**
+- **A path-keyed guard detaches silently when its target moves.** #1657 moved
+  `src/transpiler/state/` and left two depcruise rules, a source-scanning test, a
+  `sonar-project.properties` exclusion and `ParseTreeSites`' roster pointing at nothing —
+  each passing vacuously. `layer-rules.test.ts` now asserts every rule path still matches a
+  tracked file; when you move anything, grep for the old path in **regex literals** too,
+  which a string-literal sweep misses
 - **Negative controls in error fixtures**: an `.expected.error` proves the diagnostic fires, not that it fires _only_ where it should. Put a case that must stay silent beside the flagged one — `tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx` calls a `void` C function directly above the non-void call and names only the latter in its `.expected.error`, so an analyzer that flagged every call regardless of return type would fail it. The assertion catches under-enforcement; the control catches over-enforcement
 - **Examples are CI-guarded**: `scripts/__tests__/examples-transpile.test.ts` transpiles every `examples/**/*.cnx` during `npm run unit`
 - **Orphaned snapshots are gone, and cannot come back (#1149).** A `.expected.cpp/.hpp` beside a
@@ -787,8 +834,18 @@ buffer[0] = (uint8_t)(magic);
 - **expectedType**: Use `this.context.expectedType` to disambiguate (e.g., enum members)
 - **Struct access**: Track `currentStructType` through member chains
 - **C++ mode**: Parameter signatures go through `ParameterSignatureBuilder.build()` — single path for both `.c` and `.h` generation. Use `CppModeHelper` for mode-specific logic
-- **Handler state**: Access via `CodeGenState` (properties) and `CodeGenState.generator!` (methods)
-- **CodeGenState**: Sole state container — don't add instance state to CodeGenerator
+- **Handler state**: reach it through the context you were handed —
+  `IAssignmentContext.state` in a handler, `IOrchestrator.state` in a generator,
+  `this.host.state` in the walk (234 sites); `CodeGenWalker.transpileState` is
+  the accessor the ORCHESTRATOR reads, not the walk's own route. Never import
+  `TranspileState` to
+  construct one
+- **`TranspileState`**: sole state container, and an INSTANCE since #1452 —
+  `CodeGenerator` owns it as `readonly state`. This entry used to read
+  "don't add instance state to CodeGenerator", which the same card inverted:
+  the one instance field is exactly where the state now lives. What the rule
+  still forbids is a SECOND container — another field holding per-file facts
+  beside it
 
 ### Assignment Classification (ADR-065)
 
@@ -801,20 +858,22 @@ Update: `src/index.ts` (parse + pass), `src/transpiler/types/ITranspilerConfig.t
 ### Adding Generator Effects
 
 1. Add to the `TIncludeHeader` union in `src/transpiler/types/` — it is a shared
-   contract, not a codegen type: `CodeGenState` names it too, and `state/` may not
-   import `output/`
-2. Add the `needs<Effect>` field to **`CodeGenState`** (reset in `CodeGenState.reset()`)
+   contract, not a codegen type: `TranspileState` names it too, and
+   `state-cannot-import-output` forbids the state importing `3-Render/`
+2. Add the `needs<Effect>` field to **`TranspileState`** (reset in its `reset()`)
 3. Handle it in **`CodeGenerator.applyEffects()`**, which delegates to the one sink,
-   `CodeGenState.requireInclude()` — never set a `needs*` field directly
+   `TranspileState.requireInclude()` — never set a `needs*` field directly
 4. Emit it in **`CodeGenerator.assembleGeneratedOutput()`** (via `addAutoIncludes()` for
    a real `#include`, or `addGeneratedHelpers()` for the three deferred code-emission
    members)
 
 Three of the four names this list carried were wrong: `processEffects()` and
-`assembleOutput()` have never existed, and the `needs*` fields are static on
-`CodeGenState`, not on `CodeGenerator` — which is the same file's own rule
-("CodeGenState: sole state container"). Corrected under #1449, which needed the real
-ones. `npx tsc --noEmit` cannot catch a name in prose; only a reader can.
+`assembleOutput()` have never existed, and the `needs*` fields were on the state
+class rather than on `CodeGenerator` — which is the same file's own rule
+("sole state container"). Corrected under #1449, which needed the real ones; the
+class was `CodeGenState` then and is `TranspileState` now (#1452), which is the
+second time this list has gone stale in prose. `npx tsc --noEmit` cannot catch a
+name in prose; only a reader can.
 
 ### Struct Param Access Helpers
 
@@ -869,9 +928,9 @@ Update both when adding new statement types.
 - **Qualify only the bare `userType()` branch.** `this.T`, `global.T` and `Scope.T` state their answer in the syntax and keep their own branches. This is not a style point: once a type name is resolved to a string, `global.Mode` and a bare `Mode` are byte-identical, so anything that qualifies _after_ resolution silently rewrites `global.` references. A post-pass over resolved names cannot be made correct — qualify while the parse tree is still available.
 - **Two resolution points, one decision.** Type names are resolved twice, in different layers, and both must qualify:
   - **Symbols layer** — `TypeUtils.resolveType()`, fed an `isScopeType` predicate threaded from `CNextResolver.resolve()`. (`dispatchTypeResolution` was named here and was removed by #1285.) It answers with a settled name OR a `TDeferredType` when 1.3 cannot settle a bare name, and 1.4 Resolve settles those. Everything downstream (`TSymbol`, `HeaderSymbolAdapter`, the `.h`) inherits the name from here and must NOT re-qualify.
-  - **Codegen layer** — `CodeGenerator.getTypeName()` and friends, via `CodeGenState.qualifyScopeType()`.
+  - **Codegen layer** — `CodeGenWalker.getTypeName()` and friends (the method is the walker's; `CodeGenerator` has none), via the deps `TranspileState.typeBindingDeps()` hands to `TypeBinding`. The decision is still made here; it is reached by resolving a whole `TypeContext` rather than by qualifying a bare name at the call site.
 - **`CNextResolver` Pass 0b** collects the qualified names of scope-declared enums/structs/bitmaps _before_ any type is resolved, so qualification does not depend on whether a type is declared above or below its use. Do not swap this for `scope.members`: that list is kind-agnostic (a function named `B` would capture global type `B`) and is still being built while collectors read it.
-- **`ScopeUtils.qualifyScopeType()`**: Shared utility in `src/utils/ScopeUtils.ts`. Takes `typeName`, the enclosing `scopePath`, and an `isKnownType(qualifiedName)` predicate. Call it via `CodeGenState.qualifyScopeType()` in codegen; `TypeGenerationHelper` injects the predicate through `ITypeGenerationDeps` instead, to stay unit-testable.
+- **`ScopeUtils.qualifyScopeType()`**: Shared utility in `src/utils/ScopeUtils.ts`. Takes `typeName`, the enclosing `scopePath`, and an `isKnownType(qualifiedName)` predicate. Its production callers are the symbols layer — `3-Declare/TypeBinding.ts` and `4-Resolve/DeferredTypes.ts`. Codegen reaches the same decision through `TranspileState.typeBindingDeps()`; `TypeGenerationHelper` injects the predicate through `ITypeGenerationDeps` instead, to stay unit-testable.
 - **`ParameterInputAdapter.fromAST` struct detection**: `isKnownStruct` must check both the bare name AND the qualified name (`ScopeUtils.qualifyInScope(typeName, currentScopePath)` -- the whole PATH, not a scope's leaf name) for scope-local struct types. Without this, scope struct params get classified as pass-by-value while `mappedType` comes back qualified, causing `.c` body to use `->` on a non-pointer.
 
 ---

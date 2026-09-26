@@ -17,7 +17,6 @@ import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import type TPlannedTernary from "../../types/TPlannedTernary";
 
 /**
@@ -31,7 +30,7 @@ const generateTernaryExpr: TGeneratorFn<TPlannedTernary> = (
   planned: TPlannedTernary,
   _input: IGeneratorInput,
   _state: IGeneratorState,
-  _orchestrator: IOrchestrator,
+  orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
@@ -45,8 +44,12 @@ const generateTernaryExpr: TGeneratorFn<TPlannedTernary> = (
   // initializer inside one needs a compound literal, not a plain designated
   // initializer. The condition keeps the flag as it stands.
   const condition = planned.renderCondition();
-  const trueCode = CodeGenState.withoutDeclarationInit(planned.renderTrue);
-  const falseCode = CodeGenState.withoutDeclarationInit(planned.renderFalse);
+  const trueCode = orchestrator.state.withoutDeclarationInit(
+    planned.renderTrue,
+  );
+  const falseCode = orchestrator.state.withoutDeclarationInit(
+    planned.renderFalse,
+  );
 
   return { code: `(${condition}) ? ${trueCode} : ${falseCode}`, effects };
 };

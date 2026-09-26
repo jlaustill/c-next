@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
-import SymbolTable from "../../../transpiler/state/SymbolTable";
+import TranspileState from "../../TranspileState";
+import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import CppClassInitializerAnalyzer from "../CppClassInitializerAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. Issue #517's rule (E0508), replacing a codegen throw that reported
@@ -32,15 +33,17 @@ const withCppClass = (className: string) => {
 };
 
 const analyze = (source: string, table: SymbolTable, cppMode = true) =>
-  new CppClassInitializerAnalyzer().analyze(
+  new CppClassInitializerAnalyzer(testAnalysisContext(state)).analyze(
     CNextSourceParser.parse(source).tree,
     cppMode,
     table,
   );
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new TranspileState();
 });
+
+let state = new TranspileState();
 
 describe("CppClassInitializerAnalyzer (E0508)", () => {
   it("rejects a global initializer at the literal, not at a later declaration", () => {

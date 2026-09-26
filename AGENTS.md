@@ -109,13 +109,9 @@ The layers no longer share one root: #1450 box 5 moved the render pass out of
 
 - **Type-aware resolution**: Use `this.context.expectedType` in expression generators to disambiguate (e.g., enum members). For member access targets, walk the struct type chain to set `expectedType`.
 - **Nested struct access**: Track `currentStructType` through each member when processing `a.b.c` chains.
-- **Adding generator effects**: To add a new include/effect type (e.g., `irq_wrappers`):
-  1. Add to the `TIncludeHeader` union in `src/transpiler/types/` — it is a shared contract, not a codegen type (`CodeGenState` names it too, and `state/` may not import `3-Render/`)
-  2. Add the `needs<Effect>` field to **`CodeGenState`** (reset in `CodeGenState.reset()`)
-  3. Handle it in **`CodeGenerator.applyEffects()`**, which delegates to the one sink, `CodeGenState.requireInclude()` — never set a `needs*` field directly
-  4. Emit it in **`CodeGenerator.assembleGeneratedOutput()`** (via `addAutoIncludes()` for a real `#include`, or `addGeneratedHelpers()` for the deferred code-emission members)
+- **Adding generator effects**: see **"Adding Generator Effects"** in `CLAUDE.md`. Deliberately not repeated here.
 
-  Steps 2–4 named `processEffects()` and `assembleOutput()` until the #1589 review; neither has ever existed, and the `needs*` fields are static on `CodeGenState`, not on `CodeGenerator`. CLAUDE.md records the same correction under #1449. Step 1's path was stale before this rewrite too — the mechanical `transpiler/output/` → `TRANSPILE/3-Render/` pass turned an obviously-wrong path into a plausible-looking one, which is harder to notice.
+  This list existed in both files and drifted in both. The copy here still named `CodeGenState` and `state/` after #1452 deleted the class and the directory, and its own closing paragraph recorded that steps 2–4 had already been wrong once (`processEffects()`, `assembleOutput()` — neither ever existed) and that step 1's path had been turned from obviously wrong into plausibly wrong by a mechanical rename. A four-step recipe naming four identifiers is exactly the thing that cannot survive two copies: CLAUDE.md's version has now been corrected twice while this one was corrected once, which is the divergence rather than a near miss.
 
 ### Error Messages
 

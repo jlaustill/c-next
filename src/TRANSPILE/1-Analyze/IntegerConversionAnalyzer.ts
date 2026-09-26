@@ -58,6 +58,7 @@ import IScopeFrame from "./types/IScopeFrame";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import PrimitiveKindUtils from "../../utils/PrimitiveKindUtils";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
 
@@ -65,9 +66,12 @@ class IntegerConversionListener extends CNextListener {
   private readonly found: IIntegerConversionError[] = [];
   private readonly types: OperandTypeResolver;
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    context: IAnalysisContext,
+  ) {
     super();
-    this.types = new OperandTypeResolver(scopes);
+    this.types = new OperandTypeResolver(scopes, context);
   }
 
   public errors(): IIntegerConversionError[] {
@@ -320,12 +324,16 @@ class IntegerConversionListener extends CNextListener {
 }
 
 class IntegerConversionAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): IIntegerConversionError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new IntegerConversionListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

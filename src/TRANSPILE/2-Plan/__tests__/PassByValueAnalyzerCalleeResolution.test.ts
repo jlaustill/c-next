@@ -10,10 +10,12 @@
  * for a callee nothing declares.
  */
 
+import type IModificationCollector from "../types/IModificationCollector";
+import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import PassByValueAnalyzer from "../PassByValueAnalyzer";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
-import SymbolTable from "../../../transpiler/state/SymbolTable";
+import TranspileState from "../../TranspileState";
+import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import type TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
@@ -56,35 +58,43 @@ const declareCTypedef = (name: string, aliased: string): TCSymbol =>
  * caller's parameter came back marked as modified (auto-const withheld).
  */
 const callerParameterIsModified = (callee: string): boolean => {
-  CodeGenState.functionCallGraph.clear();
-  CodeGenState.functionParamLists.clear();
-  CodeGenState.modifiedParameters.clear();
+  // #1452: the accumulation is the call's own object now, not three statics,
+  // so the setup and the read-back are the same collector rather than a global
+  // both happen to reach.
+  const collect: IModificationCollector = {
+    registry: new SymbolRegistry(),
+    modifiedParameters: new Map(),
+    functionParamLists: new Map(),
+    functionCallGraph: new Map(),
+  };
 
   // The caller is known; the callee deliberately is not, so the propagator
   // must fall through to the resolver.
-  CodeGenState.functionParamLists.set("Caller__forward", ["value"]);
-  CodeGenState.modifiedParameters.set("Caller__forward", new Set());
-  CodeGenState.functionCallGraph.set("Caller__forward", [
+  collect.functionParamLists.set("Caller__forward", ["value"]);
+  collect.modifiedParameters.set("Caller__forward", new Set());
+  collect.functionCallGraph.set("Caller__forward", [
     { callee, paramIndex: 0, argParamName: "value" },
   ]);
 
-  PassByValueAnalyzer.propagateModifications();
+  PassByValueAnalyzer.propagateModifications(collect, state.symbolTable);
 
-  return CodeGenState.modifiedParameters.get("Caller__forward")!.has("value");
+  return collect.modifiedParameters.get("Caller__forward")!.has("value");
 };
+
+let state = new TranspileState();
 
 describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   beforeEach(() => {
-    CodeGenState.symbolTable = new SymbolTable();
+    state.symbolTable = new SymbolTable();
   });
 
   afterEach(() => {
-    CodeGenState.reset();
-    CodeGenState.symbolTable = new SymbolTable();
+    state = new TranspileState();
+    state.symbolTable = new SymbolTable();
   });
 
   it("keeps auto-const when the C parameter is passed by value", () => {
-    CodeGenState.symbolTable.addCSymbol(
+    state.symbolTable.addCSymbol(
       declareCFunction("c_read_value", [
         { name: "v", type: "uint8_t", isConst: false, isArray: false },
       ]),
@@ -94,7 +104,7 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("withholds auto-const when the C parameter is a pointer", () => {
-    CodeGenState.symbolTable.addCSymbol(
+    state.symbolTable.addCSymbol(
       declareCFunction("c_bump", [
         { name: "s", type: "Sample*", isConst: false, isArray: false },
       ]),
@@ -104,7 +114,7 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("keeps auto-const for a pointer to const, which cannot be written through", () => {
-    CodeGenState.symbolTable.addCSymbol(
+    state.symbolTable.addCSymbol(
       declareCFunction("c_read", [
         { name: "s", type: "Sample*", isConst: true, isArray: false },
       ]),
@@ -114,7 +124,7 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("withholds auto-const when the C parameter is an array", () => {
-    CodeGenState.symbolTable.addCSymbol(
+    state.symbolTable.addCSymbol(
       declareCFunction("c_fill", [
         { name: "buffer", type: "uint8_t", isConst: false, isArray: true },
       ]),
@@ -125,10 +135,10 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
 
   it("sees through a typedef that hides the pointer", () => {
     // typedef struct spi_device_t *spi_device_handle_t;
-    CodeGenState.symbolTable.addCSymbol(
+    state.symbolTable.addCSymbol(
       declareCTypedef("spi_device_handle_t", "struct spi_device_t*"),
     );
-    CodeGenState.symbolTable.addCSymbol(
+    state.symbolTable.addCSymbol(
       declareCFunction("spi_send", [
         {
           name: "handle",
@@ -143,10 +153,8 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("does not treat a typedef of a plain value as indirection", () => {
-    CodeGenState.symbolTable.addCSymbol(
-      declareCTypedef("byte_t", "unsigned char"),
-    );
-    CodeGenState.symbolTable.addCSymbol(
+    state.symbolTable.addCSymbol(declareCTypedef("byte_t", "unsigned char"));
+    state.symbolTable.addCSymbol(
       declareCFunction("take_byte", [
         { name: "b", type: "byte_t", isConst: false, isArray: false },
       ]),
@@ -156,9 +164,9 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("terminates on a self-referential typedef chain", () => {
-    CodeGenState.symbolTable.addCSymbol(declareCTypedef("loop_a", "loop_b"));
-    CodeGenState.symbolTable.addCSymbol(declareCTypedef("loop_b", "loop_a"));
-    CodeGenState.symbolTable.addCSymbol(
+    state.symbolTable.addCSymbol(declareCTypedef("loop_a", "loop_b"));
+    state.symbolTable.addCSymbol(declareCTypedef("loop_b", "loop_a"));
+    state.symbolTable.addCSymbol(
       declareCFunction("take_loop", [
         { name: "v", type: "loop_a", isConst: false, isArray: false },
       ]),
@@ -175,7 +183,7 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("fails safe when the declaration has no parameter at that position", () => {
-    CodeGenState.symbolTable.addCSymbol(declareCFunction("c_no_args", []));
+    state.symbolTable.addCSymbol(declareCFunction("c_no_args", []));
 
     expect(callerParameterIsModified("c_no_args")).toBe(true);
   });
@@ -196,9 +204,9 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
     ];
     links.forEach((name, index) => {
       const target = index === links.length - 1 ? "uint8_t*" : links[index + 1];
-      CodeGenState.symbolTable.addCSymbol(declareCTypedef(name, target));
+      state.symbolTable.addCSymbol(declareCTypedef(name, target));
     });
-    CodeGenState.symbolTable.addCSymbol(
+    state.symbolTable.addCSymbol(
       declareCFunction("take_deep_alias", [
         { name: "v", type: "link0", isConst: false, isArray: false },
       ]),
@@ -212,12 +220,12 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   it("folds across overloads instead of answering from the first", () => {
     // Declaration order must not decide the answer. The const overload is
     // declared first; the mutating one still wins.
-    CodeGenState.symbolTable.addCSymbol(
+    state.symbolTable.addCSymbol(
       declareCFunction("store", [
         { name: "s", type: "Sample*", isConst: true, isArray: false },
       ]),
     );
-    CodeGenState.symbolTable.addCSymbol(
+    state.symbolTable.addCSymbol(
       declareCFunction("store", [
         { name: "s", type: "Sample*", isConst: false, isArray: false },
       ]),
@@ -227,12 +235,12 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("gives the same answer when the overloads are declared in the other order", () => {
-    CodeGenState.symbolTable.addCSymbol(
+    state.symbolTable.addCSymbol(
       declareCFunction("store", [
         { name: "s", type: "Sample*", isConst: false, isArray: false },
       ]),
     );
-    CodeGenState.symbolTable.addCSymbol(
+    state.symbolTable.addCSymbol(
       declareCFunction("store", [
         { name: "s", type: "Sample*", isConst: true, isArray: false },
       ]),
@@ -242,12 +250,12 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("keeps auto-const when every overload takes the parameter by value", () => {
-    CodeGenState.symbolTable.addCSymbol(
+    state.symbolTable.addCSymbol(
       declareCFunction("emit", [
         { name: "v", type: "uint8_t", isConst: false, isArray: false },
       ]),
     );
-    CodeGenState.symbolTable.addCSymbol(
+    state.symbolTable.addCSymbol(
       declareCFunction("emit", [
         { name: "v", type: "uint16_t", isConst: false, isArray: false },
       ]),
@@ -272,24 +280,27 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
       // `void forward(handler cb, u8 value) { cb(value); }` -- `cb` is a value,
       // so no declaration will ever match it. Failing safe here fired on every
       // callback by construction.
-      CodeGenState.functionCallGraph.clear();
-      CodeGenState.functionParamLists.clear();
-      CodeGenState.modifiedParameters.clear();
-      CodeGenState.functionParamLists.set("forward", ["cb", "value"]);
-      CodeGenState.modifiedParameters.set("forward", new Set());
-      CodeGenState.functionCallGraph.set("forward", [
+      const collect: IModificationCollector = {
+        registry: new SymbolRegistry(),
+        modifiedParameters: new Map(),
+        functionParamLists: new Map(),
+        functionCallGraph: new Map(),
+      };
+      collect.functionParamLists.set("forward", ["cb", "value"]);
+      collect.modifiedParameters.set("forward", new Set());
+      collect.functionCallGraph.set("forward", [
         { callee: "cb", paramIndex: 0, argParamName: "value" },
       ]);
 
-      PassByValueAnalyzer.propagateModifications();
+      PassByValueAnalyzer.propagateModifications(collect, state.symbolTable);
 
-      expect(CodeGenState.modifiedParameters.get("forward")!.has("value")).toBe(
+      expect(collect.modifiedParameters.get("forward")!.has("value")).toBe(
         false,
       );
     });
 
     it("keeps auto-const when the callee is a variable rather than a function", () => {
-      CodeGenState.symbolTable.addCSymbol(declareCVariable("listener"));
+      state.symbolTable.addCSymbol(declareCVariable("listener"));
 
       expect(callerParameterIsModified("listener")).toBe(false);
     });
@@ -323,8 +334,8 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
           isArray: false,
         },
       ],
-    } as unknown as Parameters<typeof CodeGenState.symbolTable.addTSymbol>[0];
-    CodeGenState.symbolTable.addTSymbol(cnextFunction);
+    } as unknown as Parameters<typeof state.symbolTable.addTSymbol>[0];
+    state.symbolTable.addTSymbol(cnextFunction);
 
     // Must not throw, and must fall through to the fail-safe rather than
     // answering from a shape it cannot read.

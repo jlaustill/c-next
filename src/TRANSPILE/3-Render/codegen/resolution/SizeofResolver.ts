@@ -21,9 +21,9 @@
  * `TSizeofOperand`.
  */
 
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import TSizeofOperand from "../types/TSizeofOperand";
 import invariant from "../../../../utils/invariant";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Resolves sizeof expressions to C code.
@@ -34,21 +34,24 @@ export default class SizeofResolver {
    * sizeof(type) -> sizeof(c_type)
    * sizeof(variable) -> sizeof(variable)
    */
-  static generate(operand: TSizeofOperand): string {
+  static generate(operand: TSizeofOperand, state: TranspileState): string {
     switch (operand.kind) {
       case "qualified-type":
         // `a.b` matched the qualified-TYPE alternative, and may still be a
         // member access -- only `CodeGenState` knows which.
         return (
-          this.sizeofQualifiedType(operand.firstName, operand.memberName) ??
-          `sizeof(${operand.renderTypeName()})`
+          this.sizeofQualifiedType(
+            operand.firstName,
+            operand.memberName,
+            state,
+          ) ?? `sizeof(${operand.renderTypeName()})`
         );
       case "user-type":
-        return this.sizeofUserType(operand.text);
+        return this.sizeofUserType(operand.text, state);
       case "plain-type":
         return `sizeof(${operand.cTypeName})`;
       case "expression":
-        return this.sizeofExpression(operand);
+        return this.sizeofExpression(operand, state);
     }
   }
 
@@ -59,17 +62,18 @@ export default class SizeofResolver {
   private static sizeofQualifiedType(
     firstName: string,
     memberName: string,
+    state: TranspileState,
   ): string | null {
     // Check if first identifier is a local variable (struct instance)
-    if (CodeGenState.localVariables.has(firstName)) {
+    if (state.localVariables.has(firstName)) {
       // ADR-057: a local that shadows a file-scope name is emitted under a
       // distinct C identifier. Without this, `sizeof(cfg.x)` measured the
       // GLOBAL `cfg` -- a wrong number, compiling clean.
-      return `sizeof(${CodeGenState.emittedLocalName(firstName)}.${memberName})`;
+      return `sizeof(${state.emittedLocalName(firstName)}.${memberName})`;
     }
 
     // Check if first identifier is a parameter (struct parameter)
-    const paramInfo = CodeGenState.currentParameters.get(firstName);
+    const paramInfo = state.currentParameters.get(firstName);
     if (paramInfo) {
       const sep = paramInfo.isStruct ? "->" : ".";
       return `sizeof(${firstName}${sep}${memberName})`;
@@ -77,10 +81,7 @@ export default class SizeofResolver {
 
     // Check if first identifier is a global variable
     // If not a scope or enum, it's likely a global struct variable
-    if (
-      !CodeGenState.isKnownScope(firstName) &&
-      !CodeGenState.isKnownEnum(firstName)
-    ) {
+    if (!state.isKnownScope(firstName) && !state.isKnownEnum(firstName)) {
       return `sizeof(${firstName}.${memberName})`;
     }
 
@@ -91,9 +92,12 @@ export default class SizeofResolver {
   /**
    * Handle sizeof(identifier) - could be variable or type name
    */
-  private static sizeofUserType(varName: string): string {
+  private static sizeofUserType(
+    varName: string,
+    state: TranspileState,
+  ): string {
     // Check if it's a known parameter
-    const paramInfo = CodeGenState.currentParameters.get(varName);
+    const paramInfo = state.currentParameters.get(varName);
     if (paramInfo) {
       return this.sizeofParameter(varName, paramInfo);
     }
@@ -106,7 +110,7 @@ export default class SizeofResolver {
     // shadow nothing -- a rename exists only for a local of this exact name in
     // this function. Without it `sizeof(arr)` measured the GLOBAL array: 16
     // bytes where 8 was correct, with no diagnostic and a clean compile.
-    return `sizeof(${CodeGenState.emittedLocalName(varName)})`;
+    return `sizeof(${state.emittedLocalName(varName)})`;
   }
 
   /**
@@ -146,12 +150,11 @@ export default class SizeofResolver {
    */
   private static sizeofExpression(
     operand: Extract<TSizeofOperand, { kind: "expression" }>,
+    state: TranspileState,
   ): string {
     // E0601: Check if expression is an array parameter
     if (operand.simpleIdentifier !== null) {
-      const paramInfo = CodeGenState.currentParameters.get(
-        operand.simpleIdentifier,
-      );
+      const paramInfo = state.currentParameters.get(operand.simpleIdentifier);
       if (paramInfo?.isArray) {
         this.throwArrayParamSizeofError(operand.simpleIdentifier);
       }

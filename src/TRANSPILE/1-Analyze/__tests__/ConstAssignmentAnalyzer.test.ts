@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
+import TranspileState from "../../TranspileState";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ConstAssignmentAnalyzer from "../ConstAssignmentAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-013's const enforcement: E0877 (an assignment to or through a
@@ -15,10 +17,16 @@ import ConstAssignmentAnalyzer from "../ConstAssignmentAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new ConstAssignmentAnalyzer().analyze(tree);
+  return new ConstAssignmentAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
+let state = new TranspileState();
+
 describe("ConstAssignmentAnalyzer (E0877)", () => {
+  beforeEach(() => {
+    state = new TranspileState();
+  });
+
   it("rejects every assignment operator on a const variable, at the target", () => {
     const found = errors(
       "const u32 K <- 1;\nvoid f() {\n    K <- 2;\n    K +<- 1;\n    K <<<- 1;\n}",

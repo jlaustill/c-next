@@ -3,13 +3,18 @@ import parse from "./testHelpers";
 import TestScopeUtils from "./testUtils";
 import FunctionCollector from "../collectors/FunctionCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import SymbolRegistry from "../../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../SymbolRegistry";
 import TypeResolver from "../../../../utils/TypeResolver";
+
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
 
 describe("FunctionCollector", () => {
   beforeEach(() => {
     TestScopeUtils.resetGlobalScope();
-    SymbolRegistry.reset();
   });
 
   describe("basic function extraction", () => {
@@ -279,6 +284,7 @@ describe("FunctionCollector", () => {
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
 
       const symbol = FunctionCollector.collectAndRegister(
+        registry,
         funcCtx,
         "test.cnx",
         "",
@@ -299,9 +305,15 @@ describe("FunctionCollector", () => {
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
 
-      FunctionCollector.collectAndRegister(funcCtx, "test.cnx", "", "private");
+      FunctionCollector.collectAndRegister(
+        registry,
+        funcCtx,
+        "test.cnx",
+        "",
+        "private",
+      );
 
-      const globalScope = SymbolRegistry.getGlobalScope();
+      const globalScope = registry.getGlobalScope();
       expect(globalScope.functions).toHaveLength(1);
       expect(globalScope.functions[0].name).toBe("getValue");
     });
@@ -315,13 +327,14 @@ describe("FunctionCollector", () => {
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
 
       FunctionCollector.collectAndRegister(
+        registry,
         funcCtx,
         "motor.cnx",
         "Motor",
         "public",
       );
 
-      const motorScope = SymbolRegistry.getOrCreateScope("Motor");
+      const motorScope = registry.getOrCreateScope("Motor");
       expect(motorScope.functions).toHaveLength(1);
       expect(motorScope.functions[0].name).toBe("init");
       expect(motorScope.functions[0].visibility).toBe("public");
@@ -339,19 +352,21 @@ describe("FunctionCollector", () => {
       const funcBCtx = tree.declaration(1)!.functionDeclaration()!;
 
       FunctionCollector.collectAndRegister(
+        registry,
         funcACtx,
         "test.cnx",
         "Test",
         "public",
       );
       FunctionCollector.collectAndRegister(
+        registry,
         funcBCtx,
         "test.cnx",
         "Test",
         "private",
       );
 
-      const testScope = SymbolRegistry.getOrCreateScope("Test");
+      const testScope = registry.getOrCreateScope("Test");
       expect(testScope.functions).toHaveLength(2);
       expect(testScope.functions[0].name).toBe("funcA");
       expect(testScope.functions[1].name).toBe("funcB");
@@ -366,10 +381,16 @@ describe("FunctionCollector", () => {
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
 
-      FunctionCollector.collectAndRegister(funcCtx, "test.cnx", "", "private");
+      FunctionCollector.collectAndRegister(
+        registry,
+        funcCtx,
+        "test.cnx",
+        "",
+        "private",
+      );
 
-      const globalScope = SymbolRegistry.getGlobalScope();
-      const resolved = SymbolRegistry.resolveFunction("calculate", globalScope);
+      const globalScope = registry.getGlobalScope();
+      const resolved = registry.resolveFunction("calculate", globalScope);
       expect(resolved).not.toBeNull();
       expect(resolved!.name).toBe("calculate");
       expect(resolved!.returnType.kind).toBe("primitive");

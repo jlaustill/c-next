@@ -61,6 +61,7 @@ const generateFunction: TGeneratorFn<IPlannedFunction> = (
       planned.returnType,
       isMainWithArgs,
       planned.firstParameterName,
+      orchestrator.state,
     );
   let params: string = initialParams;
 

@@ -35,7 +35,6 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import BUILTIN_TYPE_NAMES from "../../transpiler/constants/BUILTIN_TYPE_NAMES";
 import ChainRoot from "./helpers/ChainRoot";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import IScopeFrame from "./types/IScopeFrame";
@@ -45,8 +44,9 @@ import ParserUtils from "../../utils/ParserUtils";
 import REJECTED_KEYWORDS from "../../transpiler/constants/REJECTED_KEYWORDS";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ScopeUtils from "../../utils/ScopeUtils";
-import SymbolTable from "../../transpiler/state/SymbolTable";
+import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import TChainRoot from "./types/TChainRoot";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 class UndeclaredValueListener extends CNextListener {
   private readonly analyzer: UndeclaredValueAnalyzer;
@@ -170,13 +170,20 @@ class UndeclaredValueListener extends CNextListener {
 class UndeclaredValueAnalyzer {
   private readonly errors: IUndeclaredValueError[] = [];
 
+  /**
+   * #1456: what the program declares, handed in rather than read off
+   * `CodeGenState`. Constructor rather than a parameter on `analyze`, because
+   * the predicates below are reached from the listener's walk.
+   */
+  constructor(private readonly context: IAnalysisContext) {}
+
   analyze(tree: Parser.ProgramContext): IUndeclaredValueError[] {
     this.errors.length = 0;
 
     // Same precondition as E0426, and the value axis needs it MORE: a `#define`
     // never reaches the symbol table at all, so `_isKnownForeignName` -- which
     // does catch a header typedef -- has nothing to fall back on for a macro.
-    if (CodeGenState.currentFileReachesForeignHeader) {
+    if (this.context.reachesForeignHeader) {
       return this.errors;
     }
 
@@ -184,7 +191,10 @@ class UndeclaredValueAnalyzer {
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     ParseTreeWalker.DEFAULT.walk(
-      new UndeclaredValueListener(this, new ScopeFrameResolver(declarations)),
+      new UndeclaredValueListener(
+        this,
+        new ScopeFrameResolver(declarations, this.context.symbolTable),
+      ),
       tree,
     );
     return this.errors;
@@ -218,7 +228,7 @@ class UndeclaredValueAnalyzer {
     frame: IScopeFrame,
     scopes: ScopeFrameResolver,
   ): boolean {
-    const symbols = CodeGenState.symbols;
+    const symbols = this.context.symbols;
 
     if (root === null) {
       return (
@@ -227,10 +237,9 @@ class UndeclaredValueAnalyzer {
           frame,
           frame.scopePath,
           scopes,
-        ) ||
-        (symbols !== null &&
-          symbols !== undefined &&
-          NameExistence.isKnownEnumMember(name, symbols))
+          this.context.symbolTable,
+          this.context,
+        ) || NameExistence.isKnownEnumMember(name, symbols)
       );
     }
 
@@ -238,15 +247,11 @@ class UndeclaredValueAnalyzer {
       return true;
     }
 
-    if (!symbols) {
-      return true;
-    }
-
     // `global.x` may still name a file-scope variable that arrived through an
     // `#include`, which this file's frames never held. The include-filtered
     // predicate is the cross-file half, exactly as it is for a bare name.
     if (root === "global") {
-      return NameExistence.isValueName(name, symbols, CodeGenState.symbolTable);
+      return NameExistence.isValueName(name, symbols, this.context.symbolTable);
     }
 
     // `this.` outside any scope is E0431's to reject, and two diagnostics for
@@ -259,7 +264,7 @@ class UndeclaredValueAnalyzer {
       name,
       frame.scopePath,
       symbols,
-      CodeGenState.symbolTable,
+      this.context.symbolTable,
     );
   }
 
@@ -305,6 +310,8 @@ class UndeclaredValueAnalyzer {
     frame: IScopeFrame,
     scopePath: string,
     scopes: ScopeFrameResolver,
+    symbolTable: SymbolTable,
+    context: IAnalysisContext,
   ): boolean {
     // A declared variable in an enclosing lexical frame of THIS file.
     //
@@ -320,10 +327,7 @@ class UndeclaredValueAnalyzer {
       return true;
     }
 
-    const symbols = CodeGenState.symbols;
-    if (!symbols) {
-      return true;
-    }
+    const symbols = context.symbols;
 
     // A function referenced as a value (ADR-029 function-as-type), a type used
     // as the base of `Type.MEMBER`, a register, which is a value at an address
@@ -356,7 +360,6 @@ class UndeclaredValueAnalyzer {
     // `scopeMemberVisibility`, written by the same `processScope`, ARE merged,
     // so the three disagree about what "visible" means. What actually answers
     // cross-file here is the run-wide `symbolTable` term below.
-    const symbolTable = CodeGenState.symbolTable;
     if (NameExistence.isValueName(name, symbols, symbolTable)) {
       return true;
     }

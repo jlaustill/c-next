@@ -27,7 +27,6 @@ import { ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import EnumValueResolver from "./EnumValueResolver";
@@ -35,6 +34,7 @@ import ISwitchStatementError from "./types/ISwitchStatementError";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import EnumMemberSuggestion from "./helpers/EnumMemberSuggestion";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** MISRA C:2012 Rule 16.6: a switch needs at least two clauses. */
 const MINIMUM_CLAUSES = 2;
@@ -44,10 +44,13 @@ class SwitchStatementListener extends CNextListener {
   private readonly types: OperandTypeResolver;
   private readonly values: EnumValueResolver;
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
-    this.types = new OperandTypeResolver(scopes);
-    this.values = new EnumValueResolver(scopes);
+    this.types = new OperandTypeResolver(scopes, context);
+    this.values = new EnumValueResolver(scopes, context);
   }
 
   public errors(): ISwitchStatementError[] {
@@ -107,9 +110,9 @@ class SwitchStatementListener extends CNextListener {
     label: Parser.CaseLabelContext,
     switchEnum: string | null,
   ): boolean {
-    const symbols = CodeGenState.symbols;
+    const symbols = this.context.symbols;
     const name = label.IDENTIFIER()?.getText();
-    if (!symbols || name === undefined) return false;
+    if (name === undefined) return false;
     if (switchEnum !== null && symbols.enumMembers.get(switchEnum)?.has(name)) {
       return false;
     }
@@ -134,8 +137,6 @@ class SwitchStatementListener extends CNextListener {
     cases: readonly Parser.SwitchCaseContext[],
     switchEnum: string | null,
   ): boolean {
-    const symbols = CodeGenState.symbols;
-    if (!symbols) return false;
     let reported = false;
     for (const caseCtx of cases) {
       for (const label of caseCtx.caseLabel()) {
@@ -185,7 +186,7 @@ class SwitchStatementListener extends CNextListener {
     cases: readonly Parser.SwitchCaseContext[],
     defaultCase: Parser.DefaultCaseContext | null,
   ): void {
-    const variants = CodeGenState.symbols?.enumMembers.get(enumTypeName);
+    const variants = this.context.symbols.enumMembers.get(enumTypeName);
     if (!variants) return;
 
     const total = variants.size;
@@ -262,12 +263,16 @@ class SwitchStatementListener extends CNextListener {
 }
 
 class SwitchStatementAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): ISwitchStatementError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new SwitchStatementListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

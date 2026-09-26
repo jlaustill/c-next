@@ -10,16 +10,16 @@
  * - SCOPED_REGISTER_MEMBER_BITMAP_FIELD: Scope.GPIO7.ICR1.LED <- value
  */
 import invariant from "../../../../../utils/invariant";
-import AdrProvenance from "../../../../../transpiler/state/AdrProvenance";
+import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import type IBitmapFieldLayout from "../../../../../transpiler/types/IBitmapFieldLayout";
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
-import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
+import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
+import type TranspileState from "../../../../TranspileState";
 
 /**
  * Calculate mask value and hex string for bitmap field.
@@ -36,8 +36,9 @@ function calculateMask(width: number): { mask: number; maskHex: string } {
 function getBitmapFieldInfo(
   bitmapType: string,
   fieldName: string,
+  state: TranspileState,
 ): IBitmapFieldLayout {
-  const fields = CodeGenState.symbols!.bitmapFields.get(bitmapType);
+  const fields = state.symbols!.bitmapFields.get(bitmapType);
   // Two statements, because `asserts condition` narrows a REFERENCE, not an
   // arbitrary expression: asserting `fields?.has(...)` leaves `fields` itself
   // possibly-undefined for the line below.
@@ -102,10 +103,10 @@ function generateWriteOnlyBitmapWrite(
 function handleBitmapFieldSingleBit(ctx: IAssignmentContext): string {
   const varName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
-  const typeInfo = CodeGenState.getVariableTypeInfo(varName);
+  const typeInfo = ctx.state.getVariableTypeInfo(varName);
   const bitmapType = typeInfo!.bitmapTypeName!;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName);
+  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx.state);
   return generateBitmapWrite(varName, fieldInfo, ctx.generatedValue);
 }
 
@@ -123,10 +124,10 @@ function handleBitmapFieldMultiBit(ctx: IAssignmentContext): string {
 function handleBitmapArrayElementField(ctx: IAssignmentContext): string {
   const arrayName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
-  const typeInfo = CodeGenState.getVariableTypeInfo(arrayName);
+  const typeInfo = ctx.state.getVariableTypeInfo(arrayName);
   const bitmapType = typeInfo!.bitmapTypeName!;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName);
+  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx.state);
   const index = ctx.renderSubscript(0);
   const arrayElement = `${arrayName}[${index}]`;
 
@@ -141,14 +142,14 @@ function handleStructMemberBitmapField(ctx: IAssignmentContext): string {
   const memberName = ctx.identifiers[1];
   const fieldName = ctx.identifiers[2];
 
-  const structTypeInfo = CodeGenState.getVariableTypeInfo(structName);
-  const memberInfo = CodeGenState.getMemberTypeInfo(
+  const structTypeInfo = ctx.state.getVariableTypeInfo(structName);
+  const memberInfo = ctx.state.getMemberTypeInfo(
     structTypeInfo!.baseType,
     memberName,
   );
   const bitmapType = memberInfo!.baseType;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName);
+  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx.state);
   const memberPath = `${structName}.${memberName}`;
 
   return generateBitmapWrite(memberPath, fieldInfo, ctx.generatedValue);
@@ -163,10 +164,9 @@ function handleRegisterMemberBitmapField(ctx: IAssignmentContext): string {
   const fieldName = ctx.identifiers[2];
 
   const fullRegMember = QualifiedCName.fromParts([regName, memberName]);
-  const bitmapType =
-    CodeGenState.symbols!.registerMemberTypes.get(fullRegMember)!;
+  const bitmapType = ctx.state.symbols!.registerMemberTypes.get(fullRegMember)!;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName);
+  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx.state);
   return generateBitmapWrite(fullRegMember, fieldInfo, ctx.generatedValue);
 }
 
@@ -194,7 +194,7 @@ function handleScopedRegisterMemberBitmapField(
     memberName = ctx.identifiers[1];
     fieldName = ctx.identifiers[2];
     fullRegName = QualifiedNameGenerator.forMember(
-      CodeGenState.currentScopePath,
+      ctx.state.currentScopePath,
       regName,
     );
   } else {
@@ -209,14 +209,12 @@ function handleScopedRegisterMemberBitmapField(
 
   // A register MEMBER is qualified by its register, textually -- not by a scope.
   const fullRegMember = QualifiedCName.fromParts([fullRegName, memberName]);
-  const bitmapType =
-    CodeGenState.symbols!.registerMemberTypes.get(fullRegMember)!;
+  const bitmapType = ctx.state.symbols!.registerMemberTypes.get(fullRegMember)!;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName);
+  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx.state);
 
   // Check for write-only register (includes w1s, w1c)
-  const accessMod =
-    CodeGenState.symbols!.registerMemberAccess.get(fullRegMember);
+  const accessMod = ctx.state.symbols!.registerMemberAccess.get(fullRegMember);
   const isWriteOnly = RegisterAccessMode.isWriteOne(accessMod);
 
   if (isWriteOnly) {

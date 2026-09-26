@@ -34,8 +34,8 @@ vi.mock("../../../../../2-Plan/ExpressionTypeResolver", () => ({
 
 import arrayHandlers from "../ArrayHandlers";
 import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
-import IAssignmentContext from "../../../../../../transpiler/types/IAssignmentContext";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
+import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
 
 /**
@@ -89,15 +89,21 @@ function createMockContext(
     isSimpleGlobalAccess: false,
     resolvedTarget,
     resolvedBaseIdentifier,
+    // #1452 box 4: a handler reaches 2.3's per-file state through the context
+    // it is handed, so the mock context carries the same instance the test
+    // set its facts up on.
+    state,
     ...overrides,
   } as IAssignmentContext;
 }
 
+let state = new TranspileState();
+
 describe("ArrayHandlers", () => {
   beforeEach(() => {
-    CodeGenState.reset();
-    HandlerTestUtils.setupMockGenerator();
-    HandlerTestUtils.setupMockSymbols();
+    state = new TranspileState();
+    HandlerTestUtils.setupMockGenerator(state);
+    HandlerTestUtils.setupMockSymbols(state);
     // Default: a source whose direct type is null is also unresolved as a
     // composite. Tests that exercise composite resolution override this.
     mockGetIntegerExpressionType.mockReturnValue(null);
@@ -124,7 +130,7 @@ describe("ArrayHandlers", () => {
       )?.[1];
 
     it("generates simple array element assignment", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("i"),
       });
       const ctx = createMockContext();
@@ -135,7 +141,7 @@ describe("ArrayHandlers", () => {
     });
 
     it("handles compound assignment", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("0"),
       });
       const ctx = createMockContext({
@@ -151,7 +157,7 @@ describe("ArrayHandlers", () => {
     });
 
     it("uses correct identifier", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("idx"),
       });
       const ctx = createMockContext({
@@ -173,7 +179,7 @@ describe("ArrayHandlers", () => {
       )?.[1];
 
     it("generates multi-dimensional array access", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("i")
@@ -196,7 +202,7 @@ describe("ArrayHandlers", () => {
     });
 
     it("handles 3D array access", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("x")
@@ -221,7 +227,7 @@ describe("ArrayHandlers", () => {
     });
 
     it("handles compound assignment", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -273,10 +279,10 @@ describe("ArrayHandlers", () => {
     // satisfied because no incompatible pointer punning is emitted.
     it("generates unrolled byte writes for a u8 slice (no memcpy/string.h)", () => {
       mockGetExpressionType.mockReturnValue("u32");
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -304,15 +310,15 @@ describe("ArrayHandlers", () => {
           "buffer[3] = (uint8_t)(cnx_tmp0 >> 24U);",
       );
       // No memcpy means <string.h> is not required.
-      expect(CodeGenState.needsString).toBe(false);
+      expect(state.needsString).toBe(false);
     });
 
     it("writes at element granularity for a u16 slice (offset = element index)", () => {
       mockGetExpressionType.mockReturnValue("u64");
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["arr16", { arrayDimensions: [16], baseType: "u16", bitWidth: 16 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -341,10 +347,10 @@ describe("ArrayHandlers", () => {
 
     it("omits the rule citation when source and element types match (no 21.15)", () => {
       mockGetExpressionType.mockReturnValue("u32");
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["arr32", { arrayDimensions: [16], baseType: "u32", bitWidth: 32 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -367,10 +373,10 @@ describe("ArrayHandlers", () => {
 
     it("accepts an in-bounds wide-element slice at a non-zero offset (Finding 1)", () => {
       mockGetExpressionType.mockReturnValue("u64");
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["arr64", { arrayDimensions: [8], baseType: "u64", bitWidth: 64 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(4)
@@ -396,10 +402,10 @@ describe("ArrayHandlers", () => {
 
     it("names the element span (not bytes) in the out-of-bounds invariant", () => {
       mockGetExpressionType.mockReturnValue("u64");
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["arr16", { arrayDimensions: [4], baseType: "u16", bitWidth: 16 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(2)
@@ -422,10 +428,10 @@ describe("ArrayHandlers", () => {
 
     it("casts a signed source to unsigned once in the temp (MISRA 10.1)", () => {
       mockGetExpressionType.mockReturnValue("i32");
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -456,10 +462,10 @@ describe("ArrayHandlers", () => {
 
     it("uses the signed-element double-cast for a signed destination (MISRA 10.8)", () => {
       mockGetExpressionType.mockReturnValue("i32");
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["arrI", { arrayDimensions: [16], baseType: "i32", bitWidth: 32 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -482,7 +488,7 @@ describe("ArrayHandlers", () => {
 
     it("generates double-cast char writes for a string slice (MISRA 10.8)", () => {
       mockGetExpressionType.mockReturnValue("u16");
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         [
           "str",
           {
@@ -493,7 +499,7 @@ describe("ArrayHandlers", () => {
           },
         ],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(5)
@@ -520,10 +526,10 @@ describe("ArrayHandlers", () => {
 
     it("sizes the temp to the slice length for an unresolved source type", () => {
       mockGetExpressionType.mockReturnValue(null); // e.g. a computed expression
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -563,10 +569,10 @@ describe("ArrayHandlers", () => {
       // the simple temp, never on the `a + b` composite.
       mockGetExpressionType.mockReturnValue(null);
       mockGetIntegerExpressionType.mockReturnValue("i32");
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -597,10 +603,10 @@ describe("ArrayHandlers", () => {
 
     it("asserts the invariant when slice length is not a multiple of the element size", () => {
       mockGetExpressionType.mockReturnValue("u64");
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["arr16", { arrayDimensions: [16], baseType: "u16", bitWidth: 16 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -622,10 +628,10 @@ describe("ArrayHandlers", () => {
 
     it("asserts the invariant when slice length exceeds the source value width", () => {
       mockGetExpressionType.mockReturnValue("u32"); // 4-byte source
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -647,10 +653,10 @@ describe("ArrayHandlers", () => {
 
     it("asserts the invariant on a non-integer (float) slice source", () => {
       mockGetExpressionType.mockReturnValue("f32");
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -669,10 +675,10 @@ describe("ArrayHandlers", () => {
     });
 
     it("asserts the invariant on slice assignment into a float array", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["arrF", { arrayDimensions: [16], baseType: "f32", bitWidth: 32 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -698,10 +704,10 @@ describe("ArrayHandlers", () => {
       // one: buf[0,1] <- -300 cannot fit a 1-byte slice (-300 < -128) and must be
       // rejected, not silently truncated to (uint8_t)(-300) (Issue #1085 review).
       mockGetExpressionType.mockReturnValue(null);
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0) // offset
@@ -727,10 +733,10 @@ describe("ArrayHandlers", () => {
       // as 0xFFFFFFFF little-endian. The literal types to the slice width (u32),
       // so an equivalent memcpy would be incompatible -> Rule 21.15 is cited.
       mockGetExpressionType.mockReturnValue(null);
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0) // offset
@@ -766,7 +772,7 @@ describe("ArrayHandlers", () => {
     // `tests/compound-assign/` and `tests/string-assignment/`.
 
     it("asserts the invariant on multi-dimensional array", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["matrix", { arrayDimensions: [10, 10], baseType: "u8" }],
       ]);
       const ctx = createMockContext({
@@ -783,10 +789,10 @@ describe("ArrayHandlers", () => {
     });
 
     it("asserts the invariant on non-constant offset", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi.fn().mockReturnValue(undefined),
       });
       const ctx = createMockContext({
@@ -802,10 +808,10 @@ describe("ArrayHandlers", () => {
     });
 
     it("asserts the invariant on non-constant length", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -824,10 +830,10 @@ describe("ArrayHandlers", () => {
     });
 
     it("asserts the invariant on out of bounds access", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["buffer", { arrayDimensions: [50], baseType: "u8", bitWidth: 8 }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(40)
@@ -845,10 +851,10 @@ describe("ArrayHandlers", () => {
     });
 
     it("asserts the invariant on negative offset", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(-1)
@@ -868,10 +874,10 @@ describe("ArrayHandlers", () => {
     });
 
     it("asserts the invariant on zero length", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -889,10 +895,10 @@ describe("ArrayHandlers", () => {
     });
 
     it("asserts the invariant on negative length", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)
@@ -910,8 +916,10 @@ describe("ArrayHandlers", () => {
     });
 
     it("asserts the invariant when buffer size cannot be determined", () => {
-      HandlerTestUtils.setupMockTypeRegistry([["unknown", { baseType: "u8" }]]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockTypeRegistry(state, [
+        ["unknown", { baseType: "u8" }],
+      ]);
+      HandlerTestUtils.setupMockGenerator(state, {
         tryEvaluateConstant: vi
           .fn()
           .mockReturnValueOnce(0)

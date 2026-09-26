@@ -13,7 +13,7 @@ import IParameterSymbol from "../../../utils/types/IParameterSymbol";
 import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";
 import HeaderGeneratorUtils from "./HeaderGeneratorUtils";
-import SymbolTable from "../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 // Unified parameter generation (Phase 1)
 import ParameterInputAdapter from "../codegen/helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "../codegen/helpers/ParameterSignatureBuilder";

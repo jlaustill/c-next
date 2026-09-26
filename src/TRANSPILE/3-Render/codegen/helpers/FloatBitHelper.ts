@@ -19,7 +19,7 @@
 import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 import TIncludeHeader from "../../../../transpiler/types/TIncludeHeader";
 import BitRangeHelper from "./BitRangeHelper";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Callback types for code generation operations.
@@ -68,6 +68,7 @@ class FloatBitHelper {
     width: string | null,
     value: string,
     callbacks: IFloatBitCallbacks,
+    state: TranspileState,
   ): string | null {
     const isFloatType =
       typeInfo.baseType === "f32" || typeInfo.baseType === "f64";
@@ -84,13 +85,13 @@ class FloatBitHelper {
     const maskSuffix = isF64 ? "ULL" : "U";
 
     // Check if shadow variable needs declaration
-    const needsDeclaration = !CodeGenState.floatBitShadows.has(shadowName);
+    const needsDeclaration = !state.floatBitShadows.has(shadowName);
     if (needsDeclaration) {
-      CodeGenState.floatBitShadows.add(shadowName);
+      state.floatBitShadows.add(shadowName);
     }
 
     // Check if shadow already has current value (skip redundant read)
-    const shadowIsCurrent = CodeGenState.floatShadowCurrent.has(shadowName);
+    const shadowIsCurrent = state.floatShadowCurrent.has(shadowName);
 
     // Union declaration: union { float f; uint32_t u; } __bits_name;
     const decl = needsDeclaration
@@ -100,7 +101,7 @@ class FloatBitHelper {
     const readUnion = shadowIsCurrent ? "" : `${shadowName}.f = ${name};\n`;
 
     // Mark shadow as current after this write
-    CodeGenState.floatShadowCurrent.add(shadowName);
+    state.floatShadowCurrent.add(shadowName);
 
     if (width === null) {
       // Single bit assignment: floatVar[3] <- true

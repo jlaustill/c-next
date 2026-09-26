@@ -6,7 +6,7 @@ import { ParserRuleContext } from "antlr4ng";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
 import dimensionEvalOptions from "./dimensionEvalOptions";
-import CodeGenState from "../../transpiler/state/CodeGenState";
+import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
 import INTEGER_TYPES from "../../transpiler/types/INTEGER_TYPES";
 import FLOAT_TYPES from "../../transpiler/types/FLOAT_TYPES";
 import UNSIGNED_TYPES from "../../transpiler/types/UNSIGNED_TYPES";
@@ -17,6 +17,7 @@ import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import PrimitiveKindUtils from "../../utils/PrimitiveKindUtils";
+import type TranspileState from "../TranspileState";
 
 /**
  * Internal type info tracked through postfix suffix chains.
@@ -75,18 +76,12 @@ class ExpressionTypeResolver {
    * Check if a type is a user-defined struct (C-Next or C header).
    * Issue #103: Now checks both knownStructs AND SymbolTable.
    */
-  static isStructType(typeName: string): boolean {
-    if (CodeGenState.symbols?.knownStructs.has(typeName)) {
-      return true;
-    }
-    // Issue #551: Bitmaps are struct-like (use pass-by-reference with -> access)
-    if (CodeGenState.symbols?.knownBitmaps.has(typeName)) {
-      return true;
-    }
-    if (CodeGenState.symbolTable.getStructFields(typeName)) {
-      return true;
-    }
-    return false;
+  static isStructType(typeName: string, state: TranspileState): boolean {
+    return DeclaredTypeFacts.isStruct(
+      state.symbols,
+      state.symbolTable,
+      typeName,
+    );
   }
 
   /**
@@ -129,10 +124,13 @@ class ExpressionTypeResolver {
   /**
    * ADR-024: Get the type of an expression for type checking.
    */
-  static getExpressionType(ctx: Parser.ExpressionContext): string | null {
+  static getExpressionType(
+    ctx: Parser.ExpressionContext,
+    state: TranspileState,
+  ): string | null {
     const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
     if (postfix) {
-      return ExpressionTypeResolver.getPostfixExpressionType(postfix);
+      return ExpressionTypeResolver.getPostfixExpressionType(postfix, state);
     }
 
     const ternary = ctx.ternaryExpression();
@@ -178,10 +176,11 @@ class ExpressionTypeResolver {
    */
   static getIntegerExpressionType(
     ctx: Parser.ExpressionContext,
+    state: TranspileState,
   ): string | null {
-    const direct = ExpressionTypeResolver.getExpressionType(ctx);
+    const direct = ExpressionTypeResolver.getExpressionType(ctx, state);
     if (direct !== null) return direct;
-    return ExpressionTypeResolver.resolveCompositeIntegerType(ctx);
+    return ExpressionTypeResolver.resolveCompositeIntegerType(ctx, state);
   }
 
   /**
@@ -200,8 +199,11 @@ class ExpressionTypeResolver {
    * whole `expression`. Same rule as getIntegerExpressionType: the (uniform,
    * per Rule 10.4) category at the widest operand's width.
    */
-  static getCompositeIntegerType(node: ParserRuleContext): string | null {
-    return ExpressionTypeResolver.resolveCompositeIntegerType(node);
+  static getCompositeIntegerType(
+    node: ParserRuleContext,
+    state: TranspileState,
+  ): string | null {
+    return ExpressionTypeResolver.resolveCompositeIntegerType(node, state);
   }
 
   /**
@@ -218,12 +220,13 @@ class ExpressionTypeResolver {
    */
   static getCompositeOverflowBehavior(
     node: ParserRuleContext,
+    state: TranspileState,
   ): TOverflowBehavior | null {
     let sawInteger = false;
     for (const operand of ExpressionTypeResolver.collectOperandPostfixes(
       node,
     )) {
-      const info = ExpressionTypeResolver.operandTypeInfo(operand);
+      const info = ExpressionTypeResolver.operandTypeInfo(operand, state);
       if (info === undefined) continue;
       if (!ExpressionTypeResolver.isIntegerType(info.baseType)) continue;
       sawInteger = true;
@@ -239,6 +242,7 @@ class ExpressionTypeResolver {
    */
   private static operandTypeInfo(
     postfix: Parser.PostfixExpressionContext,
+    state: TranspileState,
   ): TTypeInfo | undefined {
     const primary = postfix.primaryExpression();
     if (!primary) return undefined;
@@ -246,10 +250,14 @@ class ExpressionTypeResolver {
     const ops = postfix.postfixOp();
     if (ops.length === 0) {
       const name = primary.getText();
-      return name ? CodeGenState.getVariableTypeInfo(name) : undefined;
+      return name ? state.getVariableTypeInfo(name) : undefined;
     }
 
-    return ExpressionTypeResolver.scopeMemberOperandTypeInfo(primary, ops);
+    return ExpressionTypeResolver.scopeMemberOperandTypeInfo(
+      primary,
+      ops,
+      state,
+    );
   }
 
   /**
@@ -282,6 +290,7 @@ class ExpressionTypeResolver {
   private static scopeMemberOperandTypeInfo(
     primary: Parser.PrimaryExpressionContext,
     ops: Parser.PostfixOpContext[],
+    state: TranspileState,
   ): TTypeInfo | undefined {
     const members: string[] = [];
     for (const op of ops) {
@@ -293,8 +302,8 @@ class ExpressionTypeResolver {
     // `this.value` names the CURRENT scope, which the syntax does not spell
     // out; `Counter.value` spells its own path. Both go through the one
     // encoder rather than joining with "__" by hand.
-    return CodeGenState.getVariableTypeInfo(
-      ExpressionTypeResolver.memberChainKey(primary, members),
+    return state.getVariableTypeInfo(
+      ExpressionTypeResolver.memberChainKey(primary, members, state),
     );
   }
 
@@ -315,11 +324,12 @@ class ExpressionTypeResolver {
   private static memberChainKey(
     primary: Parser.PrimaryExpressionContext,
     members: readonly string[],
+    state: TranspileState,
   ): string {
     if (primary.THIS() !== null) {
       return ScopeUtils.qualifyPathInScope(
         [...members],
-        CodeGenState.currentScopePath,
+        state.currentScopePath,
       );
     }
     if (primary.GLOBAL() !== null) {
@@ -330,10 +340,11 @@ class ExpressionTypeResolver {
 
   private static resolveCompositeIntegerType(
     ctx: ParserRuleContext,
+    state: TranspileState,
   ): string | null {
     return PrimitiveKindUtils.widestIntegerOf(
       ExpressionTypeResolver.collectOperandPostfixes(ctx).map((operand) =>
-        ExpressionTypeResolver.typeOperandPostfix(operand),
+        ExpressionTypeResolver.typeOperandPostfix(operand, state),
       ),
     );
   }
@@ -348,16 +359,23 @@ class ExpressionTypeResolver {
    */
   private static typeOperandPostfix(
     postfix: Parser.PostfixExpressionContext,
+    state: TranspileState,
   ): string | null {
-    const extractionWidth = ExpressionTypeResolver.bitExtractionWidth(postfix);
+    const extractionWidth = ExpressionTypeResolver.bitExtractionWidth(
+      postfix,
+      state,
+    );
     if (extractionWidth !== null) {
       return ExpressionTypeResolver.unsignedTypeForBits(extractionWidth);
     }
 
-    const direct = ExpressionTypeResolver.getPostfixExpressionType(postfix);
+    const direct = ExpressionTypeResolver.getPostfixExpressionType(
+      postfix,
+      state,
+    );
     if (direct !== null) return direct;
 
-    return ExpressionTypeResolver.callReturnType(postfix);
+    return ExpressionTypeResolver.callReturnType(postfix, state);
   }
 
   /**
@@ -430,6 +448,7 @@ class ExpressionTypeResolver {
    */
   private static bitExtractionWidth(
     postfix: Parser.PostfixExpressionContext,
+    state: TranspileState,
   ): number | null {
     const ops = postfix.postfixOp();
     const last = ops.at(-1);
@@ -440,7 +459,7 @@ class ExpressionTypeResolver {
     // offset/length use — so a named const or any-base literal width
     // (`b[0, WIDTH]`, `b[0, 0b100000]`) is sized at its real width rather than
     // dropped, which would mis-type a composite slice source (Issue #1085 review).
-    // #1652: this went through `CodeGenState.generator?.tryEvaluateConstant`,
+    // #1652: this went through `state.generator?.tryEvaluateConstant`,
     // whose parameter was typed `unknown` so the production contract would stay
     // out of the parse-tree population while carrying a parse node. The member
     // it reached was a ONE-LINE delegate to exactly the call below, so the
@@ -449,7 +468,7 @@ class ExpressionTypeResolver {
     // evaluator directly is both shorter and honest.
     const evaluated = ArrayDimensionParser.parseSingleDimension(
       widthExpr,
-      dimensionEvalOptions(),
+      dimensionEvalOptions(state),
     );
     if (evaluated !== undefined) {
       return evaluated > 0 ? evaluated : null;
@@ -482,11 +501,12 @@ class ExpressionTypeResolver {
    */
   private static callReturnType(
     postfix: Parser.PostfixExpressionContext,
+    state: TranspileState,
   ): string | null {
     const ops = postfix.postfixOp();
     if (ops.length !== 1 || !ops[0].getText().startsWith("(")) return null;
     const name = postfix.primaryExpression()?.IDENTIFIER()?.getText();
-    return name ? (CodeGenState.getFunctionReturnType(name) ?? null) : null;
+    return name ? (state.getFunctionReturnType(name) ?? null) : null;
   }
 
   /**
@@ -496,11 +516,15 @@ class ExpressionTypeResolver {
    */
   static getPostfixExpressionType(
     ctx: Parser.PostfixExpressionContext,
+    state: TranspileState,
   ): string | null {
     const primary = ctx.primaryExpression();
     if (!primary) return null;
 
-    let current = ExpressionTypeResolver.getPrimaryExpressionTypeInfo(primary);
+    let current = ExpressionTypeResolver.getPrimaryExpressionTypeInfo(
+      primary,
+      state,
+    );
     if (!current) {
       // #1303: a scope member named through its scope (`Counter.value`) has no
       // type at the primary -- `Counter` is a scope, not a variable, so the
@@ -518,6 +542,7 @@ class ExpressionTypeResolver {
       const memberInfo = ExpressionTypeResolver.scopeMemberOperandTypeInfo(
         primary,
         ops,
+        state,
       );
       return memberInfo ? memberInfo.baseType : null;
     }
@@ -536,6 +561,7 @@ class ExpressionTypeResolver {
         const memberInfo = ExpressionTypeResolver.scopeMemberOperandTypeInfo(
           primary,
           globalOps,
+          state,
         );
         if (memberInfo) return memberInfo.baseType;
       }
@@ -546,6 +572,7 @@ class ExpressionTypeResolver {
       const result = ExpressionTypeResolver.processPostfixSuffix(
         suffix.getText(),
         current,
+        state,
       );
       if (result.stop) {
         return result.type;
@@ -563,9 +590,14 @@ class ExpressionTypeResolver {
   private static processPostfixSuffix(
     text: string,
     current: InternalTypeInfo,
+    state: TranspileState,
   ): SuffixResult {
     if (text.startsWith(".")) {
-      return ExpressionTypeResolver.processMemberSuffix(text.slice(1), current);
+      return ExpressionTypeResolver.processMemberSuffix(
+        text.slice(1),
+        current,
+        state,
+      );
     }
 
     if (text.startsWith("[") && text.endsWith("]")) {
@@ -582,27 +614,29 @@ class ExpressionTypeResolver {
   private static processMemberSuffix(
     memberName: string,
     current: InternalTypeInfo,
+    state: TranspileState,
   ): SuffixResult {
     // Handle global.X — resolve X as a global variable name
     if (current.baseType === ExpressionTypeResolver.GLOBAL_SENTINEL) {
-      return ExpressionTypeResolver.resolveRegistryLookup(memberName);
+      return ExpressionTypeResolver.resolveRegistryLookup(memberName, state);
     }
 
     // Handle this.X — resolve X as a scope member variable
     if (
       current.baseType === ExpressionTypeResolver.THIS_SENTINEL &&
-      CodeGenState.currentScopePath
+      state.currentScopePath
     ) {
       const scopedName = QualifiedNameGenerator.forMember(
-        CodeGenState.currentScopePath,
+        state.currentScopePath,
         memberName,
       );
-      return ExpressionTypeResolver.resolveRegistryLookup(scopedName);
+      return ExpressionTypeResolver.resolveRegistryLookup(scopedName, state);
     }
 
     const memberInfo = ExpressionTypeResolver.getMemberTypeInfo(
       current.baseType,
       memberName,
+      state,
     );
     if (!memberInfo) {
       return { stop: true, type: null };
@@ -616,8 +650,11 @@ class ExpressionTypeResolver {
   /**
    * Look up a variable name in the type registry and return a SuffixResult.
    */
-  private static resolveRegistryLookup(name: string): SuffixResult {
-    const typeInfo = CodeGenState.getVariableTypeInfo(name);
+  private static resolveRegistryLookup(
+    name: string,
+    state: TranspileState,
+  ): SuffixResult {
+    const typeInfo = state.getVariableTypeInfo(name);
     if (typeInfo) {
       return {
         stop: false,
@@ -665,12 +702,13 @@ class ExpressionTypeResolver {
    */
   private static getPrimaryExpressionTypeInfo(
     ctx: Parser.PrimaryExpressionContext,
+    state: TranspileState,
   ): InternalTypeInfo | null {
     const id = ctx.IDENTIFIER();
     if (id) {
       const name = id.getText();
-      const scopedName = CodeGenState.resolveIdentifier(name);
-      const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
+      const scopedName = state.resolveIdentifier(name);
+      const typeInfo = state.getVariableTypeInfo(scopedName);
       if (typeInfo) {
         return { baseType: typeInfo.baseType, isArray: typeInfo.isArray };
       }
@@ -698,7 +736,7 @@ class ExpressionTypeResolver {
 
     const expr = ctx.expression();
     if (expr) {
-      const exprType = ExpressionTypeResolver.getExpressionType(expr);
+      const exprType = ExpressionTypeResolver.getExpressionType(expr, state);
       return exprType ? { baseType: exprType, isArray: false } : null;
     }
 
@@ -715,8 +753,12 @@ class ExpressionTypeResolver {
    */
   static getPrimaryExpressionType(
     ctx: Parser.PrimaryExpressionContext,
+    state: TranspileState,
   ): string | null {
-    const info = ExpressionTypeResolver.getPrimaryExpressionTypeInfo(ctx);
+    const info = ExpressionTypeResolver.getPrimaryExpressionTypeInfo(
+      ctx,
+      state,
+    );
     return info?.baseType ?? null;
   }
 
@@ -725,15 +767,16 @@ class ExpressionTypeResolver {
    */
   static getUnaryExpressionType(
     ctx: Parser.UnaryExpressionContext,
+    state: TranspileState,
   ): string | null {
     const postfix = ctx.postfixExpression();
     if (postfix) {
-      return ExpressionTypeResolver.getPostfixExpressionType(postfix);
+      return ExpressionTypeResolver.getPostfixExpressionType(postfix, state);
     }
 
     const unary = ctx.unaryExpression();
     if (unary) {
-      return ExpressionTypeResolver.getUnaryExpressionType(unary);
+      return ExpressionTypeResolver.getUnaryExpressionType(unary, state);
     }
 
     return null;
@@ -741,22 +784,25 @@ class ExpressionTypeResolver {
 
   /**
    * Get type info for a struct member field.
-   * Issue #831: SymbolTable is the single source of truth for struct fields.
+   *
+   * Issue #831: SymbolTable is the single source of truth for struct fields,
+   * asked through the state's accessor. Reaching `symbolTable` directly was a
+   * third copy of this lookup, and the three each "made SymbolTable
+   * authoritative" independently -- so none of them picked up #1322's key
+   * fallback for a struct declared inside a scope, whose fields are recorded
+   * under the transpiled key.
    */
   static getMemberTypeInfo(
     structType: string,
     memberName: string,
+    state: TranspileState,
   ): { isArray: boolean; baseType: string } | undefined {
-    const fieldInfo = CodeGenState.symbolTable?.getStructFieldInfo(
-      structType,
-      memberName,
-    );
-    if (!fieldInfo) return undefined;
+    const fieldInfo = state.getStructFieldInfo(structType, memberName);
+    if (fieldInfo === null) return undefined;
 
     return {
       isArray:
-        fieldInfo.arrayDimensions !== undefined &&
-        fieldInfo.arrayDimensions.length > 0,
+        fieldInfo.dimensions !== undefined && fieldInfo.dimensions.length > 0,
       baseType: fieldInfo.type,
     };
   }

@@ -86,6 +86,7 @@ src/
     1-Write/
   types/
   utils/
+  instrumentation/
   cli/
   lib/
 ```
@@ -95,7 +96,7 @@ own layer, or of any earlier layer, and nothing else. So "which pass owns this m
 and "may it read that?" are both answerable from the path -- by a reader, and by a gate --
 without opening the file.
 
-**Every child of `src/` is a directory, and is one of three kinds.** There are no bare
+**Every child of `src/` is a directory, and is one of four kinds.** There are no bare
 files at the root: an entry point lives inside the root it starts.
 
 - **A layer** -- `PARSE/`, `TRANSPILE/` and `WRITE/`, each holding its passes, as above.
@@ -105,6 +106,37 @@ files at the root: an entry point lives inside the root it starts.
 - **Host** -- `cli/` and `lib/`. Outside the three layers, and the only place allowed to
   construct the pipeline. Each is entered through its own `index.ts`: the command-line
   tool and the library are separate concerns and do not share a starting point.
+- **Instrumentation** -- `instrumentation/`. Records facts about the RUN, never about the
+  program: where an ADR's rule fired, which toolchain features a run required. Written
+  from any layer, read once by the host, delivered on the run's result. It authors no fact
+  the program has, so it is not a state container, and it decides nothing, so it is not a
+  pass.
+
+  This kind was added by #1452, and it was added because the taxonomy's absence had
+  already misplaced both of its members: `AdrProvenance` sat in a state directory and the
+  toolchain-requirement accumulator sat inside `CodeGenState`, each landing wherever it
+  was least obviously wrong. A category with no name gets one location per member.
+
+  **It is the one root that may hold mutable state, and the reason is narrow.** Its
+  accumulators are written across several passes and what they accumulate is an
+  observation of the run, not a fact carried between passes. A pass that read
+  instrumentation back would be deriving program behavior from a report about itself;
+  that is the line, and it is why `instrumentation/` may not import a layer.
+
+  **"Read once at the end" is not the test -- "nothing branches on it" is**, and the
+  distinction matters because the ledger IS read back. `CodeGenWalker.buildBanner` puts
+  ` * Requires: C11.` into the generated `.c`, and `captureEmissionFacts` carries
+  `takeDeferredSites(...)` into `IEmissionFacts`. Checked, because a rule stated loosely
+  reads as violated: `EmissionPlan` branches on `facts.needsFloatStaticAssert` and
+  `facts.needsIrqWrappers` -- both render state -- and the sites travel beside them as
+  attribution that no decision consults. So no generated CODE differs because of
+  instrumentation; a comment and a diagnostic's file:line do.
+
+  `scripts/__tests__/passes-hold-no-mutable-state.test.ts` scans this root **and** the
+  layers, with its four holders listed by name. It used not to scan here at all, which
+  made the exemption geographic: the four mutable statics #1452 relocated into this root
+  left the guard unable to fail on the state that card was about. A list is a thing a
+  reviewer can disagree with; a directory boundary is not.
 
 **An import may not go up and then back down into another root.**
 `../../types/ITranspileError` is legal; `../../lib/types/ITranspileError` is not. Anything

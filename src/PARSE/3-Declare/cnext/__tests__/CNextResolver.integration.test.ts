@@ -3,16 +3,19 @@ import parse from "./testHelpers";
 import CNextResolver from "../index";
 import DeferredTypes from "../../../4-Resolve/DeferredTypes";
 import SymbolGuards from "../../../../transpiler/types/symbols/SymbolGuards";
-import SymbolRegistry from "../../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../SymbolRegistry";
 import TypeResolver from "../../../../utils/TypeResolver";
+
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
 
 describe("CNextResolver Integration", () => {
   // CLAUDE.md, "Test isolation": CNextResolver writes to the SymbolRegistry, so
   // without this every test in this file inherits the scopes the previous one
   // registered.
-  beforeEach(() => {
-    SymbolRegistry.reset();
-  });
 
   describe("single declaration types", () => {
     it("resolves top-level struct", () => {
@@ -23,7 +26,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isStruct(symbols[0])).toBe(true);
@@ -39,7 +42,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isEnum(symbols[0])).toBe(true);
@@ -51,7 +54,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isFunction(symbols[0])).toBe(true);
@@ -63,7 +66,7 @@ describe("CNextResolver Integration", () => {
         u32 counter <- 0;
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isVariable(symbols[0])).toBe(true);
@@ -80,7 +83,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isBitmap(symbols[0])).toBe(true);
@@ -95,7 +98,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isRegister(symbols[0])).toBe(true);
@@ -118,7 +121,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       // Scope + 3 members
       expect(symbols).toHaveLength(4);
@@ -164,7 +167,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       // Scope + enum + struct
       expect(symbols).toHaveLength(3);
@@ -197,7 +200,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       expect(symbols).toHaveLength(2);
 
@@ -224,7 +227,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       // Scope + bitmap + register
       expect(symbols).toHaveLength(3);
@@ -283,7 +286,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       // Count symbols:
       // 1 struct (Point)
@@ -339,7 +342,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       // 2 scopes + 2 functions each = 6
       expect(symbols).toHaveLength(6);
@@ -372,7 +375,7 @@ describe("CNextResolver Integration", () => {
     it("returns empty array for empty program", () => {
       const code = ``;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       expect(symbols).toEqual([]);
     });
@@ -385,7 +388,7 @@ describe("CNextResolver Integration", () => {
         bool arr[SIZE];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       expect(symbols).toHaveLength(2);
 
@@ -405,7 +408,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       // Find buffer by bare name with scope reference
       const bufferSymbol = symbols.find(
@@ -424,7 +427,7 @@ describe("CNextResolver Integration", () => {
         bool hex_arr[HEX_SIZE];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       const arrSymbol = symbols.find((s) => s.name === "hex_arr");
       expect(arrSymbol).toBeDefined();
@@ -439,7 +442,7 @@ describe("CNextResolver Integration", () => {
         i16 bin_arr[BIN_SIZE];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       const arrSymbol = symbols.find((s) => s.name === "bin_arr");
       expect(arrSymbol).toBeDefined();
@@ -454,7 +457,7 @@ describe("CNextResolver Integration", () => {
         bool arr[4];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       // Should still parse without error
       expect(symbols).toHaveLength(2);
@@ -465,7 +468,7 @@ describe("CNextResolver Integration", () => {
         bool arr[DEVICE_COUNT];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       // Issue #455: Unresolved identifiers (like C macros) should pass through
       const arrSymbol = symbols.find((s) => s.name === "arr");
@@ -482,7 +485,7 @@ describe("CNextResolver Integration", () => {
         bool arr[SIZE * 2];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
 
       // Issue #455: Complex expressions should pass through as strings
       const arrSymbol = symbols.find((s) => s.name === "arr");
@@ -513,7 +516,7 @@ describe("CNextResolver Integration", () => {
           }
         }
       `;
-      const declared = CNextResolver.resolve(parse(code), "test.cnx");
+      const declared = CNextResolver.resolve(parse(code), "test.cnx", registry);
 
       expect(declared.sourceFile).toBe("test.cnx");
       expect([...declared.declaredScopeTypes].sort()).toEqual([
@@ -537,7 +540,7 @@ describe("CNextResolver Integration", () => {
           public Point origin() { return this.stored; }
         }
       `;
-      const declared = CNextResolver.resolve(parse(code), "test.cnx");
+      const declared = CNextResolver.resolve(parse(code), "test.cnx", registry);
       const origin = declared.symbols.find((sym) => sym.name === "origin");
 
       expect(origin && SymbolGuards.isFunction(origin)).toBe(true);
@@ -558,7 +561,7 @@ describe("CNextResolver Integration", () => {
       // assertion and be wrong: `global.Point` inside `scope Spanned` must
       // stay `Point`, and that case is byte-identical here.
       const code = `scope Spanned { public Point origin() { return this.stored; } }`;
-      const declared = CNextResolver.resolve(parse(code), "test.cnx");
+      const declared = CNextResolver.resolve(parse(code), "test.cnx", registry);
 
       const settled = DeferredTypes.settle(
         declared.symbols,
@@ -597,7 +600,7 @@ describe("CNextResolver Integration", () => {
           public B pick(B value) { return value; }
         }
       `;
-      const symbols = CNextResolver.resolve(parse(code), "test.cnx");
+      const symbols = CNextResolver.resolve(parse(code), "test.cnx", registry);
 
       const pick = typeOf(symbols, "pick");
       expect(pick && SymbolGuards.isFunction(pick)).toBe(true);
@@ -615,7 +618,7 @@ describe("CNextResolver Integration", () => {
           public enum B { c, d }
         }
       `;
-      const symbols = CNextResolver.resolve(parse(code), "test.cnx");
+      const symbols = CNextResolver.resolve(parse(code), "test.cnx", registry);
 
       const pick = typeOf(symbols, "pick");
       if (pick && SymbolGuards.isFunction(pick)) {
@@ -631,7 +634,7 @@ describe("CNextResolver Integration", () => {
           public struct S { u8 x; B kind; }
         }
       `;
-      const symbols = CNextResolver.resolve(parse(code), "test.cnx");
+      const symbols = CNextResolver.resolve(parse(code), "test.cnx", registry);
 
       const structSymbol = typeOf(symbols, "S");
       expect(structSymbol && SymbolGuards.isStruct(structSymbol)).toBe(true);
@@ -651,7 +654,7 @@ describe("CNextResolver Integration", () => {
           public struct W { global.Mode mode; u8 v; }
         }
       `;
-      const symbols = CNextResolver.resolve(parse(code), "test.cnx");
+      const symbols = CNextResolver.resolve(parse(code), "test.cnx", registry);
 
       const structSymbol = typeOf(symbols, "W");
       if (structSymbol && SymbolGuards.isStruct(structSymbol)) {
@@ -675,7 +678,7 @@ describe("CNextResolver Integration", () => {
       // program-wide set, which has no `A__Config` either. The rule under test
       // is unchanged: a scope member that is not a type must not capture a
       // same-named global one.
-      const declared = CNextResolver.resolve(parse(code), "test.cnx");
+      const declared = CNextResolver.resolve(parse(code), "test.cnx", registry);
       const symbols = DeferredTypes.settle(declared.symbols, () => false);
 
       const use = symbols.find((sym) => sym.name === "use");
@@ -690,7 +693,7 @@ describe("CNextResolver Integration", () => {
         struct Point { i32 x; }
         void move(Point p) { }
       `;
-      const symbols = CNextResolver.resolve(parse(code), "test.cnx");
+      const symbols = CNextResolver.resolve(parse(code), "test.cnx", registry);
 
       const move = typeOf(symbols, "move");
       if (move && SymbolGuards.isFunction(move)) {
@@ -701,7 +704,8 @@ describe("CNextResolver Integration", () => {
 
   // #1358 DoD: the declare step must be idempotent. This is the shape the real
   // pipeline runs -- Transpiler stages 3 and 5 both resolve every file, and
-  // SymbolRegistry.reset() runs once per run, not between them (#1301).
+  // The registry is built once per RUN, not between files (#1301) -- which is
+  // why it is one instance threaded rather than one per file (#1452 box 3).
   describe("idempotence of the declare step", () => {
     // Snapshots EVERY mutable collection on IScopeSymbol, not just the one this
     // PR guarded. "Declare runs twice over the same tree" is compensated
@@ -712,7 +716,7 @@ describe("CNextResolver Integration", () => {
     // added without a guard would duplicate silently. `variables` is exactly
     // that shape today: declared on IScopeSymbol and never written.
     const snapshotMotor = () => {
-      const scope = SymbolRegistry.getScope("Motor")!;
+      const scope = registry.getScope("Motor")!;
       return {
         functions: scope.functions.map((f) => f.fullyQualifiedCName),
         members: [...scope.members],
@@ -730,7 +734,7 @@ describe("CNextResolver Integration", () => {
 
       // Re-parsed each time, as stage 5 does -- distinct trees, distinct symbol
       // objects. An identity-based guard would not catch the duplication.
-      CNextResolver.resolve(parse(code), "motor.cnx");
+      CNextResolver.resolve(parse(code), "motor.cnx", registry);
       const afterFirst = snapshotMotor();
 
       // Absolute assertion first: before/after equality alone cannot tell
@@ -738,7 +742,7 @@ describe("CNextResolver Integration", () => {
       expect(afterFirst.functions).toEqual(["Motor__start", "Motor__stop"]);
       expect(afterFirst.members).toEqual(["start", "stop"]);
 
-      CNextResolver.resolve(parse(code), "motor.cnx");
+      CNextResolver.resolve(parse(code), "motor.cnx", registry);
 
       expect(snapshotMotor()).toEqual(afterFirst);
     });
@@ -747,12 +751,21 @@ describe("CNextResolver Integration", () => {
     // (#1333) -- suppressing registration for an already-seen scope would pass
     // the assertion above and break this.
     it("still merges a scope genuinely spanned across two different files", () => {
-      CNextResolver.resolve(parse(`scope Motor { void start() { } }`), "a.cnx");
-      CNextResolver.resolve(parse(`scope Motor { void stop() { } }`), "b.cnx");
+      CNextResolver.resolve(
+        parse(`scope Motor { void start() { } }`),
+        "a.cnx",
+        registry,
+      );
+      CNextResolver.resolve(
+        parse(`scope Motor { void stop() { } }`),
+        "b.cnx",
+        registry,
+      );
 
-      expect(
-        SymbolRegistry.getScope("Motor")?.functions.map((f) => f.name),
-      ).toEqual(["start", "stop"]);
+      expect(registry.getScope("Motor")?.functions.map((f) => f.name)).toEqual([
+        "start",
+        "stop",
+      ]);
     });
   });
 });

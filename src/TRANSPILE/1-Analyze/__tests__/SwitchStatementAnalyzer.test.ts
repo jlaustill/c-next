@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import TranspileState from "../../TranspileState";
 import SwitchStatementAnalyzer from "../SwitchStatementAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-025's switch rules, E0711-E0714, replacing five throws in
@@ -15,25 +16,28 @@ import SwitchStatementAnalyzer from "../SwitchStatementAnalyzer";
  * as a MINUS token plus a HEX_LITERAL rather than as one negative literal.
  */
 const withEnum = (name: string, ...members: string[]): void => {
-  CodeGenState.symbols = {
+  state.symbols = {
     knownEnums: new Set([name]),
     knownStructs: new Set<string>(),
+    knownScopes: new Set<string>(),
     knownBitmaps: new Set<string>(),
     structFields: new Map(),
     structFieldDimensions: new Map(),
     functionReturnTypes: new Map(),
     enumMembers: new Map([[name, new Map(members.map((m, i) => [m, i]))]]),
-  } as unknown as typeof CodeGenState.symbols;
+  } as unknown as typeof state.symbols;
 };
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new SwitchStatementAnalyzer().analyze(tree);
+  return new SwitchStatementAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new TranspileState();
 });
+
+let state = new TranspileState();
 
 describe("SwitchStatementAnalyzer", () => {
   it("rejects a switch on a bool, with a real position", () => {

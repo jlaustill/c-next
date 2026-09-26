@@ -12,8 +12,8 @@
  * - Handles nested scopes: Outer.Inner.func -> Outer_Inner_func
  * - Global scope functions keep their bare names
  */
+import type IProgram from "../transpiler/types/IProgram";
 import type IFunctionSymbol from "../transpiler/types/symbols/IFunctionSymbol";
-import SymbolRegistry from "../transpiler/state/SymbolRegistry";
 import ScopeUtils from "./ScopeUtils";
 
 class QualifiedNameGenerator {
@@ -53,10 +53,16 @@ class QualifiedNameGenerator {
    *
    * Falls back to qualifying the bare name when the function is not registered.
    */
-  static forFunctionInScope(scopePath: string, funcName: string): string {
-    const lookupScope =
-      SymbolRegistry.getScope(scopePath) ?? SymbolRegistry.getGlobalScope();
-    const func = SymbolRegistry.resolveFunction(funcName, lookupScope);
+  static forFunctionInScope(
+    scopePath: string,
+    funcName: string,
+    program: IProgram | null,
+  ): string {
+    // #1452 box 3: the scope graph arrives as an argument rather than off a
+    // global. `utils/` authors no facts and now reaches for none either.
+    if (!program) return ScopeUtils.qualifyInScope(funcName, scopePath);
+    const lookupScope = program.scope(scopePath) ?? program.globalScope();
+    const func = program.resolveFunction(funcName, lookupScope);
     if (func) {
       return this.forFunction(func);
     }

@@ -22,6 +22,9 @@
  * not declaring them on `IProgram`.
  */
 
+import type IFunctionSymbol from "../../transpiler/types/symbols/IFunctionSymbol";
+import ScopeUtils from "../../utils/ScopeUtils";
+import type IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
 import type IFileSymbols from "../../transpiler/types/IFileSymbols";
 import type IStructFieldInfo from "../../transpiler/types/symbols/IStructFieldInfo";
 import type IProgram from "../../transpiler/types/IProgram";
@@ -41,6 +44,8 @@ import type IConflict from "../../transpiler/types/IConflict";
 import type IModificationFacts from "../../transpiler/types/IModificationFacts";
 import type ICallGraphEntry from "../../transpiler/types/ICallGraphEntry";
 import type ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
+import type IDiscoveryFacts from "../../transpiler/types/IDiscoveryFacts";
+import type IProgramInputs from "../../transpiler/types/IProgramInputs";
 import type IVisibilityInput from "../../transpiler/types/IVisibilityInput";
 import TSymbolInfoAdapter from "../3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import TransitiveEnumCollector from "./TransitiveEnumCollector";
@@ -48,6 +53,13 @@ import VisibleSymbols from "./VisibleSymbols";
 
 /** Shared empty result, so a miss does not allocate. */
 const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
+const EMPTY_REWRITES: ReadonlyMap<string, string> = new Map<string, string>();
+const EMPTY_PATHS: readonly string[] = [];
+const EMPTY_HEADER_FIELDS: ReadonlyMap<
+  string,
+  ReadonlyMap<string, IStructFieldInfo>
+> = new Map();
+const EMPTY_CALLBACKS: ReadonlyMap<string, string> = new Map();
 
 /**
  * A program with no C or C++ headers behind it.
@@ -72,6 +84,11 @@ const NO_MODIFICATIONS: IModificationFacts = {
 };
 
 /** A program built without include information: nothing composes. */
+const NO_DISCOVERY: IDiscoveryFacts = {
+  cnxIncludeRewrites: new Map(),
+  includeSearchPaths: new Map(),
+};
+
 const NO_VISIBILITY: IVisibilityInput = {
   includeDirs: [],
   cnextIncludesByFile: new Map(),
@@ -85,15 +102,19 @@ class Program {
    */
   static build(
     files: ReadonlyArray<IFileSymbols>,
-    headerStructFields: ReadonlyMap<
-      string,
-      ReadonlyMap<string, IStructFieldInfo>
-    > = new Map(),
-    foreign: IForeignSymbols = NO_FOREIGN,
-    modifications: IModificationFacts = NO_MODIFICATIONS,
-    visibility: IVisibilityInput = NO_VISIBILITY,
-    callbackCompatibleFunctions: ReadonlyMap<string, string> = new Map(),
+    inputs: IProgramInputs = {},
   ): IProgram {
+    // Destructured once, here, so the body reads exactly as it did when these
+    // were positional. `IProgramInputs` says why they travel together.
+    const headerStructFields = inputs.headerStructFields ?? EMPTY_HEADER_FIELDS;
+    const foreign = inputs.foreign ?? NO_FOREIGN;
+    const modifications = inputs.modifications ?? NO_MODIFICATIONS;
+    const visibility = inputs.visibility ?? NO_VISIBILITY;
+    const callbackCompatibleFunctions =
+      inputs.callbackCompatibleFunctions ?? EMPTY_CALLBACKS;
+    const discovery = inputs.discovery ?? NO_DISCOVERY;
+    const registry = inputs.registry ?? null;
+
     // Each derivation is its own step, in dependency order: the scope-type
     // index settles the types, settled types yield const values, const values
     // resolve dimensions, and the finished symbols answer everything else.
@@ -129,6 +150,7 @@ class Program {
       modifications.modifiedParameters,
     );
     const conflicts = ConflictDetector.detect(
+      registry,
       [...symbolsByFile.values()].flat(),
       foreign.c,
       foreign.cpp,
@@ -168,6 +190,26 @@ class Program {
         passByValueParams,
       callbackCompatibleFunctions: (): ReadonlyMap<string, string> =>
         callbackCompatibleFunctions,
+      cnxIncludeRewrites: (sourceFile: string): ReadonlyMap<string, string> =>
+        discovery.cnxIncludeRewrites.get(sourceFile) ?? EMPTY_REWRITES,
+      includeSearchPaths: (sourceFile: string): readonly string[] =>
+        discovery.includeSearchPaths.get(sourceFile) ?? EMPTY_PATHS,
+      scope: (path: string): IScopeSymbol | null =>
+        registry?.getScope(path) ?? null,
+      // Delegated like every sibling in this literal, rather than re-spelling
+      // the body: `SymbolRegistry.scopePathOf` already falls back to the bare
+      // name on a miss, and its own doc names this as the same decision. The
+      // two spellings are the two arms `FunctionCallAnalyzer.scopePathOf`
+      // selects between, so it could not have noticed them diverging.
+      scopePathOf: (name: string): string =>
+        registry?.scopePathOf(name) ?? name,
+      globalScope: (): IScopeSymbol =>
+        registry?.getGlobalScope() ?? ScopeUtils.createGlobalScope(),
+      resolveFunction: (
+        name: string,
+        fromScope: IScopeSymbol,
+      ): IFunctionSymbol | null =>
+        registry?.resolveFunction(name, fromScope) ?? null,
     });
   }
 

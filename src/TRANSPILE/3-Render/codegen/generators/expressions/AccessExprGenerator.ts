@@ -14,9 +14,9 @@
 import type IBitmapFieldLayout from "../../../../../transpiler/types/IBitmapFieldLayout";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import invariant from "../../../../../utils/invariant";
+import type TranspileState from "../../../../TranspileState";
 
 /**
  * Generate code for .capacity property access.
@@ -65,12 +65,13 @@ const generateSizeProperty = (
  * Single bit fields generate: ((value >> offset) & 1)
  * Multi-bit fields generate: ((value >> offset) & mask)
  *
- * MISRA C:2012 Rule 10.3: When target type is known (via CodeGenState.expectedType),
+ * MISRA C:2012 Rule 10.3: When target type is known (via state.expectedType),
  * wraps expression with appropriate cast. Bool targets use != 0U comparison.
  */
 const generateBitmapFieldAccess = (
   result: string,
   fieldInfo: IBitmapFieldLayout,
+  state: TranspileState,
 ): IGeneratorOutput => {
   let expr: string;
   if (fieldInfo.width === 1) {
@@ -83,10 +84,10 @@ const generateBitmapFieldAccess = (
   }
 
   // MISRA 10.3: Add narrowing cast if target type is known
-  const targetType = CodeGenState.expectedType;
+  const targetType = state.expectedType;
   if (targetType) {
     // Bitmap operations on small types produce int in C
-    expr = NarrowingCastHelper.wrap(expr, "int", targetType);
+    expr = NarrowingCastHelper.wrap(expr, "int", targetType, state);
   }
 
   return { code: expr, effects: [] };

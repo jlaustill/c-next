@@ -1,5 +1,5 @@
 import CppNamespaceUtils from "./CppNamespaceUtils";
-import SymbolTable from "../transpiler/state/SymbolTable";
+import SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import TypeMapping from "./mapType";
 
 /**

@@ -22,8 +22,8 @@
 
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../../transpiler/constants/TYPE_WIDTH";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
 import ArrayDimensionParser from "../../../utils/ArrayDimensionParser";
+import type IProgram from "../../../transpiler/types/IProgram";
 
 class ConstantExpression {
   /**
@@ -37,12 +37,14 @@ class ConstantExpression {
   static valueIn(
     expr: Parser.ExpressionContext,
     scopePath: string,
+    program: IProgram,
   ): number | null {
     return (
       ArrayDimensionParser.parseSingleDimension(expr, {
-        constValues: new Map(
-          CodeGenState.program?.constValuesIn(scopePath) ?? [],
-        ),
+        // #1456: the artifact is handed in. The `?? []` this replaces was a
+        // guard that could not fire AND a wrong answer if it ever did -- an
+        // empty const map is a real answer meaning "this scope declares none".
+        constValues: new Map(program.constValuesIn(scopePath)),
         typeWidths: TYPE_WIDTH,
       }) ?? null
     );

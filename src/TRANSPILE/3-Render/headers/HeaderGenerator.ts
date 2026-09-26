@@ -5,8 +5,9 @@
  * Maintains backward-compatible API.
  */
 
+import type TranspileState from "../../TranspileState";
 import IHeaderSymbol from "./types/IHeaderSymbol";
-import SymbolTable from "../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import HeaderSymbolAdapter from "./adapters/HeaderSymbolAdapter";
 import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";
@@ -65,10 +66,11 @@ class HeaderGenerator {
   generateFromSymbolTable(
     symbolTable: SymbolTable,
     sourceFile: string,
+    state: TranspileState,
     options: IHeaderOptions = {},
   ): string {
     const tSymbols = symbolTable.getTSymbolsByFile(sourceFile);
-    const headerSymbols = HeaderSymbolAdapter.fromTSymbols(tSymbols);
+    const headerSymbols = HeaderSymbolAdapter.fromTSymbols(tSymbols, state);
     const basename = sourceFile.replace(/\.[^.]+$/, "");
     const headerName = `${basename}.h`;
 
@@ -81,10 +83,11 @@ class HeaderGenerator {
   generateCNextHeader(
     symbolTable: SymbolTable,
     filename: string,
+    state: TranspileState,
     options: IHeaderOptions = {},
   ): string {
     const tSymbols = symbolTable.getAllTSymbols();
-    const headerSymbols = HeaderSymbolAdapter.fromTSymbols(tSymbols);
+    const headerSymbols = HeaderSymbolAdapter.fromTSymbols(tSymbols, state);
     return this.generate(headerSymbols, filename, options);
   }
 }

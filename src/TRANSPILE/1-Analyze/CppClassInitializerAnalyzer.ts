@@ -45,7 +45,7 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import SymbolTable from "../../transpiler/state/SymbolTable";
+import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import CppConstructorHelper from "../../utils/CppConstructorHelper";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
@@ -54,6 +54,7 @@ import StructInitializerType from "./helpers/StructInitializerType";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ICppClassInitializerError from "./types/ICppClassInitializerError";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 class CppClassInitializerListener extends CNextListener {
   private readonly found: ICppClassInitializerError[] = [];
@@ -62,6 +63,7 @@ class CppClassInitializerListener extends CNextListener {
     private readonly scopes: ScopeFrameResolver,
     private readonly operands: OperandTypeResolver,
     private readonly symbolTable: SymbolTable,
+    private readonly context: IAnalysisContext,
   ) {
     super();
   }
@@ -80,6 +82,7 @@ class CppClassInitializerListener extends CNextListener {
       ctx,
       frame,
       this.operands,
+      this.context,
     );
     if (typeText === null) return; // E0357's to report
 
@@ -139,6 +142,9 @@ class CppClassInitializerListener extends CNextListener {
 }
 
 class CppClassInitializerAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(
     tree: Parser.ProgramContext,
     cppMode: boolean,
@@ -150,12 +156,16 @@ class CppClassInitializerAnalyzer {
 
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
-    const scopes = new ScopeFrameResolver(declarations);
+    const scopes = new ScopeFrameResolver(
+      declarations,
+      this.context.symbolTable,
+    );
 
     const listener = new CppClassInitializerListener(
       scopes,
-      new OperandTypeResolver(scopes),
+      new OperandTypeResolver(scopes, this.context),
       symbolTable,
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

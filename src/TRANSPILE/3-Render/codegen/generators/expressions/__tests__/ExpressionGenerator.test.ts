@@ -16,7 +16,7 @@ import generateTernaryExpr from "../ExpressionGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import TranspileState from "../../../../../TranspileState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type TPlannedTernary from "../../../types/TPlannedTernary";
 
@@ -29,6 +29,7 @@ function createMockInput(): IGeneratorInput {
     functionSignatures: new Map(),
     knownFunctions: new Set(),
     knownStructs: new Set(),
+    knownScopes: new Set<string>(),
     constValues: new Map(),
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
@@ -49,14 +50,19 @@ function createMockOrchestrator(): IOrchestrator {
   return {} as unknown as IOrchestrator;
 }
 
+/**
+ * #1452: the generator reads `inDeclarationInit` off the orchestrator's state
+ * now, so the mock and the assertions share ONE instance -- otherwise the test
+ * would set a flag on an object the generator never sees.
+ */
+let transpileState = new TranspileState();
+
 /** Run the generator on a plan. */
 function generate(planned: TPlannedTernary) {
-  return generateTernaryExpr(
-    planned,
-    createMockInput(),
-    createMockState(),
-    createMockOrchestrator(),
-  );
+  return generateTernaryExpr(planned, createMockInput(), createMockState(), {
+    ...createMockOrchestrator(),
+    state: transpileState,
+  } as IOrchestrator);
 }
 
 describe("generateTernaryExpr", () => {
@@ -124,25 +130,25 @@ describe("generateTernaryExpr", () => {
 
   describe("inDeclarationInit clearing (Issue #992)", () => {
     beforeEach(() => {
-      CodeGenState.reset();
+      transpileState = new TranspileState();
     });
 
     it("clears the flag in both arms and restores it after", () => {
-      CodeGenState.inDeclarationInit = true;
+      transpileState.inDeclarationInit = true;
       const seen: Record<string, boolean> = {};
 
       generate({
         kind: "ternary",
         renderCondition: () => {
-          seen.condition = CodeGenState.inDeclarationInit;
+          seen.condition = transpileState.inDeclarationInit;
           return "x > 0";
         },
         renderTrue: () => {
-          seen.trueArm = CodeGenState.inDeclarationInit;
+          seen.trueArm = transpileState.inDeclarationInit;
           return "a";
         },
         renderFalse: () => {
-          seen.falseArm = CodeGenState.inDeclarationInit;
+          seen.falseArm = transpileState.inDeclarationInit;
           return "b";
         },
       });
@@ -153,7 +159,7 @@ describe("generateTernaryExpr", () => {
         trueArm: false,
         falseArm: false,
       });
-      expect(CodeGenState.inDeclarationInit).toBe(true);
+      expect(transpileState.inDeclarationInit).toBe(true);
     });
   });
 

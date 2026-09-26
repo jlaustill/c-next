@@ -6,7 +6,6 @@
  * - Type-safe payloads per effect type
  * - Central effect processing in the orchestrator
  */
-import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 import TParameterInfo from "../../../../transpiler/types/TParameterInfo";
 import TIncludeHeader from "../../../../transpiler/types/TIncludeHeader";
 import type TRequirementKey from "../../../../transpiler/types/TRequirementKey";
@@ -29,9 +28,6 @@ type TGeneratorEffect =
   | { type: "safe-div"; operation: "div" | "mod"; cnxType: string } // Safe division helper
 
   // === Type Registration Effects ===
-  | { type: "register-type"; name: string; info: TTypeInfo } // Register variable type
-  | { type: "register-local"; name: string; isArray: boolean } // Register local variable
-  | { type: "register-const-value"; name: string; value: number } // Register compile-time constant
 
   // === Scope Effects (ADR-016) ===
   | { type: "set-scope"; name: string | null } // Enter/exit a scope

@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import TranspileState from "../../TranspileState";
 import LengthPropertyAnalyzer from "../LengthPropertyAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-058's length properties, E0867, replacing eighteen throws in
@@ -16,15 +17,17 @@ import LengthPropertyAnalyzer from "../LengthPropertyAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new LengthPropertyAnalyzer().analyze(tree);
+  return new LengthPropertyAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 const inMain = (decls: string, expr: string): string =>
   `${decls}\nu32 main() {\n    u32 n <- ${expr};\n    return n;\n}`;
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new TranspileState();
 });
+
+let state = new TranspileState();
 
 describe("LengthPropertyAnalyzer", () => {
   it("rejects .element_count on a scalar, with a real position", () => {
@@ -45,14 +48,15 @@ describe("LengthPropertyAnalyzer", () => {
     // it. The relocation keeps that behavior identical rather than closing the
     // divergence, because closing it means choosing a padding model the ADR
     // does not name. See the analyzer's header.
-    CodeGenState.symbols = {
+    state.symbols = {
       knownEnums: new Set<string>(),
       knownBitmaps: new Set<string>(),
       knownStructs: new Set(["S"]),
+      knownScopes: new Set<string>(),
       structFields: new Map(),
       structFieldDimensions: new Map(),
       functionReturnTypes: new Map(),
-    } as unknown as typeof CodeGenState.symbols;
+    } as unknown as typeof state.symbols;
     expect(
       errors(inMain("struct S { u32 a; }\nS s;", "s.bit_length")),
     ).toHaveLength(1);
@@ -75,14 +79,15 @@ describe("LengthPropertyAnalyzer", () => {
   });
 
   it("accepts .bit_length on an enum and a bitmap, which have widths", () => {
-    CodeGenState.symbols = {
+    state.symbols = {
       knownEnums: new Set(["Color"]),
       knownBitmaps: new Set(["Flags"]),
       knownStructs: new Set<string>(),
+      knownScopes: new Set<string>(),
       structFields: new Map(),
       structFieldDimensions: new Map(),
       functionReturnTypes: new Map(),
-    } as unknown as typeof CodeGenState.symbols;
+    } as unknown as typeof state.symbols;
     expect(
       errors(
         inMain("enum Color { RED }\nColor c <- Color.RED;", "c.bit_length"),
@@ -97,14 +102,15 @@ describe("LengthPropertyAnalyzer", () => {
     // `structFields` stores the element type; the shape lives in a second map.
     // Reading only the first made `Sample[10] samples` look scalar, and this
     // rejected `.element_count` on it.
-    CodeGenState.symbols = {
+    state.symbols = {
       knownEnums: new Set<string>(),
       knownBitmaps: new Set<string>(),
       knownStructs: new Set(["Batch", "Sample"]),
+      knownScopes: new Set<string>(),
       structFields: new Map([["Batch", new Map([["samples", "Sample"]])]]),
       structFieldDimensions: new Map([["Batch", new Map([["samples", [10]]])]]),
       functionReturnTypes: new Map(),
-    } as unknown as typeof CodeGenState.symbols;
+    } as unknown as typeof state.symbols;
     expect(
       errors(
         inMain(

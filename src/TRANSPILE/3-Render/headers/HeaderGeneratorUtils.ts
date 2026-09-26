@@ -6,7 +6,7 @@
  */
 
 import IHeaderSymbol from "./types/IHeaderSymbol";
-import SymbolTable from "../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
 import typeUtils from "../../../utils/mapType";
 import IGroupedSymbols from "./types/IGroupedSymbols";

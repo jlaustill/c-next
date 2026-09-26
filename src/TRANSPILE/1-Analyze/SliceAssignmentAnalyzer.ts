@@ -39,7 +39,6 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import IDeclaredVar from "./types/IDeclaredVar";
@@ -48,6 +47,8 @@ import ISliceAssignmentError from "./types/ISliceAssignmentError";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ConstantExpression from "./helpers/ConstantExpression";
+import type IAnalysisContext from "./types/IAnalysisContext";
+import DeclaredVariableFacts from "../../utils/DeclaredVariableFacts";
 
 /** `string<N>` holds N characters plus the terminator. */
 const STRING_TERMINATOR_BYTES = 1;
@@ -62,9 +63,12 @@ class SliceAssignmentListener extends CNextListener {
   private readonly found: ISliceAssignmentError[] = [];
   private readonly types: OperandTypeResolver;
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
-    this.types = new OperandTypeResolver(scopes);
+    this.types = new OperandTypeResolver(scopes, context);
   }
 
   public errors(): ISliceAssignmentError[] {
@@ -118,7 +122,11 @@ class SliceAssignmentListener extends CNextListener {
     const lexical = this.scopes.declarationOfNameLexical(name, frame);
     if (lexical !== null) return lexical;
 
-    const info = CodeGenState.getVariableTypeInfo(name);
+    const info = DeclaredVariableFacts.typeInfoOf(
+      this.context.symbols,
+      this.context.symbolTable,
+      name,
+    );
     if (info === undefined) return null;
     return {
       typeText: info.baseType,
@@ -353,8 +361,11 @@ class SliceAssignmentListener extends CNextListener {
    */
   private constantOf(expr: Parser.ExpressionContext): number | undefined {
     return (
-      ConstantExpression.valueIn(expr, this.scopes.frameFor(expr).scopePath) ??
-      undefined
+      ConstantExpression.valueIn(
+        expr,
+        this.scopes.frameFor(expr).scopePath,
+        this.context.program,
+      ) ?? undefined
     );
   }
 
@@ -370,12 +381,16 @@ class SliceAssignmentListener extends CNextListener {
 }
 
 class SliceAssignmentAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): ISliceAssignmentError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new SliceAssignmentListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

@@ -7,11 +7,10 @@ import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import FunctionCallAnalyzer from "../FunctionCallAnalyzer";
-import SymbolTable from "../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TTypeUtils from "../../../utils/TTypeUtils";
 import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
 import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 
@@ -741,11 +740,10 @@ describe("FunctionCallAnalyzer", () => {
         type: "void (*)(uint32_t)",
       });
 
-      CodeGenState.callbackCompatibleFunctions.clear();
       const analyzer = new FunctionCallAnalyzer();
       analyzer.analyze(tree, symbolTable);
 
-      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+      expect(analyzer.callbackCompatibleFunctions().has("my_handler")).toBe(
         true,
       );
     });
@@ -771,11 +769,10 @@ describe("FunctionCallAnalyzer", () => {
         type: "uint32_t",
       });
 
-      CodeGenState.callbackCompatibleFunctions.clear();
       const analyzer = new FunctionCallAnalyzer();
       analyzer.analyze(tree, symbolTable);
 
-      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+      expect(analyzer.callbackCompatibleFunctions().has("my_handler")).toBe(
         false,
       );
     });
@@ -791,11 +788,10 @@ describe("FunctionCallAnalyzer", () => {
       `;
       const tree = parse(code);
 
-      CodeGenState.callbackCompatibleFunctions.clear();
       const analyzer = new FunctionCallAnalyzer();
       analyzer.analyze(tree);
 
-      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+      expect(analyzer.callbackCompatibleFunctions().has("my_handler")).toBe(
         false,
       );
     });
@@ -868,11 +864,10 @@ describe("FunctionCallAnalyzer", () => {
         type: "void (*)(uint32_t)",
       });
 
-      CodeGenState.callbackCompatibleFunctions.clear();
       const analyzer = new FunctionCallAnalyzer();
       analyzer.analyze(tree, symbolTable);
 
-      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+      expect(analyzer.callbackCompatibleFunctions().has("my_handler")).toBe(
         true,
       );
     });
@@ -902,11 +897,10 @@ describe("FunctionCallAnalyzer", () => {
         type: "void (*)(uint32_t)",
       });
 
-      CodeGenState.callbackCompatibleFunctions.clear();
       const analyzer = new FunctionCallAnalyzer();
       analyzer.analyze(tree, symbolTable);
 
-      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+      expect(analyzer.callbackCompatibleFunctions().has("my_handler")).toBe(
         true,
       );
     });
@@ -934,11 +928,10 @@ describe("FunctionCallAnalyzer", () => {
         type: "void (*)(uint32_t)",
       });
 
-      CodeGenState.callbackCompatibleFunctions.clear();
       const analyzer = new FunctionCallAnalyzer();
       analyzer.analyze(tree, symbolTable);
 
-      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+      expect(analyzer.callbackCompatibleFunctions().has("my_handler")).toBe(
         true,
       );
     });
@@ -966,13 +959,12 @@ describe("FunctionCallAnalyzer", () => {
         type: "void (*)(uint32_t)",
       });
 
-      CodeGenState.callbackCompatibleFunctions.clear();
       const analyzer = new FunctionCallAnalyzer();
       analyzer.analyze(tree, symbolTable);
 
       // Scope functions are stored as ScopeName_funcName
       expect(
-        CodeGenState.callbackCompatibleFunctions.has("Handlers__on_point"),
+        analyzer.callbackCompatibleFunctions().has("Handlers__on_point"),
       ).toBe(true);
     });
 
@@ -1002,11 +994,10 @@ describe("FunctionCallAnalyzer", () => {
         type: "void (*)(uint32_t)",
       });
 
-      CodeGenState.callbackCompatibleFunctions.clear();
       const analyzer = new FunctionCallAnalyzer();
       analyzer.analyze(tree, symbolTable);
 
-      expect(CodeGenState.callbackCompatibleFunctions.has("my_handler")).toBe(
+      expect(analyzer.callbackCompatibleFunctions().has("my_handler")).toBe(
         true,
       );
     });
@@ -1050,13 +1041,10 @@ describe("FunctionCallAnalyzer", () => {
         type: "void (*)(widget_t*, const rect_t*, uint8_t*)",
       });
 
-      CodeGenState.callbackCompatibleFunctions.clear();
       const analyzer = new FunctionCallAnalyzer();
       analyzer.analyze(tree, symbolTable);
 
-      expect(CodeGenState.callbackCompatibleFunctions.has("my_flush")).toBe(
-        true,
-      );
+      expect(analyzer.callbackCompatibleFunctions().has("my_flush")).toBe(true);
     });
 
     it("should detect scope callback with this.member pattern (Issue #895 Bug A)", () => {
@@ -1079,12 +1067,11 @@ describe("FunctionCallAnalyzer", () => {
       const symbolTable = new SymbolTable();
       addWidgetCallbackSymbols(symbolTable);
 
-      CodeGenState.callbackCompatibleFunctions.clear();
       const analyzer = new FunctionCallAnalyzer();
       analyzer.analyze(tree, symbolTable);
 
       // Should detect ScopeAP_cb as callback-compatible
-      expect(CodeGenState.callbackCompatibleFunctions.has("ScopeAP__cb")).toBe(
+      expect(analyzer.callbackCompatibleFunctions().has("ScopeAP__cb")).toBe(
         true,
       );
     });
@@ -1109,12 +1096,11 @@ describe("FunctionCallAnalyzer", () => {
       const symbolTable = new SymbolTable();
       addWidgetCallbackSymbols(symbolTable);
 
-      CodeGenState.callbackCompatibleFunctions.clear();
       const analyzer = new FunctionCallAnalyzer();
       analyzer.analyze(tree, symbolTable);
 
       // Should detect ScopeAP_cb as callback-compatible
-      expect(CodeGenState.callbackCompatibleFunctions.has("ScopeAP__cb")).toBe(
+      expect(analyzer.callbackCompatibleFunctions().has("ScopeAP__cb")).toBe(
         true,
       );
     });

@@ -1,4 +1,4 @@
-import CodeGenState from "../state/CodeGenState";
+import TranspileState from "../../TRANSPILE/TranspileState";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import createMockSymbols from "./codeGenSymbolsHelpers";
@@ -11,33 +11,34 @@ import type ISourceSpan from "../types/ISourceSpan";
 /**
  * Build a mock symbol world and install BOTH of its representations.
  *
- * #1285: `CodeGenState.symbols` (the `known*` string sets) and
- * `CodeGenState.symbolTable` describe the same symbols, and production fills them
+ * #1285: `state.symbols` (the `known*` string sets) and
+ * `state.symbolTable` describe the same symbols, and production fills them
  * from one resolve pass -- `Transpiler.ts:429` is the only place that fills them. A test that
  * sets only the sets is in a state the transpiler never reaches, which stayed
  * invisible while `isScopeType` asked the sets and became visible the moment it
  * asked the symbol's `kind` instead.
  *
- * Assigning `CodeGenState.symbols` yourself is what leaves the table empty. Call
+ * Assigning `state.symbols` yourself is what leaves the table empty. Call
  * this instead, so the two cannot disagree.
  */
 function installMockSymbols(
+  state: TranspileState,
   overrides?: Partial<ICodeGenSymbols>,
 ): ICodeGenSymbols {
   const symbols = createMockSymbols(overrides);
-  CodeGenState.symbols = symbols;
+  state.symbols = symbols;
 
-  register(symbols.knownEnums, (base) => ({
+  register(state, symbols.knownEnums, (base) => ({
     ...base,
     kind: "enum",
     members: new Map(),
   }));
-  register(symbols.knownStructs, (base) => ({
+  register(state, symbols.knownStructs, (base) => ({
     ...base,
     kind: "struct",
     fields: new Map(),
   }));
-  register(symbols.knownBitmaps, (base) => ({
+  register(state, symbols.knownBitmaps, (base) => ({
     ...base,
     kind: "bitmap",
     backingType: "uint8_t",
@@ -57,6 +58,7 @@ function installMockSymbols(
  * something an author could have written.
  */
 function register(
+  state: TranspileState,
   names: ReadonlySet<string>,
   build: (base: {
     name: string;
@@ -85,7 +87,7 @@ function register(
       sourceLanguage: ESourceLanguage.CNext,
       visibility: "public" as TVisibility,
     };
-    CodeGenState.symbolTable.addTSymbol(build(base));
+    state.symbolTable.addTSymbol(build(base));
   }
 }
 

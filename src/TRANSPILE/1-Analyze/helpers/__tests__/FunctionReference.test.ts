@@ -2,10 +2,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import CNextResolver from "../../../../PARSE/3-Declare/cnext";
 import CNextSourceParser from "../../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
+import TranspileState from "../../../TranspileState";
 import Program from "../../../../PARSE/4-Resolve/Program";
-import SymbolRegistry from "../../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../../../PARSE/3-Declare/SymbolRegistry";
 import FunctionReference from "../FunctionReference";
+import testAnalysisContext from "../../__tests__/testAnalysisContext";
 
 /**
  * #1322. Which C-Next function a spelling denotes, and -- the part that is a
@@ -19,18 +20,23 @@ import FunctionReference from "../FunctionReference";
  * a global -- sharing a name make the order observable at all.
  */
 const build = (source: string) => {
-  SymbolRegistry.reset();
   const { tree } = CNextSourceParser.parse(source);
-  CodeGenState.program = Program.build([CNextResolver.resolve(tree, "a.cnx")]);
+  state.program = Program.build([
+    CNextResolver.resolve(tree, "a.cnx", registry),
+  ]);
 };
 
-beforeEach(() => {
-  SymbolRegistry.reset();
+afterEach(() => {
+  state = new TranspileState();
 });
 
-afterEach(() => {
-  CodeGenState.reset();
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
 });
+
+let state = new TranspileState();
 
 describe("FunctionReference.candidates -- the ADR-057 order", () => {
   it("tries the enclosing scope's member before the file-scope name", () => {
@@ -99,14 +105,22 @@ describe("FunctionReference.ofTypeText -- the order, observed", () => {
         "}",
       ].join("\n"),
     );
-    const found = FunctionReference.ofTypeText("handler", "S");
+    const found = FunctionReference.ofTypeText(
+      "handler",
+      "S",
+      testAnalysisContext(state),
+    );
     expect(found).not.toBeNull();
     expect(FunctionReference.cNameOf(found!)).toBe("S__handler");
   });
 
   it("falls back to the global one when the scope declares none", () => {
     build("u8 handler() { return 1; }\nscope S {\n    public void go() {}\n}");
-    const found = FunctionReference.ofTypeText("handler", "S");
+    const found = FunctionReference.ofTypeText(
+      "handler",
+      "S",
+      testAnalysisContext(state),
+    );
     expect(FunctionReference.cNameOf(found!)).toBe("handler");
   });
 
@@ -119,18 +133,32 @@ describe("FunctionReference.ofTypeText -- the order, observed", () => {
         "}",
       ].join("\n"),
     );
-    const found = FunctionReference.ofTypeText("global.handler", "S");
+    const found = FunctionReference.ofTypeText(
+      "global.handler",
+      "S",
+      testAnalysisContext(state),
+    );
     expect(FunctionReference.cNameOf(found!)).toBe("handler");
   });
 
   it("answers null for a name the program does not declare as a function", () => {
     build("u8 value <- 1;");
-    expect(FunctionReference.ofTypeText("value", "")).toBeNull();
-    expect(FunctionReference.ofTypeText("missing", "")).toBeNull();
+    expect(
+      FunctionReference.ofTypeText("value", "", testAnalysisContext(state)),
+    ).toBeNull();
+    expect(
+      FunctionReference.ofTypeText("missing", "", testAnalysisContext(state)),
+    ).toBeNull();
   });
 
-  it("answers null with no program at all, rather than throwing", () => {
-    CodeGenState.reset();
-    expect(FunctionReference.ofTypeText("handler", "")).toBeNull();
+  // `testAnalysisContext` substitutes `Program.build([], {})` when the state
+  // has none, and `FunctionReference.lookup` no longer has a `!program` branch
+  // -- so this is the EMPTY-program case, not the absent-program one. Renamed
+  // rather than deleted: an empty program is a state a caller can reach.
+  it("answers null when the program declares no such function", () => {
+    state = new TranspileState();
+    expect(
+      FunctionReference.ofTypeText("handler", "", testAnalysisContext(state)),
+    ).toBeNull();
   });
 });

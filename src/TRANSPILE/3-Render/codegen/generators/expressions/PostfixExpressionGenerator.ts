@@ -24,14 +24,13 @@ import memberAccessChain from "../../memberAccessChain";
 import BitmapAccessHelper from "./BitmapAccessHelper";
 import BitRangeHelper from "../../helpers/BitRangeHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
-import AdrProvenance from "../../../../../transpiler/state/AdrProvenance";
+import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import SubscriptClassifier from "../../../../2-Plan/SubscriptClassifier";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
 import TYPE_WIDTH from "../../../../../transpiler/constants/TYPE_WIDTH";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
 import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import invariant from "../../../../../utils/invariant";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
@@ -75,13 +74,19 @@ interface ITrackingState {
  * @param base generated C for the value being read from
  * @param index generated C for the bit index
  */
-const singleBitRead = (base: string, index: string): string => {
+const singleBitRead = (
+  base: string,
+  index: string,
+  orchestrator: IOrchestrator,
+): string => {
   const expr =
     index === "0" || index === "0U"
       ? `((${base}) & 1)`
       : `((${base} >> ${index}) & 1)`;
-  const targetType = CodeGenState.expectedType;
-  return targetType ? NarrowingCastHelper.wrap(expr, "int", targetType) : expr;
+  const targetType = orchestrator.state.expectedType;
+  return targetType
+    ? NarrowingCastHelper.wrap(expr, "int", targetType, orchestrator.state)
+    : expr;
 };
 
 /**
@@ -102,7 +107,7 @@ const initializeTrackingState = (
     : false;
 
   const primaryBaseType = rootIdentifier
-    ? CodeGenState.getVariableTypeInfo(rootIdentifier)?.baseType
+    ? orchestrator.state.getVariableTypeInfo(rootIdentifier)?.baseType
     : undefined;
   const currentStructType =
     primaryBaseType && orchestrator.isKnownStruct(primaryBaseType)
@@ -197,7 +202,7 @@ const generatePostfixExpression = (
   const result: string = plan.renderPrimary();
 
   const primaryTypeInfo = rootIdentifier
-    ? CodeGenState.getVariableTypeInfo(rootIdentifier)
+    ? orchestrator.state.getVariableTypeInfo(rootIdentifier)
     : undefined;
 
   // Issue #1106: reject over-indexing the base variable (e.g. flags[4][3] on a
@@ -210,7 +215,7 @@ const generatePostfixExpression = (
   // are resolved first, then the shared validator does the counting.
   if (plan.subscriptBase) {
     SubscriptDepthValidator.validate(
-      CodeGenState.getVariableTypeInfo(plan.subscriptBase.name),
+      orchestrator.state.getVariableTypeInfo(plan.subscriptBase.name),
       plan.leadingSubscriptCount,
       plan.subscriptBase.displayName,
     );
@@ -274,7 +279,7 @@ const generatePostfixExpression = (
       // in no scope, function or variable and the matrix's context axis has
       // nothing to ask it. The use site is enclosed by a declaration like any
       // other expression, which is what makes the cell derivable at all.
-      if (CodeGenState.isCrossFileDeclaration(tracking.result)) {
+      if (orchestrator.state.isCrossFileDeclaration(tracking.result)) {
         AdrProvenance.record("010", op.line);
       }
       const callResult = generateFunctionCall(
@@ -425,7 +430,7 @@ const handleGlobalPrefix = (
   }
 
   // Issue #612: Set currentStructType for global struct variables
-  const globalTypeInfo = CodeGenState.getVariableTypeInfo(memberName);
+  const globalTypeInfo = ctx.orchestrator.state.getVariableTypeInfo(memberName);
   if (
     globalTypeInfo &&
     ctx.orchestrator.isKnownStruct(globalTypeInfo.baseType)
@@ -461,7 +466,9 @@ const handleThisScopeLength = (
     memberName,
   );
   tracking.resolvedIdentifier = tracking.result;
-  const resolvedTypeInfo = CodeGenState.getVariableTypeInfo(tracking.result);
+  const resolvedTypeInfo = orchestrator.state.getVariableTypeInfo(
+    tracking.result,
+  );
   if (
     resolvedTypeInfo &&
     orchestrator.isKnownStruct(resolvedTypeInfo.baseType)
@@ -487,7 +494,7 @@ const resolveStringTypeInfo = (
 ): TTypeInfo | undefined => {
   const identifier = tracking.resolvedIdentifier ?? rootIdentifier;
   const typeInfo = identifier
-    ? CodeGenState.getVariableTypeInfo(identifier)
+    ? orchestrator.state.getVariableTypeInfo(identifier)
     : undefined;
   if (typeInfo?.isString) {
     return typeInfo;
@@ -726,7 +733,7 @@ const generateBitLengthProperty = (
 
   // Get type info for the resolved identifier
   const typeInfo = ctx.resolvedIdentifier
-    ? CodeGenState.getVariableTypeInfo(ctx.resolvedIdentifier)
+    ? orchestrator.state.getVariableTypeInfo(ctx.resolvedIdentifier)
     : undefined;
 
   if (!typeInfo) {
@@ -1000,7 +1007,7 @@ const generateByteLengthProperty = (
 
   // Get type info for the resolved identifier
   const typeInfo = ctx.resolvedIdentifier
-    ? CodeGenState.getVariableTypeInfo(ctx.resolvedIdentifier)
+    ? orchestrator.state.getVariableTypeInfo(ctx.resolvedIdentifier)
     : undefined;
 
   if (!typeInfo) {
@@ -1065,9 +1072,10 @@ const generateStructFieldElementCount = (
 const generateTypeInfoElementCount = (
   ctx: IExplicitLengthContext,
   _input: IGeneratorInput,
+  orchestrator: IOrchestrator,
 ): string => {
   const typeInfo = ctx.resolvedIdentifier
-    ? CodeGenState.getVariableTypeInfo(ctx.resolvedIdentifier)
+    ? orchestrator.state.getVariableTypeInfo(ctx.resolvedIdentifier)
     : undefined;
 
   if (!typeInfo) {
@@ -1128,7 +1136,7 @@ const generateElementCountProperty = (
   }
 
   // Get type info for variable
-  return generateTypeInfoElementCount(ctx, input);
+  return generateTypeInfoElementCount(ctx, input, orchestrator);
 };
 
 /**
@@ -1168,7 +1176,7 @@ const generateCharCountProperty = (
 
   // Get type info
   const typeInfo = ctx.resolvedIdentifier
-    ? CodeGenState.getVariableTypeInfo(ctx.resolvedIdentifier)
+    ? orchestrator.state.getVariableTypeInfo(ctx.resolvedIdentifier)
     : undefined;
 
   if (!typeInfo) {
@@ -1317,14 +1325,14 @@ const generateMemberAccess = (
   effects: TGeneratorEffect[],
 ): MemberAccessResult => {
   return (
-    tryBitmapFieldAccess(ctx, input, effects) ??
+    tryBitmapFieldAccess(ctx, input, effects, orchestrator) ??
     tryScopeMemberAccess(ctx, input, state, orchestrator) ??
     tryKnownScopeAccess(ctx, orchestrator) ??
     tryEnumMemberAccess(ctx, input, orchestrator) ??
     tryRegisterMemberAccess(ctx, input) ??
     tryStructParamAccess(ctx, orchestrator) ??
-    tryRegisterBitmapAccess(ctx, input, effects) ??
-    tryStructBitmapAccess(ctx, input, effects) ??
+    tryRegisterBitmapAccess(ctx, input, effects, orchestrator) ??
+    tryStructBitmapAccess(ctx, input, effects, orchestrator) ??
     generateDefaultAccess(ctx, orchestrator)
   );
 };
@@ -1340,11 +1348,12 @@ const tryBitmapFieldAccess = (
   ctx: IMemberAccessContext,
   input: IGeneratorInput,
   effects: TGeneratorEffect[],
+  orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
   if (!ctx.rootIdentifier) {
     return null;
   }
-  const typeInfo = CodeGenState.getVariableTypeInfo(ctx.rootIdentifier);
+  const typeInfo = orchestrator.state.getVariableTypeInfo(ctx.rootIdentifier);
   if (!typeInfo?.isBitmap || !typeInfo.bitmapTypeName) {
     return null;
   }
@@ -1356,6 +1365,7 @@ const tryBitmapFieldAccess = (
     typeInfo.bitmapTypeName,
     input.symbols!.bitmapFields,
     `type '${typeInfo.bitmapTypeName}'`,
+    orchestrator.state,
   );
   applyAccessEffects(bitmapResult.effects, effects);
   output.result = bitmapResult.code;
@@ -1385,7 +1395,7 @@ const tryScopeMemberAccess = (
     output.result = fullName;
     output.resolvedIdentifier = fullName;
     if (!input.symbols!.knownEnums.has(fullName)) {
-      const resolvedTypeInfo = CodeGenState.getVariableTypeInfo(fullName);
+      const resolvedTypeInfo = orchestrator.state.getVariableTypeInfo(fullName);
       if (
         resolvedTypeInfo &&
         orchestrator.isKnownStruct(resolvedTypeInfo.baseType)
@@ -1417,7 +1427,9 @@ const tryKnownScopeAccess = (
   const output = initializeMemberOutput(ctx);
   output.result = `${ctx.result}${orchestrator.getScopeSeparator(ctx.isCppAccessChain)}${ctx.memberName}`;
   output.resolvedIdentifier = output.result;
-  const resolvedTypeInfo = CodeGenState.getVariableTypeInfo(output.result);
+  const resolvedTypeInfo = orchestrator.state.getVariableTypeInfo(
+    output.result,
+  );
   if (
     resolvedTypeInfo &&
     orchestrator.isKnownStruct(resolvedTypeInfo.baseType)
@@ -1491,6 +1503,7 @@ const tryRegisterBitmapAccess = (
   ctx: IMemberAccessContext,
   input: IGeneratorInput,
   effects: TGeneratorEffect[],
+  orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
   if (!input.symbols!.registerMemberTypes.has(ctx.result)) {
     return null;
@@ -1504,6 +1517,7 @@ const tryRegisterBitmapAccess = (
     bitmapType,
     input.symbols!.bitmapFields,
     `register member '${ctx.result}' (bitmap type '${bitmapType}')`,
+    orchestrator.state,
   );
   applyAccessEffects(bitmapResult.effects, effects);
   output.result = bitmapResult.code;
@@ -1517,6 +1531,7 @@ const tryStructBitmapAccess = (
   ctx: IMemberAccessContext,
   input: IGeneratorInput,
   effects: TGeneratorEffect[],
+  orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
   if (
     !ctx.currentStructType ||
@@ -1532,6 +1547,7 @@ const tryStructBitmapAccess = (
     ctx.currentStructType,
     input.symbols!.bitmapFields,
     `struct member '${ctx.result}' (bitmap type '${ctx.currentStructType}')`,
+    orchestrator.state,
   );
   applyAccessEffects(bitmapResult.effects, effects);
   output.result = bitmapResult.code;
@@ -1613,7 +1629,7 @@ const generateSubscriptAccess = (
   // what gives an index literal its U suffix regardless of element type, and it
   // is why the plan hands over a render rather than a rendered string -- a
   // value generated outside this window silently loses the suffix.
-  const indexes = CodeGenState.withExpectedType("size_t", () =>
+  const indexes = orchestrator.state.withExpectedType("size_t", () =>
     ctx.subscript.renderIndexes(),
   );
 
@@ -1645,11 +1661,11 @@ const handleSingleSubscript = (
   validateNotBitmapMember(ctx, input);
 
   const isRegisterAccess = checkRegisterAccess(ctx, input);
-  const identifierTypeInfo = getIdentifierTypeInfo(ctx, input);
+  const identifierTypeInfo = getIdentifierTypeInfo(ctx, input, orchestrator);
 
   // Register access: bit extraction
   if (isRegisterAccess) {
-    output.result = singleBitRead(ctx.result, index);
+    output.result = singleBitRead(ctx.result, index, orchestrator);
     return output;
   }
 
@@ -1673,7 +1689,7 @@ const handleSingleSubscript = (
   const isPrimitiveIntMember =
     ctx.currentStructType && TypeCheckUtils.isInteger(ctx.currentStructType);
   if (isPrimitiveIntMember) {
-    output.result = singleBitRead(ctx.result, index);
+    output.result = singleBitRead(ctx.result, index, orchestrator);
     output.currentStructType = undefined;
     return output;
   }
@@ -1690,7 +1706,13 @@ const handleSingleSubscript = (
   }
 
   // Default: classify subscript type
-  return handleDefaultSubscript(ctx, index, identifierTypeInfo, output);
+  return handleDefaultSubscript(
+    ctx,
+    index,
+    identifierTypeInfo,
+    output,
+    orchestrator,
+  );
 };
 
 /**
@@ -1728,10 +1750,11 @@ const checkRegisterAccess = (
 const getIdentifierTypeInfo = (
   ctx: ISubscriptAccessContext,
   _input: IGeneratorInput,
+  orchestrator: IOrchestrator,
 ): TTypeInfo | undefined => {
   const identifierToCheck = ctx.resolvedIdentifier || ctx.rootIdentifier;
   return identifierToCheck
-    ? CodeGenState.getVariableTypeInfo(identifierToCheck)
+    ? orchestrator.state.getVariableTypeInfo(identifierToCheck)
     : undefined;
 };
 
@@ -1784,6 +1807,7 @@ const handleDefaultSubscript = (
   index: string,
   typeInfo: TTypeInfo | undefined,
   output: SubscriptAccessResult,
+  orchestrator: IOrchestrator,
 ): SubscriptAccessResult => {
   const subscriptKind = SubscriptClassifier.classify({
     typeInfo: typeInfo ?? null,
@@ -1792,7 +1816,7 @@ const handleDefaultSubscript = (
   });
 
   if (subscriptKind === "bit_single") {
-    output.result = singleBitRead(ctx.result, index);
+    output.result = singleBitRead(ctx.result, index, orchestrator);
   } else {
     output.result = `${ctx.result}[${index}]`;
   }
@@ -1856,7 +1880,7 @@ const handleBitRangeSubscript = (
 
     // MISRA 10.3: Add narrowing cast if expected type is known
     // Bit operations promote to int, so wrap with cast when assigning to narrower types
-    const targetType = CodeGenState.expectedType;
+    const targetType = orchestrator.state.expectedType;
     if (targetType && ctx.primaryTypeInfo?.baseType) {
       const promotedSourceType = NarrowingCastHelper.getPromotedType(
         ctx.primaryTypeInfo.baseType,
@@ -1865,6 +1889,7 @@ const handleBitRangeSubscript = (
         expr,
         promotedSourceType,
         targetType,
+        orchestrator.state,
       );
     } else {
       output.result = expr;

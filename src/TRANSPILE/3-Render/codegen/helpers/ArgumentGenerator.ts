@@ -14,11 +14,11 @@
  * - Complex expressions are passed as-is
  */
 
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import CppModeHelper from "./CppModeHelper";
 import TYPE_MAP from "../types/TYPE_MAP";
 import IArgumentGeneratorCallbacks from "./types/IArgumentGeneratorCallbacks";
 import QualifiedNameGenerator from "../../../../utils/QualifiedNameGenerator";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Generates function arguments with proper pass-by-reference semantics.
@@ -26,16 +26,16 @@ import QualifiedNameGenerator from "../../../../utils/QualifiedNameGenerator";
 class ArgumentGenerator {
   /**
    * Handle simple identifier argument (parameter, local array, scope member, or variable).
-   * This is a pure function that only reads from CodeGenState.
+   * This is a pure function that only reads from state.
    */
-  static handleIdentifierArg(id: string): string {
+  static handleIdentifierArg(id: string, state: TranspileState): string {
     // Parameters are already pointers
-    if (CodeGenState.currentParameters.get(id)) {
+    if (state.currentParameters.get(id)) {
       return id;
     }
 
     // Local arrays decay to pointers
-    if (CodeGenState.localArrays.has(id)) {
+    if (state.localArrays.has(id)) {
       return id;
     }
 
@@ -44,7 +44,7 @@ class ArgumentGenerator {
     // `char*`. Taking its address instead yields `char (*)[N]`, an incompatible
     // pointer type -- the defect `e3dff5f4` fixed by deleting the `isString`
     // exception this comment used to argue for.
-    const typeInfo = CodeGenState.getVariableTypeInfo(id);
+    const typeInfo = state.getVariableTypeInfo(id);
     if (typeInfo?.isArray) {
       return id;
     }
@@ -55,21 +55,19 @@ class ArgumentGenerator {
     }
 
     // Scope member - may need prefixing
-    if (CodeGenState.currentScopePath) {
-      const members = CodeGenState.getScopeMembers(
-        CodeGenState.currentScopePath,
-      );
+    if (state.currentScopePath) {
+      const members = state.getScopeMembers(state.currentScopePath);
       if (members?.has(id)) {
         const scopedName = QualifiedNameGenerator.forMember(
-          CodeGenState.currentScopePath,
+          state.currentScopePath,
           id,
         );
-        return CppModeHelper.maybeAddressOf(scopedName);
+        return CppModeHelper.maybeAddressOf(scopedName, state);
       }
     }
 
     // Local variable - add & (except in C++ mode)
-    return CppModeHelper.maybeAddressOf(id);
+    return CppModeHelper.maybeAddressOf(id, state);
   }
 
   /**
@@ -79,6 +77,7 @@ class ArgumentGenerator {
   static handleRvalueArg(
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
+    state: TranspileState,
   ): string {
     // Issue #872: Early return when no target type - no state management needed
     if (!targetParamBaseType) {
@@ -88,7 +87,7 @@ class ArgumentGenerator {
     const cType = TYPE_MAP[targetParamBaseType];
     if (!cType || cType === "void") {
       // Issue #872: Suppress bare enum resolution in function args (requires ADR to change)
-      return CodeGenState.withExpectedType(
+      return state.withExpectedType(
         targetParamBaseType,
         () => callbacks.generateExpression(),
         true, // suppressEnumResolution
@@ -96,14 +95,14 @@ class ArgumentGenerator {
     }
 
     // Issue #872: Suppress bare enum resolution in function args (requires ADR to change)
-    const value = CodeGenState.withExpectedType(
+    const value = state.withExpectedType(
       targetParamBaseType,
       () => callbacks.generateExpression(),
       true, // suppressEnumResolution
     );
 
     // C++ mode: rvalues can bind to const T&
-    if (CodeGenState.cppMode) {
+    if (state.cppMode) {
       return value;
     }
 
@@ -117,6 +116,7 @@ class ArgumentGenerator {
   static createCppMemberConversionTemp(
     targetParamBaseType: string,
     callbacks: IArgumentGeneratorCallbacks,
+    state: TranspileState,
   ): string {
     const cType = TYPE_MAP[targetParamBaseType] || "uint8_t";
     const value = callbacks.generateExpression();
@@ -124,12 +124,10 @@ class ArgumentGenerator {
     // incremented the shared counter itself and spelled the name a third way
     // (`_cnx_tmp_<N>` alongside `_tmp<N>`), so the two families agreed only by
     // coincidence of drawing from the same counter.
-    const tempName = CodeGenState.getNextTempVarName();
-    const castExpr = CppModeHelper.cast(cType, value);
-    CodeGenState.pendingTempDeclarations.push(
-      `${cType} ${tempName} = ${castExpr};`,
-    );
-    return CppModeHelper.maybeAddressOf(tempName);
+    const tempName = state.getNextTempVarName();
+    const castExpr = CppModeHelper.cast(cType, value, state);
+    state.pendingTempDeclarations.push(`${cType} ${tempName} = ${castExpr};`);
+    return CppModeHelper.maybeAddressOf(tempName, state);
   }
 
   /**
@@ -139,6 +137,7 @@ class ArgumentGenerator {
     expr: string,
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
+    state: TranspileState,
   ): string {
     if (!targetParamBaseType || !callbacks.isStringSubscriptAccess()) {
       return expr;
@@ -146,7 +145,7 @@ class ArgumentGenerator {
 
     const cType = TYPE_MAP[targetParamBaseType];
     if (cType && !["float", "double", "bool", "void"].includes(cType)) {
-      return CppModeHelper.reinterpretCast(`${cType}*`, expr);
+      return CppModeHelper.reinterpretCast(`${cType}*`, expr, state);
     }
 
     return expr;
@@ -159,6 +158,7 @@ class ArgumentGenerator {
   static handleMemberAccessArg(
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
+    state: TranspileState,
   ): string | null {
     const arrayStatus = callbacks.getMemberAccessArrayStatus();
 
@@ -176,6 +176,7 @@ class ArgumentGenerator {
       return ArgumentGenerator.createCppMemberConversionTemp(
         targetParamBaseType,
         callbacks,
+        state,
       );
     }
 
@@ -189,19 +190,21 @@ class ArgumentGenerator {
     lvalueType: "member" | "array",
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
+    state: TranspileState,
   ): string {
     // Member access to array field - arrays decay to pointers
     if (lvalueType === "member") {
       const memberResult = ArgumentGenerator.handleMemberAccessArg(
         targetParamBaseType,
         callbacks,
+        state,
       );
       if (memberResult) return memberResult;
     }
 
     // Generate expression with address-of
     const generatedExpr = callbacks.generateExpression();
-    const expr = CppModeHelper.maybeAddressOf(generatedExpr);
+    const expr = CppModeHelper.maybeAddressOf(generatedExpr, state);
 
     // String subscript access may need cast
     if (lvalueType === "array") {
@@ -209,6 +212,7 @@ class ArgumentGenerator {
         expr,
         targetParamBaseType,
         callbacks,
+        state,
       );
     }
 
@@ -226,10 +230,11 @@ class ArgumentGenerator {
     simpleId: string | null,
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
+    state: TranspileState,
   ): string {
     // Handle simple identifiers
     if (simpleId) {
-      return ArgumentGenerator.handleIdentifierArg(simpleId);
+      return ArgumentGenerator.handleIdentifierArg(simpleId, state);
     }
 
     // Check if expression is an lvalue
@@ -239,11 +244,16 @@ class ArgumentGenerator {
         lvalueType,
         targetParamBaseType,
         callbacks,
+        state,
       );
     }
 
     // Handle rvalue (literals or complex expressions)
-    return ArgumentGenerator.handleRvalueArg(targetParamBaseType, callbacks);
+    return ArgumentGenerator.handleRvalueArg(
+      targetParamBaseType,
+      callbacks,
+      state,
+    );
   }
 }
 

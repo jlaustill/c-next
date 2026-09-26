@@ -5,7 +5,6 @@
 
 import ReservedCnxName from "../../../utils/ReservedCnxName";
 
-import TYPE_WIDTH from "../../../transpiler/constants/TYPE_WIDTH";
 // Issue #60: BITMAP_SIZE and BITMAP_BACKING_TYPE moved to SymbolCollector
 import TTypeInfo from "../../../transpiler/types/TTypeInfo";
 import ExpressionTypeResolver from "../../2-Plan/ExpressionTypeResolver";
@@ -27,7 +26,7 @@ import StringUtils from "../../../utils/StringUtils";
 // constant lookup, not an analyzer -- see the module header)
 // ADR-006: Helper for building member access chains with proper separators
 // ADR-065: Assignment decomposition (Phase 2)
-// IHandlerDeps removed - handlers now use CodeGenState.generator directly
+// IHandlerDeps removed - handlers now use this.state.generator directly
 // Issue #644: Extracted string length counter for strlen caching optimization
 // Issue #644: C/C++ mode helper for consolidated mode-specific patterns
 // Issue #644: Array dimension parsing helper for consolidation
@@ -64,7 +63,7 @@ import type IPlannedFunctionParameter from "./types/IPlannedFunctionParameter";
 import FunctionContextManager from "./helpers/FunctionContextManager";
 import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import DeclaredTypeFacts from "../../../utils/DeclaredTypeFacts";
 import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
 import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
@@ -73,6 +72,8 @@ import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
 // Extracted resolvers that use CodeGenState
 // Issue #797: Centralized C-style name generation
 import type IRecordedRequirement from "../../../transpiler/types/IRecordedRequirement";
+import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
+import TranspileState from "../../TranspileState";
 
 /**
  * Code Generator - Transpiles C-Next to C
@@ -80,6 +81,13 @@ import type IRecordedRequirement from "../../../transpiler/types/IRecordedRequir
  * Implements IOrchestrator to support modular generator extraction.
  */
 export default class CodeGenerator implements IOrchestrator {
+  /**
+   * 2.3 Render's per-file working state (#1452 box 4). Owned here because the
+   * walker reaches this object as `this.host`, so one instance serves both
+   * without a global between them.
+   */
+  readonly state = new TranspileState();
+
   // ===========================================================================
   // IOrchestrator Implementation
   // ===========================================================================
@@ -90,17 +98,17 @@ export default class CodeGenerator implements IOrchestrator {
    */
   getInput(): IGeneratorInput {
     return {
-      symbolTable: CodeGenState.symbolTable,
-      symbols: CodeGenState.symbols,
-      typeRegistry: CodeGenState.getTypeRegistryView(),
-      functionSignatures: CodeGenState.functionSignatures,
-      knownFunctions: CodeGenState.knownFunctions,
-      knownStructs: CodeGenState.symbols?.knownStructs ?? new Set(),
-      constValues: CodeGenState.constValues,
-      callbackTypes: CodeGenState.callbackTypes,
-      callbackFieldTypes: CodeGenState.callbackFieldTypes,
-      targetCapabilities: CodeGenState.targetCapabilities,
-      debugMode: CodeGenState.debugMode,
+      symbolTable: this.state.symbolTable,
+      symbols: this.state.symbols,
+      typeRegistry: this.state.getTypeRegistryView(),
+      functionSignatures: this.state.functionSignatures,
+      knownFunctions: this.state.knownFunctions,
+      knownStructs: this.state.symbols?.knownStructs ?? new Set(),
+      constValues: this.state.constValues,
+      callbackTypes: this.state.callbackTypes,
+      callbackFieldTypes: this.state.callbackFieldTypes,
+      targetCapabilities: this.state.targetCapabilities,
+      debugMode: this.state.debugMode,
     };
   }
 
@@ -110,21 +118,21 @@ export default class CodeGenerator implements IOrchestrator {
    */
   getState(): IGeneratorState {
     return {
-      currentScopePath: CodeGenState.currentScopePath,
-      indentLevel: CodeGenState.indentLevel,
-      inFunctionBody: CodeGenState.inFunctionBody,
-      currentParameters: CodeGenState.currentParameters,
-      localVariables: CodeGenState.localVariables,
-      localArrays: CodeGenState.localArrays,
-      expectedType: CodeGenState.expectedType,
+      currentScopePath: this.state.currentScopePath,
+      indentLevel: this.state.indentLevel,
+      inFunctionBody: this.state.inFunctionBody,
+      currentParameters: this.state.currentParameters,
+      localVariables: this.state.localVariables,
+      localArrays: this.state.localArrays,
+      expectedType: this.state.expectedType,
       headerOwnsTypeDefinitions:
-        CodeGenState.declarationPlan().headerOwnsTypeDefinitions, // #369/#1450
+        this.state.declarationPlan().headerOwnsTypeDefinitions, // #369/#1450
       // Issue #644: Postfix expression state
-      scopeMembers: CodeGenState.getAllScopeMembers(),
-      mainArgsName: CodeGenState.mainArgsName,
-      floatBitShadows: CodeGenState.floatBitShadows,
-      floatShadowCurrent: CodeGenState.floatShadowCurrent,
-      lengthCache: CodeGenState.lengthCache,
+      scopeMembers: this.state.getAllScopeMembers(),
+      mainArgsName: this.state.mainArgsName,
+      floatBitShadows: this.state.floatBitShadows,
+      floatShadowCurrent: this.state.floatShadowCurrent,
+      lengthCache: this.state.lengthCache,
     };
   }
 
@@ -137,16 +145,16 @@ export default class CodeGenerator implements IOrchestrator {
       switch (effect.type) {
         // Include effects - delegate to requireInclude()
         case "include":
-          CodeGenState.requireInclude(effect.header, effect.line ?? null);
+          this.state.requireInclude(effect.header, effect.line ?? null);
           break;
         case "isr":
-          CodeGenState.requireInclude("isr");
+          this.state.requireInclude("isr");
           break;
 
         // Toolchain requirement effects (Issue #1143)
         case "requires":
-          CodeGenState.requireToolchain(effect.key, [
-            { sourcePath: CodeGenState.sourcePath ?? "", line: effect.line },
+          ToolchainRequirements.record(effect.key, [
+            { sourcePath: this.state.sourcePath ?? "", line: effect.line },
           ]);
           break;
 
@@ -154,63 +162,60 @@ export default class CodeGenerator implements IOrchestrator {
         case "helper":
           // Route through the single marker rather than writing the set
           // directly, so helper-op bookkeeping has one entry point (#1143).
-          CodeGenState.markClampOpUsed(effect.operation, effect.cnxType);
+          this.state.markClampOpUsed(effect.operation, effect.cnxType);
           break;
         case "safe-div":
           // Internal helper-op key, not a scope-qualified C name
-          CodeGenState.usedSafeDivOps.add(
+          this.state.usedSafeDivOps.add(
             `${effect.operation}_${effect.cnxType}`,
           );
           // ADR-051 safe-div helpers return a bool error flag. Route that
           // dependency through the single include path (#1108) rather than
           // letting the helper emit its own #include <stdbool.h>.
-          CodeGenState.requireInclude("stdbool");
+          this.state.requireInclude("stdbool");
           break;
 
-        // Type registration effects
-        case "register-type":
-          CodeGenState.setVariableTypeInfo(effect.name, effect.info);
-          break;
-        case "register-local":
-          CodeGenState.registerLocalVariable(effect.name, effect.isArray);
-          break;
-        case "register-const-value":
-          CodeGenState.constValues.set(effect.name, effect.value);
-          break;
+        // #1452 box 2: three "type registration" effects stood here --
+        // `register-type`, `register-local`, `register-const-value` -- and NO
+        // generator emitted any of them (`grep` for each literal outside this
+        // switch and the union: 0). They were a render-side write path into the
+        // per-file type registry that never ran, so they read as 2.3 authoring
+        // a plan fact while authoring nothing at all. Removed with their union
+        // members; the two effects that ARE emitted keep their arms.
 
         // Scope effects (ADR-016)
         case "set-scope":
-          CodeGenState.setCurrentScopeByPath(effect.name);
+          this.state.setCurrentScopeByPath(effect.name);
           break;
 
         // Function body effects
         case "enter-function-body":
-          CodeGenState.enterFunctionBody();
+          this.state.enterFunctionBody();
           break;
         case "exit-function-body":
-          CodeGenState.exitFunctionBody();
+          this.state.exitFunctionBody();
           break;
         case "set-parameters":
-          CodeGenState.currentParameters = new Map(effect.params);
+          this.state.currentParameters = new Map(effect.params);
           break;
         case "clear-parameters":
-          CodeGenState.currentParameters.clear();
+          this.state.currentParameters.clear();
           break;
 
         // Callback effects
         case "register-callback-field":
-          CodeGenState.callbackFieldTypes.set(effect.key, effect.typeName);
+          this.state.callbackFieldTypes.set(effect.key, effect.typeName);
           break;
         case "register-struct-init":
-          CodeGenState.generatedStructInits.add(effect.structName);
+          this.state.generatedStructInits.add(effect.structName);
           break;
 
         // Array initializer effects
         case "set-array-init-count":
-          CodeGenState.lastArrayInitCount = effect.count;
+          this.state.lastArrayInitCount = effect.count;
           break;
         case "set-array-fill-value":
-          CodeGenState.lastArrayFillValue = effect.value;
+          this.state.lastArrayFillValue = effect.value;
           break;
       }
     }
@@ -220,20 +225,18 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #1143: Snapshot the toolchain requirements recorded during the last
    * generate() call.
    *
-   * Must be read before the next file's CodeGenState.reset(), which clears the
+   * Must be read before the next file's this.state.reset(), which clears the
    * recording map.
    */
   getToolchainRequirements(): readonly IRecordedRequirement[] {
-    return Array.from(CodeGenState.recordedRequirements.entries()).map(
-      ([key, sites]) => ({ key, sites: [...sites] }),
-    );
+    return ToolchainRequirements.collect();
   }
 
   /**
    * Get the current indentation string.
    */
   getIndent(): string {
-    return FormatUtils.indent(CodeGenState.indentLevel);
+    return FormatUtils.indent(this.state.indentLevel);
   }
 
   /**
@@ -244,9 +247,9 @@ export default class CodeGenerator implements IOrchestrator {
    */
   resolveIdentifier(identifier: string): string {
     // Delegates to CodeGenState, which owns scope membership. This method used to
-    // be a byte-identical copy of CodeGenState.resolveIdentifier, so the two
+    // be a byte-identical copy of this.state.resolveIdentifier, so the two
     // could drift apart silently.
-    return CodeGenState.resolveIdentifier(identifier);
+    return this.state.resolveIdentifier(identifier);
   }
 
   // === Expression Generation ===
@@ -258,10 +261,9 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isKnownStruct(typeName: string): boolean {
-    return SymbolLookupHelper.isKnownStruct(
-      CodeGenState.symbols?.knownStructs,
-      CodeGenState.symbols?.knownBitmaps,
-      CodeGenState.symbolTable,
+    return DeclaredTypeFacts.isStruct(
+      this.state.symbols,
+      this.state.symbolTable,
       typeName,
     );
   }
@@ -288,8 +290,8 @@ export default class CodeGenerator implements IOrchestrator {
    */
   isCNextFunction(name: string): boolean {
     return SymbolLookupHelper.isCNextFunctionCombined(
-      CodeGenState.knownFunctions,
-      CodeGenState.symbolTable,
+      this.state.knownFunctions,
+      this.state.symbolTable,
       name,
     );
   }
@@ -305,7 +307,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   getKnownEnums(): ReadonlySet<string> {
-    return CodeGenState.symbols!.knownEnums;
+    return this.state.symbols!.knownEnums;
   }
 
   /**
@@ -313,7 +315,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isCppMode(): boolean {
-    return CodeGenState.cppMode;
+    return this.state.cppMode;
   }
 
   /**
@@ -322,10 +324,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isCppEnumClass(typeName: string): boolean {
-    return SymbolLookupHelper.isCppEnumClass(
-      CodeGenState.symbolTable,
-      typeName,
-    );
+    return SymbolLookupHelper.isCppEnumClass(this.state.symbolTable, typeName);
   }
 
   /**
@@ -334,11 +333,11 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   flushPendingTempDeclarations(): string {
-    if (CodeGenState.pendingTempDeclarations.length === 0) {
+    if (this.state.pendingTempDeclarations.length === 0) {
       return "";
     }
-    const decls = CodeGenState.pendingTempDeclarations.join("\n");
-    CodeGenState.pendingTempDeclarations = [];
+    const decls = this.state.pendingTempDeclarations.join("\n");
+    this.state.pendingTempDeclarations = [];
     return decls;
   }
 
@@ -347,7 +346,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   indent(text: string): string {
-    return FormatUtils.indentAllLines(text, CodeGenState.indentLevel);
+    return FormatUtils.indentAllLines(text, this.state.indentLevel);
   }
 
   // === strlen Optimization ===
@@ -369,7 +368,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     if (declarations.length > 0) {
-      CodeGenState.lengthCache = cache;
+      this.state.lengthCache = cache;
       return declarations.join("\n") + "\n";
     }
 
@@ -381,7 +380,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   clearLengthCache(): void {
-    CodeGenState.lengthCache = null;
+    this.state.lengthCache = null;
   }
 
   /**
@@ -389,8 +388,8 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   registerLocalVariable(name: string): string {
-    CodeGenState.registerLocalVariable(name);
-    return CodeGenState.emittedLocalName(name);
+    this.state.registerLocalVariable(name);
+    return this.state.emittedLocalName(name);
   }
 
   // === Declaration Generation ===
@@ -420,6 +419,7 @@ export default class CodeGenerator implements IOrchestrator {
     FunctionContextManager.processParameterList(
       parameters,
       this._getFunctionContextCallbacks(),
+      this.state,
     );
   }
 
@@ -434,7 +434,7 @@ export default class CodeGenerator implements IOrchestrator {
    * convention that registerCallbackType owns.
    */
   getCallbackTypedefName(typeName: string): string | null {
-    return CodeGenState.callbackTypes.get(typeName)?.typedefName ?? null;
+    return this.state.callbackTypes.get(typeName)?.typedefName ?? null;
   }
 
   /**
@@ -457,28 +457,28 @@ export default class CodeGenerator implements IOrchestrator {
     }
     const typedef = this.generateCallbackTypedef(funcName);
     if (typedef) {
-      CodeGenState.pendingCallbackTypedefs.push(typedef);
-      CodeGenState.emittedCallbackTypedefs.add(funcName);
+      this.state.pendingCallbackTypedefs.push(typedef);
+      this.state.emittedCallbackTypedefs.add(funcName);
     }
   }
 
   private isCallbackTypeReferenced(funcName: string): boolean {
-    return CodeGenState.callbackTypeReferences.has(funcName);
+    return this.state.callbackTypeReferences.has(funcName);
   }
 
   // #1322: `isCallbackTypeUsedAsFieldType` stood here, answering ADR-029's
-  // nominal-typing question by scanning `CodeGenState.callbackFieldTypes`.
+  // nominal-typing question by scanning `this.state.callbackFieldTypes`.
   // That map holds the structs emitted SO FAR in the current file, so a struct
   // declared below the assignment, in an enclosing scope, or in an include did
   // not count -- the identity of a type depending on emission order. Pass 2.1
-  // asks `CodeGenState.symbols.structFields`, the per-file view, which holds
+  // asks `this.state.symbols.structFields`, the per-file view, which holds
   // every struct the file can see before any code is generated.
 
   // === Scope Management (A4) ===
 
   setCurrentScope(name: string | null): void {
     // The assignment was written twice on main; the second was dead.
-    CodeGenState.setCurrentScopeByPath(name);
+    this.state.setCurrentScopeByPath(name);
   }
 
   /**
@@ -486,7 +486,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   setCurrentFunctionName(name: string | null): void {
-    CodeGenState.currentFunctionName = name;
+    this.state.currentFunctionName = name;
   }
 
   /**
@@ -494,14 +494,14 @@ export default class CodeGenerator implements IOrchestrator {
    * Used by return statement generation to set expectedType.
    */
   getCurrentFunctionReturnType(): string | null {
-    return CodeGenState.currentFunctionReturnType;
+    return this.state.currentFunctionReturnType;
   }
 
   /**
    * Issue #477: Set the current function's return type for enum inference.
    */
   setCurrentFunctionReturnType(returnType: string | null): void {
-    CodeGenState.currentFunctionReturnType = returnType;
+    this.state.currentFunctionReturnType = returnType;
   }
 
   /**
@@ -534,7 +534,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #793: Delegates to FunctionContextManager.
    */
   enterFunctionBody(): void {
-    FunctionContextManager.enterFunctionBody();
+    FunctionContextManager.enterFunctionBody(this.state);
   }
 
   /**
@@ -542,22 +542,22 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #793: Delegates to FunctionContextManager.
    */
   exitFunctionBody(): void {
-    FunctionContextManager.exitFunctionBody();
+    FunctionContextManager.exitFunctionBody(this.state);
   }
 
   /**
    * ADR-029: Generate typedef for callback type
    */
   generateCallbackTypedef(funcName: string): string | null {
-    const callbackInfo = CodeGenState.callbackTypes.get(funcName);
+    const callbackInfo = this.state.callbackTypes.get(funcName);
     if (!callbackInfo) {
       return null;
     }
 
     // Issue #1164: the included header already declares this one.
     if (
-      CodeGenState.declarationPlan().headerOwnsTypeDefinitions &&
-      CodeGenState.headerOwnsCallbackTypedef(funcName)
+      this.state.declarationPlan().headerOwnsTypeDefinitions &&
+      this.state.headerOwnsCallbackTypedef(funcName)
     ) {
       return null;
     }
@@ -579,18 +579,18 @@ export default class CodeGenerator implements IOrchestrator {
    * Computed on-demand from functionSignatures and modifiedParameters.
    */
   getFunctionUnmodifiedParams(): ReadonlyMap<string, Set<string>> {
-    return CodeGenState.getUnmodifiedParameters();
+    return this.state.getUnmodifiedParameters();
   }
 
   /**
    * Issue #268: Update symbol parameters with auto-const info.
-   * Now a no-op - unmodified params are computed on-demand from CodeGenState.
+   * Now a no-op - unmodified params are computed on-demand from this.state.
    * Kept for IOrchestrator interface compatibility.
    */
   updateFunctionParamsAutoConst(_functionName: string): void {
     // No-op: Unmodified parameters are now computed on-demand from
-    // CodeGenState.functionSignatures and CodeGenState.modifiedParameters
-    // via CodeGenState.getUnmodifiedParameters().
+    // this.state.functionSignatures and this.state.modifiedParameters
+    // via this.state.getUnmodifiedParameters().
   }
 
   /**
@@ -604,27 +604,12 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #558: Get the modified parameters map for cross-file propagation.
-   * Returns function name -> set of modified parameter names.
-   */
-  getModifiedParameters(): ReadonlyMap<string, Set<string>> {
-    return CodeGenState.modifiedParameters;
-  }
-
-  /**
-   * Issue #558: Get the function parameter lists for cross-file propagation.
-   */
-  getFunctionParamLists(): ReadonlyMap<string, string[]> {
-    return CodeGenState.functionParamLists;
-  }
-
-  /**
    * Issue #268: Check if a callee function's parameter at given index is modified.
    * Returns true if the callee modifies that parameter (should not have const).
    */
   isCalleeParameterModified(funcName: string, paramIndex: number): boolean {
     // Get the parameter name at the given index from the function signature
-    const sig = CodeGenState.functionSignatures.get(funcName);
+    const sig = this.state.functionSignatures.get(funcName);
     if (!sig || paramIndex >= sig.parameters.length) {
       // Callee not yet processed - conservatively return false (assume unmodified)
       return false;
@@ -632,14 +617,14 @@ export default class CodeGenerator implements IOrchestrator {
 
     const paramName = sig.parameters[paramIndex].name;
     // Check directly if the parameter is in the modified set
-    return CodeGenState.isParameterModified(funcName, paramName);
+    return this.state.isParameterModified(funcName, paramName);
   }
 
   /**
    * Issue #268: Check if a name is a parameter of the current function.
    */
   isCurrentParameter(name: string): boolean {
-    return CodeGenState.currentParameters.has(name);
+    return this.state.currentParameters.has(name);
   }
 
   // === Postfix Expression Helpers (Issue #644) ===
@@ -650,8 +635,8 @@ export default class CodeGenerator implements IOrchestrator {
    */
   isKnownScope(name: string): boolean {
     return SymbolLookupHelper.isKnownScope(
-      CodeGenState.symbols?.knownScopes,
-      CodeGenState.symbolTable,
+      this.state.symbols?.knownScopes,
+      this.state.symbolTable,
       name,
     );
   }
@@ -663,7 +648,7 @@ export default class CodeGenerator implements IOrchestrator {
   isCppScopeSymbol(name: string): boolean {
     return CppNamespaceUtils.isCppNamespace(
       name,
-      CodeGenState.symbolTable ?? undefined,
+      this.state.symbolTable ?? undefined,
     );
   }
 
@@ -679,51 +664,34 @@ export default class CodeGenerator implements IOrchestrator {
    * Get struct field info for .length calculations.
    * Part of IOrchestrator interface.
    *
-   * Issue #831: SymbolTable is the single source of truth for struct fields
-   * (both C-Next and C header structs).
+   * Delegated, not re-implemented. This body was a second copy that asked
+   * `symbolTable` alone -- a bare `structFields.get(name)` with no key
+   * derivation -- so it answered `null` for a SCOPE-declared struct, whose
+   * fields are recorded under the transpiled key. #1322 fixed that on the state
+   * by falling back through `resolvedStructKey`, and the fix reached
+   * `AssignmentClassifier` and `BitmapHandlers` while the six sites that come
+   * through `IOrchestrator` kept the old answer.
    */
   getStructFieldInfo(
     structType: string,
     fieldName: string,
   ): { type: string; dimensions?: (number | string)[] } | null {
-    const fieldInfo = CodeGenState.symbolTable?.getStructFieldInfo(
-      structType,
-      fieldName,
-    );
-    if (fieldInfo) {
-      return {
-        type: fieldInfo.type,
-        dimensions: fieldInfo.arrayDimensions,
-      };
-    }
-    return null;
+    return this.state.getStructFieldInfo(structType, fieldName);
   }
 
   /**
    * Get member type info for struct access chains.
    * Part of IOrchestrator interface.
+   *
+   * Delegated for the same reason, plus #1127: this copy still dropped a
+   * non-numeric dimension with `filter(typeof d === "number")` instead of
+   * mapping it to `UNRESOLVED_DIMENSION`, which shifts every dimension after it
+   * -- so `u8[EColor.COUNT][3]` came back as `[3]` and put dimension 2's bound
+   * in dimension 1's slot. Both defects were fixed once on the state and left
+   * standing here.
    */
   getMemberTypeInfo(structType: string, memberName: string): TTypeInfo | null {
-    const fieldInfo = this.getStructFieldInfo(structType, memberName);
-    if (!fieldInfo) return null;
-
-    const isArray =
-      (fieldInfo.dimensions !== undefined && fieldInfo.dimensions.length > 0) ||
-      (CodeGenState.symbols!.structFieldArrays.get(structType)?.has(
-        memberName,
-      ) ??
-        false);
-    const dims = fieldInfo.dimensions?.filter(
-      (d): d is number => typeof d === "number",
-    );
-
-    return {
-      baseType: fieldInfo.type,
-      bitWidth: TYPE_WIDTH[fieldInfo.type] ?? 32,
-      isConst: false,
-      isArray,
-      arrayDimensions: dims && dims.length > 0 ? dims : undefined,
-    };
+    return this.state.getMemberTypeInfo(structType, memberName);
   }
 
   /**
@@ -741,7 +709,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   addPendingTempDeclaration(declaration: string): void {
-    CodeGenState.pendingTempDeclarations.push(declaration);
+    this.state.pendingTempDeclarations.push(declaration);
   }
 
   /**
@@ -749,7 +717,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   registerFloatBitShadow(shadowName: string): void {
-    CodeGenState.floatBitShadows.add(shadowName);
+    this.state.floatBitShadows.add(shadowName);
   }
 
   /**
@@ -757,7 +725,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   markFloatShadowCurrent(shadowName: string): void {
-    CodeGenState.floatShadowCurrent.add(shadowName);
+    this.state.floatShadowCurrent.add(shadowName);
   }
 
   /**
@@ -765,7 +733,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   hasFloatBitShadow(shadowName: string): boolean {
-    return CodeGenState.floatBitShadows.has(shadowName);
+    return this.state.floatBitShadows.has(shadowName);
   }
 
   /**
@@ -773,7 +741,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isFloatShadowCurrent(shadowName: string): boolean {
-    return CodeGenState.floatShadowCurrent.has(shadowName);
+    return this.state.floatShadowCurrent.has(shadowName);
   }
 
   /**
@@ -782,7 +750,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isOpaqueType(typeName: string): boolean {
-    return CodeGenState.isOpaqueType(typeName);
+    return this.state.isOpaqueType(typeName);
   }
 
   /**
@@ -791,7 +759,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isTypedefStructType(typeName: string): boolean {
-    return CodeGenState.isTypedefStructType(typeName);
+    return this.state.isTypedefStructType(typeName);
   }
 
   /**
@@ -800,7 +768,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   markOpaqueScopeVariable(qualifiedName: string): void {
-    CodeGenState.markOpaqueScopeVariable(qualifiedName);
+    this.state.markOpaqueScopeVariable(qualifiedName);
   }
 
   // ===========================================================================
@@ -826,7 +794,11 @@ export default class CodeGenerator implements IOrchestrator {
    * Delegates to PassByValueAnalyzer.
    */
   isParameterPassByValue(funcName: string, paramIndex: number): boolean {
-    return PassByValueAnalyzer.isParameterPassByValue(funcName, paramIndex);
+    return PassByValueAnalyzer.isParameterPassByValue(
+      funcName,
+      paramIndex,
+      this.state,
+    );
   }
 
   /**
@@ -837,7 +809,7 @@ export default class CodeGenerator implements IOrchestrator {
   getPassByValueParams(): ReadonlyMap<string, ReadonlySet<string>> {
     // #1511: the artifact's answer, so the `.h` this feeds and the `.c` this
     // class emits cannot disagree -- they now read one derivation.
-    return CodeGenState.program?.passByValueParams() ?? new Map();
+    return this.state.program?.passByValueParams() ?? new Map();
   }
 
   /**
@@ -845,7 +817,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isStructType(typeName: string): boolean {
-    return ExpressionTypeResolver.isStructType(typeName);
+    return ExpressionTypeResolver.isStructType(typeName, this.state);
   }
 
   /**
@@ -853,7 +825,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #793: Delegates to FunctionContextManager.
    */
   private _clearParameters(): void {
-    FunctionContextManager.clearParameters();
+    FunctionContextManager.clearParameters(this.state);
   }
 
   // ========================================================================
@@ -894,7 +866,7 @@ export default class CodeGenerator implements IOrchestrator {
     return {
       isStructType: (typeName: string) => this.isStructType(typeName),
       isTypedefStructType: (t: string) =>
-        CodeGenState.symbolTable?.isTypedefStructType(t) ?? false,
+        this.state.symbolTable?.isTypedefStructType(t) ?? false,
     };
   }
 
@@ -923,16 +895,16 @@ export default class CodeGenerator implements IOrchestrator {
    * structs where {0} is an invalid int->enum narrowing; C uses {0}.
    */
   getAggregateZeroInitBrace(): string {
-    return CodeGenState.cppMode ? "{}" : "{0}";
+    return this.state.cppMode ? "{}" : "{0}";
   }
 
   /**
    * Generate float bit write using shadow variable + memcpy.
    * Issue #644: Delegates to FloatBitHelper.
    */
-  /** Public for handler access via CodeGenState.generator */
+  /** Public for handler access via this.state.generator */
   /**
-   * Dispatched through `ICodeGenApi` via `CodeGenState.requireGenerator()`, so
+   * Dispatched through `ICodeGenApi` via `this.state.requireGenerator()`, so
    * no call site ever names this class. knip cannot follow that indirection.
    *
    * @public
@@ -954,8 +926,9 @@ export default class CodeGenerator implements IOrchestrator {
       {
         generateBitMask: (w, is64Bit) => this.generateBitMask(w, is64Bit),
         foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
-        requireInclude: (header) => CodeGenState.requireInclude(header),
+        requireInclude: (header) => this.state.requireInclude(header),
       },
+      this.state,
     );
   }
 
@@ -964,9 +937,9 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-049: Generate atomic Read-Modify-Write operation
    * Uses LDREX/STREX on platforms that support it, otherwise PRIMASK
    */
-  /** Public for handler access via CodeGenState.generator */
+  /** Public for handler access via this.state.generator */
   /**
-   * Dispatched through `ICodeGenApi` via `CodeGenState.requireGenerator()`, so
+   * Dispatched through `ICodeGenApi` via `this.state.requireGenerator()`, so
    * no call site ever names this class. knip cannot follow that indirection.
    *
    * @public
@@ -982,7 +955,7 @@ export default class CodeGenerator implements IOrchestrator {
       cOp,
       value,
       typeInfo,
-      CodeGenState.targetCapabilities,
+      this.state.targetCapabilities,
     );
     this.applyEffects(result.effects);
     return result.code;

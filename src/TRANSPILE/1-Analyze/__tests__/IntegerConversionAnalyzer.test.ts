@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import TranspileState from "../../TranspileState";
 import IntegerConversionAnalyzer from "../IntegerConversionAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-024's integer conversions -- E0868 (a literal out of range) and
@@ -12,7 +13,9 @@ import IntegerConversionAnalyzer from "../IntegerConversionAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new IntegerConversionAnalyzer().analyze(tree);
+  return new IntegerConversionAnalyzer(testAnalysisContext(state)).analyze(
+    tree,
+  );
 };
 
 /**
@@ -22,7 +25,7 @@ const errors = (source: string) => {
  * exactly like the rule not firing.
  */
 const structs = (fields: Record<string, Record<string, string>>) => {
-  CodeGenState.symbols = {
+  state.symbols = {
     knownStructs: new Set(Object.keys(fields)),
     structFields: new Map(
       Object.entries(fields).map(([name, f]) => [
@@ -37,15 +40,17 @@ const structs = (fields: Record<string, Record<string, string>>) => {
     knownBitmaps: new Set<string>(),
     functionReturnTypes: new Map(),
     scopeMembers: new Map(),
-  } as unknown as typeof CodeGenState.symbols;
+  } as unknown as typeof state.symbols;
 };
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new TranspileState();
 });
 
 const inMain = (body: string): string =>
   `u32 wide <- 1000;\ni32 neg <- -5;\nu8 byte <- 7;\nu32 main() {\n${body}\n    return 0;\n}`;
+
+let state = new TranspileState();
 
 describe("IntegerConversionAnalyzer", () => {
   describe("E0868 -- a literal must fit", () => {

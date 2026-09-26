@@ -10,20 +10,20 @@
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import SymbolTable from "../../transpiler/state/SymbolTable";
+import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../utils/ParserUtils";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../utils/QualifiedCName";
-import AdrProvenance from "../../transpiler/state/AdrProvenance";
+import AdrProvenance from "../../instrumentation/AdrProvenance";
 import DynamicAllocation from "./DynamicAllocation";
 import StdlibFunctions from "./StdlibFunctions";
 import CalleeNameResolver from "./helpers/CalleeNameResolver";
 import EnclosingScope from "./helpers/EnclosingScope";
 import ScopeUtils from "../../utils/ScopeUtils";
-import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import IncludeDirective from "./helpers/IncludeDirective";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
  * C-Next built-in functions
@@ -260,13 +260,46 @@ class FunctionCallAnalyzer {
    */
   private readonly programFunctions: ReadonlySet<string>;
 
+  private readonly callbacksFound = new Map<string, string>();
+
   /**
    * @param programFunctions every function declared anywhere in the program,
    *        supplied by the whole-program callback pass. Omitted for a per-file
-   *        run -- see the field.
+   *        run.
+   * @param registry supplied only by the Stage 3 caller
+   *        (`CallbackCompatibility.derive`), which runs BEFORE `Program.build`
+   *        and so cannot reach the scope graph through the artifact (#1452
+   *        box 3). The 2.1 caller leaves it undefined and reads `IProgram`,
+   *        which exists by then.
+   * @param context absent on that same Stage 3 path, and present for every 2.1
+   *        run. That is why it is optional here and required everywhere else.
    */
-  public constructor(programFunctions: ReadonlySet<string> = new Set()) {
+  public constructor(
+    programFunctions: ReadonlySet<string> = new Set(),
+    private readonly registry?: SymbolRegistry,
+    private readonly context?: IAnalysisContext,
+  ) {
     this.programFunctions = programFunctions;
+  }
+
+  /**
+   * ADR-029 callbacks this analyzer recognized: function name to the typedef it
+   * is used as.
+   *
+   * #1452: this accumulated into a mutable static on `CodeGenState` that
+   * `reset()` deliberately skipped, so entries would survive between files.
+   * `CallbackCompatibility.derive` cleared it, ran this analyzer over every
+   * tree for the side effect, and snapshotted it onto `IProgram` -- the same
+   * shape as the modification trio, and the same fix: the accumulation is the
+   * analyzer's own, and the caller that wants the whole program's answer merges
+   * what each run reports.
+   *
+   * The per-file 2.1 run (`runAnalyzers`) simply does not read it. That write
+   * was dead -- nothing consulted the static after `derive` had snapshotted it
+   * -- and it is what made a per-RUN reset necessary in `Transpiler`.
+   */
+  public callbackCompatibleFunctions(): ReadonlyMap<string, string> {
+    return this.callbacksFound;
   }
 
   /**
@@ -344,12 +377,26 @@ class FunctionCallAnalyzer {
   }
 
   /**
+   * What path a scope NAME has, from whichever artifact this instance was
+   * handed: `SymbolRegistry` at Stage 3, before `Program` is built, and the
+   * 2.1 context after. Falling back to the bare name is what the registry does
+   * for a name it has not seen, so the two agree on an unknown scope.
+   */
+  private scopePathOf(scopeName: string): string {
+    if (this.registry) return this.registry.scopePathOf(scopeName);
+    return this.context?.program.scopePathOf(scopeName) ?? scopeName;
+  }
+
+  /**
    * Issue #786: Pre-collect all function names defined in this file.
    * Used to distinguish between local functions (subject to define-before-use)
    * and cross-file functions from includes (allowed without local definition).
    */
   private collectAllLocalFunctions(tree: Parser.ProgramContext): void {
-    for (const name of FunctionCallAnalyzer.declaredFunctionNames(tree)) {
+    for (const name of FunctionCallAnalyzer.declaredFunctionNames(
+      tree,
+      (scopeName) => this.scopePathOf(scopeName),
+    )) {
       this.allLocalFunctions.add(name);
     }
   }
@@ -366,6 +413,7 @@ class FunctionCallAnalyzer {
    */
   public static declaredFunctionNames(
     tree: Parser.ProgramContext,
+    scopePathOf: (scopeName: string) => string,
   ): Set<string> {
     const names = new Set<string>();
     for (const decl of tree.declaration()) {
@@ -376,9 +424,13 @@ class FunctionCallAnalyzer {
       // Scope member functions
       if (decl.scopeDeclaration()) {
         const scopeDecl = decl.scopeDeclaration()!;
-        const scopePath = ScopeUtils.pathOf(
-          SymbolRegistry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
-        );
+        const scopeName = scopeDecl.IDENTIFIER().getText();
+        // #1456: one question, asked once. This used to branch on whether a
+        // registry was supplied -- Stage 3 has one and 2.1 does not -- and the
+        // 2.1 arm read `CodeGenState.program`. The caller answers instead,
+        // from whichever artifact it holds, so there is no branch to keep in
+        // step and no shared state to reach.
+        const scopePath = scopePathOf(scopeName);
         for (const member of scopeDecl.scopeMember()) {
           if (member.functionDeclaration()) {
             const funcName = member
@@ -425,7 +477,7 @@ class FunctionCallAnalyzer {
   public isCallbackType(name: string): boolean {
     return (
       this.allLocalFunctions.has(name) ||
-      (CodeGenState.symbols?.functionReturnTypes.has(name) ?? false)
+      (this.context?.symbols?.functionReturnTypes.has(name) ?? false)
     );
   }
 
@@ -682,7 +734,7 @@ class FunctionCallAnalyzer {
       this.programFunctions.has(lookupName)
     ) {
       // Store function name -> typedef name mapping
-      CodeGenState.callbackCompatibleFunctions.set(lookupName, typedefName);
+      this.callbacksFound.set(lookupName, typedefName);
     }
   }
 

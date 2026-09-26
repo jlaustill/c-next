@@ -4,7 +4,7 @@ import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import TranspileState from "../../../../../TranspileState";
 import TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type IPlannedCallArgument from "../../../types/IPlannedCallArgument";
@@ -51,12 +51,12 @@ function planArguments(
 function createMockInput(
   overrides: Partial<IGeneratorInput> = {},
 ): IGeneratorInput {
-  // Also populate CodeGenState with the type registry entries
-  // This is needed because CallExprGenerator now uses CodeGenState directly
+  // Also populate TranspileState with the type registry entries
+  // This is needed because CallExprGenerator now uses TranspileState directly
   const typeRegistry =
     (overrides.typeRegistry as Map<string, TTypeInfo>) ?? new Map();
   for (const [name, info] of typeRegistry) {
-    CodeGenState.setVariableTypeInfo(name, info);
+    sharedState.setVariableTypeInfo(name, info);
   }
 
   return {
@@ -66,6 +66,7 @@ function createMockInput(
     functionSignatures: new Map(),
     knownFunctions: new Set(),
     knownStructs: new Set(),
+    knownScopes: new Set<string>(),
     constValues: new Map(),
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
@@ -98,10 +99,19 @@ interface IArgumentPlannerStub {
   ): string;
 }
 
+/**
+ * #1452: the generator reads render state off its orchestrator, so the mock
+ * and the assertions share ONE instance.
+ */
+let sharedState = new TranspileState();
+
 function createMockOrchestrator(
   overrides: Partial<IOrchestrator & IArgumentPlannerStub> = {},
 ): IOrchestrator & IArgumentPlannerStub {
   return {
+    // #1452: the orchestrator carries 2.3's per-file state, so a generator
+    // reads it from the collaborator it was handed rather than a static class.
+    state: sharedState,
     generateExpression: vi.fn((ctx: Parser.ExpressionContext) => ctx.getText()),
     generateFunctionArg: vi.fn(
       (ctx: Parser.ExpressionContext) => `&${ctx.getText()}`,
@@ -130,9 +140,9 @@ function createMockOrchestrator(
 // ========================================================================
 
 describe("CallExprGenerator", () => {
-  // Reset CodeGenState before each test to avoid state pollution
+  // Reset TranspileState before each test to avoid state pollution
   beforeEach(() => {
-    CodeGenState.reset();
+    sharedState = new TranspileState();
   });
 
   describe("empty function call", () => {
@@ -423,10 +433,11 @@ describe("CallExprGenerator", () => {
         ],
       ]);
       const input = createMockInput({ functionSignatures: sigs });
-      const state = createMockState();
+      const generatorState = createMockState();
 
-      // Set up CodeGenState.currentParameters to simulate callback-promoted param
-      CodeGenState.currentParameters.set("buf", {
+      // Set up the render state's currentParameters to simulate a
+      // callback-promoted param.
+      sharedState.currentParameters.set("buf", {
         name: "buf",
         baseType: "u8",
         isArray: false,
@@ -450,7 +461,7 @@ describe("CallExprGenerator", () => {
         "draw_bitmap",
         planArguments(orchestrator, argExpressions),
         input,
-        state,
+        generatorState,
         orchestrator,
       );
 
@@ -458,7 +469,7 @@ describe("CallExprGenerator", () => {
       expect(result.code).toBe("draw_bitmap(buf)");
 
       // Clean up
-      CodeGenState.currentParameters.clear();
+      sharedState.currentParameters.clear();
     });
   });
 
@@ -1493,8 +1504,12 @@ describe("CallExprGenerator", () => {
   });
 
   describe("inDeclarationInit clearing (Issue #992)", () => {
+    beforeEach(() => {
+      sharedState = new TranspileState();
+    });
+
     it("clears inDeclarationInit during function argument generation", () => {
-      CodeGenState.inDeclarationInit = true;
+      sharedState.inDeclarationInit = true;
 
       const argExpressions = [createMockExpressionContext("myArg")];
       const input = createMockInput();
@@ -1504,7 +1519,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         generateExpression: vi.fn((ctx: Parser.ExpressionContext) => {
-          flagDuringArg = CodeGenState.inDeclarationInit;
+          flagDuringArg = sharedState.inDeclarationInit;
           return ctx.getText();
         }),
       });
@@ -1518,11 +1533,11 @@ describe("CallExprGenerator", () => {
       );
 
       expect(flagDuringArg).toBe(false);
-      expect(CodeGenState.inDeclarationInit).toBe(true);
+      expect(sharedState.inDeclarationInit).toBe(true);
     });
 
     it("restores inDeclarationInit after argument generation", () => {
-      CodeGenState.inDeclarationInit = true;
+      sharedState.inDeclarationInit = true;
 
       const argExpressions = [
         createMockExpressionContext("a"),
@@ -1542,7 +1557,7 @@ describe("CallExprGenerator", () => {
         orchestrator,
       );
 
-      expect(CodeGenState.inDeclarationInit).toBe(true);
+      expect(sharedState.inDeclarationInit).toBe(true);
     });
   });
 });

@@ -19,7 +19,6 @@ import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import CallExprUtils from "./CallExprUtils";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
 import type IPlannedCallArgument from "../../types/IPlannedCallArgument";
 
@@ -119,12 +118,13 @@ const _resolveArgType = (
   arg: IPlannedCallArgument,
   argCode: string,
   typeInfoBaseType: string | undefined,
+  orchestrator: IOrchestrator,
 ): string | null => {
   const exprType = arg.expressionType();
   if (exprType) return exprType;
   if (argCode.startsWith("&")) return null;
   if (typeInfoBaseType) return typeInfoBaseType;
-  const cSymbol = CodeGenState.symbolTable?.getCSymbol(argCode);
+  const cSymbol = orchestrator.state.symbolTable?.getCSymbol(argCode);
   if (cSymbol?.kind === "variable" && !cSymbol.isArray) return cSymbol.type;
   return null;
 };
@@ -144,7 +144,7 @@ const _generateCFunctionArg = (
   // callback-promoted param, use the identifier directly instead of dereferencing.
   const argIdentifier = arg.simpleIdentifier;
   const paramInfo = argIdentifier
-    ? CodeGenState.currentParameters.get(argIdentifier)
+    ? orchestrator.state.currentParameters.get(argIdentifier)
     : undefined;
   const isCallbackPromotedParam = paramInfo?.forcePointerSemantics ?? false;
 
@@ -164,7 +164,7 @@ const _generateCFunctionArg = (
 
   // Issue #872: Set expectedType for MISRA 7.2 compliance, but suppress bare enum resolution
   // (bare enums in function args was never allowed - changing that requires ADR approval)
-  const argCode = CodeGenState.withExpectedType(
+  const argCode = orchestrator.state.withExpectedType(
     targetParam?.baseType,
     arg.render,
     true, // suppressEnumResolution
@@ -182,14 +182,20 @@ const _generateCFunctionArg = (
 
   // Resolve the argument's type (expression type → variable registry → C symbol
   // table for extern globals) to decide whether it needs address-of.
-  const typeInfo = CodeGenState.getVariableTypeInfo(argCode);
-  const argType = _resolveArgType(arg, argCode, typeInfo?.baseType);
+  const typeInfo = orchestrator.state.getVariableTypeInfo(argCode);
+  const argType = _resolveArgType(
+    arg,
+    argCode,
+    typeInfo?.baseType,
+    orchestrator,
+  );
   // Issue #895 Bug B: a variable already inferred as a pointer must not get `&`.
   const isPointerVariable = typeInfo?.isPointer ?? false;
 
   // Issue #948: Check if argument is an opaque scope variable (already a pointer)
   // Issue #996: ...including an element of an opaque-handle array (arr[i])
-  const isOpaqueScopeVar = CodeGenState.isOpaqueScopeVariableAccess(argCode);
+  const isOpaqueScopeVar =
+    orchestrator.state.isOpaqueScopeVariableAccess(argCode);
 
   // Add & if argument needs address-of to match parameter type.
   // Issue #322: struct types passed to pointer params.
@@ -293,7 +299,7 @@ const generateFunctionCall = (
 
   // ADR-051: Handle safe_div() and safe_mod() built-in functions
   if (funcExpr === "safe_div" || funcExpr === "safe_mod") {
-    return generateSafeDivMod(funcExpr, args, effects);
+    return generateSafeDivMod(funcExpr, args, effects, orchestrator);
   }
 
   // Regular function call handling
@@ -310,7 +316,7 @@ const generateFunctionCall = (
 
   // Issue #992: Clear inDeclarationInit for function call arguments — struct
   // initializers inside function args need compound literals, not plain designated initializers.
-  const rendered = CodeGenState.withoutDeclarationInit(() =>
+  const rendered = orchestrator.state.withoutDeclarationInit(() =>
     args
       .map((arg, idx) => {
         // Get parameter type info from local signature or cross-file SymbolTable
@@ -338,7 +344,7 @@ const generateFunctionCall = (
           )
         ) {
           // Issue #872: Set expectedType for MISRA 7.2 compliance, but suppress bare enum resolution
-          const argCode = CodeGenState.withExpectedType(
+          const argCode = orchestrator.state.withExpectedType(
             targetParam?.baseType,
             arg.render,
             true, // suppressEnumResolution
@@ -373,6 +379,7 @@ const generateSafeDivMod = (
   funcName: string,
   args: readonly IPlannedCallArgument[],
   effects: TGeneratorEffect[],
+  orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   // #1322: ADR-051's call shape is E0884 (four arguments) and E0885 (the first
   // is a variable to receive the result) in pass 2.1, and a `const` output is
@@ -391,7 +398,7 @@ const generateSafeDivMod = (
   );
 
   // Look up the type of the output parameter
-  const typeInfo = CodeGenState.getVariableTypeInfo(outputArgId);
+  const typeInfo = orchestrator.state.getVariableTypeInfo(outputArgId);
   invariant(
     typeInfo,
     `${funcName}'s output parameter is a declared variable with a type -- E0885 rejects this in pass 2.1, before this runs`,

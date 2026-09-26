@@ -16,8 +16,19 @@ import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
 import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
+import type TranspileState from "../../../TranspileState";
 
 interface IOrchestrator {
+  /**
+   * 2.3 Render's per-file working state (#1452 box 4).
+   *
+   * A generator that already receives its orchestrator reads state from it
+   * rather than from a static class -- which also keeps the generator
+   * testable without installing a global, as `CastExprGenerator`'s unit tests
+   * demonstrated when the ambient route was tried there first.
+   */
+  readonly state: TranspileState;
+
   // === State Access ===
 
   /** Get the immutable input context */

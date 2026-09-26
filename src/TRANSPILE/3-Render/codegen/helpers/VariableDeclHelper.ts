@@ -28,7 +28,6 @@
  * MISRA Rule 10.3 cast, and the C++ assignment queue.
  */
 
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import invariant from "../../../../utils/invariant";
 import ArrayInitHelper from "./ArrayInitHelper";
 import CppModeHelper from "./CppModeHelper";
@@ -38,6 +37,7 @@ import IPlannedArrayDeclaration from "../types/IPlannedArrayDeclaration";
 import TPlannedVariableDecl from "../types/TPlannedVariableDecl";
 import TPlannedVariableInitializer from "../types/TPlannedVariableInitializer";
 import TYPE_MAP from "../types/TYPE_MAP";
+import type TranspileState from "../../../TranspileState";
 
 /**
  * Result from rendering the array half of a declaration.
@@ -80,19 +80,23 @@ class VariableDeclHelper {
    * @param decl - Current declaration string
    * @returns Final declaration with semicolon and any pending assignments
    */
-  static finalizeCppClassAssignments(name: string, decl: string): string {
-    if (CodeGenState.pendingCppClassAssignments.length === 0) {
+  static finalizeCppClassAssignments(
+    name: string,
+    decl: string,
+    state: TranspileState,
+  ): string {
+    if (state.pendingCppClassAssignments.length === 0) {
       return `${decl};`;
     }
 
     invariant(
-      CodeGenState.inFunctionBody,
+      state.inFunctionBody,
       "E0508 rejects this in pass 2.1, before this runs",
     );
-    const assignments = CodeGenState.pendingCppClassAssignments
+    const assignments = state.pendingCppClassAssignments
       .map((a) => `${name}.${a}`)
       .join("\n");
-    CodeGenState.pendingCppClassAssignments = [];
+    state.pendingCppClassAssignments = [];
     return `${decl};\n${assignments}`;
   }
 
@@ -107,6 +111,7 @@ class VariableDeclHelper {
     plan: IPlannedArrayDeclaration,
     sourceName: string,
     decl: string,
+    state: TranspileState,
   ): IArrayDeclResult {
     if (!plan.isArray) {
       return { handled: false, code: "", decl, isArray: false };
@@ -122,7 +127,7 @@ class VariableDeclHelper {
       // `Point single = { .x = 1 }` on the next line was already plain. One
       // declaration-initializer decision, previously made in two places.
       const init = plan.init;
-      const arrayInitResult = CodeGenState.withDeclarationInit(() =>
+      const arrayInitResult = state.withDeclarationInit(() =>
         ArrayInitHelper.processArrayInit(
           sourceName,
           plan.hasEmptyDimension,
@@ -134,11 +139,12 @@ class VariableDeclHelper {
             getTypeName: init.renderTypeName,
             generateArrayDimensions: init.renderDimensions,
           },
+          state,
         ),
       );
       if (arrayInitResult) {
         // Track as local array for type resolution
-        CodeGenState.localArrays.add(sourceName);
+        state.localArrays.add(sourceName);
         // When size inference happens and the empty dim is in arrayType,
         // dimensionSuffix already contains the inferred size - don't duplicate
         const fullDimSuffix = plan.hasEmptyArrayTypeDimension
@@ -156,7 +162,7 @@ class VariableDeclHelper {
     // Generate dimensions: arrayType dimension first, then arrayDimension dimensions
     const newDecl =
       decl + plan.arrayTypeDimensions + plan.renderCStyleDimensions();
-    CodeGenState.localArrays.add(sourceName);
+    state.localArrays.add(sourceName);
 
     return { handled: false, code: "", decl: newDecl, isArray: true };
   }
@@ -168,6 +174,7 @@ class VariableDeclHelper {
     plan: TPlannedVariableInitializer,
     decl: string,
     isArray: boolean,
+    state: TranspileState,
   ): string {
     if (plan.kind === "zero") {
       // ADR-015: Zero initialization for uninitialized variables
@@ -180,8 +187,8 @@ class VariableDeclHelper {
 
     // Issue #872: Set expectedType for MISRA 7.2 U suffix compliance
     // MISRA 10.3: Also check for cross-type-category conversions (int <-> float)
-    return CodeGenState.withExpectedType(typeName, () => {
-      let exprCode = CodeGenState.withDeclarationInit(plan.renderExpression);
+    return state.withExpectedType(typeName, () => {
+      let exprCode = state.withDeclarationInit(plan.renderExpression);
 
       // MISRA 10.3: Check for cross-type-category conversions (int <-> float).
       // Asked AFTER the render, and inside the window, because the question is
@@ -196,7 +203,11 @@ class VariableDeclHelper {
           NarrowingCastHelper.isIntegerCategory(exprType) &&
           NarrowingCastHelper.isFloatCategory(typeName)
         ) {
-          exprCode = NarrowingCastHelper.wrapIntToFloat(exprCode, typeName);
+          exprCode = NarrowingCastHelper.wrapIntToFloat(
+            exprCode,
+            typeName,
+            state,
+          );
         }
         // Float to int: add explicit cast for MISRA compliance
         // Note: For safety, users should use explicit cast in C-Next source: (i32)float
@@ -207,7 +218,7 @@ class VariableDeclHelper {
           NarrowingCastHelper.isIntegerCategory(typeName)
         ) {
           const cType = TYPE_MAP[typeName] ?? typeName;
-          exprCode = CppModeHelper.cast(cType, exprCode);
+          exprCode = CppModeHelper.cast(cType, exprCode, state);
         }
       }
 
@@ -222,7 +233,10 @@ class VariableDeclHelper {
   /**
    * Render the declaration a plan describes.
    */
-  static renderVariableDecl(plan: TPlannedVariableDecl): string {
+  static renderVariableDecl(
+    plan: TPlannedVariableDecl,
+    state: TranspileState,
+  ): string {
     switch (plan.kind) {
       // Issue #375: C++ constructor syntax.
       //
@@ -238,10 +252,11 @@ class VariableDeclHelper {
           plan.emittedName,
           plan.modifiers,
           plan.isConst,
+          state,
         );
 
       case "plain":
-        return VariableDeclHelper.renderPlainDecl(plan);
+        return VariableDeclHelper.renderPlainDecl(plan, state);
     }
   }
 
@@ -250,6 +265,7 @@ class VariableDeclHelper {
    */
   private static renderPlainDecl(
     plan: Extract<TPlannedVariableDecl, { kind: "plain" }>,
+    state: TranspileState,
   ): string {
     // ADR-057: the DECLARED identifier is the emitted one -- a local shadowing a
     // file-scope name carries a distinct C name so `global.x` still reaches
@@ -262,6 +278,7 @@ class VariableDeclHelper {
       plan.array,
       plan.sourceName,
       base,
+      state,
     );
     if (arrayResult.handled) {
       return arrayResult.code;
@@ -271,12 +288,14 @@ class VariableDeclHelper {
       plan.initializer,
       arrayResult.decl,
       arrayResult.isArray,
+      state,
     );
 
     // Handle pending C++ class field assignments
     return VariableDeclHelper.finalizeCppClassAssignments(
       plan.sourceName,
       decl,
+      state,
     );
   }
 }

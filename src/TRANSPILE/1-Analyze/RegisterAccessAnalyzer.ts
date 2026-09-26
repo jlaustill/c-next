@@ -43,7 +43,6 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
@@ -55,11 +54,15 @@ import TChainRoot from "./types/TChainRoot";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ConstantExpression from "./helpers/ConstantExpression";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 class RegisterAccessListener extends CNextListener {
   private readonly found: IRegisterAccessError[] = [];
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
   }
 
@@ -148,7 +151,13 @@ class RegisterAccessListener extends CNextListener {
     chain: string[],
     node: ParserRuleContext,
   ): IRegisterMember | null {
-    return RegisterMemberReference.resolve(root, chain, node, this.scopes);
+    return RegisterMemberReference.resolve(
+      root,
+      chain,
+      node,
+      this.scopes,
+      this.context,
+    );
   }
 
   private isZero(
@@ -163,6 +172,7 @@ class RegisterAccessListener extends CNextListener {
     const value = ConstantExpression.valueIn(
       expr,
       this.scopes.frameFor(node).scopePath,
+      this.context.program,
     );
     if (value !== null) return value === 0;
     return this.isFalseConst(text, node);
@@ -176,7 +186,7 @@ class RegisterAccessListener extends CNextListener {
     if (here !== "")
       cNames.unshift(ScopeUtils.getTranspiledCName({ scopePath: here, name }));
     for (const cName of cNames) {
-      const symbol = CodeGenState.program?.symbolByCName(cName);
+      const symbol = this.context.program.symbolByCName(cName);
       if (symbol?.kind !== "variable" || !symbol.isConst) continue;
       return symbol.initialValue?.trim() === "false";
     }
@@ -207,12 +217,16 @@ class RegisterAccessListener extends CNextListener {
 }
 
 class RegisterAccessAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): IRegisterAccessError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new RegisterAccessListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

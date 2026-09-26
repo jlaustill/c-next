@@ -4,7 +4,7 @@
  */
 import TYPE_MAP from "../../types/TYPE_MAP";
 import IFunctionSignature from "../../../../../transpiler/types/IFunctionSignature";
-import SymbolTable from "../../../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../../../../PARSE/3-Declare/SymbolTable";
 import TypeResolver from "../../../../../utils/TypeResolver";
 
 /**

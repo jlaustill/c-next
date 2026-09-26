@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import TranspileState from "../../TranspileState";
 import RegisterAccessAnalyzer from "../RegisterAccessAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-004's access modifiers -- E0870 (a `wo` member read), E0871 (an
@@ -25,7 +26,7 @@ const symbols = (
       access.set(`${reg}__${member}`, mod);
     }
   }
-  CodeGenState.symbols = {
+  state.symbols = {
     knownScopes: new Set(opts.scopes ?? []),
     knownEnums: new Set<string>(),
     knownRegisters: new Set(Object.keys(registers)),
@@ -38,19 +39,21 @@ const symbols = (
     structFields: new Map(),
     structFieldDimensions: new Map(),
     functionReturnTypes: new Map(),
-  } as unknown as typeof CodeGenState.symbols;
+  } as unknown as typeof state.symbols;
 };
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new RegisterAccessAnalyzer().analyze(tree);
+  return new RegisterAccessAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 const inMain = (body: string): string => `void main() {\n${body}\n}`;
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new TranspileState();
 });
+
+let state = new TranspileState();
 
 describe("RegisterAccessAnalyzer", () => {
   describe("E0870 -- a write-only member is read", () => {

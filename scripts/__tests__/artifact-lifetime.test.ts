@@ -150,11 +150,11 @@ const ARTIFACTS: ReadonlyArray<readonly [string, string]> = [
   ["src/transpiler/types/symbols/TSymbol.ts", "TSymbol"],
   ["src/PARSE/4-Resolve/Program.ts", "Program"],
   ["src/PARSE/4-Resolve/VisibleSymbols.ts", "VisibleSymbols"],
-  ["src/transpiler/state/SymbolTable.ts", "SymbolTable"],
-  ["src/transpiler/state/SymbolRegistry.ts", "SymbolRegistry"],
+  ["src/PARSE/3-Declare/SymbolTable.ts", "SymbolTable"],
+  ["src/PARSE/3-Declare/SymbolRegistry.ts", "SymbolRegistry"],
   // The two artifacts whose RUNTIME values retain a tree through closures --
   // included precisely so the return-type check above is exercised on them.
-  ["src/transpiler/types/IAssignmentContext.ts", "IAssignmentContext"],
+  ["src/TRANSPILE/2-Plan/types/IAssignmentContext.ts", "IAssignmentContext"],
   ["src/transpiler/types/TPlannedTargetOp.ts", "TPlannedTargetOp"],
 ];
 
@@ -188,6 +188,22 @@ function declaredProperties(
     for (const parameter of ctor.getParameters())
       if (parameter.getModifiers().length) fields.push(parameter);
   return fields;
+}
+
+/**
+ * The modules a `storedParseNodes` pattern actually reaches.
+ *
+ * So an emptiness claim can state its population instead of assuming one. A
+ * pattern naming a path that no longer exists returns `[]` from
+ * `storedParseNodes` whatever the code does, which is how the `no shared state
+ * holds one` arm came to pass vacuously after #1452 moved its three subjects.
+ */
+function matchingModules(pattern: RegExp): string[] {
+  return project
+    .getSourceFiles()
+    .map((sf) => sf.getFilePath())
+    .filter((path) => !path.includes("__tests__") && pattern.test(path))
+    .map((path) => relative(repoRoot, path));
 }
 
 function storedParseNodes(pattern: RegExp): string[] {
@@ -248,10 +264,29 @@ describe("artifact lifetime (#1445 box 2)", () => {
   it(
     "no shared state holds one",
     () => {
-      // `CodeGenState`, `SymbolTable` and `SymbolRegistry` outlive every pass and
-      // are reachable from all of them, so a tree parked on one is the lifetime
-      // violation with the longest reach available.
-      expect(storedParseNodes(/src\/transpiler\/state\//)).toEqual([]);
+      // `TranspileState`, `SymbolTable` and `SymbolRegistry` outlive every pass
+      // and are reachable from all of them, so a tree parked on one is the
+      // lifetime violation with the longest reach available.
+      //
+      // #1452 moved all three out of `src/transpiler/state/` and deleted that
+      // directory. The pattern kept pointing at it, so it matched zero files and
+      // the assertion was vacuously true -- proven by mutation: a
+      // `ProgramContext` field added to `TranspileState` reddened three sibling
+      // arms here and left this one green in 1ms. The same dead-path shape
+      // `e0245d08c` fixed for two depcruise rules, one directory over.
+      const shared =
+        /src\/TRANSPILE\/TranspileState\.ts$|src\/PARSE\/3-Declare\/Symbol(Table|Registry)\.ts$/;
+
+      // POPULATION CONTROL. An emptiness claim over a pattern that matches
+      // nothing is the defect this assertion just had, so prove the pattern
+      // reaches the three files before trusting that none of them holds a tree.
+      expect(matchingModules(shared).sort()).toEqual([
+        "src/PARSE/3-Declare/SymbolRegistry.ts",
+        "src/PARSE/3-Declare/SymbolTable.ts",
+        "src/TRANSPILE/TranspileState.ts",
+      ]);
+
+      expect(storedParseNodes(shared)).toEqual([]);
     },
     WALK_TIMEOUT_MS,
   );
