@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
-import { join, relative } from "node:path";
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import { tmpdir } from "node:os";
 import ServeCommand from "../ServeCommand";
 import JsonRpcHandler from "../JsonRpcHandler";
@@ -144,12 +144,18 @@ describe("ServeCommand", () => {
       // The path is sent as the client has it. It used to be resolved twice
       // -- once for the directory handed over as workingDir, then again
       // against that directory -- so `src/main.cnx` looked in `src/src`.
+      // Run from the project, so the relative path climbs nothing: one that
+      // climbs to `/` would hide the second resolution, which `resolve`
+      // clamps at the root.
       const project = mkdtempSync(join(tmpdir(), "cnext-serve-1435-"));
+      const cwd = process.cwd();
       try {
+        mkdirSync(join(project, "src"));
         writeFileSync(
-          join(project, "colors.cnx"),
+          join(project, "src", "colors.cnx"),
           "enum EColor { RED, GREEN }\n",
         );
+        process.chdir(project);
         await sendRequest({
           id: 101,
           method: "initialize",
@@ -163,7 +169,7 @@ describe("ServeCommand", () => {
           params: {
             source:
               '#include "colors.cnx"\n\nvoid main() {\n    EColor c <- EColor.GREEN;\n}\n',
-            filePath: relative(process.cwd(), join(project, "main.cnx")),
+            filePath: "src/main.cnx",
           },
         });
 
@@ -176,6 +182,7 @@ describe("ServeCommand", () => {
           },
         });
       } finally {
+        process.chdir(cwd);
         rmSync(project, { recursive: true, force: true });
       }
     });

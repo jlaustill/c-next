@@ -11,7 +11,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
@@ -273,15 +273,28 @@ void main() {
       expect(result.files[0]?.code).toContain("EColor c = EColor__GREEN;");
     });
 
+    /**
+     * Run from inside the project, so a relative path climbs nothing: a path
+     * that climbs to `/` hides a second resolution, because `resolve` clamps
+     * at the root and lands on the right file by accident.
+     */
+    async function fromProject<T>(run: () => Promise<T>): Promise<T> {
+      const cwd = process.cwd();
+      process.chdir(project);
+      try {
+        return await run();
+      } finally {
+        process.chdir(cwd);
+      }
+    }
+
     it("a relative sourcePath resolves once, as the file's identity does", async () => {
       // The editor's shape: ServeCommand passed the path it was sent AND
       // `workingDir: dirname(path)`, so resolving a relative path against the
-      // workingDir took its directory twice (`src/src`).
-      const rel = relative(process.cwd(), join(project, "proj", "main.cnx"));
-      const result = await transpile({
-        workingDir: dirname(rel),
-        sourcePath: rel,
-      });
+      // workingDir took its directory twice (`proj/proj`).
+      const result = await fromProject(() =>
+        transpile({ workingDir: "proj", sourcePath: "proj/main.cnx" }),
+      );
 
       expect(result.errors).toEqual([]);
       expect(result.files[0]?.code).toContain("EColor c = EColor__GREEN;");
@@ -294,10 +307,12 @@ void main() {
       );
       writeFileSync(join(project, "proj", "main.cnx"), QUOTED);
 
-      const result = await transpile({
-        workingDir: join(project, "other"),
-        sourcePath: relative(process.cwd(), join(project, "proj", "main.cnx")),
-      });
+      const result = await fromProject(() =>
+        transpile({
+          workingDir: join(project, "other"),
+          sourcePath: "proj/main.cnx",
+        }),
+      );
 
       expect(result.errors).toEqual([]);
       expect(result.files[0]?.code).toContain("EColor c = EColor__GREEN;");
