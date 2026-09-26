@@ -62,8 +62,8 @@ interface IDiscoveryFacts {
    * Per source file, the directory its quoted includes resolve from (#1435).
    *
    * The file's own directory. For a source run's in-memory root that is the
-   * directory of its `sourcePath` resolved against the caller's `workingDir`,
-   * or the `workingDir` itself when the text has no path. Recorded for the
+   * directory of its `sourcePath`, or the caller's `workingDir` when the text
+   * has no path. Recorded for the
    * same reason as the search path: 2.1 re-derived it as `dirname(sourcePath)`
    * while discovery resolved from `workingDir`, so the two disagreed about
    * which quoted includes exist -- and a missing one read as a foreign header,

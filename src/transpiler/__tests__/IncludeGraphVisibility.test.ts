@@ -11,7 +11,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
@@ -213,9 +213,8 @@ typedef struct Reading { int32_t raw; } Reading;
 
   describe("an in-memory root's directory is one decision", () => {
     // ADR-010: a quoted include resolves from the file it appears in. Text
-    // given a path appears in that path's directory; `workingDir` is the
-    // working directory, which resolves a relative path and is all that text
-    // with no path has. Discovery (which files enter the run) and E0506
+    // given a path lives at that path, resolved as the root's identity is;
+    // `workingDir` is where text with no path resolves from. Discovery (which files enter the run) and E0506
     // (which quoted includes are missing) must both use that one directory:
     // when they disagreed, a missing include read as a foreign header, E0426
     // declined, and C-Next member syntax reached the C output at exit 0.
@@ -274,10 +273,40 @@ void main() {
       expect(result.files[0]?.code).toContain("EColor c = EColor__GREEN;");
     });
 
-    it("a relative sourcePath resolves against the workingDir", async () => {
+    it("a relative sourcePath resolves once, as the file's identity does", async () => {
+      // The editor's shape: ServeCommand passed the path it was sent AND
+      // `workingDir: dirname(path)`, so resolving a relative path against the
+      // workingDir took its directory twice (`src/src`).
+      const rel = relative(process.cwd(), join(project, "proj", "main.cnx"));
+      const result = await transpile({
+        workingDir: dirname(rel),
+        sourcePath: rel,
+      });
+
+      expect(result.errors).toEqual([]);
+      expect(result.files[0]?.code).toContain("EColor c = EColor__GREEN;");
+    });
+
+    it("a cycle back to a root given by a relative path is an edge, not a second file", async () => {
+      writeFileSync(
+        join(project, "proj", "colors.cnx"),
+        `#include "main.cnx"\n\n${COLORS}`,
+      );
+      writeFileSync(join(project, "proj", "main.cnx"), QUOTED);
+
+      const result = await transpile({
+        workingDir: join(project, "other"),
+        sourcePath: relative(process.cwd(), join(project, "proj", "main.cnx")),
+      });
+
+      expect(result.errors).toEqual([]);
+      expect(result.files[0]?.code).toContain("EColor c = EColor__GREEN;");
+    });
+
+    it("an empty sourcePath is no path: the workingDir decides", async () => {
       const result = await transpile({
         workingDir: join(project, "proj"),
-        sourcePath: "main.cnx",
+        sourcePath: "",
       });
 
       expect(result.errors).toEqual([]);

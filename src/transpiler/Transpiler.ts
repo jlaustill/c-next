@@ -483,18 +483,17 @@ class Transpiler {
       return this._discoverFromFiles();
     }
     // #1435: ADR-010 resolves a quoted include from the file it appears in.
-    // Text given a path appears in that path's directory; `workingDir` is the
-    // working directory, which resolves a relative path, and is where text
-    // with no path is resolved from. One directory, decided here, for both
-    // discovery and the 2.1 rules that ask where a quoted include is.
-    const workingDir = input.workingDir ?? process.cwd();
+    // Text given a path lives at that path, resolved exactly as the root's
+    // identity is (against the process's working directory), so where the
+    // root IS and where it resolves FROM cannot come apart. `workingDir` is
+    // where text with no path is resolved from. One directory, decided here,
+    // for discovery and for the 2.1 rules that ask where a quoted include is.
     return this._discoverFromSource({
       path: input.sourcePath ?? "<string>",
       source: input.source,
-      directory:
-        input.sourcePath === undefined
-          ? workingDir
-          : dirname(resolve(workingDir, input.sourcePath)),
+      directory: input.sourcePath
+        ? dirname(resolve(input.sourcePath))
+        : (input.workingDir ?? process.cwd()),
       includeDirs: input.includeDirs ?? [],
     });
   }

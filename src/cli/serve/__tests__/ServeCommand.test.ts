@@ -6,6 +6,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { join, relative } from "node:path";
+import { tmpdir } from "node:os";
 import ServeCommand from "../ServeCommand";
 import JsonRpcHandler from "../JsonRpcHandler";
 
@@ -135,6 +138,46 @@ describe("ServeCommand", () => {
           errors: [],
         },
       });
+    });
+
+    it("resolves a quoted include beside a relative filePath (#1435)", async () => {
+      // The path is sent as the client has it. It used to be resolved twice
+      // -- once for the directory handed over as workingDir, then again
+      // against that directory -- so `src/main.cnx` looked in `src/src`.
+      const project = mkdtempSync(join(tmpdir(), "cnext-serve-1435-"));
+      try {
+        writeFileSync(
+          join(project, "colors.cnx"),
+          "enum EColor { RED, GREEN }\n",
+        );
+        await sendRequest({
+          id: 101,
+          method: "initialize",
+          params: { workspacePath: project },
+        });
+        stdoutWriteSpy.mockClear();
+
+        const response = await sendRequest({
+          id: 102,
+          method: "transpile",
+          params: {
+            source:
+              '#include "colors.cnx"\n\nvoid main() {\n    EColor c <- EColor.GREEN;\n}\n',
+            filePath: relative(process.cwd(), join(project, "main.cnx")),
+          },
+        });
+
+        expect(response).toMatchObject({
+          id: 102,
+          result: {
+            success: true,
+            code: expect.stringContaining("EColor c = EColor__GREEN;"),
+            errors: [],
+          },
+        });
+      } finally {
+        rmSync(project, { recursive: true, force: true });
+      }
     });
 
     it("returns errors for invalid source", async () => {
