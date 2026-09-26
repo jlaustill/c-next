@@ -48,6 +48,7 @@ describe("IncludeDiscovery", () => {
       ["finds project root with cnext.config.json", "cnext.config.json", "{}"],
       ["finds project root with .cnext.json", ".cnext.json", "{}"],
       ["finds project root with .cnextrc", ".cnextrc", "{}"],
+      ["finds project root with package.json", "package.json", "{}"],
     ])("%s", (_label, source, source2) => {
       writeFileSync(join(testDir, source), source2);
       mkdirSync(join(testDir, "src"), { recursive: true });
@@ -112,6 +113,23 @@ describe("IncludeDiscovery", () => {
       );
 
       expect(result).toBeNull();
+    });
+
+    it("checks the filesystem root itself", () => {
+      const mockFs: IFileSystem = {
+        exists: (path: string) => path === join("/", ".git"),
+        isDirectory: () => true,
+        isFile: () => false,
+        readFile: () => "",
+        writeFile: () => {},
+        readdir: () => [],
+        mkdir: () => {},
+        stat: () => ({ mtimeMs: 0 }),
+      };
+
+      expect(IncludeDiscovery.findProjectRoot("/some/deep/path", mockFs)).toBe(
+        "/",
+      );
     });
   });
 

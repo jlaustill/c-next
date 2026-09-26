@@ -3388,36 +3388,8 @@ class Transpiler {
       startDir = dirname(resolvedInput);
     }
 
-    // Project root indicators (in priority order)
-    const projectMarkers = [
-      "cnext.config.json", // C-Next config file
-      "platformio.ini", // PlatformIO project
-      ".git", // Git repository root
-      "package.json", // Node.js project
-    ];
-
-    // Walk up looking for project markers
-    let dir = startDir;
-    while (true) {
-      // Check each project marker
-      for (const marker of projectMarkers) {
-        const markerPath = join(dir, marker);
-        if (this.fs.exists(markerPath)) {
-          return dir;
-        }
-      }
-
-      // Move to parent directory
-      const parent = dirname(dir);
-      if (parent === dir) {
-        // Reached filesystem root without finding project markers
-        break;
-      }
-      dir = parent;
-    }
-
-    // No project root found - return undefined to disable caching
-    return undefined;
+    // No project root disables caching, so no .cnx directory is left behind
+    return IncludeDiscovery.findProjectRoot(startDir, this.fs) ?? undefined;
   }
 }
 

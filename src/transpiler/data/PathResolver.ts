@@ -30,9 +30,9 @@ interface IPathResolverConfig {
   /**
    * Issue #1547: the base that a discovered file's path is made relative to
    * when it falls outside every input directory. Derived by
-   * `Transpiler.determineProjectRoot()` -- which looks for `cnext.config.json`
-   * first, so it lands on the directory cosmiconfig found -- never read from
-   * the process. Absent means "no stable base", and the header is placed by
+   * `Transpiler.determineProjectRoot()` -- the nearest directory holding a
+   * project marker, `cnext.config.json` among them, so it lands on the
+   * directory cosmiconfig found -- never read from the process. Absent means "no stable base", and the header is placed by
    * basename rather than against a base that would vary per run.
    */
   projectRoot?: string;

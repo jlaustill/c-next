@@ -315,12 +315,13 @@ class IncludeDiscovery {
   }
 
   /**
-   * Find project root by walking up directory tree looking for markers
+   * Find the project root by walking up from `startDir` to the nearest
+   * directory holding any project marker, the filesystem root included.
    *
-   * Project markers (in order of preference):
-   * - platformio.ini (PlatformIO project)
-   * - cnext.config.json or .cnext.json (C-Next config)
-   * - .git/ (Git repository root)
+   * The one finder (#1668): include discovery and the transpiler's cache and
+   * header base used to walk with two marker lists that each lacked a marker
+   * the other had. Every marker counts equally -- the nearest directory wins,
+   * so the list's order decides nothing.
    *
    * @param startDir - Directory to start search from
    * @param fs - File system abstraction (defaults to NodeFileSystem)
@@ -330,28 +331,26 @@ class IncludeDiscovery {
     startDir: string,
     fs: IFileSystem = defaultFs,
   ): string | null {
-    let dir = resolve(startDir);
-
     const markers = [
-      "platformio.ini",
       "cnext.config.json",
       ".cnext.json",
       ".cnextrc",
+      "platformio.ini",
       ".git",
+      "package.json",
     ];
 
-    // Walk up directory tree until marker found or filesystem root
-    while (dir !== dirname(dir)) {
-      for (const marker of markers) {
-        const markerPath = join(dir, marker);
-        if (fs.exists(markerPath)) {
-          return dir;
-        }
+    let dir = resolve(startDir);
+    while (true) {
+      if (markers.some((marker) => fs.exists(join(dir, marker)))) {
+        return dir;
       }
-      dir = dirname(dir);
+      const parent = dirname(dir);
+      if (parent === dir) {
+        return null;
+      }
+      dir = parent;
     }
-
-    return null;
   }
 
   /**
