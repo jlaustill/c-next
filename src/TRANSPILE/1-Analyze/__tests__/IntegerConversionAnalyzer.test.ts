@@ -147,6 +147,16 @@ describe("IntegerConversionAnalyzer", () => {
       ).toHaveLength(1);
     });
 
+    it("does not type a composite with a float literal as an integer (#1668)", () => {
+      // 2.2 types a float literal operand as floating, so this composite is not
+      // an integer composite and is no integer narrowing. 2.1 reads the literal
+      // the same way; skipping it read `wide * 2.5` as a u32 and reported a u32
+      // narrowing. E0810 rejects the mix itself -- this is the passes agreeing.
+      expect(errors(inMain("    u8 x <- wide * 2.5;"))).toEqual([]);
+      // CONTROL: an integer literal is contextually typed and still narrows.
+      expect(errors(inMain("    u8 x <- wide * 2;"))).toHaveLength(1);
+    });
+
     it("leaves a ternary untyped: literal branches have no declared type", () => {
       expect(errors(inMain("    i32 s <- (wide > 0) ? 1 : -1;"))).toEqual([]);
     });
