@@ -14,7 +14,11 @@
 >    - CI installs them;
 >    - a missing library fails the run loudly.
 > 5. **The target table gains rows** for atmega328p, arduino-uno, esp32 (xtensa, ILP32) and native/host.
->    **Correction, 2026-09-26.** §A12 item 5, "avr-libc hides `UINT*_MAX` from C++ … 231 `.cpp` files", does **not** reproduce with a real AVR toolchain at the supported C++11 baseline. The 231 failures came from the probe's `-isystem` ordering. It was not filed. The "real target libraries" ruling (4 above) stands on its own grounds, but this was not one of them.
+>    **Correction withdrawn, 2026-09-26.** An earlier note here said that §A12 item 5, "avr-libc hides `UINT*_MAX` from C++", did not reproduce. That note was wrong:
+>    - In the real avr-libc 2.0.0 `stdint.h` (from the Ubuntu noble package), the limit macros are guarded by `#if !defined(__cplusplus) || defined(__STDC_LIMIT_MACROS)` at line 296, with no C++11 exception. The constant macros at line 613 do have one.
+>    - With that header, `clang++ -std=c++14` fails: `use of undeclared identifier 'INT32_MAX'`.
+>    - The non-reproduction had not compiled against avr-libc's header.
+>    - Whether `avr-g++` behaves the same is unverified. T4's startup probe runs with the harness's exact flags and settles it.
 > 6. **Targets are data (the long-term lens).** A target is a complete description of every fact the language depends on:
 >    - word size, LDREX/STREX, BASEPRI;
 >    - integer and pointer widths, and plain-`char` signedness;
