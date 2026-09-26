@@ -223,6 +223,18 @@ class TargetDescriptions {
     return true;
   }
 
+  /**
+   * What is wrong with one field's value, or null. The same judgement a
+   * catalog row gets, for a description pragma.
+   */
+  static fieldProblem(field: string, value: TTargetFieldValue): string | null {
+    const spec: ITargetFieldSpec | undefined =
+      TARGET_DESCRIPTION_FIELDS[field as keyof ITargetDescription];
+    return spec
+      ? TargetDescriptions.valueProblem(field, spec, value)
+      : `unknown field '${field}'`;
+  }
+
   private static valueProblem(
     field: string,
     spec: ITargetFieldSpec,

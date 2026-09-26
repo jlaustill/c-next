@@ -1,0 +1,27 @@
+// test-error
+// #1668 / ADR-049: an integer field takes decimal digits from the schema's
+// allowed values, and a Boolean field takes true or false. One E0513 per
+// bad pragma, at that pragma.
+#pragma word_size 12
+#pragma ldrex_strex yes
+#pragma basepri false
+#pragma char_bits 8
+#pragma char_signed false
+#pragma short_bits 16
+#pragma int_bits 32
+#pragma long_bits 32
+#pragma long_long_bits 64
+#pragma size_t_bits 32
+#pragma pointer_bits 32
+#pragma float_bits 32
+#pragma double_bits 64
+#pragma long_double_bits 64
+#pragma big_endian false
+#pragma external_identifier_chars 31
+#pragma internal_identifier_chars 63
+
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- 1;
+}

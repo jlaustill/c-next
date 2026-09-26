@@ -3,6 +3,7 @@
  */
 import { describe, it, expect } from "vitest";
 import CNextSourceParser from "../CNextSourceParser";
+import TargetCatalogFile from "../../../transpiler/data/TargetCatalogFile";
 
 function directivesOf(source: string) {
   return CNextSourceParser.parse(source).targetDirectives;
@@ -43,4 +44,16 @@ describe("TargetDirectives", () => {
       directivesOf('#include "other.cnx"\ni32 main() { return 0; }'),
     ).toEqual([]);
   });
+
+  // The catalog and the grammar are two definitions of "a target name". A
+  // name the grammar cannot lex is a row nobody can select: `cortex-m0+` was
+  // one until the pragma became a general key/values token (#1668).
+  it.each([...TargetCatalogFile.targets().keys()])(
+    "lexes the catalog name %s as one pragma",
+    (name) => {
+      const parsed = CNextSourceParser.parse(`#pragma target ${name}\n`);
+      expect(parsed.parseErrors).toEqual([]);
+      expect(parsed.targetDirectives.map((d) => d.values)).toEqual([[name]]);
+    },
+  );
 });

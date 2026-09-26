@@ -6,6 +6,7 @@ import { describe, it, expect } from "vitest";
 import RunTarget from "../RunTarget";
 import TargetCatalogFile from "../../../transpiler/data/TargetCatalogFile";
 import type ITargetDirective from "../../../transpiler/types/ITargetDirective";
+import type ITargetDescription from "../../../transpiler/types/ITargetDescription";
 
 const catalog = TargetCatalogFile.targets();
 
@@ -80,7 +81,7 @@ describe("RunTarget.resolve", () => {
           sourcePath: "main.cnx",
           line: 5,
           message: expect.stringMatching(
-            /^error\[E0511\]: this file declares target 'cortex-m0', but helper\.cnx:3 declares 'teensy41'$/,
+            /^error\[E0511\]: this file declares target 'cortex-m0', but helper\.cnx:3 declares target 'teensy41'$/,
           ),
         }),
       ],
@@ -120,5 +121,167 @@ describe("RunTarget.resolve", () => {
     if (target.kind === "rejected") {
       expect(target.errors[0].sourcePath).toBeUndefined();
     }
+  });
+
+  describe("inline descriptions", () => {
+    /** Every description pragma, spelled from a catalog row */
+    function inline(
+      row: string,
+      overrides: Record<string, string[] | null> = {},
+    ): ITargetDirective[] {
+      const description = catalog.get(row) as ITargetDescription;
+      const directives: ITargetDirective[] = [];
+      let line = 1;
+      for (const [key, value] of Object.entries(description)) {
+        if (key === "name" || key.startsWith("toolchain_")) continue;
+        const values = key in overrides ? overrides[key] : [String(value)];
+        if (values !== null) {
+          directives.push({ key, values, line: line++, column: 0 });
+        }
+      }
+      return directives;
+    }
+
+    function resolveInline(...files: ITargetDirective[][]) {
+      return RunTarget.resolve({
+        catalog,
+        files: files.map((directives, i) => ({
+          sourcePath: `f${i}.cnx`,
+          directives,
+        })),
+      });
+    }
+
+    function messagesOf(target: ReturnType<typeof resolveInline>) {
+      return target.kind === "rejected"
+        ? target.errors.map((e) => e.message)
+        : [];
+    }
+
+    it("resolves a complete description", () => {
+      const target = resolveInline(inline("cortex-m7"));
+      expect(target).toMatchObject({
+        kind: "resolved",
+        name: "inline",
+        source: "pragma",
+        description: { ldrex_strex: true, word_size: 32 },
+      });
+    });
+
+    it("lists every missing field (E0514)", () => {
+      const target = resolveInline(
+        inline("cortex-m7", { ldrex_strex: null, basepri: null }),
+      );
+      expect(target).toEqual({
+        kind: "rejected",
+        errors: [
+          expect.objectContaining({
+            line: 1,
+            message: "error[E0514]: incomplete target description",
+            helpText: expect.stringMatching(/^missing: ldrex_strex, basepri\./),
+          }),
+        ],
+      });
+    });
+
+    it.each([
+      [
+        "a value the schema does not allow",
+        { word_size: ["12"] },
+        "word_size must be one of 8, 16, 32, 64",
+      ],
+      [
+        "a Boolean that is not true or false",
+        { ldrex_strex: ["yes"] },
+        "ldrex_strex must be true or false, not 'yes'",
+      ],
+      [
+        "an integer that is not decimal",
+        { int_bits: ["0x20"] },
+        "int_bits must be a decimal integer, not '0x20'",
+      ],
+      [
+        "two values",
+        { int_bits: ["32", "16"] },
+        "'int_bits' takes exactly one value",
+      ],
+    ])("rejects %s (E0513)", (_why, overrides, problem) => {
+      expect(messagesOf(resolveInline(inline("cortex-m7", overrides)))).toEqual(
+        [
+          `error[E0513]: invalid value for '${Object.keys(overrides)[0]}': ${problem}`,
+        ],
+      );
+    });
+
+    it("rejects a field given twice (E0513)", () => {
+      const directives = inline("cortex-m7");
+      directives.push({
+        key: "word_size",
+        values: ["32"],
+        line: 99,
+        column: 0,
+      });
+      expect(messagesOf(resolveInline(directives))).toEqual([
+        "error[E0513]: invalid value for 'word_size': 'word_size' is given twice",
+      ]);
+    });
+
+    it("rejects a description that breaks C's width order (E0513)", () => {
+      expect(
+        messagesOf(
+          resolveInline(inline("cortex-m7", { long_double_bits: ["32"] })),
+        ),
+      ).toEqual([
+        "error[E0513]: invalid value for 'target description': double_bits is wider than long_double_bits",
+      ]);
+    });
+
+    it("rejects a pragma key ADR-049 does not define (E0512)", () => {
+      expect(
+        messagesOf(
+          resolveInline([{ key: "once", values: [], line: 1, column: 0 }]),
+        ),
+      ).toEqual(["error[E0512]: unknown pragma 'once'"]);
+    });
+
+    it("rejects 'target' with more than one value (E0513)", () => {
+      expect(
+        messagesOf(
+          resolveInline([
+            {
+              key: "target",
+              values: ["teensy41", "extra"],
+              line: 1,
+              column: 0,
+            },
+          ]),
+        ),
+      ).toEqual([
+        "error[E0513]: invalid value for 'target': 'target' takes exactly one value",
+      ]);
+    });
+
+    it("accepts two files with equal inline descriptions", () => {
+      expect(resolveInline(inline("cortex-m7"), inline("cortex-m7")).kind).toBe(
+        "resolved",
+      );
+    });
+
+    it("rejects two files with different inline descriptions (E0511)", () => {
+      expect(
+        messagesOf(resolveInline(inline("cortex-m7"), inline("cortex-m0"))),
+      ).toEqual([
+        "error[E0511]: this file declares an inline target description, but f0.cnx:1 declares an inline target description",
+      ]);
+    });
+
+    it("rejects a program that both names and describes its target (E0511)", () => {
+      const named: ITargetDirective[] = [
+        { key: "target", values: ["cortex-m7"], line: 1, column: 0 },
+      ];
+      expect(messagesOf(resolveInline(named, inline("cortex-m7")))).toEqual([
+        "error[E0511]: this file declares an inline target description, but f0.cnx:1 declares target 'cortex-m7'",
+      ]);
+    });
   });
 });

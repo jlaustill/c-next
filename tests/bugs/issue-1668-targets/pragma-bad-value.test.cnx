@@ -1,0 +1,9 @@
+// test-error
+// #1668 / ADR-049: each key takes exactly one value.
+#pragma target teensy41 extra
+
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- 1;
+}

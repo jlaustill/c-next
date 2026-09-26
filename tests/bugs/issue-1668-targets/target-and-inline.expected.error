@@ -1,0 +1,2 @@
+6:0 error[E0511]: this file declares an inline target description, but tests/bugs/issue-1668-targets/target-and-inline.test.cnx:5 declares target 'teensy41'
+       help: A program names its target or describes it inline, not both (ADR-049).

@@ -1,0 +1,27 @@
+// #1668 / ADR-049: a program may describe its target inline instead of
+// naming it. Every field is given, and ldrex_strex true lowers the atomic
+// to an LDREX/STREX loop. The old grammar had no such pragma: a token
+// recognition error.
+#pragma word_size 32
+#pragma ldrex_strex true
+#pragma basepri false
+#pragma char_bits 8
+#pragma char_signed false
+#pragma short_bits 16
+#pragma int_bits 32
+#pragma long_bits 32
+#pragma long_long_bits 64
+#pragma size_t_bits 32
+#pragma pointer_bits 32
+#pragma float_bits 32
+#pragma double_bits 64
+#pragma long_double_bits 64
+#pragma big_endian false
+#pragma external_identifier_chars 31
+#pragma internal_identifier_chars 63
+
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- 1;
+}

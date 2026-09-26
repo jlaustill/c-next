@@ -1,0 +1,4 @@
+5:0 error[E0513]: invalid value for 'word_size': word_size must be one of 8, 16, 32, 64
+       help: An integer field takes decimal digits, a Boolean field takes true or false, and each key takes exactly one value (ADR-049).
+6:0 error[E0513]: invalid value for 'ldrex_strex': ldrex_strex must be true or false, not 'yes'
+       help: An integer field takes decimal digits, a Boolean field takes true or false, and each key takes exactly one value (ADR-049).

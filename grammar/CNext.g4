@@ -35,7 +35,7 @@ includeDirective
 // - #define FLAG (no value) - allowed for conditional compilation
 // - #define FLAG value - ERROR, must use const
 // - #define NAME(args) - ERROR, function macros forbidden
-// - #pragma target NAME - set target platform (ADR-049)
+// - #pragma KEY VALUE... - the program's target (ADR-049)
 preprocessorDirective
     : defineDirective
     | conditionalDirective
@@ -55,9 +55,12 @@ conditionalDirective
     | ENDIF_DIRECTIVE
     ;
 
-// ADR-049: Target platform pragma for code generation
+// ADR-049: a pragma is a key and its values, all on one line. The keys are
+// `target` and the target description's fields; which keys exist is the
+// target schema's business, not the grammar's, so adding a field never
+// changes this rule.
 pragmaDirective
-    : PRAGMA_TARGET
+    : PRAGMA_DIRECTIVE
     ;
 
 // Top-level declarations
@@ -633,10 +636,21 @@ ENDIF_DIRECTIVE
     : '#' [ \t]* 'endif' [ \t]*
     ;
 
-// ADR-049: Target platform pragma
-// Matches: #pragma target teensy41, #pragma target cortex-m7, etc.
-PRAGMA_TARGET
-    : '#' [ \t]* 'pragma' [ \t]+ 'target' [ \t]+ [a-zA-Z_] [a-zA-Z0-9_\-]*
+// ADR-049: #pragma KEY VALUE...
+// Matches: #pragma target teensy41, #pragma target cortex-m0+,
+//          #pragma word_size 32, #pragma ldrex_strex true
+// One token, so a pragma cannot span lines, and a trailing // comment stays
+// a comment.
+PRAGMA_DIRECTIVE
+    : '#' [ \t]* 'pragma' [ \t]+ PRAGMA_KEY ([ \t]+ PRAGMA_VALUE)*
+    ;
+
+fragment PRAGMA_KEY
+    : [a-zA-Z_] [a-zA-Z0-9_]*
+    ;
+
+fragment PRAGMA_VALUE
+    : [a-zA-Z0-9_] [a-zA-Z0-9_.+\-]*
     ;
 
 // Keywords

@@ -682,11 +682,14 @@ The compiler tracks ISR vs main access per-member, not per-scope, so mixed atomi
 
 ## Diagnostics
 
-| Code  | Reported when                                                                      | Asserted by                                                  |
-| ----- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| E0889 | A declaration carries both `atomic` and `volatile`                                 | `tests/adr-049/atomic-volatile-error.test.cnx`               |
-| E0510 | A name given as a target, in source or as the target option, is not a known target | `tests/bugs/issue-1668-targets/unknown-pragma.test.cnx`      |
-| E0511 | Two target declarations in one program describe different platforms                | `tests/bugs/issue-1668-targets/conflicting-pragmas.test.cnx` |
+| Code  | Reported when                                                                                                               | Asserted by                                                                                |
+| ----- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| E0889 | A declaration carries both `atomic` and `volatile`                                                                          | `tests/adr-049/atomic-volatile-error.test.cnx`                                             |
+| E0510 | A name given as a target, in source or as the target option, is not a known target                                          | `tests/bugs/issue-1668-targets/unknown-pragma.test.cnx`                                    |
+| E0511 | Two target declarations in one program describe different platforms, or one names a target and another describes one inline | `tests/bugs/issue-1668-targets/conflicting-pragmas.test.cnx`, `target-and-inline.test.cnx` |
+| E0512 | A pragma's key is neither `target` nor a description field                                                                  | `tests/bugs/issue-1668-targets/pragma-unknown-key.test.cnx`                                |
+| E0513 | A pragma's value is wrong in count, kind or range                                                                           | `tests/bugs/issue-1668-targets/pragma-bad-value.test.cnx`, `inline-bad-values.test.cnx`    |
+| E0514 | An inline description leaves a field out                                                                                    | `tests/bugs/issue-1668-targets/inline-incomplete.test.cnx`                                 |
 
 `atomic` is `volatile` plus the guarantee that a read or write cannot be torn,
 so writing both says one of two different things and the author has to be asked
