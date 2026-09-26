@@ -70,11 +70,14 @@ class HeaderParser {
    * On 2026-09-05 that reported 1700 C headers, 1444 carrying the guard, and
    * 1524 (89.6%) producing at least one syntax error.
    *
-   * Surfacing them correctly requires preprocessing first. The production
-   * Transpiler already uses `logic/preprocessor` while loading header content,
-   * but this parser can also be called independently. Requiring preprocessing at
-   * this boundary would therefore make the parser itself depend on the system
-   * compiler toolchain rather than remaining a listener-only change.
+   * Surfacing them correctly requires preprocessing first. In production,
+   * `getHeaderContent` invokes `logic/preprocessor` only when
+   * `needsConditionalPreprocessing` finds an #if/#elif expression that needs
+   * evaluation; plain #ifdef/#ifndef guards still reach this parser raw. A second
+   * route, the #985 external-declaration recovery pass, feeds preprocessed slices
+   * back through `parseC` after standalone preprocessing has failed. Making
+   * preprocessing unconditional at this boundary would therefore add a system
+   * compiler dependency rather than remaining a listener-only change.
    *
    * A null tree, not a silent empty one, is what a caller sees when the parse
    * cannot proceed at all.
