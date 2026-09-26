@@ -225,11 +225,13 @@ uint32_t value = counter.load(std::memory_order_relaxed);
 
 ### Q4: ARM Cortex-M Hardware Capabilities
 
+_(Corrected 2026-09-26, #1668: Cortex-M0+ is ARMv6-M, which has no LDREX/STREX.)_
+
 | Feature               | M0    | M0+    | M3/M4/M7       | Description                                 |
 | --------------------- | ----- | ------ | -------------- | ------------------------------------------- |
 | **PRIMASK**           | ✅    | ✅     | ✅             | Disable ALL configurable interrupts         |
 | **BASEPRI**           | ❌    | ❌     | ✅             | Disable interrupts ≤ priority N (selective) |
-| **LDREX/STREX**       | ❌    | ✅     | ✅             | Lock-free atomic read-modify-write          |
+| **LDREX/STREX**       | ❌    | ❌     | ✅             | Lock-free atomic read-modify-write          |
 | **Natural atomicity** | 8-bit | 32-bit | 32-bit aligned | Single-instruction access guaranteed        |
 
 #### LDREX/STREX (Exclusive Access)
@@ -582,7 +584,7 @@ Things C-Next already does well for ISR safety:
 
 6. **Target configuration mechanism?**
 
-   **Resolution: Answered by ADR-049.** Capability-based targeting with named aliases. Transpiler needs three capabilities: `word_size`, `ldrex_strex`, and `basepri`. Named targets (e.g., `teensy41`, `cortex-m0`) are aliases for these capabilities. Specified via `#pragma target`, command-line flag, or build system detection. See [ADR-049: Atomic Types](adr-049-atomic-types.md) Q6 for full details.
+   **Resolution: Answered by ADR-049.** Every program names exactly one target, a complete description of the platform facts the language depends on, either by name from the published catalog or inline. It comes from `#pragma target` or an inline description, then the command-line option, then the build system; a program with no target is an error. See [ADR-049: Atomic Types](adr-049-atomic-types.md) Q6 for full details. _(Updated 2026-09-26, #1668; the earlier text described the three-capability model.)_
 
 ---
 

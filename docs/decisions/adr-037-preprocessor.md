@@ -11,7 +11,7 @@ C preprocessor directives are heavily used in embedded development:
 - `#include` - Already handled (pass-through)
 - `#define` - Constants, macros
 - `#ifdef` / `#ifndef` / `#else` / `#endif` - Conditional compilation
-- `#pragma` - Compiler hints (future)
+- `#pragma` - Names or describes the target (ADR-049); any other pragma is an error _(updated 2026-09-26, #1668; was "compiler hints (future)")_
 
 C-Next takes a **safety-first approach** based on MISRA C guidelines and common bug patterns.
 
