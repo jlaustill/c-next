@@ -22,7 +22,8 @@ type TTranspileInput =
        * Where the text lives, resolved like any path, against the process's
        * working directory. Its directory is where quoted includes resolve
        * (ADR-010) and where the project's include tiers are discovered from
-       * (#1435).
+       * (#1435). An empty string is no path: `workingDir` decides, as when it
+       * is omitted.
        */
       readonly sourcePath?: string;
     };
