@@ -1,5 +1,6 @@
 import { dirname, resolve, join, isAbsolute } from "node:path";
 
+import PlatformIOIni from "./PlatformIOIni";
 import IFileSystem from "../types/IFileSystem";
 import NodeFileSystem from "../NodeFileSystem";
 
@@ -186,64 +187,6 @@ class IncludeDiscovery {
   }
 
   /**
-   * Collect the raw value of every `lib_extra_dirs` key in a platformio.ini.
-   *
-   * Line-based rather than a single pattern. The previous
-   * /^\s*lib_extra_dirs\s*=\s*(.+?)(?=^\s*\[|\s*^\w+\s*=|$)/gms was
-   * super-linear (S8786) and, more importantly, wrong: under /m the `$`
-   * alternative matches at the end of every line, so the lazy capture stopped
-   * at the first one and the documented multi-line form kept only its first
-   * path (#1181). The section and next-key alternatives were unreachable.
-   *
-   * A continuation line is one that is indented and contains no `=` of its
-   * own; the value ends at the next section header, the next key, or the end
-   * of the file.
-   */
-  private static _collectLibExtraDirsValues(content: string): string[] {
-    const values: string[] = [];
-    const lines = content.split("\n");
-
-    let index = 0;
-    while (index < lines.length) {
-      const keyMatch = /^[ \t]*lib_extra_dirs[ \t]*=(.*)$/.exec(lines[index]);
-      index += 1;
-      if (!keyMatch) {
-        continue;
-      }
-
-      const collected = [keyMatch[1]];
-      while (
-        index < lines.length &&
-        IncludeDiscovery._isContinuationLine(lines[index])
-      ) {
-        collected.push(lines[index]);
-        index += 1;
-      }
-
-      values.push(collected.join("\n"));
-    }
-
-    return values;
-  }
-
-  /**
-   * A continuation of the value above it: indented, not starting a key of its
-   * own, and not opening a new section.
-   *
-   * The key test is anchored rather than a bare `includes("=")`: a directory
-   * name may contain `=` (`/opt/vendor/lib=v2`), and treating that as a new key
-   * would end the value early and silently drop it -- the same loss #1181 was
-   * about. Only `name =` at the start of the line begins a key.
-   */
-  private static _isContinuationLine(line: string): boolean {
-    return (
-      /^[ \t]+\S/.test(line) &&
-      !/^[ \t]*[\w.]+[ \t]*=/.test(line) &&
-      !line.trimStart().startsWith("[")
-    );
-  }
-
-  /**
    * Parse platformio.ini for lib_extra_dirs
    *
    * Issue #355: PlatformIO allows specifying additional library directories
@@ -271,9 +214,7 @@ class IncludeDiscovery {
       //   lib_extra_dirs =
       //     path1
       //     path2
-      for (const value of IncludeDiscovery._collectLibExtraDirsValues(
-        content,
-      )) {
+      for (const value of PlatformIOIni.valuesOf(content, "lib_extra_dirs")) {
         // Split by newlines or commas, handling both single-line and multi-line formats
         const dirs = value
           .split(/[\n,]/)

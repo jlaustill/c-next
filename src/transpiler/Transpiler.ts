@@ -9,6 +9,8 @@
  * ONE pipeline for all transpilation.
  */
 
+import PlatformIOIni from "./data/PlatformIOIni";
+import type IPlatformIOProject from "./types/IPlatformIOProject";
 import type TRunTarget from "./types/TRunTarget";
 import { join, basename, dirname, resolve, relative } from "node:path";
 import type IConflict from "./types/IConflict";
@@ -309,6 +311,7 @@ class Transpiler {
       parseOnly: config.parseOnly ?? false,
       debugMode: config.debugMode ?? false,
       target: config.target ?? "",
+      pioEnv: config.pioEnv ?? "",
       collectGrammarCoverage: config.collectGrammarCoverage ?? false,
       noCache: config.noCache ?? false,
     };
@@ -807,6 +810,8 @@ class Transpiler {
           registry: this.symbolRegistry,
           target: {
             option: this.config.target,
+            platformio: this._platformIOProject(declared.at(-1)?.file.path),
+            pioEnv: this.config.pioEnv || undefined,
             catalog: TargetCatalogFile.targets(),
             files: declared.map((entry) => ({
               sourcePath: entry.file.path,
@@ -1904,6 +1909,23 @@ class Transpiler {
     }
     result.success = false;
     return false;
+  }
+
+  /**
+   * ADR-049's build-system rung: the platformio.ini of the project the entry
+   * file is in, found by the one project-root finder.
+   */
+  private _platformIOProject(
+    entryPath: string | undefined,
+  ): IPlatformIOProject | null {
+    if (entryPath === undefined) {
+      return null;
+    }
+    const root = IncludeDiscovery.findProjectRoot(
+      dirname(resolve(entryPath)),
+      this.fs,
+    );
+    return root ? PlatformIOIni.read(root, this.fs) : null;
   }
 
   /** The run's target; valid once Stage 3b has passed */

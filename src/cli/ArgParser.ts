@@ -20,6 +20,7 @@ interface IYargsResult {
   cpp: boolean;
   include: string[];
   target?: string;
+  "pio-env"?: string;
   D: string[];
   parse: boolean;
   clean: boolean;
@@ -77,6 +78,12 @@ A safer C for embedded systems development.`,
       .option("target", {
         type: "string",
         describe: "Target platform for atomic code gen (ADR-049)",
+        requiresArg: true,
+      })
+      .option("pio-env", {
+        type: "string",
+        describe:
+          "PlatformIO environment being built; its board names the target (ADR-049)",
         requiresArg: true,
       })
       .option("D", {
@@ -243,6 +250,7 @@ class ArgParser {
       defines,
       cppRequired: parsed.cpp,
       target: parsed.target,
+      pioEnv: parsed["pio-env"],
       preprocess: parsed.preprocess,
       verbose: parsed.verbose,
       noCache: !parsed.cache,

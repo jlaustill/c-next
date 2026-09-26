@@ -10,7 +10,8 @@
  *      an equal description; a file that declares none takes the program's.
  *      A program names its target or describes it, not both.
  *   2. The target option.
- *   3. The fallback, `host`, until the missing-target error lands.
+ *   3. The build system: PlatformIO's board for the environment being built.
+ *   4. The fallback, `host`, until the missing-target error lands.
  *
  * Every name given -- in source or as the option -- must be a catalog name,
  * even when a higher rung decides: a misspelled `--target` is an error, not a
@@ -26,6 +27,8 @@ import type ITargetDescription from "../../transpiler/types/ITargetDescription";
 import type ITargetDirective from "../../transpiler/types/ITargetDirective";
 import type TRunTarget from "../../transpiler/types/TRunTarget";
 import type TTargetFieldValue from "../../transpiler/types/TTargetFieldValue";
+import type IPlatformIOEnv from "../../transpiler/types/IPlatformIOEnv";
+import type IPlatformIOProject from "../../transpiler/types/IPlatformIOProject";
 
 const FALLBACK_TARGET = "host";
 
@@ -43,6 +46,12 @@ const DESCRIPTION_KEYS: readonly string[] = Object.entries(
   .map(([field]) => field);
 
 const PRAGMA_KEYS: readonly string[] = ["target", ...DESCRIPTION_KEYS];
+
+/** PlatformIO platforms whose boards are all one target */
+const PLATFORM_TARGETS: ReadonlyMap<string, string> = new Map([
+  ["atmelavr", "avr"],
+  ["native", "host"],
+]);
 
 /** A position in a file */
 interface ISite {
@@ -103,6 +112,16 @@ class RunTarget {
         description: fromOption,
       };
     }
+    const fromBuild = inputs.platformio
+      ? RunTarget.fromPlatformIO(
+          inputs.platformio,
+          inputs.pioEnv,
+          inputs.catalog,
+        )
+      : null;
+    if (fromBuild) {
+      return fromBuild;
+    }
     const fallback = inputs.catalog.get(FALLBACK_TARGET);
     invariant(fallback, `the target catalog defines '${FALLBACK_TARGET}'`);
     return {
@@ -110,6 +129,100 @@ class RunTarget {
       name: FALLBACK_TARGET,
       source: "fallback",
       description: fallback,
+    };
+  }
+
+  /**
+   * The build-system rung: the board of the environment being built, else of
+   * `default_envs`, else of every environment. A board that is a catalog name
+   * names that target; otherwise `atmelavr` is avr and `native` is host. Null
+   * when the file has no environments, so the rung says nothing.
+   */
+  private static fromPlatformIO(
+    project: IPlatformIOProject,
+    pioEnv: string | undefined,
+    catalog: ReadonlyMap<string, ITargetDescription>,
+  ): TRunTarget | null {
+    let names = project.envs.map((env) => env.name);
+    if (pioEnv) {
+      names = [pioEnv];
+    } else if (project.defaultEnvs.length > 0) {
+      names = [...project.defaultEnvs];
+    }
+    if (names.length === 0) {
+      return null;
+    }
+
+    const errors: ITranspileError[] = [];
+    const mapped: {
+      env: string;
+      name: string;
+      description: ITargetDescription;
+    }[] = [];
+    for (const envName of names) {
+      const env = project.envs.find((candidate) => candidate.name === envName);
+      const name = env ? RunTarget.boardTarget(env, catalog) : undefined;
+      const description = name ? catalog.get(name) : undefined;
+      if (name && description) {
+        mapped.push({ env: envName, name, description });
+      } else {
+        errors.push(
+          RunTarget.unplaced(
+            "E0510",
+            env
+              ? `platformio.ini environment '${envName}' builds board '${env.board ?? "(none)"}', which is not a known target`
+              : `platformio.ini has no environment '${envName}'`,
+            `Name the target with '#pragma target <name>' or --target <name>. A board maps to a target when the catalog names it, or when its platform is atmelavr (avr) or native (host). Known targets: ${[...catalog.keys()].join(", ")}.`,
+          ),
+        );
+      }
+    }
+    const first = mapped[0];
+    for (const other of mapped.slice(1)) {
+      if (!TargetDescriptions.equal(first.description, other.description)) {
+        errors.push(
+          RunTarget.unplaced(
+            "E0511",
+            `platformio.ini environments build different targets: '${first.name}' (env:${first.env}) and '${other.name}' (env:${other.env})`,
+            "A program has exactly one target (ADR-049). Build one environment (--pio-env), set default_envs, or name the target with '#pragma target <name>'.",
+          ),
+        );
+      }
+    }
+    if (errors.length > 0) {
+      return { kind: "rejected", errors };
+    }
+    return {
+      kind: "resolved",
+      name: first.name,
+      source: "platformio",
+      description: first.description,
+    };
+  }
+
+  /** The catalog name an environment's board or platform denotes */
+  private static boardTarget(
+    env: IPlatformIOEnv,
+    catalog: ReadonlyMap<string, ITargetDescription>,
+  ): string | undefined {
+    if (env.board && catalog.has(env.board)) {
+      return env.board;
+    }
+    return env.platform ? PLATFORM_TARGETS.get(env.platform) : undefined;
+  }
+
+  /** A diagnostic about the run rather than a line: placed on the entry file */
+  private static unplaced(
+    code: string,
+    message: string,
+    helpText: string,
+  ): ITranspileError {
+    return {
+      line: 1,
+      column: 0,
+      message: `error[${code}]: ${message}`,
+      helpText,
+      severity: "error",
     };
   }
 
@@ -264,14 +377,18 @@ class RunTarget {
     catalog: ReadonlyMap<string, ITargetDescription>,
     site: ISite | null,
   ): ITranspileError {
+    const helpText = `Known targets: ${[...catalog.keys()].join(", ")}. Names match exactly (ADR-049).`;
+    if (!site) {
+      return RunTarget.unplaced(
+        "E0510",
+        `the target option names '${name}', which is not a known target`,
+        helpText,
+      );
+    }
     return {
-      line: site?.line ?? 1,
-      column: site?.column ?? 0,
-      ...(site ? { sourcePath: site.sourcePath } : {}),
-      message: site
-        ? `error[E0510]: '${name}' is not a known target`
-        : `error[E0510]: the target option names '${name}', which is not a known target`,
-      helpText: `Known targets: ${[...catalog.keys()].join(", ")}. Names match exactly (ADR-049).`,
+      ...RunTarget.at(site),
+      message: `error[E0510]: '${name}' is not a known target`,
+      helpText,
       severity: "error",
     };
   }

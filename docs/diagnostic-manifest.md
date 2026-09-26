@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-394 fixture(s) assert a diagnostic; 379 carry a code.
+396 fixture(s) assert a diagnostic; 381 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -329,6 +329,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1668-targets/conflicting-pragmas.test.cnx                                       | E0511               |
 | tests/bugs/issue-1668-targets/inline-bad-values.test.cnx                                         | E0513               |
 | tests/bugs/issue-1668-targets/inline-incomplete.test.cnx                                         | E0514               |
+| tests/bugs/issue-1668-targets/pio-ambiguous/pio-ambiguous.test.cnx                               | E0511               |
+| tests/bugs/issue-1668-targets/pio-unknown-board/pio-unknown-board.test.cnx                       | E0510               |
 | tests/bugs/issue-1668-targets/pragma-bad-value.test.cnx                                          | E0513               |
 | tests/bugs/issue-1668-targets/pragma-unknown-key.test.cnx                                        | E0512               |
 | tests/bugs/issue-1668-targets/target-and-inline.test.cnx                                         | E0511               |

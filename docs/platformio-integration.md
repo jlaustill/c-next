@@ -47,6 +47,24 @@ Example (Teensy + a C++ library such as FlexCAN_T4):
 }
 ```
 
+## The Target
+
+Every program has exactly one target (ADR-049). In a PlatformIO project you
+usually need not name it: when no `#pragma target` and no `--target` (or config
+`target`) says otherwise, the board of the environment being built names it.
+
+- `cnext_build.py` passes the environment PlatformIO is building
+  (`--pio-env $PIOENV`), so `pio run -e uno` builds for `uno`'s board.
+- Run by hand, `cnext` uses `default_envs`, else every environment, and those
+  must agree (E0511 if they do not).
+- A board names a target when the catalog has that name (`teensy41`), or when its
+  platform is `atmelavr` (target `avr`) or `native` (target `host`). Any other
+  board is E0510 — name the target with `#pragma target <name>` or `target` in
+  `cnext.config.json`. `cnext --help` lists the known targets.
+
+The run prints the target it used and where it came from, e.g.
+`Target: teensy41 (platformio)`.
+
 ## C vs C++ Output
 
 C-Next emits **C** (`.c` + `.h`) unless you tell it otherwise. To emit **C++**

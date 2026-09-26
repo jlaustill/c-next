@@ -27,6 +27,8 @@ interface ICliConfig {
   headerOutDir?: string;
   /** Target platform for atomic code generation */
   target?: string;
+  /** The PlatformIO environment being built (ADR-049) */
+  pioEnv?: string;
   /** Generate panic-on-overflow helpers */
   debugMode?: boolean;
 }

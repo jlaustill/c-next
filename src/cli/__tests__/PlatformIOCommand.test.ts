@@ -84,7 +84,10 @@ describe("PlatformIOCommand", () => {
 
       // Should use entry point approach
       expect(scriptContent).toContain('Path("src/main.cnx")');
-      expect(scriptContent).toContain('["cnext", str(entry)]');
+      // ADR-049: the environment being built names the target (#1668)
+      expect(scriptContent).toContain(
+        '["cnext", str(entry), "--pio-env", env["PIOENV"]]',
+      );
 
       // Should NOT loop over individual .cnx files
       expect(scriptContent).not.toContain("for cnx_file");

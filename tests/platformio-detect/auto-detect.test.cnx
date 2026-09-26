@@ -1,6 +1,6 @@
-// Note: platformio.ini is present for CLI auto-detection testing
-// Test script uses pragma since it calls transpile() directly
-#pragma target teensy41
+// ADR-049's build-system rung: no pragma and no --target, so the
+// platformio.ini beside this file names the target -- board teensy41, whose
+// atomic read-modify-write lowers to LDREX/STREX.
 
 atomic u32 counter <- 0;
 

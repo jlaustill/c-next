@@ -284,4 +284,110 @@ describe("RunTarget.resolve", () => {
       ]);
     });
   });
+
+  describe("the PlatformIO rung", () => {
+    function project(
+      envs: { name: string; board?: string; platform?: string }[],
+      defaultEnvs: string[] = [],
+    ) {
+      return { path: "platformio.ini", envs, defaultEnvs };
+    }
+    const teensy = { name: "teensy41", board: "teensy41", platform: "teensy" };
+    const uno = { name: "uno", board: "uno", platform: "atmelavr" };
+    const native = { name: "native", platform: "native" };
+    const nucleo = {
+      name: "nucleo",
+      board: "nucleo_f446re",
+      platform: "ststm32",
+    };
+
+    function build(
+      platformio: ReturnType<typeof project>,
+      extra: { option?: string; pioEnv?: string; pragma?: string } = {},
+    ) {
+      return RunTarget.resolve({
+        catalog,
+        platformio,
+        option: extra.option,
+        pioEnv: extra.pioEnv,
+        files: [file("main.cnx", extra.pragma)],
+      });
+    }
+
+    it.each([
+      ["a board the catalog names", teensy, "teensy41"],
+      ["an atmelavr board", uno, "avr"],
+      ["a native environment", native, "host"],
+    ])("maps %s", (_why, env, name) => {
+      expect(build(project([env]))).toMatchObject({
+        kind: "resolved",
+        name,
+        source: "platformio",
+      });
+    });
+
+    it("rejects an unmapped board when it decides (E0510)", () => {
+      const target = build(project([nucleo]));
+      expect(target).toEqual({
+        kind: "rejected",
+        errors: [
+          expect.objectContaining({
+            message:
+              "error[E0510]: platformio.ini environment 'nucleo' builds board 'nucleo_f446re', which is not a known target",
+          }),
+        ],
+      });
+    });
+
+    it.each([
+      ["a pragma", { pragma: "cortex-m0" }, "cortex-m0"],
+      ["the option", { option: "cortex-m0" }, "cortex-m0"],
+    ])("yields to %s, even over an unmapped board", (_why, extra, name) => {
+      expect(build(project([nucleo]), extra)).toMatchObject({
+        kind: "resolved",
+        name,
+      });
+    });
+
+    it("rejects environments that build different targets (E0511)", () => {
+      const target = build(project([teensy, uno]));
+      expect(target).toEqual({
+        kind: "rejected",
+        errors: [
+          expect.objectContaining({
+            message:
+              "error[E0511]: platformio.ini environments build different targets: 'teensy41' (env:teensy41) and 'avr' (env:uno)",
+          }),
+        ],
+      });
+    });
+
+    it("builds only default_envs when it is set", () => {
+      expect(build(project([teensy, uno], ["uno"]))).toMatchObject({
+        name: "avr",
+      });
+    });
+
+    it("builds only the environment named by --pio-env", () => {
+      expect(
+        build(project([teensy, uno], ["uno"]), { pioEnv: "teensy41" }),
+      ).toMatchObject({ name: "teensy41" });
+    });
+
+    it("rejects a --pio-env the file does not define (E0510)", () => {
+      expect(build(project([teensy]), { pioEnv: "missing" })).toEqual({
+        kind: "rejected",
+        errors: [
+          expect.objectContaining({
+            message:
+              "error[E0510]: platformio.ini has no environment 'missing'",
+          }),
+        ],
+      });
+    });
+
+    it("says nothing when the file has no environments", () => {
+      expect(build(project([]))).toMatchObject({ source: "fallback" });
+    });
+  });
 });

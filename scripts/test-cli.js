@@ -407,6 +407,12 @@ test("--pio-install creates cnext_build.py and modifies platformio.ini", () => {
       "def transpile_cnext",
       "cnext_build.py should contain transpile function",
     );
+    // ADR-049: the environment being built names the target (#1668)
+    assertFileContains(
+      join(tempDir, "cnext_build.py"),
+      '"--pio-env", env["PIOENV"]',
+      "cnext_build.py should pass the environment being built",
+    );
 
     // Verify platformio.ini was modified
     assertFileContains(
@@ -650,6 +656,48 @@ test("an unknown --target is E0510 even when a pragma decides", () => {
       `Should report E0510: ${result.stderr}`,
     );
   });
+});
+
+// ADR-049's build-system rung: the board of the environment being built.
+test("platformio.ini's board names the target", () => {
+  const tempDir = createTempPioProject(minimalPioIni);
+  try {
+    const cnxFile = join(tempDir, "main.cnx");
+    writeFileSync(cnxFile, atomicCnx, "utf-8");
+    const result = runCliInDir(tempDir, [cnxFile]);
+    assert(result.success, `Compile should succeed: ${result.output}`);
+    assert(
+      result.output.includes("Target: teensy41 (platformio)"),
+      `Should report the PlatformIO target: ${result.output}`,
+    );
+    assertFileContains(
+      join(tempDir, "main.c"),
+      "__LDREXW",
+      "teensy41 from platformio.ini should use LDREX",
+    );
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+test("--pio-env picks the environment whose board names the target", () => {
+  const tempDir = createTempPioProject(multiEnvPioIni);
+  try {
+    const cnxFile = join(tempDir, "main.cnx");
+    writeFileSync(cnxFile, atomicCnx, "utf-8");
+    const both = runCliInDir(tempDir, [cnxFile], true);
+    assert(
+      !both.success && both.stderr.includes("error[E0511]"),
+      `Two environments with different targets are E0511: ${both.stderr}`,
+    );
+    const uno = runCliInDir(tempDir, ["--pio-env", "uno", cnxFile]);
+    assert(
+      uno.output.includes("Target: avr (platformio)"),
+      `--pio-env uno should build avr: ${uno.output}`,
+    );
+  } finally {
+    cleanupTempDir(tempDir);
+  }
 });
 
 // ----------------------------------------------------------------------------

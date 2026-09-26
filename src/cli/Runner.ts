@@ -43,6 +43,7 @@ class Runner {
       noCache: config.noCache,
       parseOnly: config.parseOnly,
       target: config.target,
+      pioEnv: config.pioEnv,
       debugMode: config.debugMode,
     });
 

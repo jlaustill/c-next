@@ -14,6 +14,8 @@ interface IParsedArgs {
   cppRequired?: boolean;
   /** --target flag */
   target?: string;
+  /** --pio-env flag */
+  pioEnv?: string;
   /** --no-preprocess flag (inverted: preprocess = true by default) */
   preprocess: boolean;
   /** --verbose flag */

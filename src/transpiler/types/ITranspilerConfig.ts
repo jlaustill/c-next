@@ -39,6 +39,12 @@ interface ITranspilerConfig {
   /** ADR-049: Target platform for atomic code generation */
   target?: string;
 
+  /**
+   * ADR-049: the PlatformIO environment being built. Its board names the
+   * target when no pragma or option does; absent, default_envs does.
+   */
+  pioEnv?: string;
+
   /** Issue #35: Collect grammar rule coverage during parsing */
   collectGrammarCoverage?: boolean;
 

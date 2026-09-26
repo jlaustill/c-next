@@ -99,8 +99,10 @@ def transpile_cnext():
     print("Transpiling from main.cnx...")
 
     try:
+        # ADR-049: the environment being built names the target. Without it,
+        # "pio run -e X" in a project whose default_envs names Y would get Y's.
         result = subprocess.run(
-            ["cnext", str(entry)],
+            ["cnext", str(entry), "--pio-env", env["PIOENV"]],
             check=True,
             capture_output=True,
             text=True
