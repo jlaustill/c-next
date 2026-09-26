@@ -14,6 +14,17 @@
 >    - CI installs them;
 >    - a missing library fails the run loudly.
 > 5. **The target table gains rows** for atmega328p, arduino-uno, esp32 (xtensa, ILP32) and native/host.
+> 6. **Targets are data (the long-term lens).** A target is a complete description of every fact the language depends on:
+>    - word size, LDREX/STREX, BASEPRI;
+>    - integer and pointer widths, and plain-`char` signedness;
+>    - float and `double` widths, and endianness;
+>    - the MISRA 5.1 identifier limits.
+>
+>    ADR-049 owns it, data model included, and ADR-024 only references it (superseding "amend ADR-024"). Other details:
+>    - Named targets are `const TargetDescription` initializers in one versioned **C-Next source** file. The compiler and the harness both read it, and a future C-Next compiler reads it natively. The file allows literal values only, and a validator enforces that.
+>    - ADR-049's capability pragmas are inline descriptions under the same completeness rule.
+>    - Cortex-M0+ has no LDREX/STREX.
+>    - The target errors get new codes, and ADR-049's E0802 example is corrected.
 
 # Addendum: rulings R2-R6 (2026-09-26)
 
