@@ -571,22 +571,28 @@ test("--target teensy41 generates LDREX/STREX code", () => {
   });
 });
 
-test("--target cortex-m0 generates PRIMASK fallback code", () => {
-  withTempTest("cnext-target-test-", ({ tempDir, cnxFile, cFile }) => {
-    writeFileSync(cnxFile, atomicCnx, "utf-8");
-    const result = runCliInDir(tempDir, ["--target", "cortex-m0", cnxFile]);
-    assert(result.success, `Compile should succeed: ${result.output}`);
+// ARMv6-M (Cortex-M0 and M0+) has no LDREX/STREX: the exclusive monitor is
+// an ARMv7-M addition. #1668: cortex-m0+ used to claim it.
+for (const target of ["cortex-m0", "cortex-m0+"]) {
+  test(`--target ${target} generates PRIMASK fallback code`, () => {
+    withTempTest("cnext-target-test-", ({ tempDir, cnxFile, cFile }) => {
+      writeFileSync(cnxFile, atomicCnx, "utf-8");
+      const result = runCliInDir(tempDir, ["--target", target, cnxFile]);
+      assert(result.success, `Compile should succeed: ${result.output}`);
 
-    assertFileContains(
-      cFile,
-      "__get_PRIMASK",
-      "Should use PRIMASK for cortex-m0",
-    );
-    // Should NOT contain LDREX
-    const content = readFileSync(cFile, "utf-8");
-    assert(!content.includes("__LDREX"), "Should NOT use LDREX for cortex-m0");
+      assertFileContains(
+        cFile,
+        "__get_PRIMASK",
+        `Should use PRIMASK for ${target}`,
+      );
+      const content = readFileSync(cFile, "utf-8");
+      assert(
+        !content.includes("__LDREX"),
+        `Should NOT use LDREX for ${target}`,
+      );
+    });
   });
-});
+}
 
 test("--target avr generates PRIMASK fallback code", () => {
   withTempTest("cnext-target-test-", ({ tempDir, cnxFile, cFile }) => {

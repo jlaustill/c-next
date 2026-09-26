@@ -24,7 +24,7 @@ const TARGET_CAPABILITIES: Record<string, ITargetCapabilities> = {
   "cortex-m7": { ...DEFAULT_TARGET, hasLdrexStrex: true, hasBasepri: true },
   "cortex-m4": { ...DEFAULT_TARGET, hasLdrexStrex: true, hasBasepri: true },
   "cortex-m3": { ...DEFAULT_TARGET, hasLdrexStrex: true, hasBasepri: true },
-  "cortex-m0+": { ...DEFAULT_TARGET, hasLdrexStrex: true },
+  "cortex-m0+": { ...DEFAULT_TARGET },
   "cortex-m0": { ...DEFAULT_TARGET },
   avr: { ...DEFAULT_TARGET, wordSize: 8 },
 };
