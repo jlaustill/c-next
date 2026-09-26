@@ -626,6 +626,71 @@ void main() {
     });
   });
 
+  describe("Cyclic includes (Issue #1435)", () => {
+    // Each file of the pair uses an enum only the other declares, so both
+    // directions of the include graph must be visible. A mode that walks the
+    // cycle back into the root either declares the root twice (E0203) or hands
+    // it its own symbols as an "external" source.
+    const aSource = `#include "b.cnx"
+
+enum EMode { IDLE, BUSY }
+
+u8 fromA() {
+    EColor c <- EColor.GREEN;
+    return c;
+}
+`;
+
+    async function transpileBothModes(bSource: string) {
+      const aPath = join(tempDir, "a.cnx");
+      writeFileSync(aPath, aSource);
+      writeFileSync(join(tempDir, "b.cnx"), bSource);
+
+      const files = await createTranspiler(aPath).transpile({ kind: "files" });
+      const source = await createTranspiler("").transpile({
+        kind: "source",
+        source: aSource,
+        workingDir: tempDir,
+        sourcePath: aPath,
+      });
+      return {
+        files,
+        source,
+        filesA: files.files.find((f) => f.sourcePath === aPath),
+        sourceA: source.files.find((f) => f.sourcePath === aPath),
+      };
+    }
+
+    it("a cyclic include pair transpiles identically in both modes", async () => {
+      const r = await transpileBothModes(`#include "a.cnx"
+
+enum EColor { RED, GREEN }
+
+u8 fromB() {
+    EMode m <- EMode.BUSY;
+    return m;
+}
+`);
+
+      expect(r.files.errors).toEqual([]);
+      expect(r.source.errors).toEqual([]);
+      expect(r.filesA?.code).toContain("EColor c = EColor__GREEN;");
+      expect(r.sourceA?.code).toBe(r.filesA?.code);
+      expect(r.sourceA?.headerCode).toBe(r.filesA?.headerCode);
+    });
+
+    it("control: the same pair without the back edge agrees in both modes", async () => {
+      const r = await transpileBothModes(`enum EColor { RED, GREEN }
+`);
+
+      expect(r.files.errors).toEqual([]);
+      expect(r.source.errors).toEqual([]);
+      expect(r.filesA?.code).toContain("EColor c = EColor__GREEN;");
+      expect(r.sourceA?.code).toBe(r.filesA?.code);
+      expect(r.sourceA?.headerCode).toBe(r.filesA?.headerCode);
+    });
+  });
+
   describe("Error handling parity", () => {
     it("both paths report parse errors identically", async () => {
       const invalidSource = `

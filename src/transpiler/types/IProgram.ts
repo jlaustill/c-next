@@ -194,6 +194,15 @@ interface IProgram {
   includeSearchPaths(sourceFile: string): readonly string[];
 
   /**
+   * #1435: the directory a quoted include from `sourceFile` resolves from, as
+   * discovery resolved it. Unlike the search path it has no empty answer:
+   * every file the run analyzes was discovered, so a missing entry is a
+   * defect, and guessing `dirname(sourceFile)` is the re-derivation that let
+   * discovery and E0506 disagree for an in-memory root.
+   */
+  quotedIncludeDirectory(sourceFile: string): string;
+
+  /**
    * The run's scope graph, for the passes after 1.4 (#1452 box 3).
    *
    * 2.2 Plan does NOT read it here: `ModificationFacts.derive` runs before

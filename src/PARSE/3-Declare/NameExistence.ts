@@ -18,8 +18,9 @@
  * | `ICodeGenSymbols` `known*` sets    | per FILE  | `Mode` unknown    |
  * | `SymbolTable.getOverloadsByCName`  | whole RUN | `Mode` known      |
  *
- * `ICodeGenSymbols` is built by `_declareFile(tree, path, file.cnextIncludes)`
- * (`Transpiler.ts:485`), so it holds exactly what this file can see. The
+ * `ICodeGenSymbols` is built by 1.4's `Program.deriveVisibleSymbols`, over the
+ * include graph discovery resolved, so it holds exactly what this file can see
+ * (#1435; it cited a `_declareFile` signature #1472 removed). The
  * `SymbolTable` accumulates every file in the run and is cleared once, so a
  * sibling that was never included is still in it. Asking the run-wide table
  * whether a C-Next type exists would answer "yes" in the file that cannot see

@@ -7,8 +7,9 @@
  *
  * ## What this pass may know, and what it is handed
  *
- * The two facts these rules need beyond the parse tree are the file being
- * analyzed and where its angle includes are searched, and NEITHER may be read
+ * The two facts these rules need beyond the parse tree are the directory this
+ * file's quoted includes resolve from and where its angle includes are
+ * searched, and NEITHER may be re-derived from the file's path (#1435) or read
  * off shared state here. `CodeGenState.sourcePath` is written inside
  * `CodeGenerator.generate()`, which runs after the analyzers: measured, it is
  * `null` for the first file of a run and holds the PREVIOUS file's path for
@@ -38,7 +39,7 @@
  */
 
 import { ParseTreeWalker } from "antlr4ng";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
@@ -117,7 +118,7 @@ class IncludeDirectiveListener extends CNextListener {
     if (!spec.isQuoted) return false;
     if (!CNEXT_EXTENSIONS.has(extensionOf(spec.path))) return false;
 
-    const target = resolve(dirname(this.context.sourcePath), spec.path);
+    const target = resolve(this.context.quotedIncludeDirectory, spec.path);
     if (this.context.fileExists(target)) return false;
     // The help names no absolute path on purpose. The throw this replaces put
     // the resolved path in its message; it had no fixture, and the first one
@@ -164,7 +165,7 @@ class IncludeDirectiveListener extends CNextListener {
 
   /** A quoted include resolves beside the including file, and only there. */
   private quotedAlternative(cnxPath: string): string | null {
-    const candidate = resolve(dirname(this.context.sourcePath), cnxPath);
+    const candidate = resolve(this.context.quotedIncludeDirectory, cnxPath);
     return this.context.fileExists(candidate) ? candidate : null;
   }
 

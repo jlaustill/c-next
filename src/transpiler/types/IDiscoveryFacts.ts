@@ -14,7 +14,7 @@
  *
  * | when                  | where                                    |
  * | --------------------- | ---------------------------------------- |
- * | written, Stage 1      | `_discoverFromSource`, `_processFileIncludes` |
+ * | written, Stage 1      | `_resolveCnxIncludes`                    |
  * | **frozen, Stage 3**   | **`Program.build`**                      |
  * | read, Stage 4d        | `_analyzeFile`                           |
  * | read, Stage 5         | `_transpileFile`                         |
@@ -57,6 +57,19 @@ interface IDiscoveryFacts {
    * reported E0504.
    */
   readonly includeSearchPaths: ReadonlyMap<string, readonly string[]>;
+
+  /**
+   * Per source file, the directory its quoted includes resolve from (#1435).
+   *
+   * The file's own directory. For a source run's in-memory root that is the
+   * directory of its `sourcePath`, or the caller's `workingDir` when the text
+   * has no path. Recorded for the
+   * same reason as the search path: 2.1 re-derived it as `dirname(sourcePath)`
+   * while discovery resolved from `workingDir`, so the two disagreed about
+   * which quoted includes exist -- and a missing one read as a foreign header,
+   * E0426 declined, and C-Next member syntax reached the C output at exit 0.
+   */
+  readonly quotedIncludeDirectories: ReadonlyMap<string, string>;
 }
 
 export default IDiscoveryFacts;

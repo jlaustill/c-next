@@ -8,7 +8,6 @@
  */
 
 import { createInterface, Interface } from "node:readline";
-import { dirname } from "node:path";
 import JsonRpcHandler from "./JsonRpcHandler";
 import IJsonRpcRequest from "./types/IJsonRpcRequest";
 import IJsonRpcResponse from "./types/IJsonRpcResponse";
@@ -282,9 +281,7 @@ class ServeCommand {
 
     const { source, filePath } = params;
 
-    const options = filePath
-      ? { workingDir: dirname(filePath), sourcePath: filePath }
-      : undefined;
+    const options = filePath ? { sourcePath: filePath } : undefined;
 
     const transpileResult = await ServeCommand.transpiler.transpile({
       kind: "source",
@@ -343,7 +340,6 @@ class ServeCommand {
         await ServeCommand.transpiler.transpile({
           kind: "source",
           source,
-          workingDir: dirname(filePath),
           sourcePath: filePath,
         });
       } catch {

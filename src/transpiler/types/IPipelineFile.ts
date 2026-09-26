@@ -20,8 +20,14 @@ interface IPipelineFile {
   /** When true, collect symbols only — skip code generation */
   readonly symbolOnly?: boolean;
 
-  /** C-Next includes for transitive enum resolution */
-  readonly cnextIncludes?: ReadonlyArray<{ path: string }>;
+  /**
+   * This file's direct `.cnx` includes, as discovery resolved them.
+   *
+   * #1435: required, because 1.4 Resolve takes each file's visibility closure
+   * over exactly this graph. It was set in source mode only, so every file on
+   * the CLI path had 1.4 re-read it from disk under a weaker search path.
+   */
+  readonly cnextIncludes: ReadonlyArray<{ path: string }>;
 
   /**
    * Whether this file can see a C/C++ header, directly or through any `.cnx`

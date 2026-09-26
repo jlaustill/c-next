@@ -423,6 +423,7 @@ describe("Program", () => {
         "modifiedParameters",
         "opaqueTypes",
         "passByValueParams",
+        "quotedIncludeDirectory",
         "resolveFunction",
         "scope",
         "scopePathOf",

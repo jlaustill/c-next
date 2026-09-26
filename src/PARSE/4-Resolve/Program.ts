@@ -50,6 +50,7 @@ import type IVisibilityInput from "../../transpiler/types/IVisibilityInput";
 import TSymbolInfoAdapter from "../3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import TransitiveEnumCollector from "./TransitiveEnumCollector";
 import VisibleSymbols from "./VisibleSymbols";
+import invariant from "../../utils/invariant";
 
 /** Shared empty result, so a miss does not allocate. */
 const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
@@ -87,10 +88,11 @@ const NO_MODIFICATIONS: IModificationFacts = {
 const NO_DISCOVERY: IDiscoveryFacts = {
   cnxIncludeRewrites: new Map(),
   includeSearchPaths: new Map(),
+  quotedIncludeDirectories: new Map(),
 };
 
+/** A program built without include information: each file sees only itself. */
 const NO_VISIBILITY: IVisibilityInput = {
-  includeDirs: [],
   cnextIncludesByFile: new Map(),
 };
 
@@ -194,6 +196,14 @@ class Program {
         discovery.cnxIncludeRewrites.get(sourceFile) ?? EMPTY_REWRITES,
       includeSearchPaths: (sourceFile: string): readonly string[] =>
         discovery.includeSearchPaths.get(sourceFile) ?? EMPTY_PATHS,
+      quotedIncludeDirectory: (sourceFile: string): string => {
+        const directory = discovery.quotedIncludeDirectories.get(sourceFile);
+        invariant(
+          directory !== undefined,
+          `discovery recorded no directory for ${sourceFile}, which it resolved`,
+        );
+        return directory;
+      },
       scope: (path: string): IScopeSymbol | null =>
         registry?.getScope(path) ?? null,
       // Delegated like every sibling in this literal, rather than re-spelling
@@ -313,21 +323,15 @@ class Program {
 
     const visible = new Map<string, ICodeGenSymbols>();
     for (const [sourceFile, own] of ownView) {
-      const declaredIncludes = visibility.cnextIncludesByFile.get(sourceFile);
-      // Two entry points, and which one applies is a property of how the file
-      // arrived: a standalone run states its includes, a discovered file has
-      // them on disk to walk from.
-      const sources = declaredIncludes
-        ? TransitiveEnumCollector.collectForStandalone(
-            declaredIncludes,
-            ownView,
-            visibility.includeDirs,
-          ).sources
-        : TransitiveEnumCollector.collect(
-            sourceFile,
-            ownView,
-            visibility.includeDirs,
-          ).sources;
+      // #1435: one closure, over the graph discovery resolved. How the file
+      // arrived -- from disk or as a standalone run's text -- used to pick
+      // between two walks that each re-derived that graph, and disagreed with
+      // discovery and with each other.
+      const sources = TransitiveEnumCollector.collect(
+        sourceFile,
+        visibility.cnextIncludesByFile,
+        ownView,
+      ).sources;
       visible.set(
         sourceFile,
         sources.length > 0
