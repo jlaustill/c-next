@@ -246,6 +246,10 @@ from another cannot both be right under one regex.
 move is reviewable in the diff rather than a tool call nobody can inspect afterwards. It is
 idempotent — add entries and re-run.
 
+`move:modules` rewrites the importers **ts-morph can see**, which is the root tsconfig's
+program — not `scripts/`. It reports importers outside that program by name after
+`--apply`; run `npm run typecheck:scripts` as well as `npx tsc --noEmit` after any move.
+
 **Do not use the transitively-installed ts-morph 13.** It bundles TypeScript ~4.x, which
 predates `moduleResolution: "bundler"`: it cannot resolve directory-index specifiers such as
 `./cnext` and leaves them broken **with no error**. Import the direct dependency.
@@ -322,6 +326,13 @@ ever prompts anyone to look** — which is the whole argument for deriving the c
 asserting it. `scripts/gate.sh` runs all of them, reports each against the CI job that owns it,
 and does **not** stop at the first failure.
 
+**`npx tsc --noEmit` is the ROOT tsconfig, which excludes `scripts/`.**
+`npm run typecheck:scripts` (`tsconfig.scripts.json`) is a separate CI check, so "tsc is
+clean" after the first and meaning both is a claim you have not made. A `scripts/` import
+of a moved module resolves to `unknown` rather than erroring at the import line, so it
+surfaces far away: one move produced six `TS18046: 'a' is of type 'unknown'` in a sort
+comparator.
+
 **Run the gate ALONE, from a committed tree.** Its last two checks assert over the whole
 working directory (`git diff --exit-code tests/`, `working tree clean`), so a second gate
 running beside it — or any uncommitted change — fails them for reasons that read exactly like
@@ -372,6 +383,12 @@ the same commit. Regenerate with `npm run diagnostics:manifest`.
 ## Code Quality
 
 **Pre-commit hooks handle formatting automatically.** Manual if needed: `npm run prettier:fix && npm run oxlint:check`
+
+**A pre-commit `prettier … terminated with SIGKILL` is not prettier.** `lint-staged` runs
+prettier and oxlint concurrently and kills the survivor when one fails, so the oxlint error
+scrolls past above while the SIGKILL's huge argv dump lands at the tail. Run
+`npx lint-staged` directly and read the whole output — splitting the commit or raising the
+heap does nothing.
 
 ### SonarCloud — Never Merge a New Issue — ZERO EXCEPTIONS
 
@@ -747,6 +764,22 @@ foo.expected.error    # Expected error (if test-error)
   unrelated-looking reason, because the mutation _and_ the change under test had both
   vanished. Commit before mutating, or `cp` the file aside and copy it back, then grep for
   the mutation marker to confirm it is gone
+- **A mutation must imitate the defect, not fit the guard.** Both are green-to-red, and
+  only one is evidence. Twice in #1657 a guard was re-aimed and "mutation-checked" with a
+  probe written to match its own pattern: the `isScopeType` guard kept the STATIC spelling
+  (`Class.method(`), which occurs **0** times since the class became an instance, and
+  `FLAG_READ` gained a receiver the code does not use. Both passed their checks and stayed
+  dead against real code. Write the probe the way production spells it, then confirm it
+  reddens
+- **A `length > 0` population control cannot catch a dropped alternative.** The other
+  alternatives keep the population non-empty, so the guard looks healthy while three
+  spellings walk past it. Give an alternation **one control per arm**
+- **A path-keyed guard detaches silently when its target moves.** #1657 moved
+  `src/transpiler/state/` and left two depcruise rules, a source-scanning test, a
+  `sonar-project.properties` exclusion and `ParseTreeSites`' roster pointing at nothing —
+  each passing vacuously. `layer-rules.test.ts` now asserts every rule path still matches a
+  tracked file; when you move anything, grep for the old path in **regex literals** too,
+  which a string-literal sweep misses
 - **Negative controls in error fixtures**: an `.expected.error` proves the diagnostic fires, not that it fires _only_ where it should. Put a case that must stay silent beside the flagged one — `tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx` calls a `void` C function directly above the non-void call and names only the latter in its `.expected.error`, so an analyzer that flagged every call regardless of return type would fail it. The assertion catches under-enforcement; the control catches over-enforcement
 - **Examples are CI-guarded**: `scripts/__tests__/examples-transpile.test.ts` transpiles every `examples/**/*.cnx` during `npm run unit`
 - **Orphaned snapshots are gone, and cannot come back (#1149).** A `.expected.cpp/.hpp` beside a
