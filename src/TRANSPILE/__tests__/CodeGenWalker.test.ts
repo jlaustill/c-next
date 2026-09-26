@@ -366,29 +366,6 @@ describe("CodeGenWalker", () => {
         expect(host.getState()).toBeDefined();
       });
 
-      it("should process register-local effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
-
-        host.applyEffects([
-          { type: "register-local", name: "myVar", isArray: false },
-        ]);
-
-        const state = host.getState();
-        expect(state.localVariables.has("myVar")).toBe(true);
-      });
-
-      it("should process register-local array effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
-
-        host.applyEffects([
-          { type: "register-local", name: "myArray", isArray: true },
-        ]);
-
-        const state = host.getState();
-        expect(state.localVariables.has("myArray")).toBe(true);
-        expect(state.localArrays.has("myArray")).toBe(true);
-      });
-
       it("should process set-scope effects", () => {
         const { host } = createMinimalGenerator(`void foo() { }`);
         // #1304: entering a scope the registry does not hold is an invariant
@@ -407,10 +384,12 @@ describe("CodeGenWalker", () => {
       it("should process enter-function-body effects", () => {
         const { host } = createMinimalGenerator(`void foo() { }`);
 
-        // First add a local
-        host.applyEffects([
-          { type: "register-local", name: "myVar", isArray: false },
-        ]);
+        // Set the local directly. This used to go through a `register-local`
+        // EFFECT, which no generator ever emitted -- so the setup for this test
+        // was the only thing keeping that arm of `applyEffects` alive (#1452
+        // box 2). What is under test here is `enter-function-body`, which is
+        // emitted.
+        host.state.registerLocalVariable("myVar");
         expect(host.getState().localVariables.has("myVar")).toBe(true);
 
         // Then enter function body (clears locals)
@@ -491,49 +470,6 @@ describe("CodeGenWalker", () => {
 
         // Generator should track the safe division operation
         expect(host.getState()).toBeDefined();
-      });
-
-      it("should process register-type effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
-
-        // Apply register-type effect with full TTypeInfo
-        expect(() =>
-          host.applyEffects([
-            {
-              type: "register-type",
-              name: "myVar",
-              info: {
-                baseType: "u32",
-                bitWidth: 32,
-                isArray: false,
-                isConst: false,
-              },
-            },
-          ]),
-        ).not.toThrow();
-
-        // Type should be registered
-        const input = host.getInput();
-        expect(input.typeRegistry.has("myVar")).toBe(true);
-        const typeInfo = input.typeRegistry.get("myVar");
-        expect(typeInfo?.baseType).toBe("u32");
-        expect(typeInfo?.bitWidth).toBe(32);
-      });
-
-      it("should process register-const-value effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
-
-        // Apply register const value effect
-        expect(() =>
-          host.applyEffects([
-            { type: "register-const-value", name: "MY_CONST", value: 42 },
-          ]),
-        ).not.toThrow();
-
-        // Const should be registered
-        const input = host.getInput();
-        expect(input.constValues.has("MY_CONST")).toBe(true);
-        expect(input.constValues.get("MY_CONST")).toBe(42);
       });
 
       it("should process set-parameters effects", () => {

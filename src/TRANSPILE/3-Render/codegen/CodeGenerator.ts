@@ -175,16 +175,13 @@ export default class CodeGenerator implements IOrchestrator {
           this.state.requireInclude("stdbool");
           break;
 
-        // Type registration effects
-        case "register-type":
-          this.state.setVariableTypeInfo(effect.name, effect.info);
-          break;
-        case "register-local":
-          this.state.registerLocalVariable(effect.name, effect.isArray);
-          break;
-        case "register-const-value":
-          this.state.constValues.set(effect.name, effect.value);
-          break;
+        // #1452 box 2: three "type registration" effects stood here --
+        // `register-type`, `register-local`, `register-const-value` -- and NO
+        // generator emitted any of them (`grep` for each literal outside this
+        // switch and the union: 0). They were a render-side write path into the
+        // per-file type registry that never ran, so they read as 2.3 authoring
+        // a plan fact while authoring nothing at all. Removed with their union
+        // members; the two effects that ARE emitted keep their arms.
 
         // Scope effects (ADR-016)
         case "set-scope":
