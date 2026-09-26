@@ -9,6 +9,7 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 interface IStep {
   name?: string;
+  if?: string;
   uses?: string;
   run?: string;
   with?: Record<string, unknown>;
@@ -48,11 +49,17 @@ function stepUsing(action: string): IStep[] {
 /**
  * #1680: a pull request from a fork gets no repository secrets, so a Sonar
  * scan inside `pr-checks.yml` cannot authenticate there. `sonar.yml` runs on
- * `workflow_run`, in the base repository's context WITH `SONAR_TOKEN` -- and
- * with the fork's files on disk. Everything below is the reason that is safe;
- * each assertion names the attack it stops.
+ * `workflow_run`, in the base repository's context WITH `SONAR_TOKEN` -- and,
+ * for a fork, with the fork's files on disk. Everything below is the reason
+ * that is safe; each assertion names the attack it stops.
  */
-describe("sonar.yml — scans fork pull requests from a trusted context", () => {
+describe("sonar.yml — scans every pull request and push from a trusted context", () => {
+  it("scans every pull request and every push PR Quality Checks runs on", () => {
+    expect(scanJob.if).toBe(
+      "github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'push'",
+    );
+  });
+
   it("runs after PR Quality Checks completes, by that workflow's own name", () => {
     expect(sonar.on).toEqual({
       workflow_run: { workflows: [prChecks.name], types: ["completed"] },
@@ -65,11 +72,12 @@ describe("sonar.yml — scans fork pull requests from a trusted context", () => 
     }
   });
 
-  it("grants the token read scopes only", () => {
+  it("grants the token read scopes, plus statuses to report the scan's outcome", () => {
     expect(sonar.permissions).toEqual({
       actions: "read",
       contents: "read",
       "pull-requests": "read",
+      statuses: "write",
     });
   });
 
@@ -86,12 +94,33 @@ describe("sonar.yml — scans fork pull requests from a trusted context", () => 
     }
   });
 
-  it("checks the pull request out without credentials", () => {
+  it("checks the analyzed commit out without credentials, at the ref the resolve step validated", () => {
     const prCheckout = stepUsing("actions/checkout").filter(
       (step) => step.with?.path === undefined,
     );
     expect(prCheckout).toHaveLength(1);
     expect(prCheckout[0].with?.["persist-credentials"]).toBe(false);
+    expect(prCheckout[0].with?.ref).toBe("${{ steps.target.outputs.ref }}");
+  });
+
+  /**
+   * A `workflow_run` failure is reported on the default branch's commit, not
+   * on the pull request, so a broken scan would otherwise show on the PR only
+   * as a required check that never arrives. The status is posted for EVERY
+   * outcome: a context keeps its last state, so posting only failures would
+   * leave a stale red after a successful re-run.
+   */
+  it("reports the scan's outcome on the analyzed commit, whatever it was", () => {
+    const report = steps.filter((step) =>
+      step.run?.includes("/statuses/$HEAD_SHA"),
+    );
+    expect(report).toHaveLength(1);
+    expect(report[0].name).toBe(steps[steps.length - 1].name);
+    expect(report[0].if).toBe("always()");
+    expect(report[0].env?.JOB_STATUS).toBe("${{ job.status }}");
+    expect(report[0].env?.HEAD_SHA).toBe(
+      "${{ github.event.workflow_run.head_sha }}",
+    );
   });
 
   /**
@@ -140,18 +169,14 @@ describe("sonar.yml — scans fork pull requests from a trusted context", () => 
 });
 
 /**
- * PR A of #1680's two-PR landing: `sonar.yml` takes fork pull requests and
- * `pr-checks.yml` keeps pushes and same-repository pull requests, so no pull
- * request is scanned twice or not at all. PR B moves the rest into `sonar.yml`
- * and deletes this describe with the `pr-checks.yml` job.
+ * #1680's transition: `sonar.yml` now scans everything, and the old
+ * `pr-checks.yml` job still scans pushes and same-repository pull requests.
+ * It stays for one cycle so the pull request that deletes it can take its own
+ * required check from the widened `sonar.yml` -- `workflow_run` only ever runs
+ * the default branch's copy. That pull request deletes this describe with the
+ * job.
  */
-describe("#1680 PR A — the two Sonar paths partition pull requests", () => {
-  it("sonar.yml scans fork pull requests only", () => {
-    expect(scanJob.if).toBe(
-      "github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.head_repository.full_name != github.repository",
-    );
-  });
-
+describe("#1680 transition — the old pr-checks.yml job until it is deleted", () => {
   it("pr-checks.yml scans pushes and same-repository pull requests only", () => {
     expect(prChecks.jobs.sonar.if).toBe(
       "github.event_name == 'push' || !github.event.pull_request.head.repo.fork",
