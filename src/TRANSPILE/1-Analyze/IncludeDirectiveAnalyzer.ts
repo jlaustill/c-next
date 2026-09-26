@@ -7,8 +7,9 @@
  *
  * ## What this pass may know, and what it is handed
  *
- * The two facts these rules need beyond the parse tree are the file being
- * analyzed and where its angle includes are searched, and NEITHER may be read
+ * The two facts these rules need beyond the parse tree are the directory this
+ * file's quoted includes resolve from and where its angle includes are
+ * searched, and NEITHER may be re-derived from the file's path (#1435) or read
  * off shared state here. `CodeGenState.sourcePath` is written inside
  * `CodeGenerator.generate()`, which runs after the analyzers: measured, it is
  * `null` for the first file of a run and holds the PREVIOUS file's path for

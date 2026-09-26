@@ -14,9 +14,9 @@ interface IIncludeContext {
   /**
    * The directory a quoted include from this file resolves from, as DISCOVERY
    * resolved it (#1435). Handed in rather than taken as `dirname` of the
-   * file's path: for a source run's in-memory root the caller's `workingDir`
-   * decides it, and a second derivation here disagreed with discovery about
-   * which quoted includes exist.
+   * file's path: a source run's in-memory root may have no path, or a
+   * relative one its `workingDir` resolves, and a second derivation here
+   * disagreed with discovery about which quoted includes exist.
    */
   readonly quotedIncludeDirectory: string;
 

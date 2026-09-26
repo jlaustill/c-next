@@ -61,10 +61,11 @@ interface IDiscoveryFacts {
   /**
    * Per source file, the directory its quoted includes resolve from (#1435).
    *
-   * The file's own directory, except for a source run's in-memory root, which
-   * resolves from its `workingDir`. Recorded for the same reason as the search
-   * path: 2.1 re-derived it as `dirname(sourcePath)`, so when a caller's
-   * `workingDir` named another directory, discovery and E0506 disagreed about
+   * The file's own directory. For a source run's in-memory root that is the
+   * directory of its `sourcePath` resolved against the caller's `workingDir`,
+   * or the `workingDir` itself when the text has no path. Recorded for the
+   * same reason as the search path: 2.1 re-derived it as `dirname(sourcePath)`
+   * while discovery resolved from `workingDir`, so the two disagreed about
    * which quoted includes exist -- and a missing one read as a foreign header,
    * E0426 declined, and C-Next member syntax reached the C output at exit 0.
    */

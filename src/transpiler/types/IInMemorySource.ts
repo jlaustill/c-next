@@ -9,8 +9,12 @@
 interface IInMemorySource {
   readonly path: string;
   readonly source: string;
-  /** The directory the text is resolved from, standing in for `dirname(path)`. */
-  readonly workingDir: string;
+  /**
+   * The directory the text is resolved from, standing in for `dirname(path)`:
+   * the directory of its path when it has one, else the caller's working
+   * directory.
+   */
+  readonly directory: string;
   /** The caller's own include directories, searched ahead of discovered ones. */
   readonly includeDirs: readonly string[];
 }

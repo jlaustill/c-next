@@ -11,14 +11,18 @@ type TTranspileInput =
       readonly kind: "source";
       readonly source: string;
       /**
-       * The directory the text is resolved from: where its quoted includes
-       * are found (ADR-010) and where the project's include tiers are
-       * discovered from. Defaults to the directory of `sourcePath`, or to the
-       * process's working directory when there is no `sourcePath` (#1435).
+       * The working directory (default: the process's). A relative
+       * `sourcePath` resolves against it, and text with no `sourcePath` is
+       * resolved from it.
        */
       readonly workingDir?: string;
-      /** Searched ahead of the directories discovered from `workingDir`. */
+      /** Searched ahead of the directories discovered from the text's own. */
       readonly includeDirs?: string[];
+      /**
+       * Where the text lives. Its directory is where quoted includes resolve
+       * (ADR-010) and where the project's include tiers are discovered from
+       * (#1435).
+       */
       readonly sourcePath?: string;
     };
 

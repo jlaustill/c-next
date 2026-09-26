@@ -483,16 +483,18 @@ class Transpiler {
       return this._discoverFromFiles();
     }
     // #1435: ADR-010 resolves a quoted include from the file it appears in.
-    // Text with a path appears in that path's directory unless the caller
-    // names another; text with no path has only the process's.
+    // Text given a path appears in that path's directory; `workingDir` is the
+    // working directory, which resolves a relative path, and is where text
+    // with no path is resolved from. One directory, decided here, for both
+    // discovery and the 2.1 rules that ask where a quoted include is.
+    const workingDir = input.workingDir ?? process.cwd();
     return this._discoverFromSource({
       path: input.sourcePath ?? "<string>",
       source: input.source,
-      workingDir:
-        input.workingDir ??
-        (input.sourcePath === undefined
-          ? process.cwd()
-          : dirname(input.sourcePath)),
+      directory:
+        input.sourcePath === undefined
+          ? workingDir
+          : dirname(resolve(workingDir, input.sourcePath)),
       includeDirs: input.includeDirs ?? [],
     });
   }
@@ -2080,8 +2082,8 @@ class Transpiler {
    * search path of its own: #1706.)
    *
    * #1435: every file in a run comes through here, including the root of a
-   * source run, whose text is `inMemory.source` and whose directory is its
-   * `workingDir`. The search path is the same computation for both: the
+   * source run, whose text is `inMemory.source` and whose directory is
+   * `inMemory.directory`. The search path is the same computation for both: the
    * caller's include directories, then everything `discoverIncludePaths` finds
    * from the file's directory (the project tiers, PlatformIO libdeps and
    * Arduino libraries), then the configured ones. An in-memory root used to
@@ -2094,7 +2096,7 @@ class Transpiler {
     inMemory?: IInMemorySource,
   ): ReturnType<IncludeResolver["resolve"]> {
     const content = inMemory?.source ?? this.fs.readFile(cnxFile.path);
-    const sourceDir = inMemory?.workingDir ?? dirname(cnxFile.path);
+    const sourceDir = inMemory?.directory ?? dirname(cnxFile.path);
     const searchPaths = IncludeResolver.buildSearchPaths(
       sourceDir,
       this.config.includeDirs,
