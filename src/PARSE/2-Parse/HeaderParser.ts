@@ -70,10 +70,11 @@ class HeaderParser {
    * On 2026-09-05 that reported 1700 C headers, 1444 carrying the guard, and
    * 1524 (89.6%) producing at least one syntax error.
    *
-   * Surfacing them correctly requires preprocessing first. That capability exists
-   * (`logic/preprocessor`) but has no production caller and shells out to a system
-   * compiler, so wiring it into this path is a toolchain dependency, not a
-   * listener change.
+   * Surfacing them correctly requires preprocessing first. The production
+   * Transpiler already uses `logic/preprocessor` while loading header content,
+   * but this parser can also be called independently. Requiring preprocessing at
+   * this boundary would therefore make the parser itself depend on the system
+   * compiler toolchain rather than remaining a listener-only change.
    *
    * A null tree, not a silent empty one, is what a caller sees when the parse
    * cannot proceed at all.
