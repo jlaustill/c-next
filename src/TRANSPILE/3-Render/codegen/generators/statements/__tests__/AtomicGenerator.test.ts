@@ -7,7 +7,8 @@
 import { describe, it, expect } from "vitest";
 import atomicGenerators from "../AtomicGenerator";
 import TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
-import ITargetCapabilities from "../../../../../../transpiler/types/ITargetCapabilities";
+import type ITargetDescription from "../../../../../../transpiler/types/ITargetDescription";
+import TargetResolver from "../../../../../../utils/TargetResolver";
 
 const {
   generateAtomicRMW,
@@ -33,14 +34,9 @@ function createTypeInfo(
   };
 }
 
-function createCapabilities(hasLdrexStrex: boolean): ITargetCapabilities {
-  return {
-    wordSize: 32,
-    hasLdrexStrex,
-    hasBasepri: true,
-    significantExternalIdentifierChars: 31,
-    significantInternalIdentifierChars: 63,
-  };
+/** A catalog target with, or without, LDREX/STREX */
+function createCapabilities(hasLdrexStrex: boolean): ITargetDescription {
+  return TargetResolver.byName(hasLdrexStrex ? "cortex-m7" : "cortex-m0")!;
 }
 
 // ============================================================================

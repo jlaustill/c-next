@@ -6,7 +6,6 @@
 import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 import IFunctionSignature from "../../../../transpiler/types/IFunctionSignature";
 import ICallbackTypeInfo from "../../../../transpiler/types/ICallbackTypeInfo";
-import ITargetCapabilities from "../../../../transpiler/types/ITargetCapabilities";
 import SymbolTable from "../../../../PARSE/3-Declare/SymbolTable";
 import ICodeGenSymbols from "../../../../transpiler/types/ICodeGenSymbols";
 
@@ -37,9 +36,6 @@ interface IGeneratorInput {
 
   /** Callback types used as struct field types: "StructName.fieldName" -> callback type name */
   readonly callbackFieldTypes: ReadonlyMap<string, string>;
-
-  /** Target platform capabilities (affects atomic operations, etc.) */
-  readonly targetCapabilities: ITargetCapabilities;
 
   /** Debug mode - affects overflow helper generation */
   readonly debugMode: boolean;

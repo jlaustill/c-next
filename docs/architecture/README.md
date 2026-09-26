@@ -181,6 +181,10 @@ The test for tier is mechanical: **could you compute it with only this file open
 > direction: the test above asks whether one file is enough, and the answer is now that
 > **no** file is needed. It is a configuration input, known before pass 1.1 opens anything,
 > which is why nothing downstream can read it too early.
+>
+> The **target catalog** (`targets/targets.cnx`, ADR-049) is a configuration input in the
+> same sense: it ships with the compiler, not with the program, and is read and validated
+> once per process before any source file is opened.
 
 The AST is Tier 1 with a short lifetime. That resolves the problem of a parse tree that
 cannot be serialized, rather than relocating it: pull a serializable `SourceSpan` out and

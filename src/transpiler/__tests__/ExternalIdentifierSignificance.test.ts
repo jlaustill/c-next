@@ -2,14 +2,14 @@
  * Issue #1307 review: Stage 4c must report against the budget the *build* asks
  * for, not against whatever codegen left in a static.
  *
- * `state.targetCapabilities` is assigned only inside
+ * `state.targetDescription` is assigned only inside
  * `CodeGenerator.generate()` — Stage 5, per file — so reading it at Stage 4c
  * yields the module default on a fresh process and the previously generated
  * file's target in a long-lived one (`cnext serve`, the VS Code path, any API
  * consumer). That made E0204 reject programs declaring no target at all, on a
  * budget belonging to an earlier run.
  *
- * It was invisible because all eight TARGET_CAPABILITIES entries carry the same
+ * It was invisible because every catalog target carries the same
  * 31/63 — the check and the target agreed by coincidence rather than by wiring.
  * These tests poison the static deliberately, which is the only way the
  * difference is observable.
@@ -21,7 +21,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
 import type CodeGenWalker from "../../TRANSPILE/CodeGenWalker";
-import DEFAULT_TARGET from "../constants/DEFAULT_TARGET";
+import TargetResolver from "../../utils/TargetResolver";
 
 /** Two members that are distinct at 31 characters but collide at 6. */
 const NARROW_COLLIDER = `scope Tiny {
@@ -107,12 +107,12 @@ describe("External identifier significance (#1307)", () => {
     // Exactly what generating a file for a 6-significant-character target
     // leaves on the state Stage 4c used to read -- on THIS transpiler's
     // instance, so the second run below actually sees it.
-    stateOf(transpiler).targetCapabilities = {
-      ...DEFAULT_TARGET,
-      significantExternalIdentifierChars: 6,
+    stateOf(transpiler).targetDescription = {
+      ...TargetResolver.byName("host")!,
+      external_identifier_chars: 6,
     };
     expect(
-      stateOf(transpiler).targetCapabilities.significantExternalIdentifierChars,
+      stateOf(transpiler).targetDescription?.external_identifier_chars,
     ).toBe(6);
 
     const afterPoisoning = await run();

@@ -1,3 +1,4 @@
+import type ITargetDescription from "../transpiler/types/ITargetDescription";
 import SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import TYPE_FORMING_KINDS from "../PARSE/3-Declare/TYPE_FORMING_KINDS";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
@@ -7,7 +8,6 @@ import ICodeGenSymbols from "../transpiler/types/ICodeGenSymbols";
 import TTypeInfo from "../transpiler/types/TTypeInfo";
 import TParameterInfo from "../transpiler/types/TParameterInfo";
 import ICallbackTypeInfo from "../transpiler/types/ICallbackTypeInfo";
-import ITargetCapabilities from "../transpiler/types/ITargetCapabilities";
 import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
 import UNRESOLVED_DIMENSION from "../transpiler/constants/UNRESOLVED_DIMENSION";
 import type ICodeGenApi from "../transpiler/types/ICodeGenApi";
@@ -17,7 +17,6 @@ import type IOutputExtensions from "../transpiler/types/IOutputExtensions";
 import QualifiedCName from "../utils/QualifiedCName";
 import ScopeUtils from "../utils/ScopeUtils";
 import type ITypeBindingDeps from "../transpiler/types/ITypeBindingDeps";
-import DEFAULT_TARGET from "../transpiler/constants/DEFAULT_TARGET";
 import StructFieldFacts from "../utils/StructFieldFacts";
 import DeclaredVariableFacts from "../utils/DeclaredVariableFacts";
 import type IProgram from "../transpiler/types/IProgram";
@@ -692,8 +691,11 @@ class TranspileState {
     return this.lastArrayInitCount > 0 || this.lastArrayFillValue !== undefined;
   }
 
-  /** ADR-049: Target platform capabilities */
-  targetCapabilities: ITargetCapabilities = DEFAULT_TARGET;
+  /**
+   * ADR-049: the target this file is generated for. Set by `reset()` from the
+   * description the orchestrator decided; null only before the first file.
+   */
+  targetDescription: ITargetDescription | null = null;
 
   // ===========================================================================
   // INCLUDE FLAGS (track required standard library includes)
@@ -1610,7 +1612,7 @@ class TranspileState {
   }
 
   /** Cleared per file, at the top of `generate()`. */
-  reset(targetCapabilities?: ITargetCapabilities): void {
+  reset(targetDescription: ITargetDescription | null = null): void {
     // Generator reference
     this.generator = null;
 
@@ -1650,7 +1652,7 @@ class TranspileState {
     this.mainArgsName = null;
     this.lastArrayInitCount = 0;
     this.lastArrayFillValue = undefined;
-    this.targetCapabilities = targetCapabilities ?? DEFAULT_TARGET;
+    this.targetDescription = targetDescription;
 
     // Include flags
 

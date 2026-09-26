@@ -12,6 +12,7 @@
  * wrong before the diff shifted `CodeGenWalker.ts`, and nothing could ever
  * have reported that.
  */
+import TargetResolver from "../../utils/TargetResolver";
 import { describe, it, expect, beforeEach } from "vitest";
 import Program from "../../PARSE/4-Resolve/Program";
 import ModificationFacts from "../../transpiler/ModificationFacts";
@@ -109,7 +110,11 @@ function generateWithProgram(
     tree,
     options?.sourcePath ?? "test.cnx",
   );
-  return generator.generate(tree, tokenStream, options);
+  return generator.generate(tree, tokenStream, {
+    ...options,
+    targetDescription:
+      options?.targetDescription ?? TargetResolver.byName("host"),
+  });
 }
 
 let registry = new SymbolRegistry();

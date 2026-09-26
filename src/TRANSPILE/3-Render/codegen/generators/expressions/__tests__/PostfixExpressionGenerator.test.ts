@@ -70,13 +70,6 @@ function createMockInput(overrides?: {
     constValues: new Map(),
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
-    targetCapabilities: {
-      wordSize: 32,
-      hasLdrexStrex: false,
-      hasBasepri: false,
-      significantExternalIdentifierChars: 31,
-      significantInternalIdentifierChars: 63,
-    },
     debugMode: false,
   } as IGeneratorInput;
 }

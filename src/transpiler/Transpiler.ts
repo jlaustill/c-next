@@ -1197,7 +1197,10 @@ class Transpiler {
         this.pathResolver.getSourceRelativePath(sourcePath);
       const code = this.codeGenerator.generate(tree, tokenStream, {
         debugMode: this.config.debugMode,
-        target: this.config.target,
+        targetDescription: TargetResolver.forFile(
+          this.config.target,
+          TargetResolver.fromPragma(tree),
+        ),
         sourcePath,
         cppMode: this.cppMode,
         symbolInfo,
@@ -1889,7 +1892,7 @@ class Transpiler {
   private _checkExternalIdentifierSignificance(
     result: ITranspilerResult,
   ): boolean {
-    // NOT TranspileState.targetCapabilities: codegen assigns that in Stage 5, one
+    // NOT TranspileState.targetDescription: codegen assigns that in Stage 5, one
     // stage after this runs, so it holds the module default on a fresh process
     // and the previous file's target in a long-lived one (#1307 review). The
     // budget a whole-program check reports against has to be the build's.

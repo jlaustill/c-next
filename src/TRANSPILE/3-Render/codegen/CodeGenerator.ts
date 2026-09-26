@@ -21,6 +21,7 @@ import BitUtils from "../../../utils/BitUtils";
 import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
 import FormatUtils from "../../../utils/FormatUtils";
 import StringUtils from "../../../utils/StringUtils";
+import invariant from "../../../utils/invariant";
 // Support generators
 // ADR-046: which nullable C functions return a struct pointer (#1322: a
 // constant lookup, not an analyzer -- see the module header)
@@ -107,7 +108,6 @@ export default class CodeGenerator implements IOrchestrator {
       constValues: this.state.constValues,
       callbackTypes: this.state.callbackTypes,
       callbackFieldTypes: this.state.callbackFieldTypes,
-      targetCapabilities: this.state.targetCapabilities,
       debugMode: this.state.debugMode,
     };
   }
@@ -951,13 +951,17 @@ export default class CodeGenerator implements IOrchestrator {
     typeInfo: TTypeInfo,
     clampOp: string | null,
   ): string {
+    invariant(
+      this.state.targetDescription,
+      "generate() sets the target before any statement is rendered",
+    );
     const result = atomicGenerators.generateAtomicRMW(
       target,
       cOp,
       value,
       typeInfo,
       clampOp,
-      this.state.targetCapabilities,
+      this.state.targetDescription,
     );
     this.applyEffects(result.effects);
     return result.code;

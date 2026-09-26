@@ -2,6 +2,7 @@
  * Tests for TranspileState - centralized code generation state management
  */
 
+import TargetResolver from "../../utils/TargetResolver";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import type IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
 import { describe, it, expect, beforeEach } from "vitest";
@@ -136,22 +137,12 @@ describe("TranspileState", () => {
       expect(state.generator).toBeNull();
     });
 
-    it("accepts custom target capabilities", () => {
-      const customTarget = {
-        hasFPU: true,
-        hasHardwareDivide: false,
-        maxBitWidth: 32,
-        hasAtomic: true,
-        wordSize: 32 as const,
-        hasLdrexStrex: true,
-        hasBasepri: true,
-        significantExternalIdentifierChars: 31,
-        significantInternalIdentifierChars: 63,
-      };
+    it("holds the target description it is reset with", () => {
+      const target = TargetResolver.byName("cortex-m7")!;
 
-      state.reset(customTarget);
+      state.reset(target);
 
-      expect(state.targetCapabilities).toEqual(customTarget);
+      expect(state.targetDescription).toBe(target);
     });
   });
 

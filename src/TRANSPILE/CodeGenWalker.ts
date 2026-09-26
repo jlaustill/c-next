@@ -153,9 +153,7 @@ import QualifiedCName from "../utils/QualifiedCName";
 import ToolchainRequirementUtils from "../utils/ToolchainRequirementUtils";
 import ScopeUtils from "../utils/ScopeUtils";
 import TypeBinding from "../PARSE/3-Declare/TypeBinding";
-import type ITargetCapabilities from "../transpiler/types/ITargetCapabilities";
-import DEFAULT_TARGET from "../transpiler/constants/DEFAULT_TARGET";
-import TargetResolver from "../utils/TargetResolver";
+import type ITargetDescription from "../transpiler/types/ITargetDescription";
 import SymbolTypeResolver from "../utils/TypeResolver";
 import CNEXT_TO_C_TYPE_MAP from "../utils/constants/TypeMappings";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
@@ -1641,14 +1639,15 @@ class CodeGenWalker {
     tokenStream?: CommonTokenStream,
     options?: ICodeGeneratorOptions,
   ): string {
-    // ADR-049: Determine target capabilities with priority: CLI > pragma > default
-    const targetCapabilities = this.resolveTargetCapabilities(
-      tree,
-      options?.target,
+    // ADR-049: the target is decided before codegen, by the orchestrator;
+    // this walk only reads it.
+    invariant(
+      options?.targetDescription,
+      "the pipeline always supplies options.targetDescription to generate(); its absence is a caller/API error, not a program error",
     );
 
     // Reset state for fresh generation (must be before any state assignments)
-    this.resetGeneratorState(targetCapabilities);
+    this.resetGeneratorState(options.targetDescription);
 
     // Initialize options and configuration (after reset)
     this.initializeGenerateOptions(options, tokenStream);
@@ -1710,12 +1709,12 @@ class CodeGenWalker {
   /**
    * Reset all generator state for a fresh generation pass.
    */
-  private resetGeneratorState(targetCapabilities: ITargetCapabilities): void {
+  private resetGeneratorState(targetDescription: ITargetDescription): void {
     // One reset, because there is one state. Two classes stood here --
     // `CodeGenState.reset(targetCapabilities)` and `TranspilerState.reset()` --
     // and merging them under #1452 left the second call clobbering the first's
     // argument, so `--target` silently fell back to the default capabilities.
-    this.host.state.reset(targetCapabilities);
+    this.host.state.reset(targetDescription);
 
     // Set generator reference for handlers to use
     // #1652 removed `ICodeGenApi`'s four parse-node members, and every one that
@@ -2139,34 +2138,6 @@ class CodeGenWalker {
     if (safeDivHelpers.length > 0) {
       output.push(...safeDivHelpers);
     }
-  }
-
-  /**
-   * ADR-049: Resolve target capabilities with priority: CLI > pragma > default.
-   *
-   * Delegates to TargetResolver so this file and the whole-program Rule 5.1
-   * check read the same pragma the same way (#1307 review).
-   *
-   * @param tree - The parsed program tree
-   * @param cliTarget - Optional target from CLI --target flag
-   */
-  private resolveTargetCapabilities(
-    tree: Parser.ProgramContext,
-    cliTarget?: string,
-  ): ITargetCapabilities {
-    if (cliTarget) {
-      const fromCli = TargetResolver.byName(cliTarget);
-      if (fromCli) {
-        return fromCli;
-      }
-      console.warn(
-        `Warning: Unknown target '${cliTarget}', falling back to pragma or default`,
-      );
-    }
-
-    return (
-      TargetResolver.byName(TargetResolver.fromPragma(tree)) ?? DEFAULT_TARGET
-    );
   }
 
   /**

@@ -1,4 +1,5 @@
 import ICodeGenSymbols from "../../../../transpiler/types/ICodeGenSymbols";
+import type ITargetDescription from "../../../../transpiler/types/ITargetDescription";
 
 /**
  * Options for the code generator
@@ -11,8 +12,12 @@ interface ICodeGeneratorOptions {
    * When provided, CodeGenerator uses this instead of creating SymbolCollector.
    */
   symbolInfo?: ICodeGenSymbols;
-  /** ADR-049: CLI/config target override (takes priority over #pragma target) */
-  target?: string;
+  /**
+   * ADR-049: the target this file is generated for, decided by the
+   * orchestrator before codegen. Required, like `symbolInfo`: codegen never
+   * resolves a target itself.
+   */
+  targetDescription?: ITargetDescription;
   /** ADR-010: Source file path for validating includes */
   sourcePath?: string;
   /**

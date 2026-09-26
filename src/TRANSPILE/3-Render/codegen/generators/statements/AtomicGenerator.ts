@@ -11,7 +11,7 @@
 import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
-import ITargetCapabilities from "../../../../../transpiler/types/ITargetCapabilities";
+import type ITargetDescription from "../../../../../transpiler/types/ITargetDescription";
 import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY";
 
 /**
@@ -184,7 +184,7 @@ function generatePrimaskWrapper(
  * @param typeInfo - Type information for the target
  * @param clampOp - ADR-044 helper operation from
  *   `AssignmentClassifier.compoundClampOp`, or null for plain arithmetic
- * @param targetCapabilities - Platform capabilities
+ * @param targetDescription - The target this file is generated for
  * @returns Generated code and effects
  */
 function generateAtomicRMW(
@@ -193,7 +193,7 @@ function generateAtomicRMW(
   value: string,
   typeInfo: TTypeInfo,
   clampOp: string | null,
-  targetCapabilities: ITargetCapabilities,
+  targetDescription: ITargetDescription,
 ): IGeneratorOutput {
   const baseType = typeInfo.baseType;
 
@@ -201,7 +201,7 @@ function generateAtomicRMW(
   const innerResult = generateInnerAtomicOp(cOp, value, typeInfo, clampOp);
 
   // Use LDREX/STREX if available for this type, otherwise PRIMASK fallback
-  if (targetCapabilities.hasLdrexStrex && LDREX_MAP[baseType]) {
+  if (targetDescription.ldrex_strex && LDREX_MAP[baseType]) {
     return generateLdrexStrexLoop(
       target,
       innerResult.code,

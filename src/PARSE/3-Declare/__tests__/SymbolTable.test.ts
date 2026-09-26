@@ -11,7 +11,7 @@ import IVariableSymbol from "../../../transpiler/types/symbols/IVariableSymbol";
 import IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
 import IStructSymbol from "../../../transpiler/types/symbols/IStructSymbol";
 import IEnumSymbol from "../../../transpiler/types/symbols/IEnumSymbol";
-import ITargetCapabilities from "../../../transpiler/types/ITargetCapabilities";
+import TargetResolver from "../../../utils/TargetResolver";
 import TTypeUtils from "../../../utils/TTypeUtils";
 import TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
 import TCppSymbol from "../../../transpiler/types/symbols/cpp/TCppSymbol";
@@ -705,13 +705,8 @@ describe("SymbolTable", () => {
   describe("detectMISRA51Conflicts", () => {
     const LONG_SCOPE = "TemperatureSensorController";
 
-    const targetCaps: ITargetCapabilities = {
-      wordSize: 32,
-      hasLdrexStrex: false,
-      hasBasepri: false,
-      significantExternalIdentifierChars: 31,
-      significantInternalIdentifierChars: 63,
-    };
+    // A real catalog row, budget 31: C99's guarantee
+    const targetCaps = TargetResolver.byName("cortex-m7")!;
 
     /** A scope member variable, public unless told otherwise. */
     function scopeVariable(
@@ -808,20 +803,6 @@ describe("SymbolTable", () => {
       expect(table.detectMISRA51Conflicts(targetCaps)).toHaveLength(0);
     });
 
-    it("stays silent when the capability is not configured", () => {
-      const table = new SymbolTable();
-      table.addTSymbol(scopeVariable("calibrationOffsetValue", 2));
-      table.addTSymbol(scopeVariable("calibrationOffsetLimit", 3));
-
-      const withoutLimit = {
-        wordSize: 32,
-        hasLdrexStrex: false,
-        hasBasepri: false,
-      } as unknown as ITargetCapabilities;
-
-      expect(table.detectMISRA51Conflicts(withoutLimit)).toHaveLength(0);
-    });
-
     it.each([
       { limit: 63, expected: 0, why: "a wider budget separates them" },
       { limit: 31, expected: 1, why: "C99's guarantee does not" },
@@ -833,7 +814,7 @@ describe("SymbolTable", () => {
 
       const conflicts = table.detectMISRA51Conflicts({
         ...targetCaps,
-        significantExternalIdentifierChars: limit,
+        external_identifier_chars: limit,
       });
 
       expect(conflicts).toHaveLength(expected);

@@ -24,7 +24,7 @@ import IStructSymbol from "../../transpiler/types/symbols/IStructSymbol";
 import IEnumSymbol from "../../transpiler/types/symbols/IEnumSymbol";
 import IFunctionSymbol from "../../transpiler/types/symbols/IFunctionSymbol";
 import TypeResolver from "../../utils/TypeResolver";
-import type ITargetCapabilities from "../../transpiler/types/ITargetCapabilities";
+import type ITargetDescription from "../../transpiler/types/ITargetDescription";
 
 // Enable immer support for Map and Set (must be called once at module scope)
 enableMapSet();
@@ -579,14 +579,11 @@ class SymbolTable {
    * - Two identifiers that are equal outright are `detectConflict`'s job
    *   (ADR-063, #1117), not this one.
    *
-   * @param targetCapabilities The target's identifier significance limits
+   * @param target The target, whose identifier significance limits apply
    * @returns One conflict per group of identifiers sharing a truncated prefix
    */
-  detectMISRA51Conflicts(targetCapabilities: ITargetCapabilities): IConflict[] {
-    const limit = targetCapabilities?.significantExternalIdentifierChars;
-    if (limit === undefined) {
-      return [];
-    }
+  detectMISRA51Conflicts(target: ITargetDescription): IConflict[] {
+    const limit = target.external_identifier_chars;
 
     const byPrefix = SymbolTable.groupExternalCNextSymbolsByPrefix(
       this.getAllSymbols(),

@@ -1,32 +1,65 @@
 /**
- * ADR-049: the single place a target name becomes a set of capabilities.
+ * ADR-049: the single place a target name becomes a target description.
  *
- * Two consumers ask different questions of the same answer. `CodeGenerator` asks
- * per file, at Stage 5, because the capabilities shape the code it emits.
- * `Transpiler` asks once per run, at Stage 4c, because MISRA C:2012 Rule 5.1 is
- * a whole-program property — an identifier budget has to be one number for the
- * whole build, not whichever file happened to generate last (#1307 review).
+ * The descriptions come from the target catalog (`targets/targets.cnx`), read
+ * once per process; nothing here holds a second list of targets.
  *
- * Both go through here so the pragma is parsed once, in one way. Re-deriving the
- * target from source text at the second call site would have produced two
- * decisions that agree only while the corpus stays simple.
+ * Two consumers ask different questions of the same answer. The orchestrator
+ * asks per file, before codegen, because the description shapes the code
+ * emitted for that file. It also asks once per run, at Stage 4c, because MISRA
+ * C:2012 Rule 5.1 is a whole-program property -- an identifier budget has to
+ * be one number for the whole build, not whichever file generated last
+ * (#1307 review).
+ *
+ * Both go through here so the pragma is parsed once, in one way.
  */
 
 import type * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
-import type ITargetCapabilities from "../transpiler/types/ITargetCapabilities";
-import TARGET_CAPABILITIES from "../transpiler/constants/TARGET_CAPABILITIES";
-import DEFAULT_TARGET from "../transpiler/constants/DEFAULT_TARGET";
+import type ITargetDescription from "../transpiler/types/ITargetDescription";
+import TargetCatalogFile from "../transpiler/data/TargetCatalogFile";
+import invariant from "./invariant";
+
+/** The target a file or run falls back to when none is named */
+const FALLBACK_TARGET = "host";
 
 class TargetResolver {
   /**
-   * Capabilities for a named target, or undefined when the name is unknown.
-   * Case-insensitive, matching `#pragma target` and `--target`.
+   * The catalog's description for a named target, or undefined when the name
+   * is unknown. Case-insensitive, matching `#pragma target` and `--target`.
    */
-  static byName(name: string | undefined): ITargetCapabilities | undefined {
+  static byName(name: string | undefined): ITargetDescription | undefined {
     if (!name) {
       return undefined;
     }
-    return TARGET_CAPABILITIES[name.toLowerCase()];
+    return TargetCatalogFile.targets().get(name.toLowerCase());
+  }
+
+  /** Every name the catalog defines, aliases included */
+  static names(): string[] {
+    return [...TargetCatalogFile.targets().keys()];
+  }
+
+  /**
+   * One file's target: the `--target` flag when it names a known target, else
+   * the file's own `#pragma target`, else the fallback.
+   *
+   * @param cliTarget The `--target` flag, if given
+   * @param pragmaTarget The file's `#pragma target`, if any
+   */
+  static forFile(
+    cliTarget: string | undefined,
+    pragmaTarget: string | undefined,
+  ): ITargetDescription {
+    if (cliTarget) {
+      const fromCli = TargetResolver.byName(cliTarget);
+      if (fromCli) {
+        return fromCli;
+      }
+      console.warn(
+        `Warning: Unknown target '${cliTarget}', falling back to pragma or default`,
+      );
+    }
+    return TargetResolver.byName(pragmaTarget) ?? TargetResolver.fallback();
   }
 
   /**
@@ -63,24 +96,30 @@ class TargetResolver {
   static forRun(
     cliTarget: string | undefined,
     pragmaTargets: ReadonlyArray<string>,
-  ): ITargetCapabilities {
+  ): ITargetDescription {
     const fromCli = TargetResolver.byName(cliTarget);
     if (fromCli) {
       return fromCli;
     }
 
-    let narrowest = DEFAULT_TARGET;
+    let narrowest = TargetResolver.fallback();
     for (const name of pragmaTargets) {
       const candidate = TargetResolver.byName(name);
       if (
         candidate &&
-        candidate.significantExternalIdentifierChars <
-          narrowest.significantExternalIdentifierChars
+        candidate.external_identifier_chars <
+          narrowest.external_identifier_chars
       ) {
         narrowest = candidate;
       }
     }
     return narrowest;
+  }
+
+  private static fallback(): ITargetDescription {
+    const target = TargetResolver.byName(FALLBACK_TARGET);
+    invariant(target, `the target catalog defines '${FALLBACK_TARGET}'`);
+    return target;
   }
 }
 

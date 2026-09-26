@@ -79,7 +79,6 @@ function createMockInput(options?: {
     constValues: new Map(),
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
-    targetCapabilities: { hasAtomicSupport: false },
     debugMode: false,
   } as unknown as IGeneratorInput;
 }

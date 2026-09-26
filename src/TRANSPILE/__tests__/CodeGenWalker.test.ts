@@ -2,6 +2,7 @@
  * Unit tests for CodeGenWalker - the main transpiler component.
  * Tests the IOrchestrator interface and internal methods.
  */
+import TargetResolver from "../../utils/TargetResolver";
 import PublicInterface from "../2-Plan/PublicInterface";
 import Program from "../../PARSE/4-Resolve/Program";
 import ModificationFacts from "../../transpiler/ModificationFacts";
@@ -147,7 +148,13 @@ function generateWithProgram(
     tree,
     options?.sourcePath ?? "test.cnx",
   );
-  return generator.generate(tree, tokenStream, options);
+  // ADR-049: the orchestrator always decides a target before codegen; a test
+  // that does not care about one gets the build machine's.
+  return generator.generate(tree, tokenStream, {
+    ...options,
+    targetDescription:
+      options?.targetDescription ?? TargetResolver.byName("host"),
+  });
 }
 
 let registry = new SymbolRegistry();
@@ -1146,69 +1153,37 @@ describe("CodeGenWalker", () => {
     });
   });
 
-  describe("Target capabilities", () => {
-    it("should use default capabilities when no target specified", () => {
+  describe("Target description", () => {
+    // Which target a file gets is decided before codegen (TargetResolver);
+    // the walk only records what it is given.
+    it("records the target it is given", () => {
       const source = `void foo() { }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
-      // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+      const symbols = TSymbolInfoAdapter.convert(declareAndResolve(tree));
+      const teensy41 = TargetResolver.byName("teensy41")!;
 
       generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
+        targetDescription: teensy41,
       });
 
-      const input = host.getInput();
-      expect(input.targetCapabilities.wordSize).toBe(32);
+      expect(host.state.targetDescription).toBe(teensy41);
     });
 
-    it("should use CLI target when specified", () => {
-      const source = `void foo() { }`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
-      // the walk accumulates read the SAME instance the walk drove.
-      const host = new CodeGenerator();
-      const generator = new CodeGenWalker(host);
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+    it("refuses to generate without a target", () => {
+      const { tree, tokenStream } = CNextSourceParser.parse(`void foo() { }`);
+      const generator = new CodeGenWalker(new CodeGenerator());
+      const symbols = TSymbolInfoAdapter.convert(declareAndResolve(tree));
 
-      generateWithProgram(generator, tree, tokenStream, {
-        symbolInfo: symbols,
-        sourcePath: "test.cnx",
-        target: "teensy41",
-      });
-
-      const input = host.getInput();
-      expect(input.targetCapabilities.hasLdrexStrex).toBe(true);
-      expect(input.targetCapabilities.hasBasepri).toBe(true);
-    });
-
-    it("should handle unknown CLI target with warning", () => {
-      const source = `void foo() { }`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
-      // the walk accumulates read the SAME instance the walk drove.
-      const host = new CodeGenerator();
-      const generator = new CodeGenWalker(host);
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      // Should not throw, just warn and use default
-      generateWithProgram(generator, tree, tokenStream, {
-        symbolInfo: symbols,
-        sourcePath: "test.cnx",
-        target: "unknown-target",
-      });
-
-      const input = host.getInput();
-      expect(input.targetCapabilities.wordSize).toBe(32);
+      expect(() =>
+        generator.generate(tree, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        }),
+      ).toThrow(/targetDescription/);
     });
   });
 
