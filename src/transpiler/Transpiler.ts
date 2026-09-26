@@ -252,7 +252,7 @@ class Transpiler {
    * were written in Stage 1 and read in Stages 4d and 5 -- state written by one
    * pass and read by another, which box 4 forbids.
    *
-   * Written ONLY by the two discovery methods below and read ONLY at the freeze,
+   * Written ONLY by `_resolveCnxIncludes` and read ONLY at the freeze,
    * so no later pass can reach these; what the later passes read is the frozen
    * copy on `IProgram`. See `IDiscoveryFacts` for the ordering that makes that
    * legal.
@@ -266,6 +266,12 @@ class Transpiler {
   private readonly discoveredIncludeSearchPaths = new Map<
     string,
     readonly string[]
+  >();
+
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  private readonly discoveredQuotedIncludeDirectories = new Map<
+    string,
+    string
   >();
 
   private readonly retainedParses = new Map<string, IParsedFile>();
@@ -476,10 +482,17 @@ class Transpiler {
     if (input.kind === "files") {
       return this._discoverFromFiles();
     }
+    // #1435: ADR-010 resolves a quoted include from the file it appears in.
+    // Text with a path appears in that path's directory unless the caller
+    // names another; text with no path has only the process's.
     return this._discoverFromSource({
       path: input.sourcePath ?? "<string>",
       source: input.source,
-      workingDir: input.workingDir ?? process.cwd(),
+      workingDir:
+        input.workingDir ??
+        (input.sourcePath === undefined
+          ? process.cwd()
+          : dirname(input.sourcePath)),
       includeDirs: input.includeDirs ?? [],
     });
   }
@@ -804,6 +817,7 @@ class Transpiler {
           discovery: {
             cnxIncludeRewrites: this.discoveredCnxIncludeRewrites,
             includeSearchPaths: this.discoveredIncludeSearchPaths,
+            quotedIncludeDirectories: this.discoveredQuotedIncludeDirectories,
           },
           registry: this.symbolRegistry,
         },
@@ -1022,7 +1036,8 @@ class Transpiler {
           reachesForeignHeader: file.reachesForeignHeader ?? true,
         },
         includes: {
-          sourcePath,
+          quotedIncludeDirectory:
+            this.program.quotedIncludeDirectory(sourcePath),
           searchPaths: this.program.includeSearchPaths(sourcePath),
           fileExists: (candidate: string) => this.fs.exists(candidate),
         },
@@ -1272,26 +1287,22 @@ class Transpiler {
   // ===========================================================================
 
   /**
-   * Build IPipelineInput from a source string (standalone mode).
-   *
-   * Absorbs what StandaloneContextBuilder used to do, but returns data
-   * instead of performing side effects.
-   */
-  /**
    * Resolve C/C++ headers transitively, wired to this run.
    *
-   * The two call sites -- one per entry shape, source and disk -- each built
-   * the same three-field options bag and each pushed the warnings onto the same
-   * list. How a run reaches the filesystem, which processed-path set it shares,
-   * and whether it logs was therefore decided twice; adding an option meant
-   * remembering there was a second place, and the compiler would not have said
-   * so. Only the roots and the include directories are the caller's business.
+   * There were two call sites -- one per entry shape, source and disk -- and
+   * each built the same three-field options bag and pushed the warnings onto
+   * the same list, so how a run reaches the filesystem, which processed-path
+   * set it shares, and whether it logs was decided twice. This method made it
+   * one decision. Since #1435 source mode discovers through
+   * `_buildPipelineInput` too, so there is one call site; the options stay
+   * decided here, where the roots and the include directories are the
+   * caller's only business.
    *
    * ## `processedPaths` is inert today, and stays
    *
    * Dropping it reddens 0 of 1248 fixtures. It seeds the resolver's `visited`
-   * set, and the set is empty at both call sites: the only production writer is
-   * `doCollectHeaderSymbols`, which is Stage 2, and both callers are discovery.
+   * set, and the set is empty at the call site: the only production writer is
+   * `doCollectHeaderSymbols`, which is Stage 2, and the caller is discovery.
    * `isHeaderProcessed` has no production caller at all -- tests are its only
    * readers, which is why knip and `unused-code:check` stay green over it
    * (#1418).
@@ -1431,7 +1442,7 @@ class Transpiler {
     this.userIncludes.clear();
     this.headerIncludeDirectives.clear();
     this.processedHeaders.clear();
-    // #1452: 1.1 Discover's two maps. `TranspilerState.reset()` cleared these
+    // #1452: 1.1 Discover's maps (three since #1435). `TranspilerState.reset()` cleared these
     // alongside the five above, and re-writing that teardown as inline calls
     // dropped them -- the drift this method's own SymbolTable comment below
     // records, in the commit that recorded it. `IDiscoveryFacts` documents
@@ -1440,6 +1451,7 @@ class Transpiler {
     // so a retained entry answers for a file the run never saw.
     this.discoveredCnxIncludeRewrites.clear();
     this.discoveredIncludeSearchPaths.clear();
+    this.discoveredQuotedIncludeDirectories.clear();
     // ADR-049: the previous run's targets must not decide this run's budget
     this.pragmaTargets = [];
     // #1662: both are run-scoped and both were initialized ONCE, in the
@@ -1986,27 +1998,24 @@ class Transpiler {
   // ===========================================================================
 
   /**
-   * Discover C-Next files from a single input (file or directory).
-   */
-  /**
-   * Collect headers from resolved includes, filtering out generated ones.
+   * Collect the C/C++ headers a file includes.
+   *
+   * #1435: this skipped any header whose BASENAME matched a C-Next file of the
+   * run, a guess from when discovery scanned whole directories and every `.h`
+   * beside a `.cnx` was "likely generated output" (77d2a9903). A basename is
+   * not an identity -- the #1134 shape -- so `uart.cnx` wrapping ESP-IDF's
+   * `<driver/uart.h>` lost the vendor header and failed with E0422. A header
+   * the transpiler generated is identified by the marker it carries, and
+   * `IncludeResolver.resolveHeadersTransitively` already skips it on that.
    */
   private _collectHeaders(
     resolved: {
       headers: IDiscoveredFile[];
       headerIncludeDirectives: Map<string, string>;
     },
-    cnextBaseNames: Set<string>,
     headerSet: Map<string, IDiscoveredFile>,
   ): void {
     for (const header of resolved.headers) {
-      const headerBaseName = basename(header.path).replace(
-        /\.h$|\.hpp$|\.hxx$|\.hh$/,
-        "",
-      );
-      if (cnextBaseNames.has(headerBaseName)) {
-        continue;
-      }
       headerSet.set(header.path, header);
       // Issue #497: Store the include directive for this header
       const directive = resolved.headerIncludeDirectives.get(header.path);
@@ -2033,16 +2042,11 @@ class Transpiler {
     cnxPath: string,
     depGraph: DependencyGraph,
     cnextFiles: IDiscoveredFile[],
-    cnextBaseNames: Set<string>,
     fileByPath: Map<string, IDiscoveredFile>,
   ): IDiscoveredFile[] {
     const direct: IDiscoveredFile[] = [];
     for (const cnxInclude of resolved.cnextIncludes) {
       const includePath = resolve(cnxInclude.path);
-      const includeBaseName = basename(includePath).replace(
-        /\.cnx$|\.cnext$/,
-        "",
-      );
 
       depGraph.addDependency(cnxPath, includePath);
 
@@ -2058,12 +2062,9 @@ class Transpiler {
       // Keying on the basename made can/config.cnx and uart/config.cnx the same
       // file, so the second was dropped from the compilation entirely — the
       // transpiler exited 0 and emitted C-Next source syntax into the C output.
-      // `cnextBaseNames` still tracks base names, but only for header shadowing
-      // in _collectHeaders; it is not a file identity.
       const existing = cnextFiles.find((f) => resolve(f.path) === includePath);
       if (!existing) {
         cnextFiles.push(cnxInclude);
-        cnextBaseNames.add(includeBaseName);
         fileByPath.set(includePath, cnxInclude);
       }
       direct.push(existing ?? cnxInclude);
@@ -2072,8 +2073,11 @@ class Transpiler {
   }
 
   /**
-   * Resolve one C-Next file's includes -- the ONE place discovery decides a
-   * file's text and search path.
+   * Resolve one `.cnx` file's includes -- the one place discovery decides such
+   * a file's text, its directory and its search path. The directory and the
+   * search path are recorded, so 2.1's ADR-010 rules read them rather than
+   * derive them again. (A C/C++ entry point's marker scan still builds a
+   * search path of its own: #1706.)
    *
    * #1435: every file in a run comes through here, including the root of a
    * source run, whose text is `inMemory.source` and whose directory is its
@@ -2116,6 +2120,8 @@ class Transpiler {
     this._recordCnxIncludeRewrites(cnxFile.path, resolved.cnextIncludeRewrites);
     // Issue #1322: the same list ADR-010's E0504 asks about in pass 2.1
     this.discoveredIncludeSearchPaths.set(cnxFile.path, [...searchPaths]);
+    // #1435: and the same directory its E0506 and quoted E0504 resolve from
+    this.discoveredQuotedIncludeDirectories.set(cnxFile.path, sourceDir);
     this.warnings.push(...resolved.warnings);
     return resolved;
   }
@@ -2262,9 +2268,6 @@ class Transpiler {
   ): IPipelineInput {
     const headerSet = new Map<string, IDiscoveredFile>();
     const depGraph = new DependencyGraph();
-    const cnextBaseNames = new Set(
-      cnextFiles.map((f) => basename(f.path).replace(/\.cnx$|\.cnext$/, "")),
-    );
 
     const directForeignHeaderFiles = new Set<string>();
     // #1435: the include graph, kept. It is resolved here once, with the full
@@ -2281,7 +2284,7 @@ class Transpiler {
       if (resolved.hasForeignInclude) {
         directForeignHeaderFiles.add(cnxPath);
       }
-      this._collectHeaders(resolved, cnextBaseNames, headerSet);
+      this._collectHeaders(resolved, headerSet);
       includesByPath.set(
         cnxPath,
         this._processCnextIncludes(
@@ -2289,7 +2292,6 @@ class Transpiler {
           cnxPath,
           depGraph,
           cnextFiles,
-          cnextBaseNames,
           fileByPath,
         ),
       );

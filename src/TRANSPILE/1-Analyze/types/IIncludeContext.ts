@@ -11,8 +11,14 @@
  * unit test answer the same way a files-mode run does.
  */
 interface IIncludeContext {
-  /** Absolute path of the file being analyzed. */
-  readonly sourcePath: string;
+  /**
+   * The directory a quoted include from this file resolves from, as DISCOVERY
+   * resolved it (#1435). Handed in rather than taken as `dirname` of the
+   * file's path: for a source run's in-memory root the caller's `workingDir`
+   * decides it, and a second derivation here disagreed with discovery about
+   * which quoted includes exist.
+   */
+  readonly quotedIncludeDirectory: string;
 
   /**
    * Directories an angle include is searched along, in priority order, as

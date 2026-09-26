@@ -50,6 +50,7 @@ import type IVisibilityInput from "../../transpiler/types/IVisibilityInput";
 import TSymbolInfoAdapter from "../3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import TransitiveEnumCollector from "./TransitiveEnumCollector";
 import VisibleSymbols from "./VisibleSymbols";
+import invariant from "../../utils/invariant";
 
 /** Shared empty result, so a miss does not allocate. */
 const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
@@ -87,6 +88,7 @@ const NO_MODIFICATIONS: IModificationFacts = {
 const NO_DISCOVERY: IDiscoveryFacts = {
   cnxIncludeRewrites: new Map(),
   includeSearchPaths: new Map(),
+  quotedIncludeDirectories: new Map(),
 };
 
 /** A program built without include information: each file sees only itself. */
@@ -194,6 +196,14 @@ class Program {
         discovery.cnxIncludeRewrites.get(sourceFile) ?? EMPTY_REWRITES,
       includeSearchPaths: (sourceFile: string): readonly string[] =>
         discovery.includeSearchPaths.get(sourceFile) ?? EMPTY_PATHS,
+      quotedIncludeDirectory: (sourceFile: string): string => {
+        const directory = discovery.quotedIncludeDirectories.get(sourceFile);
+        invariant(
+          directory !== undefined,
+          `discovery recorded no directory for ${sourceFile}, which it resolved`,
+        );
+        return directory;
+      },
       scope: (path: string): IScopeSymbol | null =>
         registry?.getScope(path) ?? null,
       // Delegated like every sibling in this literal, rather than re-spelling
