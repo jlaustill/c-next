@@ -568,7 +568,7 @@ The GitHub Actions workflow (`.github/workflows/pr-checks.yml`) automatically ru
 6. ✅ **Static Analysis** - formatting (`prettier:check`), linting (`oxlint:check`), types (`typecheck`)
 7. ✅ **C Static Analysis** - `npm run validate:c` (cppcheck / MISRA across compiler matrix)
 8. ✅ **Bugs Regression** + **Verify Clean** - regression fixtures and no-uncommitted-output guard
-9. ✅ **SonarCloud** - quality gate (coverage, duplication, complexity)
+9. ✅ **SonarCloud** - quality gate (coverage, duplication, complexity). A pull request from a **fork** gets no `SONAR_TOKEN`, so this job skips there and `.github/workflows/sonar.yml` scans it after the checks complete (`workflow_run`, #1680); the result arrives as the App's **"SonarCloud Code Analysis"** check
 
 The two ruleset-required status checks gating merge are **"All Checks Passed"** (aggregates the jobs above) and **"SonarCloud Code Analysis"**.
 
