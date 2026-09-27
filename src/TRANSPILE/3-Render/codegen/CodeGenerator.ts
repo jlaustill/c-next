@@ -658,25 +658,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Get struct field info for .length calculations.
-   * Part of IOrchestrator interface.
-   *
-   * Delegated, not re-implemented. This body was a second copy that asked
-   * `symbolTable` alone -- a bare `structFields.get(name)` with no key
-   * derivation -- so it answered `null` for a SCOPE-declared struct, whose
-   * fields are recorded under the transpiled key. #1322 fixed that on the state
-   * by falling back through `resolvedStructKey`, and the fix reached
-   * `AssignmentClassifier` and `BitmapHandlers` while the six sites that come
-   * through `IOrchestrator` kept the old answer.
-   */
-  getStructFieldInfo(
-    structType: string,
-    fieldName: string,
-  ): { type: string; dimensions?: (number | string)[] } | null {
-    return this.state.getStructFieldInfo(structType, fieldName);
-  }
-
-  /**
    * Get member type info for struct access chains.
    * Part of IOrchestrator interface.
    *

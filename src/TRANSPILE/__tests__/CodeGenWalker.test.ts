@@ -2002,27 +2002,6 @@ describe("CodeGenWalker", () => {
     });
   });
 
-  describe("getStructFieldInfo()", () => {
-    it("should return field info for known struct", () => {
-      const { host } = createMinimalGenerator(`
-        struct Point { i32 x; i32 y; }
-      `);
-
-      const fieldInfo = host.getStructFieldInfo("Point", "x");
-      expect(fieldInfo).not.toBeNull();
-      expect(fieldInfo?.type).toBe("i32");
-    });
-
-    it("should return null for unknown field", () => {
-      const { host } = createMinimalGenerator(`
-        struct Point { i32 x; i32 y; }
-      `);
-
-      const fieldInfo = host.getStructFieldInfo("Point", "z");
-      expect(fieldInfo).toBeNull();
-    });
-  });
-
   describe("getMemberTypeInfo()", () => {
     it("should return member type info for known struct", () => {
       const { host } = createMinimalGenerator(`

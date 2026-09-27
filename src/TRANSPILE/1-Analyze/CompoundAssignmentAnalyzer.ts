@@ -110,11 +110,7 @@ class CompoundAssignmentAnalyzer {
 
   /** A bounded string value -- not an element of one, which is a char */
   public static isString(t: IOperandType | null): boolean {
-    return (
-      t !== null &&
-      t.dimensions.length === 0 &&
-      (t.stringCapacity !== null || /^string\s*</.test(t.typeName ?? ""))
-    );
+    return t !== null && t.dimensions.length === 0 && OperandTyper.isString(t);
   }
 
   public analyze(tree: Parser.ProgramContext): ICompoundAssignmentError[] {

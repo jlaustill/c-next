@@ -161,21 +161,6 @@ describe("TranspileState", () => {
       state.symbols = mockSymbols;
       expect(state.getStructFieldType("MyStruct", "field1")).toBe("u32");
     });
-
-    it("isStructFieldArray returns false without symbols", () => {
-      state.symbols = null;
-      expect(state.isStructFieldArray("MyStruct", "arrayField")).toBe(false);
-    });
-
-    it("isStructFieldArray returns true for array field", () => {
-      state.symbols = mockSymbols;
-      expect(state.isStructFieldArray("MyStruct", "arrayField")).toBe(true);
-    });
-
-    it("isStructFieldArray returns false for non-array field", () => {
-      state.symbols = mockSymbols;
-      expect(state.isStructFieldArray("MyStruct", "field1")).toBe(false);
-    });
   });
 
   describe("getEnumMembers()", () => {

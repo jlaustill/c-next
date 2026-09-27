@@ -1287,15 +1287,6 @@ class TranspileState {
   }
 
   /**
-   * Check if a struct field is an array.
-   */
-  isStructFieldArray(structName: string, fieldName: string): boolean {
-    return (
-      this.symbols?.structFieldArrays.get(structName)?.has(fieldName) ?? false
-    );
-  }
-
-  /**
    * Get enum members for an enum.
    */
   getEnumMembers(enumName: string): ReadonlyMap<string, number> | undefined {

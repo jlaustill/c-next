@@ -240,12 +240,6 @@ interface IOrchestrator {
   /** Get the separator for scope access (:: for C++, _ for C-Next) */
   getScopeSeparator(isCppAccess: boolean): string;
 
-  /** Get struct field info for .length calculations */
-  getStructFieldInfo(
-    structType: string,
-    fieldName: string,
-  ): { type: string; dimensions?: (number | string)[] } | null;
-
   /** Get member type info for struct access chains */
   getMemberTypeInfo(structType: string, memberName: string): TTypeInfo | null;
 

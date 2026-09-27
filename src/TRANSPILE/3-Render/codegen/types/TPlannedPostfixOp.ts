@@ -1,5 +1,6 @@
 import type IPlannedCallArgument from "./IPlannedCallArgument";
 import type TSubscriptKind from "../../../../transpiler/types/TSubscriptKind";
+import type IChainStep from "../../../../transpiler/types/IChainStep";
 
 /**
  * One operation applied to a postfix expression's primary.
@@ -14,7 +15,12 @@ import type TSubscriptKind from "../../../../transpiler/types/TSubscriptKind";
  */
 type TPlannedPostfixOp =
   /** `.field` */
-  | { readonly kind: "member"; readonly name: string }
+  | {
+      readonly kind: "member";
+      readonly name: string;
+      /** #1668 (C12): the typer's step, or null where its root consumed it */
+      readonly step: IChainStep | null;
+    }
   /**
    * `[i]` or `[start, width]`.
    *
@@ -49,6 +55,8 @@ type TPlannedPostfixOp =
        * integer is subscripted as bits (ADR-024) in both passes.
        */
       readonly typedAs: TSubscriptKind;
+      /** #1668 (C12): the typer's step, or null for an untyped chain */
+      readonly step: IChainStep | null;
     }
   /**
    * `(args)`

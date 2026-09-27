@@ -264,6 +264,22 @@ class OperandTyper {
   }
 
   /**
+   * Whether an operand's type is a string (ADR-045), an array of them
+   * included: a `string<N>`, or the bare `string` keyword, whose capacity is
+   * not known here -- main's `string args[]` (ADR-030) and an unsized
+   * `const string`. #1668 (C12): three rules stood where this one does, and
+   * only this one's callers ask it; the subscript shape knew only a capacity,
+   * so the element of `args[0]` was read as a bit rather than a character.
+   */
+  static isString(t: IOperandType | null): boolean {
+    if (t === null) return false;
+    const name = t.typeName ?? "";
+    return (
+      t.stringCapacity !== null || name === "string" || /^string\s*</.test(name)
+    );
+  }
+
+  /**
    * Whether an operand is essentially Boolean: an applied relational or
    * logical operator, `!`, or a `bool`. A single bit of a scalar is not
    * (ADR-024: it is a bit index), and neither is an array of bools.
@@ -1027,7 +1043,7 @@ class OperandTyper {
     const isArray = t.dimensions.length > 0;
     const isInteger = t.category === "signed" || t.category === "unsigned";
     if (t.form.kind === "foreign" && !isArray && !isInteger) return null;
-    return { isArray, isString: t.stringCapacity !== null };
+    return { isArray, isString: OperandTyper.isString(t) };
   }
 
   private static subscriptOf(

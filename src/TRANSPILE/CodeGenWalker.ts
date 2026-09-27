@@ -40,7 +40,6 @@ import DeclarationPlan from "./2-Plan/DeclarationPlan";
 import CastRequirement from "./2-Plan/CastRequirement";
 import OperandTyper from "../utils/OperandTyper";
 import SubscriptClassifier from "../utils/SubscriptClassifier";
-import type TSubscriptKind from "../transpiler/types/TSubscriptKind";
 import PlanTyping from "./2-Plan/PlanTyping";
 import CompositeType from "../utils/CompositeType";
 import type IOperandType from "../transpiler/types/IOperandType";
@@ -582,7 +581,7 @@ class CodeGenWalker {
     const steps = chain?.steps ?? [];
     const offset = ops.length - steps.length;
     const plannedOps = ops.map((op, i) =>
-      this.planPostfixOp(op, steps[i - offset]?.subscript ?? null),
+      this.planPostfixOp(op, steps[i - offset] ?? null),
     );
 
     return {
@@ -620,11 +619,12 @@ class CodeGenWalker {
   /** Which of `postfixOp`'s three shapes this one is. */
   private planPostfixOp(
     op: Parser.PostfixOpContext,
-    typedAs: TSubscriptKind | null,
+    step: IChainStep | null,
   ): TPlannedPostfixOp {
+    const typedAs = step?.subscript ?? null;
     const identifier = op.IDENTIFIER();
     if (identifier) {
-      return { kind: "member", name: identifier.getText() };
+      return { kind: "member", name: identifier.getText(), step };
     }
 
     const indexes = op.expression();
@@ -651,6 +651,7 @@ class CodeGenWalker {
             typeInfo: null,
             subscriptCount: indexes.length,
           }),
+        step,
       };
     }
 

@@ -105,10 +105,7 @@ class LengthPropertyListener extends CNextListener {
     const dimensions = typed.dimensions.length;
     const element = typed.typeName ?? "";
     // `string<N>` and the unsized `const string`, whose capacity is inferred.
-    const isString =
-      typed.stringCapacity !== null ||
-      element === "string" ||
-      /^string\s*</.test(element);
+    const isString = OperandTyper.isString(typed);
 
     // ADR-058 deprecated `.length` outright: it named a different thing on a
     // string, an array and a scalar, and the four shape properties exist to
