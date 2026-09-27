@@ -493,6 +493,84 @@ void main() {
     });
   });
 
+  describe("a generated header spells a C include as its own file does", () => {
+    // A quoted include is relative to the file that writes it, so "dev.h" in
+    // lib/a.cnx and "../lib/dev.h" in src/main.cnx name one header. The spelling
+    // used to be stored once per run, last writer wins, so main.h could get
+    // a.cnx's "dev.h" -- which names src/dev.h, which does not exist.
+    const DEV_H = `#ifndef DEV_H
+#define DEV_H
+#include <stdint.h>
+typedef struct { uint32_t id; } Dev;
+#endif
+`;
+    let project: string;
+
+    beforeEach(() => {
+      project = mkdtempSync(join(tmpdir(), "cnext-1435-spell-"));
+      mkdirSync(join(project, "lib"));
+      mkdirSync(join(project, "src"));
+      writeFileSync(join(project, "lib", "dev.h"), DEV_H);
+      writeFileSync(
+        join(project, "lib", "a.cnx"),
+        `#include "dev.h"\n\nscope A {\n    public u32 idOf(Dev d) {\n        return d.id;\n    }\n}\n`,
+      );
+    });
+
+    afterEach(() => {
+      rmSync(project, { recursive: true, force: true });
+    });
+
+    const MAIN = `#include "../lib/dev.h"
+#include "../lib/a.cnx"
+
+scope M {
+    public u32 use(Dev d) {
+        return A.idOf(d);
+    }
+}
+`;
+
+    function includesOf(header: string | undefined): string[] {
+      return (header ?? "").split("\n").filter((l) => l.startsWith("#include"));
+    }
+
+    it("in files mode, each header keeps its own file's spelling", async () => {
+      const mainPath = join(project, "src", "main.cnx");
+      writeFileSync(mainPath, MAIN);
+
+      const result = await new Transpiler({
+        input: mainPath,
+        outDir: join(project, "src"),
+        noCache: true,
+      }).transpile({ kind: "files" });
+
+      expect(result.errors).toEqual([]);
+      const byPath = (p: string) =>
+        includesOf(result.files.find((f) => f.sourcePath === p)?.headerCode);
+      expect(byPath(mainPath)).toContain('#include "../lib/dev.h"');
+      expect(byPath(mainPath)).not.toContain('#include "dev.h"');
+      // control: a.cnx's own spelling is right for a.h
+      expect(byPath(join(project, "lib", "a.cnx"))).toContain(
+        '#include "dev.h"',
+      );
+    });
+
+    it("in source mode, the root's header keeps its own spelling", async () => {
+      const mainPath = join(project, "src", "main.cnx");
+
+      const result = await new Transpiler({
+        input: "",
+        noCache: true,
+      }).transpile({ kind: "source", source: MAIN, sourcePath: mainPath });
+
+      expect(result.errors).toEqual([]);
+      const header = includesOf(result.files[0]?.headerCode);
+      expect(header).toContain('#include "../lib/dev.h"');
+      expect(header).not.toContain('#include "dev.h"');
+    });
+  });
+
   describe("an injected IFileSystem", () => {
     let fs: MockFileSystem;
 

@@ -177,8 +177,18 @@ class Transpiler {
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private readonly userIncludes = new Map<string, string[]>();
 
+  /**
+   * #1435: per source file, how THAT file spells each header it includes
+   * (header path -> directive), in discovery order. A quoted spelling is
+   * relative to the file that wrote it, so it is a fact of the file, not of
+   * the run. One run-wide map, last writer wins, gave main.h lib/a.cnx's
+   * `"dev.h"` for a header main.cnx spells `"../lib/dev.h"`.
+   */
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly headerIncludeDirectives = new Map<string, string>();
+  private readonly headerIncludeDirectivesByFile = new Map<
+    string,
+    ReadonlyMap<string, string>
+  >();
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private readonly processedHeaders = new Set<string>();
@@ -1433,7 +1443,7 @@ class Transpiler {
     this.symbolCollectors.clear();
     this.perFilePassByValueParams.clear();
     this.userIncludes.clear();
-    this.headerIncludeDirectives.clear();
+    this.headerIncludeDirectivesByFile.clear();
     this.processedHeaders.clear();
     // #1452: 1.1 Discover's maps. `TranspilerState.reset()` cleared the first
     // two alongside the five above, and re-writing that teardown as inline
@@ -2003,19 +2013,11 @@ class Transpiler {
    * `IncludeResolver.resolveHeadersTransitively` already skips it on that.
    */
   private _collectHeaders(
-    resolved: {
-      headers: IDiscoveredFile[];
-      headerIncludeDirectives: Map<string, string>;
-    },
+    resolved: { headers: IDiscoveredFile[] },
     headerSet: Map<string, IDiscoveredFile>,
   ): void {
     for (const header of resolved.headers) {
       headerSet.set(header.path, header);
-      // Issue #497: Store the include directive for this header
-      const directive = resolved.headerIncludeDirectives.get(header.path);
-      if (directive) {
-        this.headerIncludeDirectives.set(header.path, directive);
-      }
     }
   }
 
@@ -2029,10 +2031,7 @@ class Transpiler {
    *   files were declared under.
    */
   private _processCnextIncludes(
-    resolved: {
-      cnextIncludes: IDiscoveredFile[];
-      headerIncludeDirectives: Map<string, string>;
-    },
+    resolved: { cnextIncludes: IDiscoveredFile[] },
     cnxPath: string,
     depGraph: DependencyGraph,
     cnextFiles: IDiscoveredFile[],
@@ -2043,12 +2042,6 @@ class Transpiler {
       const includePath = resolve(cnxInclude.path);
 
       depGraph.addDependency(cnxPath, includePath);
-
-      // Issue #854: Store header directive for cnext include types
-      const directive = resolved.headerIncludeDirectives.get(includePath);
-      if (directive) {
-        this.headerIncludeDirectives.set(includePath, directive);
-      }
 
       // Don't add if already in the list.
       //
@@ -2127,6 +2120,12 @@ class Transpiler {
     );
     // Issue #1322: the same list ADR-010's E0504 asks about in pass 2.1
     this.discoveredIncludeSearchPaths.set(cnxFile.path, [...searchPaths]);
+    // Issues #497/#854: how this file spells each header and .cnx it includes,
+    // which is what its own generated header must say (#1435)
+    this.headerIncludeDirectivesByFile.set(
+      cnxFile.path,
+      resolved.headerIncludeDirectives,
+    );
     // #1435: and the same directory its E0506 and quoted E0504 resolve from
     this.discoveredQuotedIncludeDirectories.set(cnxFile.path, sourceDir);
     this.warnings.push(...resolved.warnings);
@@ -2886,6 +2885,37 @@ class Transpiler {
     );
   }
 
+  /**
+   * The include directive for every header the run reached, spelled as
+   * `sourcePath` would spell it, for that file's generated header.
+   *
+   * #1435: a header the file includes itself takes the file's own spelling. A
+   * header it reaches only through another file has no spelling of its own
+   * here and keeps the run's last one; this change leaves that case as it
+   * was. The ORDER is the run's first-seen order, unchanged, because
+   * `ExternalTypeHeaderBuilder` lets the first header declaring a type win,
+   * and `Map.set` on a key already present keeps its position.
+   */
+  private _includeDirectivesSpelledBy(
+    sourcePath: string,
+  ): ReadonlyMap<string, string> {
+    const own = this.headerIncludeDirectivesByFile.get(sourcePath);
+    invariant(
+      own !== undefined,
+      `discovery records the include directives of every file it renders (missing ${sourcePath})`,
+    );
+    const directives = new Map<string, string>();
+    for (const fileDirectives of this.headerIncludeDirectivesByFile.values()) {
+      for (const [header, directive] of fileDirectives) {
+        directives.set(header, directive);
+      }
+    }
+    for (const [header, directive] of own) {
+      directives.set(header, directive);
+    }
+    return directives;
+  }
+
   private _captureHeaderEmissionFacts(
     file: IPipelineFile,
   ): IHeaderEmissionFacts | null {
@@ -2938,7 +2968,7 @@ class Transpiler {
     // include ORDER stays here -- it decides which header wins, and that is not
     // a symbol fact.
     const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
-      this.headerIncludeDirectives,
+      this._includeDirectivesSpelledBy(sourcePath),
       {
         typesDeclaredIn: (file: string) =>
           this.program?.typesDeclaredIn(file) ?? new Set<string>(),
