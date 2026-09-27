@@ -167,6 +167,14 @@ class OperandTyper {
     return OperandTyper.walkChain(node, ctx).typing;
   }
 
+  /** The value type an assignment target writes */
+  static typeOfTarget(
+    target: Parser.AssignmentTargetContext,
+    ctx: ITypingContext,
+  ): IOperandType | null {
+    return OperandTyper.walkChain(target, ctx).last;
+  }
+
   /** The chain typed, and the value it ends on */
   private static walkChain(
     node: Parser.PostfixExpressionContext | Parser.AssignmentTargetContext,

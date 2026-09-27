@@ -505,4 +505,91 @@ describe("MixedTypeCategoryAnalyzer", () => {
       expect(errors[0].message).toContain("(integer and floating)");
     });
   });
+
+  // #1668, ruling 2: Rule 10.4's categories, not only signedness and floating
+  describe("MISRA Rule 10.4 categories (#1668)", () => {
+    const ENUMS = "enum Color { RED, GREEN } enum Shape { ROUND, SQUARE }";
+    const LOCALS =
+      "u32 a <- 1; u8 ch <- 65; bool b <- true; Color c <- Color.RED; Shape sh <- Shape.ROUND;";
+
+    it.each([
+      [
+        "an unsigned plus an enum",
+        "u32 r <- a + c;",
+        "unsigned and enum Color",
+      ],
+      ["two different enums", "u32 r <- c + sh;", "enum Color and enum Shape"],
+      [
+        "a character literal times an unsigned",
+        "u32 r <- a * 'A';",
+        "unsigned and character",
+      ],
+      [
+        "an unsigned compared with a character literal",
+        "bool r <- ch = 'A';",
+        "unsigned and character",
+      ],
+      [
+        "a character subtracted in a compound",
+        "a -<- 'A';",
+        "unsigned and character",
+      ],
+      [
+        "an unsigned compared with a Boolean",
+        "bool r <- a = b;",
+        "unsigned and Boolean",
+      ],
+      [
+        "a signed suffixed literal",
+        "u32 r <- a + 5i32;",
+        "signed and unsigned",
+      ],
+    ])("rejects %s", (_label, body, pair) => {
+      const errors = analyze(`${ENUMS} void main() { ${LOCALS} ${body} }`);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain(`(${pair})`);
+    });
+
+    it.each([
+      ["a character added to an unsigned", "u32 r <- a + 'A';"],
+      ["a character added in a compound", "a +<- 'A';"],
+      ["a cast character literal", "bool r <- ch = (u8)'A';"],
+      ["the same enum", "bool r <- c = Color.GREEN;"],
+      // E0434 owns a comparison with an enum operand (ADR-017)
+      ["an enum compared with an integer", "bool r <- a = c;"],
+      ["an unsuffixed literal", "u32 r <- a + 5;"],
+    ])("accepts %s", (_label, body) => {
+      expect(
+        analyze(`${ENUMS} void main() { ${LOCALS} ${body} }`),
+      ).toHaveLength(0);
+    });
+
+    it("rejects an unsigned plus a C header enum, named by its typedef", () => {
+      const symbolTable = new SymbolTable();
+      const at = {
+        sourceFile: "api.h",
+        span: TestSourceSpan.at(1),
+        sourceLanguage: ESourceLanguage.C,
+        visibility: "public",
+      } as const;
+      symbolTable.addCSymbol({
+        kind: "type",
+        name: "c_color_t",
+        type: "enum {C_RED,C_GREEN}",
+        ...at,
+      });
+      symbolTable.addCSymbol({
+        kind: "variable",
+        name: "cColor",
+        type: "c_color_t",
+        ...at,
+      });
+      const errors = analyze(
+        "void main() { u32 a <- 1; u32 r <- a + cColor; }",
+        symbolTable,
+      );
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain("(unsigned and enum c_color_t)");
+    });
+  });
 });

@@ -235,6 +235,42 @@ describe("CResolver - Typedefs", () => {
     expect(result.symbols[0].kind).toBe("type");
   });
 
+  // #1668: `getText()` concatenated a specifier's tokens, running the
+  // keyword into the tag, which no lookup matches -- so a C enum operand had
+  // no essential type. One spelling for every declaration shape.
+  it.each([
+    [
+      "enum tag_e { A, B };\ntypedef enum tag_e tagged_t;",
+      "tagged_t",
+      "enum tag_e",
+    ],
+    [
+      "typedef enum { C_RED, C_GREEN } c_color_t;",
+      "c_color_t",
+      "enum {C_RED,C_GREEN}",
+    ],
+    ["struct foo { int x; };\ntypedef struct foo foo_t;", "foo_t", "foo"],
+    ["enum tag_e { A, B };\nextern enum tag_e ev;", "ev", "enum tag_e"],
+    ["struct foo { int x; };\nextern struct foo gv;", "gv", "foo"],
+    ["typedef unsigned int u_t;", "u_t", "unsigned int"],
+  ])("spells the specifier in %j as %j: %j", (source, name, type) => {
+    const tree = TestHelpers.parseC(source);
+    const result = CResolver.resolve(tree!, "test.h");
+
+    const symbol = result.symbols.find((s) => s.name === name);
+    expect(symbol && "type" in symbol ? symbol.type : undefined).toBe(type);
+  });
+
+  it("spells a struct return type by its tag", () => {
+    const tree = TestHelpers.parseC(
+      "struct foo { int x; };\nstruct foo get(void);",
+    );
+    const result = CResolver.resolve(tree!, "test.h");
+
+    const symbol = result.symbols.find((s) => s.name === "get");
+    expect(symbol?.kind === "function" ? symbol.type : undefined).toBe("foo");
+  });
+
   it("collects multiple typedefs", () => {
     const tree = TestHelpers.parseC(`
       typedef int Int32;

@@ -1639,7 +1639,7 @@ describe("CacheManager", () => {
       const content = mockFs.getWrittenContent("/project/.cnx/config.json");
       expect(content).toBeDefined();
       const newConfig = JSON.parse(content!);
-      expect(newConfig.version).toBe(11); // Current CACHE_VERSION (Issue #1318)
+      expect(newConfig.version).toBe(12); // Current CACHE_VERSION (Issue #1668)
     });
 
     it("should not cache files that do not exist in IFileSystem", async () => {

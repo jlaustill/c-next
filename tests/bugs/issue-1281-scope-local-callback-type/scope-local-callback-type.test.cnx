@@ -111,7 +111,7 @@ scope NoCapture {
         // the half under test: it stays the global `Mode`, because a scope
         // variable is not type-forming.
         Holder h <- { m: global.Mode.BETA };
-        return h.m + Mode;
+        return (u32)h.m + Mode;
     }
 }
 

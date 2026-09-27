@@ -37,7 +37,9 @@ const defaultFs = NodeFileSystem.instance;
 // TCSymbol/TCppSymbol unions are types, so their keys cannot be enumerated at
 // runtime. Struct-state drift no longer needs a bump: STRUCT_STATE_SHAPE below
 // is derived and invalidates on its own.
-const CACHE_VERSION = 11; // Issue #1318: symbols carry `span`, not `sourceLine`
+// Issue #1668: a C struct/enum specifier is spelled `enum tag` / `foo`, not
+// with the keyword run into the tag -- same entry shape, different values.
+const CACHE_VERSION = 12;
 
 const TRANSPILER_VERSION = packageJson.version;
 

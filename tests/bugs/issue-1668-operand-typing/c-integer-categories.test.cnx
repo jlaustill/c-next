@@ -1,0 +1,23 @@
+// test-error
+// test-adr: 024
+// #1668 (ADR-024, R4): a C or C++ header's integer operand has a category
+// from its C type -- through typedefs, fields and function results -- and a
+// C enum is an enum. Before R4 they had none, so `a + cSigned` mixed
+// unsigned with signed silently.
+#include "c_ints.h"
+
+void main() {
+    u32 a <- 1;
+
+    // NEGATIVE CONTROLS -- unsigned, and MISRA's character exception.
+    u32 ok1 <- a + cU32;
+    u32 ok2 <- a + cs.n;
+    u32 ok3 <- a + cChar;
+
+    // ASSERTIONS
+    u32 e1 <- a + cSigned;
+    u32 e2 <- a + cGetS();
+    u32 e3 <- a + cSensor;
+    u32 e4 <- a + cs.v;
+    u32 e5 <- a + cColor;
+}

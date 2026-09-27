@@ -53,7 +53,7 @@ uint32_t Span__runAll(void) {
     Span__Point p = { .x = 3U, .y = 4U };
     Span__Mode m = Span__Mode__BETA;
     uint32_t viaC = Span__fromC(&p);
-    return cnx_clamp_add_u32(viaC, m);
+    return cnx_clamp_add_u32(viaC, (uint32_t)m);
 }
 
 int main(void) {

@@ -37,19 +37,19 @@ int main(void) {
     uint8_t space = (uint8_t)' ';
     if (space != 32) return 4U;
     uint8_t c = (uint8_t)'X';
-    if (c != 'X') return 5U;
-    if (c == 'Y') return 6U;
+    if (c != (uint8_t)'X') return 5U;
+    if (c == (uint8_t)'Y') return 6U;
     if ('A' >= 'B') return 7U;
     if ('Z' <= 'A') return 8U;
     uint8_t first = (uint8_t)'a';
     uint8_t second = (uint8_t)'b';
     if (first >= second) return 9U;
     uint8_t vowels[5] = {(uint8_t)'a', (uint8_t)'e', (uint8_t)'i', (uint8_t)'o', (uint8_t)'u'};
-    if (vowels[0U] != 'a') return 10U;
-    if (vowels[1U] != 'e') return 11U;
-    if (vowels[2U] != 'i') return 12U;
-    if (vowels[3U] != 'o') return 13U;
-    if (vowels[4U] != 'u') return 14U;
+    if (vowels[0U] != (uint8_t)'a') return 10U;
+    if (vowels[1U] != (uint8_t)'e') return 11U;
+    if (vowels[2U] != (uint8_t)'i') return 12U;
+    if (vowels[3U] != (uint8_t)'o') return 13U;
+    if (vowels[4U] != (uint8_t)'u') return 14U;
     uint8_t buffer[4] = {0};
     buffer[0] = (uint8_t)'H';
     buffer[1] = (uint8_t)'i';
@@ -130,9 +130,9 @@ int main(void) {
     if (heading != 180) return 20U;
     uint8_t upperA = (uint8_t)'A';
     uint8_t lowerA = cnx_clamp_add_u8(upperA, 32U);
-    if (lowerA != 'a') return 21U;
+    if (lowerA != (uint8_t)'a') return 21U;
     uint8_t lowerZ = (uint8_t)'z';
     uint8_t upperZ = cnx_clamp_sub_u8(lowerZ, 32U);
-    if (upperZ != 'Z') return 22U;
+    if (upperZ != (uint8_t)'Z') return 22U;
     return 0U;
 }

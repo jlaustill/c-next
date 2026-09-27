@@ -13,6 +13,11 @@
    the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
    uint8_t parameter would return 0 -- the opposite of saturation. */
 
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
 static inline uint64_t cnx_clamp_mul_u64(uint64_t a, uint64_t b) {
     if (b != 0 && a > UINT64_MAX / b) return UINT64_MAX;
     return (uint64_t)(a * (uint64_t)b);
@@ -24,7 +29,11 @@ static inline uint64_t cnx_clamp_mul_u64(uint64_t a, uint64_t b) {
 // - a trailing `F32`/`F64` also ends a hex integer, and the render layer
 //   stripped it as a float suffix: 0xFF32 was emitted as 0xFf (255);
 // - a `.` also occurs in the char literal '.', and E0804 rejected
-//   `x % '.'` as a floating modulo operand.
+//   `x % '.'` as a floating modulo operand. Every rule now asks the one
+//   operand typer, and '.' is a character: `x % '.'` is E0810, since
+//   character is its own Rule 10.4 category and `%` is not MISRA's character
+//   exception. `+` is, so it checks the classification: a character operand
+//   is allowed there and a floating one is not.
 int main(void) {
     uint32_t hex32 = 0xFF32U;
     if (hex32 != 65330) return 1U;
@@ -32,8 +41,8 @@ int main(void) {
     uint64_t hex64 = cnx_clamp_mul_u64(three, 0xABCDEF64ULL);
     if (hex64 != 8647200300) return 2U;
     uint8_t hundred = 100U;
-    uint8_t remainder = hundred % static_cast<uint8_t>('.');
-    if (remainder != 8) return 3U;
+    uint8_t sum = cnx_clamp_add_u8(hundred, static_cast<uint8_t>('.'));
+    if (sum != 146) return 3U;
     float suffixed = 2.5f;
     if (suffixed != 2.5) return 4U;
     return 0U;

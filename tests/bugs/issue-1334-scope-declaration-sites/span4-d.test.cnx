@@ -31,7 +31,7 @@ scope Span {
         Point p <- { x: 3, y: 4 };
         Mode m <- Mode.BETA;
         u32 viaC <- fromC(p);
-        return viaC + m;
+        return viaC + (u32)m;
     }
 }
 

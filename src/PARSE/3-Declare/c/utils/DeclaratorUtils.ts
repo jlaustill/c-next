@@ -15,6 +15,7 @@ import type {
   StructDeclarationContext,
   StructDeclaratorContext,
   InitDeclaratorListContext,
+  TypeSpecifierContext,
 } from "../../../2-Parse/c/grammar/CParser";
 import SymbolUtils from "../../SymbolUtils";
 import IExtractedParameter from "../../shared/IExtractedParameter";
@@ -152,11 +153,40 @@ class DeclaratorUtils {
     for (const spec of declSpecs.declarationSpecifier()) {
       const typeSpec = spec.typeSpecifier();
       if (typeSpec) {
-        parts.push(typeSpec.getText());
+        parts.push(DeclaratorUtils.typeSpecifierText(typeSpec));
       }
     }
 
     return parts.join(" ") || "int";
+  }
+
+  /**
+   * How one type specifier is spelled in a recorded C type -- the one
+   * decision for declarations, typedefs and struct fields (#1668).
+   *
+   * `getText()` concatenates tokens, so `struct foo` and `enum tag_e` were
+   * recorded with the keyword and the tag run together, which no lookup
+   * matches.
+   * A struct or union is spelled by its tag, the name its fields are keyed
+   * by (an anonymous one is reconstructed); an enum as `enum tag`, or
+   * `enum {...}` when anonymous, so its kind is still readable.
+   */
+  static typeSpecifierText(typeSpec: TypeSpecifierContext): string {
+    const structSpec = typeSpec.structOrUnionSpecifier();
+    if (structSpec) {
+      const identifier = structSpec.Identifier();
+      return identifier
+        ? identifier.getText()
+        : DeclaratorUtils.reconstructAnonymousStruct(structSpec);
+    }
+    const enumSpec = typeSpec.enumSpecifier();
+    if (enumSpec) {
+      const identifier = enumSpec.Identifier();
+      return identifier
+        ? `enum ${identifier.getText()}`
+        : `enum ${enumSpec.getText().replace(/^enum/, "")}`;
+    }
+    return typeSpec.getText();
   }
 
   /**
@@ -224,20 +254,7 @@ class DeclaratorUtils {
     while (current) {
       const typeSpec = current.typeSpecifier?.();
       if (typeSpec) {
-        // Check for struct/union specifier - need to extract just the identifier
-        const structSpec = typeSpec.structOrUnionSpecifier?.();
-        if (structSpec) {
-          const identifier = structSpec.Identifier?.();
-          if (identifier) {
-            // Use just the struct/union name, not "structName" concatenated
-            parts.push(identifier.getText());
-          } else {
-            // Anonymous struct - reconstruct with proper spacing
-            parts.push(DeclaratorUtils.reconstructAnonymousStruct(structSpec));
-          }
-        } else {
-          parts.push(typeSpec.getText());
-        }
+        parts.push(DeclaratorUtils.typeSpecifierText(typeSpec));
       }
 
       const typeQual = current.typeQualifier?.();

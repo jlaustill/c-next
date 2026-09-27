@@ -415,7 +415,7 @@ class CResolver {
     for (let i = 0; i < endIndex; i++) {
       const typeSpec = specs[i].typeSpecifier();
       if (typeSpec) {
-        typeParts.push(typeSpec.getText());
+        typeParts.push(DeclaratorUtils.typeSpecifierText(typeSpec));
       }
     }
     return typeParts.join(" ") || "int";

@@ -33,11 +33,11 @@ int main(void) {
     if (escapes[5U] != 39) return 13U;
     if (escapes[6U] != 34) return 14U;
     uint8_t c = static_cast<uint8_t>('\n');
-    if (c != '\n') return 15U;
+    if (c != static_cast<uint8_t>('\n')) return 15U;
     c = static_cast<uint8_t>('\t');
-    if (c != '\t') return 16U;
+    if (c != static_cast<uint8_t>('\t')) return 16U;
     c = static_cast<uint8_t>('\0');
-    if (c != '\0') return 17U;
+    if (c != static_cast<uint8_t>('\0')) return 17U;
     uint8_t whitespace = static_cast<uint8_t>('\t');
     uint32_t wsType = 0U;
     switch (whitespace) {

@@ -90,7 +90,7 @@ static uint32_t NoCapture__Mode = 5U;
 
 uint32_t NoCapture__run(void) {
     NoCapture__Holder h = { .m = Mode__BETA };
-    return h.m + NoCapture__Mode;
+    return static_cast<uint32_t>(h.m) + NoCapture__Mode;
 }
 
 int main(void) {

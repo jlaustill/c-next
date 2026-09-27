@@ -292,6 +292,8 @@ class ForeignTypeFacts {
       element: Pick<IOperandType, "typeName" | "category" | "bitWidth"> | null,
     ) => ({ element, dimensions });
     let type = ForeignTypeFacts.spellingOf(cType);
+    // An anonymous enum is named by the typedef that names it
+    let typedefName = type;
     for (let hop = 0; hop < ForeignTypeFacts.MAX_TYPEDEF_HOPS; hop += 1) {
       if (type.includes("*") || type.includes("&")) {
         return dimensions.length > 0 ? found(null) : null;
@@ -300,7 +302,9 @@ class ForeignTypeFacts {
       if (known !== undefined) return found(known);
       if (type.startsWith("enum ") || ForeignTypeFacts.isEnum(lookup, type)) {
         return found({
-          typeName: type.replace(/^enum /, ""),
+          typeName: type.startsWith("enum {")
+            ? typedefName
+            : type.replace(/^enum /, ""),
           category: "enum",
           bitWidth: null,
         });
@@ -316,6 +320,7 @@ class ForeignTypeFacts {
       if ("arrayDimensions" in typedef && typedef.arrayDimensions) {
         dimensions.push(...typedef.arrayDimensions);
       }
+      typedefName = type;
       type = ForeignTypeFacts.spellingOf(typedef.type);
     }
     return null;

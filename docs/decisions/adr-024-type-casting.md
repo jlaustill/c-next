@@ -235,6 +235,18 @@ EColor c <- EColor.RED;
 u32 x <- a + c;        // ERROR: unsigned and enum EColor
 ```
 
+**A character literal is essentially character** (owner ruling, 2026-09-26, #1668: strict MISRA). Unlike an unsuffixed integer literal it is not contextually typed, so comparing it with an integer, or combining the two with any operator but `+`, is the mix. Cast the literal to say which is meant:
+
+```cnx
+// with u8 ch, u8 digit, u32 a
+bool x <- ch = 'A';        // ERROR: unsigned and character
+bool y <- ch = (u8)'A';    // OK: both unsigned
+u8 d <- (u8)'0' + digit;   // OK
+u32 e <- a + 'A';          // OK: MISRA's + exception
+```
+
+A comparison with an enum operand is ADR-017's question, and is reported once, as ADR-017's diagnostic.
+
 **A suffixed integer literal takes its suffix's category and width** (owner ruling, 2026-09-26, #1668). A suffix fixes the literal's type, so it is not contextually typed:
 
 ```cnx

@@ -29,7 +29,7 @@ scope Lib {
     public u32 useBoth() {
         Mode m <- Mode.BETA;
         Point p <- { x: 3, y: 4 };
-        return p.x + p.y + m;
+        return p.x + p.y + (u32)m;
     }
 }
 

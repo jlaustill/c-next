@@ -43,7 +43,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 uint32_t Lib__useBoth(void) {
     Lib__Mode m = Lib__Mode__BETA;
     Lib__Point p = { .x = 3U, .y = 4U };
-    return p.x + p.y + m;
+    return p.x + p.y + static_cast<uint32_t>(m);
 }
 
 uint32_t Lib__sumThrough(const Lib__Point& p) {
