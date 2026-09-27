@@ -306,6 +306,14 @@ void main() {
     expect(OperandTyper.isBoolean(t)).toBe(false);
   });
 
+  it("does not call an array of bools a Boolean", () => {
+    const row = typeOf(inMain("bool[2][3] f;\nbool r <- f[0];"));
+    expect(row).toMatchObject({ typeName: "bool", dimensions: [3] });
+    expect(OperandTyper.isBoolean(row)).toBe(false);
+    const cell = typeOf(inMain("bool[2][3] f;\nbool r <- f[0][1];"));
+    expect(OperandTyper.isBoolean(cell)).toBe(true);
+  });
+
   it("types a bit range at its folded width (C18b)", () => {
     const t = typeOf(inMain("const u8 W <- 8;\nu32 w <- 1;\nu8 r <- w[0, W];"));
     expect(t).toMatchObject({ typeName: "u8", bitWidth: 8 });

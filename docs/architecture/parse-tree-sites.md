@@ -29,13 +29,13 @@ one.
 
 | Layer                   | Modules |
 | ----------------------- | ------: |
-| `src/TRANSPILE/`        |      66 |
+| `src/TRANSPILE/`        |      68 |
 | `src/PARSE/`            |      19 |
 | `src/utils/`            |      12 |
 | `src/transpiler/`       |       3 |
 | `src/transpiler/types/` |       2 |
 | `src/transpiler/logic/` |       1 |
-| **total**               | **103** |
+| **total**               | **105** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -67,6 +67,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts`           | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ArrayIndexBoundsAnalyzer.ts`           | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ArrayIndexTypeAnalyzer.ts`             | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/AssignmentSiteListener.ts`             | grammar           |
 | `src/TRANSPILE/1-Analyze/BareEnumMemberAnalyzer.ts`             | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/BinaryOperatorLevelListener.ts`        | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/BitAccessAnalyzer.ts`                  | antlr4ng, grammar |
@@ -122,6 +123,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts`              | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`            | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ThisOutsideScopeAnalyzer.ts`           | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/types/TAssignmentSite.ts`              | grammar           |
 | `src/TRANSPILE/1-Analyze/UndeclaredTypeAnalyzer.ts`             | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/UndeclaredValueAnalyzer.ts`            | antlr4ng, grammar |
 | `src/TRANSPILE/2-Plan/AssignmentContextBuilder.ts`              | grammar           |
@@ -149,4 +151,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/ParserUtils.ts`                                      | antlr4ng, grammar |
 | `src/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-103 module(s).
+105 module(s).

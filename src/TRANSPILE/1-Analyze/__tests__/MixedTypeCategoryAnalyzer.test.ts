@@ -558,6 +558,12 @@ describe("MixedTypeCategoryAnalyzer", () => {
       // E0434 owns a comparison with an enum operand (ADR-017)
       ["an enum compared with an integer", "bool r <- a = c;"],
       ["an unsuffixed literal", "u32 r <- a + 5;"],
+      // Rule 10.1 owns a Boolean outside equality (E0807/E0806)
+      ["a Boolean operand of arithmetic", "u32 r <- a + b;"],
+      ["a Boolean operand of a relational", "bool r <- a < b;"],
+      ["a Boolean compound value", "a +<- b;"],
+      // An array operand is #1191's defect, not a category mix
+      ["a partially indexed array", "i8[2][3] g; u32 r <- a + g[0];"],
     ])("accepts %s", (_label, body) => {
       expect(
         analyze(`${ENUMS} void main() { ${LOCALS} ${body} }`),

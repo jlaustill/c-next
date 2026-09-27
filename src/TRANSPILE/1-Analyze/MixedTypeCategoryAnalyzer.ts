@@ -44,14 +44,16 @@
  */
 
 import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IMixedTypeCategoryError from "./types/IMixedTypeCategoryError";
 import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
+import AssignmentSiteListener from "./AssignmentSiteListener";
+import BooleanOperandAnalyzer from "./BooleanOperandAnalyzer";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type TBinaryOperatorLevel from "./types/TBinaryOperatorLevel";
+import type TAssignmentSite from "./types/TAssignmentSite";
 import type IOperandType from "../../transpiler/types/IOperandType";
 
 /**
@@ -71,13 +73,11 @@ const NOT_RULE_10_4_ASSIGNMENTS: ReadonlySet<string> = new Set([
 /** The operators MISRA lets combine a character with an integer */
 const CHARACTER_ARITHMETIC: ReadonlySet<string> = new Set(["+", "+<-"]);
 
-class MixedCategoryListener extends CNextListener {
+class MixedCategoryCheck {
   constructor(
     private readonly analyzer: MixedTypeCategoryAnalyzer,
     private readonly context: IAnalysisContext,
-  ) {
-    super();
-  }
+  ) {}
 
   /**
    * An operand's Rule 10.4 category, or null when it has none. The policy
@@ -85,6 +85,8 @@ class MixedCategoryListener extends CNextListener {
    */
   static rule104Category(t: IOperandType | null): Category {
     if (t === null) return null;
+    // An array is not an arithmetic operand of any category (#1191)
+    if (t.dimensions.length > 0) return null;
     // A subscript into a scalar is a bit index or range, not arithmetic
     // on the scalar's category (ADR-024)
     if (t.form.kind === "bitIndex" || t.form.kind === "bitRange") return null;
@@ -102,7 +104,7 @@ class MixedCategoryListener extends CNextListener {
   private operandCategory(ctx: ParserRuleContext): Category {
     let resolved: Category = null;
     for (const leaf of OperandTyper.valueLeaves(ctx, this.context)) {
-      const category = MixedCategoryListener.rule104Category(leaf);
+      const category = MixedCategoryCheck.rule104Category(leaf);
       if (category === null) continue;
       if (resolved === null) {
         resolved = category;
@@ -118,24 +120,36 @@ class MixedCategoryListener extends CNextListener {
     level: TBinaryOperatorLevel,
   ): void {
     const parent = operands[0]?.parent;
-    const comparison = level === "equality" || level === "relational";
     for (let i = 0; i < operands.length - 1; i += 1) {
       const left = this.operandCategory(operands[i]);
       const right = this.operandCategory(operands[i + 1]);
-      // ADR-017 owns a comparison with an enum operand (E0434, with its own
-      // message); reporting it here too would be one defect, two codes
-      if (
-        comparison &&
-        (left?.startsWith("enum:") || right?.startsWith("enum:"))
-      ) {
-        continue;
-      }
+      if (MixedCategoryCheck.ownedElsewhere(left, right, level)) continue;
       const operator = parent?.getChild(i * 2 + 1)?.getText() ?? "";
-      if (MixedCategoryListener.differ(left, right, operator)) {
+      if (MixedCategoryCheck.differ(left, right, operator)) {
         const { line, column } = ParserUtils.getPosition(operands[i + 1]);
         this.analyzer.addError(line, column, left!, right!);
       }
     }
+  }
+
+  /**
+   * Whether another rule reports this pair, so that one defect has one code:
+   * ADR-017 a comparison with an enum operand (E0434, with its own message),
+   * and Rule 10.1 a Boolean operand anywhere it admits none (E0806/E0807).
+   */
+  private static ownedElsewhere(
+    left: Category,
+    right: Category,
+    level: TBinaryOperatorLevel | "compound",
+  ): boolean {
+    const either = (is: (c: string) => boolean) =>
+      (left !== null && is(left)) || (right !== null && is(right));
+    const comparison = level === "equality" || level === "relational";
+    if (comparison && either((c) => c.startsWith("enum:"))) return true;
+    return (
+      !BooleanOperandAnalyzer.admitsBoolean(level) &&
+      either((c) => c === "boolean")
+    );
   }
 
   /** Whether two categories may not be combined by `operator` */
@@ -153,34 +167,17 @@ class MixedCategoryListener extends CNextListener {
     return !characterExempt;
   }
 
-  override enterAssignmentStatement = (
-    ctx: Parser.AssignmentStatementContext,
-  ): void => {
-    this.checkCompound(ctx.assignmentTarget(), ctx.assignmentOperator(), ctx);
-  };
-
-  override enterForAssignment = (ctx: Parser.ForAssignmentContext): void => {
-    this.checkCompound(ctx.assignmentTarget(), ctx.assignmentOperator(), ctx);
-  };
-
-  override enterForUpdate = (ctx: Parser.ForUpdateContext): void => {
-    this.checkCompound(ctx.assignmentTarget(), ctx.assignmentOperator(), ctx);
-  };
-
-  private checkCompound(
-    target: Parser.AssignmentTargetContext,
-    operator: Parser.AssignmentOperatorContext,
-    statement: { expression(): Parser.ExpressionContext },
-  ): void {
-    const text = operator.getText();
+  public checkCompound(site: TAssignmentSite): void {
+    const text = site.assignmentOperator().getText();
     if (NOT_RULE_10_4_ASSIGNMENTS.has(text)) return;
 
-    const value = statement.expression();
-    const left = MixedCategoryListener.rule104Category(
-      OperandTyper.typeOfTarget(target, this.context),
+    const value = site.expression();
+    const left = MixedCategoryCheck.rule104Category(
+      OperandTyper.typeOfTarget(site.assignmentTarget(), this.context),
     );
     const right = this.operandCategory(value);
-    if (MixedCategoryListener.differ(left, right, text)) {
+    if (MixedCategoryCheck.ownedElsewhere(left, right, "compound")) return;
+    if (MixedCategoryCheck.differ(left, right, text)) {
       const { line, column } = ParserUtils.getPosition(value);
       this.analyzer.addError(line, column, left!, right!);
     }
@@ -194,17 +191,20 @@ class MixedTypeCategoryAnalyzer {
 
   public analyze(tree: Parser.ProgramContext): IMixedTypeCategoryError[] {
     this.errors = [];
-    const listener = new MixedCategoryListener(this, this.context);
+    const check = new MixedCategoryCheck(this, this.context);
 
     ParseTreeWalker.DEFAULT.walk(
       new BinaryOperatorLevelListener((operands, level) => {
         if (level === "shift") return;
-        listener.checkLevel(operands, level);
+        check.checkLevel(operands, level);
       }),
       tree,
     );
 
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
+    ParseTreeWalker.DEFAULT.walk(
+      new AssignmentSiteListener((site) => check.checkCompound(site)),
+      tree,
+    );
 
     return this.errors;
   }

@@ -60,15 +60,6 @@ class OperandTypeResolver {
   }
 
   /**
-   * Whether a resolved type is essentially Boolean. Callers test through this
-   * rather than comparing to a literal, so what counts as Boolean is decided
-   * once.
-   */
-  public static isBooleanType(typeName: string | null): boolean {
-    return typeName === BOOLEAN_TYPE_NAME;
-  }
-
-  /**
    * Type of a ternary: the type its ARMS agree on. The condition does not
    * contribute -- it is always Boolean and says nothing about the result.
    *

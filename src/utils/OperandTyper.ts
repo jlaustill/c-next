@@ -202,10 +202,10 @@ class OperandTyper {
   /**
    * Whether an operand is essentially Boolean: an applied relational or
    * logical operator, `!`, or a `bool`. A single bit of a scalar is not
-   * (ADR-024: it is a bit index).
+   * (ADR-024: it is a bit index), and neither is an array of bools.
    */
   static isBoolean(t: IOperandType | null): boolean {
-    if (t === null) return false;
+    if (t === null || t.dimensions.length > 0) return false;
     return (
       t.form.kind === "boolean" ||
       (t.typeName === "bool" && t.form.kind !== "bitIndex")
