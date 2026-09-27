@@ -62,6 +62,13 @@ interface IAnalysisContext {
    * be where it was parked.
    */
   readonly reachesForeignHeader: boolean;
+
+  /**
+   * #1668: the file being analyzed. With it this context is the one
+   * operand typer's `ITypingContext`, so 2.1 types an operand from exactly
+   * the facts 2.2 does.
+   */
+  readonly sourceFile: string;
 }
 
 export default IAnalysisContext;

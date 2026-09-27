@@ -130,6 +130,7 @@ function testAnalysisContextFor(
       program,
       symbolTable,
       reachesForeignHeader: true,
+      sourceFile: TEST_SOURCE,
       ...options.overrides,
     },
   };

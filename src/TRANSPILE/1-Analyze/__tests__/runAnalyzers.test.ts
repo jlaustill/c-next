@@ -11,6 +11,7 @@ import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import Program from "../../../PARSE/4-Resolve/Program";
 import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322: what a file under analysis is, for a test that has no file.
@@ -266,15 +267,18 @@ describe("runAnalyzers", () => {
 
   describe("phase 7 - float modulo", () => {
     it("should return early on float modulo", () => {
-      const { tree, comments } = parseWithComments(`
+      // #1668: the local's type comes from the real program's frames
+      const source = `
         void main() {
           f32 x <- 10.5;
           f32 result <- x % 3;
         }
-      `);
+      `;
+      const { comments } = parseWithComments(source);
+      const { tree, context } = testAnalysisContextFor(source);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        context: testAnalysisContext(state, { symbolTable: new SymbolTable() }),
+        context,
         includes: NO_INCLUDES,
       });
 

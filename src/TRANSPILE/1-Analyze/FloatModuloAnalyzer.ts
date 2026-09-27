@@ -22,11 +22,8 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IFloatModuloError from "./types/IFloatModuloError";
-import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
-import TypeConstants from "../../utils/constants/TypeConstants";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import ScopeFrameResolver from "./ScopeFrameResolver";
+import OperandTyper from "../../utils/OperandTyper";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
@@ -36,12 +33,12 @@ class FloatModuloListener extends CNextListener {
   private readonly analyzer: FloatModuloAnalyzer;
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly scopes: ScopeFrameResolver;
-
-  constructor(analyzer: FloatModuloAnalyzer, scopes: ScopeFrameResolver) {
+  constructor(
+    analyzer: FloatModuloAnalyzer,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
     this.analyzer = analyzer;
-    this.scopes = scopes;
   }
 
   /**
@@ -78,32 +75,9 @@ class FloatModuloListener extends CNextListener {
   /**
    * Check if a unary expression is a float type
    */
+  /** Floating by the one operand typer, whatever the operand's shape (#1668) */
   private isFloatOperand(ctx: Parser.UnaryExpressionContext): boolean {
-    const postfixExpr = ctx.postfixExpression();
-    if (!postfixExpr) return false;
-
-    const primaryExpr = postfixExpr.primaryExpression();
-    if (!primaryExpr) return false;
-
-    // Check for float literal
-    const literal = primaryExpr.literal();
-    if (literal) {
-      return LiteralUtils.isFloat(literal);
-    }
-
-    // Check for identifier that's a float variable. Resolved against the
-    // lexical frames first, then the symbol table, so an included declaration
-    // counts and a same-named local in another function does not (#1220).
-    const identifier = primaryExpr.IDENTIFIER();
-    if (identifier) {
-      const typeName = this.scopes.typeOfName(
-        identifier.getText(),
-        this.scopes.frameFor(ctx),
-      );
-      return typeName !== null && TypeConstants.FLOAT_TYPES.includes(typeName);
-    }
-
-    return false;
+    return OperandTyper.typeOf(ctx, this.context)?.category === "floating";
   }
 }
 
@@ -122,16 +96,11 @@ class FloatModuloAnalyzer {
   public analyze(tree: Parser.ProgramContext): IFloatModuloError[] {
     this.errors = [];
 
-    // First pass: build the lexical scope frames
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    // Second pass: detect modulo with floats
-    const listener = new FloatModuloListener(
-      this,
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
+    // Operands bind and type through Program's lexical frames (#1668)
+    ParseTreeWalker.DEFAULT.walk(
+      new FloatModuloListener(this, this.context),
+      tree,
     );
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
 
     return this.errors;
   }
