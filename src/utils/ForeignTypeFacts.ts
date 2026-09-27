@@ -8,16 +8,14 @@ import type ITargetDescription from "../transpiler/types/ITargetDescription";
 /**
  * What C-Next may read of a C or C++ header symbol's type.
  *
- * C symbols carry C type strings, and C-Next passes most of them through
- * untyped: typing every C variable misread array indexing as bit extraction
- * (#978). Two answers are both safe and needed, and this is their one owner,
- * read by 2.1 Analyze and 2.2 Plan alike:
+ * Two readers, one owner:
  *
- * - a struct global's type (#978), so its fields can be walked;
- * - whether a scalar variable or a function result is floating (#1668). Without
- *   it `u32 i * cScale` read as integer arithmetic in both passes: E0810 could
- *   not see the mix, and codegen routed it into `cnx_clamp_mul_u32`, which
- *   truncated the float.
+ * - the operand typer's, `operandType` and the members built on it: a
+ *   header value's essential category and width, from its spelling and the
+ *   run's target (#1668, R4). Every pass types operands through it.
+ * - render's declared type info, `variableType`: a struct global's type, a
+ *   pointer to one included (#978: `font_t* g` is read through `->`), which
+ *   the operand typer deliberately leaves untyped, and a floating scalar.
  *
  * A floating answer is given in C-Next spelling (`f32`/`f64`), so no caller has
  * to know that `float` and `double` are floating too.
@@ -39,44 +37,6 @@ class ForeignTypeFacts {
     if (ForeignTypeFacts.isStruct(symbolTable, baseType)) return baseType;
     if (symbol.isArray) return null;
     return ForeignTypeFacts.usableType(symbolTable, symbol.type);
-  }
-
-  /**
-   * The type C-Next may use for a field of a C header struct, by the same
-   * rule as `variableType`: its struct type, or its floating type. Null for an
-   * array or pointer field, and for any field C-Next does not know.
-   */
-  static fieldType(
-    symbolTable: SymbolTable,
-    structType: string,
-    field: string,
-  ): string | null {
-    const info = symbolTable.getStructFieldInfo(structType, field);
-    if (!info?.type || info.arrayDimensions?.length) return null;
-    return ForeignTypeFacts.usableType(symbolTable, info.type);
-  }
-
-  /**
-   * A callee's result type: its C-Next declaration's when the caller has one,
-   * else a C header function's floating result. 2.1's chain walk and 2.2's
-   * composite typing both ask this, so they read one type for a call.
-   */
-  static returnTypeOf(
-    declared: string | null | undefined,
-    symbolTable: SymbolTable,
-    name: string,
-  ): string | null {
-    return declared ?? ForeignTypeFacts.floatingReturnType(symbolTable, name);
-  }
-
-  /** A C header function's result type, when it is floating. */
-  private static floatingReturnType(
-    symbolTable: SymbolTable,
-    name: string,
-  ): string | null {
-    const symbol = ForeignTypeFacts.foreignSymbol(symbolTable, name);
-    if (symbol?.kind !== "function" || !symbol.type) return null;
-    return ForeignTypeFacts.floatingType(symbolTable, symbol.type);
   }
 
   /** A scalar C type as C-Next may use it: a struct, or floating. */

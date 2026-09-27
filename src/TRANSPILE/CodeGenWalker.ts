@@ -1055,7 +1055,7 @@ class CodeGenWalker {
     return Boolean(
       typeInfo.isArray &&
       typeInfo.baseType &&
-      TypeCheckUtils.isString(typeInfo.baseType),
+      TypeCheckUtils.isSizedStringName(typeInfo.baseType),
     );
   }
 
@@ -2644,7 +2644,7 @@ class CodeGenWalker {
     // rejected by cc while the transpiler exited 0). Both are now wrong in one
     // place instead of differently wrong in two -- which is the property this
     // method exists to hold, and the one its comment already claimed.
-    if (!isArray && TypeCheckUtils.isString(typeName)) {
+    if (!isArray && TypeCheckUtils.isSizedStringName(typeName)) {
       return {
         type: "char*",
         isPointer: false,

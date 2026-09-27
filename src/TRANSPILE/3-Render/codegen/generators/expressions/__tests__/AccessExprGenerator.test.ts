@@ -1,124 +1,43 @@
 import { describe, it, expect } from "vitest";
 import accessGenerators from "../AccessExprGenerator";
-import TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
 import TranspileState from "../../../../../TranspileState";
 
 describe("AccessExprGenerator", () => {
+  // #1668 review: the generators take the capacity the typer gives the
+  // measured value -- a string's, or null for anything else -- rather than a
+  // type info a caller assembled for them
   describe("generateCapacityProperty", () => {
-    it("returns string capacity for string type", () => {
-      const typeInfo: TTypeInfo = {
-        baseType: "char",
-        bitWidth: 8,
-        isArray: false,
-        isConst: false,
-        isString: true,
-        stringCapacity: 64,
-      };
-      const result = accessGenerators.generateCapacityProperty(typeInfo);
-      expect(result.code).toBe("64");
+    it.each([
+      [64, "64"],
+      [255, "255"],
+    ])("returns a string's capacity %i", (capacity, code) => {
+      const result = accessGenerators.generateCapacityProperty(capacity);
+      expect(result.code).toBe(code);
       expect(result.effects).toHaveLength(0);
     });
 
-    it("returns capacity for string with different sizes", () => {
-      const typeInfo: TTypeInfo = {
-        baseType: "char",
-        bitWidth: 8,
-        isArray: false,
-        isConst: false,
-        isString: true,
-        stringCapacity: 255,
-      };
-      const result = accessGenerators.generateCapacityProperty(typeInfo);
-      expect(result.code).toBe("255");
-    });
-
-    it("throws error for non-string type", () => {
-      const typeInfo: TTypeInfo = {
-        baseType: "u32",
-        bitWidth: 32,
-        isArray: false,
-        isConst: false,
-      };
-      expect(() => accessGenerators.generateCapacityProperty(typeInfo)).toThrow(
-        "E0887 rejects this in pass 2.1",
-      );
-    });
-
-    it("throws error for undefined typeInfo", () => {
-      expect(() =>
-        accessGenerators.generateCapacityProperty(undefined),
-      ).toThrow("E0887 rejects this in pass 2.1");
-    });
-
-    it("throws error for string without capacity defined", () => {
-      const typeInfo: TTypeInfo = {
-        baseType: "char",
-        bitWidth: 8,
-        isArray: false,
-        isConst: false,
-        isString: true,
-      };
-      expect(() => accessGenerators.generateCapacityProperty(typeInfo)).toThrow(
+    it("throws for a value with no capacity", () => {
+      expect(() => accessGenerators.generateCapacityProperty(null)).toThrow(
         "E0887 rejects this in pass 2.1",
       );
     });
   });
 
   describe("generateSizeProperty", () => {
-    it("returns capacity + 1 for string type", () => {
-      const typeInfo: TTypeInfo = {
-        baseType: "char",
-        bitWidth: 8,
-        isArray: false,
-        isConst: false,
-        isString: true,
-        stringCapacity: 64,
-      };
-      const result = accessGenerators.generateSizeProperty(typeInfo);
-      expect(result.code).toBe("65");
-      expect(result.effects).toHaveLength(0);
-    });
+    it.each([
+      [64, "65"],
+      [127, "128"],
+    ])(
+      "returns a string's capacity %i plus its terminator",
+      (capacity, code) => {
+        const result = accessGenerators.generateSizeProperty(capacity);
+        expect(result.code).toBe(code);
+        expect(result.effects).toHaveLength(0);
+      },
+    );
 
-    it("returns correct size for different capacities", () => {
-      const typeInfo: TTypeInfo = {
-        baseType: "char",
-        bitWidth: 8,
-        isArray: false,
-        isConst: false,
-        isString: true,
-        stringCapacity: 127,
-      };
-      const result = accessGenerators.generateSizeProperty(typeInfo);
-      expect(result.code).toBe("128");
-    });
-
-    it("throws error for non-string type", () => {
-      const typeInfo: TTypeInfo = {
-        baseType: "i64",
-        bitWidth: 64,
-        isArray: false,
-        isConst: false,
-      };
-      expect(() => accessGenerators.generateSizeProperty(typeInfo)).toThrow(
-        "E0887 rejects this in pass 2.1",
-      );
-    });
-
-    it("throws error for undefined typeInfo", () => {
-      expect(() => accessGenerators.generateSizeProperty(undefined)).toThrow(
-        "E0887 rejects this in pass 2.1",
-      );
-    });
-
-    it("throws error for string without capacity defined", () => {
-      const typeInfo: TTypeInfo = {
-        baseType: "char",
-        bitWidth: 8,
-        isArray: false,
-        isConst: false,
-        isString: true,
-      };
-      expect(() => accessGenerators.generateSizeProperty(typeInfo)).toThrow(
+    it("throws for a value with no capacity", () => {
+      expect(() => accessGenerators.generateSizeProperty(null)).toThrow(
         "E0887 rejects this in pass 2.1",
       );
     });

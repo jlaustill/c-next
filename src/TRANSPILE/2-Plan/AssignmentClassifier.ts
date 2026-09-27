@@ -986,7 +986,8 @@ class AssignmentClassifier {
     if (!resolved) {
       return null;
     }
-    return resolved.fieldType && TypeCheckUtils.isString(resolved.fieldType)
+    return resolved.fieldType &&
+      TypeCheckUtils.isSizedStringName(resolved.fieldType)
       ? AssignmentKind.STRING_STRUCT_FIELD
       : null;
   }
@@ -1025,7 +1026,7 @@ class AssignmentClassifier {
 
     const isStringArrayField =
       fieldType &&
-      TypeCheckUtils.isString(fieldType) &&
+      TypeCheckUtils.isSizedStringName(fieldType) &&
       fieldArrays?.has(fieldName) &&
       dimensions &&
       dimensions.length >= 1;

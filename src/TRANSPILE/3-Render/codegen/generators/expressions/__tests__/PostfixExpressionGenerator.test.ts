@@ -358,6 +358,70 @@ function createMockPostfixExpressionContext(
  * primary renders as via `createMockOrchestrator({ generatePrimaryExpr })` --
  * so the binding happens here rather than at eighty-two call sites.
  */
+/** The properties ADR-058 and ADR-045 define, which read a measured value */
+const PROPERTIES = new Set([
+  "bit_length",
+  "byte_length",
+  "element_count",
+  "char_count",
+  "capacity",
+  "size",
+]);
+
+/**
+ * #1668 review: a declared type as the typer gives it -- what a property of
+ * the root measures. A string's C buffer is its own, not a dimension.
+ */
+function operandOfDeclared(info: TTypeInfo): IOperandType {
+  const dimensions = [...(info.arrayDimensions ?? [])];
+  if (info.isString) {
+    return typed(`string<${info.stringCapacity ?? 0}>`, {
+      dimensions: dimensions.slice(0, -1),
+      stringCapacity: info.stringCapacity ?? null,
+    });
+  }
+  return typed(info.baseType, {
+    dimensions,
+    bitWidth: info.bitWidth || null,
+  });
+}
+
+/**
+ * #1668 review: each property op's step, as the typer would give it -- the
+ * value the chain has reached: the root, a member step's result, an array's
+ * element. Cases that describe a member give its step; this carries it on.
+ */
+function withPropertySteps(
+  ops: readonly TPlannedPostfixOp[],
+  root: TTypeInfo | undefined,
+): TPlannedPostfixOp[] {
+  let current: IOperandType | null = root ? operandOfDeclared(root) : null;
+  return ops.map((op) => {
+    if (op.kind === "member") {
+      if (op.step !== null) {
+        current = op.step.after;
+        return op;
+      }
+      if (PROPERTIES.has(op.name) && current !== null) {
+        return { ...op, step: memberStep(current, null) };
+      }
+      current = null;
+      return op;
+    }
+    if (op.kind === "subscript") {
+      current =
+        op.typedAs === "array_element" &&
+        current !== null &&
+        current.dimensions.length > 0
+          ? { ...current, dimensions: current.dimensions.slice(1) }
+          : null;
+      return op;
+    }
+    current = null;
+    return op;
+  });
+}
+
 function runPostfix(
   plan: IMockPostfixPlan,
   input: IGeneratorInput,
@@ -385,7 +449,7 @@ function runPostfix(
       // Issue #1094's fold is configured per case as the orchestrator's
       // `tryEvaluateConstant`, so it is bound here for the same reason the
       // primary is.
-      ops: plan.ops.map((op) => {
+      ops: withPropertySteps(plan.ops, declared).map((op) => {
         if (op.kind !== "subscript") return op;
         const widthText = (op as { widthText?: string }).widthText ?? "";
         return {
@@ -2264,8 +2328,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "val",
       });
 
+      // #1668 review: a subject the typer cannot type is E0867's in 2.1
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        "type not found in registry",
+        "E0867 rejects this in pass 2.1",
       );
     });
 
@@ -2516,8 +2581,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "val",
       });
 
+      // #1668 review: a subject the typer cannot type is E0867's in 2.1
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        "type not found in registry",
+        "E0867 rejects this in pass 2.1",
       );
     });
 
@@ -2544,35 +2610,40 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        "unknown dimensions",
+        ".element_count is only available on arrays",
       );
     });
 
-    it("throws error for array with unknown dimensions for bit_length", () => {
+    // #1668 review: this case used to declare an array with no dimensions,
+    // which the typer cannot represent -- an unresolved dimension keeps its
+    // text (the dynamic-dimension cases above). What it measures instead:
+    it("measures a string array's whole storage (ADR-058)", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
-          "arr",
+          "names",
           {
-            baseType: "u32",
-            bitWidth: 32,
+            baseType: "char",
+            bitWidth: 8,
             isArray: true,
-            arrayDimensions: [], // Empty dimensions
+            arrayDimensions: [3, 9],
             isConst: false,
+            isString: true,
+            stringCapacity: 8,
           },
         ],
       ]);
-      const ctx = createMockPostfixExpressionContext("arr", [
+      const ctx = createMockPostfixExpressionContext("names", [
         createMockPostfixOp({ identifier: "bit_length" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
       const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "arr",
+        generatePrimaryExpr: () => "names",
       });
 
-      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        "unknown dimensions",
-      );
+      // Three elements of (8 + 1) x 8 bits: one element's was the old answer
+      const result = runPostfix(ctx, input, state, orchestrator);
+      expect(result.code).toBe("216");
     });
 
     it("handles enum array bit_length", () => {
@@ -2628,7 +2699,7 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        "unsupported element type",
+        "unsupported type 'void'",
       );
     });
   });

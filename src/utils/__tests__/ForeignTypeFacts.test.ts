@@ -85,45 +85,4 @@ describe("ForeignTypeFacts", () => {
       expect(ForeignTypeFacts.variableType(symbolTable, "nowhere")).toBeNull();
     });
   });
-
-  describe("fieldType", () => {
-    it.each([
-      ["a float field", "v", "f32"],
-      ["an integer field", "count", null],
-      ["a float array field", "samples", null],
-      ["an unknown field", "missing", null],
-    ])("types %s as %s", (_label, field, expected) => {
-      expect(ForeignTypeFacts.fieldType(symbolTable, "ApiSample", field)).toBe(
-        expected,
-      );
-    });
-  });
-
-  describe("returnTypeOf", () => {
-    beforeEach(() => {
-      symbolTable.addCSymbol({
-        ...C_HEADER,
-        kind: "function",
-        name: "apiHalf",
-        type: "float",
-      });
-      symbolTable.addCSymbol({
-        ...C_HEADER,
-        kind: "function",
-        name: "apiCount",
-        type: "uint32_t",
-      });
-    });
-
-    it.each([
-      ["a declared C-Next result wins", "u8", "apiHalf", "u8"],
-      ["a C function returning float", undefined, "apiHalf", "f32"],
-      ["a C function returning an integer", undefined, "apiCount", null],
-      ["an unknown callee", undefined, "nowhere", null],
-    ])("%s", (_label, declared, name, expected) => {
-      expect(
-        ForeignTypeFacts.returnTypeOf(declared, symbolTable, name as string),
-      ).toBe(expected);
-    });
-  });
 });

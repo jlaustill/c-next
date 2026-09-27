@@ -107,31 +107,31 @@ describe("TypeCheckUtils.isFloat", () => {
 });
 
 // ========================================================================
-// isString
+// isSizedStringName
 // ========================================================================
-describe("TypeCheckUtils.isString", () => {
+describe("TypeCheckUtils.isSizedStringName", () => {
   it("returns true for string<32>", () => {
-    expect(TypeCheckUtils.isString("string<32>")).toBe(true);
+    expect(TypeCheckUtils.isSizedStringName("string<32>")).toBe(true);
   });
 
   it("returns true for string<1>", () => {
-    expect(TypeCheckUtils.isString("string<1>")).toBe(true);
+    expect(TypeCheckUtils.isSizedStringName("string<1>")).toBe(true);
   });
 
   it("returns true for string<256>", () => {
-    expect(TypeCheckUtils.isString("string<256>")).toBe(true);
+    expect(TypeCheckUtils.isSizedStringName("string<256>")).toBe(true);
   });
 
   it("returns false for bare string", () => {
-    expect(TypeCheckUtils.isString("string")).toBe(false);
+    expect(TypeCheckUtils.isSizedStringName("string")).toBe(false);
   });
 
   it("returns false for char types", () => {
-    expect(TypeCheckUtils.isString("char")).toBe(false);
+    expect(TypeCheckUtils.isSizedStringName("char")).toBe(false);
   });
 
   it("returns false for cstring", () => {
-    expect(TypeCheckUtils.isString("cstring")).toBe(false);
+    expect(TypeCheckUtils.isSizedStringName("cstring")).toBe(false);
   });
 });
 

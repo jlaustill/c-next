@@ -79,12 +79,17 @@ class TypeCheckUtils {
   }
 
   /**
-   * Check if a type name is a string type (string<N>).
+   * Whether a type NAME is a sized string spelling, `string<N>`.
+   *
+   * Not "is this a string": a bare `string` (`main`'s args) is one too, and
+   * that is `OperandTyper.isString`'s question, asked of a typed value. This
+   * one reads a spelling, and was named `isString` beside it while the two
+   * disagreed on a bare `string` (#1668 review).
    *
    * @param typeName - The type name to check
    * @returns true if it matches string<N> pattern
    */
-  static isString(typeName: string): boolean {
+  static isSizedStringName(typeName: string): boolean {
     return /^string<\d+>$/.test(typeName);
   }
 

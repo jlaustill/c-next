@@ -53,10 +53,8 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import EnumMemberSuggestion from "./helpers/EnumMemberSuggestion";
-import EnumValueResolver from "./EnumValueResolver";
 import IBareEnumMemberError from "./types/IBareEnumMemberError";
 import UndeclaredValueAnalyzer from "./UndeclaredValueAnalyzer";
-import TypeText from "./helpers/TypeText";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** A type name as written at the position that establishes it, or null. */
@@ -64,11 +62,9 @@ type TExpected = string | null;
 
 class BareEnumMemberListener extends CNextListener {
   private readonly found: IBareEnumMemberError[] = [];
-  private readonly values: EnumValueResolver;
 
   public constructor(private readonly context: IAnalysisContext) {
     super();
-    this.values = new EnumValueResolver(context);
   }
 
   public errors(): IBareEnumMemberError[] {
@@ -122,19 +118,6 @@ class BareEnumMemberListener extends CNextListener {
    * early at the nodes that clear or suppress the expected type.
    */
   private expectedEnum(node: ParserRuleContext, scopePath: string): TExpected {
-    const text = this.expectedTypeText(node, scopePath);
-    return text === null ? null : this.values.enumTypeNameFor(text, scopePath);
-  }
-
-  /**
-   * The declared type text the position at `node` is generated under -- the
-   * codegen `expectedType` -- or null. Type texts are as WRITTEN (`Color`,
-   * `this.Mode`, `Lib.State`); the caller resolves them.
-   */
-  private expectedTypeText(
-    node: ParserRuleContext,
-    scopePath: string,
-  ): TExpected {
     let cursor: ParserRuleContext | null = node.parent;
     while (cursor) {
       const answer = this.establishedBy(cursor, scopePath);
@@ -188,24 +171,33 @@ class BareEnumMemberListener extends CNextListener {
     }
 
     // --- establishing nodes -----------------------------------------------------
+    // #1668 review: each answers with the enum the typer gives the position's
+    // type. The positions used to answer with the type as WRITTEN, qualified
+    // here by hand -- `this.`, `global.`, then the enclosing scope -- beside
+    // the typer's `TypeBinding`, which every other rule reads for the same
+    // spelling.
     if (cursor instanceof Parser.VariableDeclarationContext) {
-      return BareEnumMemberListener.declaredTypeText(cursor.type());
+      return this.enumOfWritten(cursor.type(), cursor);
     }
     if (cursor instanceof Parser.AssignmentStatementContext) {
-      return this.assignmentTargetType(cursor.assignmentTarget());
+      return this.assignmentTargetEnum(cursor.assignmentTarget());
     }
     if (cursor instanceof Parser.ReturnStatementContext) {
-      return BareEnumMemberListener.enclosingFunctionType(cursor);
+      const fn = BareEnumMemberListener.enclosingFunction(cursor);
+      return fn === null ? null : this.enumOfWritten(fn.type(), fn);
     }
     if (cursor instanceof Parser.FieldInitializerContext) {
-      // #1668: the one field typing struct initializers share
-      return StructInitializerType.fieldType(cursor, this.context);
+      // #1668: the one field typing struct initializers share; a field's
+      // type is recorded by its C name
+      const field = StructInitializerType.fieldType(cursor, this.context);
+      return field !== null && this.context.symbols.knownEnums.has(field)
+        ? field
+        : null;
     }
     if (cursor instanceof Parser.ArrayInitializerContext) {
-      // An element is generated under the array's ELEMENT type, which is the
-      // declared type with its dimensions removed -- what the walk above this
-      // node answers, since `declaredTypeText` strips them.
-      return this.expectedTypeText(cursor, scopePath);
+      // An element is generated under the array's ELEMENT type: the enum the
+      // walk above this node answers, which an array of it names too.
+      return this.expectedEnum(cursor, scopePath);
     }
     if (cursor instanceof Parser.StructInitializerContext) {
       // Reached from a field: the struct's type, explicit or inherited.
@@ -223,8 +215,8 @@ class BareEnumMemberListener extends CNextListener {
     return undefined;
   }
 
-  /** The type of an assignment's target, spelled as declared, or null. */
-  private assignmentTargetType(
+  /** The enum an assignment's target holds, or null. */
+  private assignmentTargetEnum(
     target: Parser.AssignmentTargetContext,
   ): TExpected {
     // A slice or bit-range write (`arr[off, len] <- v`) has no element
@@ -232,7 +224,23 @@ class BareEnumMemberListener extends CNextListener {
     if (target.postfixTargetOp().some((op) => op.expression().length === 2)) {
       return null;
     }
-    return OperandTyper.typeOfTarget(target, this.context)?.typeName ?? null;
+    return (
+      OperandTyper.typeOfTarget(target, this.context)?.enumTypeName ?? null
+    );
+  }
+
+  /** The enum a written type names, as the typer binds it where it is written */
+  private enumOfWritten(
+    type: Parser.TypeContext,
+    at: ParserRuleContext,
+  ): TExpected {
+    return (
+      OperandTyper.typeOfWritten(
+        type,
+        this.context,
+        ParserUtils.getPosition(at),
+      )?.enumTypeName ?? null
+    );
   }
 
   /**
@@ -244,20 +252,15 @@ class BareEnumMemberListener extends CNextListener {
     initializer: Parser.StructInitializerContext,
     scopePath: string,
   ): TExpected {
-    return this.expectedTypeText(initializer, scopePath);
+    return this.expectedEnum(initializer, scopePath);
   }
 
-  /** A declaration's type as written, without its array dimensions. */
-  private static declaredTypeText(type: Parser.TypeContext): string {
-    return TypeText.withoutDimensions(type.getText());
-  }
-
-  private static enclosingFunctionType(node: ParserRuleContext): TExpected {
+  private static enclosingFunction(
+    node: ParserRuleContext,
+  ): Parser.FunctionDeclarationContext | null {
     let cursor: ParserRuleContext | null = node.parent;
     while (cursor) {
-      if (cursor instanceof Parser.FunctionDeclarationContext) {
-        return cursor.type().getText();
-      }
+      if (cursor instanceof Parser.FunctionDeclarationContext) return cursor;
       cursor = cursor.parent;
     }
     return null;

@@ -13,7 +13,6 @@
  */
 import type IBitmapFieldLayout from "../../../../../transpiler/types/IBitmapFieldLayout";
 import IGeneratorOutput from "../IGeneratorOutput";
-import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import invariant from "../../../../../utils/invariant";
 import type TranspileState from "../../../../TranspileState";
@@ -24,10 +23,10 @@ import type TranspileState from "../../../../TranspileState";
  * Only valid for string types - returns the max string length (excluding null terminator).
  */
 const generateCapacityProperty = (
-  typeInfo: TTypeInfo | undefined,
+  capacity: number | null,
 ): IGeneratorOutput => {
-  if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
-    return { code: String(typeInfo.stringCapacity), effects: [] };
+  if (capacity !== null) {
+    return { code: String(capacity), effects: [] };
   }
   // #1322: ADR-045's storage properties are E0887 in pass 2.1, decided from
   // the subject's declared type rather than from a type info this generator
@@ -44,11 +43,9 @@ const generateCapacityProperty = (
  * Only valid for string types - returns buffer size (capacity + 1 for null terminator).
  * Use with functions like fgets that need buffer size, not max length.
  */
-const generateSizeProperty = (
-  typeInfo: TTypeInfo | undefined,
-): IGeneratorOutput => {
-  if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
-    return { code: String(typeInfo.stringCapacity + 1), effects: [] };
+const generateSizeProperty = (capacity: number | null): IGeneratorOutput => {
+  if (capacity !== null) {
+    return { code: String(capacity + 1), effects: [] };
   }
   // #1322: ADR-045's storage properties are E0887 in pass 2.1, decided from
   // the subject's declared type rather than from a type info this generator

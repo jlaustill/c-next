@@ -19,14 +19,9 @@
 import { ParserRuleContext, ParseTree } from "antlr4ng";
 
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import QualifiedCName from "../../utils/QualifiedCName";
-import ScopeCandidates from "./helpers/ScopeCandidates";
-import ScopeUtils from "../../utils/ScopeUtils";
 import OperandTyper from "../../utils/OperandTyper";
-import TChainRoot from "../../transpiler/types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IOperandType from "../../transpiler/types/IOperandType";
-import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
 
 /** An expression's kind, as ADR-017's rules need to see it. */
 type TValueKind =
@@ -121,60 +116,6 @@ class EnumValueResolver {
     const ops = node.postfixOp();
     if (ops.length === 0) return false;
     return ops.every((op) => op.DOT() !== null && op.LBRACKET() === null);
-  }
-
-  /**
-   * The name `knownEnums` holds for a type as WRITTEN, or null if it names no
-   * enum.
-   *
-   * Every spelling of one enum has to arrive at one name, or the rule compares
-   * a target against a value that is the same type under a different string.
-   * Three spellings reach here: a bare `EMode` inside its own scope, a
-   * `this.EMode` (which is how a scope member's own type is written, and is the
-   * form `IDeclaredVar.typeText` records), and an already-qualified name.
-   *
-   * `this.` states the enclosing scope; it names no component of the type, so
-   * it is stripped before qualifying. Leaving it produced `Motor__this.EMode`,
-   * which matches nothing -- and because "matches nothing" reads as "not an
-   * enum", the rule inverted: it reported every correct assignment inside a
-   * scope as a non-enum value. Twelve fixtures caught it.
-   */
-  public enumTypeNameFor(written: string, scopePath: string): string | null {
-    let path = written;
-    // `global.` states FILE scope, so it both names no component and forbids
-    // qualifying by the enclosing scope. `this.` states the enclosing scope and
-    // names no component either. Both are prefixes about WHERE to look, and
-    // treating them as parts of the name was what produced `Motor__this.EMode`.
-    let rooted: TChainRoot = null;
-    if (path.startsWith("this.")) {
-      path = path.slice(5);
-      rooted = "this";
-    } else if (path.startsWith("global.")) {
-      path = path.slice(7);
-      rooted = "global";
-    }
-
-    const parts = path.split(".");
-    // Never joined by hand -- `fromParts` is the single encoder (CLAUDE.md).
-    const transpiled = QualifiedCName.fromParts(parts);
-
-    // Each prefix admits exactly ONE candidate, because each one STATES where
-    // to look. `this.X` is X in the enclosing scope and nothing else -- falling
-    // back to a bare global `X` made `this.Global` resolve to the global enum,
-    // so an invalid spelling read as valid. `global.X` is file scope and must
-    // not be scope-qualified. Only a BARE name searches, and it searches in
-    // ADR-057's order: the enclosing scope first, then file scope.
-    const candidates = ScopeCandidates.forRoot(
-      rooted,
-      ScopeUtils.qualifyInScope(transpiled, scopePath),
-      [transpiled, path],
-    );
-
-    for (const candidate of candidates) {
-      if (DeclaredTypeFacts.isEnum(this.context.symbols, candidate))
-        return candidate;
-    }
-    return null;
   }
 
   /** Descend through pass-through levels that carry exactly one child. */

@@ -18,6 +18,8 @@ import { ParserRuleContext, ParseTree, TerminalNode } from "antlr4ng";
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import ArrayDimensionParser from "./ArrayDimensionParser";
 import ConstantFold from "./ConstantFold";
+import TTypeUtils from "./TTypeUtils";
+import PrimitiveKindUtils from "./PrimitiveKindUtils";
 import ChainRoot from "./ChainRoot";
 import ExpressionUtils from "./ExpressionUtils";
 import ForeignTypeFacts from "./ForeignTypeFacts";
@@ -532,35 +534,62 @@ class OperandTyper {
    * ladder (`TypeBinding`), so `this.T`, `global.T`, `Scope.T` and a bare `T`
    * name what they name everywhere else; qualifying the source text by hand
    * read `this.EMode` as a type called `this_EMode`.
+   *
+   * An array type is its element's type with the written dimensions (#1668
+   * review: `EColor[2]` had no type at all, so its elements' bare enum
+   * members lost their anchor).
    */
   static typeOfWritten(
-    typeCtx: Parser.TypeContext,
+    typeCtx: Parser.TypeContext | Parser.ArrayTypeContext,
     ctx: ITypingContext,
     at: { line: number; column: number },
   ): IOperandType | null {
-    const primitive = typeCtx.primitiveType();
-    if (primitive) {
+    const array =
+      typeCtx instanceof Parser.TypeContext ? typeCtx.arrayType() : null;
+    if (array) {
+      const element = OperandTyper.typeOfWritten(array, ctx, at);
+      if (element === null) return null;
+      const options = ConstantFold.at(ctx.program, ctx.sourceFile, at);
+      const dimensions = array.arrayTypeDimension().map((dimension) => {
+        const size = dimension.expression();
+        if (!size) return "";
+        return (
+          ArrayDimensionParser.parseSingleDimension(size, options) ??
+          size.getText()
+        );
+      });
+      return {
+        ...element,
+        dimensions: [...dimensions, ...element.dimensions],
+      };
+    }
+    const primitive = typeCtx.primitiveType()?.getText();
+    if (primitive !== undefined && PrimitiveKindUtils.isPrimitive(primitive)) {
       return OperandTyper.fromType(
-        { kind: "primitive", primitive: primitive.getText() } as TType,
+        TTypeUtils.createPrimitive(primitive),
         [],
         ctx,
       );
     }
-    const symbols = ctx.symbols;
-    const known = (name: string): boolean =>
-      symbols.knownEnums.has(name) ||
-      symbols.knownStructs.has(name) ||
-      symbols.knownBitmaps.has(name);
+    // ADR-057's qualification is the program's one answer, as for every
+    // `TypeBinding` caller; whether the result is a C-Next type this file
+    // sees is `declaresNamedType`, as in `fromType` (#1668 review: the trio
+    // was spelled out here by hand)
     const cName = TypeBinding.resolveNamedType(
       typeCtx,
       ctx.program.lexicalFrameAt(ctx.sourceFile, at).scopePath,
-      { isScopeType: known },
+      { isScopeType: ctx.program.isScopeType },
     );
-    if (cName !== null && known(cName)) {
+    if (cName !== null && OperandTyper.declaresNamedType(cName, ctx)) {
       return OperandTyper.fromType({ kind: "struct", name: cName }, [], ctx);
     }
+    // A header's type: an array's element is its first child's spelling
+    const spelling =
+      typeCtx instanceof Parser.ArrayTypeContext
+        ? (typeCtx.getChild(0)?.getText() ?? "")
+        : typeCtx.getText();
     return ForeignTypeFacts.operandType(
-      typeCtx.getText(),
+      spelling,
       ctx.symbolTable,
       OperandTyper.target(ctx),
     );
@@ -845,8 +874,13 @@ class OperandTyper {
         };
     }
     const symbols = ctx.symbols;
-    const enumName = ScopeUtils.qualifyScopeType(name, scopePath, (q) =>
-      symbols.knownEnums.has(q),
+    // ADR-057's qualification, the program's one answer: a scope's own type
+    // shadows a global one of the name, whatever kind each is (#1668 review:
+    // an enums-only predicate let a global enum through a scope's struct)
+    const enumName = ScopeUtils.qualifyScopeType(
+      name,
+      scopePath,
+      ctx.program.isScopeType,
     );
     const enumCName = OperandTyper.cNameOf(enumName);
     if (symbols.knownEnums.has(enumCName)) {
