@@ -7,7 +7,6 @@ import ReservedCnxName from "../../../utils/ReservedCnxName";
 
 // Issue #60: BITMAP_SIZE and BITMAP_BACKING_TYPE moved to SymbolCollector
 import TTypeInfo from "../../../transpiler/types/TTypeInfo";
-import ExpressionTypeResolver from "../../2-Plan/ExpressionTypeResolver";
 import IOrchestrator from "./generators/IOrchestrator";
 import IGeneratorInput from "./generators/IGeneratorInput";
 import IGeneratorState from "./generators/IGeneratorState";
@@ -65,6 +64,7 @@ import FunctionContextManager from "./helpers/FunctionContextManager";
 import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
 import DeclaredTypeFacts from "../../../utils/DeclaredTypeFacts";
+import TypeCheckUtils from "../../../utils/TypeCheckUtils";
 import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
 import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
@@ -270,18 +270,18 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Check if a type is a float type.
-   * Part of IOrchestrator interface - delegates to ExpressionTypeResolver.
+   * Part of IOrchestrator interface - delegates to TypeCheckUtils.
    */
   isFloatType(typeName: string): boolean {
-    return ExpressionTypeResolver.isFloatType(typeName);
+    return TypeCheckUtils.isFloat(typeName);
   }
 
   /**
    * Check if a type is an integer type.
-   * Part of IOrchestrator interface - delegates to ExpressionTypeResolver.
+   * Part of IOrchestrator interface - delegates to TypeCheckUtils.
    */
   isIntegerType(typeName: string): boolean {
-    return ExpressionTypeResolver.isIntegerType(typeName);
+    return TypeCheckUtils.isInteger(typeName);
   }
 
   /**
@@ -817,7 +817,11 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isStructType(typeName: string): boolean {
-    return ExpressionTypeResolver.isStructType(typeName, this.state);
+    return DeclaredTypeFacts.isStruct(
+      this.state.symbols,
+      this.state.symbolTable,
+      typeName,
+    );
   }
 
   /**

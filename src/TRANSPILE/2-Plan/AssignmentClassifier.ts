@@ -324,7 +324,7 @@ class AssignmentClassifier {
     }
 
     // #1285: textual candidate built from parse-tree identifiers, not scope
-    // qualification -- see EnumTypeResolver.getEnumTypeFromScopedEnum.
+    // qualification.
     const fullRegName = QualifiedCName.fromParts([scopeName, ids[1]]);
     if (!state.symbols!.knownRegisters.has(fullRegName)) {
       return null;

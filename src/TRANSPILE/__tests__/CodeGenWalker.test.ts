@@ -3,9 +3,8 @@
  * Tests the IOrchestrator interface and internal methods.
  */
 import TargetResolver from "../../utils/TargetResolver";
+import ProgramGeneration from "./ProgramGeneration";
 import PublicInterface from "../2-Plan/PublicInterface";
-import Program from "../../PARSE/4-Resolve/Program";
-import ModificationFacts from "../../transpiler/ModificationFacts";
 import { describe, it, expect, beforeEach } from "vitest";
 import CodeGenWalker from "../CodeGenWalker";
 import CodeGenerator from "../3-Render/codegen/CodeGenerator";
@@ -16,7 +15,6 @@ import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import TSymbolInfoAdapter from "../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import TParameterInfo from "../../transpiler/types/TParameterInfo";
-import TranspileState from "../TranspileState";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import DeferredTypes from "../../PARSE/4-Resolve/DeferredTypes";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
@@ -76,10 +74,6 @@ function setupGenerator(source: string): {
   const state = host.state;
   // Set symbolTable in TranspileState before generate (TranspileState owns SymbolTable)
   state.symbolTable = symbolTable;
-  // #1511: the whole-program facts codegen reads. Without them every small
-  // primitive parameter looks ineligible for pass-by-value and comes out a
-  // pointer.
-  installProgramFor(state, tree);
   // Generate to initialize the generator state
   generateWithProgram(generator, tree, tokenStream, {
     symbolInfo: symbols,
@@ -100,62 +94,14 @@ function createMinimalGenerator(source: string): {
   return { generator, host };
 }
 
-/**
- * Install the artifact these tests now depend on.
- *
- * #1511: pass-by-value eligibility is a whole-program fact — is this parameter
- * modified anywhere down the call chain? — so a generator with no `Program`
- * behind it answers "not eligible" for everything and emits pointers where the
- * real run emits values. Built from the real resolver output and through the
- * same `ModificationFacts.derive` production uses, so a single-file test agrees
- * with a real run rather than approximating one.
- */
-function installProgramFor(
-  state: TranspileState,
-  tree: Parser.ProgramContext,
-  sourcePath = "test.cnx",
-): void {
-  const declared = CNextResolver.resolve(tree, sourcePath, registry);
-  const modifications = ModificationFacts.derive(
-    [{ parsed: { tree } as never, fileSymbols: declared }],
-    registry,
-    state.symbolTable,
-  );
-  state.program = Program.build([declared], {
-    modifications,
-    registry,
-  });
-}
-
-/**
- * Generate with the whole-program artifact in place.
- *
- * Every test here builds one file and calls `generate` directly, which no longer
- * suffices: pass-by-value eligibility is a `Program` fact since #1511, and
- * without one every small primitive parameter is reported ineligible and comes
- * out a pointer. Wrapping the call keeps that setup in one place instead of at
- * six hundred call sites, and installs it from the tree actually being
- * generated, so it cannot go stale between tests.
- */
-function generateWithProgram(
+/** This file's registry, bound once -- the setup is `ProgramGeneration`'s. */
+const generateWithProgram = (
   generator: CodeGenWalker,
   tree: Parser.ProgramContext,
   tokenStream: Parameters<CodeGenWalker["generate"]>[1],
   options: Parameters<CodeGenWalker["generate"]>[2],
-): ReturnType<CodeGenWalker["generate"]> {
-  installProgramFor(
-    generator.transpileState,
-    tree,
-    options?.sourcePath ?? "test.cnx",
-  );
-  // ADR-049: the orchestrator always decides a target before codegen; a test
-  // that does not care about one gets the build machine's.
-  return generator.generate(tree, tokenStream, {
-    ...options,
-    targetDescription:
-      options?.targetDescription ?? TargetResolver.byName("host"),
-  });
-}
+): ReturnType<CodeGenWalker["generate"]> =>
+  ProgramGeneration.generate(generator, tree, tokenStream, options, registry);
 
 let registry = new SymbolRegistry();
 

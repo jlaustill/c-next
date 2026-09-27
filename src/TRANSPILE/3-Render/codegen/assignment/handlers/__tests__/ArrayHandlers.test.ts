@@ -16,21 +16,15 @@ vi.mock("../../../TypeValidator", () => ({
   },
 }));
 
-// Slice codegen resolves the source value's type (Issue #1081 review) — mock it
-// so slice tests can control the source type independently of a real parse tree.
+// Slice codegen reads the source value's type off the context (Issue #1081
+// review) — these stand in for it, so slice tests control the source type
+// independently of a real parse tree.
 const { mockGetExpressionType, mockGetIntegerExpressionType } = vi.hoisted(
   () => ({
     mockGetExpressionType: vi.fn(),
     mockGetIntegerExpressionType: vi.fn(),
   }),
 );
-
-vi.mock("../../../../../2-Plan/ExpressionTypeResolver", () => ({
-  default: {
-    getExpressionType: mockGetExpressionType,
-    getIntegerExpressionType: mockGetIntegerExpressionType,
-  },
-}));
 
 import arrayHandlers from "../ArrayHandlers";
 import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";

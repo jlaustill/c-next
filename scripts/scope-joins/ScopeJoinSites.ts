@@ -236,30 +236,6 @@ class ScopeJoinSites {
       movesWith: null,
       why: "`ctx.identifiers[0]` of `Scope.REG.MEMBER.field`; the sibling `this.` branch already routes through `ScopeUtils.qualifyInScope`",
     },
-    {
-      file: "src/TRANSPILE/3-Render/codegen/resolution/EnumTypeResolver.ts",
-      element: "scopeName",
-      kind: "path",
-      pairedWith: null,
-      movesWith: null,
-      why: "`parts[0]` of `Motor.State.IDLE`; builds a candidate key from source text, not a qualification of a member by its declaring scope",
-    },
-    {
-      file: "src/TRANSPILE/3-Render/codegen/resolution/EnumTypeResolver.ts",
-      element: "parts[0]",
-      kind: "path",
-      pairedWith: null,
-      movesWith: null,
-      why: "`Scope.method()` callee text, guarded by `isKnownScope`",
-    },
-    {
-      file: "src/TRANSPILE/3-Render/codegen/resolution/EnumTypeResolver.ts",
-      element: "parts[1]",
-      kind: "path",
-      pairedWith: null,
-      movesWith: null,
-      why: "`global.Scope.method()` callee text, admitted by `isKnownScope(parts[1])` (`:221`); `parts[0]` is the `global` qualifier the author wrote",
-    },
   ];
 
   /**

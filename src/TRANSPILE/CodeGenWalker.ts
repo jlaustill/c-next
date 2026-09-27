@@ -33,7 +33,6 @@ import IComment from "../transpiler/types/IComment";
 import TYPE_MAP from "./3-Render/codegen/types/TYPE_MAP";
 import TParameterInfo from "../transpiler/types/TParameterInfo";
 import ICodeGeneratorOptions from "./3-Render/codegen/types/ICodeGeneratorOptions";
-import ExpressionTypeResolver from "./2-Plan/ExpressionTypeResolver";
 import TypeValidator from "./3-Render/codegen/TypeValidator";
 import IGeneratorOutput from "./3-Render/codegen/generators/IGeneratorOutput";
 import EmissionPlan from "./2-Plan/EmissionPlan";
@@ -152,7 +151,6 @@ import ParameterInputAdapter from "./3-Render/codegen/helpers/ParameterInputAdap
 import ParameterSignatureBuilder from "./3-Render/codegen/helpers/ParameterSignatureBuilder";
 import SizeofResolver from "./3-Render/codegen/resolution/SizeofResolver";
 import type TSizeofOperand from "./3-Render/codegen/types/TSizeofOperand";
-import EnumTypeResolver from "./3-Render/codegen/resolution/EnumTypeResolver";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import MisraSuppressionUtils from "./3-Render/MisraSuppressionUtils";
 import QualifiedCName from "../utils/QualifiedCName";
@@ -485,8 +483,7 @@ class CodeGenWalker {
       operator,
       operandCode: this.generateUnaryExpr(operand),
       // lazy: only `~` consults it
-      operandType: () =>
-        ExpressionTypeResolver.getUnaryExpressionType(operand, this.host.state),
+      operandType: () => this.directTypeOf(operand),
     });
   }
 
@@ -913,21 +910,15 @@ class CodeGenWalker {
     // second arm was dead: the only caller is `SwitchGenerator`, which passes
     // `node.expression()`. The resolver's `!("ternaryExpression" in ctx)` guard
     // existed to discriminate the union and could therefore never fire.
-    return EnumTypeResolver.resolve(
-      ctx.getText(),
-      () => {
-        const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
-        if (!postfix) return null;
-        const resolvedType = ExpressionTypeResolver.getPostfixExpressionType(
-          postfix,
-          this.host.state,
-        );
-        return resolvedType && this.host.state.isKnownEnum(resolvedType)
-          ? resolvedType
-          : null;
-      },
-      this.host.state,
-    );
+    //
+    // #1668: the one operand typer's answer, which 2.1's ADR-017 rules read
+    // too, so the case label and the E0428/E0434 checks cannot disagree
+    // about whether the switch is on an enum. A header's enum has no C-Next
+    // enum type: its members are global C names and need no qualifying.
+    const typing = this.host.state.typingContext();
+    if (typing === null) return null;
+    const t = OperandTyper.typeOf(ctx, typing);
+    return t?.category === "enum" ? t.enumTypeName : null;
   }
 
   /**
@@ -1118,7 +1109,29 @@ class CodeGenWalker {
    * Part of IOrchestrator interface.
    */
   getExpressionType(ctx: Parser.ExpressionContext): string | null {
-    return ExpressionTypeResolver.getExpressionType(ctx, this.host.state);
+    return this.directTypeOf(ctx);
+  }
+
+  /** #1668 (C6c): an expression's one type for 2.2, PlanTyping's row */
+  private directTypeOf(ctx: ParserRuleContext): string | null {
+    const typing = this.host.state.typingContext();
+    if (typing === null) return null;
+    return PlanTyping.directTypeName(OperandTyper.typeOf(ctx, typing));
+  }
+
+  /**
+   * The integer type an expression converts from: its one type, or a
+   * composite's by CompositeType -- the rule 2.1's E0869 applies
+   */
+  private integerTypeOf(ctx: ParserRuleContext): string | null {
+    return this.directTypeOf(ctx) ?? this.compositeClampType(ctx);
+  }
+
+  /** Whether any value leaf is floating, or indeterminate (CompositeType) */
+  private hasFloatingLeaf(ctx: ParserRuleContext): boolean {
+    const typing = this.host.state.typingContext();
+    if (typing === null) return false;
+    return CompositeType.anyFloating(OperandTyper.valueLeaves(ctx, typing));
   }
 
   /**
@@ -2874,7 +2887,7 @@ class CodeGenWalker {
   }
 
   private _isFloatType(typeName: string): boolean {
-    return ExpressionTypeResolver.isFloatType(typeName);
+    return TypeCheckUtils.isFloat(typeName);
   }
 
   /**
@@ -4834,12 +4847,9 @@ class CodeGenWalker {
         this.analyzeMemberChainForBitAccess(target),
       generateExpression: (expr) => this.generateExpression(expr),
       tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
-      expressionType: (expr) =>
-        ExpressionTypeResolver.getExpressionType(expr, this.host.state),
-      integerExpressionType: (expr) =>
-        ExpressionTypeResolver.getIntegerExpressionType(expr, this.host.state),
-      hasFloatingOperand: (expr) =>
-        ExpressionTypeResolver.hasFloatingOperand(expr, this.host.state),
+      expressionType: (expr) => this.directTypeOf(expr),
+      integerExpressionType: (expr) => this.integerTypeOf(expr),
+      hasFloatingOperand: (expr) => this.hasFloatingLeaf(expr),
       toCOperator: (cnextOp, line) =>
         AssignmentOperatorMapper.toCOperator(cnextOp, line),
     });

@@ -10,8 +10,8 @@ import OperandTyper from "../../../utils/OperandTyper";
 import PlanTyping from "../PlanTyping";
 import testAnalysisContextFor from "../../1-Analyze/__tests__/testAnalysisContextFor";
 
-/** ADR-044's behavior for the initializer of `r` */
-function overflowOf(source: string): string | null {
+/** The initializer of `r`, and the context that types it */
+function initializerOf(source: string) {
   const { tree, context } = testAnalysisContextFor(source);
   let found: Parser.ExpressionContext | null = null;
   ParseTreeWalker.DEFAULT.walk(
@@ -25,8 +25,39 @@ function overflowOf(source: string): string | null {
     tree,
   );
   expect(found).not.toBeNull();
-  return PlanTyping.overflowOf(OperandTyper.valueLeaves(found!, context));
+  return { expression: found!, context };
 }
+
+/** ADR-044's behavior for the initializer of `r` */
+function overflowOf(source: string): string | null {
+  const { expression, context } = initializerOf(source);
+  return PlanTyping.overflowOf(OperandTyper.valueLeaves(expression, context));
+}
+
+describe("PlanTyping.directTypeName", () => {
+  const globals = "u16 a <- 1;\nu16 b <- 2;\nu8 half() {\nreturn 1;\n}\n";
+  const directTypeOf = (body: string): string | null => {
+    const { expression, context } = initializerOf(
+      `${globals}void main() {\n${body}\n}`,
+    );
+    return PlanTyping.directTypeName(OperandTyper.typeOf(expression, context));
+  };
+
+  it.each([
+    ["a composite has no one type", "u16 r <- a + b;", null],
+    ["nor a parenthesized one", "u16 r <- (a + b);", null],
+    ["nor a ternary", "u16 r <- (a > b) ? a : b;", null],
+    ["a comparison is bool", "bool r <- a < b;", "bool"],
+    ["an unsuffixed literal is int", "u16 r <- 5;", "int"],
+    ["a variable is its declared type", "u16 r <- a;", "u16"],
+    // #1668 S21: ETR could not type a call, so a slice treated one as a
+    // composite and bound it to a temp, and a C++ enum field of a call's
+    // result lost the #304 cast its variable spelling had
+    ["a call is its return type", "u8 r <- half();", "u8"],
+  ])("%s", (_why, body, expected) => {
+    expect(directTypeOf(body)).toBe(expected);
+  });
+});
 
 describe("PlanTyping.overflowOf (ADR-044)", () => {
   const globals = "wrap u32 w <- 1;\nclamp u32 c <- 1;\nu32[2] arr;\n";
