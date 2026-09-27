@@ -127,10 +127,12 @@ describe("CallbackAssignmentAnalyzer", () => {
           "    onDown cb <- wrongConst;", // declaration
           "    H init <- { down: wrongConst };", // struct-initializer field
           "    takesDown(wrongConst);", // call argument
+          "    h <- { down: wrongConst };", // initializer typed by its target
           "}",
         ].join("\n"),
       );
       expect(found.map((e) => e.code)).toEqual([
+        "E0879",
         "E0879",
         "E0879",
         "E0879",
@@ -152,10 +154,30 @@ describe("CallbackAssignmentAnalyzer", () => {
             "    onDown cb <- matching;",
             "    H init <- { down: matching };",
             "    takesDown(matching);",
+            "    h <- { down: matching };",
             "}",
           ].join("\n"),
         ),
       ).toEqual([]);
+    });
+
+    it("resolves a callback type and a function declared in a scope", () => {
+      // Both names are looked up from the scope the slot sits in (#1668:
+      // Program's lexical frame), not from file scope
+      const scoped = (value: string) =>
+        build(
+          [
+            "struct P { u32 x; }",
+            "scope Motor {",
+            "    public void onStop(const P p) { }",
+            "    void matchingStop(const P p) { }",
+            "    void wrongStop(P p) { }",
+            `    public void f() { onStop cb <- ${value}; }`,
+            "}",
+          ].join("\n"),
+        ).map((e) => e.code);
+      expect(scoped("wrongStop")).toEqual(["E0879"]);
+      expect(scoped("matchingStop")).toEqual([]);
     });
 
     it("reports E0880 for a function that is itself a field type", () => {
