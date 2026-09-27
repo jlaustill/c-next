@@ -9,7 +9,6 @@ import TranspileState from "../../../TranspileState";
 import type ICodeGenSymbols from "../../../../transpiler/types/ICodeGenSymbols";
 import type ICallbackTypeInfo from "../../../../transpiler/types/ICallbackTypeInfo";
 import type TParameterInfo from "../../../../transpiler/types/TParameterInfo";
-import type TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 import TypeValidator from "../TypeValidator";
 import enterScope from "../../../../transpiler/__tests__/enterScope";
 
@@ -22,7 +21,6 @@ import enterScope from "../../../../transpiler/__tests__/enterScope";
 
 interface SetupStateOptions {
   symbols?: ICodeGenSymbols;
-  typeRegistry?: Map<string, TTypeInfo>;
   callbackTypes?: Map<string, ICallbackTypeInfo>;
   knownFunctions?: Set<string>;
   currentScopePath?: string | null;
@@ -37,11 +35,6 @@ function setupState(options: SetupStateOptions = {}): void {
     state.symbols = options.symbols;
   } else {
     state.symbols = createMockSymbols();
-  }
-  if (options.typeRegistry) {
-    for (const [k, v] of options.typeRegistry) {
-      state.setVariableTypeInfo(k, v);
-    }
   }
   if (options.callbackTypes) {
     for (const [k, v] of options.callbackTypes) {

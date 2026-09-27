@@ -22,7 +22,6 @@ import QualifiedCName from "../utils/QualifiedCName";
 import ScopeUtils from "../utils/ScopeUtils";
 import type ITypeBindingDeps from "../transpiler/types/ITypeBindingDeps";
 import StructFieldFacts from "../utils/StructFieldFacts";
-import DeclaredVariableFacts from "../utils/DeclaredVariableFacts";
 import type IProgram from "../transpiler/types/IProgram";
 import type ITypingContext from "../transpiler/types/ITypingContext";
 import type IDeclarationPlan from "../transpiler/types/IDeclarationPlan";
@@ -602,13 +601,6 @@ class TranspileState {
   // TYPE TRACKING
   // ===========================================================================
 
-  /**
-   * Track variable types for bit access, .length, and type inference.
-   * PRIVATE: Use getVariableTypeInfo()/setVariableTypeInfo() instead.
-   * This ensures cross-file variables from SymbolTable are also found.
-   */
-  private typeRegistry: Map<string, TTypeInfo> = new Map();
-
   /** Bug #8: Compile-time const values for array size resolution */
   constValues: Map<string, number> = new Map();
 
@@ -1044,112 +1036,6 @@ class TranspileState {
   }
 
   /**
-   * Get type info for a variable, as CODEGEN sees it.
-   *
-   * Checks the local typeRegistry first, then the declared answer below, so a
-   * generated file's own variables win over the cross-file ones.
-   *
-   * Issue #786: This unified lookup ensures cross-file variables
-   * (defined in included files) are found even before code generation
-   * registers them locally.
-   *
-   * **Not reachable from 2.1 Analyze.** `typeRegistry` is filled by
-   * `CodeGenerator.generate()` and cleared by `reset()`, both after the
-   * analyzers run, so an analyzer calling this reads a map that belongs to a
-   * different file -- see `declaredVariableType` below, which is the question
-   * an analyzer is actually asking.
-   */
-  getVariableTypeInfo(name: string): TTypeInfo | undefined {
-    // First check the local type registry (current file's variables)
-    const localInfo = this.typeRegistry.get(name);
-    if (localInfo) {
-      return localInfo;
-    }
-
-    // ADR-057: callers reach here with a RESOLVED identifier -- for a scope
-    // member that is already the registry key (`Scope__member`), but for a
-    // shadowing local it is the emitted name while the registry is keyed on
-    // the source spelling. Resolving both here rather than in each of the
-    // ~65 call sites keeps one answer to "what type is this?"; without it a
-    // bit-range write on a shadowing local silently lost its narrowing cast.
-    const sourceName = this.sourceLocalName(name);
-    if (sourceName !== name) {
-      const renamedInfo = this.typeRegistry.get(sourceName);
-      if (renamedInfo) {
-        return renamedInfo;
-      }
-    }
-
-    return this.declaredVariableType(name);
-  }
-
-  /**
-   * What a variable's type is according to what the program DECLARES -- the
-   * answer that does not depend on which file has been generated.
-   *
-   * #1432. `getVariableTypeInfo` above layers the per-file `typeRegistry` on
-   * top of this; the registry probe is the entire difference, and it is
-   * codegen's alone. An analyzer that probed it got the PREVIOUS RUN's answer,
-   * and a signed array subscript reached generated C at exit 0.
-   */
-  declaredVariableType(name: string): TTypeInfo | undefined {
-    return DeclaredVariableFacts.typeInfoOf(
-      this.symbols,
-      this.symbolTable,
-      name,
-    );
-  }
-
-  /**
-   * Legacy alias for getVariableTypeInfo.
-   * @deprecated Use getVariableTypeInfo() instead
-   */
-  getTypeInfo(name: string): TTypeInfo | undefined {
-    return this.getVariableTypeInfo(name);
-  }
-
-  /**
-   * Whether a variable type is registered, asked of the one lookup.
-   *
-   * This was a SECOND implementation of `getVariableTypeInfo`, and the two
-   * disagreed. It called `symbolTable.getTSymbol(name)` bare, where
-   * `DeclaredVariableFacts.symbolOf` falls back to the by-C-name index
-   * (#1303/#1139) -- so for a scoped `u32 value` in `Counter`,
-   * `getVariableTypeInfo("Counter__value")` answered `u32` while this answered
-   * `false`, which reads as "no such variable" rather than "wrong question".
-   * It carried its own copy of the #978 C-struct-global arm too.
-   *
-   * Delegating is what makes "is it registered?" and "what is it?" one decision
-   * rather than two that happen to agree on unscoped names.
-   */
-  hasVariableTypeInfo(name: string): boolean {
-    return this.getVariableTypeInfo(name) !== undefined;
-  }
-
-  /**
-   * Set variable type info in the local registry.
-   */
-  setVariableTypeInfo(name: string, info: TTypeInfo): void {
-    this.typeRegistry.set(name, info);
-  }
-
-  /**
-   * Delete variable type info from the local registry.
-   */
-  deleteVariableTypeInfo(name: string): void {
-    this.typeRegistry.delete(name);
-  }
-
-  /**
-   * Get a read-only view of the local type registry.
-   * Used for passing to helper functions that need to iterate over types.
-   * Note: This only returns locally registered types, not cross-file symbols.
-   */
-  getTypeRegistryView(): ReadonlyMap<string, TTypeInfo> {
-    return this.typeRegistry;
-  }
-
-  /**
    * Convert a TSymbol IVariableSymbol to TTypeInfo for unified type lookups.
    * ADR-055 Phase 7: Works with typed TSymbol instead of ISymbol.
    */
@@ -1438,13 +1324,6 @@ class TranspileState {
   // ===========================================================================
 
   /**
-   * Register a variable type.
-   */
-  registerType(name: string, info: TTypeInfo): void {
-    this.setVariableTypeInfo(name, info);
-  }
-
-  /**
    * Register a const value.
    */
   registerConstValue(name: string, value: number): void {
@@ -1522,7 +1401,7 @@ class TranspileState {
    * Record that a shadowing local is emitted under a different C identifier.
    *
    * Keyed on the BARE name because that is what every reference in the source
-   * says and what every registry (`typeRegistry`, `localVariables`,
+   * says and what every registry (`localVariables`,
    * `constValues`) is keyed by. Only the emitted text moves.
    */
   registerLocalRename(name: string, emittedName: string): void {
@@ -1548,7 +1427,7 @@ class TranspileState {
    *
    * Needed where a helper is handed the emitted name for code generation but
    * must still register under the name the source used: every registry
-   * (`localVariables`, `typeRegistry`) is keyed by the source
+   * (`localVariables`) is keyed by the source
    * spelling, because that is what references in the source say.
    */
   sourceLocalName(emittedName: string): string {
@@ -1682,7 +1561,6 @@ class TranspileState {
     // box 5); there is no `clear()` to call.
 
     // Type tracking
-    this.typeRegistry = new Map();
     this.constValues = new Map();
 
     // Function & callback tracking

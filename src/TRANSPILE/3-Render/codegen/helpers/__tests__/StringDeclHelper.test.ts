@@ -619,18 +619,6 @@ describe("StringDeclHelper", () => {
       ).toThrow(/unsized string is const/);
     });
 
-    it("registers the inferred capacity in the type registry", () => {
-      StringDeclHelper.generateStringDecl(
-        { kind: "unsized", initText: '"abc"' },
-        "msg",
-        { ...NO_MODS, const: "const " },
-        true,
-        state,
-      );
-
-      expect(state.getVariableTypeInfo("msg")?.stringCapacity).toBe(3);
-    });
-
     it("asserts the invariant for non-const unsized string", () => {
       expect(() =>
         StringDeclHelper.generateStringDecl(

@@ -85,7 +85,6 @@ class StringDeclHelper {
           name,
           modifiers,
           isConst,
-          state,
         );
     }
   }
@@ -409,7 +408,6 @@ class StringDeclHelper {
     name: string,
     modifiers: IRenderedModifiers,
     isConst: boolean,
-    state: TranspileState,
   ): string {
     if (!isConst) {
       invariant(
@@ -434,17 +432,6 @@ class StringDeclHelper {
 
     // Infer capacity from literal length
     const inferredCapacity = StringUtils.literalLength(initText);
-
-    // Register in type registry with inferred capacity
-    state.setVariableTypeInfo(state.sourceLocalName(name), {
-      baseType: "char",
-      bitWidth: 8,
-      isArray: true,
-      arrayDimensions: [inferredCapacity + 1],
-      isConst: true,
-      isString: true,
-      stringCapacity: inferredCapacity,
-    });
 
     // #1642's open box. This arm hand-assembled `${extern}const `, dropping
     // `atomic`/`volatile` and hardcoding the `const` rather than reading the

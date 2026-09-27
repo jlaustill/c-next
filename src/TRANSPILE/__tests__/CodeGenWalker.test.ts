@@ -277,7 +277,6 @@ describe("CodeGenWalker", () => {
 
         expect(input.symbolTable).not.toBeNull();
         expect(input.symbols).not.toBeNull();
-        expect(input.typeRegistry).toBeInstanceOf(Map);
         expect(input.functionSignatures).toBeInstanceOf(Map);
         expect(input.knownFunctions).toBeInstanceOf(Set);
         expect(input.knownStructs).toBeInstanceOf(Set);

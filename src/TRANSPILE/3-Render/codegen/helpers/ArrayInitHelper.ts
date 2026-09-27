@@ -123,13 +123,6 @@ class ArrayInitHelper {
         `form [${state.lastArrayFillValue}*] on '${name}' in pass 2.1, before this runs`,
     );
 
-    // Update type registry with inferred size for .length support
-    const existingType = state.getVariableTypeInfo(name);
-    if (existingType) {
-      existingType.arrayDimensions = [state.lastArrayInitCount];
-      state.setVariableTypeInfo(name, existingType);
-    }
-
     return `[${state.lastArrayInitCount}]`;
   }
 

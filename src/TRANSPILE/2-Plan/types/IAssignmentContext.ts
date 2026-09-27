@@ -156,7 +156,7 @@ interface IAssignmentContext {
    * Resolved base identifier for type lookups.
    * Extracted from resolvedTarget by removing subscripts and member access.
    * Example: "ArrayBug_data[0]" -> "ArrayBug_data"
-   * Use this for CodeGenState.typeRegistry lookups instead of identifiers[0].
+   * Its declared type is `target.typeInfo` (#1668), not a lookup by this name.
    */
   readonly resolvedBaseIdentifier: string;
 

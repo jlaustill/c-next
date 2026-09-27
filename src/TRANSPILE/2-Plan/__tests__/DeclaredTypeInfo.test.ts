@@ -8,6 +8,8 @@ import { CNextListener } from "../../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import DeclaredTypeInfo from "../DeclaredTypeInfo";
+import HeaderParser from "../../../PARSE/2-Parse/HeaderParser";
+import CResolver from "../../../PARSE/3-Declare/c/index";
 import OperandTyper from "../../../utils/OperandTyper";
 import testAnalysisContextFor from "../../1-Analyze/__tests__/testAnalysisContextFor";
 
@@ -130,6 +132,54 @@ describe("DeclaredTypeInfo.of", () => {
         "this",
       ),
     ).toMatchObject({ baseType: "u16" });
+  });
+});
+
+describe("DeclaredTypeInfo.of, a C header's variables", () => {
+  // #1668: these were asserted through the registry accessor's cross-file
+  // fallback, which is deleted; the binding's foreign arm is their owner
+  const header = `typedef struct { int v; } cfg_t;
+extern cfg_t cfg;
+extern cfg_t *cfgPointer;
+extern int n;
+#define BUF_SIZE 4`;
+  function foreignAt(name: string) {
+    const table = new SymbolTable();
+    const tree = HeaderParser.parseC(header).tree;
+    table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
+    const { context } = testAnalysisContextFor("void f() {\nu8 r <- 1;\n}", {
+      symbolTable: table,
+    });
+    const binding = context.program.bindValue("test.cnx", null, name, {
+      line: 2,
+      column: 0,
+    });
+    return DeclaredTypeInfo.of(binding, context.symbols, table);
+  }
+
+  it("types a struct global as its struct (#978)", () => {
+    expect(foreignAt("cfg")).toMatchObject({ baseType: "cfg_t" });
+  });
+
+  it("types a struct pointer global as a pointer (#978)", () => {
+    expect(foreignAt("cfgPointer")).toMatchObject({
+      baseType: "cfg_t",
+      isPointer: true,
+    });
+  });
+
+  it("gives a primitive C global no type info", () => {
+    expect(foreignAt("n")).toBeUndefined();
+  });
+});
+
+describe("DeclaredTypeInfo.of, dimensions", () => {
+  it("keeps the slot of a dimension it cannot fold (#1360)", () => {
+    // Dropping the slot shifted every dimension after it, so dimension 2's
+    // bound was applied to dimension 1
+    expect(
+      declaredAtR("void f() {\nu8[UNKNOWN][3] g;\nu8 r <- 1;\n}", "g"),
+    ).toMatchObject({ arrayDimensions: [0, 3] });
   });
 });
 

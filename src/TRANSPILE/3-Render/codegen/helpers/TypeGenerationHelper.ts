@@ -207,11 +207,12 @@ class TypeGenerationHelper {
    * `<string.h>` from this path. It is carried over unchanged, and `isArray`
    * makes the shape explicit where the accessor order used to imply it.
    *
-   * Invisible today: `TypeRegistrationEngine` requires `<string.h>` for a
-   * string declaration by a second route, so the emitted code is the same
-   * either way (measured on a file whose only string is an array, with no
-   * `str*` call). Two routes agreeing by coincidence is what #1638 asks about,
-   * from the same end #1095 asks from the other.
+   * Invisible today: a sized string's declaration plan requires `<string.h>`
+   * by a second route (type registration's until #1668 deleted the registry),
+   * so the emitted code is the same either way (measured on a file whose only
+   * string is an array, with no `str*` call). Two routes agreeing by
+   * coincidence is what #1638 asks about, from the same end #1095 asks from
+   * the other.
    */
   static getRequiredInclude(plan: IPlannedType): TIncludeHeader | null {
     if (plan.primitiveName !== null) {

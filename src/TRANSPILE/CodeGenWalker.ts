@@ -27,7 +27,6 @@ import { basename } from "node:path";
 import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import CommentScanner from "../PARSE/2-Parse/CommentScanner";
-import TypeRegistrationEngine from "./2-Plan/TypeRegistrationEngine";
 import CommentFormatter from "./3-Render/codegen/CommentFormatter";
 import IComment from "../transpiler/types/IComment";
 import TYPE_MAP from "./3-Render/codegen/types/TYPE_MAP";
@@ -1783,7 +1782,7 @@ class CodeGenWalker {
     this.initializeHelperObjects(tree);
 
     // Second pass: register all variable types in the type registry
-    this.registerAllVariableTypes(tree);
+    this.registerGlobalConstValues(tree);
 
     // Assemble and return the output
     return this.assembleGeneratedOutput(tree, options);
@@ -2425,22 +2424,26 @@ class CodeGenWalker {
   }
 
   /**
-   * Second pass: register all variable types in the type registry
-   * This ensures type information is available before generating any code,
-   * allowing .length and other type-dependent operations to work regardless
-   * of declaration order (e.g., scope functions can reference globals declared later)
-   * SonarCloud S3776: Refactored to use helper methods.
+   * Global consts, folded before any code is generated, so a dimension can
+   * use a const declared below it.
+   *
+   * #1668 (C8): this also filled a per-file type registry, which is gone --
+   * every read binds the declaration it means. The folds stay until 1.4
+   * folds global consts (C11).
    */
-  private registerAllVariableTypes(tree: Parser.ProgramContext): void {
-    TypeRegistrationEngine.register(
-      tree,
-      {
-        tryEvaluateConstant: (ctx) => this.tryEvaluateConstant(ctx),
-        requireInclude: (header) => this.host.state.requireInclude(header),
-        resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
-      },
-      this.host.state,
-    );
+  private registerGlobalConstValues(tree: Parser.ProgramContext): void {
+    for (const decl of tree.declaration()) {
+      const varDecl = decl.variableDeclaration();
+      const expression = varDecl?.expression();
+      if (!varDecl?.constModifier() || !expression) continue;
+      const constValue = this.tryEvaluateConstant(expression);
+      if (constValue !== undefined) {
+        this.host.state.constValues.set(
+          varDecl.IDENTIFIER().getText(),
+          constValue,
+        );
+      }
+    }
   }
 
   /**
@@ -3163,7 +3166,7 @@ class CodeGenWalker {
     if (!baseId) return "not-array";
 
     // Look up the struct type from either:
-    // 1. Local variable: typeRegistry.get(baseId).baseType
+    // 1. The declaration the name binds here (#1668)
     // 2. Parameter: currentParameters.get(baseId).baseType
     let structType: string | undefined;
 
@@ -4168,11 +4171,6 @@ class CodeGenWalker {
     // generated text moves.
     const emittedName = this.host.state.emittedLocalName(name);
 
-    // Issue #895 Bug B: If type was inferred as pointer, mark it in the registry
-    if (type.endsWith("*")) {
-      this._markVariableAsPointer(name);
-    }
-
     // ADR-045: string types have their own three forms
     const stringPlan = this.planStringDecl(
       typeCtx,
@@ -4245,18 +4243,6 @@ class CodeGenWalker {
         return this.host.state.emittedLocalName(argName);
       }
       return argName;
-    });
-
-    // Track the variable in type registry. #375 also set an
-    // `isExternalCppType` flag here; it was written at this one site and read
-    // at none, from #375 (closed 2026-01-24) until it was removed. knip does
-    // not analyze interface members, so nothing reported it.
-    this.host.state.setVariableTypeInfo(name, {
-      baseType: type,
-      bitWidth: 0, // Unknown for C++ types
-      isArray: false,
-      arrayDimensions: [],
-      isConst: false,
     });
 
     // Track as local variable if inside function body
@@ -4446,6 +4432,8 @@ class CodeGenWalker {
     const arrayTypeCtx = typeCtx.arrayType?.();
     const arrayStringCtx = arrayTypeCtx?.stringType?.();
     if (arrayTypeCtx && arrayStringCtx) {
+      // ADR-045: a sized string is copied and measured with <string.h>
+      this.host.state.requireInclude("string");
       return this.planStringArray(
         arrayTypeCtx,
         arrayStringCtx,
@@ -4465,6 +4453,8 @@ class CodeGenWalker {
       return { kind: "unsized", initText: expression?.getText() ?? null };
     }
 
+    // ADR-045: a sized string is copied and measured with <string.h>
+    this.host.state.requireInclude("string");
     return {
       kind: "bounded",
       capacity: Number.parseInt(intLiteral.getText(), 10),
@@ -4588,7 +4578,7 @@ class CodeGenWalker {
   }
 
   /**
-   * Issue #696: Track local variable for type registry and const values.
+   * Issue #696: Track a local variable's name and const value.
    */
   private _trackLocalVariable(
     ctx: Parser.VariableDeclarationContext,
@@ -4598,15 +4588,6 @@ class CodeGenWalker {
       return;
     }
 
-    TypeRegistrationEngine.trackVariable(
-      ctx,
-      {
-        tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
-        requireInclude: (header) => this.host.state.requireInclude(header),
-        resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
-      },
-      this.host.state,
-    );
     this.host.state.registerLocalVariable(name);
 
     // Bug #8: Track local const values for array size and bit index resolution
@@ -4615,21 +4596,6 @@ class CodeGenWalker {
       if (constValue !== undefined) {
         this.host.state.constValues.set(name, constValue);
       }
-    }
-  }
-
-  /**
-   * Issue #895 Bug B: Mark variable as a pointer in the type registry.
-   * Called when type inference detects that a variable should be a pointer
-   * (e.g., initialized from a C function returning T*).
-   */
-  private _markVariableAsPointer(name: string): void {
-    const typeInfo = this.host.state.getVariableTypeInfo(name);
-    if (typeInfo) {
-      this.host.state.setVariableTypeInfo(name, {
-        ...typeInfo,
-        isPointer: true,
-      });
     }
   }
 

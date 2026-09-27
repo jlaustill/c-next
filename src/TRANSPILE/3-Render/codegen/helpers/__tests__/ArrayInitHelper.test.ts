@@ -44,14 +44,6 @@ describe("ArrayInitHelper", () => {
     });
 
     it("handles size inference with array initializer", () => {
-      // Add existing type to registry
-      state.setVariableTypeInfo("arr", {
-        baseType: "u8",
-        bitWidth: 8,
-        isArray: true,
-        isConst: false,
-      });
-
       const callbacks = {
         state: new TranspileState(),
         generateExpression: vi.fn(() => {

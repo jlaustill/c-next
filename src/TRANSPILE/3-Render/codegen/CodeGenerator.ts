@@ -101,7 +101,6 @@ export default class CodeGenerator implements IOrchestrator {
     return {
       symbolTable: this.state.symbolTable,
       symbols: this.state.symbols,
-      typeRegistry: this.state.getTypeRegistryView(),
       functionSignatures: this.state.functionSignatures,
       knownFunctions: this.state.knownFunctions,
       knownStructs: this.state.symbols?.knownStructs ?? new Set(),

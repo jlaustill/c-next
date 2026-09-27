@@ -53,20 +53,19 @@ function planArguments(
 let declaredTypes: ReadonlyMap<string, TTypeInfo> = new Map();
 
 function createMockInput(
-  overrides: Partial<IGeneratorInput> = {},
+  overrides: Partial<IGeneratorInput> & {
+    /** #1668: each case's declared variables, which the plan carries */
+    typeRegistry?: Map<string, TTypeInfo>;
+  } = {},
 ): IGeneratorInput {
-  // Also populate TranspileState with the type registry entries
-  // This is needed because CallExprGenerator now uses TranspileState directly
-  const typeRegistry =
-    (overrides.typeRegistry as Map<string, TTypeInfo>) ?? new Map();
   // #1668 (C7): an argument carries its declared type on its plan, which
   // `planArguments` reads from these
+  const { typeRegistry = new Map<string, TTypeInfo>(), ...input } = overrides;
   declaredTypes = typeRegistry;
 
   return {
     symbols: null,
     symbolTable: null,
-    typeRegistry,
     functionSignatures: new Map(),
     knownFunctions: new Set(),
     knownStructs: new Set(),
@@ -75,7 +74,7 @@ function createMockInput(
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
     debugMode: false,
-    ...overrides,
+    ...input,
   } as unknown as IGeneratorInput;
 }
 

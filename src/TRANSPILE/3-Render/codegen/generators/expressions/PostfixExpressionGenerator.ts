@@ -578,7 +578,7 @@ const tryExplicitLengthProperty = (
       result = generateByteLengthProperty(ctx, input, state, orchestrator);
       break;
     case "element_count":
-      result = generateElementCountProperty(ctx, input, state, orchestrator);
+      result = generateElementCountProperty(ctx, state, orchestrator);
       break;
     case "char_count":
       result = generateCharCountProperty(ctx, state, orchestrator, effects);
@@ -1111,7 +1111,6 @@ const generateTypeInfoElementCount = (ctx: IExplicitLengthContext): string => {
  */
 const generateElementCountProperty = (
   ctx: IExplicitLengthContext,
-  input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): string | null => {

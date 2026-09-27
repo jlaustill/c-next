@@ -50,18 +50,20 @@ interface IPostfixPlannerStub {
 
 let sharedState = new TranspileState();
 
+/** Each case's declared variables -- see `createMockInput` */
+let declaredTypes: ReadonlyMap<string, TTypeInfo> = new Map();
+
 function createMockInput(overrides?: {
   symbols?: ICodeGenSymbols;
   typeRegistry?: Map<string, TTypeInfo>;
 }): IGeneratorInput {
   // #1668 (C7): the generator reads each chain's bound base off its plan,
   // which `runPostfix` derives from this map
-  const typeRegistry = overrides?.typeRegistry ?? new Map<string, TTypeInfo>();
+  declaredTypes = overrides?.typeRegistry ?? new Map<string, TTypeInfo>();
 
   return {
     symbolTable: null,
     symbols: overrides?.symbols ?? createMockSymbols(),
-    typeRegistry,
     functionSignatures: new Map(),
     knownFunctions: new Set(),
     knownStructs: new Set(),
@@ -337,7 +339,7 @@ function runPostfix(
   // The chain's bound base, as the walker plans it: a named primary binds
   // itself, both as the root and as the variable its leading part reaches
   const declared = plan.rootIdentifier
-    ? input.typeRegistry.get(plan.rootIdentifier)
+    ? declaredTypes.get(plan.rootIdentifier)
     : undefined;
   return generatePostfixExpression(
     {
