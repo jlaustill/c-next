@@ -1,0 +1,27 @@
+/**
+ * #1668: 2.2's readings of the one operand typer's facts -- the policy rows
+ * for the plan's typing sites, which the design (§5) keeps in one 2-Plan
+ * module because several sites share them. The typer reports facts; each row
+ * here decides what one site does with them, and nowhere else does.
+ */
+import OperandTyper from "../../utils/OperandTyper";
+import type IOperandType from "../../transpiler/types/IOperandType";
+
+class PlanTyping {
+  /**
+   * The type a cast converts FROM, for ADR-024's saturation decision.
+   *
+   * - A Boolean -- `!k`, a comparison, a `bool` -- is `bool`, whatever its
+   *   operand was: `(u32)!k` converts 0 or 1 and has nothing to saturate.
+   * - Anything else is the typer's type, so a call, a callback, a struct
+   *   field, an element and a C or C++ header's value are typed like a
+   *   variable; a float among them saturates.
+   */
+  static castSourceType(t: IOperandType | null): string | null {
+    if (t === null) return null;
+    if (OperandTyper.isBoolean(t)) return "bool";
+    return t.typeName;
+  }
+}
+
+export default PlanTyping;

@@ -40,6 +40,8 @@ import EmissionPlan from "./2-Plan/EmissionPlan";
 import DeclarationPlan from "./2-Plan/DeclarationPlan";
 import CastRequirement from "./2-Plan/CastRequirement";
 import OperandTyper from "../utils/OperandTyper";
+import PlanTyping from "./2-Plan/PlanTyping";
+import type IOperandType from "../transpiler/types/IOperandType";
 import type TDeclarationKind from "../transpiler/types/TDeclarationKind";
 import type IEmissionPlan from "../transpiler/types/IEmissionPlan";
 import type IEmissionFacts from "../transpiler/types/IEmissionFacts";
@@ -2863,15 +2865,6 @@ class CodeGenWalker {
   }
 
   /**
-   * ADR-024: Get the type of a unary expression (for cast validation).
-   */
-  private getUnaryExpressionType(
-    ctx: Parser.UnaryExpressionContext,
-  ): string | null {
-    return ExpressionTypeResolver.getUnaryExpressionType(ctx, this.host.state);
-  }
-
-  /**
    * Check if an expression is an lvalue that needs & when passed to functions.
    * This includes member access (cursor.x) and array access (arr[i]).
    * Returns the type of lvalue or null if not an lvalue.
@@ -5408,14 +5401,23 @@ class CodeGenWalker {
     const targetType = this.generateType(ctx.type());
     const targetTypeName = ctx.type().getText();
     const operandCode = this.generateUnaryExpr(ctx.unaryExpression());
-    const operandType = this.getUnaryExpressionType(ctx.unaryExpression());
+    const typing = this.host.state.typingContext();
+    const operand =
+      typing === null
+        ? null
+        : OperandTyper.typeOf(ctx.unaryExpression(), typing);
+    const operandType = PlanTyping.castSourceType(operand);
 
     return {
       targetType,
       targetTypeName,
       operandCode,
       operandType,
-      clampForm: this.clampFormOf(ctx, operandType, targetTypeName),
+      clampForm: CodeGenWalker.clampFormOf(
+        operand,
+        operandType,
+        targetTypeName,
+      ),
     };
   }
 
@@ -5425,19 +5427,14 @@ class CodeGenWalker {
    * as the one operand typer reports -- calls a helper, so the operand is
    * evaluated once. A pure operand keeps the bounded ternary.
    */
-  private clampFormOf(
-    ctx: Parser.CastExpressionContext,
+  private static clampFormOf(
+    operand: IOperandType | null,
     operandType: string | null,
     targetTypeName: string,
   ): IPlannedCast["clampForm"] {
     if (!CastRequirement.requiresClamping(operandType, targetTypeName)) {
       return null;
     }
-    const typing = this.host.state.typingContext();
-    const operand =
-      typing === null
-        ? null
-        : OperandTyper.typeOf(ctx.unaryExpression(), typing);
     return operand?.hasSideEffect ? "helper" : "inline";
   }
 
