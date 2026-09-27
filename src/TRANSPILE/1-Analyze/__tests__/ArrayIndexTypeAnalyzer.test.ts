@@ -3,10 +3,7 @@
  * Tests detection of signed/float types used as array and bit subscript indexes (ADR-054)
  */
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ArrayIndexTypeAnalyzer from "../ArrayIndexTypeAnalyzer";
-import TranspileState from "../../TranspileState";
-import testAnalysisContext from "./testAnalysisContext";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 describe("ArrayIndexTypeAnalyzer", () => {
@@ -443,20 +440,19 @@ describe("ArrayIndexTypeAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
 
-    it("should pass through unresolvable function call without TranspileState", () => {
-      // Kept on the state helper: a real program always resolves the declared
-      // `getIndex`, so it cannot produce the no-return-type pass-through.
-      const { tree } = CNextSourceParser.parse(`
-        u32 getIndex() { return 0; }
+    it("should pass through a call it cannot type", () => {
+      // #1668: the callee is declared nowhere, so nothing types its result.
+      // An unresolved name is another diagnostic's to report (E0427), not
+      // this one's to guess at. (This used an EMPTY program to stand in for
+      // an unresolvable callee; a program that does not hold the file is
+      // refused now, as a caller error.)
+      const { tree, context } = testAnalysisContextFor(`
         void main() {
           u8[10] arr;
-          arr[getIndex()] <- 1;
+          arr[mystery()] <- 1;
         }
       `);
-      const analyzer = new ArrayIndexTypeAnalyzer(
-        testAnalysisContext(new TranspileState()),
-      );
-      const errors = analyzer.analyze(tree);
+      const errors = new ArrayIndexTypeAnalyzer(context).analyze(tree);
       expect(errors).toHaveLength(0);
     });
   });

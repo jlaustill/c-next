@@ -158,7 +158,7 @@ class StructInitializerType {
   }
 
   /** The declared type of the field an enclosing initializer is setting. */
-  private static fieldType(
+  static fieldType(
     field: Parser.FieldInitializerContext,
     context: IAnalysisContext,
   ): string | null {

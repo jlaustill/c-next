@@ -45,6 +45,7 @@
  * predicate is E0427's, shared rather than restated.
  */
 
+import StructInitializerType from "./helpers/StructInitializerType";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
@@ -57,7 +58,6 @@ import IBareEnumMemberError from "./types/IBareEnumMemberError";
 import UndeclaredValueAnalyzer from "./UndeclaredValueAnalyzer";
 import TypeText from "./helpers/TypeText";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import StructFieldFacts from "../../utils/StructFieldFacts";
 
 /** A type name as written at the position that establishes it, or null. */
 type TExpected = string | null;
@@ -198,7 +198,8 @@ class BareEnumMemberListener extends CNextListener {
       return BareEnumMemberListener.enclosingFunctionType(cursor);
     }
     if (cursor instanceof Parser.FieldInitializerContext) {
-      return this.fieldType(cursor, scopePath);
+      // #1668: the one field typing struct initializers share
+      return StructInitializerType.fieldType(cursor, this.context);
     }
     if (cursor instanceof Parser.ArrayInitializerContext) {
       // An element is generated under the array's ELEMENT type, which is the
@@ -232,45 +233,6 @@ class BareEnumMemberListener extends CNextListener {
       return null;
     }
     return OperandTyper.typeOfTarget(target, this.context)?.typeName ?? null;
-  }
-
-  /** The type of the field a `name: value` initializer sets, or null. */
-  private fieldType(
-    field: Parser.FieldInitializerContext,
-    scopePath: string,
-  ): TExpected {
-    const initializer = field.parent?.parent;
-    if (!(initializer instanceof Parser.StructInitializerContext)) return null;
-    const structText = this.structTypeOf(initializer, scopePath);
-    if (structText === null) return null;
-    const fieldName = field.IDENTIFIER().getText();
-    for (const spelling of BareEnumMemberListener.structSpellings(
-      structText,
-      scopePath,
-    )) {
-      const type = StructFieldFacts.typeOf(
-        this.context.symbols,
-        spelling,
-        fieldName,
-      );
-      if (type !== undefined) return type;
-    }
-    return null;
-  }
-
-  /**
-   * The spellings a struct type text is looked up under: `this.X` is the
-   * enclosing scope's `X`, `global.X` is file scope, a bare `X` inside a scope
-   * is tried as the scope's before file scope (ADR-057's order).
-   */
-  private static structSpellings(text: string, scopePath: string): string[] {
-    const here = scopePath;
-    if (text.startsWith("this.")) {
-      return here === "" ? [] : [`${here}.${text.slice(5)}`];
-    }
-    if (text.startsWith("global.")) return [text.slice(7)];
-    if (here !== "" && !text.includes(".")) return [`${here}.${text}`, text];
-    return [text];
   }
 
   /**

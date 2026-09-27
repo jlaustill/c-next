@@ -1,0 +1,19 @@
+u32[4] data;
+
+u32 sum() {
+    u32 total <- 0;
+    for (u32 i <- 0; i < 4; i +<- 1) {
+        total +<- data[i];
+    }
+    return total;
+}
+
+i32 twice(i32 i) {
+    return i * 2;
+}
+
+// #1694 program 1. E0850 took a name's type from the LAST declaration of that
+// name in the file, so the u32 loop index `i` above was rejected as the i32
+// parameter of `twice`: `6:23 error[E0850] ... got 'i32'` at f8651d55d. A
+// name's type is the declaration it binds where it is used (#1668). The
+// program is kept byte-for-byte on lines 1-13 so the position is the card's.
