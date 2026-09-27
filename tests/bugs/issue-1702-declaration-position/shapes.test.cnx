@@ -1,0 +1,40 @@
+u8 suBug(bool c) {
+    u8 v <- 200;
+    u8 k <- 3;
+    u8 w <- 0;
+    if (c = true) {
+        w <- v + k;
+        i8 v <- 1;
+        w <- w + 1;
+    }
+    return w;
+}
+
+u8 cvBug(bool c) {
+    u8 v <- 200;
+    u8 w <- 0;
+    if (c = true) {
+        w <- v;
+        u32 v <- 5;
+        w <- w + 1;
+    }
+    return w;
+}
+
+u8 bug(bool c) {
+    u8 v <- 200;
+    u8 k <- 3;
+    u8 w <- 0;
+    if (c = true) {
+        w <- v + k;
+        f32 v <- 1.5;
+        w <- w + 1;
+    }
+    return w;
+}
+
+// #1702: each use reads the OUTER `v`, declared above it; the inner `v` is
+// declared after the use. These are valid programs, and they were rejected
+// with E0810 (signed and unsigned), E0869 and E0810 (integer and floating),
+// because the check took the later inner `v`. No marker: they transpile and
+// compile in C and C++.

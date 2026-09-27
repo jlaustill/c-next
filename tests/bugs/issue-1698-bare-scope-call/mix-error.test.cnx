@@ -1,0 +1,15 @@
+// test-error
+// #1698: the same bare call in arithmetic. `half()` returns f32, so `i * half()`
+// mixes integer and floating (E0810); it was untyped, and 2.2 routed the float
+// into cnx_clamp_mul_u32. In its own file because a narrowing error is reported
+// in a later analyzer stage than E0810.
+scope Gauge {
+    f32 half() {
+        return 0.5;
+    }
+    public f32 run() {
+        u32 i <- 10;
+        f32 r <- i * half();
+        return r;
+    }
+}

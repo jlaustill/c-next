@@ -1,0 +1,17 @@
+// test-execution
+// #1701: a `u32` global behind an `f32` local is still clamped as a u32. It
+// was emitted `x += 1000;` and wrapped to 999.
+u32 x <- 4294967295;
+
+void f() {
+    f32 x <- 1.0;
+    global.x +<- 1000;
+    f32 local <- x;
+    local <- local;
+}
+
+u32 main() {
+    f();
+    if (global.x != 4294967295) return 1;
+    return 0;
+}

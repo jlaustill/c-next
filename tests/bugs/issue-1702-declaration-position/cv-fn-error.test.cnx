@@ -1,0 +1,17 @@
+u8 probe(bool c) {
+    u32 v <- 300;
+    u8 w <- 0;
+    if (c = true) {
+        w <- v;
+        u8 v <- 1;
+        w <- w + 0;
+    }
+    return w;
+}
+
+// test-error
+// #1702: at `w <- v`, `v` is the outer u32 -- the inner `u8 v` is declared on
+// the next line, and a block-scope name comes into scope only after its
+// declarator (C99 6.2.1p7). So this narrows (E0869). The check took the later
+// inner `v`, passed, and the program returned 300 truncated to 44. The
+// program is first so its positions are the card's.

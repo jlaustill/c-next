@@ -1,0 +1,22 @@
+// test-execution
+// #1666 CONTROL: a parameter `u8 x` shadowing the global `u32 x` leaves the
+// global's type alone in a later function. This held before the fix too.
+u32 x <- 0;
+
+u32 first(u8 x) {
+    u32 v <- x;
+    return v;
+}
+
+u32 second() {
+    u32 n <- x.bit_length;
+    return n;
+}
+
+u32 main() {
+    u32 local <- first(7);
+    if (local != 7) return 1;
+    u32 width <- second();
+    if (width != 32) return 2;
+    return 0;
+}

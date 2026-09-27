@@ -1,0 +1,10 @@
+// test-error
+// #1699: the same member's array is bounded. `this.arr[9]` on a `u8[4]` passed
+// and wrote past the array.
+#include "lib.cnx"
+
+scope Lib {
+    public void poke() {
+        this.arr[9] <- 1;
+    }
+}

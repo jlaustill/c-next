@@ -1,0 +1,13 @@
+// test-error
+// #1698: a bare call to a function of the enclosing scope is typed by that
+// function. `get()` returns u32, so `u8 n <- get()` narrows (E0869); it was
+// untyped, so it passed, and the program returned 300 truncated to 44.
+scope Gauge {
+    u32 get() {
+        return 300;
+    }
+    public u8 narrow() {
+        u8 n <- get();
+        return n;
+    }
+}

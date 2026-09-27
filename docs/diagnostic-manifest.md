@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-414 fixture(s) assert a diagnostic; 399 carry a code.
+423 fixture(s) assert a diagnostic; 408 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -353,6 +353,15 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1668-ternary-arms/arms.test.cnx                                                 | E0810               |
 | tests/bugs/issue-1668-ternary-arms/transitive/transitive.test.cnx                                | E0810               |
 | tests/bugs/issue-1694-e0850-scoped-name/signed-then-loop.test.cnx                                | E0850               |
+| tests/bugs/issue-1698-bare-scope-call/mix-error.test.cnx                                         | E0810               |
+| tests/bugs/issue-1698-bare-scope-call/narrow-error.test.cnx                                      | E0869               |
+| tests/bugs/issue-1698-bare-scope-call/scope-wins-error.test.cnx                                  | E0869               |
+| tests/bugs/issue-1699-this-reopened-scope/bounds-error.test.cnx                                  | E0854               |
+| tests/bugs/issue-1699-this-reopened-scope/mix-error.test.cnx                                     | E0810               |
+| tests/bugs/issue-1699-this-reopened-scope/narrow-error.test.cnx                                  | E0869               |
+| tests/bugs/issue-1702-declaration-position/after-inner-error.test.cnx                            | E0810               |
+| tests/bugs/issue-1702-declaration-position/cv-fn-error.test.cnx                                  | E0869               |
+| tests/bugs/issue-1702-declaration-position/fl-fn-error.test.cnx                                  | E0810               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/cross-file-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx                             | E0708               |

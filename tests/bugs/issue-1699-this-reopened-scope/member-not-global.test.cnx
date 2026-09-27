@@ -1,0 +1,18 @@
+// test-execution
+// #1699 NEGATIVE CONTROL: `this.x` reads the member, not the file-scope f32 `x`
+// beside it, so `this.x + 1` is u32 arithmetic with no diagnostic, clamped as
+// ADR-044 requires.
+#include "lib.cnx"
+
+scope Lib {
+    public u32 bump() {
+        u32 k <- this.x + 1;
+        return k;
+    }
+}
+
+u32 main() {
+    u32 k <- Lib.bump();
+    if (k != 301) return 1;
+    return 0;
+}
