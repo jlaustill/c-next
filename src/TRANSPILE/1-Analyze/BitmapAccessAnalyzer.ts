@@ -29,7 +29,7 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import PROPERTY_NAMES from "./helpers/PROPERTY_NAMES";
+import PROPERTY_NAMES from "../../utils/constants/PROPERTY_NAMES";
 import ChainRoot from "../../utils/ChainRoot";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import IBitmapAccessError from "./types/IBitmapAccessError";

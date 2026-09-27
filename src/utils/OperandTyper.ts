@@ -22,6 +22,7 @@ import ForeignTypeFacts from "./ForeignTypeFacts";
 import LiteralUtils from "./LiteralUtils";
 import ParserUtils from "./ParserUtils";
 import QualifiedCName from "./QualifiedCName";
+import PROPERTY_NAMES from "./constants/PROPERTY_NAMES";
 import ScopeUtils from "./ScopeUtils";
 import SubscriptClassifier from "./SubscriptClassifier";
 import TypeResolver from "./TypeResolver";
@@ -53,16 +54,6 @@ type TChainValue =
   | { readonly k: "unknown" };
 
 const UNKNOWN: TChainValue = { k: "unknown" };
-
-/** ADR-058 properties: typed by their own rules, never as a member */
-const PROPERTIES = new Set([
-  "length",
-  "bit_length",
-  "byte_length",
-  "element_count",
-  "capacity",
-  "size",
-]);
 
 /** How an operand came to have its type */
 type TOperandForm = IOperandType["form"];
@@ -927,7 +918,8 @@ class OperandTyper {
     ctx: ITypingContext,
   ): TChainValue {
     if (
-      PROPERTIES.has(member) ||
+      // ADR-058/ADR-045 properties: typed by their own rules, never as a member
+      PROPERTY_NAMES.has(member) ||
       t.typeName === null ||
       t.dimensions.length > 0
     ) {

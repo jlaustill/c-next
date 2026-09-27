@@ -862,6 +862,15 @@ const MOVES: readonly IMove[] = [
       "#1668 (C3). Follows its module, so the test sits in the `__tests__` " +
       "beside what it tests.",
   },
+  {
+    from: "src/TRANSPILE/1-Analyze/helpers/PROPERTY_NAMES.ts",
+    to: "src/utils/constants/PROPERTY_NAMES.ts",
+    because:
+      "#1668 (C4). Which member names are ADR-058/ADR-045 properties is one " +
+      "fact, and the operand typer had its own copy that lacked " +
+      "`char_count`; the typer lives in `utils/`, which may not reach " +
+      "`1-Analyze/`.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */

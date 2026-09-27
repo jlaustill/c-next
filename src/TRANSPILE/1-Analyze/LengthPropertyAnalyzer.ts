@@ -22,9 +22,9 @@
  * type can answer: `.element_count` needs an array, `.char_count` needs a
  * string, `.bit_length` and `.byte_length` need a type whose width is known.
  * The question is asked of the chain WITHOUT the property step -- for
- * `frame.data[0].element_count` the subject is `frame.data[0]` -- which is why
- * `OperandTypeResolver` grew a bounded walk rather than this growing a second
- * one.
+ * `frame.data[0].element_count` the subject is `frame.data[0]` -- which is the
+ * one operand typer's chain step before the property (#1668), not a second
+ * walk of this analyzer's own.
  *
  * ## A divergence this does NOT fix
  *
@@ -44,27 +44,20 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import PROPERTY_NAMES from "./helpers/PROPERTY_NAMES";
+import OperandTyper from "../../utils/OperandTyper";
+import PROPERTY_NAMES from "../../utils/constants/PROPERTY_NAMES";
 import ILengthPropertyError from "./types/ILengthPropertyError";
-import OperandTypeResolver from "./OperandTypeResolver";
-import ScopeFrameResolver from "./ScopeFrameResolver";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
+import type IOperandType from "../../transpiler/types/IOperandType";
 
 /** The CLI argument vector, which answers only `.element_count`. */
 const ARGS_PARAMETER = "args";
 
 class LengthPropertyListener extends CNextListener {
   private readonly found: ILengthPropertyError[] = [];
-  private readonly types: OperandTypeResolver;
 
-  public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    private readonly context: IAnalysisContext,
-  ) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
-    this.types = new OperandTypeResolver(scopes, context);
   }
 
   public errors(): ILengthPropertyError[] {
@@ -79,8 +72,6 @@ class LengthPropertyListener extends CNextListener {
     if (last === undefined || last.DOT() === null) return;
     const property = last.IDENTIFIER()?.getText();
     if (property === undefined || !PROPERTY_NAMES.has(property)) return;
-
-    const frame = this.scopes.frameFor(ctx);
 
     if (LengthPropertyListener.subjectIsArgs(ctx, ops)) {
       if (property !== "element_count") {
@@ -98,10 +89,12 @@ class LengthPropertyListener extends CNextListener {
     // -- so if the WHOLE chain resolves to a declared type, the last step was
     // a member access and no property rule applies. Asked for every name in
     // the set, not just `length`: `capacity` is as ordinary an identifier.
-    if (this.types.typeOfPostfixPrefix(ctx, frame, 0) !== null) return;
+    if (OperandTyper.typeOf(ctx, this.context) !== null) return;
 
-    // The subject is the chain WITHOUT the property step.
-    const subject = this.types.typeOfPostfixPrefix(ctx, frame, 1);
+    // The subject is the chain WITHOUT the property step: the typer's last
+    // step is the property, and what it applies to is that step's `before`.
+    const subject =
+      OperandTyper.chainOf(ctx, this.context).steps.at(-1)?.before ?? null;
     if (subject === null) return; // unresolved -- another diagnostic's to report
 
     this.check(last, property, subject);
@@ -110,12 +103,16 @@ class LengthPropertyListener extends CNextListener {
   private check(
     at: Parser.PostfixOpContext,
     property: string,
-    subject: string,
+    typed: IOperandType,
   ): void {
-    const dimensions = LengthPropertyListener.dimensionCount(subject);
-    const element = LengthPropertyListener.elementName(subject);
+    const subject = LengthPropertyListener.spelling(typed);
+    const dimensions = typed.dimensions.length;
+    const element = typed.typeName ?? "";
     // `string<N>` and the unsized `const string`, whose capacity is inferred.
-    const isString = element === "string" || /^string\s*</.test(element);
+    const isString =
+      typed.stringCapacity !== null ||
+      element === "string" ||
+      /^string\s*</.test(element);
 
     // ADR-058 deprecated `.length` outright: it named a different thing on a
     // string, an array and a scalar, and the four shape properties exist to
@@ -176,8 +173,8 @@ class LengthPropertyListener extends CNextListener {
     // -- a struct, or a name this pass cannot see -- has none.
     if (
       TYPE_WIDTH[element] === undefined &&
-      !DeclaredTypeFacts.isEnum(this.context.symbols, element) &&
-      !DeclaredTypeFacts.isBitmap(this.context.symbols, element)
+      typed.enumTypeName === null &&
+      typed.bitmapTypeName === null
     ) {
       this.report(
         at,
@@ -198,15 +195,10 @@ class LengthPropertyListener extends CNextListener {
     );
   }
 
-  /** How many array dimensions a declared type text still carries. */
-  private static dimensionCount(typeText: string): number {
-    return (typeText.match(/\[/g) ?? []).length;
-  }
-
-  /** The element name of a declared type text: `u8[4]` -> `u8`. */
-  private static elementName(typeText: string): string {
-    const open = typeText.indexOf("[");
-    return (open === -1 ? typeText : typeText.slice(0, open)).trim();
+  /** A subject as a message names it: `u32`, `u8[4]` */
+  private static spelling(typed: IOperandType): string {
+    const dimensions = typed.dimensions.map((d) => `[${d}]`).join("");
+    return `${typed.typeName ?? typed.category}${dimensions}`;
   }
 
   /**
@@ -232,13 +224,7 @@ class LengthPropertyAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): ILengthPropertyError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    const listener = new LengthPropertyListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-      this.context,
-    );
+    const listener = new LengthPropertyListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }
