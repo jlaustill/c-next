@@ -3,10 +3,10 @@ import type TTypeInfo from "../../../../transpiler/types/TTypeInfo";
  * One argument of a function call, reduced to what the call generator asks of
  * it (#1445 box 3).
  *
- * The generator asks an argument node four things and nothing else: is it a
- * bare identifier, what type is it, render it, and render it through ADR-006
- * reference semantics. Three of the four are deferred, and each for a
- * different reason.
+ * The generator asks an argument node five things and nothing else: is it a
+ * bare identifier, what type is it, is it a whole array, render it, and render
+ * it through ADR-006 reference semantics. Four of the five are deferred, for
+ * the reasons below.
  *
  * ## Exactly one render happens per argument, and which one is the decision
  *
@@ -46,6 +46,22 @@ interface IPlannedCallArgument {
    * it is one (bare, `this.x`, `global.x`, `Scope.x`); undefined otherwise
    */
   readonly declared: TTypeInfo | undefined;
+
+  /**
+   * Whether the argument is a whole array or a string's buffer, which C decays
+   * to a pointer to its first element (`OperandTyper.decaysToPointer`).
+   * Deferred like `expressionType`, and like it read from the typer over 1.4's
+   * settled declarations.
+   */
+  readonly isArray: () => boolean;
+
+  /**
+   * ADR-030 / #996: whether the argument is one element of an array whose
+   * elements are held through pointers (an array of handles). Such an element
+   * is already the handle, so `&arr[i]` would be a `T**`. Decided from the
+   * array's declaration by the typer's chain, not from the rendered text.
+   */
+  readonly isHandleArrayElement: () => boolean;
 
   /**
    * The argument, rendered.

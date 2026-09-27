@@ -1,0 +1,69 @@
+// test-execution
+// test-no-warnings
+// test-adr: 030
+// test-link: dev_impl.c full_impl.c
+// ADR-030 holds an opaque handle through a pointer, and #996 decided that an
+// array of handles is an array of pointers for a scope member. A PARAMETER of
+// that type did not share the decision: `Dev[2] arr` emitted `Dev arr[2]`, an
+// array of an incomplete type, and each use of it compounded the error --
+// `dev_poke(&arr[0U])` took the address of an element that is already the
+// handle, and forwarding the whole array emitted `pokeAll((*arr))`.
+//
+// Each element is the handle itself, whether the array is a parameter or a
+// local, and whether it reaches a C function or a C-Next one.
+//
+// Control: an element of an array of COMPLETE structs, passed to a C function
+// taking its address, keeps its `&` -- that element is a value, not a
+// pointer, so the fix is keyed on the opaque-handle decision rather than on
+// the array.
+#include "dev.h"
+#include "full.h"
+
+void aPoke(Dev d) {
+    dev_poke(d);
+}
+
+// The defect: `Dev arr[2]` and `dev_poke(&arr[0U])`.
+void pokeAll(Dev[2] arr) {
+    dev_poke(arr[0]);
+    aPoke(arr[1]);
+}
+
+// The whole array, forwarded: `pokeAll((*arr))` before the fix.
+void forward(Dev[2] arr) {
+    pokeAll(arr);
+}
+
+// A whole-value use of one element.
+i32 firstPokes(Dev[2] arr) {
+    Dev first <- arr[0];
+    i32 n <- dev_pokes(first);
+    return n;
+}
+
+// Control: a complete struct's element is a value, so it is passed by address.
+void bumpFirst(Full[2] fulls) {
+    full_bump(fulls[0]);
+}
+
+i32 main() {
+    Dev[2] ds;
+    ds[0] <- dev_create();
+    ds[1] <- dev_create();
+
+    forward(ds);
+    i32 zero <- dev_pokes(ds[0]);
+    if (zero != 1) return 1;
+    i32 one <- dev_pokes(ds[1]);
+    if (one != 1) return 2;
+
+    i32 viaElement <- firstPokes(ds);
+    if (viaElement != 1) return 3;
+
+    Full[2] fulls;
+    bumpFirst(fulls);
+    if (fulls[0].pokes != 1) return 4;
+    if (fulls[1].pokes != 0) return 5;
+
+    return 0;
+}

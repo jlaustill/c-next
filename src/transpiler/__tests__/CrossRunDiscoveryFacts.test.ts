@@ -28,7 +28,8 @@ import ITranspilerConfig from "../types/ITranspilerConfig";
  * and reuses it for every request -- so post-run residency is the cost, and it
  * is a different number from anything a fixture or a peak-RSS benchmark can
  * see. The same argument `RetainedParseCacheRelease.test.ts` makes for the parse
- * cache, and these two maps are the remaining fields with its shape.
+ * cache, and these maps (three since #1435) are the remaining fields with its
+ * shape.
  *
  * Attempting it through output instead is what showed the direct assertion is
  * the honest one: a stale rewrite is only consulted for a spelling that is in
@@ -50,7 +51,7 @@ describe("#1452: discovery's include facts are released at end of run", () => {
   });
 
   /**
-   * Which files the two maps currently answer for, without widening their
+   * Which files the maps currently answer for, without widening their
    * visibility for production.
    *
    * KEYS rather than sizes: a run records one entry per file it discovered, so
@@ -61,20 +62,23 @@ describe("#1452: discovery's include facts are released at end of run", () => {
   function discoveryFactFiles(transpiler: Transpiler): {
     rewrites: string[];
     searchPaths: string[];
+    quotedDirs: string[];
   } {
     const fields = transpiler as unknown as {
       discoveredCnxIncludeRewrites: Map<string, unknown>;
       discoveredIncludeSearchPaths: Map<string, unknown>;
+      discoveredQuotedIncludeDirectories: Map<string, unknown>;
     };
     const fileNames = (map: Map<string, unknown>): string[] =>
       [...map.keys()].map((path) => path.split("/").pop() ?? path).sort();
     return {
       rewrites: fileNames(fields.discoveredCnxIncludeRewrites),
       searchPaths: fileNames(fields.discoveredIncludeSearchPaths),
+      quotedDirs: fileNames(fields.discoveredQuotedIncludeDirectories),
     };
   }
 
-  /** An entry that includes a sibling `.cnx`, so both maps get an entry. */
+  /** An entry that includes a sibling `.cnx`, so every map gets an entry. */
   function writeProject(): string {
     writeFileSync(
       join(tempDir, "lib.cnx"),
@@ -110,11 +114,12 @@ describe("#1452: discovery's include facts are released at end of run", () => {
     // NEGATIVE CONTROL for the assertion below. "Run 1's files are absent"
     // would also hold if discovery never recorded anything at all -- so prove
     // it DID. A program that resolves `lib.cnx` to a generated header is only
-    // reachable through both maps being written.
+    // reachable through the maps being written.
     expect(first.success).toBe(true);
     expect(discoveryFactFiles(transpiler)).toEqual({
       rewrites: ["app.cnx", "lib.cnx"],
       searchPaths: ["app.cnx", "lib.cnx"],
+      quotedDirs: ["app.cnx", "lib.cnx"],
     });
 
     const standalone = join(tempDir, "solo.cnx");
@@ -130,6 +135,7 @@ describe("#1452: discovery's include facts are released at end of run", () => {
     expect(discoveryFactFiles(transpiler)).toEqual({
       rewrites: ["solo.cnx"],
       searchPaths: ["solo.cnx"],
+      quotedDirs: ["solo.cnx"],
     });
   });
 
@@ -142,6 +148,7 @@ describe("#1452: discovery's include facts are released at end of run", () => {
     expect(discoveryFactFiles(fresh)).toEqual({
       rewrites: ["solo.cnx"],
       searchPaths: ["solo.cnx"],
+      quotedDirs: ["solo.cnx"],
     });
   });
 });

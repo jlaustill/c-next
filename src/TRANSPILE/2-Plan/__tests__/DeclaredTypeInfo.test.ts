@@ -181,6 +181,51 @@ extern int n;
   });
 });
 
+describe("DeclaredTypeInfo.of, handles and pointer depth (#1435's review)", () => {
+  // Carried over from the registry tests main added, which this branch
+  // deleted with the registry: the binding is their owner here.
+  const header = `typedef struct { int v; } cfg_t;
+typedef struct Dev Dev;
+extern cfg_t **cfgTable;
+extern Dev cDevice;`;
+  function typeAt(name: string) {
+    const table = new SymbolTable();
+    const tree = HeaderParser.parseC(header).tree;
+    table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
+    const { context } = testAnalysisContextFor(
+      "Dev shared;\nvoid f() {\nu8 r <- 1;\n}",
+      { symbolTable: table },
+    );
+    const binding = context.program.bindValue("test.cnx", null, name, {
+      line: 3,
+      column: 0,
+    });
+    return DeclaredTypeInfo.of(binding, context.symbols, table);
+  }
+
+  it("gives no answer for a C pointer to a pointer, which it cannot describe", () => {
+    // `{ baseType, isPointer }` says "one pointer to the struct". Stripping
+    // every `*` let `cfg_t**` claim that, and a call site took its address
+    // for a `cfg_t**` parameter. Its reader asks the declared C type.
+    expect(typeAt("cfgTable")).toBeUndefined();
+  });
+
+  it("holds a C-Next variable of a handle type through a pointer (ADR-030)", () => {
+    expect(typeAt("shared")).toMatchObject({
+      baseType: "Dev",
+      isPointer: true,
+    });
+  });
+
+  it("leaves a C header's global of the handle type as C declared it", () => {
+    // C declared it, not C-Next, so it keeps its own type and still takes `&`
+    expect(typeAt("cDevice")).toMatchObject({
+      baseType: "Dev",
+      isPointer: false,
+    });
+  });
+});
+
 describe("DeclaredTypeInfo.of, dimensions", () => {
   it("keeps the slot of a dimension it cannot fold (#1360)", () => {
     // Dropping the slot shifted every dimension after it, so dimension 2's

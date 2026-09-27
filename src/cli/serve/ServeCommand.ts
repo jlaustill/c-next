@@ -8,7 +8,6 @@
  */
 
 import { createInterface, Interface } from "node:readline";
-import { dirname } from "node:path";
 import JsonRpcHandler from "./JsonRpcHandler";
 import IJsonRpcRequest from "./types/IJsonRpcRequest";
 import IJsonRpcResponse from "./types/IJsonRpcResponse";
@@ -282,9 +281,7 @@ class ServeCommand {
 
     const { source, filePath } = params;
 
-    const options = filePath
-      ? { workingDir: dirname(filePath), sourcePath: filePath }
-      : undefined;
+    const options = filePath ? { sourcePath: filePath } : undefined;
 
     const transpileResult = await ServeCommand.transpiler.transpile({
       kind: "source",
@@ -327,32 +324,20 @@ class ServeCommand {
 
   /**
    * Handle parseSymbols method (called via _withSourceValidation wrapper)
-   * Runs full transpilation for include resolution, then extracts symbols
-   * from the parse tree (preserving "extract symbols even with parse errors" behavior)
+   * Extracts symbols from the parse tree, preserving "extract symbols even with
+   * parse errors" behavior.
+   *
+   * This used to run a full transpile first, "to trigger header resolution",
+   * and discard it for its side effects on the symbol table. There have been
+   * none since the global registry went (#1378, #1452): `parseWithSymbols`
+   * reads only the text and a registry of its own, so the run was a whole
+   * discovery, header parse and codegen per request that nothing read.
    */
   private static async _handleParseSymbols(
     params: ISourceParams,
   ): Promise<IMethodResult> {
-    const { source, filePath } = params;
-
-    // If transpiler is initialized, run transpile to trigger header
-    // resolution (results are discarded, we just want
-    // the side effects on the symbol table)
-    if (ServeCommand.transpiler && filePath) {
-      try {
-        await ServeCommand.transpiler.transpile({
-          kind: "source",
-          source,
-          workingDir: dirname(filePath),
-          sourcePath: filePath,
-        });
-      } catch {
-        // Ignore transpilation errors - we still extract symbols below
-      }
-    }
-
     // Delegate symbol extraction to parseWithSymbols (shared with WorkspaceIndex)
-    const result = parseWithSymbols(source);
+    const result = parseWithSymbols(params.source);
 
     return {
       success: true,

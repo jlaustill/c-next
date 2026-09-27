@@ -41,23 +41,41 @@
 interface StructParamOptions {
   /** Whether we're in C++ mode (struct params are references) */
   cppMode: boolean;
+  /**
+   * Issue #895: the parameter takes a C callback typedef's pointer shape, so it
+   * is a pointer in C++ too -- a C function pointer cannot take a reference.
+   * Required so no caller can decide from the mode alone.
+   */
+  forcePointerSemantics: boolean;
+}
+
+/**
+ * Whether a struct parameter is a pointer here, rather than a C++ reference --
+ * the ONE decision both helpers below read.
+ *
+ * The member separator used to override the mode for a callback-promoted
+ * parameter at each of its two call sites while the whole-value wrap asked the
+ * mode alone, so in C++ `f->pokes` stood beside `Full copy = f;`, a `Full*`
+ * where a `Full` belongs.
+ */
+function isPointer(options: StructParamOptions): boolean {
+  return options.forcePointerSemantics || !options.cppMode;
 }
 
 /**
  * Get the member access separator for struct parameters.
- * C mode: -> (pointer), C++ mode: . (reference)
+ * Pointer: -> (C, or a callback-promoted parameter in C++); reference: .
  *
  * @param options - The struct param options
- * @returns "->" for C mode, "." for C++ mode
+ * @returns "->" for a pointer, "." for a C++ reference
  */
 function getStructParamSeparator(options: StructParamOptions): string {
-  return options.cppMode ? "." : "->";
+  return isPointer(options) ? "->" : ".";
 }
 
 /**
  * Wrap a struct parameter used as a whole value (not member access).
- * C mode: (*param) - dereference the pointer
- * C++ mode: param - reference can be used directly
+ * Pointer: (*param) - dereference it; reference: param - use it directly
  *
  * @param paramName - The parameter name
  * @param options - The struct param options
@@ -67,7 +85,7 @@ function wrapStructParamValue(
   paramName: string,
   options: StructParamOptions,
 ): string {
-  return options.cppMode ? paramName : `(*${paramName})`;
+  return isPointer(options) ? `(*${paramName})` : paramName;
 }
 
 export default {

@@ -1,0 +1,25 @@
+// test-execution
+// test-adr: 057
+// Issue #1724, the same program as sibling-declared-first.test.cnx with the
+// include order flipped: the reopening file comes BEFORE the file that declares
+// `Motor.Config`. Which scope types a file can see is a fact about its own
+// include closure, so the order its siblings arrive in must not move it.
+#include "ext_config.h"
+#include "motor-uses-ext.cnx"
+#include "motor-config.cnx"
+
+i32 main() {
+    Config theirs <- { a: 7, b: 9 };
+    i32 fromTheirs <- Motor.useTheirs(theirs);
+    if (fromTheirs != 7) {
+        return 1;
+    }
+
+    Motor.Config mine <- { x: 5 };
+    u8 fromMine <- Motor.useMine(mine);
+    if (fromMine != 5) {
+        return 2;
+    }
+
+    return 0;
+}

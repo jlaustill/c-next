@@ -96,13 +96,13 @@ int main(void) {
     if (smallResult != 100) return 3U;
     BoolReturner br = {0};
     br.handler = checkThreshold;
-    bool boolResult = br.handler(100);
+    bool boolResult = br.handler(100U);
     if (boolResult != true) return 4U;
-    boolResult = br.handler(25);
+    boolResult = br.handler(25U);
     if (boolResult != false) return 5U;
-    boolResult = br.handler(50);
+    boolResult = br.handler(50U);
     if (boolResult != false) return 6U;
-    boolResult = br.handler(51);
+    boolResult = br.handler(51U);
     if (boolResult != true) return 7U;
     I32Returner i32r = {0};
     i32r.handler = getSignedValue;

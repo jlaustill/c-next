@@ -36,9 +36,10 @@ interface IHeaderSymbol {
   /** Whether this is an array */
   readonly isArray?: boolean;
   /**
-   * #958/#895 (#1668): a variable C declares through a pointer -- the
+   * #958/#895 (#1668), ADR-030: a variable C declares through a pointer -- the
    * declaration's own `DeclaredPointer` answer, so the `.h` and the `.c`
-   * cannot declare one variable two ways
+   * cannot declare one variable two ways. A handle (#958, ADR-030) is one,
+   * and so is each element of an array of handles (#996).
    */
   readonly isPointer?: boolean;
 

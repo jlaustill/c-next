@@ -1,8 +1,5 @@
 import type ITargetDescription from "../transpiler/types/ITargetDescription";
 import SymbolTable from "../PARSE/3-Declare/SymbolTable";
-import TYPE_FORMING_KINDS from "../PARSE/3-Declare/TYPE_FORMING_KINDS";
-import ESourceLanguage from "../utils/types/ESourceLanguage";
-import type TSymbolKindCNext from "../transpiler/types/symbol-kinds/TSymbolKindCNext";
 import ReservedCnxName from "../utils/ReservedCnxName";
 import ICodeGenSymbols from "../transpiler/types/ICodeGenSymbols";
 import TTypeInfo from "../transpiler/types/TTypeInfo";
@@ -16,6 +13,7 @@ import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
 import UNRESOLVED_DIMENSION from "../transpiler/constants/UNRESOLVED_DIMENSION";
 import type ICodeGenApi from "../transpiler/types/ICodeGenApi";
 import DeclaredTypeFacts from "../utils/DeclaredTypeFacts";
+import DeclaredPointer from "../utils/DeclaredPointer";
 import OutputExtensions from "../utils/OutputExtensions";
 import type IOutputExtensions from "../transpiler/types/IOutputExtensions";
 import QualifiedCName from "../utils/QualifiedCName";
@@ -896,40 +894,34 @@ class TranspileState {
   }
 
   /**
-   * Check if a *qualified* name is a known type declared in a scope.
-   * `ScopeUtils.qualifyScopeType()` asks it through `typeBindingDeps()`, so only actual type
-   * declarations (enum/struct/bitmap/function) capture the name at a type
-   * position. ADR-029 makes a function definition create a callback type, so a
-   * scope function is a type declaration for this purpose; a scope VARIABLE is
-   * not, and deliberately does not capture (ADR-057).
+   * Check if a *qualified* name is a type declared in a scope that the file
+   * being generated can see.
+   * Used by `ScopeUtils.qualifyScopeType()`, through `typeBindingDeps`, to
+   * ensure only actual type declarations (enum/struct/bitmap/function) capture
+   * the name at a type position. ADR-029 makes a function definition create a
+   * callback type, so a scope function is a type declaration for this purpose;
+   * a scope VARIABLE is not, and deliberately does not capture (ADR-057).
    *
    * @param qualifiedName The already-joined C name (e.g. "A__B")
-   * @returns true if the qualified name is a known enum, struct, bitmap, or
-   *          function-as-type (ADR-029)
+   * @returns true if the qualified name is an enum, struct, bitmap, or
+   *          function-as-type (ADR-029) declared in a scope, by this file or a
+   *          file it includes
    */
   isScopeType(qualifiedName: string): boolean {
-    // #1285: ONE lookup that returns the symbol, then a question about its kind.
+    // #1724: the answer 1.4 settled this file's symbols with, asked about the
+    // same file, so the `.c` and the `.h` cannot disagree. This read the
+    // run-wide symbol table, which also holds the scope types of files this
+    // one never includes: a bare `Config` in a reopened scope became a
+    // sibling's `Motor__Config` here while 1.4, reading a run-wide union, made
+    // the same mistake in the header -- two lookups agreeing by coincidence.
     //
-    // This was four parallel string sets -- knownEnums | knownStructs |
-    // knownBitmaps | callbackTypes -- and #1281 proposed adding a fifth. The sets
-    // are standing in for a `kind` field the symbol already carries, and asking
-    // them throws that kind away at the moment of lookup, which is why #1287's
-    // member access on a function-as-type has nothing left to diagnose with.
-    //
-    // TYPE_FORMING_KINDS owns "does this kind introduce a type name", so a new
-    // kind is answered in one place rather than by remembering to add a set.
-    // ADR-029 makes a function definition create a callback type, which is why
-    // `function` is a member.
-    //
-    // Measured equivalent to the four sets across the whole corpus before the
-    // swap: 1119 integration and 124 bug fixtures, zero disagreements, with a
-    // control confirming the probe fired (breaking the candidate produced 51).
-    const found = this.symbolTable.getOverloadsByCName(qualifiedName);
-    return found.some(
-      (symbol) =>
-        symbol.sourceLanguage === ESourceLanguage.CNext &&
-        TYPE_FORMING_KINDS.has(symbol.kind as TSymbolKindCNext),
-    );
+    // Which kinds form a type is still TYPE_FORMING_KINDS' answer (#1285): 1.3
+    // Declare's pass 0b asks it when it collects each file's scope types.
+    const sourcePath = this.sourcePath;
+    if (this.program === null || sourcePath === null) {
+      return false;
+    }
+    return this.program.isScopeTypeVisibleFrom(sourcePath, qualifiedName);
   }
 
   /**
@@ -969,7 +961,7 @@ class TranspileState {
   /**
    * `isScopeType` as a VALUE, bound to this class.
    *
-   * `isScopeType` is an instance method reading `this.symbolTable`, so a bare
+   * `isScopeType` is an instance method reading `this.program`, so a bare
    * reference to it loses its receiver and throws. Six sites each wrote the
    * same closure to work around that -- five feeding `ITypeBindingDeps`, one
    * feeding `ITypeGenerationDeps`, which CLAUDE.md keeps separate so
@@ -986,7 +978,7 @@ class TranspileState {
    * ADR-057: bind this state's type sets to `TypeBinding`'s injected deps.
    *
    * THE binding, for the sites that resolve a whole `TypeContext`.
-   * `isScopeType` is an instance method reading `this.symbolTable`, so it cannot be
+   * `isScopeType` is an instance method reading `this.program`, so it cannot be
    * passed unbound -- which is why five call sites each wrote the same closure,
    * paired with `currentScopePath`, and why the rule against re-pairing them
    * needed something to call instead of only saying not to.
@@ -1025,12 +1017,18 @@ class TranspileState {
   }
 
   /**
-   * Issue #958: Check if a type name is an external typedef struct type.
-   * External typedef struct types should use pointer semantics for scope variables.
-   * Unlike isOpaqueType, this returns true for both forward-declared and complete structs.
+   * ADR-030: is a C-Next declaration of this type held through a pointer?
+   *
+   * An incomplete type can only be held through a pointer, so a declaration of
+   * one is `T*` wherever C-Next declares it -- a scope member, a file-scope or
+   * local variable, a parameter, a callback typedef's parameter -- and an array
+   * of them is an array of pointers (#996). This is the ONE answer each of
+   * those sites reads. A declaration's own pointer-ness (`DeclaredPointer.of`,
+   * which the `.c` definition and the header's `extern` both follow) asks the
+   * same predicate, `DeclaredPointer.isHandleType`, so the two cannot differ.
    */
-  isTypedefStructType(typeName: string): boolean {
-    return this.symbolTable?.isTypedefStructType(typeName) ?? false;
+  isHeldThroughPointer(typeName: string): boolean {
+    return DeclaredPointer.isHandleType(typeName, this.symbolTable);
   }
 
   /**

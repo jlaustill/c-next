@@ -270,10 +270,11 @@ interface IOrchestrator {
   isOpaqueType(typeName: string): boolean;
 
   /**
-   * Issue #958: Check if a type is an external typedef struct type.
-   * Used for scope variables which should always be pointers for external struct types.
+   * ADR-030: whether a declaration of this type is held through a pointer.
+   * The one answer every declaration site reads -- see
+   * `TranspileState.isHeldThroughPointer`.
    */
-  isTypedefStructType(typeName: string): boolean;
+  isHeldThroughPointer(typeName: string): boolean;
 
   /**
    * Mark a scope variable as having an opaque type.

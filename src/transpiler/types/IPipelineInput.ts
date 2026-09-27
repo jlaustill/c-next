@@ -13,6 +13,21 @@ interface IPipelineInput {
   /** C/C++ header files for symbol collection */
   readonly headerFiles: IDiscoveredFile[];
 
+  /**
+   * Per header (by `path`), the search path discovery resolved it along --
+   * that of the `.cnx` file that reached it (#1723). Header preprocessing and
+   * the #985 translation-unit recovery take their -I list from here, so a
+   * header is preprocessed along the path it was found on.
+   */
+  readonly headerSearchPaths: ReadonlyMap<string, readonly string[]>;
+
+  /**
+   * Every `.cnx` file's search path, merged in discovery order (#1723): the -I
+   * list for preprocessing with no single includer -- the #985 translation
+   * unit made of all the run's C includes, quoted ones included.
+   */
+  readonly includeSearchPaths: readonly string[];
+
   /** Whether to write generated output to disk */
   readonly writeOutputToDisk: boolean;
 }

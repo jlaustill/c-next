@@ -37,13 +37,27 @@ class DeclaredPointer {
     return isPointer && !cType.endsWith("*") ? `${cType}*` : cType;
   }
 
+  /**
+   * ADR-030 / #958: whether a type is a C handle -- an incomplete (opaque) or
+   * typedef struct type from a C header, which C-Next only ever holds through
+   * a pointer. Arm 1 below, and `TranspileState.isHeldThroughPointer`, which
+   * every other declaration site asks: one predicate, so a declaration's
+   * pointer-ness and the sites that ask about its type cannot differ.
+   */
+  static isHandleType(
+    cType: string,
+    foreign: Pick<SymbolTable, "isTypedefStructType">,
+  ): boolean {
+    return foreign.isTypedefStructType(cType);
+  }
+
   /** Whether the declaration is a pointer, by the three arms above */
   static of(
     facts: IPointerFacts,
     foreign: Pick<SymbolTable, "isTypedefStructType" | "getCSymbol">,
   ): boolean {
     if (facts.cType.endsWith("*")) return true;
-    if (foreign.isTypedefStructType(facts.cType)) return true;
+    if (DeclaredPointer.isHandleType(facts.cType, foreign)) return true;
     if (facts.initialValue === null) return false;
 
     if (facts.initializerCallee !== null) {

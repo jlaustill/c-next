@@ -1,9 +1,12 @@
 import { dirname, join, resolve } from "node:path";
 
+import CNextMarkerDetector from "./CNextMarkerDetector";
 import IncludeDiscovery from "./IncludeDiscovery";
+import IncludeRewriter from "./IncludeRewriter";
 import FileDiscovery from "./FileDiscovery";
 import type THeaderExtension from "../types/THeaderExtension";
 import IDiscoveredFile from "./types/IDiscoveredFile";
+import type IHeaderRoot from "./types/IHeaderRoot";
 import EFileType from "./types/EFileType";
 import DependencyGraph from "./DependencyGraph";
 import IFileSystem from "../types/IFileSystem";
@@ -27,8 +30,9 @@ interface IResolvedIncludes {
 
   /**
    * Whether any include brings in names this transpiler cannot see -- a C/C++
-   * header, or an include that resolved to nothing (an unresolved `<system.h>` is
-   * silently ignored, and its names still exist at compile time).
+   * header, or an include that resolved to nothing and does not name C-Next
+   * source (an unresolved `<system.h>` is silently ignored, and its names still
+   * exist at compile time; an unresolved `.cnx` supplies no C or C++ names).
    *
    * #1399 review: consumed by the E0426/E0427 precondition. Recorded HERE
    * because this class already decides what each directive IS; the analyzer's
@@ -60,6 +64,21 @@ interface IResolvedIncludes {
    * and agreed only because all three copied what the author typed.
    */
   cnextIncludeRewrites: Map<string, string>;
+
+  /**
+   * #1725: for each quoted include that resolved beside the file that wrote
+   * it -- so its spelling is relative to that file -- the absolute file the
+   * spelling names: the header, or the generated header beside a `.cnx` whose
+   * header the output root does not reach. Keyed like
+   * `headerIncludeDirectives`.
+   *
+   * Another file that needs the same header spells it relative to ITSELF from
+   * this. Copying the spelling gave `src/main.h` lib/a.cnx's `"dev.h"`, which
+   * names `src/dev.h` from there. A spelling that resolved along the search
+   * path is not recorded: it is valid wherever that path is, and re-spelling it
+   * relative to a file would climb into an SDK or a library directory.
+   */
+  writerRelativeIncludes: Map<string, string>;
 }
 
 /**
@@ -83,7 +102,7 @@ interface IResolvedIncludes {
 class IncludeResolver {
   private readonly resolvedPaths: Set<string> = new Set();
   private readonly fs: IFileSystem;
-  private readonly headerExtension: THeaderExtension | null;
+  private readonly headerExtension: THeaderExtension;
 
   /**
    * Issue #1467: asked where the generated header for a `.cnx` is reachable,
@@ -96,19 +115,28 @@ class IncludeResolver {
     | null;
 
   /**
+   * #1725: the directory a quoted include from the file being resolved
+   * resolves beside (ADR-010), or null when the caller does not say -- then no
+   * spelling is known to be relative to its writer, and none is recorded.
+   */
+  private readonly quotedIncludeDirectory: string | null;
+
+  /**
    * @param headerIncludePathFor Issue #1467: where the generated header for a
    *   `.cnx` is reachable, relative to the header output root. See the field
    *   above for why it may be null.
+   * @param quotedIncludeDirectory #1725: see the field above.
    * @param headerExtension The extension generated headers get in this run
-   *   (".h" or ".hpp"), or `null` for a caller that does not read
-   *   `headerIncludeDirectives` from the result.
+   *   (".h" or ".hpp").
    *
    *   Issue #1319: this parameter was a mode with a `false` default, and the
    *   default was load-bearing in the wrong direction -- `IncludeTreeWalker`
    *   never passed it, so that instance answered ".h" for every C++ run. It
-   *   went unnoticed because the walker returns only `cnextIncludes` and drops
-   *   the one field the extension feeds. `null` states that intent, so the
-   *   mistake it used to make is no longer expressible.
+   *   went unnoticed because the walker returned only `cnextIncludes` and
+   *   dropped the one field the extension feeds. #1319 let that caller pass
+   *   `null`; #1435 deleted the walker, the one caller that read no directive,
+   *   so the parameter is required and never null. With no default, no caller
+   *   can inherit a wrong extension.
    *
    *   This used to be readable before the fact settled: cppDetected was raised
    *   by discovering a header, which could happen after IncludeResolver ran, so
@@ -119,13 +147,15 @@ class IncludeResolver {
    */
   constructor(
     private readonly searchPaths: string[],
-    headerExtension: THeaderExtension | null,
+    headerExtension: THeaderExtension,
     fs: IFileSystem = defaultFs,
     headerIncludePathFor: ((cnxPath: string) => string | null) | null = null,
+    quotedIncludeDirectory: string | null = null,
   ) {
     this.fs = fs;
     this.headerExtension = headerExtension;
     this.headerIncludePathFor = headerIncludePathFor;
+    this.quotedIncludeDirectory = quotedIncludeDirectory;
   }
 
   /**
@@ -142,6 +172,7 @@ class IncludeResolver {
       warnings: [],
       headerIncludeDirectives: new Map<string, string>(),
       cnextIncludeRewrites: new Map<string, string>(),
+      writerRelativeIncludes: new Map<string, string>(),
       hasForeignInclude: false,
     };
 
@@ -162,11 +193,7 @@ class IncludeResolver {
     sourceFilePath: string | undefined,
     result: IResolvedIncludes,
   ): void {
-    const resolved = IncludeDiscovery.resolveInclude(
-      includeInfo.path,
-      this.searchPaths,
-      this.fs,
-    );
+    const resolved = this._resolveSpelling(includeInfo);
 
     if (!resolved) {
       this._handleUnresolvedInclude(includeInfo, sourceFilePath, result);
@@ -174,6 +201,33 @@ class IncludeResolver {
     }
 
     this._handleResolvedInclude(resolved, includeInfo, result);
+  }
+
+  /**
+   * Where an include resolves: a quoted `.cnx` include beside the including
+   * file and only there (ADR-010, #1672), anything else along the search
+   * path, as a compiler searches its -I list.
+   */
+  private _resolveSpelling(includeInfo: {
+    path: string;
+    isLocal: boolean;
+  }): string | null {
+    if (
+      includeInfo.isLocal &&
+      this.quotedIncludeDirectory !== null &&
+      FileDiscovery.classifyFile(includeInfo.path).type === EFileType.CNext
+    ) {
+      return IncludeDiscovery.resolveQuoted(
+        includeInfo.path,
+        this.quotedIncludeDirectory,
+        (path) => this.fs.exists(path) && this.fs.isFile(path),
+      );
+    }
+    return IncludeDiscovery.resolveInclude(
+      includeInfo.path,
+      this.searchPaths,
+      this.fs,
+    );
   }
 
   /**
@@ -215,6 +269,9 @@ class IncludeResolver {
         ? `#include "${includeInfo.path}"`
         : `#include <${includeInfo.path}>`;
       result.headerIncludeDirectives.set(absolutePath, directive);
+      if (this._resolvedBesideWriter(includeInfo, absolutePath)) {
+        result.writerRelativeIncludes.set(absolutePath, absolutePath);
+      }
       return;
     }
 
@@ -223,22 +280,46 @@ class IncludeResolver {
       // Issue #854: Track header directive for cnext includes so their types
       // can be mapped by ExternalTypeHeaderBuilder, preventing duplicate
       // forward declarations (MISRA Rule 5.6)
-      // Issue #1319: a caller that never reads headerIncludeDirectives passes
-      // null, so it cannot contribute a wrong extension to a map it ignores.
-      if (this.headerExtension !== null) {
-        // Issue #1467: ask the owner where the header is reachable. The
-        // extension swap below is the fallback for a caller with no resolver
-        // and for a header outside the output root -- not a second answer.
-        const headerPath =
-          this.headerIncludePathFor?.(absolutePath) ??
-          includeInfo.path.replace(/\.cnx$|\.cnext$/, this.headerExtension);
-        const directive = includeInfo.isLocal
-          ? `#include "${headerPath}"`
-          : `#include <${headerPath}>`;
-        result.headerIncludeDirectives.set(absolutePath, directive);
-        result.cnextIncludeRewrites.set(includeInfo.path, headerPath);
+      // Issue #1467: ask the owner where the header is reachable. The
+      // extension swap below is the fallback for a caller with no resolver
+      // and for a header outside the output root -- not a second answer.
+      const reachable = this.headerIncludePathFor?.(absolutePath) ?? null;
+      const headerPath =
+        reachable ??
+        IncludeRewriter.besideSource(includeInfo.path, this.headerExtension);
+      const directive = includeInfo.isLocal
+        ? `#include "${headerPath}"`
+        : `#include <${headerPath}>`;
+      result.headerIncludeDirectives.set(absolutePath, directive);
+      result.cnextIncludeRewrites.set(includeInfo.path, headerPath);
+      // #1725: an output-root path is valid from every file. The author's
+      // spelling is not: its header is generated beside the `.cnx`, so that
+      // file is what another includer must spell relative to itself.
+      if (
+        reachable === null &&
+        this._resolvedBesideWriter(includeInfo, absolutePath)
+      ) {
+        result.writerRelativeIncludes.set(
+          absolutePath,
+          IncludeRewriter.besideSource(absolutePath, this.headerExtension),
+        );
       }
     }
+  }
+
+  /**
+   * #1725: is this a quoted include whose spelling is relative to the file
+   * that wrote it -- found beside that file, not along the search path?
+   */
+  private _resolvedBesideWriter(
+    includeInfo: { path: string; isLocal: boolean },
+    absolutePath: string,
+  ): boolean {
+    return (
+      includeInfo.isLocal &&
+      this.quotedIncludeDirectory !== null &&
+      resolve(this.quotedIncludeDirectory, includeInfo.path) === absolutePath
+    );
   }
 
   /**
@@ -249,8 +330,14 @@ class IncludeResolver {
     sourceFilePath: string | undefined,
     result: IResolvedIncludes,
   ): void {
-    // An include that resolved to nothing still supplies names at compile time.
-    result.hasForeignInclude = true;
+    // An include that resolved to nothing still supplies names at compile
+    // time -- unless it names C-Next source, which is not a C or C++ header
+    // (ADR-030) whether it is found or not. #1435 made reaching a header
+    // transitive, so counting a missing `.cnx` switched E0426 off for every
+    // file that reached this one.
+    if (FileDiscovery.classifyFile(includeInfo.path).type !== EFileType.CNext) {
+      result.hasForeignInclude = true;
+    }
 
     const warnings = result.warnings;
 
@@ -307,7 +394,9 @@ class IncludeResolver {
       return null;
     }
 
-    if (content.includes("Generated by C-Next Transpiler")) {
+    // #1435: the marker is the only thing that identifies a generated header
+    // now, so it is asked of the one detector rather than spelled again here.
+    if (CNextMarkerDetector.isCNextGenerated(content)) {
       onDebug?.(`Skipping C-Next generated header: ${file.path}`);
       return null;
     }
@@ -325,14 +414,19 @@ class IncludeResolver {
    * - Returns headers in dependency order (dependencies first)
    * - Skips headers generated by C-Next Transpiler
    *
-   * @param rootHeaders - Initial set of headers to resolve from
-   * @param includeDirs - Include directories for resolving nested includes
+   * #1723: each root is searched along its own path, and every header it
+   * reaches inherits that path -- the one discovery built for the `.cnx` file
+   * that included the root, discovered tiers and all. A single list of
+   * `--include` directories for every header lost a libdeps header's include
+   * of a sibling library, which a compiler with PlatformIO's -I path finds.
+   *
+   * @param roots - The headers to resolve from, each with its search path
    * @param options - Optional configuration
-   * @returns All headers (root + nested) in dependency order
+   * @returns All headers (root + nested) in dependency order, and the search
+   *   path each was resolved along -- the -I list its preprocessing must use
    */
   static resolveHeadersTransitively(
-    rootHeaders: IDiscoveredFile[],
-    includeDirs: string[],
+    roots: ReadonlyArray<IHeaderRoot>,
     options?: {
       /** Callback for debug logging */
       onDebug?: (message: string) => void;
@@ -341,14 +435,22 @@ class IncludeResolver {
       /** File system abstraction (defaults to NodeFileSystem) */
       fs?: IFileSystem;
     },
-  ): { headers: IDiscoveredFile[]; warnings: string[] } {
+  ): {
+    headers: IDiscoveredFile[];
+    searchPaths: ReadonlyMap<string, readonly string[]>;
+    warnings: string[];
+  } {
     const fs = options?.fs ?? defaultFs;
     const visited = new Set<string>(options?.processedPaths);
     const warnings: string[] = [];
     const depGraph = new DependencyGraph();
     const fileByPath = new Map<string, IDiscoveredFile>();
+    const searchPathsByHeader = new Map<string, readonly string[]>();
 
-    const processHeader = (file: IDiscoveredFile): void => {
+    const processHeader = (
+      file: IDiscoveredFile,
+      rootSearchPaths: readonly string[],
+    ): void => {
       const absolutePath = resolve(file.path);
 
       if (visited.has(absolutePath)) return;
@@ -364,9 +466,10 @@ class IncludeResolver {
 
       depGraph.addFile(absolutePath);
       fileByPath.set(absolutePath, file);
+      searchPathsByHeader.set(file.path, rootSearchPaths);
 
       const includes = IncludeDiscovery.extractIncludesWithInfo(content);
-      const searchPaths = [dirname(absolutePath), ...includeDirs];
+      const searchPaths = [dirname(absolutePath), ...rootSearchPaths];
 
       options?.onDebug?.(`Processing includes in ${file.path}:`);
       options?.onDebug?.(`  Search paths: ${searchPaths.join(", ")}`);
@@ -401,12 +504,12 @@ class IncludeResolver {
         options?.onDebug?.(
           `    → Recursively processing ${includedFile!.path}`,
         );
-        processHeader(includedFile!);
+        processHeader(includedFile!, rootSearchPaths);
       }
     };
 
-    for (const header of rootHeaders) {
-      processHeader(header);
+    for (const root of roots) {
+      processHeader(root.file, root.searchPaths);
     }
 
     const sortedPaths = depGraph.getSortedFiles();
@@ -420,7 +523,11 @@ class IncludeResolver {
       }
     }
 
-    return { headers: sortedHeaders, warnings };
+    return {
+      headers: sortedHeaders,
+      searchPaths: searchPathsByHeader,
+      warnings,
+    };
   }
 
   /**

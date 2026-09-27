@@ -73,6 +73,16 @@ type TPlannedPostfixOp =
   | {
       readonly kind: "call";
       readonly line: number | undefined;
+      /**
+       * The C-Next type of the value being called -- everything before this
+       * operation -- or null when that is not a typed value, as for a
+       * function's own name. ADR-029: a field, variable or parameter of a
+       * callback type holds a function with that type's parameters.
+       *
+       * Deferred like an argument's `expressionType`, and for the same
+       * reason: it reads mutable render-time state.
+       */
+      readonly calleeType: () => string | null;
       readonly planArguments: () => readonly IPlannedCallArgument[] | null;
     };
 

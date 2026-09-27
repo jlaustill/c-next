@@ -30,7 +30,7 @@ class FunctionCollector {
   }
 
   /**
-   * Resolve return type, appending '*' if declarator has a pointer.
+   * Resolve return type, with the declarator's pointers.
    * Issue #895 Bug B / Issue #945: C grammar puts pointer before directDeclarator
    * (e.g., `widget_t *func()` has declarator.pointer() !== null)
    */
@@ -38,8 +38,7 @@ class FunctionCollector {
     baseType: string,
     declarator: DeclaratorContext,
   ): string {
-    const hasPointer = declarator.pointer() !== null;
-    return hasPointer ? `${baseType}*` : baseType;
+    return DeclaratorUtils.pointerType(baseType, declarator);
   }
 
   /**

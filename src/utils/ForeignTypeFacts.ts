@@ -33,7 +33,7 @@ class ForeignTypeFacts {
     const symbol = ForeignTypeFacts.foreignSymbol(symbolTable, name);
     if (symbol?.kind !== "variable" || !symbol.type) return null;
 
-    const baseType = ForeignTypeFacts.stripTrailingPointers(symbol.type);
+    const baseType = ForeignTypeFacts.stripOnePointer(symbol.type);
     if (ForeignTypeFacts.isStruct(symbolTable, baseType)) return baseType;
     if (symbol.isArray) return null;
     return ForeignTypeFacts.usableType(symbolTable, symbol.type);
@@ -44,7 +44,7 @@ class ForeignTypeFacts {
     symbolTable: SymbolTable,
     cType: string,
   ): string | null {
-    const baseType = ForeignTypeFacts.stripTrailingPointers(cType);
+    const baseType = ForeignTypeFacts.stripOnePointer(cType);
     if (ForeignTypeFacts.isStruct(symbolTable, baseType)) return baseType;
     if (cType.endsWith("*")) return null;
     return ForeignTypeFacts.floatingType(symbolTable, cType);
@@ -72,12 +72,15 @@ class ForeignTypeFacts {
    * Strip trailing pointer stars from a C type string (e.g., "font_t*" → "font_t").
    * Uses string operations instead of regex to avoid SonarCloud ReDoS flag (S5852).
    */
-  private static stripTrailingPointers(type: string): string {
-    let end = type.length;
-    while (end > 0 && type[end - 1] === "*") {
-      end--;
-    }
-    return type.slice(0, end).trim();
+  /**
+   * What a C pointer type points at: `font_t*` is `font_t`. One level only
+   * (#1435's review): stripping every `*` made `Dev**` claim to be a `Dev*`,
+   * and a call site took its address for a `Dev**` parameter -- a `Dev***`.
+   * One level leaves `Dev*`, which is no struct, so a pointer to a pointer
+   * gets no answer here and its reader asks the declared C type.
+   */
+  private static stripOnePointer(type: string): string {
+    return type.endsWith("*") ? type.slice(0, -1).trim() : type;
   }
 
   /**
@@ -266,7 +269,7 @@ class ForeignTypeFacts {
   /**
    * The result type a function-pointer spelling names: `float` for
    * `float (*)(void)`, null for any other spelling. String operations rather
-   * than a regex, as `stripTrailingPointers` does, to avoid backtracking
+   * than a regex, as `stripOnePointer` does, to avoid backtracking
    * (SonarCloud S5852).
    */
   private static pointedFunctionResult(type: string): string | null {

@@ -1,0 +1,10 @@
+// The arrays for `cross-file`, one include hop away. The includer reaches them
+// only through this file's generated header, so it must still know each one
+// is an array, which decays when passed whole.
+#include "pts.h"
+
+CPoint[2] sharedPts;
+
+scope Rack {
+    public CPoint[2] slots;
+}

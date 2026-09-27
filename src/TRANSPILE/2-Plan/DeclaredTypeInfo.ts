@@ -177,7 +177,10 @@ class DeclaredTypeInfo {
       ...DeclaredTypeFacts.of(baseType, symbols, TYPE_WIDTH[baseType] || 0),
       isString,
       stringCapacity: isString ? capacity : undefined,
-      ...(symbolTable.isTypedefStructType(baseType) && { isPointer: true }),
+      // #958, ADR-030: a handle is held through a pointer -- the one predicate
+      ...(DeclaredPointer.isHandleType(baseType, symbolTable) && {
+        isPointer: true,
+      }),
     };
   }
 

@@ -15,7 +15,22 @@ function build(files: Record<string, string>) {
   const declared = Object.entries(files).map(([path, source]) =>
     CNextResolver.resolve(CNextSourceParser.parse(source).tree, path, registry),
   );
-  return Program.build(declared, { registry });
+  // #1724: a file sees the scope types of its include closure only, so the
+  // graph is stated as discovery would resolve it -- a quoted `.cnx` include
+  // naming another file of the run
+  const cnextIncludesByFile = new Map(
+    Object.entries(files).map(([path, source]) => [
+      path,
+      [...source.matchAll(/^#include "([^"]+\.cnx)"/gm)]
+        .map((match) => match[1])
+        .filter((included) => included in files)
+        .map((included) => ({ path: included })),
+    ]),
+  );
+  return Program.build(declared, {
+    registry,
+    visibility: { cnextIncludesByFile },
+  });
 }
 
 /** The (1-based) line and 0-based column of the Nth `needle` in `source` */

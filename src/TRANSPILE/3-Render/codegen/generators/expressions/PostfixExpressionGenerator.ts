@@ -268,6 +268,7 @@ const generatePostfixExpression = (
         input,
         state,
         orchestrator,
+        op.calleeType(),
       );
       applyAccessEffects(callResult.effects, effects);
       tracking.result = callResult.code;
@@ -279,10 +280,32 @@ const generatePostfixExpression = (
   // When used as a value (assignments, etc.), we need to dereference to get the struct.
   // Issue #937: For function arguments expecting pointers, CallExprGenerator handles
   // using the identifier directly instead of the dereferenced form.
-  if (isStructParam && ops.length === 0) {
+  //
+  // ADR-030 / #1722: except an opaque handle, whose value IS the pointer.
+  // `(*p)` of an incomplete type is a C error, and it reached every
+  // whole-value use: a C-Next call argument (`aPoke((*d))`), an initializer,
+  // an assignment, a comparison. C++ never showed it only because the wrap is
+  // the bare name there, so the exclusion is the handle's own fact, not the
+  // mode.
+  //
+  // Issue #895: a callback-promoted parameter is a pointer in C++ too, so its
+  // whole value is `(*f)` there as well -- the helper decides from the
+  // parameter, the same answer its `->` member access reads.
+  //
+  // And never an ARRAY parameter: `CPoint pts[2]` is already the pointer C
+  // passes an array as, so its value is `pts`, and `(*pts)` is its first
+  // element. Passed whole to a C function that became `&(*pts)`, which is
+  // right only because the `&` undoes the `*`.
+  if (
+    isStructParam &&
+    !paramInfo?.isOpaqueHandle &&
+    !paramInfo?.isArray &&
+    ops.length === 0
+  ) {
     return {
       code: memberAccessChain.wrapStructParamValue(result, {
         cppMode: orchestrator.isCppMode(),
+        forcePointerSemantics,
       }),
       effects,
     };
@@ -947,13 +970,12 @@ const tryStructParamAccess = (
     return null;
   }
 
-  // Issue #895: Force pointer semantics for callback-compatible params
-  // even in C++ mode (use -> instead of .)
-  const structParamSep = ctx.forcePointerSemantics
-    ? "->"
-    : memberAccessChain.getStructParamSeparator({
-        cppMode: orchestrator.isCppMode(),
-      });
+  // Issue #895: a callback-compatible param is a pointer even in C++ mode, so
+  // it takes -> there too -- decided by the helper, from the parameter.
+  const structParamSep = memberAccessChain.getStructParamSeparator({
+    cppMode: orchestrator.isCppMode(),
+    forcePointerSemantics: ctx.forcePointerSemantics,
+  });
 
   return advanceMemberAccess(ctx, structParamSep);
 };

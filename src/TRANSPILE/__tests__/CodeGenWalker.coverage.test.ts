@@ -22,6 +22,7 @@ import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import TSymbolInfoAdapter from "../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import CallbackTypedefFormatter from "../3-Render/codegen/helpers/CallbackTypedefFormatter";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
 import enterScope from "../../transpiler/__tests__/enterScope";
@@ -1118,6 +1119,64 @@ describe("CodeGenWalker Coverage Tests", () => {
       // character, so the boundary alone would not distinguish them.
       expect(code).not.toMatch(/\bhandler\s+callback\b/);
     });
+
+    /**
+     * ADR-030: a callback typedef is its function's type, so an opaque
+     * parameter is `Dev*` there exactly as in the prototype -- in C++ too,
+     * where an ADR-006 struct would be a reference -- and an array of handles
+     * is an array of pointers (#996). It said `(Dev)` and `(Dev ds[2])`. The
+     * primitive parameter is the control: untouched by the opaque decision.
+     */
+    it.each<[string, boolean]>([
+      ["C", false],
+      ["C++", true],
+    ])(
+      "builds an opaque parameter's callback typedef as a pointer in %s",
+      (_label, cppMode) => {
+        const source = `
+          void aPoke(Dev d, u32 n) {}
+          void pokeBoth(Dev[2] ds) {}
+          struct Handlers {
+            aPoke onDev;
+            pokeBoth onBoth;
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const symbolTable = new SymbolTable();
+        // As a header's `typedef struct Dev Dev;` with no body registers it.
+        symbolTable.markTypedefStructType("Dev", "dev.h");
+        const tSymbols = CNextResolver.resolve(
+          tree,
+          "test.cnx",
+          registry,
+        ).symbols;
+        symbolTable.addTSymbols(tSymbols);
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
+        host.state.symbolTable = symbolTable;
+        generateWithProgram(generator, tree, tokenStream, {
+          symbolInfo: TSymbolInfoAdapter.convert(tSymbols),
+          sourcePath: "test.cnx",
+          cppMode,
+        });
+
+        const typedefOf = (name: string): string => {
+          const info = host.state.callbackTypes.get(name)!;
+          return CallbackTypedefFormatter.format(
+            info.returnType,
+            info.typedefName,
+            info.parameters,
+            cppMode,
+          );
+        };
+        expect(typedefOf("aPoke")).toBe(
+          "typedef void (*aPoke_fp)(Dev*, uint32_t);",
+        );
+        expect(typedefOf("pokeBoth")).toBe(
+          "typedef void (*pokeBoth_fp)(Dev* ds[2]);",
+        );
+      },
+    );
 
     it("should handle function with local variables", () => {
       const source = `

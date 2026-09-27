@@ -3,8 +3,8 @@
  *
  * ## Why these travel on the program artifact (#1452)
  *
- * Both are written during discovery and read two stages later, and neither can
- * be re-derived at the point of use -- which is what put them on a mutable
+ * All three are written during discovery and read two stages later, and none
+ * can be re-derived at the point of use -- which is what put them on a mutable
  * accumulator in the first place. A state container held them, and box 4 of
  * #1452 forbids a module reachable from the pipeline holding state written in
  * one pass and read in another.
@@ -14,7 +14,7 @@
  *
  * | when                  | where                                    |
  * | --------------------- | ---------------------------------------- |
- * | written, Stage 1      | `_discoverFromSource`, `_processFileIncludes` |
+ * | written, Stage 1      | `_resolveCnxIncludes`                    |
  * | **frozen, Stage 3**   | **`Program.build`**                      |
  * | read, Stage 4d        | `_analyzeFile`                           |
  * | read, Stage 5         | `_transpileFile`                         |
@@ -30,7 +30,7 @@
  * exist yet -- that is #1444 -- and `Program` already carries facts it did not
  * author for the same reason (`headerStructFields` comes from the symbol table,
  * `IForeignSymbols` from the C and C++ collectors). When #1444 stands 1.1 up
- * with a `SourceGraph`, these two move there.
+ * with a `SourceGraph`, these move there.
  */
 interface IDiscoveryFacts {
   /**
@@ -57,6 +57,21 @@ interface IDiscoveryFacts {
    * reported E0504.
    */
   readonly includeSearchPaths: ReadonlyMap<string, readonly string[]>;
+
+  /**
+   * Per source file, the directory its quoted includes resolve from (#1435).
+   *
+   * The file's own directory. For a source run's in-memory root that is the
+   * directory of its `sourcePath`, or the caller's `workingDir` when the text
+   * has no path. Recorded for the same reason as the search path: 2.1
+   * re-derived it as `dirname(sourcePath)` while discovery resolved from
+   * `workingDir`, so the two started from different directories -- and a
+   * missing include read as a foreign header, E0426 declined, and C-Next
+   * member syntax reached the C output at exit 0. Whether a quoted `.cnx`
+   * include is found here is one decision too: 1.1 and 2.1 both ask
+   * `IncludeDiscovery.resolveQuoted` (#1672).
+   */
+  readonly quotedIncludeDirectories: ReadonlyMap<string, string>;
 }
 
 export default IDiscoveryFacts;

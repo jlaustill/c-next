@@ -87,8 +87,8 @@ class TTypeUtils {
    */
   /**
    * Create a type 1.3 Declare could not settle -- a bare name whose ADR-057
-   * resolution needs scope types the whole program declares, not just this
-   * file. 1.4 Resolve replaces it; nothing downstream may hold one.
+   * resolution needs the scope types this file's include closure declares, not
+   * just this file's. 1.4 Resolve replaces it; nothing downstream may hold one.
    */
   static createDeferred(name: string, scopePath: string): TDeferredType {
     return { kind: "deferred", name, scopePath };

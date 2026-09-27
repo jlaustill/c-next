@@ -97,12 +97,12 @@ tree-move does not rediscover them:
 
 ### 1.4 Resolve — `src/PARSE/4-Resolve/`
 
-| module                       | why                                                                                                                                                                                                |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Program.ts`                 | the artifact 1.4 emits                                                                                                                                                                             |
-| `DeferredTypes.ts`           | settles bare names against the whole-program scope-type set                                                                                                                                        |
-| `TransitiveEnumCollector.ts` | walks the include graph, so it needs the graph rather than a file                                                                                                                                  |
-| `LexicalFrames.ts`           | #1668: settles each file's frames against the whole program's types and consts, and answers what a name binds at a position (`declarationAt`) and which consts are visible there (`constValuesAt`) |
+| module                       | why                                                                                                                                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Program.ts`                 | the artifact 1.4 emits                                                                                                                                                                                                   |
+| `DeferredTypes.ts`           | settles bare names against the scope types each file can see                                                                                                                                                             |
+| `TransitiveEnumCollector.ts` | walks the include graph, so it needs the graph rather than a file                                                                                                                                                        |
+| `LexicalFrames.ts`           | #1668: settles each file's frames against the scope types that file can see and the program's consts, and answers what a name binds at a position (`declarationAt`) and which consts are visible there (`constValuesAt`) |
 
 ## TRANSPILE
 

@@ -109,7 +109,16 @@ class IncludeRewriter {
     rewrites: ReadonlyMap<string, string>,
     ext: THeaderExtension,
   ): string {
-    return rewrites.get(spec) ?? spec.replace(CNX_EXTENSION, ext);
+    return rewrites.get(spec) ?? IncludeRewriter.besideSource(spec, ext);
+  }
+
+  /**
+   * The header generated beside a `.cnx`: the same path with its C-Next
+   * extension swapped for `ext`. Right only for a header written beside its
+   * source -- the fallback when the output root does not reach it.
+   */
+  static besideSource(cnxPath: string, ext: THeaderExtension): string {
+    return cnxPath.replace(CNX_EXTENSION, ext);
   }
 }
 

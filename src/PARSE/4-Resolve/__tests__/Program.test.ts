@@ -45,6 +45,23 @@ describe("Program", () => {
     return found!;
   };
 
+  /**
+   * #1724: a program whose files include each other as `graph` says -- each
+   * file to its DIRECT includes. A scope type is visible only through this
+   * graph, so a test about one file reading another's must say that it
+   * includes it, as the program it models would.
+   */
+  const including = (graph: Record<string, string[]>) => ({
+    visibility: {
+      cnextIncludesByFile: new Map(
+        Object.entries(graph).map(([file, includes]) => [
+          file,
+          includes.map((path) => ({ path })),
+        ]),
+      ),
+    },
+  });
+
   describe("the copy a scope holds", () => {
     it("settles a scope member's parameter type, not just the file's own list", () => {
       // `IScopeSymbol.functions` is type-bearing, and it was excluded from the
@@ -60,7 +77,7 @@ describe("Program", () => {
         "use.cnx",
       );
 
-      Program.build([lib, use]);
+      Program.build([lib, use], including({ "use.cnx": ["lib.cnx"] }));
 
       const scope = registry.getScope("Chip");
       expect(scope).toBeDefined();
@@ -85,7 +102,10 @@ describe("Program", () => {
         "use.cnx",
       );
 
-      const program = Program.build([lib, use]);
+      const program = Program.build(
+        [lib, use],
+        including({ "use.cnx": ["lib.cnx"] }),
+      );
 
       const fromProgram = find(program.symbolsInFile("use.cnx"), "area");
       const fromRegistry = registry
@@ -114,7 +134,10 @@ describe("Program", () => {
         "b.cnx",
       );
 
-      Program.build([lib, a, b]);
+      Program.build(
+        [lib, a, b],
+        including({ "a.cnx": ["lib.cnx"], "b.cnx": ["lib.cnx"] }),
+      );
 
       const functions = registry.getScope("Chip")!.functions;
       for (const name of ["areaA", "areaB"]) {
@@ -127,11 +150,12 @@ describe("Program", () => {
     });
   });
 
-  describe("the scope-type index", () => {
-    it("combines what every file declares, so one file settles another's bare name", () => {
+  describe("the scope types a file can see", () => {
+    it("settles a bare name to a scope type an INCLUDED file declares", () => {
       // The whole point of the pass. `lib.cnx` declares `Lib.Point`; `use.cnx`
-      // reopens the scope and names `Point` bare. Declare cannot settle that --
-      // it sees one file -- so it defers, and only the combined index answers.
+      // includes it, reopens the scope and names `Point` bare. Declare cannot
+      // settle that -- it sees one file -- so it defers, and only 1.4, which
+      // holds every file and the include graph, answers.
       const lib = declare(
         `scope Lib { public struct Point { u32 x; u32 y; } }`,
         "lib.cnx",
@@ -141,9 +165,14 @@ describe("Program", () => {
         "use.cnx",
       );
 
-      const program = Program.build([lib, use]);
+      const program = Program.build(
+        [lib, use],
+        including({ "use.cnx": ["lib.cnx"] }),
+      );
 
-      expect(program.isScopeType("Lib__Point")).toBe(true);
+      expect(program.isScopeTypeVisibleFrom("use.cnx", "Lib__Point")).toBe(
+        true,
+      );
 
       const origin = find(program.symbolsInFile("use.cnx"), "origin");
       expect(SymbolGuards.isFunction(origin)).toBe(true);
@@ -164,11 +193,73 @@ describe("Program", () => {
 
       const program = Program.build([use]);
 
-      expect(program.isScopeType("Lib__Point")).toBe(false);
+      expect(program.isScopeTypeVisibleFrom("use.cnx", "Lib__Point")).toBe(
+        false,
+      );
 
       const origin = find(program.symbolsInFile("use.cnx"), "origin");
+      expect(SymbolGuards.isFunction(origin)).toBe(true);
       if (SymbolGuards.isFunction(origin)) {
         expect(TypeResolver.getTypeName(origin.returnType)).toBe("Point");
+      }
+    });
+
+    it("does not settle a bare name to a scope type from a file it does not include (#1724)", () => {
+      // The same two files as the positive case, both in the program, and the
+      // ONLY difference is the missing include. `Lib.Point` exists in the run
+      // but not where `use.cnx` can see it, so the bare `Point` binds the
+      // global type -- a C typedef, in #1724 -- and not `Lib__Point`, which
+      // `use.cnx`'s generated C has no declaration of.
+      const lib = declare(
+        `scope Lib { public struct Point { u32 x; u32 y; } }`,
+        "lib.cnx",
+      );
+      const use = declare(
+        `scope Lib { public Point origin() { return this.stored; } }`,
+        "use.cnx",
+      );
+
+      const program = Program.build([lib, use]);
+
+      expect(program.isScopeTypeVisibleFrom("use.cnx", "Lib__Point")).toBe(
+        false,
+      );
+      expect(program.isScopeTypeVisibleFrom("lib.cnx", "Lib__Point")).toBe(
+        true,
+      );
+
+      const origin = find(program.symbolsInFile("use.cnx"), "origin");
+      expect(SymbolGuards.isFunction(origin)).toBe(true);
+      if (SymbolGuards.isFunction(origin)) {
+        expect(TypeResolver.getTypeName(origin.returnType)).toBe("Point");
+      }
+    });
+
+    it("sees a scope type through the whole include closure, not only direct includes", () => {
+      // `use.cnx` reaches `lib.cnx` through `mid.cnx`. A visibility that read
+      // only a file's direct includes would pass both tests above and fail here.
+      const lib = declare(
+        `scope Lib { public struct Point { u32 x; u32 y; } }`,
+        "lib.cnx",
+      );
+      const mid = declare(`u32 unrelated <- 1;`, "mid.cnx");
+      const use = declare(
+        `scope Lib { public Point origin() { return this.stored; } }`,
+        "use.cnx",
+      );
+
+      const program = Program.build(
+        [lib, mid, use],
+        including({ "use.cnx": ["mid.cnx"], "mid.cnx": ["lib.cnx"] }),
+      );
+
+      expect(program.isScopeTypeVisibleFrom("use.cnx", "Lib__Point")).toBe(
+        true,
+      );
+      const origin = find(program.symbolsInFile("use.cnx"), "origin");
+      expect(SymbolGuards.isFunction(origin)).toBe(true);
+      if (SymbolGuards.isFunction(origin)) {
+        expect(TypeResolver.getTypeName(origin.returnType)).toBe("Lib__Point");
       }
     });
   });
@@ -425,8 +516,75 @@ describe("Program", () => {
       ]);
     });
 
+    it("reports a scope's types by the C names a header names them with", () => {
+      // A header's signature says `Lib__Point`. Recorded as bare `Point`, no
+      // include was found to declare it, so the header forward-declared it
+      // after including lib.h -- a typedef redefinition C99 forbids -- and a
+      // scoped `Data` could answer for a C typedef `Data` in another header.
+      const lib = declare(
+        `scope Lib { public struct Point { u32 x; } public enum Data { ONE } }`,
+        "lib.cnx",
+      );
+      const program = Program.build([lib]);
+
+      expect([...program.typesDeclaredIn("lib.cnx")].sort()).toEqual([
+        "Lib__Data",
+        "Lib__Point",
+      ]);
+    });
+
     it("is empty for a file the program never saw", () => {
       expect(Program.build([]).typesDeclaredIn("absent.h").size).toBe(0);
+    });
+  });
+
+  describe("an opaque parameter (#1722)", () => {
+    // ADR-030: whether a parameter holds an opaque handle is decided ONCE, onto
+    // the settled parameter. The `.c` signature, the `.c` call sites and the
+    // `.h` prototype all read this stamp; none of them asks the type again, so
+    // they cannot disagree about one parameter.
+    const withFunction = (structTagsWithBodies: string[]) =>
+      Program.build(
+        [declare(`void use(Dev d, Dev[2] ds, Full f, u32 n) {\n}\n`, "a.cnx")],
+        {
+          headerStructFields: new Map(),
+          foreign: {
+            ...noForeign,
+            opaqueTypedefs: new Set(["Dev", "Full"]),
+            typedefToTag: new Map([
+              ["Dev", "_Dev"],
+              ["Full", "_Full"],
+            ]),
+            structTagsWithBodies: new Set(structTagsWithBodies),
+          },
+        },
+      );
+
+    const stampsOf = (program: ReturnType<typeof withFunction>) => {
+      const use = program.symbolByCName("use");
+      expect(use && SymbolGuards.isFunction(use)).toBe(true);
+      return SymbolGuards.isFunction(use!)
+        ? use.parameters.map((p) => [p.name, p.isOpaqueHandle === true])
+        : [];
+    };
+
+    it("stamps a parameter of an opaque type, and an array of handles", () => {
+      // `Full`'s tag receives a body, so it is complete and passes as any struct.
+      expect(stampsOf(withFunction(["_Full"]))).toEqual([
+        ["d", true],
+        ["ds", true],
+        ["f", false],
+        ["n", false],
+      ]);
+    });
+
+    it("control: a type whose tag received a body is not stamped", () => {
+      expect(stampsOf(withFunction(["_Dev", "_Full"]))).toEqual([
+        ["d", false],
+        ["ds", false],
+        ["f", false],
+        ["n", false],
+      ]);
     });
   });
 
@@ -548,13 +706,14 @@ describe("Program", () => {
         "globalScope",
         "includeSearchPaths",
         "isOpaqueType",
-        "isScopeType",
+        "isScopeTypeVisibleFrom",
         "knownEnums",
         "lexicalDeclarationAt",
         "lexicalFrameAt",
         "modifiedParameters",
         "opaqueTypes",
         "passByValueParams",
+        "quotedIncludeDirectory",
         "resolveFunction",
         "scope",
         "scopePathOf",

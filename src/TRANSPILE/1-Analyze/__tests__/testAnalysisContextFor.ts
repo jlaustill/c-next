@@ -69,7 +69,6 @@ function testAnalysisContextFor(
     {
       registry,
       visibility: {
-        includeDirs: [],
         cnextIncludesByFile: new Map([
           [
             TEST_SOURCE,

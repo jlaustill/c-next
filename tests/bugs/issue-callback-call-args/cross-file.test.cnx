@@ -1,0 +1,37 @@
+// test-execution
+// test-no-warnings
+// The cross-file form of `callback-call-args`: the functions that are the
+// callback types are declared in an included `.cnx`. A call through a field of
+// either type still passes a struct argument by address, as a direct call to
+// the function does. It passed the struct by value into a `const Sample*` and
+// a `Sample*` slot.
+//
+// Control: the direct calls to the same functions.
+#include "remote.cnx"
+
+struct Readers {
+    readSample onRead;
+    bumpSample onBump;
+}
+
+i32 main() {
+    Readers r;
+    r.onRead <- readSample;
+    r.onBump <- bumpSample;
+
+    Sample s <- { value: 4 };
+
+    u32 viaField <- r.onRead(s);
+    if (viaField != 4) return 1;
+
+    r.onBump(s);
+    if (s.value != 7) return 2;
+
+    // Control.
+    u32 direct <- readSample(s);
+    if (direct != 7) return 3;
+    bumpSample(s);
+    if (s.value != 10) return 4;
+
+    return 0;
+}

@@ -607,7 +607,11 @@ class CodeGenWalker {
     };
   }
 
-  /** Which of `postfixOp`'s three shapes this one is. */
+  /**
+   * Which of `postfixOp`'s three shapes this one is. `step` is the one operand
+   * typer's step for it (#1668): a subscript's kind, and for a call the value
+   * it calls -- everything before it (#1561, #1696).
+   */
   private planPostfixOp(
     op: Parser.PostfixOpContext,
     step: IChainStep | null,
@@ -648,6 +652,10 @@ class CodeGenWalker {
       // an `#include` sits in no scope, function or variable, so the matrix's
       // context axis has nothing to ask it.
       line: op.start?.line,
+      // ADR-029: a callback-typed value names the function that is its type,
+      // by C name -- the key `callbackTypes` holds. A function's own name is
+      // not a typed value, so the typer's step has no `before`: null.
+      calleeType: () => step?.before?.typeName ?? null,
       planArguments: () => this.planCallArguments(op.argumentList() || null),
     };
   }
@@ -1174,6 +1182,27 @@ class CodeGenWalker {
   }
 
   /**
+   * ADR-030 / #996: whether an argument is one element of an array held
+   * through pointers -- `handles[i]` of a `Dev[4] handles`. The array's own
+   * declaration says so (`isPointer` on an array of handles, from
+   * `DeclaredPointer`), for a parameter, a file-scope or local variable, and
+   * one declared in an included file alike.
+   */
+  private isHandleArrayElement(ctx: Parser.ExpressionContext): boolean {
+    const typing = this.host.state.typingContext();
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
+    if (postfix === null) return false;
+    const chain = OperandTyper.chainOf(postfix, typing);
+    if (chain.steps[0]?.subscript !== "array_element") return false;
+    const root = DeclaredTypeInfo.ofChain(
+      chain,
+      typing.symbols,
+      this.host.state.symbolTable,
+    ).rootTypeInfo;
+    return (root?.isArray ?? false) && (root?.isPointer ?? false);
+  }
+
+  /**
    * Issue #304: Get the type of an expression.
    * Part of IOrchestrator interface.
    */
@@ -1691,9 +1720,10 @@ class CodeGenWalker {
       isKnownScope: (name: string) => this.host.isKnownScope(name),
       isKnownRegister: (name: string) =>
         this.host.state.symbols!.knownRegisters.has(name),
-      getStructParamSeparator: () =>
+      getStructParamSeparator: (forcePointerSemantics: boolean) =>
         memberAccessChain.getStructParamSeparator({
           cppMode: this.host.state.cppMode,
+          forcePointerSemantics,
         }),
     };
   }
@@ -2298,15 +2328,15 @@ class CodeGenWalker {
     // even if a member throws.
     this.host.state.withScopePath(scopeName, () => {
       // #1281/#1285: functions first, THEN everything that can reference one.
-      // A struct field naming a scope-local function-as-type asks isScopeType
-      // whether that name is a type, and the answer comes from callbackTypes --
-      // which this loop is what fills. Walking members in source order made the
-      // answer depend on whether the function happened to be declared above the
-      // struct, so `Config` before `tickSource` resolved the field BARE and
-      // emitted a header naming something that is not a type. Registering every
-      // function before reading any reference makes the order irrelevant, which
-      // is the same declaration-order invariant ADR-057 states for the symbols
-      // layer's Pass 0b.
+      // A struct field naming a scope-local function-as-type is qualified through
+      // isScopeType and then looked up in callbackTypes -- which this loop is
+      // what fills. Walking members in source order made the answer depend on
+      // whether the function happened to be declared above the struct, so
+      // `Config` before `tickSource` resolved the field BARE and emitted a
+      // header naming something that is not a type. Registering every function
+      // before reading any reference makes the order irrelevant, which is the
+      // same declaration-order invariant ADR-057 states for the symbols layer's
+      // Pass 0b.
       for (const member of scopeDecl.scopeMember()) {
         const funcDecl = member.functionDeclaration();
         if (funcDecl) {
@@ -2600,9 +2630,9 @@ class CodeGenWalker {
     renderType: () => string,
   ): {
     type: string;
-    isPointer: boolean;
     isStruct: boolean;
     isString: boolean;
+    isOpaqueHandle: boolean;
   } {
     // ADR-006: struct-ness drives reference semantics.
     const isStruct = this.host.isStructType(typeName);
@@ -2613,9 +2643,9 @@ class CodeGenWalker {
       // Function pointers are already pointers.
       return {
         type: cbInfo.typedefName,
-        isPointer: false,
         isStruct,
         isString: false,
+        isOpaqueHandle: false,
       };
     }
 
@@ -2629,18 +2659,36 @@ class CodeGenWalker {
     if (!isArray && TypeCheckUtils.isSizedStringName(typeName)) {
       return {
         type: "char*",
-        isPointer: false,
         isStruct: false,
         isString: true,
+        isOpaqueHandle: false,
       };
     }
 
-    // ADR-006: non-array struct parameters become pointers in C mode.
+    // ADR-030: an opaque handle is a pointer in the typedef exactly as it is in
+    // the prototype -- `Dev*` in C and C++ alike, and an array of them an array
+    // of pointers (#996). The typedef IS the function's type, so it reads the
+    // decision the prototype reads rather than asking struct-ness, which never
+    // answered for an incomplete type: `typedef void (*aPoke_fp)(Dev)` stood
+    // beside `void aPoke(Dev* d)`. Not ADR-006 reference semantics, so not
+    // `isStruct` -- which is also what keeps an unmodified handle free of the
+    // auto-const its prototype never takes.
+    if (this.host.state.isHeldThroughPointer(typeName)) {
+      return {
+        type: renderType(),
+        isStruct: false,
+        isString: false,
+        isOpaqueHandle: true,
+      };
+    }
+
+    // ADR-006: a struct parameter is a pointer in C and a reference in C++,
+    // which the formatter spells from `isStruct`.
     return {
       type: renderType(),
-      isPointer: !isArray && isStruct,
       isStruct,
       isString: false,
+      isOpaqueHandle: false,
     };
   }
 
@@ -2720,25 +2768,22 @@ class CodeGenWalker {
       returnType: toCType(SymbolTypeResolver.getTypeName(symbol.returnType)),
       parameters: symbol.parameters.map((param) => {
         const typeName = SymbolTypeResolver.getTypeName(param.type);
-        const { type, isPointer, isStruct, isString } = this.callbackParamShape(
-          typeName,
-          param.isArray,
-          () => toCType(typeName),
+        // Spread, not re-listed: a field the shape gains reaches this builder
+        // and the parse-tree one alike (#1552 was one of them dropping one).
+        const shape = this.callbackParamShape(typeName, param.isArray, () =>
+          toCType(typeName),
         );
         return {
           name: param.name,
-          type,
+          ...shape,
           isConst: CodeGenWalker.typedefParamIsConst(
             cName,
             param.name,
             param.isConst,
-            isStruct,
-            isString,
+            shape.isStruct,
+            shape.isString,
             this.host.state,
           ),
-          isPointer,
-          isStruct,
-          isString,
           isArray: param.isArray,
           // Already folded to literals by the symbols layer, which is exactly
           // what MISRA Rule 18.8 needs -- a dimension that is still an
@@ -2800,16 +2845,7 @@ class CodeGenWalker {
     funcDecl: Parser.FunctionDeclarationContext,
   ): void {
     const returnType = this.generateType(funcDecl.type());
-    const parameters: Array<{
-      name: string;
-      type: string;
-      isConst: boolean;
-      isPointer: boolean;
-      isStruct: boolean;
-      isString: boolean;
-      isArray: boolean;
-      arrayDims: string;
-    }> = [];
+    const parameters: ICallbackTypeInfo["parameters"] = [];
 
     if (funcDecl.parameterList()) {
       for (const param of funcDecl.parameterList()!.parameter()) {
@@ -2820,12 +2856,9 @@ class CodeGenWalker {
         const arrayTypeCtx = param.type().arrayType();
         const isArray = dims.length > 0 || arrayTypeCtx !== null;
 
-        const {
-          type: paramType,
-          isPointer,
-          isStruct,
-          isString,
-        } = this.callbackParamShape(typeName, isArray, () =>
+        // Spread below, not re-listed, exactly as `callbackInfoFromSymbol`
+        // does: a field the shape gains reaches both typedef builders.
+        const shape = this.callbackParamShape(typeName, isArray, () =>
           this.generateType(param.type()),
         );
 
@@ -2839,8 +2872,8 @@ class CodeGenWalker {
           name,
           paramName,
           isConst,
-          isStruct,
-          isString,
+          shape.isStruct,
+          shape.isString,
           this.host.state,
         );
 
@@ -2878,11 +2911,8 @@ class CodeGenWalker {
         }
         parameters.push({
           name: paramName,
-          type: paramType,
+          ...shape,
           isConst: isEffectivelyConst,
-          isPointer,
-          isStruct,
-          isString,
           isArray,
           arrayDims,
         });
@@ -3592,7 +3622,7 @@ class CodeGenWalker {
   /**
    * A call's arguments, decided (#1445).
    *
-   * Three of the four fields are thunks because exactly ONE render happens
+   * Four of the five fields are thunks because exactly ONE render happens
    * per argument and the generator decides which -- see
    * `IPlannedCallArgument`. `simpleIdentifier` is eager: it is a pure tree
    * walk, and Issue #268's pass-through tracking reads it for every argument
@@ -3607,6 +3637,11 @@ class CodeGenWalker {
       simpleIdentifier: this.getSimpleIdentifier(expression),
       declared: this.nameTypeOf(expression),
       expressionType: () => this.getExpressionType(expression),
+      isArray: () =>
+        OperandTyper.decaysToPointer(
+          OperandTyper.typeOf(expression, this.host.state.typingContext()),
+        ),
+      isHandleArrayElement: () => this.isHandleArrayElement(expression),
       render: () => this.generateExpression(expression),
       renderByReference: (targetParamBaseType: string | undefined) =>
         this.generateFunctionArg(expression, targetParamBaseType),
@@ -3924,6 +3959,19 @@ class CodeGenWalker {
     // Issue #895: Force pass-by-reference and const from typedef signature
     const forcePassByReference = callbackInfo?.isParamPointer ?? false;
     const forceConst = callbackInfo?.isParamConst ?? false;
+
+    // ADR-030 / #1722: the parameter was registered when this function's
+    // context was entered -- FunctionGenerator and ScopeGenerator both render
+    // the list before exiting it -- and the registry holds the one
+    // opaque-handle decision. Reading it here makes the `T*` this signature
+    // spells and the bare `p` a whole-value use renders one answer, rather
+    // than two answers that happen to agree.
+    const registered = this.host.state.currentParameters.get(name);
+    invariant(
+      registered,
+      `a parameter is registered in its function's context before the signature renders ('${name}')`,
+    );
+
     const input = ParameterInputAdapter.fromAST(this.planParameter(ctx), {
       callbackTypes: this.host.state.callbackTypes,
       isKnownStruct: (t) => {
@@ -3943,8 +3991,6 @@ class CodeGenWalker {
       isCallbackCompatible,
       forcePassByReference,
       forceConst,
-      isTypedefStructType: (t) =>
-        this.host.state.symbolTable?.isTypedefStructType(t) ?? false,
       // #1545: the one named accessor, which is also what _isPassByValueType
       // asks, so the auto-const rule and the pass-by-value decision cannot
       // disagree about what an enum is. `t` arrives from getTypeName, which
@@ -3952,7 +3998,7 @@ class CodeGenWalker {
       // the qualified lookup the scope rule calls for.
       isKnownEnum: (t) => this.host.state.isKnownEnum(t),
       // Issue #995: Opaque handles should not get auto-const
-      isOpaqueType: (t) => this.host.state.isOpaqueType(t),
+      isOpaqueHandle: registered.isOpaqueHandle ?? false,
     });
 
     // Use shared builder with C/C++ mode

@@ -281,6 +281,28 @@ class OperandTyper {
   }
 
   /**
+   * Whether an operand is a value C decays to a pointer to its first element:
+   * a whole array (`pts`, not `pts[0]`), or a string's buffer. Such an
+   * argument never takes `&` -- its address is a pointer to the ARRAY.
+   */
+  static decaysToPointer(t: IOperandType | null): boolean {
+    return t !== null && (t.dimensions.length > 0 || OperandTyper.isString(t));
+  }
+
+  /**
+   * ADR-057's scope-type predicate for the file being typed: the scope types
+   * it declares or its include closure declares (#1724). The one answer 1.4
+   * settled the file's symbols with and codegen qualifies with, so the typer
+   * cannot see a sibling's scope type the file never includes.
+   */
+  private static scopeTypesSeenBy(
+    ctx: ITypingContext,
+  ): (qualifiedName: string) => boolean {
+    return (qualifiedName) =>
+      ctx.program.isScopeTypeVisibleFrom(ctx.sourceFile, qualifiedName);
+  }
+
+  /**
    * Whether an operand is essentially Boolean: an applied relational or
    * logical operator, `!`, or a `bool`. A single bit of a scalar is not
    * (ADR-024: it is a bit index), and neither is an array of bools.
@@ -578,7 +600,7 @@ class OperandTyper {
     const cName = TypeBinding.resolveNamedType(
       typeCtx,
       ctx.program.lexicalFrameAt(ctx.sourceFile, at).scopePath,
-      { isScopeType: ctx.program.isScopeType },
+      { isScopeType: OperandTyper.scopeTypesSeenBy(ctx) },
     );
     if (cName !== null && OperandTyper.declaresNamedType(cName, ctx)) {
       return OperandTyper.fromType({ kind: "struct", name: cName }, [], ctx);
@@ -880,7 +902,7 @@ class OperandTyper {
     const enumName = ScopeUtils.qualifyScopeType(
       name,
       scopePath,
-      ctx.program.isScopeType,
+      OperandTyper.scopeTypesSeenBy(ctx),
     );
     const enumCName = OperandTyper.cNameOf(enumName);
     if (symbols.knownEnums.has(enumCName)) {

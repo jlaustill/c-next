@@ -21,24 +21,22 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
-static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
-    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
-    return (uint8_t)(a + (uint8_t)b);
-}
-
-// test-transpile-only
+// test-execution
 // test-adr: 029
 // Tests: Callbacks with various parameter types
 // Validates: u8, u32, bool, and struct parameters work correctly
-// NOTE: Changed to transpile-only due to Issue #1223 - a callback invoked with a
-// struct argument passes it by value into a pointer parameter, so the generated C
-// does not compile (ph.handler(pt) should be ph.handler(&pt)).
-// The number here previously read #1033, which is a merged PR about C-style array
-// declarations and tracks nothing about callbacks -- so this downgrade read as
-// tracked to anyone who checked, while the bug had no issue attached to it.
+// Issue #1223: a callback invoked with a struct argument passed it by value into
+// a pointer parameter -- ph.handler(pt), not ph.handler(&pt) -- so the generated
+// C did not compile and this ran transpile-only. A call through a callback-typed
+// value now shapes its arguments from the function that is its type, as a direct
+// call does, and this runs again.
 // Callback with u8 parameter
+// #1681: arithmetic on a u8 parameter clamps at 255 (ADR-044), so `val + 100`
+// saturated check 2's 255 + 100 to 255. The sum is taken at u32, where it is
+// 355 -- check 2 is about the value arriving intact, not about overflow.
 uint32_t processU8(uint8_t val) {
-    return cnx_clamp_add_u8(val, 100U);
+    uint32_t wide = val;
+    return cnx_clamp_add_u32(wide, 100U);
 }
 
 // Callback with u32 parameter

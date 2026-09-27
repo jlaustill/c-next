@@ -18,8 +18,9 @@
  * | `ICodeGenSymbols` `known*` sets    | per FILE  | `Mode` unknown    |
  * | `SymbolTable.getOverloadsByCName`  | whole RUN | `Mode` known      |
  *
- * `ICodeGenSymbols` is built by `_declareFile(tree, path, file.cnextIncludes)`
- * (`Transpiler.ts:485`), so it holds exactly what this file can see. The
+ * `ICodeGenSymbols` is built by 1.4's `Program.deriveVisibleSymbols`, over the
+ * include graph discovery resolved, so it holds exactly what this file can see
+ * (#1435; it cited a `_declareFile` signature #1472 removed). The
  * `SymbolTable` accumulates every file in the run and is cleared once, so a
  * sibling that was never included is still in it. Asking the run-wide table
  * whether a C-Next type exists would answer "yes" in the file that cannot see
@@ -37,9 +38,9 @@
  *     one means valid code stops compiling. Only the second is a regression, so
  *     the external side is deliberately permissive.
  *
- * `CodeGenState.isScopeType()` cannot serve here on either count: it reads the
- * run-wide table, and it filters to `ESourceLanguage.CNext`, so it is wrong in
- * both directions at once for this question.
+ * `TranspileState.isScopeType()` cannot serve here either: it answers only
+ * for a type declared inside a SCOPE that the file being generated can see
+ * (#1724), so it says nothing about a file-scope C-Next type or a C/C++ one.
  */
 
 import ESourceLanguage from "../../utils/types/ESourceLanguage";

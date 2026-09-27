@@ -22,6 +22,8 @@
 import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks";
 // Issue #895: Parse typedef signatures to determine pointer vs value params
 import TypedefParamParser from "./TypedefParamParser";
+import SymbolGuards from "../../../../transpiler/types/symbols/SymbolGuards";
+import invariant from "../../../../utils/invariant";
 import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
 import type IPlannedType from "../types/IPlannedType";
 import type TranspileState from "../../../TranspileState";
@@ -115,9 +117,23 @@ class FunctionContextManager {
       FunctionContextManager.getCallbackTypedefParamInfo(paramIndex, state);
     const isCallbackPointerParam = callbackTypedefInfo?.isParamPointer ?? false;
 
-    // Issue #958: Check if type is a typedef'd struct from C headers
-    const isTypedefStruct =
-      callbacks.isTypedefStructType?.(typeInfo.typeName) ?? false;
+    // ADR-030 / #1722: whether this parameter holds opaque handles -- read from
+    // the stamp 1.4 set on the function's settled parameter, the one decision
+    // the `.h` prototype reads too. An opaque type reaches `isStruct` through
+    // it (#958's "C-header typedef struct needs pointer semantics" is the same
+    // fact: StructCollector marks both under one condition), and a complete
+    // one through its known fields, so `isStruct` alone cannot tell the two
+    // apart -- and they differ in exactly the fact that matters: a complete
+    // struct's value is `(*p)`, while an opaque handle's value is `p`, because
+    // the pointer IS the handle. The signature (`ParameterInputAdapter.fromAST`)
+    // and every whole-value use of the parameter read this answer rather than
+    // asking again. No shape of the parameter is excepted: an array of handles
+    // is an array of pointers (#996), and the `!isArray` this once carried is
+    // what left `Dev[2] arr` as `Dev arr[2]`.
+    const isOpaqueHandle = FunctionContextManager.parameterHoldsHandle(
+      paramIndex,
+      state,
+    );
 
     // Determine isStruct: for callback-compatible params, both typedef AND type info matter
     // - If typedef says pointer AND it's actually a struct, use -> access (isStruct=true)
@@ -126,7 +142,7 @@ class FunctionContextManager {
     // Issue #958: C-header typedef struct types are always treated as struct (pointer semantics)
     const isStruct = callbackTypedefInfo
       ? isCallbackPointerParam && typeInfo.isStruct
-      : typeInfo.isStruct || isTypedefStruct;
+      : typeInfo.isStruct || isOpaqueHandle;
 
     // Issue #895: Primitive types that become pointers need dereferencing when used as values
     // e.g., "u8 buf" becoming "uint8_t* buf" requires "*buf" when accessing the value
@@ -146,10 +162,11 @@ class FunctionContextManager {
       !typeInfo.isStruct &&
       !isArray &&
       !typeInfo.isString &&
-      !state.isOpaqueType(typeInfo.typeName);
+      !isOpaqueHandle;
 
-    // Issue #958: typedef struct params need pointer semantics (like callback pointer params)
-    const forcePointerSemantics = isCallbackPointerParam || isTypedefStruct;
+    // Issue #958: a C-header typedef struct -- an opaque handle, the same fact --
+    // needs pointer semantics, like a callback pointer param
+    const forcePointerSemantics = isCallbackPointerParam || isOpaqueHandle;
 
     // Register in currentParameters
     const paramInfo = {
@@ -163,6 +180,7 @@ class FunctionContextManager {
       isCallbackPointerPrimitive,
       // Issue #895/#958: Force pointer semantics for callback-compatible and typedef struct params
       forcePointerSemantics,
+      isOpaqueHandle,
     };
     state.currentParameters.set(name, paramInfo);
   }
@@ -283,6 +301,32 @@ class FunctionContextManager {
       isParamPointer,
       isParamConst: isParamConst ?? false,
     };
+  }
+
+  /**
+   * ADR-030 / #1722: whether parameter `paramIndex` of the function being
+   * generated holds an opaque handle -- the stamp 1.4 Resolve set on its
+   * settled symbol (`IParameterInfo.isOpaqueHandle`).
+   *
+   * Read, never decided here: the `.h` prototype reads the same stamp, so the
+   * `.c` signature, its call sites and the header cannot disagree about one
+   * parameter. A function being generated always has a settled symbol under
+   * its C name, so a missing one is a defect, not a "no".
+   */
+  private static parameterHoldsHandle(
+    paramIndex: number,
+    state: TranspileState,
+  ): boolean {
+    const functionName = state.currentFunctionName;
+    const symbol =
+      functionName === null
+        ? undefined
+        : state.program?.symbolByCName(functionName);
+    invariant(
+      symbol !== undefined && SymbolGuards.isFunction(symbol),
+      `a function being generated has a settled symbol (missing ${functionName})`,
+    );
+    return symbol.parameters[paramIndex]?.isOpaqueHandle === true;
   }
 
   /**

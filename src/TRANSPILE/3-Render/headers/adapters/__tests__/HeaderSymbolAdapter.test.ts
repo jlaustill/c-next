@@ -18,6 +18,7 @@ import TestSymbolUtils from "../../../../../PARSE/3-Declare/cnext/__tests__/test
 import TestSourceSpan from "../../../../../transpiler/types/__testUtils__/testSourceSpan";
 import TestEnumMembers from "../../../../../transpiler/types/__testUtils__/testEnumMembers";
 import TestMembers from "../../../../../transpiler/types/__testUtils__/testMembers";
+import type IProgram from "../../../../../transpiler/types/IProgram";
 
 let state = new TranspileState();
 
@@ -134,6 +135,45 @@ describe("HeaderSymbolAdapter", () => {
 
       expect(result.isConst).toBe(true);
     });
+
+    /**
+     * ADR-030: the header's `extern` reads the decision the definition was
+     * made from -- it declared `extern Dev device;` against `Dev* device`. The
+     * complete type is the control: its variable is declared as its value.
+     * The decision is the declaration's `DeclaredPointer` answer, whose handle
+     * arm asks the symbol table (`DeclaredPointer.isHandleType`).
+     */
+    it.each<[string, string, boolean]>([
+      ["an opaque type", "Dev", true],
+      ["a complete type", "Full", false],
+    ])(
+      "marks a variable of %s by whether it is held through a pointer",
+      (_label, typeName, expected) => {
+        state.symbolTable.markTypedefStructType("Dev", "handles.h");
+        const tSymbol: IVariableSymbol = {
+          ...TestSymbolUtils.base({
+            kind: "variable",
+            name: "device",
+            scopePath: "",
+            sourceFile: "handles.cnx",
+            span: TestSourceSpan.at(1),
+            sourceLanguage: ESourceLanguage.CNext,
+            visibility: "public",
+          }),
+          type: TTypeUtils.createExternal(typeName),
+          isConst: false,
+          isAtomic: false,
+          isVolatile: false,
+          overflowBehavior: "clamp",
+          isArray: false,
+        };
+
+        const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
+
+        expect(result.type).toBe(typeName);
+        expect(result.isPointer).toBe(expected);
+      },
+    );
   });
 
   describe("fromTSymbol - function", () => {
@@ -225,6 +265,65 @@ describe("HeaderSymbolAdapter", () => {
       expect(result.parameters?.[0].isArray).toBe(true);
       expect(result.parameters?.[0].isConst).toBe(true);
       expect(result.parameters?.[0].arrayDimensions).toEqual(["256"]);
+    });
+
+    /**
+     * ADR-030 / #1722: every parameter carries the stamp 1.4 set on it -- the
+     * decision its `.c` prototype is spelled from too -- a scalar handle and an
+     * array of them (#996) alike, so the header's callback-compatible path,
+     * which sets nothing else about opacity, still declares `Dev* pair[2]`. The
+     * adapter reads the stamp and asks no predicate: the program here says
+     * NOTHING is opaque, so a stamp that were re-derived would come out false.
+     * The complete type is the control.
+     */
+    it("marks each parameter by the opaque-handle stamp it was settled with", () => {
+      state.program = {
+        isOpaqueType: () => false,
+      } as unknown as IProgram;
+      const tSymbol: IFunctionSymbol = {
+        ...TestSymbolUtils.base({
+          kind: "function",
+          name: "onPair",
+          scopePath: "",
+          sourceFile: "pair.cnx",
+          span: TestSourceSpan.at(1),
+          sourceLanguage: ESourceLanguage.CNext,
+          visibility: "public",
+        }),
+        parameters: [
+          {
+            name: "d",
+            type: TTypeUtils.createExternal("Dev"),
+            isConst: false,
+            isArray: false,
+            isOpaqueHandle: true,
+          },
+          {
+            name: "pair",
+            type: TTypeUtils.createExternal("Dev"),
+            isConst: false,
+            isArray: true,
+            arrayDimensions: [2],
+            isOpaqueHandle: true,
+          },
+          {
+            name: "f",
+            type: TTypeUtils.createExternal("Full"),
+            isConst: false,
+            isArray: false,
+          },
+        ],
+        returnType: TTypeUtils.createPrimitive("void"),
+        visibility: "public",
+      };
+
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
+
+      expect(result.parameters?.map((p) => p.isOpaqueHandle)).toEqual([
+        true,
+        true,
+        undefined,
+      ]);
     });
   });
 

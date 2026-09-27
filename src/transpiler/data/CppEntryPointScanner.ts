@@ -2,7 +2,6 @@ import { dirname, join, resolve } from "node:path";
 import IncludeDiscovery from "./IncludeDiscovery";
 import CNextMarkerDetector from "./CNextMarkerDetector";
 import IFileSystem from "../types/IFileSystem";
-import NodeFileSystem from "../NodeFileSystem";
 
 /**
  * Result of scanning a C/C++ entry point for C-Next sources.
@@ -36,12 +35,21 @@ class CppEntryPointScanner {
   private readonly errors: string[] = [];
   private readonly warnings: string[] = [];
 
+  /**
+   * #1706: the search path a discovered `.cnx` file's own includes resolve
+   * along -- the one `.cnx` discovery computes for it, discovered tiers
+   * included, not the entry point's list with the file's directory in front.
+   */
+  private readonly cnxSearchPaths: (cnxPath: string) => readonly string[];
+
   constructor(
     searchPaths: string[],
-    fs: IFileSystem = NodeFileSystem.instance,
+    fs: IFileSystem,
+    cnxSearchPaths: (cnxPath: string) => readonly string[],
   ) {
     this.searchPaths = searchPaths;
     this.fs = fs;
+    this.cnxSearchPaths = cnxSearchPaths;
   }
 
   /**
@@ -65,7 +73,10 @@ class CppEntryPointScanner {
   /**
    * Scan a file for includes and process them.
    */
-  private _scanFile(filePath: string): void {
+  private _scanFile(
+    filePath: string,
+    searchPaths: readonly string[] = [dirname(filePath), ...this.searchPaths],
+  ): void {
     if (this.visited.has(filePath)) return;
     this.visited.add(filePath);
 
@@ -78,11 +89,8 @@ class CppEntryPointScanner {
     }
 
     const includes = IncludeDiscovery.extractIncludesWithInfo(content);
-    const fileDir = dirname(filePath);
-    const localSearchPaths = [fileDir, ...this.searchPaths];
-
     for (const includeInfo of includes) {
-      this._processInclude(includeInfo, localSearchPaths, filePath);
+      this._processInclude(includeInfo, searchPaths, filePath);
     }
   }
 
@@ -91,12 +99,12 @@ class CppEntryPointScanner {
    */
   private _processInclude(
     includeInfo: { path: string; isLocal: boolean },
-    searchPaths: string[],
+    searchPaths: readonly string[],
     fromFile: string,
   ): void {
     const resolved = IncludeDiscovery.resolveInclude(
       includeInfo.path,
-      searchPaths,
+      [...searchPaths],
       this.fs,
     );
 
@@ -166,8 +174,9 @@ class CppEntryPointScanner {
     }
 
     this.cnextSources.add(absoluteSourcePath);
-    // Scan the .cnx file for its own includes (transitive discovery)
-    this._scanFile(absoluteSourcePath);
+    // Scan the .cnx file for its own includes (transitive discovery), along
+    // the search path .cnx discovery gives it (#1706)
+    this._scanFile(absoluteSourcePath, this.cnxSearchPaths(absoluteSourcePath));
   }
 }
 

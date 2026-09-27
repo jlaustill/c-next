@@ -33,9 +33,10 @@ const EXTENSION_MAP: Record<string, EFileType> = {
  */
 class FileDiscovery {
   /**
-   * Classify a file path into a discovered file
+   * Classify a file path into a discovered file, by its extension alone --
+   * nothing is read, so the path need not exist.
    */
-  private static classifyFile(filePath: string): IDiscoveredFile {
+  static classifyFile(filePath: string): IDiscoveredFile {
     const ext = extname(filePath).toLowerCase();
     const type = EXTENSION_MAP[ext] ?? EFileType.Unknown;
     return {

@@ -11,7 +11,6 @@ interface IFunctionContextCallbacks {
   /** Check if a type name is a struct type */
   isStructType: (typeName: string) => boolean;
   /** Issue #958: Check if a type name is a typedef'd struct from C headers */
-  isTypedefStructType?: (typeName: string) => boolean;
 }
 
 export default IFunctionContextCallbacks;

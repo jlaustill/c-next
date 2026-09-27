@@ -574,7 +574,7 @@ describe("HeaderGeneratorUtils", () => {
       expect(lines).toContain('#include "types.hpp"');
     });
 
-    it("deduplicates headersToInclude against userIncludes by basename in C++ mode", () => {
+    it("deduplicates headersToInclude against userIncludes across path styles in C++ mode", () => {
       const result = HeaderGeneratorUtils.generateIncludes(
         {
           userIncludes: ["#include <AppConfig.hpp>"],
@@ -603,6 +603,23 @@ describe("HeaderGeneratorUtils", () => {
       );
       const appDataIncludes = result.filter((l) => l.includes("AppData"));
       expect(appDataIncludes).toEqual(["#include <Display/AppData.hpp>"]);
+    });
+
+    // #1435: a basename is not an identity. `<driver/uart.h>` is not the
+    // generated "uart.h" of uart.cnx, and dropping it removed the only
+    // definition of the vendor types the header's signatures name.
+    it.each([
+      ['#include "uart.h"', "#include <driver/uart.h>"],
+      ["#include <a/config.h>", "#include <b/config.h>"],
+    ])("keeps %s and %s apart", (userInclude, external) => {
+      const result = HeaderGeneratorUtils.generateIncludes(
+        { userIncludes: [userInclude] },
+        new Set([external]),
+        [],
+      );
+
+      expect(result).toContain(userInclude);
+      expect(result).toContain(external);
     });
   });
 
@@ -798,6 +815,28 @@ describe("HeaderGeneratorUtils", () => {
       const lines = HeaderGeneratorUtils.generateVariableSection(variables);
 
       expect(lines).toContain("extern uint8_t buffer[64];");
+    });
+
+    // ADR-030: a handle is declared as the pointer its definition is -- and an
+    // array of them as an array of pointers (#996).
+    it.each<[string, boolean, string[] | undefined, string]>([
+      ["a handle", false, undefined, "extern Dev* device;"],
+      ["an array of handles", true, ["2"], "extern Dev* device[2];"],
+    ])("declares %s as a pointer", (_label, isArray, dims, expected) => {
+      const variables = [
+        makeSymbol({
+          name: "device",
+          kind: "variable",
+          type: "Dev",
+          isArray,
+          arrayDimensions: dims,
+          isPointer: true,
+        }),
+      ];
+
+      expect(HeaderGeneratorUtils.generateVariableSection(variables)).toContain(
+        expected,
+      );
     });
   });
 

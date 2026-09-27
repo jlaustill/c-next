@@ -142,7 +142,6 @@ async function transpile(
     kind: "source",
     source,
     sourcePath,
-    workingDir: rootDir,
   });
   const file = result.files[0];
   return {

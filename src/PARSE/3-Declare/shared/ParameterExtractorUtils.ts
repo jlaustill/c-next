@@ -34,24 +34,20 @@ class ParameterExtractorUtils {
    * Build extracted parameter info from intermediate values.
    *
    * @param declarator The declarator context
-   * @param baseType The base type string
+   * @param type The parameter's type, pointers included -- each grammar
+   *   reads its own declarator for them
    * @param isConst Whether the parameter is const
-   * @param isPointer Whether the parameter is a pointer
    * @param isArray Whether the parameter is an array
    * @param extractName Function to extract name from declarator
    * @returns The extracted parameter info
    */
   static buildParameterInfo(
     declarator: any,
-    baseType: string,
+    type: string,
     isConst: boolean,
-    isPointer: boolean,
     isArray: boolean,
     extractName: (decl: any) => string | null,
   ): IExtractedParameter {
-    // Append * to type if pointer
-    const finalType = isPointer ? baseType + "*" : baseType;
-
     // Get parameter name (may be empty for abstract declarators)
     let paramName = "";
     if (declarator) {
@@ -63,7 +59,7 @@ class ParameterExtractorUtils {
 
     return {
       name: paramName,
-      type: finalType,
+      type,
       isConst,
       isArray,
     };

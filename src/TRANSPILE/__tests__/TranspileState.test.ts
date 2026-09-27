@@ -7,12 +7,15 @@ import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import type IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
 import { describe, it, expect, beforeEach } from "vitest";
 import type IProgram from "../../transpiler/types/IProgram";
+import DeclaredPointer from "../../utils/DeclaredPointer";
 import installMockSymbols from "../../transpiler/__tests__/installMockSymbols";
 import TranspileState from "../TranspileState";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import ScopeUtils from "../../utils/ScopeUtils";
 import createMockSymbols from "../../transpiler/__tests__/codeGenSymbolsHelpers";
 import Program from "../../PARSE/4-Resolve/Program";
+import CNextResolver from "../../PARSE/3-Declare/cnext/index";
+import parse from "../../PARSE/3-Declare/cnext/__tests__/testHelpers";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -311,8 +314,9 @@ describe("TranspileState", () => {
             type: "u32",
             isArray: false,
             isConst: false,
-            isPointer: false,
             isStruct: false,
+            isString: false,
+            isOpaqueHandle: false,
             arrayDims: "",
           },
         ],
@@ -430,24 +434,83 @@ describe("TranspileState", () => {
 
       state.program = null;
     });
+
+    /**
+     * ADR-030: the one "held through a pointer" decision, which a
+     * declaration's own pointer-ness (`DeclaredPointer.of`) asks too. #948
+     * and #958 each gated it with a predicate of their own -- the program's
+     * opacity verdict and the symbol table's forward-declared typedef -- but
+     * `StructCollector`, the only writer of either, marks both under one
+     * condition, and one "did a body arrive" rule resolves both. So a type
+     * opaque to the program but not a typedef struct cannot be produced, and
+     * the decision asks one of them: `DeclaredPointer.isHandleType`. Measured
+     * across the corpus while merging main (1412 fixtures): the two never
+     * disagreed. A complete type is not a handle.
+     */
+    it.each<[string, boolean, boolean]>([
+      ["a forward-declared typedef struct", true, true],
+      ["a complete type", false, false],
+    ])(
+      "isHeldThroughPointer answers for %s",
+      (_label, isTypedefStruct, expected) => {
+        if (isTypedefStruct) {
+          state.symbolTable.markTypedefStructType("Dev", "dev.h");
+        }
+
+        expect(state.isHeldThroughPointer("Dev")).toBe(expected);
+        expect(state.isHeldThroughPointer("Dev")).toBe(
+          DeclaredPointer.isHandleType("Dev", state.symbolTable),
+        );
+      },
+    );
   });
 
   describe("Scope Type Qualification (ADR-057)", () => {
-    it("isScopeType matches enums, structs and bitmaps by qualified name", () => {
-      installMockSymbols(state, {
-        knownEnums: new Set(["A__B"]),
-        knownStructs: new Set(["A__S"]),
-        knownBitmaps: new Set(["A__Flags"]),
+    it("isScopeType answers for the file being generated, from the program (#1724)", () => {
+      // `declares.cnx` declares three scope types. `includer.cnx` includes it;
+      // `sibling.cnx` is in the same run and does not. Codegen used to ask the
+      // run-wide symbol table, which holds all three for every file -- so a
+      // bare name in `sibling.cnx` qualified to a type its generated C cannot
+      // see, while 1.4 had settled the header's copy the same wrong way.
+      const declares = CNextResolver.resolve(
+        parse(
+          `scope A { public enum B { X } public struct S { u8 f; } public bitmap8 Flags { Ready, Mode[3], Reserved[4] } }`,
+        ),
+        "declares.cnx",
+        registry,
+      );
+      const includer = CNextResolver.resolve(
+        parse(`u32 x <- 1;`),
+        "includer.cnx",
+        registry,
+      );
+      const sibling = CNextResolver.resolve(
+        parse(`u32 y <- 1;`),
+        "sibling.cnx",
+        registry,
+      );
+      state.program = Program.build([declares, includer, sibling], {
+        registry,
+        visibility: {
+          cnextIncludesByFile: new Map([
+            ["includer.cnx", [{ path: "declares.cnx" }]],
+          ]),
+        },
       });
 
+      state.sourcePath = "includer.cnx";
       expect(state.isScopeType("A__B")).toBe(true);
       expect(state.isScopeType("A__S")).toBe(true);
       expect(state.isScopeType("A__Flags")).toBe(true);
       expect(state.isScopeType("A__Nope")).toBe(false);
+
+      state.sourcePath = "sibling.cnx";
+      expect(state.isScopeType("A__S")).toBe(false);
     });
 
-    it("isScopeType returns false without symbols", () => {
-      state.symbols = null;
+    it("isScopeType returns false without a program", () => {
+      state.program = null;
+      state.sourcePath = "includer.cnx";
       expect(state.isScopeType("A__B")).toBe(false);
     });
 

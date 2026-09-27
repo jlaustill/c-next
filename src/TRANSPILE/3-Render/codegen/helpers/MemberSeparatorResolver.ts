@@ -86,12 +86,10 @@ class MemberSeparatorResolver {
     }
 
     // Struct parameter uses -> in C mode, . in C++ mode
-    // Issue #895: forcePointerSemantics overrides C++ mode to use ->
+    // Issue #895: forcePointerSemantics overrides C++ mode to use -> -- decided
+    // by the one struct-parameter helper, which the whole-value wrap reads too.
     if (ctx.isStructParam) {
-      if (ctx.forcePointerSemantics) {
-        return "->";
-      }
-      return deps.getStructParamSeparator();
+      return deps.getStructParamSeparator(ctx.forcePointerSemantics ?? false);
     }
 
     // Cross-scope access (global.Scope.member or global.Register.member)
