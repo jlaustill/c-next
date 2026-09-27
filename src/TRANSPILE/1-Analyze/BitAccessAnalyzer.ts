@@ -31,14 +31,13 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import OperandTyper from "../../utils/OperandTyper";
 import ChainRoot from "../../utils/ChainRoot";
 import EnclosingFunction from "./helpers/EnclosingFunction";
-import TypeText from "./helpers/TypeText";
-import IDeclaredVar from "./types/IDeclaredVar";
+import AssignmentSiteListener from "./AssignmentSiteListener";
 import IBitAccessError from "./types/IBitAccessError";
 import TChainRoot from "../../transpiler/types/TChainRoot";
-import ScopeFrameResolver from "./ScopeFrameResolver";
+import type TAssignmentSite from "./types/TAssignmentSite";
 import SHARED_FLOAT_TYPES from "../../transpiler/types/FLOAT_TYPES";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
@@ -54,7 +53,7 @@ const FLOAT_TYPES = new Set<string>(SHARED_FLOAT_TYPES);
 class BitAccessListener extends CNextListener {
   private readonly found: IBitAccessError[] = [];
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
   }
 
@@ -101,10 +100,8 @@ class BitAccessListener extends CNextListener {
    * type that `enterPostfixExpression` never sees. Both fixtures for E0856 are
    * writes, so a rule reading only expressions caught neither of them.
    */
-  override enterAssignmentStatement = (
-    ctx: Parser.AssignmentStatementContext,
-  ): void => {
-    const target = ctx.assignmentTarget();
+  public checkSite(site: TAssignmentSite): void {
+    const target = site.assignmentTarget();
     const name = target.IDENTIFIER()?.getText();
     if (name === undefined) return;
     // A target carries its root as its own token, so the name is always the
@@ -115,7 +112,7 @@ class BitAccessListener extends CNextListener {
       target,
       ChainRoot.ofTarget(target),
     );
-  };
+  }
 
   private checkChain(
     name: string,
@@ -123,14 +120,18 @@ class BitAccessListener extends CNextListener {
       | Parser.PostfixOpContext
       | Parser.PostfixTargetOpContext
     )[],
-    at: ParserRuleContext,
+    at: Parser.PostfixExpressionContext | Parser.AssignmentTargetContext,
     root: TChainRoot,
   ): void {
-    const declared = this.declarationFor(name, at, root);
+    // The declaration the spelling names, as the typer binds it: the type
+    // its first subscript applies to (#1668). A `this.` root has spent its
+    // `.name`, so the typer's steps begin at the subscripts in both shapes.
+    const declared =
+      OperandTyper.chainOf(at, this.context).steps[0]?.before ?? null;
     if (declared === null) return; // not a declaration this pass can measure
 
     const spelling = root === null ? name : `${root}.${name}`;
-    const baseType = TypeText.withoutDimensions(declared.typeText);
+    const baseType = declared.typeName ?? "";
     this.checkFloatRangeScope(subscripts, baseType, spelling, at);
     this.checkDepth(
       subscripts,
@@ -139,23 +140,6 @@ class BitAccessListener extends CNextListener {
       spelling,
       at,
     );
-  }
-
-  /**
-   * The declaration a spelling names.
-   *
-   * #1322 review: this had its own answer, and it was wrong for `this.`. It
-   * gave `global.` a file-scope arm and sent `this.` down the same outward walk
-   * as a bare name, so a local shadowing a scope member captured it -- and the
-   * `invariant()` that replaced codegen's throw then fired, telling the user
-   * 2.1 had rejected a program it had silently let through. One resolver now.
-   */
-  private declarationFor(
-    name: string,
-    at: ParserRuleContext,
-    root: TChainRoot,
-  ): IDeclaredVar | null {
-    return this.scopes.declarationFor(root, name, this.scopes.frameFor(at));
   }
 
   /**
@@ -238,13 +222,16 @@ class BitAccessAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): IBitAccessError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-    const listener = new BitAccessListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-    );
+    const listener = new BitAccessListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+    ParseTreeWalker.DEFAULT.walk(
+      new AssignmentSiteListener((site) => listener.checkSite(site)),
+      tree,
+    );
+    // Reported in source order, as the one walk these replace did
+    return listener
+      .errors()
+      .sort((a, b) => a.line - b.line || a.column - b.column);
   }
 }
 
