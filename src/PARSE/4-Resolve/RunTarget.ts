@@ -66,6 +66,13 @@ interface IDeclaredTarget {
   readonly site: ISite;
 }
 
+/** The target a PlatformIO environment builds */
+interface IEnvTarget {
+  readonly env: string;
+  readonly name: string;
+  readonly description: ITargetDescription;
+}
+
 class RunTarget {
   static resolve(inputs: IRunTargetInputs): TRunTarget {
     const errors: ITranspileError[] = [];
@@ -143,61 +150,89 @@ class RunTarget {
     pioEnv: string | undefined,
     catalog: ReadonlyMap<string, ITargetDescription>,
   ): TRunTarget | null {
-    let names = project.envs.map((env) => env.name);
-    if (pioEnv) {
-      names = [pioEnv];
-    } else if (project.defaultEnvs.length > 0) {
-      names = [...project.defaultEnvs];
-    }
+    const names = RunTarget.builtEnvs(project, pioEnv);
     if (names.length === 0) {
       return null;
     }
 
     const errors: ITranspileError[] = [];
-    const mapped: {
-      env: string;
-      name: string;
-      description: ITargetDescription;
-    }[] = [];
+    const mapped: IEnvTarget[] = [];
     for (const envName of names) {
-      const env = project.envs.find((candidate) => candidate.name === envName);
-      const name = env ? RunTarget.boardTarget(env, catalog) : undefined;
-      const description = name ? catalog.get(name) : undefined;
-      if (name && description) {
-        mapped.push({ env: envName, name, description });
+      const target = RunTarget.envTarget(project, envName, catalog);
+      if ("error" in target) {
+        errors.push(target.error);
       } else {
-        errors.push(
-          RunTarget.unplaced(
-            "E0510",
-            env
-              ? `platformio.ini environment '${envName}' builds board '${env.board ?? "(none)"}', which is not a known target`
-              : `platformio.ini has no environment '${envName}'`,
-            `Name the target with '#pragma target <name>' or --target <name>. A board maps to a target when the catalog names it, or when its platform is atmelavr (avr) or native (host). Known targets: ${[...catalog.keys()].join(", ")}.`,
-          ),
-        );
+        mapped.push(target);
       }
     }
-    const first = mapped[0];
-    for (const other of mapped.slice(1)) {
-      if (!TargetDescriptions.equal(first.description, other.description)) {
-        errors.push(
-          RunTarget.unplaced(
-            "E0511",
-            `platformio.ini environments build different targets: '${first.name}' (env:${first.env}) and '${other.name}' (env:${other.env})`,
-            "A program has exactly one target (ADR-049). Build one environment (--pio-env), set default_envs, or name the target with '#pragma target <name>'.",
-          ),
-        );
-      }
-    }
+    errors.push(...RunTarget.disagreements(mapped));
     if (errors.length > 0) {
       return { kind: "rejected", errors };
     }
+    const first = mapped[0];
     return {
       kind: "resolved",
       name: first.name,
       source: "platformio",
       description: first.description,
     };
+  }
+
+  /** The environments being built: the one named, else `default_envs`, else all */
+  private static builtEnvs(
+    project: IPlatformIOProject,
+    pioEnv: string | undefined,
+  ): string[] {
+    if (pioEnv) {
+      return [pioEnv];
+    }
+    if (project.defaultEnvs.length > 0) {
+      return [...project.defaultEnvs];
+    }
+    return project.envs.map((env) => env.name);
+  }
+
+  /** The target one environment builds, or E0510 saying why it names none */
+  private static envTarget(
+    project: IPlatformIOProject,
+    envName: string,
+    catalog: ReadonlyMap<string, ITargetDescription>,
+  ): IEnvTarget | { error: ITranspileError } {
+    const env = project.envs.find((candidate) => candidate.name === envName);
+    const name = env ? RunTarget.boardTarget(env, catalog) : undefined;
+    const description = name ? catalog.get(name) : undefined;
+    if (name && description) {
+      return { env: envName, name, description };
+    }
+    return {
+      error: RunTarget.unplaced(
+        "E0510",
+        env
+          ? `platformio.ini environment '${envName}' builds board '${env.board ?? "(none)"}', which is not a known target`
+          : `platformio.ini has no environment '${envName}'`,
+        `Name the target with '#pragma target <name>' or --target <name>. A board maps to a target when the catalog names it, or when its platform is atmelavr (avr) or native (host). Known targets: ${[...catalog.keys()].join(", ")}.`,
+      ),
+    };
+  }
+
+  /** E0511 for each environment that builds a different target from the first */
+  private static disagreements(
+    mapped: readonly IEnvTarget[],
+  ): ITranspileError[] {
+    const first = mapped[0];
+    return mapped
+      .slice(1)
+      .filter(
+        (other) =>
+          !TargetDescriptions.equal(first.description, other.description),
+      )
+      .map((other) =>
+        RunTarget.unplaced(
+          "E0511",
+          `platformio.ini environments build different targets: '${first.name}' (env:${first.env}) and '${other.name}' (env:${other.env})`,
+          "A program has exactly one target (ADR-049). Build one environment (--pio-env), set default_envs, or name the target with '#pragma target <name>'.",
+        ),
+      );
   }
 
   /** The catalog name an environment's board or platform denotes */

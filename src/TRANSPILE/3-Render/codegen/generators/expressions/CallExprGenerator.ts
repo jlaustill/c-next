@@ -238,7 +238,7 @@ const _generateCFunctionArg = (
     !arg.isArray() &&
     (argPointerDepth > 0
       ? _pointerDepth(targetParam.baseType) === argPointerDepth + 1
-      : orchestrator.isStructType(argType) ||
+      : orchestrator.isKnownStruct(argType) ||
         _parameterExpectsAddressOf(
           targetParam.baseType,
           argType,
@@ -280,7 +280,7 @@ const _shouldPassByValue = (
   const isCrossFilePrimitive =
     isCrossFile &&
     CallExprUtils.isKnownPrimitiveType(targetParam.baseType) &&
-    !orchestrator.isStructType(targetParam.baseType) &&
+    !orchestrator.isKnownStruct(targetParam.baseType) &&
     !CallExprUtils.isStringType(targetParam.baseType);
 
   // Issue #551: Unknown types (external enums, typedefs) use pass-by-value
@@ -293,7 +293,7 @@ const _shouldPassByValue = (
   // scope variable and array element (`&UI__held`), which #996's and #1722's
   // fixtures pin.
   const isUnknownType =
-    !orchestrator.isStructType(targetParam.baseType) &&
+    !orchestrator.isKnownStruct(targetParam.baseType) &&
     !CallExprUtils.isKnownPrimitiveType(targetParam.baseType) &&
     !CallExprUtils.isStringType(targetParam.baseType) &&
     !isFloatParam &&

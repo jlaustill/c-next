@@ -143,32 +143,7 @@ class BareEnumMemberListener extends CNextListener {
     cursor: ParserRuleContext,
     scopePath: string,
   ): TExpected | undefined {
-    // --- clears and suppressions ------------------------------------------
-    // A postfix operation: a subscript index (`size_t`) or a call's argument
-    // list (suppressed, #872). One test covers both -- an argument list is
-    // always inside the `(...)` op, so a separate check for it never ran.
-    if (cursor instanceof Parser.PostfixOpContext) return null;
-    if (
-      cursor instanceof Parser.ArrayDimensionContext ||
-      cursor instanceof Parser.ArrayTypeDimensionContext
-    ) {
-      return null;
-    }
-    if (
-      (cursor instanceof Parser.EqualityExpressionContext &&
-        cursor.relationalExpression().length > 1) ||
-      (cursor instanceof Parser.RelationalExpressionContext &&
-        cursor.bitwiseOrExpression().length > 1)
-    ) {
-      return null;
-    }
-    if (
-      cursor instanceof Parser.ForVarDeclContext ||
-      cursor instanceof Parser.ForAssignmentContext ||
-      cursor instanceof Parser.ForUpdateContext
-    ) {
-      return null;
-    }
+    if (BareEnumMemberListener.clearsExpected(cursor)) return null;
 
     // --- establishing nodes -----------------------------------------------------
     // #1668 review: each answers with the enum the typer gives the position's
@@ -203,16 +178,43 @@ class BareEnumMemberListener extends CNextListener {
       // Reached from a field: the struct's type, explicit or inherited.
       return this.structTypeOf(cursor, scopePath);
     }
-    if (
+    return undefined;
+  }
+
+  /**
+   * Whether `cursor` clears the expected type of everything under it. Every
+   * context class extends the rule context directly, so none of these is also
+   * an establishing node, and which is tested first cannot matter.
+   */
+  private static clearsExpected(cursor: ParserRuleContext): boolean {
+    return (
+      // A postfix operation: a subscript index (`size_t`) or a call's
+      // argument list (suppressed, #872). One test covers both -- an argument
+      // list is always inside the `(...)` op, so a separate check never ran.
+      cursor instanceof Parser.PostfixOpContext ||
+      cursor instanceof Parser.ArrayDimensionContext ||
+      cursor instanceof Parser.ArrayTypeDimensionContext ||
+      BareEnumMemberListener.isComparison(cursor) ||
+      cursor instanceof Parser.ForVarDeclContext ||
+      cursor instanceof Parser.ForAssignmentContext ||
+      cursor instanceof Parser.ForUpdateContext ||
+      // A boundary no expected type crosses
       cursor instanceof Parser.StatementContext ||
       cursor instanceof Parser.BlockContext ||
       cursor instanceof Parser.FunctionDeclarationContext ||
       cursor instanceof Parser.ScopeDeclarationContext ||
       cursor instanceof Parser.ProgramContext
-    ) {
-      return null;
-    }
-    return undefined;
+    );
+  }
+
+  /** An equality or relational level that compares, rather than passes one through */
+  private static isComparison(cursor: ParserRuleContext): boolean {
+    return (
+      (cursor instanceof Parser.EqualityExpressionContext &&
+        cursor.relationalExpression().length > 1) ||
+      (cursor instanceof Parser.RelationalExpressionContext &&
+        cursor.bitwiseOrExpression().length > 1)
+    );
   }
 
   /** The enum an assignment's target holds, or null. */

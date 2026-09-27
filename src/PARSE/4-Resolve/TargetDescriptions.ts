@@ -27,7 +27,7 @@ const ALIAS_STRUCT = "TargetAlias";
 const VERSION_CONST = "TARGET_SCHEMA_VERSION";
 
 /** A name is one pragma word, so `#pragma target <name>` can spell it */
-const PRAGMA_WORD = /^[a-zA-Z0-9_][a-zA-Z0-9_.+-]*$/;
+const PRAGMA_WORD = /^\w[\w.+-]*$/;
 
 /** The C relations a description must satisfy, smallest first */
 const ORDERED_WIDTHS: readonly (readonly (keyof ITargetDescription)[])[] = [
@@ -55,13 +55,36 @@ class TargetDescriptions {
   static check(
     fields: ReadonlyMap<string, TTargetFieldValue>,
   ): { description: ITargetDescription } | { errors: string[] } {
-    const errors: string[] = [];
-    for (const field of fields.keys()) {
-      if (!Object.hasOwn(TARGET_DESCRIPTION_FIELDS, field)) {
-        errors.push(`unknown field '${field}'`);
-      }
+    const errors = [
+      ...[...fields.keys()]
+        .filter((field) => !Object.hasOwn(TARGET_DESCRIPTION_FIELDS, field))
+        .map((field) => `unknown field '${field}'`),
+      ...TargetDescriptions.schemaProblems(fields),
+    ];
+    if (errors.length > 0) {
+      return { errors };
     }
 
+    const description: Record<string, unknown> = Object.fromEntries(fields);
+    // Checked against the schema, not cast (#1668 review): the fields above
+    // were validated one by one, and this says so in a form the compiler
+    // can hold the result to
+    invariant(
+      TargetDescriptions.isDescription(description),
+      "every field of a validated description has its schema's type",
+    );
+    const disordered = TargetDescriptions.orderProblems(description);
+    return disordered.length > 0 ? { errors: disordered } : { description };
+  }
+
+  /**
+   * Each schema field's problem, in schema order, then the required fields
+   * that are absent
+   */
+  private static schemaProblems(
+    fields: ReadonlyMap<string, TTargetFieldValue>,
+  ): string[] {
+    const errors: string[] = [];
     const missing: string[] = [];
     for (const [field, spec] of Object.entries(TARGET_DESCRIPTION_FIELDS)) {
       const value = fields.get(field);
@@ -79,18 +102,12 @@ class TargetDescriptions {
     if (missing.length > 0) {
       errors.push(`missing: ${missing.join(", ")}`);
     }
-    if (errors.length > 0) {
-      return { errors };
-    }
+    return errors;
+  }
 
-    const description: Record<string, unknown> = Object.fromEntries(fields);
-    // Checked against the schema, not cast (#1668 review): the fields above
-    // were validated one by one, and this says so in a form the compiler
-    // can hold the result to
-    invariant(
-      TargetDescriptions.isDescription(description),
-      "every field of a validated description has its schema's type",
-    );
+  /** The C width relations a description breaks, narrowest first */
+  private static orderProblems(description: ITargetDescription): string[] {
+    const errors: string[] = [];
     for (const chain of ORDERED_WIDTHS) {
       for (let i = 1; i < chain.length; i++) {
         const narrower = chain[i - 1];
@@ -100,7 +117,7 @@ class TargetDescriptions {
         }
       }
     }
-    return errors.length > 0 ? { errors } : { description };
+    return errors;
   }
 
   /** Whether every schema field is present, or optional, with its kind's type */
@@ -260,7 +277,9 @@ class TargetDescriptions {
   ): string | null {
     const kind = TargetDescriptions.kindOf(value);
     if (kind !== spec.kind) {
-      return `${field} must be ${spec.kind === "unsigned" ? "an unsigned integer" : `a ${spec.kind}`}`;
+      const expected =
+        spec.kind === "unsigned" ? "an unsigned integer" : `a ${spec.kind}`;
+      return `${field} must be ${expected}`;
     }
     if (typeof value !== "number") {
       return null;

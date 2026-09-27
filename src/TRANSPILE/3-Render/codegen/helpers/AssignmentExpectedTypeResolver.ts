@@ -66,9 +66,12 @@ class AssignmentExpectedTypeResolver {
 
     // Case 2: Has postfix ops - the chain was extracted by the caller
     if (baseId && target.hasPostfixOps) {
-      // Case 2a: Member access only (no subscript)
-      if (identifiers.length >= 2 && !hasSubscript) {
-        return AssignmentExpectedTypeResolver.resolveForMemberChain(
+      // Case 2a: A member chain, with or without a trailing subscript
+      // (`cfg.field <- v`, `cfg.arr[i] <- v`). Issue #872: both are the final
+      // field's type, so they are one case -- a member chain and a member
+      // array element were two wrappers with one body.
+      if (identifiers.length >= 2) {
+        return AssignmentExpectedTypeResolver.walkMemberChain(
           identifiers,
           target.rootTypeInfo,
           state,
@@ -81,16 +84,6 @@ class AssignmentExpectedTypeResolver {
         return AssignmentExpectedTypeResolver.resolveForArrayElement(
           target.hasRangeSubscript,
           target.rootTypeInfo,
-        );
-      }
-
-      // Case 2c: Member chain with array access (struct.arr[i] <- value)
-      // Issue #872: Walk chain and resolve element type
-      if (identifiers.length >= 2 && hasSubscript) {
-        return AssignmentExpectedTypeResolver.resolveForMemberArrayElement(
-          identifiers,
-          target.rootTypeInfo,
-          state,
         );
       }
     }
@@ -106,27 +99,6 @@ class AssignmentExpectedTypeResolver {
     typeInfo: TTypeInfo | undefined,
   ): string | null {
     return typeInfo?.baseType ?? null;
-  }
-
-  /**
-   * Resolve expected type for a member access chain.
-   * Walks the chain of struct types to find the final field's type.
-   *
-   * Issue #452: Enables type-aware resolution of unqualified enum members
-   * for nested access (e.g., config.nested.field).
-   *
-   * Delegates to walkMemberChain shared implementation.
-   */
-  private static resolveForMemberChain(
-    identifiers: readonly string[],
-    rootTypeInfo: TTypeInfo | undefined,
-    state: TranspileState,
-  ): string | null {
-    return AssignmentExpectedTypeResolver.walkMemberChain(
-      identifiers,
-      rootTypeInfo,
-      state,
-    );
   }
 
   /**
@@ -157,27 +129,11 @@ class AssignmentExpectedTypeResolver {
   }
 
   /**
-   * Resolve expected type for member chain ending with array access.
-   * Issue #872: struct.arr[i] <- value needs element type for MISRA 7.2.
+   * Walk a struct member chain to find the final field's type -- for a member
+   * chain and a member array element alike.
    *
-   * Delegates to walkMemberChain which handles both member chain and
-   * member-array-element patterns identically (both return final field type).
-   */
-  private static resolveForMemberArrayElement(
-    identifiers: readonly string[],
-    rootTypeInfo: TTypeInfo | undefined,
-    state: TranspileState,
-  ): string | null {
-    return AssignmentExpectedTypeResolver.walkMemberChain(
-      identifiers,
-      rootTypeInfo,
-      state,
-    );
-  }
-
-  /**
-   * Walk a struct member chain to find the final field's type.
-   * Shared implementation for both member chain and member-array-element patterns.
+   * Issue #452: Enables type-aware resolution of unqualified enum members
+   * for nested access (e.g., config.nested.field).
    *
    * Issue #831: Uses SymbolTable as single source of truth for struct fields.
    */

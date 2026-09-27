@@ -240,9 +240,9 @@ describe("OperandTyper.constantOf (#1668)", () => {
   });
 
   it("does not evaluate an element of a const array", () => {
-    expect(constantOf(inMain("const u8[2] T <- [1, 2];\nu8 r <- T[0];"))).toBe(
-      null,
-    );
+    expect(
+      constantOf(inMain("const u8[2] T <- [1, 2];\nu8 r <- T[0];")),
+    ).toBeNull();
   });
 });
 
@@ -640,9 +640,9 @@ describe("CompositeType.integerOf", () => {
     const table = withC(new SymbolTable(), [
       { kind: "variable", name: "cFast", type: "uint_fast16_t" },
     ]);
-    expect(integerOf(inMain("u8 b <- 1;\nu32 r <- b + cFast;"), table)).toBe(
-      null,
-    );
+    expect(
+      integerOf(inMain("u8 b <- 1;\nu32 r <- b + cFast;"), table),
+    ).toBeNull();
   });
 });
 

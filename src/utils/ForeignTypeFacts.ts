@@ -5,6 +5,20 @@ import type IForeignSymbolLookup from "../transpiler/types/IForeignSymbolLookup"
 import type IOperandType from "../transpiler/types/IOperandType";
 import type ITargetDescription from "../transpiler/types/ITargetDescription";
 
+/** What a C spelling says of an operand: its name, category and width */
+type TForeignElement = Pick<IOperandType, "typeName" | "category" | "bitWidth">;
+
+/**
+ * One hop of a typedef walk: the element a spelling names, or the typedef it
+ * names, which the walk follows.
+ */
+type TTypedefHop =
+  | { readonly element: TForeignElement }
+  | {
+      readonly aliases: string;
+      readonly dimensions: ReadonlyArray<number | string>;
+    };
+
 /**
  * What C-Next may read of a C or C++ header symbol's type.
  *
@@ -342,46 +356,60 @@ class ForeignTypeFacts {
     lookup: IForeignSymbolLookup,
     target: ITargetDescription | null,
   ): {
-    element: Pick<IOperandType, "typeName" | "category" | "bitWidth"> | null;
+    element: TForeignElement | null;
     dimensions: Array<number | string>;
   } | null {
     const dimensions: Array<number | string> = [];
-    const found = (
-      element: Pick<IOperandType, "typeName" | "category" | "bitWidth"> | null,
-    ) => ({ element, dimensions });
     let type = ForeignTypeFacts.spellingOf(cType);
     // An anonymous enum is named by the typedef that names it
     let typedefName = type;
     for (let hop = 0; hop < ForeignTypeFacts.MAX_TYPEDEF_HOPS; hop += 1) {
-      if (type.includes("*") || type.includes("&")) {
-        return dimensions.length > 0 ? found(null) : null;
+      const step = ForeignTypeFacts.typedefHop(
+        type,
+        typedefName,
+        lookup,
+        target,
+      );
+      if (step === null) {
+        // An array of something this cannot type is still an array
+        return dimensions.length > 0 ? { element: null, dimensions } : null;
       }
-      const known = ForeignTypeFacts.knownSpelling(type, target);
-      if (known !== undefined) return found(known);
-      if (type.startsWith("enum ") || ForeignTypeFacts.isEnum(lookup, type)) {
-        return found({
-          typeName: type.startsWith("enum {")
-            ? typedefName
-            : type.replace(/^enum /, ""),
-          category: "enum",
-          bitWidth: null,
-        });
-      }
-      const tag = type.replace(/^struct /, "");
-      if (lookup.isOpaqueType(tag) || lookup.getStructFields(tag)) {
-        return found({ typeName: tag, category: "none", bitWidth: null });
-      }
-      const typedef = lookup.getCSymbol(type) ?? lookup.getCppSymbol(type);
-      if (typedef?.kind !== "type" || !typedef.type) {
-        return dimensions.length > 0 ? found(null) : null;
-      }
-      if ("arrayDimensions" in typedef && typedef.arrayDimensions) {
-        dimensions.push(...typedef.arrayDimensions);
-      }
+      if ("element" in step) return { element: step.element, dimensions };
+      dimensions.push(...step.dimensions);
       typedefName = type;
-      type = ForeignTypeFacts.spellingOf(typedef.type);
+      type = ForeignTypeFacts.spellingOf(step.aliases);
     }
     return null;
+  }
+
+  /**
+   * What one spelling names: an element, the typedef to follow, or null where
+   * the walk ends -- a pointer, a reference, or a name that is none of these.
+   */
+  private static typedefHop(
+    type: string,
+    typedefName: string,
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+  ): TTypedefHop | null {
+    if (type.includes("*") || type.includes("&")) return null;
+    const known = ForeignTypeFacts.knownSpelling(type, target);
+    if (known !== undefined) return { element: known };
+    if (type.startsWith("enum ") || ForeignTypeFacts.isEnum(lookup, type)) {
+      const typeName = type.startsWith("enum {")
+        ? typedefName
+        : type.replace(/^enum /, "");
+      return { element: { typeName, category: "enum", bitWidth: null } };
+    }
+    const tag = type.replace(/^struct /, "");
+    if (lookup.isOpaqueType(tag) || lookup.getStructFields(tag)) {
+      return { element: { typeName: tag, category: "none", bitWidth: null } };
+    }
+    const typedef = lookup.getCSymbol(type) ?? lookup.getCppSymbol(type);
+    if (typedef?.kind !== "type" || !typedef.type) return null;
+    const dimensions =
+      "arrayDimensions" in typedef ? (typedef.arrayDimensions ?? []) : [];
+    return { aliases: typedef.type, dimensions };
   }
 
   private static isEnum(lookup: IForeignSymbolLookup, type: string): boolean {
@@ -404,7 +432,7 @@ class ForeignTypeFacts {
   private static knownSpelling(
     type: string,
     target: ITargetDescription | null,
-  ): Pick<IOperandType, "typeName" | "category" | "bitWidth"> | undefined {
+  ): TForeignElement | undefined {
     const fixed = /^(u?)int(?:_least)?(8|16|32|64)_t$/.exec(type);
     if (fixed) {
       return ForeignTypeFacts.integer(fixed[1] === "u", Number(fixed[2]));
@@ -439,7 +467,7 @@ class ForeignTypeFacts {
   private static standardInteger(
     type: string,
     target: ITargetDescription | null,
-  ): Pick<IOperandType, "typeName" | "category" | "bitWidth"> | undefined {
+  ): TForeignElement | undefined {
     const words = type.split(" ");
     const allowed = new Set([
       "signed",
@@ -467,18 +495,17 @@ class ForeignTypeFacts {
   private static integer(
     isUnsigned: boolean,
     width: number | null,
-  ): Pick<IOperandType, "typeName" | "category" | "bitWidth"> {
+  ): TForeignElement {
     const sized = width !== null && [8, 16, 32, 64].includes(width);
+    const prefix = isUnsigned ? "u" : "i";
     return {
-      typeName: sized ? `${isUnsigned ? "u" : "i"}${width}` : null,
+      typeName: sized ? `${prefix}${width}` : null,
       category: isUnsigned ? "unsigned" : "signed",
       bitWidth: width,
     };
   }
 
-  private static floating(
-    width: number | null,
-  ): Pick<IOperandType, "typeName" | "category" | "bitWidth"> {
+  private static floating(width: number | null): TForeignElement {
     return {
       typeName: width === 32 || width === 64 ? `f${width}` : null,
       category: "floating",

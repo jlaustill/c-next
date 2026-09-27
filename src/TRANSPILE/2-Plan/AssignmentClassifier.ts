@@ -752,7 +752,7 @@ class AssignmentClassifier {
     // classifier's default for an unknown type, whose handler wrote the right
     // text by coincidence (#1668 review).
     const last = ctx.target.last;
-    if (last !== undefined && last.subscript === null) {
+    if (last?.subscript === null) {
       return AssignmentKind.MEMBER_CHAIN;
     }
 

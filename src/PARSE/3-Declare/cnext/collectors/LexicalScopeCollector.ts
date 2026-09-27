@@ -72,7 +72,7 @@ class FrameListener extends CNextListener {
     this.stack.push(frame);
   }
 
-  private pop = (): void => {
+  private readonly pop = (): void => {
     this.stack.pop();
   };
 

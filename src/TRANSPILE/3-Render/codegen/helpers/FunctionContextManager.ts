@@ -243,7 +243,7 @@ class FunctionContextManager {
 
     return {
       typeName,
-      isStruct: callbacks.isStructType(typeName),
+      isStruct: callbacks.isKnownStruct(typeName),
       isCallback: state.callbackTypes.has(typeName),
       isString: false,
     };

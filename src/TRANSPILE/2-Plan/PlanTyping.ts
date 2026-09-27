@@ -64,7 +64,7 @@ class PlanTyping {
   private static countedBehavior(
     leaf: IOperandType | null,
   ): TOverflowBehavior | null | undefined {
-    if (leaf === null || leaf.binding === null) return undefined;
+    if (!leaf?.binding) return undefined;
     if (leaf.category !== "signed" && leaf.category !== "unsigned") {
       return undefined;
     }

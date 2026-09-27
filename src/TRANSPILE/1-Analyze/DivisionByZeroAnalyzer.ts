@@ -114,7 +114,7 @@ class DivisionByZeroListener extends CNextListener {
       ParserUtils.getPosition(at),
     );
     const declared = BoundDeclaration.of(binding);
-    if (binding === null || declared === null || !declared.isConst) {
+    if (binding === null || !declared?.isConst) {
       return false;
     }
     if (

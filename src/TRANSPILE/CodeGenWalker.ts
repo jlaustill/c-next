@@ -2635,7 +2635,7 @@ class CodeGenWalker {
     isOpaqueHandle: boolean;
   } {
     // ADR-006: struct-ness drives reference semantics.
-    const isStruct = this.host.isStructType(typeName);
+    const isStruct = this.host.isKnownStruct(typeName);
 
     // ADR-029: a parameter whose type is itself a function-as-type.
     const cbInfo = this.host.state.callbackTypes.get(typeName);

@@ -186,7 +186,7 @@ class ConstAssignmentListener extends CNextListener {
       ParserUtils.getPosition(at),
     );
     const declared = BoundDeclaration.of(binding);
-    if (declared === null || !declared.isConst) return null;
+    if (!declared?.isConst) return null;
     return declared.isParameter ? "parameter" : "variable";
   }
 

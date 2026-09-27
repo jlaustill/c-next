@@ -129,15 +129,19 @@ describe("VariableDeclHelper", () => {
       expect(result.decl).toBe("uint8_t arr[10][2]");
     });
 
-    // ADR-057: registries key on the SOURCE name, which is what references in
-    // the source say -- only the emitted text moves.
-    it("tracks the array under its source name", () => {
-      VariableDeclHelper.renderArrayDeclaration(
+    // ADR-057: a local that shadows a file-scope name is emitted under a
+    // distinct name. The declaration carries the EMITTED name it was handed;
+    // the source name is for diagnostics only. The test above cannot tell the
+    // two apart, because it passes the same name for both.
+    it("declares the array under its emitted name, not its source name", () => {
+      const result = VariableDeclHelper.renderArrayDeclaration(
         arrayPlan({ isArray: true, arrayTypeDimensions: "[4]" }),
         "arr",
         "uint8_t main__arr",
         state,
       );
+
+      expect(result.decl).toBe("uint8_t main__arr[4]");
     });
 
     it("completes the declaration itself when the initializer is processed", () => {

@@ -63,7 +63,6 @@ import type IPlannedFunctionParameter from "./types/IPlannedFunctionParameter";
 import FunctionContextManager from "./helpers/FunctionContextManager";
 import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
-import DeclaredTypeFacts from "../../../utils/DeclaredTypeFacts";
 import TypeCheckUtils from "../../../utils/TypeCheckUtils";
 import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
@@ -258,11 +257,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isKnownStruct(typeName: string): boolean {
-    return DeclaredTypeFacts.isStruct(
-      this.state.symbols,
-      this.state.symbolTable,
-      typeName,
-    );
+    return this.state.isKnownStruct(typeName);
   }
 
   /**
@@ -772,18 +767,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #322: Check if a type name is a user-defined struct
-   * Part of IOrchestrator interface.
-   */
-  isStructType(typeName: string): boolean {
-    return DeclaredTypeFacts.isStruct(
-      this.state.symbols,
-      this.state.symbolTable,
-      typeName,
-    );
-  }
-
-  /**
    * Clear parameter tracking when leaving a function.
    * Issue #793: Delegates to FunctionContextManager.
    */
@@ -827,7 +810,7 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private _getFunctionContextCallbacks(): IFunctionContextCallbacks {
     return {
-      isStructType: (typeName: string) => this.isStructType(typeName),
+      isKnownStruct: (typeName: string) => this.isKnownStruct(typeName),
     };
   }
 

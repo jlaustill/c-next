@@ -158,7 +158,7 @@ class HeaderSymbolAdapter {
   }): string[] | undefined {
     // #1664 box 7: 1.4 folded each dimension it could, with the const values
     // visible at the function; what is left (a C macro) is the C compiler's
-    const dimensions = parameter.arrayDimensions?.map((d) => String(d));
+    const dimensions = parameter.arrayDimensions?.map(String);
     if (!dimensions) {
       return undefined;
     }

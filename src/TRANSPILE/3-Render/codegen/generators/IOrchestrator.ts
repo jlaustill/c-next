@@ -68,9 +68,6 @@ interface IOrchestrator {
   /** Check if a function is defined in C-Next (vs C headers) */
   isCNextFunction(name: string): boolean;
 
-  /** Issue #322: Check if a type is a struct type */
-  isStructType(typeName: string): boolean;
-
   /**
    * Brace that zero-initializes a whole aggregate -- `{}` in C++, `{0}` in C.
    * #1568: the ADR-029 init function needs it for the struct as a whole, and

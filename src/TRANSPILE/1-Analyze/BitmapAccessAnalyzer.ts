@@ -206,9 +206,7 @@ class BitmapAccessListener extends CNextListener {
     // An ARRAY of bitmaps is not a bitmap: `arr[0].Mode` indexes the array
     const declared = OperandTyper.chainOf(node, this.context).steps[0]?.before;
     const bitmap =
-      declared && declared.dimensions.length === 0
-        ? declared.bitmapTypeName
-        : null;
+      declared?.dimensions.length === 0 ? declared.bitmapTypeName : null;
     return bitmap !== null && symbols.bitmapFields.has(bitmap)
       ? { bitmap, at: 1 }
       : null;

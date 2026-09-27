@@ -137,7 +137,7 @@ function createMockOrchestrator(
     isCNextFunction: vi.fn(() => false),
     isFloatType: vi.fn(() => false),
     isIntegerType: vi.fn(() => false),
-    isStructType: vi.fn(() => false),
+    isKnownStruct: vi.fn(() => false),
     isCppMode: vi.fn(() => false),
     isCppEnumClass: vi.fn(() => false),
     getExpressionType: vi.fn(() => null),
@@ -226,7 +226,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         getExpressionType: vi.fn(() => "MyStruct"),
-        isStructType: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
       });
 
       const result = generateFunctionCall(
@@ -264,7 +264,7 @@ describe("CallExprGenerator", () => {
         isCNextFunction: vi.fn(() => false),
         generateExpression: vi.fn(() => "&myStruct"),
         getExpressionType: vi.fn(() => "MyStruct"),
-        isStructType: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
       });
 
       const result = generateFunctionCall(
@@ -296,7 +296,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         getExpressionType: vi.fn(() => "u8"),
-        isStructType: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
       });
 
       const result = generateFunctionCall(
@@ -333,7 +333,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         getExpressionType: vi.fn(() => "MyStruct*"),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
       });
 
       const result = generateFunctionCall(
@@ -378,7 +378,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         getExpressionType: vi.fn(() => null),
-        isStructType: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
       });
 
       const result = generateFunctionCall(
@@ -470,7 +470,7 @@ describe("CallExprGenerator", () => {
         // generateExpression would return (*buf) if called, but we bypass it
         generateExpression: vi.fn(() => "(*buf)"),
         getExpressionType: vi.fn(() => "u8"),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
       });
 
       const result = generateFunctionCall(
@@ -814,7 +814,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
         isParameterPassByValue: vi.fn(() => false),
       });
 
@@ -887,7 +887,7 @@ describe("CallExprGenerator", () => {
         isCNextFunction: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
         isParameterPassByValue: vi.fn(() => false),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
       });
 
       const result = generateFunctionCall(
@@ -926,7 +926,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
         isParameterPassByValue: vi.fn(() => false),
       });
 
@@ -955,7 +955,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
         isParameterPassByValue: vi.fn(() => false),
       });
 
@@ -1213,7 +1213,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
         isParameterPassByValue: vi.fn(() => false),
       });
 
@@ -1436,7 +1436,7 @@ describe("CallExprGenerator", () => {
         });
         const orchestrator = createMockOrchestrator({
           getExpressionType: vi.fn(() => elementType),
-          isStructType: vi.fn(() => isStruct),
+          isKnownStruct: vi.fn(() => isStruct),
         });
 
         const result = generateFunctionCall(
@@ -1476,7 +1476,7 @@ describe("CallExprGenerator", () => {
     ])("%s", (_label, isArray, expected) => {
       const orchestrator = createMockOrchestrator({
         getExpressionType: vi.fn(() => "CPoint"),
-        isStructType: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
         isArrayExpression: vi.fn(() => isArray),
       });
 
@@ -1522,7 +1522,7 @@ describe("CallExprGenerator", () => {
       ]);
       const orchestrator = createMockOrchestrator({
         getExpressionType: vi.fn(() => argType),
-        isStructType: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
       });
       // The input first: it records the case's declared variables, and a
       // planned argument reads its declared type when it is planned (#1668)
@@ -1576,7 +1576,7 @@ describe("CallExprGenerator", () => {
       ]);
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn((name: string) => name === "peek"),
-        isStructType: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
       });
 
       const result = generateFunctionCall(
@@ -1623,7 +1623,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         getExpressionType: vi.fn(() => "handle_t"),
-        isStructType: vi.fn(() => false), // typedef pointer is not a struct
+        isKnownStruct: vi.fn(() => false), // typedef pointer is not a struct
         isIntegerType: vi.fn(() => false),
         isFloatType: vi.fn(() => false),
       });
@@ -1669,7 +1669,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         getExpressionType: vi.fn(() => "uint8_t"),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
         isIntegerType: vi.fn(() => false), // uint8_t is C type, not in INTEGER_TYPES
         isFloatType: vi.fn(() => false),
       });
@@ -1716,7 +1716,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         getExpressionType: vi.fn(() => "handle_t"),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
         isIntegerType: vi.fn(() => false),
         isFloatType: vi.fn(() => false),
       });

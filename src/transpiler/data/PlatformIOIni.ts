@@ -139,7 +139,7 @@ class PlatformIOIni {
   /** A single value without its inline `;` comment, or undefined if empty */
   private static clean(value: string | undefined): string | undefined {
     const text = value?.replace(/\s;.*$/, "").trim();
-    return text ? text : undefined;
+    return text || undefined;
   }
 
   private static isContinuation(line: string): boolean {

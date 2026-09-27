@@ -67,7 +67,7 @@ function setupSymbols(
  */
 function createMockCallbacks(): IFunctionContextCallbacks {
   return {
-    isStructType: vi.fn(() => false),
+    isKnownStruct: vi.fn(() => false),
   };
 }
 
@@ -283,7 +283,7 @@ describe("FunctionContextManager", () => {
 
     it("registers struct parameter using callback", () => {
       const callbacks = createMockCallbacks();
-      (callbacks.isStructType as ReturnType<typeof vi.fn>).mockReturnValue(
+      (callbacks.isKnownStruct as ReturnType<typeof vi.fn>).mockReturnValue(
         true,
       );
 
@@ -297,7 +297,7 @@ describe("FunctionContextManager", () => {
       const paramInfo = state.currentParameters.get("point");
       expect(paramInfo).toBeDefined();
       expect(paramInfo!.isStruct).toBe(true);
-      expect(callbacks.isStructType).toHaveBeenCalledWith("Point");
+      expect(callbacks.isKnownStruct).toHaveBeenCalledWith("Point");
     });
 
     it("registers string parameter", () => {
@@ -350,7 +350,7 @@ describe("FunctionContextManager", () => {
         // A struct with a body is a known struct; a forward-declared typedef
         // is not -- the stamp is what makes it one.
         const callbacks: IFunctionContextCallbacks = {
-          isStructType: vi.fn(() => !isOpaque),
+          isKnownStruct: vi.fn(() => !isOpaque),
         };
 
         FunctionContextManager.processParameter(
@@ -390,7 +390,7 @@ describe("FunctionContextManager", () => {
 
     it("resolves user type and checks struct", () => {
       const callbacks = createMockCallbacks();
-      (callbacks.isStructType as ReturnType<typeof vi.fn>).mockReturnValue(
+      (callbacks.isKnownStruct as ReturnType<typeof vi.fn>).mockReturnValue(
         true,
       );
 
@@ -477,7 +477,7 @@ describe("FunctionContextManager", () => {
 
     it("resolves an array of user types to the element type", () => {
       const callbacks = createMockCallbacks();
-      (callbacks.isStructType as ReturnType<typeof vi.fn>).mockReturnValue(
+      (callbacks.isKnownStruct as ReturnType<typeof vi.fn>).mockReturnValue(
         true,
       );
 

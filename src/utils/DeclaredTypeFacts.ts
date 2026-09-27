@@ -98,7 +98,7 @@ class DeclaredTypeFacts {
    * It was at three, spelled the same way each time and reached by 19 callers:
    * `CodeGenState.isKnownStruct`, `SymbolLookupHelper.isKnownStruct` (through
    * `IOrchestrator`), and `ExpressionTypeResolver.isStructType` in 2-Plan,
-   * which alone has ten sites through `IOrchestrator.isStructType`. All three
+   * which alone had ten sites through `IOrchestrator.isStructType`. All three
    * ran the identical three checks in the identical order; the 2-Plan copy
    * differed from the `state/` copy only in `CodeGenState.` versus `this.`.
    *

@@ -547,6 +547,11 @@ describe("CodeGenWalker", () => {
 
         expect(host.isKnownStruct("UnknownStruct")).toBe(false);
       });
+
+      it("should return false for primitive type", () => {
+        const { host } = createMinimalGenerator(`void foo() { }`);
+        expect(host.isKnownStruct("u32")).toBe(false);
+      });
     });
 
     describe("isFloatType()", () => {
@@ -623,21 +628,6 @@ describe("CodeGenWalker", () => {
       it("should return false by default", () => {
         const { host } = createMinimalGenerator(`void foo() { }`);
         expect(host.isCppMode()).toBe(false);
-      });
-    });
-
-    describe("isStructType()", () => {
-      it("should return true for struct type", () => {
-        const { host } = createMinimalGenerator(`
-          struct Point { i32 x; i32 y; }
-        `);
-
-        expect(host.isStructType("Point")).toBe(true);
-      });
-
-      it("should return false for primitive type", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
-        expect(host.isStructType("u32")).toBe(false);
       });
     });
 

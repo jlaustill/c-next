@@ -52,18 +52,7 @@ class EnumValueResolver {
     // A ternary is its arms' kind when they agree; a bare member arm, legal
     // where the position names the enum, binds to nothing and so is unresolved
     if (t.form.kind === "ternary") {
-      const [whenTrue, whenFalse] = t.form.arms.map((arm) =>
-        EnumValueResolver.kindOf(arm),
-      );
-      if (whenTrue.kind === "unresolved" || whenFalse.kind === "unresolved") {
-        return UNRESOLVED;
-      }
-      const agree =
-        whenTrue.kind === whenFalse.kind &&
-        (whenTrue.kind !== "enum" ||
-          (whenFalse.kind === "enum" &&
-            whenTrue.typeName === whenFalse.typeName));
-      return agree ? whenTrue : OTHER;
+      return EnumValueResolver.ternaryKind(t.form.arms);
     }
     // ADR-017 governs C-Next enums; a header's enum is enum-category to Rule
     // 10.4 (E0810) but has no C-Next enum type here (it carries no
@@ -73,18 +62,40 @@ class EnumValueResolver {
     }
     if (EnumValueResolver.isInteger(t)) return INTEGER;
     if (t.form.kind === "composite") {
-      const leaves = t.form.leaves;
-      if (
-        leaves.length > 0 &&
-        leaves.every(
-          (leaf) => EnumValueResolver.kindOf(leaf).kind === "integer",
-        )
-      ) {
-        return INTEGER;
-      }
-      if (leaves.some((leaf) => leaf === null)) return UNRESOLVED;
+      return EnumValueResolver.compositeKind(t.form.leaves);
     }
     return OTHER;
+  }
+
+  /** A ternary is its arms' kind when they agree */
+  private static ternaryKind(
+    arms: ReadonlyArray<IOperandType | null>,
+  ): TValueKind {
+    const [whenTrue, whenFalse] = arms.map((arm) =>
+      EnumValueResolver.kindOf(arm),
+    );
+    if (whenTrue.kind === "unresolved" || whenFalse.kind === "unresolved") {
+      return UNRESOLVED;
+    }
+    const agree =
+      whenTrue.kind === whenFalse.kind &&
+      (whenTrue.kind !== "enum" ||
+        (whenFalse.kind === "enum" &&
+          whenTrue.typeName === whenFalse.typeName));
+    return agree ? whenTrue : OTHER;
+  }
+
+  /** Arithmetic whose every leaf is an integer is one; an untyped leaf is unresolved */
+  private static compositeKind(
+    leaves: ReadonlyArray<IOperandType | null>,
+  ): TValueKind {
+    if (
+      leaves.length > 0 &&
+      leaves.every((leaf) => EnumValueResolver.kindOf(leaf).kind === "integer")
+    ) {
+      return INTEGER;
+    }
+    return leaves.includes(null) ? UNRESOLVED : OTHER;
   }
 
   private static isInteger(t: IOperandType): boolean {

@@ -61,6 +61,18 @@ type TChainValue =
 
 const UNKNOWN: TChainValue = { k: "unknown" };
 
+/** The operations a chain applies after its head */
+type TChainOps = ReadonlyArray<
+  Parser.PostfixOpContext | Parser.PostfixTargetOpContext
+>;
+
+/** A chain's head, typed, and the operations left to apply to it */
+interface IChainStart {
+  binding: TValueBinding | null;
+  value: TChainValue;
+  ops: TChainOps;
+}
+
 /** How an operand came to have its type */
 type TOperandForm = IOperandType["form"];
 
@@ -138,19 +150,8 @@ class OperandTyper {
       }
     }
     if (inner instanceof Parser.UnaryExpressionContext) {
-      const operator = inner.getChild(0)?.getText();
-      const operand = inner.unaryExpression();
-      if (operator === "&") return [];
-      if ((operator === "-" || operator === "~") && operand) {
-        // `-5` is one leaf, a negated literal; `-(5 + a)` negates no leaf
-        if (
-          operator === "-" &&
-          OperandTyper.descend(operand) instanceof Parser.LiteralContext
-        ) {
-          return [OperandTyper.typeOf(inner, ctx)];
-        }
-        return OperandTyper.valueLeaves(operand, ctx);
-      }
+      const leaves = OperandTyper.unaryLeaves(inner, ctx);
+      if (leaves !== null) return leaves;
     }
     if (inner instanceof Parser.PrimaryExpressionContext) {
       const parenthesized = inner.expression();
@@ -159,6 +160,29 @@ class OperandTyper {
       }
     }
     return [OperandTyper.typeOf(inner, ctx)];
+  }
+
+  /**
+   * A unary level's value leaves: none under `&x`; `-` and `~` descend, except
+   * that a negated literal is one leaf. Null for any other unary, which is
+   * one leaf of its own.
+   */
+  private static unaryLeaves(
+    inner: Parser.UnaryExpressionContext,
+    ctx: ITypingContext,
+  ): Array<IOperandType | null> | null {
+    const operator = inner.getChild(0)?.getText();
+    const operand = inner.unaryExpression();
+    if (operator === "&") return [];
+    if ((operator !== "-" && operator !== "~") || !operand) return null;
+    // `-5` is one leaf, a negated literal; `-(5 + a)` negates no leaf
+    if (
+      operator === "-" &&
+      OperandTyper.descend(operand) instanceof Parser.LiteralContext
+    ) {
+      return [OperandTyper.typeOf(inner, ctx)];
+    }
+    return OperandTyper.valueLeaves(operand, ctx);
   }
 
   /**
@@ -762,48 +786,25 @@ class OperandTyper {
   private static chainStart(
     node: Parser.PostfixExpressionContext | Parser.AssignmentTargetContext,
     ctx: ITypingContext,
-  ): {
-    binding: TValueBinding | null;
-    value: TChainValue;
-    ops: ReadonlyArray<Parser.PostfixOpContext | Parser.PostfixTargetOpContext>;
-  } {
+  ): IChainStart {
+    return node instanceof Parser.AssignmentTargetContext
+      ? OperandTyper.targetStart(node, ctx)
+      : OperandTyper.expressionStart(node, ctx);
+  }
+
+  /** A target spells `this.name` in the rule itself */
+  private static targetStart(
+    node: Parser.AssignmentTargetContext,
+    ctx: ITypingContext,
+  ): IChainStart {
     const at = ParserUtils.getPosition(node);
-    const isTarget = node instanceof Parser.AssignmentTargetContext;
-    const ops: Array<Parser.PostfixOpContext | Parser.PostfixTargetOpContext> =
-      isTarget ? [...node.postfixTargetOp()] : [...node.postfixOp()];
-    const root = isTarget
-      ? ChainRoot.ofTarget(node)
-      : ChainRoot.ofPrimary(node.primaryExpression());
-
+    const ops = [...node.postfixTargetOp()];
+    const root = ChainRoot.ofTarget(node);
     if (root !== null) {
-      // A target spells `this.name` in the rule itself; an expression's
-      // first postfix op is `.name`
-      if (isTarget) {
-        const name = node.IDENTIFIER()?.getText();
-        return name
-          ? OperandTyper.rootedStart(root, name, ops, at, ctx)
-          : { binding: null, value: UNKNOWN, ops: [] };
-      }
-      const first = ops.shift();
-      const name = first?.IDENTIFIER()?.getText();
-      if (!name || first?.DOT() === null) {
-        return { binding: null, value: UNKNOWN, ops: [] };
-      }
-      return OperandTyper.rootedStart(root, name, ops, at, ctx);
-    }
-
-    if (!isTarget) {
-      const primary = node.primaryExpression();
-      const identifier = primary.IDENTIFIER();
-      if (!identifier) {
-        const t = OperandTyper.primaryType(primary, ctx);
-        return {
-          binding: null,
-          value: t ? { k: "value", t, register: false } : UNKNOWN,
-          ops,
-        };
-      }
-      return OperandTyper.namedStart(identifier, ops, at, ctx);
+      const name = node.IDENTIFIER()?.getText();
+      return name
+        ? OperandTyper.rootedStart(root, name, ops, at, ctx)
+        : { binding: null, value: UNKNOWN, ops: [] };
     }
     const identifier = node.IDENTIFIER();
     return identifier
@@ -811,18 +812,41 @@ class OperandTyper {
       : { binding: null, value: UNKNOWN, ops };
   }
 
+  /** An expression's first postfix op is a `this.`/`global.` root's `.name` */
+  private static expressionStart(
+    node: Parser.PostfixExpressionContext,
+    ctx: ITypingContext,
+  ): IChainStart {
+    const at = ParserUtils.getPosition(node);
+    const ops = [...node.postfixOp()];
+    const primary = node.primaryExpression();
+    const root = ChainRoot.ofPrimary(primary);
+    if (root !== null) {
+      const first = ops.shift();
+      const name = first?.IDENTIFIER()?.getText();
+      if (!name || first?.DOT() === null) {
+        return { binding: null, value: UNKNOWN, ops: [] };
+      }
+      return OperandTyper.rootedStart(root, name, ops, at, ctx);
+    }
+    const identifier = primary.IDENTIFIER();
+    if (identifier) return OperandTyper.namedStart(identifier, ops, at, ctx);
+    const t = OperandTyper.primaryType(primary, ctx);
+    return {
+      binding: null,
+      value: t ? { k: "value", t, register: false } : UNKNOWN,
+      ops,
+    };
+  }
+
   /** `this.name` or `global.name`, with that first member consumed */
   private static rootedStart(
     root: "this" | "global",
     name: string,
-    ops: ReadonlyArray<Parser.PostfixOpContext | Parser.PostfixTargetOpContext>,
+    ops: TChainOps,
     at: { line: number; column: number },
     ctx: ITypingContext,
-  ): {
-    binding: TValueBinding | null;
-    value: TChainValue;
-    ops: ReadonlyArray<Parser.PostfixOpContext | Parser.PostfixTargetOpContext>;
-  } {
+  ): IChainStart {
     const binding = ctx.program.bindValue(ctx.sourceFile, root, name, at);
     if (binding?.kind === "scope") {
       return {
@@ -856,14 +880,10 @@ class OperandTyper {
   /** A bare name at the head of a chain */
   private static namedStart(
     identifier: TerminalNode,
-    ops: ReadonlyArray<Parser.PostfixOpContext | Parser.PostfixTargetOpContext>,
+    ops: TChainOps,
     at: { line: number; column: number },
     ctx: ITypingContext,
-  ): {
-    binding: TValueBinding | null;
-    value: TChainValue;
-    ops: ReadonlyArray<Parser.PostfixOpContext | Parser.PostfixTargetOpContext>;
-  } {
+  ): IChainStart {
     const name = identifier.getText();
     const binding = ctx.program.bindValue(ctx.sourceFile, null, name, at);
     if (binding?.kind === "scope") {
@@ -938,13 +958,9 @@ class OperandTyper {
   private static foreignStart(
     binding: TValueBinding,
     name: string,
-    ops: ReadonlyArray<Parser.PostfixOpContext | Parser.PostfixTargetOpContext>,
+    ops: TChainOps,
     ctx: ITypingContext,
-  ): {
-    binding: TValueBinding | null;
-    value: TChainValue;
-    ops: ReadonlyArray<Parser.PostfixOpContext | Parser.PostfixTargetOpContext>;
-  } {
+  ): IChainStart {
     const t = OperandTyper.boundValue(binding, ctx);
     return {
       binding,
@@ -1074,20 +1090,7 @@ class OperandTyper {
       return UNKNOWN;
     }
     if (t.bitmapTypeName !== null) {
-      const field = ctx.symbols.bitmapFields.get(t.bitmapTypeName)?.get(member);
-      if (!field) return UNKNOWN;
-      const width = field.width;
-      const typeName = width === 1 ? "bool" : OperandTyper.unsignedFor(width);
-      return {
-        k: "value",
-        register: false,
-        t: {
-          ...OperandTyper.plain(typeName),
-          category: width === 1 ? "boolean" : "unsigned",
-          bitWidth: width === 1 ? null : width,
-          hasSideEffect: t.hasSideEffect,
-        },
-      };
+      return OperandTyper.bitmapFieldOf(t, t.bitmapTypeName, member, ctx);
     }
     const struct = ctx.program.symbolByCName(t.typeName);
     if (struct?.kind === "struct") {
@@ -1106,8 +1109,41 @@ class OperandTyper {
         },
       };
     }
+    return OperandTyper.foreignFieldOf(t, t.typeName, member, ctx);
+  }
+
+  /** A bitmap field: a Boolean bit, or an unsigned run of bits */
+  private static bitmapFieldOf(
+    t: IOperandType,
+    bitmapTypeName: string,
+    member: string,
+    ctx: ITypingContext,
+  ): TChainValue {
+    const field = ctx.symbols.bitmapFields.get(bitmapTypeName)?.get(member);
+    if (!field) return UNKNOWN;
+    const width = field.width;
+    const typeName = width === 1 ? "bool" : OperandTyper.unsignedFor(width);
+    return {
+      k: "value",
+      register: false,
+      t: {
+        ...OperandTyper.plain(typeName),
+        category: width === 1 ? "boolean" : "unsigned",
+        bitWidth: width === 1 ? null : width,
+        hasSideEffect: t.hasSideEffect,
+      },
+    };
+  }
+
+  /** A member of a header's struct or class */
+  private static foreignFieldOf(
+    t: IOperandType,
+    typeName: string,
+    member: string,
+    ctx: ITypingContext,
+  ): TChainValue {
     const foreign = ForeignTypeFacts.fieldOperand(
-      t.typeName,
+      typeName,
       member,
       ctx.symbolTable,
       OperandTyper.target(ctx),
@@ -1115,7 +1151,7 @@ class OperandTyper {
     // A C struct's function-pointer field, `ops.get()` (#1668 review: its
     // call's result was untyped)
     const pointer = ForeignTypeFacts.fieldCallOperand(
-      t.typeName,
+      typeName,
       member,
       ctx.symbolTable,
       OperandTyper.target(ctx),
@@ -1134,7 +1170,7 @@ class OperandTyper {
     // static member's call already is, so the call that follows
     // resolves it (#1668 review: an instance method's result was untyped)
     return t.form.kind === "foreign" || t.form.kind === "declared"
-      ? { k: "foreignPath", parts: [t.typeName, member] }
+      ? { k: "foreignPath", parts: [typeName, member] }
       : UNKNOWN;
   }
 

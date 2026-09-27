@@ -616,30 +616,7 @@ class Transpiler {
     // symbols, recover their declared names via translation-unit preprocessing.
     await this._collectExternalDeclarations(input);
 
-    // Stage 3: Collect symbols from C-Next files -- 1.3 Declare for every file,
-    // then 1.4 Resolve once over all of them.
-    if (!this._collectAllCNextSymbolsFromPipeline(input.cnextFiles, result)) {
-      return;
-    }
-
-    // Stage 3b: the program's one target (ADR-049), settled by 1.4. Nothing
-    // below may run for a program whose target is unknown or contested.
-    if (!this._checkRunTarget(input, result)) {
-      return;
-    }
-
-    // Stage 4: Check for symbol conflicts
-    if (!this._checkSymbolConflicts(result)) {
-      return;
-    }
-
-    // Stage 4b: Check for include guard collisions (ADR-063, issue #1133)
-    if (!this._checkIncludeGuardCollisions(input.cnextFiles, result)) {
-      return;
-    }
-
-    // Stage 4c: Check external identifier significance (MISRA 5.1, issue #1307)
-    if (!this._checkExternalIdentifierSignificance(result)) {
+    if (!this._passesProgramChecks(input, result)) {
       return;
     }
 
@@ -696,20 +673,43 @@ class Transpiler {
     // file" rather than an error, so this is a silent no-op for it, not a bug.
     const renderedFiles = this._renderHeaders(result);
 
+    // One gate for both halves of the output: a .c is written only when its
+    // header is (#1233)
     if (result.success && input.writeOutputToDisk) {
       for (const write of pendingWrites) {
         this.fs.writeFile(write.path, write.content);
       }
-    }
-
-    // Stage 6: Write the Stage 5.5 headers (only to disk in files mode)
-    if (result.success && input.writeOutputToDisk) {
+      // Stage 6: Write the Stage 5.5 headers (only to disk in files mode)
       this._generateAllHeadersFromPipeline(
         input.cnextFiles,
         result,
         renderedFiles,
       );
     }
+  }
+
+  /**
+   * Stages 3 to 4c: the whole-program checks every file waits on. Each records
+   * its own errors; the first to fail ends the run, in this order.
+   */
+  private _passesProgramChecks(
+    input: IPipelineInput,
+    result: ITranspilerResult,
+  ): boolean {
+    return (
+      // Stage 3: 1.3 Declare for every C-Next file, then 1.4 Resolve once
+      // over all of them
+      this._collectAllCNextSymbolsFromPipeline(input.cnextFiles, result) &&
+      // Stage 3b: the program's one target (ADR-049), settled by 1.4. Nothing
+      // below may run for a program whose target is unknown or contested.
+      this._checkRunTarget(input, result) &&
+      // Stage 4: symbol conflicts
+      this._checkSymbolConflicts(result) &&
+      // Stage 4b: include guard collisions (ADR-063, issue #1133)
+      this._checkIncludeGuardCollisions(input.cnextFiles, result) &&
+      // Stage 4c: external identifier significance (MISRA 5.1, issue #1307)
+      this._checkExternalIdentifierSignificance(result)
+    );
   }
 
   /**

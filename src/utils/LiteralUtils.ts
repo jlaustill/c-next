@@ -7,9 +7,13 @@
 
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 
-/** A float literal as the grammar spells one, with its optional suffix */
-const FLOAT_LITERAL =
-  /^(?:\d+\.\d+(?:[eE][+-]?\d+)?|\d+[eE][+-]?\d+)(?:[fF](?:32|64))?$/;
+/**
+ * A float literal's shape as the grammar spells one: digits, an optional
+ * fraction, an optional exponent and an optional width suffix, captured. The
+ * grammar also requires a fraction or an exponent, which `[.eE]` asserts
+ * beside it -- in the pattern, that requirement doubled every arm.
+ */
+const FLOAT_LITERAL = /^\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?:[fF](32|64))?$/;
 
 /**
  * Static utility methods for literal analysis
@@ -41,7 +45,7 @@ class LiteralUtils {
     );
     if (integer !== undefined) return integer === 0;
     return (
-      FLOAT_LITERAL.test(trimmed) &&
+      LiteralUtils.floatLiteralWidth(trimmed) !== null &&
       LiteralUtils.isFloatZero(trimmed.replace(/[fF](?:32|64)$/, ""))
     );
   }
@@ -87,11 +91,8 @@ class LiteralUtils {
    * must match the grammar's FLOAT_LITERAL / SUFFIXED_FLOAT shape as a whole.
    */
   static floatLiteralWidth(text: string): 32 | 64 | null {
-    const match =
-      /^(?:\d+\.\d+(?:[eE][+-]?\d+)?|\d+[eE][+-]?\d+)(?:[fF](32|64))?$/.exec(
-        text,
-      );
-    if (!match) return null;
+    const match = FLOAT_LITERAL.exec(text);
+    if (!match || !/[.eE]/.test(text)) return null;
     return match[1] === "32" ? 32 : 64;
   }
 
