@@ -157,6 +157,25 @@ describe("FunctionCollector", () => {
       expect(symbol.parameters[0].isArray).toBe(true);
       expect(symbol.parameters[0].arrayDimensions).toEqual([4, 4]);
     });
+
+    it.each([
+      ["u32 main(string args[]) { return 0; }", [""]],
+      ["i32 main(u8 args[][]) { return 0; }", ["", ""]],
+    ])(
+      "keeps the C-style dimensions E0874 admits for main's args: %s (#1668)",
+      (code, dimensions) => {
+        const funcCtx = parse(code).declaration(0)!.functionDeclaration()!;
+        const symbol = FunctionCollector.collect(
+          funcCtx,
+          "test.cnx",
+          "",
+          "private",
+        );
+
+        expect(symbol.parameters[0].isArray).toBe(true);
+        expect(symbol.parameters[0].arrayDimensions).toEqual(dimensions);
+      },
+    );
   });
 
   describe("scoped functions", () => {

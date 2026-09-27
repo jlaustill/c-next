@@ -29,6 +29,8 @@ interface ILocalDeclaration {
   readonly overflowBehavior: TOverflowBehavior;
   /** The initializer's text, or null */
   readonly initialValue: string | null;
+  /** #895: what the initializer calls (`DeclaredPointer.calleeOf`) */
+  readonly initializerCallee: string | null;
   /** A const local's value, folded by 1.4 in the lexical environment */
   readonly constValue: number | null;
 }

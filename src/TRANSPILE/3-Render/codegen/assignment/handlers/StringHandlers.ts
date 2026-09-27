@@ -15,7 +15,6 @@ import StringUtils from "../../../../../utils/StringUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import invariant from "../../../../../utils/invariant";
-import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 import type TranspileState from "../../../../TranspileState";
 
 // #1322: `validateNotCompound` is gone -- E0857 in pass 2.1. It was defined
@@ -23,20 +22,19 @@ import type TranspileState from "../../../../TranspileState";
 // of six.
 
 /**
- * The declared capacity of the `string<N>` a registry key names.
+ * The declared capacity of the `string<N>` an assignment writes.
  *
- * Three handlers asked the registry this, byte for byte. The key each one
- * builds differs -- bare, scope-qualified, or an array's base name -- but the
- * question and its answer do not, so only the key is the caller's business.
+ * #1668 (C7): the target's binding answers it. Three handlers used to ask a
+ * registry by a key each spelled -- bare, scope-qualified, or an array's base
+ * name -- and one had to match the classifier's spelling or throw.
  */
-function capacityOf(registryKey: string, state: TranspileState): number {
-  const typeInfo = state.getVariableTypeInfo(registryKey);
-  return typeInfo!.stringCapacity!;
+function capacityOf(ctx: IAssignmentContext): number {
+  return ctx.target.typeInfo!.stringCapacity!;
 }
 
 /**
  * Emit a bounded copy into whatever `ctx.targetCtx` renders to, sized by the
- * `string<N>` that `registryKey` names.
+ * `string<N>` the target writes.
  *
  * STRING_SIMPLE, STRING_GLOBAL and STRING_THIS_MEMBER differ in exactly one
  * thing: how the registry key is spelled. Everything downstream of that -- the
@@ -45,11 +43,8 @@ function capacityOf(registryKey: string, state: TranspileState): number {
  * to how a bounded string copy is emitted needed two edits that nothing held
  * together. CLAUDE.md: "Single source of truth means the _decision_."
  */
-function copyIntoAssignmentTarget(
-  ctx: IAssignmentContext,
-  registryKey: string,
-): string {
-  const capacity = capacityOf(registryKey, ctx.state);
+function copyIntoAssignmentTarget(ctx: IAssignmentContext): string {
+  const capacity = capacityOf(ctx);
 
   const target = ctx.renderTarget();
   return StringUtils.copyWithNull(target, ctx.generatedValue, capacity);
@@ -78,11 +73,10 @@ function copyIntoAssignmentTarget(
  */
 
 /**
- * Handle simple string assignments (STRING_SIMPLE and STRING_GLOBAL), whose
- * registry key is the identifier as written.
+ * Handle simple string assignments (STRING_SIMPLE and STRING_GLOBAL).
  */
 function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
-  return copyIntoAssignmentTarget(ctx, ctx.identifiers[0]);
+  return copyIntoAssignmentTarget(ctx);
 }
 
 /**
@@ -91,14 +85,14 @@ function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
  * Shared helper for struct field string handlers.
  */
 function getStructFieldType(
-  structName: string,
+  ctx: IAssignmentContext,
   fieldName: string,
   state: TranspileState,
 ): string {
   // Issue #831: one source of truth for struct fields, reached through the
   // accessor rather than the table -- #1322's scope-declared-struct key
   // fallback lives there, and a bare table lookup misses it.
-  const structType = getStructType(structName, state);
+  const structType = getStructType(ctx);
   const fieldType = state.getStructFieldInfo(structType, fieldName)?.type;
   // Same shape as the `structTypeInfo` guard `getStructType` carries: the
   // classifier already required `getStructFieldType` truthy and
@@ -117,15 +111,12 @@ function getStructFieldType(
  *
  * Shared helper for struct field handlers.
  */
-function getStructType(structName: string, state: TranspileState): string {
-  const structTypeInfo = state.getVariableTypeInfo(structName);
-  // #1322: classified "dead -- delete" by #1321's audit, and it is indeed
-  // unreachable: STRING_STRUCT_FIELD is produced only via
-  // `AssignmentClassifier._resolveStructType`, which runs the identical
-  // `getVariableTypeInfo` lookup and returns null when it misses. But deleting
-  // it yields `TS18048: possibly 'undefined'` on the next line -- the guard is
-  // doing type work as well as runtime work. Unreachable AND load-bearing is
-  // not dead; it is an invariant, so it says so.
+function getStructType(ctx: IAssignmentContext): string {
+  const structTypeInfo = ctx.target.rootTypeInfo;
+  // #1322: unreachable -- STRING_STRUCT_FIELD is produced only via
+  // `AssignmentClassifier._resolveStructType`, which reads the same bound
+  // root and returns null when it has no type -- and load-bearing, since it
+  // narrows the type for the next line. So it is an invariant.
   invariant(
     structTypeInfo,
     "a classified struct assignment names a variable the symbol table knows",
@@ -137,18 +128,7 @@ function getStructType(structName: string, state: TranspileState): string {
  * Handle this.member string: this.name <- "value"
  */
 function handleStringThisMember(ctx: IAssignmentContext): string {
-  const memberName = ctx.identifiers[0];
-  // The key must match `_classifyThisMemberString`
-  // (AssignmentClassifier.ts:846), which hits the same map to decide whether to
-  // route here at all -- so a mismatch makes `capacityOf`'s `!` throw rather
-  // than return a wrong answer. #1357 deleted a comment that said this
-  // alongside a claim that had gone false ("leaf key, matching forMember"); the
-  // false half deserved deleting and this half did not.
-  const scopedName = QualifiedNameGenerator.forMember(
-    ctx.state.currentScopePath,
-    memberName,
-  );
-  return copyIntoAssignmentTarget(ctx, scopedName);
+  return copyIntoAssignmentTarget(ctx);
 }
 
 /**
@@ -158,7 +138,7 @@ function handleStringStructField(ctx: IAssignmentContext): string {
   const structName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
 
-  const fieldType = getStructFieldType(structName, fieldName, ctx.state);
+  const fieldType = getStructFieldType(ctx, fieldName, ctx.state);
   const capacity = TypeCheckUtils.getStringCapacity(fieldType)!;
 
   return StringUtils.copyToStructField(
@@ -174,7 +154,7 @@ function handleStringStructField(ctx: IAssignmentContext): string {
  */
 function handleStringArrayElement(ctx: IAssignmentContext): string {
   const name = ctx.identifiers[0];
-  const capacity = capacityOf(name, ctx.state);
+  const capacity = capacityOf(ctx);
 
   const index = ctx.renderSubscript(0);
   return StringUtils.copyToArrayElement(
@@ -192,7 +172,7 @@ function handleStringStructArrayElement(ctx: IAssignmentContext): string {
   const structName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
 
-  const structType = getStructType(structName, ctx.state);
+  const structType = getStructType(ctx);
   const dimensions = ctx.state
     .symbols!.structFieldDimensions.get(structType)
     ?.get(fieldName);

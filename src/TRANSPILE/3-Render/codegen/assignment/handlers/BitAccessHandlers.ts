@@ -27,7 +27,7 @@ function handleIntegerBit(ctx: IAssignmentContext): string {
   // e.g., "ArrayBug_flags" instead of "flags"
   const name = ctx.resolvedBaseIdentifier;
   const bitIndex = ctx.renderSubscript(0);
-  const typeInfo = ctx.state.getVariableTypeInfo(name);
+  const typeInfo = ctx.target.typeInfo;
 
   // Check for float bit indexing
   if (typeInfo) {
@@ -62,7 +62,7 @@ function handleIntegerBitRange(ctx: IAssignmentContext): string {
   const name = ctx.resolvedBaseIdentifier;
   const start = ctx.renderSubscript(0);
   const width = ctx.renderSubscript(1);
-  const typeInfo = ctx.state.getVariableTypeInfo(name);
+  const typeInfo = ctx.target.typeInfo;
 
   // Check for float bit indexing
   if (typeInfo) {
@@ -95,7 +95,7 @@ function handleIntegerBitRange(ctx: IAssignmentContext): string {
 function handleArrayElementBit(ctx: IAssignmentContext): string {
   // Use resolvedBaseIdentifier for type lookup and code generation
   const arrayName = ctx.resolvedBaseIdentifier;
-  const typeInfo = ctx.state.getVariableTypeInfo(arrayName);
+  const typeInfo = ctx.target.typeInfo;
 
   invariant(
     typeInfo?.arrayDimensions,

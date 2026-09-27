@@ -104,7 +104,7 @@ void Contexts__incrementPrivateClamp(void) {
 }
 
 void Contexts__incrementPrivateWrap(void) {
-    Contexts__privateWrapValue += 10U;
+    Contexts__privateWrapValue = (uint8_t)(Contexts__privateWrapValue + 10U);
 }
 
 bool Contexts__getPrivateFlag(void) {
@@ -168,7 +168,7 @@ void Contexts__incrementPublicClamp(void) {
 }
 
 void Contexts__incrementPublicWrap(void) {
-    Contexts__publicWrapValue += 10U;
+    Contexts__publicWrapValue = (uint16_t)(Contexts__publicWrapValue + 10U);
 }
 
 bool Contexts__getPublicFlag(void) {
@@ -246,7 +246,7 @@ uint8_t Contexts__getPrivateClampViaInternal(void) {
 void Contexts__modifyAllPrivate(void) {
     Contexts__privateValue = cnx_clamp_add_u8(Contexts__privateValue, 1U);
     Contexts__privateClampValue = cnx_clamp_add_u8(Contexts__privateClampValue, 10U);
-    Contexts__privateWrapValue += 5U;
+    Contexts__privateWrapValue = (uint8_t)(Contexts__privateWrapValue + 5U);
     Contexts__privateFlag = !Contexts__privateFlag;
     Contexts__privateOffset = cnx_clamp_sub_i16(Contexts__privateOffset, 10);
 }
@@ -254,7 +254,7 @@ void Contexts__modifyAllPrivate(void) {
 void Contexts__modifyAllPublic(void) {
     Contexts__publicValue = cnx_clamp_add_u8(Contexts__publicValue, 1U);
     Contexts__publicClampValue = cnx_clamp_add_u16(Contexts__publicClampValue, 100U);
-    Contexts__publicWrapValue += 5U;
+    Contexts__publicWrapValue = (uint16_t)(Contexts__publicWrapValue + 5U);
     Contexts__publicFlag = !Contexts__publicFlag;
     Contexts__publicOffset = cnx_clamp_sub_i32(Contexts__publicOffset, 100);
 }

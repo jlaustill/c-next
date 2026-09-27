@@ -11,6 +11,7 @@
 
 import IAssignmentOverflowContext from "../../../../transpiler/types/IAssignmentOverflowContext";
 import type TranspileState from "../../../TranspileState";
+import type TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 
 /**
  * Result of resolving expected type for an assignment target.
@@ -41,6 +42,8 @@ interface IPlannedAssignmentTarget {
   readonly hasSubscript: boolean;
   readonly hasRangeSubscript: boolean;
   readonly hasPostfixOps: boolean;
+  /** #1668 (C7): the target root's declared type, bound at the target */
+  readonly rootTypeInfo: TTypeInfo | undefined;
 }
 
 class AssignmentExpectedTypeResolver {
@@ -66,7 +69,7 @@ class AssignmentExpectedTypeResolver {
     if (baseId && !target.hasPostfixOps) {
       return AssignmentExpectedTypeResolver.resolveForSimpleIdentifier(
         baseId,
-        state,
+        target.rootTypeInfo,
       );
     }
 
@@ -76,6 +79,7 @@ class AssignmentExpectedTypeResolver {
       if (identifiers.length >= 2 && !hasSubscript) {
         return AssignmentExpectedTypeResolver.resolveForMemberChain(
           identifiers,
+          target.rootTypeInfo,
           state,
         );
       }
@@ -84,9 +88,8 @@ class AssignmentExpectedTypeResolver {
       // Issue #872: Resolve element type for MISRA 7.2 U suffix
       if (identifiers.length === 1 && hasSubscript) {
         return AssignmentExpectedTypeResolver.resolveForArrayElement(
-          baseId,
           target.hasRangeSubscript,
-          state,
+          target.rootTypeInfo,
         );
       }
 
@@ -95,6 +98,7 @@ class AssignmentExpectedTypeResolver {
       if (identifiers.length >= 2 && hasSubscript) {
         return AssignmentExpectedTypeResolver.resolveForMemberArrayElement(
           identifiers,
+          target.rootTypeInfo,
           state,
         );
       }
@@ -109,9 +113,8 @@ class AssignmentExpectedTypeResolver {
    */
   private static resolveForSimpleIdentifier(
     id: string,
-    state: TranspileState,
+    typeInfo: TTypeInfo | undefined,
   ): IExpectedTypeResult {
-    const typeInfo = state.getVariableTypeInfo(id);
     if (!typeInfo) {
       return { expectedType: null, assignmentContext: null };
     }
@@ -137,9 +140,14 @@ class AssignmentExpectedTypeResolver {
    */
   private static resolveForMemberChain(
     identifiers: readonly string[],
+    rootTypeInfo: TTypeInfo | undefined,
     state: TranspileState,
   ): IExpectedTypeResult {
-    return AssignmentExpectedTypeResolver.walkMemberChain(identifiers, state);
+    return AssignmentExpectedTypeResolver.walkMemberChain(
+      identifiers,
+      rootTypeInfo,
+      state,
+    );
   }
 
   /**
@@ -154,11 +162,9 @@ class AssignmentExpectedTypeResolver {
    * bit-range write, whose value is genuinely the field's type (unchanged).
    */
   private static resolveForArrayElement(
-    id: string,
     hasRangeSubscript: boolean,
-    state: TranspileState,
+    typeInfo: TTypeInfo | undefined,
   ): IExpectedTypeResult {
-    const typeInfo = state.getVariableTypeInfo(id);
     if (!typeInfo?.isArray) {
       return { expectedType: null, assignmentContext: null };
     }
@@ -180,9 +186,14 @@ class AssignmentExpectedTypeResolver {
    */
   private static resolveForMemberArrayElement(
     identifiers: readonly string[],
+    rootTypeInfo: TTypeInfo | undefined,
     state: TranspileState,
   ): IExpectedTypeResult {
-    return AssignmentExpectedTypeResolver.walkMemberChain(identifiers, state);
+    return AssignmentExpectedTypeResolver.walkMemberChain(
+      identifiers,
+      rootTypeInfo,
+      state,
+    );
   }
 
   /**
@@ -193,14 +204,12 @@ class AssignmentExpectedTypeResolver {
    */
   private static walkMemberChain(
     identifiers: readonly string[],
+    rootTypeInfo: TTypeInfo | undefined,
     state: TranspileState,
   ): IExpectedTypeResult {
     if (identifiers.length < 2) {
       return { expectedType: null, assignmentContext: null };
     }
-
-    const rootName = identifiers[0];
-    const rootTypeInfo = state.getVariableTypeInfo(rootName);
 
     if (!rootTypeInfo || !state.isKnownStruct(rootTypeInfo.baseType)) {
       return { expectedType: null, assignmentContext: null };

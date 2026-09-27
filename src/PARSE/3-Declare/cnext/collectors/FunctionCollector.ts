@@ -135,11 +135,15 @@ class FunctionCollector {
 
       // Check for C-Next style array type (u8[8] param, u8[4][4] param, u8[] param)
       const arrayTypeCtx = typeCtx.arrayType();
-      const isArray = arrayTypeCtx !== null;
+      // #1668: and the C-style dimensions E0874 admits for `main(string
+      // args[])`, which this dropped -- so the declaration read `args` as a
+      // scalar while the function's own plan read it as an array
+      const cStyleDimensions = p.arrayDimension();
+      const isArray = arrayTypeCtx !== null || cStyleDimensions.length > 0;
 
       // Extract array dimensions from arrayType syntax (supports multi-dimensional)
       const arrayDimensions: (number | string)[] = [];
-      if (isArray) {
+      if (arrayTypeCtx !== null) {
         for (const dim of arrayTypeCtx.arrayTypeDimension()) {
           const sizeExpr = dim.expression();
           if (sizeExpr) {
@@ -152,6 +156,9 @@ class FunctionCollector {
             arrayDimensions.push("");
           }
         }
+      }
+      for (const dim of cStyleDimensions) {
+        arrayDimensions.push(dim.expression()?.getText() ?? "");
       }
 
       return {

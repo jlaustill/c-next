@@ -22,7 +22,7 @@ function createMockContext(
   const resolvedBaseIdentifier =
     overrides.resolvedBaseIdentifier ?? identifiers[0];
 
-  return {
+  const ctx = {
     identifiers,
     ...HandlerTestUtils.subscriptsOf([{ mockValue: "3" } as never]),
     isCompound: false,
@@ -63,6 +63,11 @@ function createMockContext(
     state,
     ...overrides,
   } as IAssignmentContext;
+  // #1668 (C7): what the target writes, as the binder would bind it
+  return {
+    ...ctx,
+    target: overrides.target ?? HandlerTestUtils.targetOf(state, ctx),
+  };
 }
 
 let state = new TranspileState();
@@ -98,9 +103,7 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates single bit read-modify-write", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { baseType: "u32" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["flags", { baseType: "u32" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("3"),
       });
@@ -114,9 +117,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses 1ULL for 64-bit types", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { baseType: "u64" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["flags", { baseType: "u64" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("32"),
       });
@@ -130,9 +131,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses 1ULL for signed 64-bit types", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { baseType: "i64" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["flags", { baseType: "i64" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("bit"),
       });
@@ -145,9 +144,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("converts true to 1", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { baseType: "u8" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["flags", { baseType: "u8" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("0"),
       });
@@ -161,9 +158,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("converts false to 0", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { baseType: "u8" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["flags", { baseType: "u8" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("0"),
       });
@@ -177,9 +172,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("delegates to float bit write for float types", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["f", { baseType: "f32" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["f", { baseType: "f32" }]]);
       const generateFloatBitWrite = vi
         .fn()
         .mockReturnValue("float_bit_write_result");
@@ -212,9 +205,7 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates bit range read-modify-write", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { baseType: "u32" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["flags", { baseType: "u32" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
@@ -237,9 +228,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses correct mask for bit range", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["data", { baseType: "u16" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["data", { baseType: "u16" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
@@ -263,9 +252,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses ULL suffix for 64-bit bit range mask", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { baseType: "u64" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["flags", { baseType: "u64" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
@@ -287,9 +274,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("delegates to float bit write for float types", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["f", { baseType: "f32" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["f", { baseType: "f32" }]]);
       const generateFloatBitWrite = vi
         .fn()
         .mockReturnValue("float_range_write_result");
@@ -328,7 +313,7 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates array element bit assignment for 1D array", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["arr", { baseType: "u32", arrayDimensions: [10] }],
       ]);
       HandlerTestUtils.setupMockGenerator(state, {
@@ -352,7 +337,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("generates array element bit assignment for 2D array", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["matrix", { baseType: "u16", arrayDimensions: [10, 10] }],
       ]);
       HandlerTestUtils.setupMockGenerator(state, {
@@ -378,7 +363,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses 1ULL for 64-bit array element", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["arr", { baseType: "u64", arrayDimensions: [5] }],
       ]);
       HandlerTestUtils.setupMockGenerator(state, {
@@ -401,9 +386,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("throws when variable is not an array", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["notArray", { baseType: "u32" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["notArray", { baseType: "u32" }]]);
       const ctx = createMockContext({
         identifiers: ["notArray"],
       });

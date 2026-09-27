@@ -36,7 +36,7 @@ void testEmptyInit(void) {
 void testEmptyUpdate(void) {
     for (uint32_t i = 0U; i < 5; ) {
         globalCounter = cnx_clamp_add_u32(globalCounter, 1U);
-        i = i + 1U;
+        i = i + 1;
     }
 }
 

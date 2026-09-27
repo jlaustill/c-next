@@ -53,14 +53,14 @@ lands.
 | `src/PARSE/3-Declare/cnext/index.ts`                                           | `scopeName`        | 1     | path    | --         |
 | `src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts`                        | `resolvedName`     | 1     | path    | --         |
 | `src/TRANSPILE/2-Plan/AssignmentClassifier.ts`                                 | `firstId`          | 1     | path    | --         |
-| `src/TRANSPILE/2-Plan/AssignmentClassifier.ts`                                 | `scopeName`        | 2     | path    | --         |
+| `src/TRANSPILE/2-Plan/AssignmentClassifier.ts`                                 | `scopeName`        | 1     | path    | --         |
 | `src/TRANSPILE/3-Render/codegen/assignment/handlers/AssignmentHandlerUtils.ts` | `leadingId`        | 1     | path    | --         |
 | `src/TRANSPILE/3-Render/codegen/assignment/handlers/BitmapHandlers.ts`         | `scopeName`        | 1     | path    | --         |
 | `src/utils/ScopeUtils.ts`                                                      | `scopePath`        | 1     | encoder | --         |
 | `src/utils/ScopeUtils.ts`                                                      | `symbol.scopePath` | 1     | encoder | --         |
-| **total**                                                                      |                    | **9** |         |            |
+| **total**                                                                      |                    | **8** |         |            |
 
-9 site(s) across 6 file(s).
+8 site(s) across 6 file(s).
 
 ## What must move, and with what
 

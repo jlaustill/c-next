@@ -210,7 +210,7 @@ class ScopeJoinSites {
       kind: "path",
       pairedWith: null,
       movesWith: null,
-      why: "`ids[0]` of a parse-tree chain, admitted by `isKnownScope(scopeName)` (`:229`, `:554`); under nesting the author writes more components and the INDEXING changes, not the join",
+      why: "`ids[0]` of `Scope.REG.MEMBER`, admitted by `isKnownScope(scopeName)`; under nesting the author writes more components and the INDEXING changes, not the join. The `Scope.member` key this also built is the target's binding since #1668",
     },
     {
       file: "src/TRANSPILE/2-Plan/AssignmentClassifier.ts",

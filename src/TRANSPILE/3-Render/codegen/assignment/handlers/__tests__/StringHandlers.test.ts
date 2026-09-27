@@ -24,7 +24,7 @@ function createMockContext(
   const resolvedBaseIdentifier =
     overrides.resolvedBaseIdentifier ?? identifiers[0];
 
-  return {
+  const ctx = {
     identifiers,
     ...HandlerTestUtils.subscriptsOf([]),
     isCompound: false,
@@ -55,6 +55,11 @@ function createMockContext(
     state,
     ...overrides,
   } as IAssignmentContext;
+  // #1668 (C7): what the target writes, as the binder would bind it
+  return {
+    ...ctx,
+    target: overrides.target ?? HandlerTestUtils.targetOf(state, ctx),
+  };
 }
 
 // #1450: five `expect(state.needsString).toBe(true)` assertions stood
@@ -97,7 +102,7 @@ describe("StringHandlers", () => {
 
   describe("handleSimpleStringAssignment (STRING_SIMPLE)", () => {
     it("generates strncpy with null terminator", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["testVar", { stringCapacity: 32, baseType: "string" }],
       ]);
       const ctx = createMockContext();
@@ -123,7 +128,7 @@ describe("StringHandlers", () => {
   describe("handleStringThisMember (STRING_THIS_MEMBER)", () => {
     it("generates strncpy for scoped member", () => {
       enterScope(state, "TestScope");
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["TestScope__memberName", { stringCapacity: 64, baseType: "string" }],
       ]);
       const ctx = createMockContext({ identifiers: ["memberName"] });
@@ -153,7 +158,7 @@ describe("StringHandlers", () => {
       // time. They agree at depth one whichever encoder each uses, so only depth
       // two can tell a shared decision from a coincidence.
       enterScope(state, "Outer.Inner");
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         [
           "Outer__Inner__memberName",
           { stringCapacity: 48, baseType: "string", isString: true },
@@ -190,7 +195,7 @@ describe("StringHandlers", () => {
 
   describe("handleStringStructField (STRING_STRUCT_FIELD)", () => {
     it("generates strncpy for struct field", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["person", { baseType: "Person" }],
       ]);
       HandlerTestUtils.setupMockSymbols(state, {
@@ -211,7 +216,7 @@ describe("StringHandlers", () => {
 
   describe("handleStringArrayElement (STRING_ARRAY_ELEMENT)", () => {
     it("generates strncpy for array element", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["names", { stringCapacity: 20, baseType: "string" }],
       ]);
       const ctx = createMockContext({
@@ -232,7 +237,7 @@ describe("StringHandlers", () => {
 
   describe("handleStringStructArrayElement (STRING_STRUCT_ARRAY_ELEMENT)", () => {
     it("generates strncpy for struct field array element", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["config", { baseType: "Config" }],
       ]);
       HandlerTestUtils.setupMockSymbols(state, {

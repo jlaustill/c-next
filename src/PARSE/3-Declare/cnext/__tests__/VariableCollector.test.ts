@@ -362,4 +362,29 @@ describe("VariableCollector", () => {
       expect(symbol.span.line).toBe(3);
     });
   });
+
+  describe("initializerCallee (#895, #1668)", () => {
+    /** What 1.3 records the first local's initializer calling */
+    const calleeOf = (body: string) => {
+      const declaration = parse(`void f() {\n${body}\n}`)
+        .declaration(0)!
+        .functionDeclaration()!
+        .block()!
+        .statement(0)!
+        .variableDeclaration()!;
+      return VariableCollector.declaredFacts(declaration, "").initializerCallee;
+    };
+
+    it.each([
+      ["a direct call", "u8 x <- make();", "make"],
+      ["a global call", "u8 x <- global.make();", "make"],
+      ["a call with a member after it", "u8 x <- make().v;", "make"],
+      ["not a lone call", "u8 x <- make() + 1;", null],
+      ["a member's call", "u8 x <- s.make();", null],
+      ["a name", "u8 x <- y;", null],
+      ["no initializer", "u8 x;", null],
+    ])("%s", (_why, body, expected) => {
+      expect(calleeOf(body)).toBe(expected);
+    });
+  });
 });

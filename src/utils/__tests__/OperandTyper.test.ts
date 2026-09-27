@@ -798,11 +798,11 @@ extern pod_t pod;`);
     it("leaves a C++ type's own operator[] to C++", () => {
       const cpp = header(
         `#include <stdint.h>
-struct SBuf { uint8_t data[4]; uint8_t operator[](int i) const; };
-extern SBuf sbuf;`,
+struct Frame { uint8_t data[4]; uint8_t operator[](int i) const; };
+extern Frame frame;`,
         true,
       );
-      expect(subscriptOf("u8 r <- sbuf[2];", cpp)).toBe("array_element");
+      expect(subscriptOf("u8 r <- frame[2];", cpp)).toBe("array_element");
     });
 
     it("keeps a C-Next scalar's subscript a bit", () => {

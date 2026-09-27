@@ -16,7 +16,7 @@ import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
  * The target's type info. Both kinds are classified only when it resolved.
  */
 function targetTypeInfo(ctx: IAssignmentContext): TTypeInfo {
-  return AssignmentClassifier.targetTypeInfo(ctx, ctx.state)!;
+  return AssignmentClassifier.targetTypeInfo(ctx)!;
 }
 
 /**

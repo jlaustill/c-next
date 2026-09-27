@@ -7,7 +7,7 @@
  */
 import type IBitAccessAnalysis from "../../../transpiler/types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../../../transpiler/types/TPlannedTargetOp";
-import TTypeInfo from "../../../transpiler/types/TTypeInfo";
+import type ITargetDeclaration from "./ITargetDeclaration";
 import type TranspileState from "../../TranspileState";
 
 /**
@@ -160,10 +160,13 @@ interface IAssignmentContext {
    */
   readonly resolvedBaseIdentifier: string;
 
-  // === Type info (looked up from registry) ===
+  // === Type info ===
 
-  /** First identifier's type info, if found */
-  readonly firstIdTypeInfo: TTypeInfo | null;
+  /**
+   * #1668 (C7): what the target writes -- its root binding and the written
+   * variable's declared type -- bound once, where the target is typed
+   */
+  readonly target: ITargetDeclaration;
 
   // === Computed properties ===
 

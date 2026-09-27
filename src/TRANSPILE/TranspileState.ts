@@ -6,6 +6,9 @@ import type TSymbolKindCNext from "../transpiler/types/symbol-kinds/TSymbolKindC
 import ReservedCnxName from "../utils/ReservedCnxName";
 import ICodeGenSymbols from "../transpiler/types/ICodeGenSymbols";
 import TTypeInfo from "../transpiler/types/TTypeInfo";
+import type TChainRoot from "../transpiler/types/TChainRoot";
+import type ISourcePosition from "../utils/types/ISourcePosition";
+import DeclaredTypeInfo from "./2-Plan/DeclaredTypeInfo";
 import TParameterInfo from "../transpiler/types/TParameterInfo";
 import ICallbackTypeInfo from "../transpiler/types/ICallbackTypeInfo";
 import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
@@ -224,6 +227,30 @@ class TranspileState {
    * exactly as 2.1 did. Null for a render with no program behind it (a unit
    * test that builds codegen state alone).
    */
+  /**
+   * #1668 (C7): a name's declared type where it is used -- `bindValue` at
+   * `at`, then `DeclaredTypeInfo.of`. This replaces the per-file registry,
+   * whose one flat key space per function could not tell an inner block's
+   * `x` from its sibling's, nor `global.x` from a local `x`. `root` is the
+   * chain's `this`/`global`, as the source spelled it; `name` may be a
+   * shadowing local's emitted name, which is mapped back to its source name.
+   */
+  declarationTypeInfo(
+    root: TChainRoot,
+    name: string,
+    at: ISourcePosition,
+  ): TTypeInfo | undefined {
+    const typing = this.typingContext();
+    if (typing === null) return undefined;
+    const binding = typing.program.bindValue(
+      typing.sourceFile,
+      root,
+      this.sourceLocalName(name),
+      at,
+    );
+    return DeclaredTypeInfo.of(binding, typing.symbols, this.symbolTable);
+  }
+
   typingContext(): ITypingContext | null {
     if (this.program === null || this.symbols === null) return null;
     if (this.sourcePath === null) return null;

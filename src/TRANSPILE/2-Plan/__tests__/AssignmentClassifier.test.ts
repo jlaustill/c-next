@@ -10,10 +10,16 @@ import TranspileState from "../../TranspileState";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import TTypeInfo from "../../../transpiler/types/TTypeInfo";
 import enterScope from "../../../transpiler/__tests__/enterScope";
+import HandlerTestUtils from "../../3-Render/codegen/assignment/handlers/__tests__/handlerTestUtils";
 
 // ========================================================================
 // Test Helpers
 // ========================================================================
+
+/** Declare `name`'s type for this case's target binding (#1668) */
+function declare(name: string, info: TTypeInfo): void {
+  HandlerTestUtils.declareTypes(state, [[name, info]]);
+}
 
 /**
  * Create a minimal mock context for testing classification.
@@ -27,7 +33,7 @@ function createMockContext(
   const resolvedBaseIdentifier =
     overrides.resolvedBaseIdentifier ?? resolvedTarget.split(/[[.]/)[0];
 
-  return {
+  const ctx = {
     state,
     renderTarget: () => resolvedTarget,
     analyzeTargetForBitAccess: () =>
@@ -58,7 +64,6 @@ function createMockContext(
     generatedValue: "5",
     resolvedTarget,
     resolvedBaseIdentifier,
-    firstIdTypeInfo: null,
     memberAccessDepth: 0,
     subscriptDepth: 0,
     lastSubscriptExprCount: 1, // default: 1 expression (array element, single bit)
@@ -66,6 +71,11 @@ function createMockContext(
     isSimpleThisAccess: false,
     isSimpleGlobalAccess: false,
     ...overrides,
+  } as IAssignmentContext;
+  // #1668 (C7): what the target writes, as the binder would bind it
+  return {
+    ...ctx,
+    target: overrides.target ?? HandlerTestUtils.targetOf(state, ctx),
   };
 }
 
@@ -185,7 +195,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
     ]);
     setupSymbols({ bitmapFields });
-    state.setVariableTypeInfo(
+    declare(
       "flags",
       createTypeInfo({ isBitmap: true, bitmapTypeName: "StatusFlags" }),
     );
@@ -206,7 +216,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       ["StatusFlags", new Map([["Mode", { offset: 4, width: 4 }]])],
     ]);
     setupSymbols({ bitmapFields });
-    state.setVariableTypeInfo(
+    declare(
       "flags",
       createTypeInfo({ isBitmap: true, bitmapTypeName: "StatusFlags" }),
     );
@@ -250,7 +260,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       ["Device", new Map([["flags", "DeviceFlags"]])],
     ]);
     setupSymbols({ bitmapFields, knownStructs, structFields });
-    state.setVariableTypeInfo("device", createTypeInfo({ baseType: "Device" }));
+    declare("device", createTypeInfo({ baseType: "Device" }));
 
     const ctx = createMockContext(state, {
       identifiers: ["device", "flags", "Active"],
@@ -274,7 +284,7 @@ describe("AssignmentClassifier - Integer Bit Access", () => {
   });
 
   it("classifies single bit access on integer", () => {
-    state.setVariableTypeInfo("flags", createTypeInfo({ baseType: "u8" }));
+    declare("flags", createTypeInfo({ baseType: "u8" }));
 
     const ctx = createMockContext(state, {
       identifiers: ["flags"],
@@ -289,7 +299,7 @@ describe("AssignmentClassifier - Integer Bit Access", () => {
   });
 
   it("classifies bit range access on integer", () => {
-    state.setVariableTypeInfo("flags", createTypeInfo({ baseType: "u32" }));
+    declare("flags", createTypeInfo({ baseType: "u32" }));
 
     const ctx = createMockContext(state, {
       identifiers: ["flags"],
@@ -315,7 +325,7 @@ describe("AssignmentClassifier - Array Access", () => {
   });
 
   it("classifies simple array element", () => {
-    state.setVariableTypeInfo(
+    declare(
       "arr",
       createTypeInfo({
         isArray: true,
@@ -336,7 +346,7 @@ describe("AssignmentClassifier - Array Access", () => {
   });
 
   it("classifies array slice", () => {
-    state.setVariableTypeInfo(
+    declare(
       "buffer",
       createTypeInfo({
         isArray: true,
@@ -368,7 +378,7 @@ describe("AssignmentClassifier - String Assignments", () => {
   });
 
   it("classifies simple string variable", () => {
-    state.setVariableTypeInfo(
+    declare(
       "name",
       createTypeInfo({
         baseType: "string<32>",
@@ -380,7 +390,6 @@ describe("AssignmentClassifier - String Assignments", () => {
     const ctx = createMockContext(state, {
       identifiers: ["name"],
       isSimpleIdentifier: true,
-      firstIdTypeInfo: state.getVariableTypeInfo("name")!,
     });
 
     expect(AssignmentClassifier.classify(ctx, state)).toBe(
@@ -394,7 +403,7 @@ describe("AssignmentClassifier - String Assignments", () => {
       ["Person", new Map([["name", "string<64>"]])],
     ]);
     setupSymbols({ knownStructs, structFields });
-    state.setVariableTypeInfo("person", createTypeInfo({ baseType: "Person" }));
+    declare("person", createTypeInfo({ baseType: "Person" }));
 
     const ctx = createMockContext(state, {
       identifiers: ["person", "name"],
@@ -418,7 +427,7 @@ describe("AssignmentClassifier - Special Compound", () => {
   });
 
   it("classifies atomic RMW", () => {
-    state.setVariableTypeInfo(
+    declare(
       "counter",
       createTypeInfo({
         baseType: "u32",
@@ -439,7 +448,7 @@ describe("AssignmentClassifier - Special Compound", () => {
   });
 
   it("classifies overflow clamp", () => {
-    state.setVariableTypeInfo(
+    declare(
       "saturated",
       createTypeInfo({
         baseType: "u8",
@@ -460,7 +469,7 @@ describe("AssignmentClassifier - Special Compound", () => {
   });
 
   it("does not classify float as overflow clamp", () => {
-    state.setVariableTypeInfo(
+    declare(
       "value",
       createTypeInfo({
         baseType: "f32",
@@ -484,7 +493,7 @@ describe("AssignmentClassifier - Special Compound", () => {
   // #1668: `y *<- 2.5` is `y <- y * 2.5`. With a floating operand it is not
   // integer arithmetic, so it must not reach an integer clamp helper.
   it("does not classify a floating value as overflow clamp", () => {
-    state.setVariableTypeInfo(
+    declare(
       "scaled",
       createTypeInfo({ baseType: "u32", overflowBehavior: "clamp" }),
     );
@@ -612,7 +621,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
     setupSymbols();
     enterScope(state, "Sensor");
     // Register Sensor_flags as a non-array integer type
-    state.setVariableTypeInfo(
+    declare(
       "Sensor__flags",
       createTypeInfo({ baseType: "u8", isArray: false }),
     );
@@ -636,7 +645,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
     setupSymbols();
     enterScope(state, "Sensor");
     // Register Sensor_value as a non-array integer type
-    state.setVariableTypeInfo(
+    declare(
       "Sensor__value",
       createTypeInfo({ baseType: "u16", isArray: false }),
     );
@@ -660,7 +669,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
     setupSymbols();
     enterScope(state, "Buffer");
     // Register Buffer_data as an array type
-    state.setVariableTypeInfo(
+    declare(
       "Buffer__data",
       createTypeInfo({ baseType: "u8", isArray: true, arrayDimensions: [10] }),
     );
@@ -807,7 +816,7 @@ describe("AssignmentClassifier - Bitmap Array Element Field", () => {
       ["StatusFlags", new Map([["Active", { offset: 0, width: 1 }]])],
     ]);
     setupSymbols({ bitmapFields });
-    state.setVariableTypeInfo(
+    declare(
       "flagsArr",
       createTypeInfo({
         isBitmap: true,
@@ -841,7 +850,7 @@ describe("AssignmentClassifier - Multi-dim Array Bit Indexing", () => {
   });
 
   it("classifies matrix[i][j][bit] as ARRAY_ELEMENT_BIT", () => {
-    state.setVariableTypeInfo(
+    declare(
       "matrix",
       createTypeInfo({
         baseType: "u32",
@@ -864,7 +873,7 @@ describe("AssignmentClassifier - Multi-dim Array Bit Indexing", () => {
   });
 
   it("classifies matrix[i][j] as MULTI_DIM_ARRAY_ELEMENT", () => {
-    state.setVariableTypeInfo(
+    declare(
       "matrix",
       createTypeInfo({
         baseType: "u32",
@@ -1073,7 +1082,7 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
     "routes Scope.member[...] to the shared subscript decision: %s",
     (_label, typeInfo, subscriptCount, lastSubscriptExprCount, expected) => {
       setupSymbols({ knownScopes: new Set(["Other"]) });
-      state.setVariableTypeInfo("Other__member", typeInfo);
+      declare("Other__member", typeInfo);
 
       const ctx = createMockContext(state, {
         identifiers: ["Other", "member"],
@@ -1122,10 +1131,7 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
     (_label, currentScopePath, typeInfoKey) => {
       setupSymbols({ knownScopes: new Set(["Other"]) });
       enterScope(state, currentScopePath);
-      state.setVariableTypeInfo(
-        typeInfoKey,
-        createTypeInfo({ baseType: "Point", bitWidth: 0 }),
-      );
+      declare(typeInfoKey, createTypeInfo({ baseType: "Point", bitWidth: 0 }));
 
       const ctx = createMockContext(state, {
         identifiers: ["Other", "member"],
@@ -1185,7 +1191,7 @@ describe("AssignmentClassifier - Member Chain", () => {
     const knownStructs = new Set(["Config"]);
     const structFields = new Map([["Config", new Map([["items", "Item"]])]]);
     setupSymbols({ knownStructs, structFields });
-    state.setVariableTypeInfo("config", createTypeInfo({ baseType: "Config" }));
+    declare("config", createTypeInfo({ baseType: "Config" }));
 
     const ctx = createMockContext(state, {
       identifiers: ["config", "items"],
@@ -1224,7 +1230,7 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
 
   it("classifies this.member string as STRING_THIS_MEMBER", () => {
     state.currentScopePath = "Logger";
-    state.setVariableTypeInfo(
+    declare(
       "Logger__message",
       createTypeInfo({
         baseType: "string<64>",
@@ -1247,7 +1253,7 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
   });
 
   it("classifies global.<name> string as STRING_GLOBAL", () => {
-    state.setVariableTypeInfo(
+    declare(
       "banner",
       createTypeInfo({
         baseType: "string<32>",
@@ -1272,7 +1278,7 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
   it("classifies an element of a string ARRAY as STRING_ARRAY_ELEMENT", () => {
     // Two dimensions: [count, capacity+1]. `arrayDimensions.length > 1` is what
     // separates a string array from a plain `string<N>`, which carries one.
-    state.setVariableTypeInfo(
+    declare(
       "names",
       createTypeInfo({
         baseType: "char",
@@ -1305,7 +1311,7 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
         ["Config", new Map([["items", [4, 9]]])],
       ]),
     });
-    state.setVariableTypeInfo("config", createTypeInfo({ baseType: "Config" }));
+    declare("config", createTypeInfo({ baseType: "Config" }));
 
     const ctx = createMockContext(state, {
       identifiers: ["config", "items"],
@@ -1327,7 +1333,7 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
     // delegated. The chain form is what still reaches GLOBAL_ARRAY, because the
     // subscript applies to the field rather than to `config`.
     setupSymbols({ knownStructs: new Set(["Config"]) });
-    state.setVariableTypeInfo("config", createTypeInfo({ baseType: "Config" }));
+    declare("config", createTypeInfo({ baseType: "Config" }));
 
     const ctx = createMockContext(state, {
       identifiers: ["config", "items"],

@@ -1,0 +1,62 @@
+/**
+ * #1668: whether a declaration is a C pointer though C-Next spelled its type
+ * without one -- the one decision the emitted declaration and the
+ * declaration's type info both read, so the two cannot disagree.
+ *
+ * A declaration whose C type is already a pointer (ADR-046's `cstring` is
+ * `char*`) is one. Otherwise three arms decide, in order (they were
+ * `CodeGenWalker._inferVariableType`'s):
+ *
+ * 1. #958: a C header's typedef struct is always handled through a pointer.
+ * 2. #895 Bug B: an initializer that calls a C function returning `T*`, for a
+ *    declared `T`, makes the variable a `T*`.
+ * 3. ADR-046: a `c_`-prefixed variable initialized from one of the C library
+ *    functions that return a struct pointer.
+ */
+import type SymbolTable from "../PARSE/3-Declare/SymbolTable";
+import STRUCT_POINTER_C_FUNCTIONS from "../transpiler/constants/STRUCT_POINTER_C_FUNCTIONS";
+
+/** What the three arms read of a declaration */
+interface IPointerFacts {
+  /** The declared type as C spells it (`uint8_t`, `char*`, `widget_t`) */
+  readonly cType: string;
+  readonly name: string;
+  /** What the initializer calls, as 1.3 recorded it */
+  readonly initializerCallee: string | null;
+  /** The initializer's source text, or null when there is none */
+  readonly initialValue: string | null;
+}
+
+class DeclaredPointer {
+  /** Whether the declaration is a pointer, by the three arms above */
+  static of(
+    facts: IPointerFacts,
+    foreign: Pick<SymbolTable, "isTypedefStructType" | "getCSymbol">,
+  ): boolean {
+    if (facts.cType.endsWith("*")) return true;
+    if (foreign.isTypedefStructType(facts.cType)) return true;
+    if (facts.initialValue === null) return false;
+
+    if (facts.initializerCallee !== null) {
+      const callee = foreign.getCSymbol(facts.initializerCallee);
+      // `widget_t *` or `widget_t*` for a declared `widget_t`
+      if (
+        callee?.kind === "function" &&
+        callee.type.endsWith("*") &&
+        callee.type.slice(0, -1).trim() === facts.cType
+      ) {
+        return true;
+      }
+    }
+
+    const initialValue = facts.initialValue;
+    return (
+      facts.name.startsWith("c_") &&
+      [...STRUCT_POINTER_C_FUNCTIONS].some((fn) =>
+        initialValue.includes(`${fn}(`),
+      )
+    );
+  }
+}
+
+export default DeclaredPointer;

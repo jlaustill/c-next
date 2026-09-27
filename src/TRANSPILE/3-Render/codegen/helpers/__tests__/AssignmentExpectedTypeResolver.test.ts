@@ -4,6 +4,7 @@ import analyzePostfixOps from "../../../../../utils/PostfixAnalysisUtils";
 import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
 import TranspileState from "../../../../TranspileState";
 import SymbolTable from "../../../../../PARSE/3-Declare/SymbolTable";
+import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 
 /**
  * Create a mock assignment target context by parsing a minimal assignment statement.
@@ -40,7 +41,15 @@ function parseAssignmentTarget(target: string) {
     hasSubscript: chain.hasSubscript,
     hasRangeSubscript: postfixOps.some((op) => op.expression().length === 2),
     hasPostfixOps: postfixOps.length > 0,
+    // #1668 (C7): the root's declared type, as the walker binds it
+    rootTypeInfo: baseId === undefined ? undefined : declared.get(baseId),
   };
+}
+
+/** What each test declares, by name -- the binding the walker would pass */
+const declared = new Map<string, TTypeInfo>();
+function declare(name: string, info: TTypeInfo): void {
+  declared.set(name, info);
 }
 
 /**
@@ -96,13 +105,14 @@ let state = new TranspileState();
 
 describe("AssignmentExpectedTypeResolver", () => {
   beforeEach(() => {
+    declared.clear();
     state = new TranspileState();
   });
 
   describe("resolve()", () => {
     describe("simple identifier", () => {
       it("should resolve expected type for known variable", () => {
-        state.setVariableTypeInfo("counter", {
+        declare("counter", {
           baseType: "u32",
           bitWidth: 32,
           isArray: false,
@@ -121,7 +131,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       });
 
       it("should use specified overflow behavior", () => {
-        state.setVariableTypeInfo("counter", {
+        declare("counter", {
           baseType: "u8",
           bitWidth: 8,
           isArray: false,
@@ -147,7 +157,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
     describe("member access", () => {
       it("should resolve expected type for struct field", () => {
-        state.setVariableTypeInfo("config", {
+        declare("config", {
           baseType: "Config",
           bitWidth: 0,
           isArray: false,
@@ -162,7 +172,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       });
 
       it("should walk nested struct chain", () => {
-        state.setVariableTypeInfo("app", {
+        declare("app", {
           baseType: "App",
           bitWidth: 0,
           isArray: false,
@@ -178,7 +188,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       });
 
       it("should return null for non-struct root", () => {
-        state.setVariableTypeInfo("counter", {
+        declare("counter", {
           baseType: "u32",
           bitWidth: 32,
           isArray: false,
@@ -192,7 +202,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       });
 
       it("should return null for unknown field", () => {
-        state.setVariableTypeInfo("config", {
+        declare("config", {
           baseType: "Config",
           bitWidth: 0,
           isArray: false,
@@ -210,7 +220,7 @@ describe("AssignmentExpectedTypeResolver", () => {
     describe("array access", () => {
       // Issue #872: Array element assignments need expectedType for MISRA 7.2 U suffix
       it("should resolve expected type for simple array element access", () => {
-        state.setVariableTypeInfo("arr", {
+        declare("arr", {
           baseType: "u32",
           bitWidth: 32,
           isArray: true,
@@ -224,7 +234,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       });
 
       it("should resolve expected type for u8 array element access", () => {
-        state.setVariableTypeInfo("buffer", {
+        declare("buffer", {
           baseType: "u8",
           bitWidth: 8,
           isArray: true,
@@ -238,7 +248,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       });
 
       it("should resolve expected type for struct member array access", () => {
-        state.setVariableTypeInfo("pkt", {
+        declare("pkt", {
           baseType: "Packet",
           bitWidth: 0,
           isArray: false,
@@ -260,7 +270,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       });
 
       it("should resolve expected type for multi-dimensional array element", () => {
-        state.setVariableTypeInfo("matrix", {
+        declare("matrix", {
           baseType: "u8",
           bitWidth: 8,
           isArray: true,
@@ -288,7 +298,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       // resolver must return null for the slice form — unlike a 1-expression
       // element access, which keeps the element type for the MISRA 7.2 U suffix.
       it("should return null for an array slice (2-expression subscript)", () => {
-        state.setVariableTypeInfo("buffer", {
+        declare("buffer", {
           baseType: "u8",
           bitWidth: 8,
           isArray: true,

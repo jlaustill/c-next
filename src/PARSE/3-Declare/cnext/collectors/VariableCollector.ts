@@ -19,6 +19,7 @@ import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../transpiler/types/TVisibility";
 import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
 import ParserUtils from "../../../../utils/ParserUtils";
+import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 
 class VariableCollector {
   /**
@@ -167,6 +168,7 @@ class VariableCollector {
     isArray: boolean;
     arrayDimensions: (number | string)[];
     initialValue: string | undefined;
+    initializerCallee: string | null;
   } {
     // Get type string and convert to TType
     const typeCtx = ctx.type()!;
@@ -238,7 +240,43 @@ class VariableCollector {
       isArray,
       arrayDimensions,
       initialValue,
+      // #895: what the initializer calls, for `DeclaredPointer.of`
+      initializerCallee: VariableCollector.calleeOf(initExpr),
     };
+  }
+
+  /**
+   * The function an initializer calls, when it is shaped `f(...)` or
+   * `global.f(...)` -- source text, recorded on the declaration. Whether it
+   * names a C function is `DeclaredPointer.of`'s question, asked of the
+   * headers once they are known.
+   */
+  private static calleeOf(
+    expr: Parser.ExpressionContext | null,
+  ): string | null {
+    const postfix = expr
+      ? ExpressionUnwrapper.getPostfixExpression(expr)
+      : null;
+    if (!postfix) return null;
+    const primary = postfix.primaryExpression();
+    const ops = postfix.postfixOp();
+    if (primary.GLOBAL()) {
+      const member = ops[0]?.IDENTIFIER();
+      return member && VariableCollector.isCall(ops[1])
+        ? member.getText()
+        : null;
+    }
+    const identifier = primary.IDENTIFIER();
+    return identifier && VariableCollector.isCall(ops[0])
+      ? identifier.getText()
+      : null;
+  }
+
+  private static isCall(op: Parser.PostfixOpContext | undefined): boolean {
+    return (
+      op !== undefined &&
+      Boolean(op.argumentList() || op.getText().startsWith("("))
+    );
   }
 
   /**
@@ -290,6 +328,7 @@ class VariableCollector {
       arrayDimensions:
         facts.arrayDimensions.length > 0 ? facts.arrayDimensions : undefined,
       initialValue: facts.initialValue,
+      initializerCallee: facts.initializerCallee,
     };
 
     return symbol;

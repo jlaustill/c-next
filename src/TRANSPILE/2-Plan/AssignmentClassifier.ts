@@ -57,51 +57,19 @@ class AssignmentClassifier {
    * `undefined` for a target that is none of the three, which is exactly what
    * its callers already treated a missing type info as.
    *
-   * ## The `this.member` qualification looks removable and is not
-   *
-   * `getVariableTypeInfo`'s contract is that callers arrive with a RESOLVED
-   * identifier -- "for a scope member that is already the registry key
-   * (`Scope__member`)" -- so qualifying here is what that contract asks for.
-   *
-   * No fixture can tell: resolving `this.label` by its BARE name instead leaves
-   * 1247/1247 green, and a purpose-built `scope Cfg { string<16> label }`
-   * assigning `this.label` emits byte-identical C. The branch IS reached -- a
-   * throw inside it fires on `value`, `Config` and others -- so this is not
-   * dead code passing unexercised.
-   *
-   * What hides it is a fallback two levels down. With the bare name the type
-   * registry MISSES (`registryHas=false`, its only key being `Cfg__label`) and
-   * `getCNextVariableSymbol` answers instead -- a path documented as "fall back
-   * to SymbolTable for cross-file C-Next variables only", covering a same-file
-   * scope member. The two spellings agree because an unrelated fallback
-   * happens to catch the miss, which is not the same as the bare name being
-   * right.
-   *
-   * Recorded rather than simplified: the next reader will measure exactly what
-   * is measured above, conclude the qualification is redundant, and remove the
-   * thing the contract requires.
-   *
-   * #1668: there was a third copy. The atomic and overflow-clamp handlers
-   * resolved the target again, with `QualifiedNameGenerator.forMember` in
-   * place of `qualifyInScope` and an unreachable fallback. They only run
-   * after this method has classified the assignment, so they ask here now.
+   * #1668 (C7): the resolution is the target's binding now, made once where
+   * the target is typed. This used to re-spell the target as a registry key --
+   * the bare name, or `qualifyInScope` for `this.` -- and a bare spelling of a
+   * scope member only agreed with the qualified one because an unrelated
+   * cross-file fallback caught the registry's miss. The binder reads `this.`
+   * and `global.` off the target itself, so there is no key to get right.
    */
-  static targetTypeInfo(
-    ctx: IAssignmentContext,
-    state: TranspileState,
-  ): TTypeInfo | undefined {
-    if (ctx.isSimpleIdentifier) {
-      return state.getVariableTypeInfo(ctx.identifiers[0]);
-    }
-    if (ctx.isSimpleThisAccess && state.currentScopePath) {
-      return state.getVariableTypeInfo(
-        ScopeUtils.qualifyInScope(ctx.identifiers[0], state.currentScopePath),
-      );
-    }
-    if (ctx.isSimpleGlobalAccess) {
-      return state.getVariableTypeInfo(ctx.identifiers[0]);
-    }
-    return undefined;
+  static targetTypeInfo(ctx: IAssignmentContext): TTypeInfo | undefined {
+    const isSimple =
+      ctx.isSimpleIdentifier ||
+      ctx.isSimpleThisAccess ||
+      ctx.isSimpleGlobalAccess;
+    return isSimple ? ctx.target.typeInfo : undefined;
   }
 
   private static isSimpleStringType(typeInfo: TTypeInfo | undefined): boolean {
@@ -151,19 +119,13 @@ class AssignmentClassifier {
     }
 
     // === Priority 4: Simple array/bit access ===
-    const arrayBitKind = AssignmentClassifier.classifyArrayOrBitAccess(
-      ctx,
-      state,
-    );
+    const arrayBitKind = AssignmentClassifier.classifyArrayOrBitAccess(ctx);
     if (arrayBitKind !== null) {
       return arrayBitKind;
     }
 
     // === Priority 5: Atomic/overflow compound assignments ===
-    const specialKind = AssignmentClassifier.classifySpecialCompound(
-      ctx,
-      state,
-    );
+    const specialKind = AssignmentClassifier.classifySpecialCompound(ctx);
     if (specialKind !== null) {
       return specialKind;
     }
@@ -207,7 +169,7 @@ class AssignmentClassifier {
 
     if (ids.length === 2) {
       return AssignmentClassifier.classifySimpleBitmapField(
-        ids[0],
+        ctx.target.rootTypeInfo,
         ids[1],
         state,
       );
@@ -218,6 +180,7 @@ class AssignmentClassifier {
         ids[0],
         ids[1],
         ids[2],
+        ctx.target.rootTypeInfo,
         state,
       );
     }
@@ -233,11 +196,10 @@ class AssignmentClassifier {
    * Classify 2-id bitmap field: var.field
    */
   private static classifySimpleBitmapField(
-    varName: string,
+    typeInfo: TTypeInfo | undefined,
     fieldName: string,
     state: TranspileState,
   ): AssignmentKind | null {
-    const typeInfo = state.getVariableTypeInfo(varName);
     if (!typeInfo?.isBitmap || !typeInfo.bitmapTypeName) {
       return null;
     }
@@ -263,6 +225,7 @@ class AssignmentClassifier {
     firstName: string,
     secondName: string,
     fieldName: string,
+    structTypeInfo: TTypeInfo | undefined,
     state: TranspileState,
   ): AssignmentKind | null {
     // Check if register member bitmap field: REG.MEMBER.field
@@ -286,7 +249,6 @@ class AssignmentClassifier {
     }
 
     // Check if struct member bitmap field: struct.bitmapMember.field
-    const structTypeInfo = state.getVariableTypeInfo(firstName);
     if (!structTypeInfo || !state.isKnownStruct(structTypeInfo.baseType)) {
       return null;
     }
@@ -370,8 +332,7 @@ class AssignmentClassifier {
     }
 
     const ids = ctx.identifiers;
-    const firstId = ids[0];
-    const typeInfo = state.getVariableTypeInfo(firstId);
+    const typeInfo = ctx.target.rootTypeInfo;
 
     // Registers are asked FIRST, before any subscript-shape test. A bit range
     // is two expressions in ONE op, so the struct-chain branch below claimed
@@ -587,9 +548,7 @@ class AssignmentClassifier {
       if (ctx.identifiers.length === 1) {
         return AssignmentClassifier.classifySubscriptAccess(
           ctx,
-          firstId,
           `global.${firstId}`,
-          state,
         );
       }
 
@@ -631,34 +590,6 @@ class AssignmentClassifier {
    * @returns null when the base is not a scope-qualified name, leaving the
    *          caller's remaining cases (member chains, plain globals) untouched
    */
-  /**
-   * Whether a bare name resolves to a variable under ADR-057's
-   * local -> scope -> global order.
-   *
-   * `getVariableTypeInfo` is keyed by the BARE name, which answers the local
-   * and global tiers. A scope member is registered as `Scope__name`, so the
-   * middle tier needs its own lookup — without it, a scope member shadowing a
-   * scope name is read as that scope and resolved against the wrong symbol.
-   */
-  private static bareNameResolvesToVariable(
-    name: string,
-    state: TranspileState,
-  ): boolean {
-    if (state.getVariableTypeInfo(name) !== undefined) {
-      return true;
-    }
-
-    const scopePath = state.currentScopePath;
-    if (ScopeUtils.isGlobalScopePath(scopePath)) {
-      return false;
-    }
-
-    return (
-      state.getVariableTypeInfo(ScopeUtils.qualifyInScope(name, scopePath)) !==
-      undefined
-    );
-  }
-
   private static classifyScopeQualifiedSubscript(
     ctx: IAssignmentContext,
     displayPrefix: string,
@@ -672,11 +603,9 @@ class AssignmentClassifier {
     }
 
     // ADR-057: a variable of that name at any tier wins, so the target is a
-    // struct chain rather than a scope reference.
-    if (
-      resolvesBareName &&
-      AssignmentClassifier.bareNameResolvesToVariable(scopeName, state)
-    ) {
+    // struct chain rather than a scope reference -- the binder's local ->
+    // scope -> global order, applied where the target is (#1668)
+    if (resolvesBareName && ctx.target.rootTypeInfo !== undefined) {
       return null;
     }
 
@@ -687,9 +616,7 @@ class AssignmentClassifier {
     if (ids.length === 2) {
       return AssignmentClassifier.classifySubscriptAccess(
         ctx,
-        QualifiedCName.fromParts([scopeName, ids[1]]),
         `${displayPrefix}${ids.join(".")}`,
-        state,
       );
     }
 
@@ -770,9 +697,7 @@ class AssignmentClassifier {
     // writes it — echoing it back would read as a different variable.)
     return AssignmentClassifier.classifySubscriptAccess(
       ctx,
-      scopedRegName,
       `this.${ctx.identifiers[0]}`,
-      state,
     );
   }
 
@@ -785,7 +710,6 @@ class AssignmentClassifier {
    */
   private static classifyArrayOrBitAccess(
     ctx: IAssignmentContext,
-    state: TranspileState,
   ): AssignmentKind | null {
     // Must have arrayAccess without memberAccess or prefix
     if (ctx.hasGlobal || ctx.hasThis || ctx.hasMemberAccess) {
@@ -797,7 +721,7 @@ class AssignmentClassifier {
     }
 
     const name = ctx.identifiers[0];
-    return AssignmentClassifier.classifySubscriptAccess(ctx, name, name, state);
+    return AssignmentClassifier.classifySubscriptAccess(ctx, name);
   }
 
   /**
@@ -811,16 +735,16 @@ class AssignmentClassifier {
    * `resolvedBaseIdentifier` already carry the scope prefix). Keeping two
    * copies of this switch is what let the `this.` form diverge.
    *
-   * @param resolvedName Name for type lookup: `flags`, or `Scope_flags` for `this.`
+   * #1668 (C7): the variable is the target's binding, so its spelling no
+   * longer matters here -- only the diagnostic's.
+   *
    * @param displayName  Name for diagnostics: what the developer actually wrote
    */
   private static classifySubscriptAccess(
     ctx: IAssignmentContext,
-    resolvedName: string,
     displayName: string,
-    state: TranspileState,
   ): AssignmentKind {
-    const typeInfo = state.getVariableTypeInfo(resolvedName) ?? null;
+    const typeInfo = ctx.target.typeInfo ?? null;
 
     // `assignmentTarget` consumes the leading `IDENTIFIER` (and any `this .` /
     // `global .` prefix) in the grammar rule itself, so op 0 is a subscript for
@@ -896,13 +820,12 @@ class AssignmentClassifier {
    */
   private static classifySpecialCompound(
     ctx: IAssignmentContext,
-    state: TranspileState,
   ): AssignmentKind | null {
     if (!ctx.isCompound) {
       return null;
     }
 
-    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx, state);
+    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
     if (!typeInfo) {
       return null;
     }
@@ -952,10 +875,9 @@ class AssignmentClassifier {
    */
   private static _classifySimpleStringVar(
     ctx: IAssignmentContext,
-    state: TranspileState,
   ): AssignmentKind | null {
     if (!ctx.isSimpleIdentifier) return null;
-    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx, state);
+    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
     return AssignmentClassifier.isSimpleStringType(typeInfo)
       ? AssignmentKind.STRING_SIMPLE
       : null;
@@ -969,7 +891,7 @@ class AssignmentClassifier {
     state: TranspileState,
   ): AssignmentKind | null {
     if (!ctx.isSimpleThisAccess || !state.currentScopePath) return null;
-    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx, state);
+    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
     return AssignmentClassifier.isSimpleStringType(typeInfo)
       ? AssignmentKind.STRING_THIS_MEMBER
       : null;
@@ -980,10 +902,9 @@ class AssignmentClassifier {
    */
   private static _classifyGlobalString(
     ctx: IAssignmentContext,
-    state: TranspileState,
   ): AssignmentKind | null {
     if (!ctx.isSimpleGlobalAccess) return null;
-    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx, state);
+    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
     return AssignmentClassifier.isSimpleStringType(typeInfo)
       ? AssignmentKind.STRING_GLOBAL
       : null;
@@ -994,10 +915,9 @@ class AssignmentClassifier {
    * Returns the base struct type if valid, null if not a known struct.
    */
   private static _resolveStructType(
-    structName: string,
+    structTypeInfo: TTypeInfo | undefined,
     state: TranspileState,
   ): string | null {
-    const structTypeInfo = state.getVariableTypeInfo(structName);
     if (!structTypeInfo || !state.isKnownStruct(structTypeInfo.baseType)) {
       return null;
     }
@@ -1013,10 +933,11 @@ class AssignmentClassifier {
       structName: string;
       fieldName: string;
     },
+    rootTypeInfo: TTypeInfo | undefined,
     state: TranspileState,
   ): { structType: string; fieldType: string | undefined } | null {
     const structType = AssignmentClassifier._resolveStructType(
-      structFieldNames.structName,
+      rootTypeInfo,
       state,
     );
     if (!structType) {
@@ -1048,6 +969,7 @@ class AssignmentClassifier {
     }
     const resolved = AssignmentClassifier._resolveStructFieldType(
       structFieldNames,
+      ctx.target.rootTypeInfo,
       state,
     );
     if (!resolved) {
@@ -1076,6 +998,7 @@ class AssignmentClassifier {
     }
     const resolved = AssignmentClassifier._resolveStructFieldType(
       structFieldNames,
+      ctx.target.rootTypeInfo,
       state,
     );
     if (!resolved) {
@@ -1109,7 +1032,7 @@ class AssignmentClassifier {
     state: TranspileState,
   ): AssignmentKind | null {
     // Simple string variable
-    const simpleVar = AssignmentClassifier._classifySimpleStringVar(ctx, state);
+    const simpleVar = AssignmentClassifier._classifySimpleStringVar(ctx);
     if (simpleVar) return simpleVar;
 
     // this.member string
@@ -1120,7 +1043,7 @@ class AssignmentClassifier {
     if (thisMember) return thisMember;
 
     // global.member string
-    const globalMember = AssignmentClassifier._classifyGlobalString(ctx, state);
+    const globalMember = AssignmentClassifier._classifyGlobalString(ctx);
     if (globalMember) return globalMember;
 
     // struct.field or struct.arr[i] string

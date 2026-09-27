@@ -26,8 +26,8 @@ uint8_t Other__member[16] = {};
 static Holder Reg__Other = {};
 
 uint8_t Reg__useShadowed(void) {
-    Reg__Other.member = 0;
-    Reg__Other.member = (Reg__Other.member & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4);
+    Reg__Other.member = 0U;
+    Reg__Other.member = (Reg__Other.member & ~(((1U << 3) - 1) << 4)) | ((5U & ((1U << 3) - 1)) << 4);
     return Reg__Other.member;
 }
 

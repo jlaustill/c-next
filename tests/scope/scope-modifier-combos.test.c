@@ -143,19 +143,19 @@ void Combos__decreasePrivateClampWord(void) {
 }
 
 void Combos__incrementPublicWrapByte(void) {
-    Combos__publicWrapByte += 10U;
+    Combos__publicWrapByte = (uint8_t)(Combos__publicWrapByte + 10U);
 }
 
 void Combos__incrementPublicWrapWord(void) {
-    Combos__publicWrapWord += 10U;
+    Combos__publicWrapWord = (uint16_t)(Combos__publicWrapWord + 10U);
 }
 
 void Combos__decrementPrivateWrapByte(void) {
-    Combos__privateWrapByte -= 10U;
+    Combos__privateWrapByte = (uint8_t)(Combos__privateWrapByte - 10U);
 }
 
 void Combos__decrementPrivateWrapWord(void) {
-    Combos__privateWrapWord -= 150U;
+    Combos__privateWrapWord = (uint16_t)(Combos__privateWrapWord - 150U);
 }
 
 void Combos__adjustAllClamp(void) {
@@ -165,8 +165,8 @@ void Combos__adjustAllClamp(void) {
 }
 
 void Combos__adjustAllWrap(void) {
-    Combos__publicWrapByte += 1U;
-    Combos__publicWrapWord += 1U;
+    Combos__publicWrapByte = (uint8_t)(Combos__publicWrapByte + 1U);
+    Combos__publicWrapWord = (uint16_t)(Combos__publicWrapWord + 1U);
     Combos__decrementPrivateWrapByte();
 }
 

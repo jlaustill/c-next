@@ -24,7 +24,7 @@ function createMockContext(
   const resolvedBaseIdentifier =
     overrides.resolvedBaseIdentifier ?? identifiers[0];
 
-  return {
+  const ctx = {
     identifiers,
     ...HandlerTestUtils.subscriptsOf([]),
     isCompound: false,
@@ -65,6 +65,11 @@ function createMockContext(
     state,
     ...overrides,
   } as IAssignmentContext;
+  // #1668 (C7): what the target writes, as the binder would bind it
+  return {
+    ...ctx,
+    target: overrides.target ?? HandlerTestUtils.targetOf(state, ctx),
+  };
 }
 
 let state = new TranspileState();
@@ -102,7 +107,7 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates single-bit read-modify-write", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]);
       HandlerTestUtils.setupMockSymbols(state, {
@@ -120,7 +125,7 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates single-bit write with correct offset", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]);
       HandlerTestUtils.setupMockSymbols(state, {
@@ -138,7 +143,7 @@ describe("BitmapHandlers", () => {
     });
 
     it("throws on unknown bitmap field", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]);
       HandlerTestUtils.setupMockSymbols(state, {
@@ -173,7 +178,7 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates multi-bit read-modify-write with mask", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]);
       HandlerTestUtils.setupMockSymbols(state, {
@@ -195,7 +200,7 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates correct mask for 2-bit field", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["config", { bitmapTypeName: "Config", baseType: "u8" }],
       ]);
       HandlerTestUtils.setupMockSymbols(state, {
@@ -221,7 +226,7 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates array element bitmap field assignment", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["flagsArray", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]);
       HandlerTestUtils.setupMockGenerator(state, {
@@ -251,7 +256,7 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates struct member bitmap field assignment", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["device", { baseType: "Device" }],
       ]);
       HandlerTestUtils.setupMockSymbols(state, {

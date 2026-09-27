@@ -23,15 +23,15 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IAssignmentContext from "./types/IAssignmentContext";
 import IBitAccessAnalysis from "../../transpiler/types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../transpiler/types/TPlannedTargetOp";
-import TTypeInfo from "../../transpiler/types/TTypeInfo";
+import type ITargetDeclaration from "./types/ITargetDeclaration";
 import type TranspileState from "../TranspileState";
 
 /**
  * Dependencies for building context.
  */
 interface IContextBuilderDeps {
-  /** Type registry: variable name -> type info */
-  readonly typeRegistry: ReadonlyMap<string, TTypeInfo>;
+  /** #1668: what the target writes, bound where it was typed */
+  readonly target: ITargetDeclaration;
 
   /**
    * 2.3 Render's per-file working state (#1452 box 4), carried onto the built
@@ -232,10 +232,6 @@ function buildAssignmentContext(
     lastSubscriptExprCount,
   } = extraction;
 
-  // Get first identifier type info
-  const firstId = identifiers[0] ?? "";
-  const firstIdTypeInfo = deps.typeRegistry.get(firstId) ?? null;
-
   // Compute derived properties
   const memberAccessDepth = identifiers.length - 1;
   const subscriptDepth = subscripts.length;
@@ -279,7 +275,7 @@ function buildAssignmentContext(
     generatedValue,
     resolvedTarget,
     resolvedBaseIdentifier,
-    firstIdTypeInfo,
+    target: deps.target,
     memberAccessDepth,
     subscriptDepth,
     lastSubscriptExprCount,

@@ -50,6 +50,9 @@ interface IVariableSymbol extends IBaseSymbol {
 
   /** Initial value expression (as string) */
   readonly initialValue?: string;
+
+  /** #895: what the initializer calls (`DeclaredPointer.calleeOf`) */
+  readonly initializerCallee?: string | null;
 }
 
 export default IVariableSymbol;

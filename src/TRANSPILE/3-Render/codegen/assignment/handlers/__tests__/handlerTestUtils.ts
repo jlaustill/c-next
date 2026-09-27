@@ -10,6 +10,10 @@ import SymbolTable from "../../../../../../PARSE/3-Declare/SymbolTable";
 import type ICodeGenApi from "../../../../../../transpiler/types/ICodeGenApi";
 import type ICodeGenSymbols from "../../../../../../transpiler/types/ICodeGenSymbols";
 import type TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
+import type IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
+import type ITargetDeclaration from "../../../../../2-Plan/types/ITargetDeclaration";
+import ScopeUtils from "../../../../../../utils/ScopeUtils";
+import QualifiedCName from "../../../../../../utils/QualifiedCName";
 
 /**
  * Set up mock symbols on state.
@@ -167,13 +171,52 @@ function createTypeInfo(overrides: Partial<TTypeInfo> = {}): TTypeInfo {
  * Entries only need to specify the fields relevant to the test.
  * Uses setVariableTypeInfo to properly populate the registry.
  */
-function setupMockTypeRegistry(
+/**
+ * #1668 (C7): what each case declares, by the name a target spells it with.
+ *
+ * Handlers and the classifier read the target's binding (`ctx.target`), not
+ * a registry, so `targetOf` builds that binding the way the binder does.
+ * Keyed by the state, so a case's fresh state starts with nothing declared.
+ */
+const declarations = new WeakMap<TranspileState, Map<string, TTypeInfo>>();
+
+function declareTypes(
   state: TranspileState,
   entries: Array<[string, Partial<TTypeInfo>]>,
 ): void {
+  const declared = declarations.get(state) ?? new Map<string, TTypeInfo>();
+  declarations.set(state, declared);
   for (const [name, partial] of entries) {
-    state.setVariableTypeInfo(name, createTypeInfo(partial));
+    declared.set(name, createTypeInfo(partial));
   }
+}
+
+/**
+ * The binding a target's spelling gets: `this.` names the scope member,
+ * `global.` the bare name, and a bare name the member, then the global. A root
+ * with no type is a scope name, whose `Scope.member` writes the member.
+ */
+function targetOf(
+  state: TranspileState,
+  ctx: Pick<
+    IAssignmentContext,
+    "identifiers" | "resolvedBaseIdentifier" | "hasThis" | "hasGlobal"
+  >,
+): ITargetDeclaration {
+  const declared = declarations.get(state) ?? new Map<string, TTypeInfo>();
+  const ids = ctx.identifiers;
+  const member = declared.get(
+    ScopeUtils.qualifyInScope(ids[0], state.currentScopePath),
+  );
+  let rootTypeInfo: TTypeInfo | undefined;
+  if (ctx.hasThis) rootTypeInfo = member;
+  else if (ctx.hasGlobal) rootTypeInfo = declared.get(ids[0]);
+  else rootTypeInfo = member ?? declared.get(ids[0]);
+  const typeInfo =
+    rootTypeInfo ??
+    declared.get(QualifiedCName.fromParts(ids.slice(0, 2))) ??
+    declared.get(ctx.resolvedBaseIdentifier);
+  return { root: null, rootTypeInfo, typeInfo };
 }
 
 export default class HandlerTestUtils {
@@ -181,5 +224,6 @@ export default class HandlerTestUtils {
   static readonly setupMockGenerator = setupMockGenerator;
   static readonly subscriptsOf = subscriptsOf;
   static readonly planner = planner;
-  static readonly setupMockTypeRegistry = setupMockTypeRegistry;
+  static readonly declareTypes = declareTypes;
+  static readonly targetOf = targetOf;
 }

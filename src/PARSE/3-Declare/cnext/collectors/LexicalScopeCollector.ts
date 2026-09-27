@@ -128,6 +128,7 @@ class FrameListener extends CNextListener {
         // A parameter has no overflow modifier in the grammar
         overflowBehavior: OverflowBehaviorUtils.fromModifier(null),
         initialValue: null,
+        initializerCallee: null,
         constValue: null,
       });
     });
@@ -184,6 +185,7 @@ class FrameListener extends CNextListener {
       isVolatile: facts.isVolatile,
       overflowBehavior: facts.overflowBehavior,
       initialValue: facts.initialValue ?? null,
+      initializerCallee: facts.initializerCallee,
       constValue: null,
     });
   }

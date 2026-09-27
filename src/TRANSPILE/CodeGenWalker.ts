@@ -101,7 +101,8 @@ import ExpressionUtils from "../utils/ExpressionUtils";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
 import includeGenerators from "./3-Render/codegen/generators/support/IncludeGenerator";
 import commentUtils from "./3-Render/codegen/generators/support/CommentUtils";
-import STRUCT_POINTER_C_FUNCTIONS from "../transpiler/constants/STRUCT_POINTER_C_FUNCTIONS";
+import DeclaredTypeInfo from "./2-Plan/DeclaredTypeInfo";
+import type ITargetDeclaration from "./2-Plan/types/ITargetDeclaration";
 import memberAccessChain from "./3-Render/codegen/memberAccessChain";
 import AssignmentHandlerRegistry from "./3-Render/codegen/assignment/index";
 import AssignmentClassifier from "./2-Plan/AssignmentClassifier";
@@ -961,26 +962,33 @@ class CodeGenWalker {
 
     // Check if it's a simple variable of string type
     if (BareIdentifier.matches(text)) {
-      const typeInfo = this.host.state.getVariableTypeInfo(text);
+      const typeInfo = this.host.state.declarationTypeInfo(
+        null,
+        text,
+        ParserUtils.getPosition(ctx),
+      );
       if (typeInfo?.isString) {
         return true;
       }
     }
 
     // Issue #1030: Check for struct member access (e.g., person.name)
-    if (this._isStructMemberStringExpression(text)) {
+    if (this._isStructMemberStringExpression(text, ctx)) {
       return true;
     }
 
     // Issue #137: Check for array element access (e.g., names[0], arr[i])
-    return this._isArrayAccessStringExpression(text);
+    return this._isArrayAccessStringExpression(text, ctx);
   }
 
   /**
    * Check if array access expression evaluates to a string.
    * Extracted from isStringExpression to reduce cognitive complexity.
    */
-  private _isArrayAccessStringExpression(text: string): boolean {
+  private _isArrayAccessStringExpression(
+    text: string,
+    ctx: Parser.RelationalExpressionContext,
+  ): boolean {
     // Pattern: identifier[expression] or identifier[expression][expression]...
     // BUT NOT if accessing properties that return numbers, not strings
     const arrayAccessMatch = /^([a-zA-Z_]\w*)\[/.exec(text);
@@ -1004,7 +1012,11 @@ class CodeGenWalker {
     }
 
     const arrayName = arrayAccessMatch[1];
-    const typeInfo = this.host.state.getVariableTypeInfo(arrayName);
+    const typeInfo = this.host.state.declarationTypeInfo(
+      null,
+      arrayName,
+      ParserUtils.getPosition(ctx),
+    );
     if (!typeInfo) {
       return false;
     }
@@ -1033,7 +1045,10 @@ class CodeGenWalker {
    * Check if struct member access expression evaluates to a string.
    * Issue #1030: Handles patterns like person.name, config.key
    */
-  private _isStructMemberStringExpression(text: string): boolean {
+  private _isStructMemberStringExpression(
+    text: string,
+    ctx: Parser.RelationalExpressionContext,
+  ): boolean {
     // Pattern: identifier.identifier (simple member access)
     // Must not end with a property that returns a number
     if (
@@ -1057,7 +1072,11 @@ class CodeGenWalker {
     const [, varName, fieldName] = memberMatch;
 
     // Get the struct variable's type
-    const typeInfo = this.host.state.getVariableTypeInfo(varName);
+    const typeInfo = this.host.state.declarationTypeInfo(
+      null,
+      varName,
+      ParserUtils.getPosition(ctx),
+    );
     if (!typeInfo) {
       return false;
     }
@@ -2980,6 +2999,7 @@ class CodeGenWalker {
       ops,
       baseId,
       targetParamBaseType,
+      postfix,
     );
   }
 
@@ -3006,8 +3026,13 @@ class CodeGenWalker {
     ops: Parser.PostfixOpContext[],
     baseId: string,
     targetParamBaseType: string,
+    at: Parser.PostfixExpressionContext,
   ): boolean {
-    const typeInfo = this.host.state.getVariableTypeInfo(baseId);
+    const typeInfo = this.host.state.declarationTypeInfo(
+      null,
+      baseId,
+      ParserUtils.getPosition(at),
+    );
     return CppMemberHelper.needsComplexMemberConversion(
       this._toPostfixOps(ops),
       typeInfo,
@@ -3034,7 +3059,11 @@ class CodeGenWalker {
     const baseId = primary.IDENTIFIER()?.getText();
     if (!baseId) return false;
 
-    const typeInfo = this.host.state.getVariableTypeInfo(baseId);
+    const typeInfo = this.host.state.declarationTypeInfo(
+      null,
+      baseId,
+      ParserUtils.getPosition(postfix),
+    );
     const paramInfo = this.host.state.currentParameters.get(baseId);
 
     return CppMemberHelper.isStringSubscriptPattern(
@@ -3088,7 +3117,11 @@ class CodeGenWalker {
     // 2. Parameter: currentParameters.get(baseId).baseType
     let structType: string | undefined;
 
-    const typeInfo = this.host.state.getVariableTypeInfo(baseId);
+    const typeInfo = this.host.state.declarationTypeInfo(
+      null,
+      baseId,
+      ParserUtils.getPosition(postfix),
+    );
     if (typeInfo) {
       structType = typeInfo.baseType;
     } else {
@@ -4142,16 +4175,25 @@ class CodeGenWalker {
     const type = this.generateType(ctx.type());
     const name = ctx.IDENTIFIER().getText();
 
+    // #1668: what each argument NAMES, by the one binder -- a scope member
+    // is emitted by its C name, a shadowing local by its ADR-057 name. This
+    // asked whether the name was registered, which stood in for "not a
+    // scope member" only because members were registered qualified.
     const args = argListCtx.IDENTIFIER().map((argNode) => {
       const argName = argNode.getText();
-      const isFileScope =
-        this.host.state.getVariableTypeInfo(argName) !== undefined;
-      return isFileScope || !this.host.state.currentScopePath
-        ? argName
-        : QualifiedNameGenerator.forMember(
-            this.host.state.currentScopePath,
-            argName,
-          );
+      const typing = this.host.state.typingContext();
+      const binding =
+        typing?.program.bindValue(typing.sourceFile, null, argName, {
+          line: argNode.symbol.line,
+          column: argNode.symbol.column,
+        }) ?? null;
+      if (binding?.kind === "variable") {
+        return binding.symbol.fullyQualifiedCName;
+      }
+      if (binding?.kind === "local") {
+        return this.host.state.emittedLocalName(argName);
+      }
+      return argName;
     });
 
     // Track the variable in type registry. #375 also set an
@@ -4477,159 +4519,17 @@ class CodeGenWalker {
     // that consequence for every declaration site.
     const type = this.generateDeclaredType(ctx.type());
 
-    // Issue #958: C-header typedef struct types always need pointer semantics
-    if (this.host.state.symbolTable?.isTypedefStructType(type)) {
-      return `${type}*`;
-    }
-
-    if (!ctx.expression()) {
-      return type;
-    }
-
-    // Issue #895 Bug B: Check if initializer is a C function call returning pointer
-    const pointerType = this._inferPointerTypeFromFunctionCall(
-      ctx.expression()!,
-      type,
-    );
-    if (pointerType) {
-      return pointerType;
-    }
-
-    // ADR-046: Handle nullable C pointer types (c_ prefix variables)
-    if (name.startsWith("c_")) {
-      const exprText = ctx.expression()!.getText();
-      for (const funcName of STRUCT_POINTER_C_FUNCTIONS) {
-        if (exprText.includes(`${funcName}(`)) {
-          return `${type}*`;
-        }
-      }
-    }
-
-    return type;
-  }
-
-  /**
-   * Issue #895 Bug B: Infer pointer type from C function return type.
-   * If initializer is a call to a C function that returns T*, and declared
-   * type is T, return T* instead of T.
-   */
-  private _inferPointerTypeFromFunctionCall(
-    expr: Parser.ExpressionContext,
-    declaredType: string,
-  ): string | null {
-    // Extract function name from C function call patterns
-    const funcName = this._extractCFunctionName(expr);
-    if (!funcName) {
-      return null;
-    }
-
-    // Look up C function in symbol table
-    const cFunc = this.host.state.symbolTable?.getCSymbol(funcName);
-    if (cFunc?.kind !== "function") {
-      return null;
-    }
-
-    // Check if return type is a pointer to the declared type
-    const returnType = cFunc.type;
-    if (!returnType.endsWith("*")) {
-      return null;
-    }
-
-    // Check if the base return type matches the declared type
-    // e.g., "widget_t *" or "widget_t*" matches declared "widget_t"
-    // The guard above established the last character is '*', so dropping it and
-    // trimming is exactly what /\s*\*\s*$/ did -- without the super-linear
-    // backtracking that pattern has on a long run of spaces (S8786).
-    const returnBaseType = returnType.slice(0, -1).trim();
-    if (returnBaseType === declaredType) {
-      return `${declaredType}*`;
-    }
-
-    return null;
-  }
-
-  /**
-   * Extract C function name from expression patterns.
-   * Handles both:
-   * - global.funcName(...) - explicit global access
-   * - funcName(...) - direct call (if funcName is a known C function)
-   * Returns null if expression doesn't match these patterns.
-   */
-  private _extractCFunctionName(expr: Parser.ExpressionContext): string | null {
-    const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
-    if (!postfix) {
-      return null;
-    }
-
-    const primary = postfix.primaryExpression();
-    const ops = postfix.postfixOp();
-
-    // Pattern 1: global.funcName(...)
-    if (primary.GLOBAL()) {
-      return this._extractGlobalPatternFuncName(ops);
-    }
-
-    // Pattern 2: funcName(...) - direct call
-    const identifier = primary.IDENTIFIER();
-    if (identifier) {
-      return this._extractDirectCallFuncName(identifier.getText(), ops);
-    }
-
-    return null;
-  }
-
-  /**
-   * Extract function name from global.funcName(...) pattern.
-   */
-  private _extractGlobalPatternFuncName(
-    ops: Parser.PostfixOpContext[],
-  ): string | null {
-    if (ops.length < 2) {
-      return null;
-    }
-
-    const memberOp = ops[0];
-    if (!memberOp.IDENTIFIER()) {
-      return null;
-    }
-
-    const callOp = ops[1];
-    if (!this._isCallOp(callOp)) {
-      return null;
-    }
-
-    return memberOp.IDENTIFIER()!.getText();
-  }
-
-  /**
-   * Extract function name from direct funcName(...) call if it's a C function.
-   */
-  private _extractDirectCallFuncName(
-    funcName: string,
-    ops: Parser.PostfixOpContext[],
-  ): string | null {
-    if (ops.length < 1) {
-      return null;
-    }
-
-    if (!this._isCallOp(ops[0])) {
-      return null;
-    }
-
-    // Verify this is actually a C function (not a C-Next scope function)
-    const cFunc = this.host.state.symbolTable?.getCSymbol(funcName);
-    if (cFunc?.kind === "function") {
-      return funcName;
-    }
-
-    return null;
-  }
-
-  /**
-   * Check if a postfix op is a function call.
-   */
-  private _isCallOp(op: Parser.PostfixOpContext): boolean {
-    return Boolean(op.argumentList() || op.getText().startsWith("("));
+    // #958, #895 Bug B and ADR-046: whether the declaration is a C pointer is
+    // `DeclaredPointer`'s decision, read off the declaration's type info
+    // (#1668) -- the answer every later read of this name gets -- so the
+    // emitted type only follows it. Bound just past the declarator, where
+    // the name comes into scope.
+    const declarator = ctx.IDENTIFIER().symbol;
+    const info = this.host.state.declarationTypeInfo(null, name, {
+      line: declarator.line,
+      column: declarator.column + 1,
+    });
+    return info?.isPointer && !type.endsWith("*") ? `${type}*` : type;
   }
 
   /**
@@ -4788,6 +4688,21 @@ class CodeGenWalker {
     };
   }
 
+  /** #1668 (C7): what an assignment target writes, by the one binder */
+  private targetDeclaration(
+    target: Parser.AssignmentTargetContext,
+  ): ITargetDeclaration {
+    const typing = this.host.state.typingContext();
+    if (typing === null) {
+      return { root: null, rootTypeInfo: undefined, typeInfo: undefined };
+    }
+    return DeclaredTypeInfo.ofChain(
+      OperandTyper.chainOf(target, typing),
+      typing.symbols,
+      this.host.state.symbolTable,
+    );
+  }
+
   private generateAssignment(ctx: Parser.AssignmentStatementContext): string {
     const targetCtx = ctx.assignmentTarget();
 
@@ -4800,6 +4715,9 @@ class CodeGenWalker {
     // and two booleans. The walk stays here, where the node is.
     const postfixOps = targetCtx.postfixTargetOp();
     const baseId = targetCtx.IDENTIFIER()?.getText();
+    // #1668 (C7): what the target writes, bound once -- the expected type
+    // below and every classifier rule and handler read this
+    const target = this.targetDeclaration(targetCtx);
     const chain =
       baseId && postfixOps.length > 0
         ? analyzePostfixOps(baseId, postfixOps)
@@ -4814,6 +4732,7 @@ class CodeGenWalker {
           (op) => op.expression().length === 2,
         ),
         hasPostfixOps: postfixOps.length > 0,
+        rootTypeInfo: target.rootTypeInfo,
       },
       this.host.state,
     );
@@ -4860,7 +4779,7 @@ class CodeGenWalker {
     // ADR-065: Dispatch to assignment handlers
     // Build context, classify, and dispatch - all patterns handled by handlers
     const assignCtx = buildAssignmentContext(ctx, {
-      typeRegistry: this.host.state.getTypeRegistryView(),
+      target,
       state: this.host.state,
       // Already rendered, inside the expectedType window above -- never again.
       generatedValue: () => value,
