@@ -1,0 +1,22 @@
+// test-error
+// #1668: E0858-E0861 read the buffer's shape and the source's type from the
+// one operand typer, and every assignment site. Before, a slice in a `for`
+// header was never checked (#1726), so an out-of-bounds span compiled.
+#include "c_ints.h"
+
+void main() {
+    u8[8] buf;
+    u32 w <- 1;
+
+    // NEGATIVE CONTROLS -- C integer sources, and an in-bounds `for` slice.
+    buf[0, 4] <- cU32;
+    buf[4, 4] <- cSigned;
+    for (u32 i <- 0; i < 3; buf[0, 4] <- w) {
+        i +<- 1;
+    }
+
+    // ASSERTION
+    for (u32 j <- 0; j < 3; buf[6, 4] <- w) {
+        j +<- 1;
+    }
+}
