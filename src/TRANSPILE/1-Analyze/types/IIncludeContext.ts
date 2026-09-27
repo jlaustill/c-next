@@ -15,8 +15,9 @@ interface IIncludeContext {
    * The directory a quoted include from this file resolves from, as DISCOVERY
    * resolved it (#1435). Handed in rather than taken as `dirname` of the
    * file's path: a source run's in-memory root may have no path, when the
-   * caller's `workingDir` stands in, and a second derivation here disagreed
-   * with discovery about which quoted includes exist.
+   * caller's `workingDir` stands in, and a second derivation here started
+   * from a different directory than discovery did. (Discovery still searches
+   * past this directory for a quoted include, where ADR-010 does not: #1672.)
    */
   readonly quotedIncludeDirectory: string;
 

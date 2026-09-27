@@ -200,7 +200,7 @@ class Program {
         const directory = discovery.quotedIncludeDirectories.get(sourceFile);
         invariant(
           directory !== undefined,
-          `discovery recorded no directory for ${sourceFile}, which it resolved`,
+          `discovery records the quoted-include directory of every file it resolves (missing ${sourceFile})`,
         );
         return directory;
       },

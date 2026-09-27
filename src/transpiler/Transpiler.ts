@@ -253,9 +253,9 @@ class Transpiler {
    * pass and read by another, which box 4 forbids.
    *
    * Written ONLY by `_resolveCnxIncludes` and read ONLY at the freeze,
-   * so no later pass can reach these; what the later passes read is the frozen
-   * copy on `IProgram`. See `IDiscoveryFacts` for the ordering that makes that
-   * legal.
+   * so no later pass can reach these; what the later passes read is
+   * `IProgram`, which holds these maps by reference and is built after the
+   * last write. See `IDiscoveryFacts` for the ordering that makes that legal.
    */
   private readonly discoveredCnxIncludeRewrites = new Map<
     string,
@@ -490,14 +490,16 @@ class Transpiler {
     // for discovery and for the 2.1 rules that ask where a quoted include is.
     // An empty path is no path, and is decided so once for both fields.
     const sourcePath = input.sourcePath === "" ? undefined : input.sourcePath;
-    return this._discoverFromSource({
-      path: sourcePath ?? "<string>",
-      source: input.source,
-      directory: sourcePath
-        ? dirname(resolve(sourcePath))
-        : (input.workingDir ?? process.cwd()),
-      includeDirs: input.includeDirs ?? [],
-    });
+    return this._discoverFromSource(
+      {
+        path: sourcePath ?? "<string>",
+        source: input.source,
+        directory: sourcePath
+          ? dirname(resolve(sourcePath))
+          : (input.workingDir ?? process.cwd()),
+      },
+      input.includeDirs ?? [],
+    );
   }
 
   // ===========================================================================
@@ -1335,26 +1337,6 @@ class Transpiler {
   }
 
   /**
-   * Issue #1467: record where each `.cnx` include of `sourcePath` resolves to.
-   * MERGED rather than replaced -- a file reached through more than one
-   * discovery pass contributes the same answers, and dropping the earlier map
-   * would lose the includes of whichever pass ran first.
-   */
-  private _recordCnxIncludeRewrites(
-    sourcePath: string,
-    rewrites: ReadonlyMap<string, string>,
-  ): void {
-    const existing = this.discoveredCnxIncludeRewrites.get(sourcePath);
-    if (!existing) {
-      this.discoveredCnxIncludeRewrites.set(sourcePath, new Map(rewrites));
-      return;
-    }
-    for (const [spec, headerPath] of rewrites) {
-      existing.set(spec, headerPath);
-    }
-  }
-
-  /**
    * Stage 1 for a `{ kind: "source" }` run: the same discovery as files mode,
    * rooted at text that is supplied rather than read.
    *
@@ -1365,8 +1347,15 @@ class Transpiler {
    * already in the run -- so a cyclic include enqueued the root a second time
    * and declared it twice (E0203). Discovery is one loop now, and the root is
    * in its graph from the start, so a back edge to it is an edge.
+   *
+   * @param callerIncludeDirs - The input's own include directories. They are
+   *   the run's, as `config.includeDirs` are: every file the root reaches
+   *   searches them, not the root alone.
    */
-  private _discoverFromSource(entry: IInMemorySource): IPipelineInput {
+  private _discoverFromSource(
+    entry: IInMemorySource,
+    callerIncludeDirs: readonly string[],
+  ): IPipelineInput {
     const root: IDiscoveredFile = {
       path: entry.path,
       type: EFileType.CNext,
@@ -1376,6 +1365,7 @@ class Transpiler {
       [root],
       new Map([[resolve(entry.path), root]]),
       entry,
+      callerIncludeDirs,
     );
 
     // The root is the one file this run generates; everything it reaches only
@@ -1445,13 +1435,14 @@ class Transpiler {
     this.userIncludes.clear();
     this.headerIncludeDirectives.clear();
     this.processedHeaders.clear();
-    // #1452: 1.1 Discover's maps (three since #1435). `TranspilerState.reset()` cleared these
-    // alongside the five above, and re-writing that teardown as inline calls
-    // dropped them -- the drift this method's own SymbolTable comment below
-    // records, in the commit that recorded it. `IDiscoveryFacts` documents
-    // "empty means this run never discovered the file" as a REAL answer that
-    // ADR-010's E0504 reads, and `Program.build` is handed both by reference,
-    // so a retained entry answers for a file the run never saw.
+    // #1452: 1.1 Discover's maps. `TranspilerState.reset()` cleared the first
+    // two alongside the five above, and re-writing that teardown as inline
+    // calls dropped them -- the drift this method's own SymbolTable comment
+    // below records, in the commit that recorded it. `Program.build` is handed
+    // all three by reference, so a retained entry answers for a file this run
+    // never saw: `IProgram` documents an empty rewrite map or search path as a
+    // REAL answer that ADR-010's E0504 reads, and a stale quoted-include
+    // directory (#1435) would answer where its invariant should fire.
     this.discoveredCnxIncludeRewrites.clear();
     this.discoveredIncludeSearchPaths.clear();
     this.discoveredQuotedIncludeDirectories.clear();
@@ -2065,7 +2056,8 @@ class Transpiler {
       // Keying on the basename made can/config.cnx and uart/config.cnx the same
       // file, so the second was dropped from the compilation entirely — the
       // transpiler exited 0 and emitted C-Next source syntax into the C output.
-      const existing = cnextFiles.find((f) => resolve(f.path) === includePath);
+      // `fileByPath` indexes `cnextFiles` by exactly that path, on every route.
+      const existing = fileByPath.get(includePath);
       if (!existing) {
         cnextFiles.push(cnxInclude);
         fileByPath.set(includePath, cnxInclude);
@@ -2084,30 +2076,39 @@ class Transpiler {
    *
    * #1435: every file in a run comes through here, including the root of a
    * source run, whose text is `inMemory.source` and whose directory is
-   * `inMemory.directory`. The search path is the same computation for both: the
-   * caller's include directories, then everything `discoverIncludePaths` finds
-   * from the file's directory (the project tiers, PlatformIO libdeps and
-   * Arduino libraries), then the configured ones. An in-memory root used to
-   * get a path without the PlatformIO and Arduino tiers, so the editor preview
-   * could not see a library the CLI compiled -- and, an unresolved `<x.cnx>`
-   * reading as a foreign header, emitted `EColor.GREEN` as C at exit 0.
+   * `inMemory.directory`. The search path is the same computation for every
+   * file: the directory, then the caller's include directories (a source
+   * run's own, which every file it reaches searches), then everything
+   * `discoverIncludePaths` finds from the file's directory (the project tiers,
+   * PlatformIO libdeps and Arduino libraries), then the configured ones. An
+   * in-memory root used to get a path without the PlatformIO and Arduino
+   * tiers, so the editor preview could not see a library the CLI compiled.
+   *
+   * @param tiersByDirectory - `discoverIncludePaths` answers, per directory,
+   *   for this discovery pass. It reads only the directory of the path it is
+   *   given, the filesystem and $HOME, none of which change within one pass,
+   *   so the files of one directory share one answer -- and a source run makes
+   *   this pass on every editor request.
    */
   private _resolveCnxIncludes(
     cnxFile: IDiscoveredFile,
+    callerIncludeDirs: readonly string[],
+    tiersByDirectory: Map<string, readonly string[]>,
     inMemory?: IInMemorySource,
   ): ReturnType<IncludeResolver["resolve"]> {
     const content = inMemory?.source ?? this.fs.readFile(cnxFile.path);
     const sourceDir = inMemory?.directory ?? dirname(cnxFile.path);
+    const discoveryFile = join(sourceDir, basename(cnxFile.path));
+    const discoveryDir = dirname(resolve(discoveryFile));
+    let tiers = tiersByDirectory.get(discoveryDir);
+    if (tiers === undefined) {
+      tiers = IncludeDiscovery.discoverIncludePaths(discoveryFile, this.fs);
+      tiersByDirectory.set(discoveryDir, tiers);
+    }
     const searchPaths = IncludeResolver.buildSearchPaths(
       sourceDir,
       this.config.includeDirs,
-      [
-        ...(inMemory?.includeDirs ?? []),
-        ...IncludeDiscovery.discoverIncludePaths(
-          join(sourceDir, basename(cnxFile.path)),
-          this.fs,
-        ),
-      ],
+      [...callerIncludeDirs, ...tiers],
       undefined,
       this.fs,
     );
@@ -2120,7 +2121,10 @@ class Transpiler {
     );
     const resolved = resolver.resolve(content, cnxFile.path);
     // Issue #1467: one resolution, read later by both the .c and the .h
-    this._recordCnxIncludeRewrites(cnxFile.path, resolved.cnextIncludeRewrites);
+    this.discoveredCnxIncludeRewrites.set(
+      cnxFile.path,
+      resolved.cnextIncludeRewrites,
+    );
     // Issue #1322: the same list ADR-010's E0504 asks about in pass 2.1
     this.discoveredIncludeSearchPaths.set(cnxFile.path, [...searchPaths]);
     // #1435: and the same directory its E0506 and quoted E0504 resolve from
@@ -2263,11 +2267,15 @@ class Transpiler {
    *
    * Processes includes, builds dependency graph, resolves headers transitively,
    * and converts to pipeline files. Used by both .cnx and C/C++ entry point paths.
+   *
+   * @param callerIncludeDirs - A source run's own include directories, which
+   *   every file of the run searches (see `_discoverFromSource`).
    */
   private _buildPipelineInput(
     cnextFiles: IDiscoveredFile[],
     fileByPath: Map<string, IDiscoveredFile>,
     inMemory?: IInMemorySource,
+    callerIncludeDirs: readonly string[] = [],
   ): IPipelineInput {
     const headerSet = new Map<string, IDiscoveredFile>();
     const depGraph = new DependencyGraph();
@@ -2276,12 +2284,15 @@ class Transpiler {
     // #1435: the include graph, kept. It is resolved here once, with the full
     // search path, and 1.4 takes every file's visibility closure over it.
     const includesByPath = new Map<string, IDiscoveredFile[]>();
+    const tiersByDirectory = new Map<string, readonly string[]>();
     // `cnextFiles` grows as includes are found, so this visits the closure.
     for (const cnxFile of cnextFiles) {
       const cnxPath = resolve(cnxFile.path);
       depGraph.addFile(cnxPath);
       const resolved = this._resolveCnxIncludes(
         cnxFile,
+        callerIncludeDirs,
+        tiersByDirectory,
         inMemory?.path === cnxFile.path ? inMemory : undefined,
       );
       if (resolved.hasForeignInclude) {
@@ -2320,7 +2331,7 @@ class Transpiler {
       const cnextIncludes = includesByPath.get(resolve(f.path));
       invariant(
         cnextIncludes !== undefined,
-        `discovery resolved no includes for ${f.path}, which it sorted`,
+        `discovery resolves the includes of every file it sorts (missing ${f.path})`,
       );
       return {
         path: f.path,

@@ -229,6 +229,36 @@ typedef struct Reading { int32_t raw; } Reading;
         );
       }
     });
+
+    // A file that includes the wrapper and names a vendor type in its own
+    // signature needs the vendor header in its own header. Emission dropped
+    // an external header whose basename matched one of the file's includes,
+    // so `<driver/uart.h>` read as uart.cnx's "uart.h": exit 0, and a header
+    // no compiler accepts. `serial.cnx` differs only by that basename.
+    it.each(["uart.cnx", "serial.cnx"])(
+      "a file using a vendor type through %s names the vendor header",
+      async (wrapper) => {
+        writeFileSync(
+          join(project, "vendor", "driver", "uart.h"),
+          "#include <stdint.h>\ntypedef struct { uint32_t baud; } uart_config_t;\nvoid uart_init(uint32_t baud);\n",
+        );
+        writeFileSync(join(project, "src", wrapper), USES_VENDOR);
+
+        const { files, source } = await bothModes(
+          "main.cnx",
+          `#include "${wrapper}"\n\nu32 baudOf(const uart_config_t cfg) {\n    return cfg.baud;\n}\n`,
+        );
+
+        for (const result of [files, source]) {
+          expect(result.errors).toEqual([]);
+          expect(
+            result.files.find(
+              (f) => f.sourcePath === join(project, "src", "main.cnx"),
+            )?.headerCode,
+          ).toContain("#include <driver/uart.h>");
+        }
+      },
+    );
   });
 
   describe("an in-memory root's directory is one decision", () => {
@@ -358,6 +388,108 @@ void main() {
       expect(result.files.map((f) => f.code).join("\n")).not.toContain(
         "EColor.GREEN",
       );
+    });
+  });
+
+  describe("a missing C-Next include inside an included file", () => {
+    // A `.cnx` include that resolves to nothing is not a C or C++ header. It
+    // counted as one, and once reaching a header became transitive a missing
+    // include in an INCLUDED file -- which a source run does not analyze, so
+    // nothing reported it -- switched the root's E0426 off, and C-Next member
+    // syntax reached the C output at exit 0.
+    const ROOT = `#include "a.cnx"
+
+void main() {
+    EColor c <- EColor.GREEN;
+}
+`;
+    let project: string;
+
+    beforeEach(() => {
+      project = mkdtempSync(join(tmpdir(), "cnext-1435-gone-"));
+    });
+
+    afterEach(() => {
+      rmSync(project, { recursive: true, force: true });
+    });
+
+    /** Exactly how `ServeCommand` (the editor preview) calls it. */
+    function preview(included: string) {
+      writeFileSync(
+        join(project, "a.cnx"),
+        `${included}\n\nu8 fa() {\n    return 1;\n}\n`,
+      );
+      return new Transpiler({ input: "", noCache: true }).transpile({
+        kind: "source",
+        source: ROOT,
+        sourcePath: join(project, "main.cnx"),
+      });
+    }
+
+    it.each(['#include "b.cnx"', "#include <b.cnx>", '#include "b.cnext"'])(
+      "%s, missing, leaves the includer's E0426 on",
+      async (include) => {
+        const result = await preview(include);
+
+        expect(result.errors.map((e) => e.message).join("\n")).toContain(
+          "E0426",
+        );
+        expect(result.files.map((f) => f.code).join("\n")).not.toContain(
+          "EColor.GREEN",
+        );
+      },
+    );
+
+    it("control: a C header reached through the included file still exempts it", async () => {
+      writeFileSync(join(project, "real.h"), "#define REAL_MAX 3\n");
+
+      const result = await preview('#include "real.h"');
+
+      expect(result.errors).toEqual([]);
+    });
+  });
+
+  describe("a source run's includeDirs", () => {
+    // The caller's include directories for the RUN, as `config.includeDirs`
+    // are: a file the root includes resolves its own includes through them
+    // too. They reached the root alone, so lib.cnx's `<util.cnx>` resolved
+    // nowhere and the root could not see EColor.
+    let project: string;
+
+    beforeEach(() => {
+      project = mkdtempSync(join(tmpdir(), "cnext-1435-dirs-"));
+      mkdirSync(join(project, "a"));
+      mkdirSync(join(project, "b"));
+      writeFileSync(join(project, "a", "lib.cnx"), "#include <util.cnx>\n");
+      writeFileSync(join(project, "b", "util.cnx"), COLORS);
+    });
+
+    afterEach(() => {
+      rmSync(project, { recursive: true, force: true });
+    });
+
+    it("reach the files the root includes, as config.includeDirs do", async () => {
+      const dirs = [join(project, "a"), join(project, "b")];
+      const input = {
+        kind: "source" as const,
+        source: MAIN_USES_ENUM.replace("<colors.cnx>", "<lib.cnx>"),
+        sourcePath: join(project, "main.cnx"),
+      };
+
+      const fromInput = await new Transpiler({
+        input: "",
+        noCache: true,
+      }).transpile({ ...input, includeDirs: dirs });
+      const fromConfig = await new Transpiler({
+        input: "",
+        noCache: true,
+        includeDirs: dirs,
+      }).transpile(input);
+
+      for (const result of [fromInput, fromConfig]) {
+        expect(result.errors).toEqual([]);
+        expect(result.files[0]?.code).toContain("EColor c = EColor__GREEN;");
+      }
     });
   });
 

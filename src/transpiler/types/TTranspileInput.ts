@@ -16,7 +16,11 @@ type TTranspileInput =
        * the text lives there (#1435).
        */
       readonly workingDir?: string;
-      /** Searched ahead of the directories discovered from the text's own. */
+      /**
+       * The run's include directories, as `config.includeDirs` are: every
+       * file the text reaches searches them, ahead of the directories
+       * discovered from its own.
+       */
       readonly includeDirs?: string[];
       /**
        * Where the text lives, resolved like any path, against the process's

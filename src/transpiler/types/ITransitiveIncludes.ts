@@ -9,25 +9,28 @@ import type ICodeGenSymbols from "./ICodeGenSymbols";
  * `ICodeGenSymbols` is a codegen-shaped view rather than a key. The only route
  * left was a second traversal of the same include tree.
  *
- * That mattered because the transpiler already rebuilds this closure repeatedly
- * per file per run, from disk, and `docs/architecture/symbol-view-scopes.md`
- * names retaining it as the single change that brings a derived symbol view
- * under its cost ceiling: "the naive derive is slow for the same reason the
- * transpiler is". Handing back both results from one walk is the small version
- * of that, and it is what lets the ADR-057 seed be read from Declare's own
- * artifact instead of re-derived from the codegen view.
+ * `paths` was added so the ADR-057 seed could be read from Declare's own
+ * artifact; #1472 then took that seed out of Declare, so no production code
+ * reads `paths` today -- 1.4's `Program.deriveVisibleSymbols` reads `sources`.
+ * Since #1435 the closure is taken in memory, once per file per run, over the
+ * include graph discovery resolved, not re-read from disk: the retained graph
+ * `docs/architecture/symbol-view-scopes.md` names as the change that brings a
+ * derived symbol view under its cost ceiling.
  */
 interface ITransitiveIncludes {
   /**
-   * `ICodeGenSymbols` for each visited file that has them.
+   * `ICodeGenSymbols` for each visited file that has them, in visit order.
    *
-   * Shorter than `paths` whenever a visited file has no symbol info yet — a
-   * header, or a file not declared in this run.
+   * Shorter than `paths` only when the graph names a file with no symbol
+   * info. A run's graph cannot -- every file in it is declared, or the run
+   * stops before 1.4 -- so only a graph built by hand (a unit test) can.
    */
   readonly sources: ReadonlyArray<ICodeGenSymbols>;
 
   /**
-   * Every visited file's resolved path, in visit order.
+   * Every file the walk visited, in visit order, under the path the run
+   * declared it with -- not always resolved: a source run's root keeps the
+   * `sourcePath` it was given. The file the walk started from is never in it.
    *
    * This is the key `sources` cannot supply. A caller holding a per-file map of
    * any other fact joins against these.

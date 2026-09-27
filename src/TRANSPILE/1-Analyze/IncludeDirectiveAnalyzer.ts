@@ -118,8 +118,8 @@ class IncludeDirectiveListener extends CNextListener {
     if (!spec.isQuoted) return false;
     if (!CNEXT_EXTENSIONS.has(extensionOf(spec.path))) return false;
 
-    const target = resolve(this.context.quotedIncludeDirectory, spec.path);
-    if (this.context.fileExists(target)) return false;
+    // Where a quoted include resolves is one decision, shared with E0504.
+    if (this.quotedAlternative(spec.path) !== null) return false;
     // The help names no absolute path on purpose. The throw this replaces put
     // the resolved path in its message; it had no fixture, and the first one
     // written for it embedded this machine's checkout directory in an

@@ -275,21 +275,23 @@ class HeaderGeneratorUtils {
   }
 
   /**
-   * Extract header file stem from include directive for deduplication.
-   * E.g., '#include <foo/bar.hpp>' -> 'bar'
+   * The header a directive names, for deduplication: the path inside the
+   * delimiters, without leading `./` or `../` segments and without a `.h` or
+   * `.hpp` extension. E.g., '#include "../foo/bar.hpp"' -> 'foo/bar'.
+   *
+   * The directories stay (#1435). Keyed on the basename, `<driver/uart.h>`
+   * was the generated "uart.h" of uart.cnx and was dropped, taking the only
+   * definition of the vendor types a signature named with it.
    * SonarCloud S8786: Avoid backtracking by using separate patterns.
    */
   private static extractIncludeStem(include: string): string {
     // Try angle brackets first, then quotes - avoids backtracking regex
-    const angleMatch = /<([^<>]+)>/.exec(include);
-    if (angleMatch) {
-      return angleMatch[1].replace(/^.*\//, "").replace(/\.(?:h|hpp)$/, "");
+    const target =
+      /<([^<>]+)>/.exec(include)?.[1] ?? /"([^"]+)"/.exec(include)?.[1];
+    if (target === undefined) {
+      return include;
     }
-    const quoteMatch = /"([^"]+)"/.exec(include);
-    if (quoteMatch) {
-      return quoteMatch[1].replace(/^.*\//, "").replace(/\.(?:h|hpp)$/, "");
-    }
-    return include;
+    return target.replace(/^(?:\.\.?\/)+/, "").replace(/\.(?:h|hpp)$/, "");
   }
 
   /**
@@ -353,8 +355,9 @@ class HeaderGeneratorUtils {
     HeaderGeneratorUtils.addUserIncludes(lines, options.userIncludes);
 
     // External type header includes (skip duplicates of user includes)
-    // Dedup by basename stem to handle different path styles
-    // (e.g. <AppConfig.hpp> vs "../AppConfig.hpp").
+    // Dedup by the included path, less leading ./ and ../ and the extension,
+    // to handle different path styles (e.g. <AppConfig.hpp> vs
+    // "../AppConfig.hpp") -- never by basename alone (#1435).
     //
     // It also used to absorb a .h/.hpp mismatch: IncludeResolver ran before
     // cppDetected was raised and IncludeExtractor after, so the two disagreed

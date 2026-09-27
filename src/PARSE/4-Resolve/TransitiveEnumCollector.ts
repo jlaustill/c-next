@@ -1,6 +1,6 @@
 /**
  * TransitiveEnumCollector
- * Issue #588: Extracted from Transpiler to logic layer
+ * Issue #588: extracted from Transpiler; pass 1.4 Resolve's since #1472.
  *
  * Collects symbol information from transitively included .cnx files.
  * This enables proper enum prefixing when enums are defined in deeply
@@ -38,7 +38,7 @@ class TransitiveEnumCollector {
    * @param includesByFile - Each file's direct includes, as discovery resolved
    *   them. A file with no entry includes nothing.
    * @param symbolInfoByFile - Map of file paths to their symbol info
-   * @returns the closure's `ICodeGenSymbols` and the paths they came from
+   * @returns the closure's `ICodeGenSymbols`, and every file it visited
    */
   static collect(
     filePath: string,

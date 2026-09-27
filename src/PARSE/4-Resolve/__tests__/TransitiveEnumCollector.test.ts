@@ -10,37 +10,9 @@
 import { describe, expect, it } from "vitest";
 import TransitiveEnumCollector from "../TransitiveEnumCollector";
 import ICodeGenSymbols from "../../../transpiler/types/ICodeGenSymbols";
+import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
 
 describe("TransitiveEnumCollector", () => {
-  // Helper to create a minimal ICodeGenSymbols
-  function createSymbolInfo(knownEnums: string[] = []): ICodeGenSymbols {
-    return {
-      knownScopes: new Set<string>(),
-      knownStructs: new Set<string>(),
-      knownRegisters: new Set<string>(),
-      knownEnums: new Set(knownEnums),
-      knownBitmaps: new Set<string>(),
-      knownVariables: new Set<string>(),
-      scopeMembers: new Map(),
-      scopeMemberVisibility: new Map(),
-      structFields: new Map(),
-      structFieldArrays: new Map(),
-      structFieldDimensions: new Map(),
-      enumMembers: new Map(),
-      bitmapFields: new Map(),
-      bitmapBackingType: new Map(),
-      bitmapBitWidth: new Map(),
-      scopedRegisters: new Map(),
-      registerMemberAccess: new Map(),
-      registerMemberTypes: new Map(),
-      registerBaseAddresses: new Map(),
-      registerMemberOffsets: new Map(),
-      registerMemberCTypes: new Map(),
-      scopePrivateConstValues: new Map(),
-      functionReturnTypes: new Map(),
-    };
-  }
-
   /** `{ a: ["b"] }` → a includes b. */
   function graph(
     edges: Record<string, string[]>,
@@ -55,7 +27,12 @@ describe("TransitiveEnumCollector", () => {
 
   /** Every named file declares one enum, named after the file. */
   function symbolsFor(...files: string[]): Map<string, ICodeGenSymbols> {
-    return new Map(files.map((f) => [f, createSymbolInfo([`E_${f}`])]));
+    return new Map(
+      files.map((f) => [
+        f,
+        createMockSymbols({ knownEnums: new Set([`E_${f}`]) }),
+      ]),
+    );
   }
 
   function enumsOf(result: { sources: ReadonlyArray<ICodeGenSymbols> }) {

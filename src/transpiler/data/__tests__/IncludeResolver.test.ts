@@ -253,6 +253,30 @@ describe("IncludeResolver", () => {
   });
 
   // ========================================================================
+  // An include that resolves to nothing (#1435)
+  // ========================================================================
+
+  describe("hasForeignInclude for an include that resolves to nothing", () => {
+    // An unresolved `<system.h>` still supplies C names at compile time, so it
+    // counts. An unresolved `.cnx` is not a C or C++ header, found or not. It
+    // counted until #1435 made reaching a header transitive, and then one
+    // missing include inside an included file switched E0426 off for every
+    // file that reached it.
+    it.each([
+      ['#include "gone.cnx"', false],
+      ["#include <gone.cnx>", false],
+      ['#include "gone.cnext"', false],
+      ['#include "gone.h"', true],
+      ["#include <gone.h>", true],
+    ])("%s -> %s", (content, expected) => {
+      const result = new IncludeResolver([includeDir], ".h").resolve(content);
+
+      expect(result.cnextIncludes).toHaveLength(0);
+      expect(result.hasForeignInclude).toBe(expected);
+    });
+  });
+
+  // ========================================================================
   // buildSearchPaths()
   // ========================================================================
 

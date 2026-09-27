@@ -15,8 +15,6 @@ interface IInMemorySource {
    * `workingDir`.
    */
   readonly directory: string;
-  /** The caller's own include directories, searched ahead of discovered ones. */
-  readonly includeDirs: readonly string[];
 }
 
 export default IInMemorySource;
