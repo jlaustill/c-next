@@ -1,0 +1,13 @@
+// test-error
+// test-adr: 024
+// #1668, ruling R3: a conditional's arms are compared however far their
+// declarations are: here two `.cnx` includes away.
+#include "mid.cnx"
+
+void f() {
+    // NEGATIVE CONTROL -- arms of the same category
+    u32 same <- (midFlag > 0) ? leafCount : leafTotal;
+
+    // ASSERTION
+    u32 mixed <- (midFlag > 0) ? leafCount : leafOffset;
+}

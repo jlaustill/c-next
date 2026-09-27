@@ -1,0 +1,29 @@
+// test-error
+// test-adr: 024
+// #1668, ruling R3: a conditional's two value arms are Rule 10.4 operands of
+// each other; its condition is not. Each defect is reported once: an arm
+// whose own leaves are mixed at its own operator, a mixed conditional inside
+// a composite at the conditional.
+u32 a <- 3;
+i32 s <- -1;
+f32 k <- 2.5;
+u32 c <- 1;
+u16 cnt <- 4;
+
+void f() {
+    // NEGATIVE CONTROLS -- a signed operand only in the condition, an
+    // unsuffixed literal arm, both arms signed, and unsigned arms of two
+    // widths.
+    u32 r4 <- (s > 0) ? a : a;
+    u32 r5 <- (c > 0) ? a : 5;
+    i32 r6 <- (c > 0) ? s : 5i32;
+    u32 r10 <- (c > 0) ? a : cnt;
+
+    // ASSERTIONS
+    f32 r1 <- (c > 0) ? a : k;
+    u32 r2 <- (c > 0) ? a : s;
+    u32 r3 <- a + ((c > 0) ? a : s);
+    u32 r7 <- (c > 0) ? a : 5i32;
+    f32 r9 <- k * ((c > 0) ? a : k);
+    u32 r11 <- (c > 0) ? (a + s) : a;
+}

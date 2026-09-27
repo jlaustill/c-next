@@ -1,0 +1,4 @@
+// #1668, ruling R3: arms declared two `.cnx` hops from their use.
+u32 leafCount <- 3;
+i32 leafOffset <- -1;
+u32 leafTotal <- 7;

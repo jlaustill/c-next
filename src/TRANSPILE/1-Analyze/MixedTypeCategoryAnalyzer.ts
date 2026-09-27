@@ -44,6 +44,7 @@
  */
 
 import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
+import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IMixedTypeCategoryError from "./types/IMixedTypeCategoryError";
 import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
@@ -171,6 +172,22 @@ class MixedCategoryCheck {
     );
   }
 
+  /**
+   * A conditional's two value arms are Rule 10.4 operands of each other
+   * (ruling R3); its condition is not an operand. An arm whose own leaves
+   * are mixed has no category, so that defect is reported once, at its own
+   * operator, and never again here.
+   */
+  public checkTernary(ctx: Parser.TernaryExpressionContext): void {
+    const arms = ParserUtils.ternaryValueArms(ctx);
+    if (arms === null) return;
+    const left = this.operandCategory(arms[0]);
+    const right = this.operandCategory(arms[1]);
+    if (left === null || right === null || left === right) return;
+    const { line, column } = ParserUtils.getPosition(arms[1]);
+    this.analyzer.addError(line, column, left, right, "conditional");
+  }
+
   /** Whether two categories may not be combined by `operator` */
   private static differ(
     left: Category,
@@ -203,6 +220,19 @@ class MixedCategoryCheck {
   }
 }
 
+/** Hands each conditional expression to the check */
+class TernaryListener extends CNextListener {
+  constructor(private readonly check: MixedCategoryCheck) {
+    super();
+  }
+
+  override enterTernaryExpression = (
+    ctx: Parser.TernaryExpressionContext,
+  ): void => {
+    this.check.checkTernary(ctx);
+  };
+}
+
 class MixedTypeCategoryAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
@@ -224,8 +254,10 @@ class MixedTypeCategoryAnalyzer {
       new AssignmentSiteListener((site) => check.checkCompound(site)),
       tree,
     );
+    ParseTreeWalker.DEFAULT.walk(new TernaryListener(check), tree);
 
-    return this.errors;
+    // Three walks; reported in source order
+    return this.errors.sort((a, b) => a.line - b.line || a.column - b.column);
   }
 
   /** How a category reads in a message */
@@ -239,6 +271,7 @@ class MixedTypeCategoryAnalyzer {
     column: number,
     left: string,
     right: string,
+    what: "binary" | "conditional" = "binary",
   ): void {
     const integer = (c: string) => c === "signed" || c === "unsigned";
     const floating =
@@ -261,7 +294,10 @@ class MixedTypeCategoryAnalyzer {
       code: "E0810",
       line,
       column,
-      message: `Binary operator combines operands of different essential type categories (${pair})`,
+      message:
+        what === "conditional"
+          ? `Conditional operator's value arms have different essential type categories (${pair})`
+          : `Binary operator combines operands of different essential type categories (${pair})`,
       helpText,
     });
   }

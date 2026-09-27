@@ -1,0 +1,13 @@
+// test-execution
+// #1668, ruling R3: the remedy E0810 names for mixed arms -- a cast of the
+// integer arm -- computes the floating value.
+u32 main() {
+    u32 a <- 3;
+    f32 k <- 2.5;
+    u32 c <- 1;
+    f32 r <- (c > 0) ? (f32)a : k;
+    if (r != 3.0) return 1;
+    f32 q <- (c = 0) ? (f32)a : k;
+    if (q != 2.5) return 2;
+    return 0;
+}
