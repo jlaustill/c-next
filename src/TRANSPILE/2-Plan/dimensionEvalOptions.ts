@@ -16,11 +16,10 @@
  * dimension form becomes resolvable everywhere at once.
  */
 
-import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
+import ConstantFold from "../../utils/ConstantFold";
 import type TranspileState from "../TranspileState";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
-
-const NO_CONST_VALUES: ReadonlyMap<string, number> = new Map();
+import type IConstantEvalOptions from "../../utils/types/IConstantEvalOptions";
 
 /**
  * The constant-folding options for a dimension folded at `at`: the const
@@ -32,15 +31,14 @@ const NO_CONST_VALUES: ReadonlyMap<string, number> = new Map();
  * in one function sized another's `u8[N]`. Empty for a render with no
  * program behind it (a unit test that builds codegen state alone).
  */
-function dimensionEvalOptions(state: TranspileState, at: ISourcePosition) {
+function dimensionEvalOptions(
+  state: TranspileState,
+  at: ISourcePosition,
+): IConstantEvalOptions {
   const typing = state.typingContext();
-  return {
-    constValues:
-      typing === null
-        ? NO_CONST_VALUES
-        : typing.program.constValuesAt(typing.sourceFile, at),
-    typeWidths: TYPE_WIDTH,
-  };
+  return typing === null
+    ? ConstantFold.options(() => undefined)
+    : ConstantFold.at(typing.program, typing.sourceFile, at);
 }
 
 export default dimensionEvalOptions;

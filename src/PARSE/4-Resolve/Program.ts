@@ -22,7 +22,6 @@
  * not declaring them on `IProgram`.
  */
 
-import type SymbolRegistry from "../3-Declare/SymbolRegistry";
 import LexicalFrames from "./LexicalFrames";
 import type ILexicalFrame from "../../transpiler/types/ILexicalFrame";
 import type ILocalDeclaration from "../../transpiler/types/ILocalDeclaration";
@@ -41,14 +40,14 @@ import type IProgram from "../../transpiler/types/IProgram";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
 import type IParameterInfo from "../../transpiler/types/symbols/IParameterInfo";
 import DeferredTypes from "./DeferredTypes";
-import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
-import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
+import ConstantFold from "../../utils/ConstantFold";
+import type IFoldedConstant from "../../transpiler/types/IFoldedConstant";
 import OpaqueTypeResolution from "../../utils/OpaqueTypeResolution";
 import SMALL_PRIMITIVES from "../../transpiler/constants/SMALL_PRIMITIVES";
 import TypeResolver from "../../utils/TypeResolver";
 import SymbolGuards from "../../transpiler/types/symbols/SymbolGuards";
 import type IVariableSymbol from "../../transpiler/types/symbols/IVariableSymbol";
-import IDerivedConsts from "./types/IDerivedConsts";
+import type IBindingFacts from "./types/IBindingFacts";
 import ConflictDetector from "./ConflictDetector";
 import type IForeignSymbols from "../../transpiler/types/IForeignSymbols";
 import type IConflict from "../../transpiler/types/IConflict";
@@ -71,6 +70,13 @@ const EMPTY_HEADER_FIELDS: ReadonlyMap<
   ReadonlyMap<string, IStructFieldInfo>
 > = new Map();
 const EMPTY_CALLBACKS: ReadonlyMap<string, string> = new Map();
+
+/**
+ * A local as the finished program's frames hold it: already settled. Only
+ * 1.4, binding over the frames while it settles them, needs another answer.
+ */
+const SETTLED = (declaration: ILocalDeclaration): ILocalDeclaration =>
+  declaration;
 
 /**
  * A program with no C or C++ headers behind it.
@@ -136,12 +142,25 @@ class Program {
     // both hard to follow and hard to change one part of.
     const isScopeType = Program.scopeTypeIndex(files);
     const settledByFile = Program.settleEveryFile(files, isScopeType);
-    const derivedConsts = Program.deriveConstValues(settledByFile);
-    const scopedViews = new Map<string, ReadonlyMap<string, number>>();
+    const foreignNames = new Set([
+      ...foreign.c.map((symbol) => symbol.name),
+      ...foreign.cpp.map((symbol) => symbol.name),
+    ]);
+    // What a spelling means while the consts fold: the declarations as 1.3
+    // recorded them, bound in the same order every later pass binds in.
+    const declared: IBindingFacts = {
+      framesByFile: new Map(
+        files.map((file) => [file.sourceFile, file.lexicalScopes]),
+      ),
+      symbolsByCName: Program.indexByCName(settledByFile),
+      registry,
+      foreignNames,
+    };
+    const derivedConsts = Program.deriveConstValues(settledByFile, declared);
     const symbolsByFile = Program.resolveDimensions(
       settledByFile,
-      (scopePath: string) =>
-        Program.constValuesIn(derivedConsts, scopedViews, scopePath),
+      declared,
+      derivedConsts,
     );
     const symbolsByCName = Program.indexByCName(symbolsByFile);
     // #1668: each file's lexical frames, settled against the whole program's
@@ -149,15 +168,24 @@ class Program {
     const framesByFile = new Map(
       files.map((file) => [
         file.sourceFile,
-        LexicalFrames.settle(file.lexicalScopes, isScopeType, (scopePath) =>
-          Program.constValuesIn(derivedConsts, scopedViews, scopePath),
+        LexicalFrames.settle(
+          file.lexicalScopes,
+          isScopeType,
+          (name, at, settled) =>
+            Program.constantOf(
+              Program.bindValue(declared, file.sourceFile, null, name, at),
+              derivedConsts,
+              settled,
+            ),
         ),
       ]),
     );
-    const foreignNames = new Set([
-      ...foreign.c.map((symbol) => symbol.name),
-      ...foreign.cpp.map((symbol) => symbol.name),
-    ]);
+    const bound: IBindingFacts = {
+      framesByFile,
+      symbolsByCName,
+      registry,
+      foreignNames,
+    };
     const knownEnums = Program.deriveKnownEnums(symbolsByFile);
     const externalStructFields =
       Program.deriveExternalStructFields(headerStructFields);
@@ -198,10 +226,8 @@ class Program {
       knownEnums: (): ReadonlySet<string> => knownEnums,
       externalStructFields: (): ReadonlyMap<string, ReadonlySet<string>> =>
         externalStructFields,
-      constValueOfSymbol: (symbol: IVariableSymbol): number | undefined =>
-        Program.derivedValueOf(derivedConsts, symbol),
-      constValuesIn: (scopePath: string): ReadonlyMap<string, number> =>
-        Program.constValuesIn(derivedConsts, scopedViews, scopePath),
+      constantOf: (binding: TValueBinding): IFoldedConstant | null =>
+        Program.constantOf(binding, derivedConsts, SETTLED) ?? null,
       conflicts: (): ReadonlyArray<IConflict> => conflicts,
       typesDeclaredIn: (sourceFile: string): ReadonlySet<string> =>
         typesByFile.get(sourceFile) ?? EMPTY_NAMES,
@@ -240,26 +266,17 @@ class Program {
         name: string,
         at: TPosition,
       ): TValueBinding | null =>
-        Program.bindValue(
-          { framesByFile, symbolsByCName, registry, foreignNames },
-          sourceFile,
-          root,
-          name,
-          at,
-        ),
-      constValuesAt: (
+        Program.bindValue(bound, sourceFile, root, name, at),
+      constantAt: (
         sourceFile: string,
+        name: string,
         at: TPosition,
-      ): ReadonlyMap<string, number> => {
-        const root = framesByFile.get(sourceFile);
-        const scopePath = root ? LexicalFrames.frameAt(root, at).scopePath : "";
-        const base = Program.constValuesIn(
+      ): IFoldedConstant | null =>
+        Program.constantOf(
+          Program.bindValue(bound, sourceFile, null, name, at),
           derivedConsts,
-          scopedViews,
-          scopePath,
-        );
-        return root ? LexicalFrames.constValuesAt(root, at, base) : base;
-      },
+          SETTLED,
+        ) ?? null,
       target: (): TRunTarget => {
         invariant(
           target,
@@ -532,25 +549,27 @@ class Program {
   }
 
   /**
-   * Every const's integer value, folded once for the whole program.
+   * Every file-scope and scope const's integer value, by C name, folded once
+   * for the whole program.
    *
-   * A const's initializer folds with `ArrayDimensionParser.parseText`, the one
-   * evaluator, against what is visible where it is declared: file-scope consts,
-   * and inside a scope that scope's own over them (ADR-057's order). The fold
-   * repeats until nothing new folds, so neither declaration order nor file
-   * order decides whether `const B <- A * 2` has a value (#1668, C11: 1.3 and
-   * 1.4 folded integer literals only, and render re-folded the rest itself).
+   * A const's initializer folds with the one evaluator, and each name in it
+   * means what the binder says it means where the const is declared: the
+   * scope's own member, then a file-scope global (ADR-057). The fold repeats
+   * until nothing new folds, so neither declaration order nor file order
+   * decides whether `const B <- A * 2` has a value (#1668, C11).
    *
-   * A scoped const is keyed by its scope and by its C name (`Board__STEP`,
-   * the question `this.STEP` asks), never by its bare name at file scope.
-   * #1538: two scopes each declaring `N` shared that bare slot and the last
-   * one derived won, which sized one scope's array by the other's `N`.
+   * #1664 review: the fold used to look names up in a map of the consts that
+   * had folded SO FAR. A scope's `N` that did not fold, or had not folded
+   * yet, was absent from it, so the file-scope `N` answered in its place --
+   * the value the binder, and the emitted `S__N`, never use. Bound by
+   * declaration instead, an unfolded `N` leaves everything built on it
+   * unfolded, and a later one folds on the next round.
    */
   private static deriveConstValues(
     settledByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
-  ): IDerivedConsts {
-    const flat = new Map<string, number>();
-    const byScope = new Map<string, Map<string, number>>();
+    declared: IBindingFacts,
+  ): ReadonlyMap<string, number> {
+    const values = new Map<string, number>();
     let pending = [...settledByFile.values()]
       .flat()
       .filter(
@@ -564,99 +583,87 @@ class Program {
       folded = false;
       const unresolved: IVariableSymbol[] = [];
       for (const symbol of pending) {
-        const own = byScope.get(symbol.scopePath);
-        const env =
-          symbol.scopePath === "" || own === undefined
-            ? flat
-            : new Map([...flat, ...own]);
-        const value = ArrayDimensionParser.parseText(symbol.initialValue!, {
-          constValues: env,
-          typeWidths: TYPE_WIDTH,
-        });
+        const value = ConstantFold.declared(
+          symbol.initialValue!,
+          symbol.type,
+          Program.constantsIn(declared, symbol.scopePath, values),
+        );
         if (value === undefined) {
           unresolved.push(symbol);
           continue;
         }
         folded = true;
-        Program.recordConst(flat, byScope, symbol, value);
+        values.set(symbol.fullyQualifiedCName, value);
       }
       pending = unresolved;
     }
-    return { flat, byScope };
-  }
-
-  /** A folded const, under the keys its declaration answers to */
-  private static recordConst(
-    flat: Map<string, number>,
-    byScope: Map<string, Map<string, number>>,
-    symbol: IVariableSymbol,
-    value: number,
-  ): void {
-    if (symbol.scopePath === "") {
-      flat.set(symbol.name, value);
-      return;
-    }
-    flat.set(symbol.fullyQualifiedCName, value);
-    const own = byScope.get(symbol.scopePath) ?? new Map<string, number>();
-    own.set(symbol.name, value);
-    byScope.set(symbol.scopePath, own);
-  }
-
-  /** A const symbol's folded value, from where its declaration recorded it */
-  private static derivedValueOf(
-    derived: IDerivedConsts,
-    symbol: IVariableSymbol,
-  ): number | undefined {
-    if (!symbol.isConst) return undefined;
-    return symbol.scopePath === ""
-      ? derived.flat.get(symbol.name)
-      : derived.byScope.get(symbol.scopePath)?.get(symbol.name);
+    return values;
   }
 
   /**
-   * The const values visible from `scopePath`, in ADR-057's candidate order:
-   * the enclosing scope's own const shadows a file-scope one of the same name.
-   *
-   * #1322 review: the flat map is keyed by BARE name and also, for a scoped
-   * const, by its C name -- so two scopes each declaring `SIZE` shared the bare
-   * slot and the last one derived won. That made a legal program fail
-   * (`Small.table` sized by `Large.SIZE`) and made E0854 depend on declaration
-   * ORDER, which is the hazard #1399 named arriving through a different map.
-   * Asking with a scope is the same order `ConstAssignmentAnalyzer.constSymbol`,
-   * `RegisterAccessAnalyzer.isFalseConst` and `ShiftAnalyzer.constValue` each
-   * derived for themselves.
-   *
-   * Views are memoized per scope: a dimension is resolved once per declaration
-   * and there are few scopes, so this trades a small map per scope for not
-   * rebuilding one per lookup.
+   * A name's value as a declaration in `scopePath` sees it -- a file-scope or
+   * scope-level declaration, where no local can be in view.
    */
-  private static constValuesIn(
-    derived: IDerivedConsts,
-    cache: Map<string, ReadonlyMap<string, number>>,
+  private static constantsIn(
+    facts: IBindingFacts,
     scopePath: string,
-  ): ReadonlyMap<string, number> {
-    if (scopePath === "") return derived.flat;
-    const cached = cache.get(scopePath);
-    if (cached) return cached;
+    values: ReadonlyMap<string, number>,
+  ): (name: string) => IFoldedConstant | undefined {
+    return (name) =>
+      Program.constantOf(
+        Program.bindOutside(facts, scopePath, null, name),
+        values,
+        SETTLED,
+      );
+  }
 
-    const own = derived.byScope.get(scopePath);
-    const view =
-      own === undefined ? derived.flat : new Map([...derived.flat, ...own]);
-    cache.set(scopePath, view);
-    return view;
+  /**
+   * What a binding is worth at compile time: a local's settled value, or a
+   * global's or scope member's folded one, with the declared type that holds
+   * it. Anything else -- a variable, a parameter, an unfolded const, a scope,
+   * a header name -- has none.
+   *
+   * @param settled a local's settled declaration; 1.4 binds over the
+   *        unsettled frames while it settles them
+   */
+  private static constantOf(
+    binding: TValueBinding | null,
+    values: ReadonlyMap<string, number>,
+    settled: (declaration: ILocalDeclaration) => ILocalDeclaration | undefined,
+  ): IFoldedConstant | undefined {
+    if (binding?.kind === "local") {
+      const declaration = settled(binding.declaration);
+      return declaration?.constValue === null || declaration === undefined
+        ? undefined
+        : {
+            value: declaration.constValue,
+            typeName: ConstantFold.typeNameOf(declaration.type),
+          };
+    }
+    if (binding?.kind === "variable" && binding.symbol.isConst) {
+      const value = values.get(binding.symbol.fullyQualifiedCName);
+      return value === undefined
+        ? undefined
+        : { value, typeName: ConstantFold.typeNameOf(binding.symbol.type) };
+    }
+    return undefined;
   }
 
   /** Tier 2: resolved array dimensions, per file. */
   private static resolveDimensions(
     settledByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
-    viewFor: (scopePath: string) => ReadonlyMap<string, number>,
+    declared: IBindingFacts,
+    values: ReadonlyMap<string, number>,
   ): Map<string, ReadonlyArray<TSymbol>> {
     const symbolsByFile = new Map<string, ReadonlyArray<TSymbol>>();
     for (const [sourceFile, settled] of settledByFile) {
       symbolsByFile.set(
         sourceFile,
         settled.map((symbol) =>
-          Program.withResolvedDimensions(symbol, viewFor(symbol.scopePath)),
+          Program.withResolvedDimensions(
+            symbol,
+            Program.constantsIn(declared, symbol.scopePath, values),
+          ),
         ),
       );
     }
@@ -681,12 +688,7 @@ class Program {
    * first bare-name match, so a reopened scope in another file binds too.
    */
   private static bindValue(
-    facts: {
-      framesByFile: ReadonlyMap<string, ILexicalFrame>;
-      symbolsByCName: ReadonlyMap<string, TSymbol>;
-      registry: SymbolRegistry | null;
-      foreignNames: ReadonlySet<string>;
-    },
+    facts: IBindingFacts,
     sourceFile: string,
     root: TChainRoot,
     name: string,
@@ -694,6 +696,27 @@ class Program {
   ): TValueBinding | null {
     const frames = facts.framesByFile.get(sourceFile);
     const scopePath = frames ? LexicalFrames.frameAt(frames, at).scopePath : "";
+    const local =
+      frames && root === null
+        ? LexicalFrames.declarationAt(frames, name, at)
+        : null;
+    if (local) {
+      return { kind: "local", declaration: local, scopePath };
+    }
+    return Program.bindOutside(facts, scopePath, root, name);
+  }
+
+  /**
+   * The binding a name has when no local declares it, as seen from inside
+   * `scopePath` -- `bindValue`'s order past its locals, and the whole order
+   * for a declaration at file or scope level, where no local is in view.
+   */
+  private static bindOutside(
+    facts: IBindingFacts,
+    scopePath: string,
+    root: TChainRoot,
+    name: string,
+  ): TValueBinding | null {
     const variable = (cName: string): TValueBinding | null => {
       const symbol = facts.symbolsByCName.get(cName);
       return symbol?.kind === "variable" ? { kind: "variable", symbol } : null;
@@ -712,10 +735,6 @@ class Program {
     }
     if (root === "global") {
       return variable(name) ?? scope();
-    }
-    const local = frames ? LexicalFrames.declarationAt(frames, name, at) : null;
-    if (local) {
-      return { kind: "local", declaration: local, scopePath };
     }
     return (
       member() ??
@@ -811,7 +830,7 @@ class Program {
    */
   private static withResolvedDimensions(
     symbol: TSymbol,
-    constValues: ReadonlyMap<string, number>,
+    constantOf: (name: string) => IFoldedConstant | undefined,
   ): TSymbol {
     if (
       symbol.kind === "variable" &&
@@ -820,7 +839,7 @@ class Program {
     ) {
       const dimensions = Program.resolvedDimensions(
         symbol.arrayDimensions,
-        constValues,
+        constantOf,
       );
       return dimensions === symbol.arrayDimensions
         ? symbol
@@ -832,7 +851,7 @@ class Program {
         if (!parameter.arrayDimensions) return parameter;
         const dimensions = Program.resolvedDimensions(
           parameter.arrayDimensions,
-          constValues,
+          constantOf,
         );
         if (dimensions === parameter.arrayDimensions) return parameter;
         changed = true;
@@ -847,7 +866,7 @@ class Program {
           if (!field.dimensions) return [name, field];
           const dimensions = Program.resolvedDimensions(
             field.dimensions,
-            constValues,
+            constantOf,
           );
           if (dimensions === field.dimensions) return [name, field];
           changed = true;
@@ -862,15 +881,12 @@ class Program {
   /** Dimensions folded where they can be, or the same array when none moved */
   private static resolvedDimensions(
     dimensions: ReadonlyArray<number | string>,
-    constValues: ReadonlyMap<string, number>,
+    constantOf: (name: string) => IFoldedConstant | undefined,
   ): ReadonlyArray<number | string> {
     let changed = false;
     const resolved = dimensions.map((dimension) => {
       if (typeof dimension === "number") return dimension;
-      const value = ArrayDimensionParser.parseText(dimension, {
-        constValues,
-        typeWidths: TYPE_WIDTH,
-      });
+      const value = ConstantFold.value(dimension, constantOf);
       if (value === undefined) return dimension;
       changed = true;
       return value;

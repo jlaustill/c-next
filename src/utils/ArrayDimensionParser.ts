@@ -13,9 +13,9 @@
  *    worth; the other methods differ only in the shape of input they take
  *    (one expression, a dimension list) -- never in the answer.
  * 2. One lookup set. Callers pass `IConstantEvalOptions`, built by
- *    `dimensionEvalOptions()` in codegen and from the collection-time const
- *    map in the symbol layer. A caller that supplies fewer resolves fewer
- *    forms than its peers, which is a divergence waiting to happen.
+ *    `ConstantFold` -- a name's value where it is written, bound by the one
+ *    binder, and `sizeof`'s widths. A caller that supplies fewer resolves
+ *    fewer forms than its peers, which is a divergence waiting to happen.
  * 3. An unresolved dimension keeps its slot, as `UNRESOLVED_DIMENSION`.
  *    Dropping one shifts every dimension after it, so a subscript gets
  *    validated against the wrong bound.
@@ -25,19 +25,12 @@
  */
 
 import LiteralUtils from "./LiteralUtils.js";
+import TypeCheckUtils from "./TypeCheckUtils";
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import UNRESOLVED_DIMENSION from "../transpiler/constants/UNRESOLVED_DIMENSION.js";
 import BareIdentifier from "./BareIdentifier";
-
-/**
- * Options for evaluating constant expressions.
- */
-interface IConstantEvalOptions {
-  /** Map of const variable names to their numeric values */
-  constValues?: ReadonlyMap<string, number>;
-  /** Map of type names to their bit widths (for sizeof) */
-  typeWidths?: Record<string, number>;
-}
+import type IConstantEvalOptions from "./types/IConstantEvalOptions";
+import type IFoldedConstant from "../transpiler/types/IFoldedConstant";
 
 /**
  * Helper class for parsing array dimension expressions.
@@ -129,11 +122,10 @@ class ArrayDimensionParser {
     text: string,
     options?: IConstantEvalOptions,
   ): number | undefined {
-    const constValues = options?.constValues;
-    if (!constValues || !BareIdentifier.matches(text)) {
+    if (!options?.constantOf || !BareIdentifier.matches(text)) {
       return undefined;
     }
-    return constValues.get(text);
+    return options.constantOf(text)?.value;
   }
 
   /**
@@ -165,11 +157,36 @@ class ArrayDimensionParser {
       const left = this._resolveOperand(match[1], options);
       const right = this._resolveOperand(match[2], options);
       if (left !== undefined && right !== undefined) {
-        const value = apply(left, right);
-        return Number.isNaN(value) ? undefined : value;
+        const value = apply(left.value, right.value);
+        return this._heldByOperands(value, [left, right]) ? value : undefined;
       }
     }
     return undefined;
+  }
+
+  /**
+   * Whether C computes the same result: every typed operand's type holds it.
+   *
+   * #1664 review: ADR-044 lowers `A - 3` on a `u8` to a saturating helper,
+   * which gives 0 where this arithmetic gives -1, and `E + E` of two `u8`
+   * 200s to 255 where it gives 400. A folded -1 was a false negative index
+   * and a false division by zero, and a folded 400 sized an array past the
+   * value the program holds. When an operand's type cannot hold the result,
+   * the expression is not given a value: an unknown is not reported against.
+   * A literal operand has no type of its own (ADR-052).
+   */
+  private static _heldByOperands(
+    value: number,
+    operands: readonly IFoldedConstant[],
+  ): boolean {
+    if (!Number.isSafeInteger(value)) return false;
+    return operands.every((operand) => {
+      if (operand.typeName === null) return true;
+      const range = TypeCheckUtils.integerRange(operand.typeName);
+      return (
+        range !== null && BigInt(value) >= range[0] && BigInt(value) <= range[1]
+      );
+    });
   }
 
   /**
@@ -183,12 +200,12 @@ class ArrayDimensionParser {
   private static _resolveOperand(
     text: string,
     options?: IConstantEvalOptions,
-  ): number | undefined {
+  ): IFoldedConstant | undefined {
     const literal = LiteralUtils.parseIntegerLiteral(text);
     if (literal !== undefined) {
-      return literal;
+      return { value: literal, typeName: null };
     }
-    return options?.constValues?.get(text);
+    return options?.constantOf?.(text);
   }
 
   /**
@@ -334,7 +351,7 @@ class ArrayDimensionParser {
       (sizeExpr, dimensions) => {
         // Issue #1127: takes the same options every other entry point takes.
         // Without them this was the one entry point that structurally could
-        // not reach constValues or typeWidths, so `u8 buf[SIZE]` recorded
+        // not reach the const lookups or typeWidths, so `u8 buf[SIZE]` recorded
         // UNRESOLVED_DIMENSION while `u8[SIZE] buf` -- the other branch of the
         // very same function -- recorded 6.
         const size = sizeExpr

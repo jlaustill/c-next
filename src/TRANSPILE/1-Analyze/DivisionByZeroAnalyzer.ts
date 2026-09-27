@@ -20,7 +20,6 @@ import IDivisionByZeroError from "./types/IDivisionByZeroError";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import ConstantExpression from "./helpers/ConstantExpression";
 import BoundDeclaration from "./helpers/BoundDeclaration";
 
 /**
@@ -108,22 +107,23 @@ class DivisionByZeroListener extends CNextListener {
    * everywhere else and a const from an included file is found (#1220).
    */
   private isConstZero(name: string, at: ParserRuleContext): boolean {
-    const declared = BoundDeclaration.of(
-      this.context.program.bindValue(
-        this.context.sourceFile,
-        null,
-        name,
-        ParserUtils.getPosition(at),
-      ),
+    const binding = this.context.program.bindValue(
+      this.context.sourceFile,
+      null,
+      name,
+      ParserUtils.getPosition(at),
     );
-    if (declared === null || !declared.isConst) return false;
+    const declared = BoundDeclaration.of(binding);
+    if (binding === null || declared === null || !declared.isConst) {
+      return false;
+    }
     if (
       declared.initialValue !== null &&
       LiteralUtils.isZeroText(declared.initialValue)
     ) {
       return true;
     }
-    return ConstantExpression.visibleAt(at, this.context).get(name) === 0;
+    return this.context.program.constantOf(binding)?.value === 0;
   }
 }
 

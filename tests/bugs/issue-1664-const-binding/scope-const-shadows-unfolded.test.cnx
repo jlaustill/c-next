@@ -1,0 +1,23 @@
+// test-execution
+// #1664 review of C11: a scope's own `N` shadows the file-scope `N` whether
+// or not it folds at compile time (ADR-057). The fold built its view from
+// folded consts only, so a scope const that did not fold (`7 % 4`, a C
+// macro, one declared further down) left the global's value in its place:
+// `arr[N]` below read 10 and was a false E0854, and a scope array sized by
+// such an `N` took the global's size silently.
+const u32 N <- 10;
+
+scope S {
+    public const u32 N <- 7 % 4;
+
+    public u8 pick() {
+        u8[4] arr <- [5, 6, 7, 8];
+        return arr[N];
+    }
+}
+
+u32 main() {
+    u8 picked <- S.pick();
+    if (picked != 8) return 1;
+    return 0;
+}

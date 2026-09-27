@@ -4,15 +4,15 @@
  *
  * 1.3 recorded what each frame declares from one file's tree. Settling needs
  * the whole program: a bare type may name a scope type another file declares
- * (ADR-057), and a const local folds against the program's consts. After
+ * (ADR-057), and a const local folds with whatever its names bind to. After
  * this, a frame is frozen and every pass reads the same one.
  *
  * Positions compare as `(line, column)`. Stage 4d and Stage 5 reuse Stage 3's
  * parse, so a node's position is the same in every pass.
  */
-import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
-import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
+import ConstantFold from "../../utils/ConstantFold";
 import DeferredTypes from "./DeferredTypes";
+import type IFoldedConstant from "../../transpiler/types/IFoldedConstant";
 import type ILexicalFrame from "../../transpiler/types/ILexicalFrame";
 import type ILocalDeclaration from "../../transpiler/types/ILocalDeclaration";
 import type ISourceSpan from "../../transpiler/types/ISourceSpan";
@@ -20,23 +20,38 @@ import type ISourceSpan from "../../transpiler/types/ISourceSpan";
 /** A use's position */
 type TPosition = Pick<ISourceSpan, "line" | "column">;
 
+/**
+ * A name's compile-time value where it is used, as the program's binder
+ * decides it. `settled` answers for a local the binder returns: the frames
+ * the binder walks are the unsettled ones, and a local's value is known
+ * once its own declaration has been settled, which source order guarantees
+ * for every local a use can bind.
+ */
+type TConstantAt = (
+  name: string,
+  at: TPosition,
+  settled: (declaration: ILocalDeclaration) => ILocalDeclaration | undefined,
+) => IFoldedConstant | undefined;
+
 class LexicalFrames {
   /**
    * The settled, frozen copy of a file's frames.
    *
    * @param isScopeType the whole program's ADR-057 answer
-   * @param constValuesIn the program's const values visible in a scope
+   * @param constantAt a name's value where it is used, from the one binder
    */
   static settle(
     frame: ILexicalFrame,
     isScopeType: (qualifiedName: string) => boolean,
-    constValuesIn: (scopePath: string) => ReadonlyMap<string, number>,
+    constantAt: TConstantAt,
   ): ILexicalFrame {
+    const settledOf = new Map<ILocalDeclaration, ILocalDeclaration>();
     return LexicalFrames.settleFrame(
       frame,
       isScopeType,
-      new Map(constValuesIn(frame.scopePath)),
-      constValuesIn,
+      (name, at) =>
+        constantAt(name, at, (declaration) => settledOf.get(declaration)),
+      settledOf,
     );
   }
 
@@ -76,26 +91,6 @@ class LexicalFrames {
     return null;
   }
 
-  /** Local consts visible at `at`, over `base` */
-  static constValuesAt(
-    root: ILexicalFrame,
-    at: TPosition,
-    base: ReadonlyMap<string, number>,
-  ): ReadonlyMap<string, number> {
-    const values = new Map(base);
-    for (const frame of LexicalFrames.pathTo(root, at)) {
-      for (const declaration of frame.declarations) {
-        if (
-          declaration.constValue !== null &&
-          LexicalFrames.before(declaration.span, at)
-        ) {
-          values.set(declaration.name, declaration.constValue);
-        }
-      }
-    }
-    return values;
-  }
-
   /** The frames containing `at`, outermost first */
   private static pathTo(root: ILexicalFrame, at: TPosition): ILexicalFrame[] {
     const path = [root];
@@ -115,17 +110,11 @@ class LexicalFrames {
   private static settleFrame(
     frame: ILexicalFrame,
     isScopeType: (qualifiedName: string) => boolean,
-    inherited: ReadonlyMap<string, number>,
-    constValuesIn: (scopePath: string) => ReadonlyMap<string, number>,
+    constantAt: (name: string, at: TPosition) => IFoldedConstant | undefined,
+    settledOf: Map<ILocalDeclaration, ILocalDeclaration>,
   ): ILexicalFrame {
-    // A scope frame starts from the scope's own consts, not its parent's
-    const env =
-      frame.kind === "scope"
-        ? new Map(constValuesIn(frame.scopePath))
-        : new Map(inherited);
-
-    // Declarations and child frames in source order, so a const is visible
-    // to what follows it and to nothing before it.
+    // Declarations and child frames in source order, so each local is
+    // settled before any use that can bind it.
     const declarations: ILocalDeclaration[] = [];
     const children: ILexicalFrame[] = [];
     const items = [
@@ -139,8 +128,8 @@ class LexicalFrames {
           LexicalFrames.settleFrame(
             item.child,
             isScopeType,
-            env,
-            constValuesIn,
+            constantAt,
+            settledOf,
           ),
         );
         continue;
@@ -148,11 +137,9 @@ class LexicalFrames {
       const settled = LexicalFrames.settleDeclaration(
         item.declaration,
         isScopeType,
-        env,
+        (name) => constantAt(name, item.declaration.span),
       );
-      if (settled.constValue !== null) {
-        env.set(settled.name, settled.constValue);
-      }
+      settledOf.set(item.declaration, settled);
       declarations.push(settled);
     }
 
@@ -166,28 +153,24 @@ class LexicalFrames {
   private static settleDeclaration(
     declaration: ILocalDeclaration,
     isScopeType: (qualifiedName: string) => boolean,
-    env: Map<string, number>,
+    constantOf: (name: string) => IFoldedConstant | undefined,
   ): ILocalDeclaration {
     const arrayDimensions = declaration.arrayDimensions.map((dimension) =>
       typeof dimension === "string" && dimension !== ""
-        ? (ArrayDimensionParser.parseText(dimension, {
-            constValues: env,
-            typeWidths: TYPE_WIDTH,
-          }) ?? dimension)
+        ? (ConstantFold.value(dimension, constantOf) ?? dimension)
         : dimension,
     );
+    const type = DeferredTypes.settleType(declaration.type, isScopeType);
     const constValue =
       declaration.isConst &&
       declaration.initialValue !== null &&
       arrayDimensions.length === 0
-        ? (ArrayDimensionParser.parseText(declaration.initialValue, {
-            constValues: env,
-            typeWidths: TYPE_WIDTH,
-          }) ?? null)
+        ? (ConstantFold.declared(declaration.initialValue, type, constantOf) ??
+          null)
         : null;
     return Object.freeze({
       ...declaration,
-      type: DeferredTypes.settleType(declaration.type, isScopeType),
+      type,
       arrayDimensions: Object.freeze(arrayDimensions),
       constValue,
     });

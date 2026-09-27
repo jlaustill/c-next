@@ -70,19 +70,25 @@ describe("dimensionEvalOptions", () => {
 
   it("folds a local const where it is declared", () => {
     const { state, arrays } = setUp(SHADOWED);
-    expect(dimensionEvalOptions(state, arrays[0]).constValues.get("N")).toBe(2);
+    expect(
+      dimensionEvalOptions(state, arrays[0]).constantOf?.("N")?.value,
+    ).toBe(2);
   });
 
   it("does not carry a local const into another function", () => {
     // The render walk wrote `first`'s N into one map and never restored the
     // global's, so `second`'s `u8[N]` was sized 2
     const { state, arrays } = setUp(SHADOWED);
-    expect(dimensionEvalOptions(state, arrays[1]).constValues.get("N")).toBe(8);
+    expect(
+      dimensionEvalOptions(state, arrays[1]).constantOf?.("N")?.value,
+    ).toBe(8);
   });
 
   it("does not carry an inner block's const past the block", () => {
     const { state, arrays } = setUp(SHADOWED);
-    expect(dimensionEvalOptions(state, arrays[2]).constValues.get("N")).toBe(8);
+    expect(
+      dimensionEvalOptions(state, arrays[2]).constantOf?.("N")?.value,
+    ).toBe(8);
   });
 
   it("supplies exactly the lookups the evaluator consumes", () => {
@@ -92,7 +98,7 @@ describe("dimensionEvalOptions", () => {
     // prevent. It was removed rather than propagated.
     const { state, arrays } = setUp(SHADOWED);
     expect(Object.keys(dimensionEvalOptions(state, arrays[0])).sort()).toEqual([
-      "constValues",
+      "constantOf",
       "typeWidths",
     ]);
   });

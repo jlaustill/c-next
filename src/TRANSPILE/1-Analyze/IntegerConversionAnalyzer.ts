@@ -59,6 +59,7 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
+import invariant from "../../utils/invariant";
 import ParserUtils from "../../utils/ParserUtils";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import OperandTyper from "../../utils/OperandTyper";
@@ -161,7 +162,6 @@ class IntegerConversionListener extends CNextListener {
     // BigInt, not parseInt: a u64 bound is past 2^53, where a double stops
     // being exact and `0xFFFFFFFFFFFFFFFF` would round into range.
     const value = text.startsWith("-") ? -BigInt(text.slice(1)) : BigInt(text);
-    const width = BigInt(TYPE_WIDTH[target]);
 
     if (TypeCheckUtils.isUnsigned(target) && value < 0n) {
       this.report(
@@ -172,9 +172,9 @@ class IntegerConversionListener extends CNextListener {
       );
       return;
     }
-    const [min, max] = TypeCheckUtils.isUnsigned(target)
-      ? [0n, (1n << width) - 1n]
-      : [-(1n << (width - 1n)), (1n << (width - 1n)) - 1n];
+    const range = TypeCheckUtils.integerRange(target);
+    invariant(range, `every caller checks that ${target} is an integer`);
+    const [min, max] = range;
     if (value < min || value > max) {
       this.report(
         at,

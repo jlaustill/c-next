@@ -1,5 +1,5 @@
 import type IFunctionSymbol from "./symbols/IFunctionSymbol";
-import type IVariableSymbol from "./symbols/IVariableSymbol";
+import type IFoldedConstant from "./IFoldedConstant";
 import type ILexicalFrame from "./ILexicalFrame";
 import type ILocalDeclaration from "./ILocalDeclaration";
 import type ISourceSpan from "./ISourceSpan";
@@ -79,27 +79,13 @@ interface IProgram {
   externalStructFields(): ReadonlyMap<string, ReadonlySet<string>>;
 
   /**
-   * #1668: what THIS const is worth, by identity rather than by name. The
-   * name-keyed maps share a bare key across scopes (#1538), so a binding --
-   * which already knows which declaration a spelling means -- asks here.
+   * What a binding is worth at compile time, with the declared type that
+   * holds it: a const local's or a folded global's or scope member's value.
+   * Null for anything else -- a variable, a parameter, an unfolded const, a
+   * scope, a header name. Asked of a binding, so the answer is about the
+   * declaration the spelling means (#1538, #1664 review).
    */
-  constValueOfSymbol(symbol: IVariableSymbol): number | undefined;
-
-  /**
-   * Every const's integer value as seen from inside `scopePath`: file-scope
-   * consts from every file (#1220: a const reached through an include is
-   * worth the same as one declared beside the use), a scoped const under its
-   * C name, and that scope's own consts by bare name over them, in ADR-057's
-   * candidate order. `""` is file scope.
-   *
-   * #1322 review, #1538: a flat map keyed by bare name let two scopes each
-   * declaring `SIZE` share one slot, so the answer was whichever was derived
-   * last -- which rejected a legal program, sized one scope's array by the
-   * other's const, and made ADR-036's bounds check order-dependent. There is
-   * no flat view any more: a caller asks from a scope, or from a position
-   * (`constValuesAt`), which adds the locals declared before it.
-   */
-  constValuesIn(scopePath: string): ReadonlyMap<string, number>;
+  constantOf(binding: TValueBinding): IFoldedConstant | null;
 
   /**
    * Every symbol conflict in the program.
@@ -221,11 +207,17 @@ interface IProgram {
     at: Pick<ISourceSpan, "line" | "column">,
   ): TValueBinding | null;
 
-  /** Const values visible at `at`: the scope's, then the visible const locals */
-  constValuesAt(
+  /**
+   * A bare name's compile-time value where it is used: `constantOf` of what
+   * `bindValue` binds it to. The one question every constant fold asks, so a
+   * parameter, a variable or an unfolded const shadows a folded const of the
+   * same name exactly as it does for typing (#1664 review).
+   */
+  constantAt(
     sourceFile: string,
+    name: string,
     at: Pick<ISourceSpan, "line" | "column">,
-  ): ReadonlyMap<string, number>;
+  ): IFoldedConstant | null;
 
   /**
    * ADR-049: the run's one target, settled from every file's pragmas and the

@@ -19,6 +19,7 @@ import INTEGER_TYPES from "../transpiler/types/INTEGER_TYPES";
 import UNSIGNED_TYPES from "../transpiler/types/UNSIGNED_TYPES";
 import SIGNED_TYPES from "../transpiler/types/SIGNED_TYPES";
 import FLOAT_TYPES from "../transpiler/types/FLOAT_TYPES";
+import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
 
 /** Standard bit widths for MMIO optimization */
 const STANDARD_WIDTHS = [8, 16, 32] as const;
@@ -52,6 +53,19 @@ class TypeCheckUtils {
    */
   static isSigned(typeName: string): boolean {
     return (SIGNED_TYPES as readonly string[]).includes(typeName);
+  }
+
+  /**
+   * The values an integer type holds, `[min, max]`, or null for a type that
+   * is not a C-Next integer. BigInt, because a u64 bound is past 2^53, where
+   * a double stops being exact.
+   */
+  static integerRange(typeName: string): readonly [bigint, bigint] | null {
+    if (!TypeCheckUtils.isInteger(typeName)) return null;
+    const width = BigInt(TYPE_WIDTH[typeName]);
+    return TypeCheckUtils.isUnsigned(typeName)
+      ? [0n, (1n << width) - 1n]
+      : [-(1n << (width - 1n)), (1n << (width - 1n)) - 1n];
   }
 
   /**

@@ -17,6 +17,7 @@ import { ParserRuleContext, ParseTree, TerminalNode } from "antlr4ng";
 
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import ArrayDimensionParser from "./ArrayDimensionParser";
+import ConstantFold from "./ConstantFold";
 import ChainRoot from "./ChainRoot";
 import ExpressionUtils from "./ExpressionUtils";
 import ForeignTypeFacts from "./ForeignTypeFacts";
@@ -203,11 +204,7 @@ class OperandTyper {
         ParserUtils.getPosition(inner),
       );
     }
-    if (root?.kind === "local") return root.declaration.constValue;
-    if (root?.kind === "variable") {
-      return ctx.program.constValueOfSymbol(root.symbol) ?? null;
-    }
-    return null;
+    return root === null ? null : (ctx.program.constantOf(root)?.value ?? null);
   }
 
   /**
@@ -1204,11 +1201,10 @@ class OperandTyper {
     ctx: ITypingContext,
   ): number | null {
     if (!widthExpr) return null;
-    const value = ArrayDimensionParser.parseText(widthExpr.getText(), {
-      constValues: new Map(
-        ctx.program.constValuesAt(ctx.sourceFile, ParserUtils.getPosition(at)),
-      ),
-    });
+    const value = ArrayDimensionParser.parseText(
+      widthExpr.getText(),
+      ConstantFold.at(ctx.program, ctx.sourceFile, ParserUtils.getPosition(at)),
+    );
     return value !== undefined && value > 0 ? value : null;
   }
 

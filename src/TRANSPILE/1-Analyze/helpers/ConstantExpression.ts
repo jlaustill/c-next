@@ -15,16 +15,16 @@
  * own comments cite #1399 for, arriving through a different map.
  *
  * Asking from a position is ADR-057's candidate order -- locals, then the
- * enclosing scope, then file scope -- which
- * `ConstAssignmentAnalyzer.constSymbol`, `RegisterAccessAnalyzer.isFalseConst`
- * and `ShiftAnalyzer.constValue` had each derived separately for const-ness
- * while the VALUE lookups kept the flat one.
+ * enclosing scope, then file scope -- and it is the program's one binder that
+ * walks it (`ConstantFold.at`), the same binder typing uses. A name bound to
+ * a variable, a parameter or an unfolded const has no value, so it shadows a
+ * folded const of the same name instead of letting that one answer (#1664
+ * review).
  */
 
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
-import TYPE_WIDTH from "../../../transpiler/constants/TYPE_WIDTH";
 import ArrayDimensionParser from "../../../utils/ArrayDimensionParser";
-import type { ParserRuleContext } from "antlr4ng";
+import ConstantFold from "../../../utils/ConstantFold";
 import ParserUtils from "../../../utils/ParserUtils";
 import type IAnalysisContext from "../types/IAnalysisContext";
 
@@ -47,21 +47,14 @@ class ConstantExpression {
     context: IAnalysisContext,
   ): number | null {
     return (
-      ArrayDimensionParser.parseSingleDimension(expr, {
-        constValues: ConstantExpression.visibleAt(expr, context),
-        typeWidths: TYPE_WIDTH,
-      }) ?? null
-    );
-  }
-
-  /** The const values visible at `node`, as 1.4 settled them */
-  static visibleAt(
-    node: ParserRuleContext,
-    context: IAnalysisContext,
-  ): ReadonlyMap<string, number> {
-    return context.program.constValuesAt(
-      context.sourceFile,
-      ParserUtils.getPosition(node),
+      ArrayDimensionParser.parseSingleDimension(
+        expr,
+        ConstantFold.at(
+          context.program,
+          context.sourceFile,
+          ParserUtils.getPosition(expr),
+        ),
+      ) ?? null
     );
   }
 }
