@@ -17,10 +17,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * The walk cases assert "does not throw" over the four slots a function name
  * can land in and the shapes that are not slots.
  *
- * The first case keeps an EMPTY program on purpose: it is the precondition
- * that with nothing declared neither rule can report, so an empty result
- * there says nothing about the walk -- the guard-that-cannot-fail shape the
- * reporting cases below exist to avoid.
+ * The first case keeps an EMPTY program on purpose. It used to assert that
+ * with nothing declared neither rule can report; since the analyzer asks
+ * Program where each node sits (#1668), an empty program is refused loudly
+ * instead, which is the better answer to a caller error than silence.
  *
  * #1322 review: the `with a program behind it` block below asserts the two
  * rules actually fire, with a control beside each.
@@ -30,8 +30,8 @@ const build = (source: string) => {
   return new CallbackAssignmentAnalyzer(context).analyze(tree);
 };
 
-// Only the empty-program precondition below: it asserts what an EMPTY program
-// yields, which a real declared program cannot stand in for.
+// Only the empty-program case below: it asserts what an EMPTY program does,
+// which a real declared program cannot stand in for.
 const findings = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
   return new CallbackAssignmentAnalyzer(
@@ -41,11 +41,11 @@ const findings = (source: string) => {
 
 describe("CallbackAssignmentAnalyzer", () => {
   // Same as `FunctionReference`: the context always carries a program, so
-  // "absent" is unrepresentable. What this checks is an empty one.
-  it("returns no findings when the program declares no struct fields", () => {
-    // Without a declared `Program` neither rule can name a function, so the
-    // analyzer is silent by construction.
-    expect(
+  // "absent" is unrepresentable. What this checks is an empty one: a program
+  // that does not hold the file is a caller error (#1668), refused rather than
+  // answered "nothing is declared", which is how this case used to pass.
+  it("refuses a program that does not hold the file", () => {
+    expect(() =>
       findings(
         [
           "struct P { u32 x; }",
@@ -55,7 +55,7 @@ describe("CallbackAssignmentAnalyzer", () => {
           "void t() { H h; h.down <- onUp; }",
         ].join("\n"),
       ),
-    ).toEqual([]);
+    ).toThrow("is a file of this program");
   });
 
   it("walks every slot and every construct without throwing", () => {

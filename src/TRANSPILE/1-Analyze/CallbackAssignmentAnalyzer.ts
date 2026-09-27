@@ -48,13 +48,13 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IFunctionSymbol from "../../transpiler/types/symbols/IFunctionSymbol";
 import ParserUtils from "../../utils/ParserUtils";
 import TypeResolver from "../../utils/TypeResolver";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import OperandTyper from "../../utils/OperandTyper";
 import FunctionReference from "./helpers/FunctionReference";
 import StructInitializerType from "./helpers/StructInitializerType";
-import OperandTypeResolver from "./OperandTypeResolver";
-import ScopeFrameResolver from "./ScopeFrameResolver";
+import AssignmentSiteListener from "./AssignmentSiteListener";
 import ICallbackAssignmentError from "./types/ICallbackAssignmentError";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import type TAssignmentSite from "./types/TAssignmentSite";
 
 /** Where a function name landed, for the message. */
 interface ISlot {
@@ -66,11 +66,7 @@ class CallbackAssignmentListener extends CNextListener {
   private readonly found: ICallbackAssignmentError[] = [];
   private fieldTypes: ReadonlySet<string> | null = null;
 
-  public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    private readonly operands: OperandTypeResolver,
-    private readonly context: IAnalysisContext,
-  ) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
   }
 
@@ -78,19 +74,16 @@ class CallbackAssignmentListener extends CNextListener {
     return this.found;
   }
 
-  /** `target <- f`, any target shape. */
-  override enterAssignmentStatement = (
-    ctx: Parser.AssignmentStatementContext,
-  ): void => {
-    const target = ctx.assignmentTarget();
-    const frame = this.scopes.frameFor(ctx);
+  /** `target <- f`, any target shape, in a statement or a `for` header */
+  public checkSite(site: TAssignmentSite): void {
+    const target = site.assignmentTarget();
     const description = CallbackAssignmentListener.describeTarget(target);
     this.check(
-      this.operands.typeOfAssignmentTarget(target, frame),
-      ctx.expression(),
+      OperandTyper.typeOfTarget(target, this.context)?.typeName ?? null,
+      site.expression(),
       { verb: "assign", description },
     );
-  };
+  }
 
   /** `onDown cb <- f`, in a function, a scope, at file scope. */
   override enterVariableDeclaration = (
@@ -110,13 +103,7 @@ class CallbackAssignmentListener extends CNextListener {
   ): void => {
     const init = ctx.parent?.parent;
     if (!(init instanceof Parser.StructInitializerContext)) return;
-    const frame = this.scopes.frameFor(ctx);
-    const structName = StructInitializerType.of(
-      init,
-      frame,
-      this.operands,
-      this.context,
-    );
+    const structName = StructInitializerType.of(init, this.context);
     if (structName === null) return;
     const fieldName = ctx.IDENTIFIER().getText();
     this.check(
@@ -132,8 +119,11 @@ class CallbackAssignmentListener extends CNextListener {
   ): void => {
     const call = ctx.postfixOp().find((op) => op.LPAREN() !== null);
     if (call === undefined) return;
-    const frame = this.scopes.frameFor(ctx);
-    const callee = FunctionReference.ofCall(ctx, frame.scopePath, this.context);
+    const callee = FunctionReference.ofCall(
+      ctx,
+      OperandTyper.scopePathAt(ctx, this.context),
+      this.context,
+    );
     if (callee === null) return;
     const args = call.argumentList()?.expression() ?? [];
     args.forEach((arg, index) => {
@@ -183,7 +173,7 @@ class CallbackAssignmentListener extends CNextListener {
     slot: ISlot,
   ): void {
     if (slotTypeText === null) return;
-    const scopePath = this.scopes.frameFor(value).scopePath;
+    const scopePath = OperandTyper.scopePathAt(value, this.context);
     const expected = FunctionReference.ofTypeText(
       slotTypeText,
       scopePath,
@@ -317,19 +307,16 @@ class CallbackAssignmentAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): ICallbackAssignmentError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-    const scopes = new ScopeFrameResolver(
-      declarations,
-      this.context.symbolTable,
-    );
-    const listener = new CallbackAssignmentListener(
-      scopes,
-      new OperandTypeResolver(scopes, this.context),
-      this.context,
-    );
+    const listener = new CallbackAssignmentListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+    ParseTreeWalker.DEFAULT.walk(
+      new AssignmentSiteListener((site) => listener.checkSite(site)),
+      tree,
+    );
+    // Reported in source order, as the one walk these replace did
+    return listener
+      .errors()
+      .sort((a, b) => a.line - b.line || a.column - b.column);
   }
 }
 

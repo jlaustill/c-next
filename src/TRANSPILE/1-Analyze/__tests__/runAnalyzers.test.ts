@@ -2,15 +2,12 @@
  * Unit tests for runAnalyzers
  * Tests that all analyzers run in sequence with early returns on errors
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import runAnalyzers from "../runAnalyzers";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
-import TranspileState from "../../TranspileState";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
-import Program from "../../../PARSE/4-Resolve/Program";
-import testAnalysisContext from "./testAnalysisContext";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
@@ -40,25 +37,29 @@ const NO_INCLUDES = {
  */
 function parseWithComments(source: string) {
   const { tree, comments } = CNextSourceParser.parse(source);
-  return { tree, comments };
+  return {
+    tree,
+    comments,
+    /**
+     * #1668: 2.1's context over this source declared and resolved, never an
+     * empty stand-in program -- an analyzer asking Program about a file it
+     * does not hold is a caller error, and an empty one answered every
+     * typing question with "nothing is declared". Program answers by
+     * position, so it matches `tree`, parsed from the same text.
+     */
+    contextWith: (symbolTable: SymbolTable) =>
+      testAnalysisContextFor(source, { symbolTable }).context,
+  };
 }
 
-let state = new TranspileState();
-
 describe("runAnalyzers", () => {
-  // Reset TranspileState before each test
-  beforeEach(() => {
-    state = new TranspileState();
-    state.symbolTable = new SymbolTable();
-  });
-
   // ========================================================================
   // Happy Path
   // ========================================================================
 
   describe("valid code", () => {
     it("should return no errors for valid code", () => {
-      const { tree, comments } = parseWithComments(`
+      const { tree, comments, contextWith } = parseWithComments(`
         void main() {
           u32 x <- 5;
           u32 y <- x + 3;
@@ -66,17 +67,17 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        context: testAnalysisContext(state, { symbolTable: new SymbolTable() }),
+        context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
       expect(errors).toHaveLength(0);
     });
 
     it("should return no errors for empty program", () => {
-      const { tree, comments } = parseWithComments(``);
+      const { tree, comments, contextWith } = parseWithComments(``);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        context: testAnalysisContext(state, { symbolTable: new SymbolTable() }),
+        context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
       expect(errors).toHaveLength(0);
@@ -89,10 +90,11 @@ describe("runAnalyzers", () => {
 
   describe("phase 1 - identifier syntax", () => {
     it("should return early on a trailing-underscore identifier", () => {
-      const { tree, comments } = parseWithComments(`u8 value_ <- 1;`);
+      const { tree, comments, contextWith } =
+        parseWithComments(`u8 value_ <- 1;`);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        context: testAnalysisContext(state, { symbolTable: new SymbolTable() }),
+        context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
 
@@ -104,10 +106,11 @@ describe("runAnalyzers", () => {
     });
 
     it("should return early on consecutive underscores", () => {
-      const { tree, comments } = parseWithComments(`u8 my__value <- 1;`);
+      const { tree, comments, contextWith } =
+        parseWithComments(`u8 my__value <- 1;`);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        context: testAnalysisContext(state, { symbolTable: new SymbolTable() }),
+        context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
 
@@ -116,7 +119,7 @@ describe("runAnalyzers", () => {
     });
 
     it("should accept a leading underscore (ADR-063)", () => {
-      const { tree, comments } = parseWithComments(`
+      const { tree, comments, contextWith } = parseWithComments(`
         void fn() {
           u8 _local <- 1;
           u8 x <- _local;
@@ -124,7 +127,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        context: testAnalysisContext(state, { symbolTable: new SymbolTable() }),
+        context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
 
@@ -138,14 +141,14 @@ describe("runAnalyzers", () => {
 
   describe("phase 2 - parameter naming", () => {
     it("should return early on parameter naming error", () => {
-      const { tree, comments } = parseWithComments(`
+      const { tree, comments, contextWith } = parseWithComments(`
         void process(u32 process_data) {
           u32 x <- process_data;
         }
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        context: testAnalysisContext(state, { symbolTable: new SymbolTable() }),
+        context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
 
@@ -168,7 +171,7 @@ describe("runAnalyzers", () => {
 
   describe("phase 3 - initialization", () => {
     it("should return early on use-before-init error", () => {
-      const { tree, comments } = parseWithComments(`
+      const { tree, comments, contextWith } = parseWithComments(`
         void main() {
           u32 x;
           u32 y <- x;
@@ -176,7 +179,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        context: testAnalysisContext(state, { symbolTable: new SymbolTable() }),
+        context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
 
@@ -193,7 +196,7 @@ describe("runAnalyzers", () => {
 
   describe("phase 4 - function call", () => {
     it("should return early on call-before-define error", () => {
-      const { tree, comments } = parseWithComments(`
+      const { tree, comments, contextWith } = parseWithComments(`
         void main() {
           helper();
         }
@@ -203,7 +206,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        context: testAnalysisContext(state, { symbolTable: new SymbolTable() }),
+        context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
 
@@ -219,7 +222,7 @@ describe("runAnalyzers", () => {
 
   describe("phase 5 - null check", () => {
     it("should return early on missing null check", () => {
-      const { tree, comments } = parseWithComments(`
+      const { tree, comments, contextWith } = parseWithComments(`
         #include <string.h>
         void main() {
           cstring str <- "hello";
@@ -228,7 +231,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        context: testAnalysisContext(state, { symbolTable: new SymbolTable() }),
+        context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
 
@@ -244,14 +247,14 @@ describe("runAnalyzers", () => {
 
   describe("phase 6 - division by zero", () => {
     it("should return early on division by zero", () => {
-      const { tree, comments } = parseWithComments(`
+      const { tree, comments, contextWith } = parseWithComments(`
         void main() {
           u32 x <- 10 / 0;
         }
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        context: testAnalysisContext(state, { symbolTable: new SymbolTable() }),
+        context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
 
@@ -296,10 +299,10 @@ describe("runAnalyzers", () => {
     it("should return comment errors for nested comment markers", () => {
       // MISRA 3.1: no nested comment start markers inside comments
       const code = "/* outer /* nested */ \nvoid main() { u32 x <- 1; }";
-      const { tree, comments } = parseWithComments(code);
+      const { tree, comments, contextWith } = parseWithComments(code);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        context: testAnalysisContext(state, { symbolTable: new SymbolTable() }),
+        context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
 
@@ -319,29 +322,28 @@ describe("runAnalyzers", () => {
     it("should read externalStructFields from the program artifact", () => {
       // Code that uses a field from an external struct - externalStructFields
       // are now read from TranspileState
-      const { tree, comments } = parseWithComments(`
+      const { tree, comments, contextWith } = parseWithComments(`
         void main() {
           u32 x <- 5;
         }
       `);
 
-      // Set up external struct fields in TranspileState
-      state.symbolTable.addStructField("ExternalStruct", "field1", "u32");
-      state.symbolTable.addStructField("ExternalStruct", "field2", "u32");
-      state.program = Program.build([], {
-        headerStructFields: state.symbolTable.getAllStructFields(),
-      });
+      // The header's struct fields reach 1.4, which builds the program the
+      // analyzers read them from
+      const headers = new SymbolTable();
+      headers.addStructField("ExternalStruct", "field1", "u32");
+      headers.addStructField("ExternalStruct", "field2", "u32");
 
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        context: testAnalysisContext(state, { symbolTable: new SymbolTable() }),
+        context: contextWith(headers),
         includes: NO_INCLUDES,
       });
       expect(errors).toHaveLength(0);
     });
 
     it("should pass symbolTable to analyzers", () => {
-      const { tree, comments } = parseWithComments(`
+      const { tree, comments, contextWith } = parseWithComments(`
         void main() {
           u32 x <- 5;
         }
@@ -359,7 +361,7 @@ describe("runAnalyzers", () => {
       });
 
       const errors = runAnalyzers(tree, comments, {
-        context: testAnalysisContext(state, { symbolTable }),
+        context: contextWith(symbolTable),
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -380,7 +382,7 @@ describe("runAnalyzers", () => {
       // shape. Making it prove the route needs a fact the caller's table
       // carries and the mock `symbols` view does not -- see #1663, which holds
       // the measurement rather than leaving this comment as the only record.
-      const { tree, comments } = parseWithComments(`
+      const { tree, comments, contextWith } = parseWithComments(`
         void main() {
           u32 x <- 5;
         }
@@ -396,13 +398,10 @@ describe("runAnalyzers", () => {
         visibility: "public",
       });
       caller.addStructField("CppMessage", "pgn", "u16");
-      state.program = Program.build([], {
-        headerStructFields: caller.getAllStructFields(),
-      });
 
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        context: testAnalysisContext(state, { symbolTable: caller }),
+        context: contextWith(caller),
         includes: NO_INCLUDES,
       });
       expect(errors).toHaveLength(0);
@@ -415,14 +414,14 @@ describe("runAnalyzers", () => {
 
   describe("error format", () => {
     it("should include line, column, message, and severity on all errors", () => {
-      const { tree, comments } = parseWithComments(`
+      const { tree, comments, contextWith } = parseWithComments(`
         void main() {
           u32 x <- 10 / 0;
         }
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        context: testAnalysisContext(state, { symbolTable: new SymbolTable() }),
+        context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
 

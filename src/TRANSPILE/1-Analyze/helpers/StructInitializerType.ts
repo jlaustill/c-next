@@ -17,8 +17,7 @@ import { ParserRuleContext } from "antlr4ng";
 
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import TypeResolver from "../../../utils/TypeResolver";
-import OperandTypeResolver from "../OperandTypeResolver";
-import IScopeFrame from "../types/IScopeFrame";
+import OperandTyper from "../../../utils/OperandTyper";
 import FunctionReference from "./FunctionReference";
 import type IAnalysisContext from "../types/IAnalysisContext";
 
@@ -26,19 +25,16 @@ class StructInitializerType {
   /** The struct's C name, or null when nothing establishes one. */
   static of(
     init: Parser.StructInitializerContext,
-    frame: IScopeFrame,
-    operands: OperandTypeResolver,
     context: IAnalysisContext,
   ): string | null {
-    const typeText = StructInitializerType.establishedTypeText(
-      init,
-      frame,
-      operands,
-      context,
-    );
+    const typeText = StructInitializerType.establishedTypeText(init, context);
     return typeText === null
       ? null
-      : StructInitializerType.structNamed(typeText, frame.scopePath, context);
+      : StructInitializerType.structNamed(
+          typeText,
+          OperandTyper.scopePathAt(init, context),
+          context,
+        );
   }
 
   /** The struct a type spelling names, as keyed in `structFields`, or null. */
@@ -108,8 +104,6 @@ class StructInitializerType {
    */
   static establishedTypeText(
     init: Parser.StructInitializerContext,
-    frame: IScopeFrame,
-    operands: OperandTypeResolver,
     context: IAnalysisContext,
   ): string | null {
     let child: ParserRuleContext = init;
@@ -118,8 +112,6 @@ class StructInitializerType {
       const established = StructInitializerType.typeEstablishedBy(
         cursor,
         child,
-        frame,
-        operands,
         context,
       );
       if (established !== undefined) return established;
@@ -136,8 +128,6 @@ class StructInitializerType {
   private static typeEstablishedBy(
     cursor: ParserRuleContext,
     child: ParserRuleContext,
-    frame: IScopeFrame,
-    operands: OperandTypeResolver,
     context: IAnalysisContext,
   ): string | null | undefined {
     if (
@@ -147,16 +137,19 @@ class StructInitializerType {
       return cursor.type()?.getText() ?? null;
     }
     if (cursor instanceof Parser.FieldInitializerContext) {
-      return StructInitializerType.fieldType(cursor, frame, operands, context);
+      return StructInitializerType.fieldType(cursor, context);
     }
     if (cursor instanceof Parser.AssignmentStatementContext) {
-      return operands.typeOfAssignmentTarget(cursor.assignmentTarget(), frame);
+      return (
+        OperandTyper.typeOfTarget(cursor.assignmentTarget(), context)
+          ?.typeName ?? null
+      );
     }
     if (cursor instanceof Parser.ReturnStatementContext) {
       return StructInitializerType.enclosingReturnType(cursor);
     }
     if (cursor instanceof Parser.ArgumentListContext) {
-      return StructInitializerType.parameterType(cursor, child, frame, context);
+      return StructInitializerType.parameterType(cursor, child, context);
     }
     if (cursor instanceof Parser.PostfixOpContext) {
       return null; // a subscript's expression: no struct is expected there
@@ -167,18 +160,11 @@ class StructInitializerType {
   /** The declared type of the field an enclosing initializer is setting. */
   private static fieldType(
     field: Parser.FieldInitializerContext,
-    frame: IScopeFrame,
-    operands: OperandTypeResolver,
     context: IAnalysisContext,
   ): string | null {
     const outer = field.parent?.parent;
     if (!(outer instanceof Parser.StructInitializerContext)) return null;
-    const structName = StructInitializerType.of(
-      outer,
-      frame,
-      operands,
-      context,
-    );
+    const structName = StructInitializerType.of(outer, context);
     if (structName === null) return null;
     return (
       context.symbols.structFields
@@ -201,7 +187,6 @@ class StructInitializerType {
   private static parameterType(
     args: Parser.ArgumentListContext,
     argument: ParserRuleContext,
-    frame: IScopeFrame,
     context: IAnalysisContext,
   ): string | null {
     // `indexOf` needs the array's own element type; an argument that is not
@@ -214,7 +199,11 @@ class StructInitializerType {
     if (index < 0 || !(postfix instanceof Parser.PostfixExpressionContext)) {
       return null;
     }
-    const callee = FunctionReference.ofCall(postfix, frame.scopePath, context);
+    const callee = FunctionReference.ofCall(
+      postfix,
+      OperandTyper.scopePathAt(postfix, context),
+      context,
+    );
     const param = callee?.parameters[index];
     return param === undefined ? null : TypeResolver.getTypeName(param.type);
   }

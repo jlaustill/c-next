@@ -489,6 +489,17 @@ class OperandTyper {
   }
 
   /**
+   * The scope path enclosing a node, from Program's lexical frames: the one
+   * answer to "which scope is this in", which ADR-057 name lookups start from.
+   */
+  static scopePathAt(node: ParserRuleContext, ctx: ITypingContext): string {
+    return ctx.program.lexicalFrameAt(
+      ctx.sourceFile,
+      ParserUtils.getPosition(node),
+    ).scopePath;
+  }
+
+  /**
    * A written type -- a cast's, a declaration's -- resolved by 1.3's one
    * ladder (`TypeBinding`), so `this.T`, `global.T`, `Scope.T` and a bare `T`
    * name what they name everywhere else; qualifying the source text by hand
