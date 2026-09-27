@@ -139,7 +139,6 @@ async function transpileAndWriteCppSnapshot(
     const result = await pipeline.transpile({
       kind: "source",
       source,
-      workingDir: dirname(cnxFile),
       sourcePath: cnxFile,
     });
 

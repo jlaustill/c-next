@@ -1,0 +1,109 @@
+// test-execution
+// test-no-warnings
+// ADR-029 makes a function a type, and a value of that type -- a struct field,
+// a local, a parameter -- holds a function with that function's parameters.
+// A call through it must shape its arguments the way a direct call to the
+// function does. It shaped them with no parameters in view at all, so a struct
+// argument went by value where the typedef takes a pointer: `h.onPeek(p)`
+// against `const Point*` is "incompatible type for argument 1" in C, while the
+// transpiler exited 0. C++ compiled only because its typedef takes a reference.
+//
+// Controls: a primitive argument goes by value through the typedef exactly as
+// it does in a direct call, and the direct calls themselves are unchanged.
+
+struct Point {
+    u32 x;
+}
+
+u32 peek(Point p) {
+    return p.x;
+}
+
+void poke(Point p) {
+    p.x <- p.x + 5;
+}
+
+u32 twice(u32 v) {
+    return v * 2;
+}
+
+Point shifted(Point p) {
+    Point out <- { x: p.x + 1 };
+    return out;
+}
+
+struct Handlers {
+    peek onPeek;
+    poke onPoke;
+    twice onTwice;
+    shifted onShift;
+}
+
+// The defect, through a parameter of the callback type.
+u32 peekVia(peek cb, Point p) {
+    return cb(p);
+}
+
+// #1561: a local struct through a parameter of the callback type takes its
+// address, as a direct call does -- the other argument form of the defect.
+u32 peekLocalVia(peek cb) {
+    Point local <- { x: 30 };
+    return cb(local);
+}
+
+// #1561 control: a primitive through a parameter of the callback type stays
+// by value, so a fix that takes the address of every argument fails here.
+u32 twiceVia(twice cb, u32 v) {
+    return cb(v);
+}
+
+i32 main() {
+    Handlers h;
+    h.onPeek <- peek;
+    h.onPoke <- poke;
+    h.onTwice <- twice;
+    h.onShift <- shifted;
+
+    Point p <- { x: 7 };
+
+    // The defect: a struct argument through a struct field.
+    u32 viaField <- h.onPeek(p);
+    if (viaField != 7) return 1;
+
+    // Through a field whose function writes its parameter: the write must
+    // reach the caller's value, so the argument is its address.
+    h.onPoke(p);
+    if (p.x != 12) return 2;
+
+    // Through a local of the callback type.
+    peek local <- peek;
+    u32 viaLocal <- local(p);
+    if (viaLocal != 12) return 3;
+
+    // Through a parameter of the callback type.
+    u32 viaParam <- peekVia(peek, p);
+    if (viaParam != 12) return 4;
+
+    // Through a field, with a member of the result read after the call: the
+    // value called is `h.onShift`, not the whole expression.
+    u32 shiftedX <- h.onShift(p).x;
+    if (shiftedX != 13) return 5;
+
+    // Control: a primitive goes by value, through the field and directly.
+    u32 n <- 21;
+    u32 viaTwice <- h.onTwice(n);
+    if (viaTwice != 42) return 6;
+    u32 direct <- twice(n);
+    if (direct != 42) return 7;
+
+    // Control: the direct call to the struct function is unchanged.
+    u32 directPeek <- peek(p);
+    if (directPeek != 12) return 8;
+
+    u32 viaParamLocal <- peekLocalVia(peek);
+    if (viaParamLocal != 30) return 9;
+    u32 viaParamScalar <- twiceVia(twice, n);
+    if (viaParamScalar != 42) return 10;
+
+    return 0;
+}

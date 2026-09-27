@@ -1,0 +1,60 @@
+// test-execution
+// test-no-warnings
+// test-adr: 030
+// test-link: dev_impl.c
+// ADR-030 makes a variable of an opaque type a pointer, and the `.c` applied
+// it: `Dev* gdev = {0};`. The generated header declared the same variable from
+// its own reading of the type -- `extern Dev gdev;` -- and since the `.c`
+// includes its own header, the pair was a conflicting-types error in one
+// translation unit, while the transpiler exited 0.
+//
+// The header has one declaration path for every variable it exports, so the
+// same defect reached an array of handles (`extern Dev gdevs[2];`) and a
+// public scope member (`extern Dev Board__primary;`). Each is declared from the
+// decision its definition was made from.
+//
+// An element of a file-scope array of handles is the handle itself, so it
+// reaches a C function without an `&` -- the #996 rule for scope members.
+#include "dev.h"
+
+Dev gdev;
+Dev[2] gdevs;
+
+scope Board {
+    public Dev primary;
+    public Dev[2] spares;
+
+    public void attach() {
+        this.primary <- global.dev_create();
+        this.spares[0] <- global.dev_create();
+        this.spares[1] <- global.dev_create();
+    }
+
+    public void pokeAll() {
+        global.dev_poke(this.primary);
+        global.dev_poke(this.spares[0]);
+        global.dev_poke(this.spares[1]);
+    }
+}
+
+i32 main() {
+    gdev <- dev_create();
+    dev_poke(gdev);
+    i32 single <- dev_pokes(gdev);
+    if (single != 1) return 1;
+
+    gdevs[0] <- dev_create();
+    gdevs[1] <- dev_create();
+    dev_poke(gdevs[1]);
+    i32 element <- dev_pokes(gdevs[1]);
+    if (element != 1) return 2;
+
+    Board.attach();
+    Board.pokeAll();
+    i32 primary <- dev_pokes(Board.primary);
+    if (primary != 1) return 3;
+    i32 spare <- dev_pokes(Board.spares[1]);
+    if (spare != 1) return 4;
+
+    return 0;
+}

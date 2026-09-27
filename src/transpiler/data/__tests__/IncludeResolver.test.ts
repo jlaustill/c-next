@@ -253,6 +253,30 @@ describe("IncludeResolver", () => {
   });
 
   // ========================================================================
+  // An include that resolves to nothing (#1435)
+  // ========================================================================
+
+  describe("hasForeignInclude for an include that resolves to nothing", () => {
+    // An unresolved `<system.h>` still supplies C names at compile time, so it
+    // counts. An unresolved `.cnx` is not a C or C++ header, found or not. It
+    // counted until #1435 made reaching a header transitive, and then one
+    // missing include inside an included file switched E0426 off for every
+    // file that reached it.
+    it.each([
+      ['#include "gone.cnx"', false],
+      ["#include <gone.cnx>", false],
+      ['#include "gone.cnext"', false],
+      ['#include "gone.h"', true],
+      ["#include <gone.h>", true],
+    ])("%s -> %s", (content, expected) => {
+      const result = new IncludeResolver([includeDir], ".h").resolve(content);
+
+      expect(result.cnextIncludes).toHaveLength(0);
+      expect(result.hasForeignInclude).toBe(expected);
+    });
+  });
+
+  // ========================================================================
   // buildSearchPaths()
   // ========================================================================
 
@@ -481,6 +505,16 @@ describe("IncludeResolver", () => {
   // ========================================================================
 
   describe("resolveHeadersTransitively()", () => {
+    /** Each header as a root searched along `dir` (#1723). */
+    const rootsAlong = (
+      headers: ReadonlyArray<{
+        path: string;
+        type: EFileType;
+        extension: string;
+      }>,
+      dir: string,
+    ) => headers.map((file) => ({ file, searchPaths: [dir] }));
+
     it("should resolve single header without nested includes", () => {
       // types.h has no includes
       const rootHeaders = [
@@ -491,9 +525,9 @@ describe("IncludeResolver", () => {
         },
       ];
 
-      const result = IncludeResolver.resolveHeadersTransitively(rootHeaders, [
-        includeDir,
-      ]);
+      const result = IncludeResolver.resolveHeadersTransitively(
+        rootsAlong(rootHeaders, includeDir),
+      );
 
       expect(result.headers).toHaveLength(1);
       expect(result.headers[0].path).toContain("types.h");
@@ -518,9 +552,9 @@ describe("IncludeResolver", () => {
         },
       ];
 
-      const result = IncludeResolver.resolveHeadersTransitively(rootHeaders, [
-        nestedDir,
-      ]);
+      const result = IncludeResolver.resolveHeadersTransitively(
+        rootsAlong(rootHeaders, nestedDir),
+      );
 
       // Should have both headers, base.h first (dependency order)
       expect(result.headers).toHaveLength(2);
@@ -543,9 +577,9 @@ describe("IncludeResolver", () => {
         },
       ];
 
-      const result = IncludeResolver.resolveHeadersTransitively(rootHeaders, [
-        circularDir,
-      ]);
+      const result = IncludeResolver.resolveHeadersTransitively(
+        rootsAlong(rootHeaders, circularDir),
+      );
 
       // Should complete without hanging, include both headers once
       expect(result.headers).toHaveLength(2);
@@ -571,9 +605,9 @@ describe("IncludeResolver", () => {
         },
       ];
 
-      const result = IncludeResolver.resolveHeadersTransitively(rootHeaders, [
-        generatedDir,
-      ]);
+      const result = IncludeResolver.resolveHeadersTransitively(
+        rootsAlong(rootHeaders, generatedDir),
+      );
 
       // Should only include user.h, skip generated.h
       expect(result.headers).toHaveLength(1);
@@ -596,9 +630,9 @@ describe("IncludeResolver", () => {
         },
       ];
 
-      const result = IncludeResolver.resolveHeadersTransitively(rootHeaders, [
-        warningDir,
-      ]);
+      const result = IncludeResolver.resolveHeadersTransitively(
+        rootsAlong(rootHeaders, warningDir),
+      );
 
       expect(result.headers).toHaveLength(1);
       expect(result.warnings.some((w) => w.includes("missing.h"))).toBe(true);
@@ -619,41 +653,55 @@ describe("IncludeResolver", () => {
       const alreadyProcessed = new Set([join(processedDir, "already.h")]);
 
       const result = IncludeResolver.resolveHeadersTransitively(
-        rootHeaders,
-        [processedDir],
+        rootsAlong(rootHeaders, processedDir),
         { processedPaths: alreadyProcessed },
       );
 
       // Should skip the already-processed header
       expect(result.headers).toHaveLength(0);
     });
+
+    it("searches a root's own includes along that root's path, and says so (#1723)", () => {
+      const libA = join(testDir, "libA");
+      const libB = join(testDir, "libB");
+      mkdirSync(libA, { recursive: true });
+      mkdirSync(libB, { recursive: true });
+      writeFileSync(join(libA, "a.h"), '#include "b.h"\nvoid a(void);');
+      writeFileSync(join(libB, "b.h"), "void b(void);");
+      const aHeader = {
+        path: join(libA, "a.h"),
+        type: EFileType.CHeader,
+        extension: ".h",
+      };
+
+      const along = IncludeResolver.resolveHeadersTransitively([
+        { file: aHeader, searchPaths: [libA, libB] },
+      ]);
+      // Control: the same root on a path without libB, as every header was
+      // searched before -- b.h is not found and is warned about.
+      const without = IncludeResolver.resolveHeadersTransitively([
+        { file: aHeader, searchPaths: [libA] },
+      ]);
+
+      expect(along.headers.map((h) => h.path)).toEqual([
+        join(libB, "b.h"),
+        join(libA, "a.h"),
+      ]);
+      expect(along.warnings).toEqual([]);
+      expect(along.searchPaths.get(join(libB, "b.h"))).toEqual([libA, libB]);
+      expect(without.headers.map((h) => h.path)).toEqual([join(libA, "a.h")]);
+      expect(without.warnings.some((w) => w.includes("b.h"))).toBe(true);
+    });
   });
 
   // ========================================================================
-  // Issue #1319 review: the `null` header-extension contract
-  //
-  // `null` means "this caller does not read headerIncludeDirectives", which is
-  // what lets IncludeTreeWalker stop claiming `.h` for every C++ run. Reverting
-  // the guard to `this.headerExtension ?? ".h"` left all 6954 unit tests green,
-  // so the invariant this PR introduced was held by a comment -- the same state
-  // `Transpiler.cppDetected` was in before it was sealed.
+  // Issue #1319: the header directive takes the run's extension. It took `null`
+  // for a caller that read no directive until #1435 deleted that caller.
   // ========================================================================
 
-  describe("null header extension (#1319)", () => {
+  describe("header directive extension (#1319)", () => {
     const source = '#include "shared.cnx"';
     const sourcePath = join(srcDir, "main.cnx");
-
-    it("records no header directive when the caller consumes none", () => {
-      const resolver = new IncludeResolver([includeDir], null);
-
-      const result = resolver.resolve(source, sourcePath);
-
-      // The negative control, and the reason it is in the same test: an empty
-      // map is also what an UNRESOLVED include produces, so without proving the
-      // include resolved this assertion would pass while measuring nothing.
-      expect(result.cnextIncludes).toHaveLength(1);
-      expect([...result.headerIncludeDirectives.values()]).toEqual([]);
-    });
 
     it("records one when the caller supplies an extension", () => {
       for (const [ext, expected] of [

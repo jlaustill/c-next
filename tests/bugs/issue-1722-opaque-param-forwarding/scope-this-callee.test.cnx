@@ -1,0 +1,50 @@
+// test-execution
+// test-no-warnings
+// test-adr: 030
+// test-link: dev_impl.c
+// Issue #1722: the scope form. A method forwarding its opaque-handle parameter
+// to another method through `this.` emitted `UI__inner((*w))`.
+//
+// Control: an opaque scope VARIABLE forwarded the same way stays
+// `UI__inner(UI__held)`. It is already a pointer, so it takes neither `*` nor
+// `&` -- which is why the fix is not to pass opaque arguments by reference:
+// that route emits `&UI__held` here, a `Dev**` where a `Dev*` is expected.
+#include "dev.h"
+
+scope UI {
+    Dev held;
+
+    public void inner(Dev w) {
+        global.dev_poke(w);
+    }
+
+    // The defect: `w` was rendered `(*w)` here.
+    public void outer(Dev w) {
+        this.inner(w);
+    }
+
+    // A whole-value use of the parameter: `UI__held = (*w);` before the fix.
+    public void hold(Dev w) {
+        this.held <- w;
+    }
+
+    // Control: the scope variable is forwarded unchanged.
+    public void pokeHeld() {
+        this.inner(this.held);
+    }
+}
+
+i32 main() {
+    Dev d <- dev_create();
+
+    UI.outer(d);
+    i32 afterOuter <- dev_pokes(d);
+    if (afterOuter != 1) return 1;
+
+    UI.hold(d);
+    UI.pokeHeld();
+    i32 afterHeld <- dev_pokes(d);
+    if (afterHeld != 2) return 2;
+
+    return 0;
+}

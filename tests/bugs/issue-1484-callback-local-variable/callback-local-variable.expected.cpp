@@ -65,14 +65,14 @@ void Motor__onBeat(uint32_t n) {
 
 void Motor__runLocal(void) {
     Motor__onBeat_fp beat = Motor__onBeat;
-    beat(7);
+    beat(7U);
 }
 
 int main(void) {
     onTick_fp handler = onTick;
-    handler(5);
+    handler(5U);
     if (total != 5) return 1U;
-    handler(3);
+    handler(3U);
     if (total != 8) return 2U;
     Motor__runLocal();
     if (Motor__ticks != 7) return 3U;

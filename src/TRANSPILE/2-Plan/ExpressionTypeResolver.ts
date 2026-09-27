@@ -518,6 +518,43 @@ class ExpressionTypeResolver {
     ctx: Parser.PostfixExpressionContext,
     state: TranspileState,
   ): string | null {
+    return (
+      ExpressionTypeResolver.getPostfixTypeInfo(ctx, state)?.baseType ?? null
+    );
+  }
+
+  /**
+   * Whether an expression denotes a whole array -- a value C decays to a
+   * pointer to its first element -- rather than one element or a scalar.
+   *
+   * The same walk `getPostfixExpressionType` makes, read for the `isArray` it
+   * already tracks and used to discard: `pts` is an array, `pts[0]` is not.
+   */
+  static isArrayExpression(
+    ctx: Parser.ExpressionContext,
+    state: TranspileState,
+  ): boolean {
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
+    return (
+      postfix !== null &&
+      (ExpressionTypeResolver.getPostfixTypeInfo(postfix, state)?.isArray ??
+        false)
+    );
+  }
+
+  /**
+   * The type of a postfix expression's primary and its first `opCount`
+   * operations -- all of them when `opCount` is omitted -- and whether that
+   * value is still an array.
+   *
+   * A prefix is what a call asks about: in `h.onPeek(p)` the value being
+   * called is `h.onPeek`, the expression with its final operation left off.
+   */
+  static getPostfixTypeInfo(
+    ctx: Parser.PostfixExpressionContext,
+    state: TranspileState,
+    opCount?: number,
+  ): InternalTypeInfo | null {
     const primary = ctx.primaryExpression();
     if (!primary) return null;
 
@@ -536,15 +573,14 @@ class ExpressionTypeResolver {
       // `this.value` reached the registry through the sentinel branch in
       // processMemberSuffix and so was unaffected -- the two spellings of one
       // member disagreed purely on which of them the resolver could name.
-      const ops = ctx.postfixOp();
+      const ops = ctx.postfixOp().slice(0, opCount);
       if (ops.length === 0) return null;
 
-      const memberInfo = ExpressionTypeResolver.scopeMemberOperandTypeInfo(
+      return ExpressionTypeResolver.scopeMemberInternalTypeInfo(
         primary,
         ops,
         state,
       );
-      return memberInfo ? memberInfo.baseType : null;
     }
 
     // #1303: `global.Scope.member`. The sentinel walk below resolves `global.X`
@@ -555,19 +591,18 @@ class ExpressionTypeResolver {
     // Tried first, and only when it answers: `global.plainVar` resolves here
     // too (a one-part path is its own key), while `global.someStruct.field`
     // does not and falls through to the struct handling below, unchanged.
-    if (current.baseType === ExpressionTypeResolver.GLOBAL_SENTINEL) {
-      const globalOps = ctx.postfixOp();
-      if (globalOps.length > 0) {
-        const memberInfo = ExpressionTypeResolver.scopeMemberOperandTypeInfo(
-          primary,
-          globalOps,
-          state,
-        );
-        if (memberInfo) return memberInfo.baseType;
-      }
-    }
+    const globalMember = ExpressionTypeResolver.globalScopeMemberTypeInfo(
+      ctx,
+      primary,
+      current,
+      state,
+      opCount,
+    );
+    if (globalMember) return globalMember;
 
-    const suffixes = ctx.children?.slice(1) || [];
+    // The grammar is `primaryExpression postfixOp*`, so every child after the
+    // primary is one operation, in order.
+    const suffixes = (ctx.children?.slice(1) ?? []).slice(0, opCount);
     for (const suffix of suffixes) {
       const result = ExpressionTypeResolver.processPostfixSuffix(
         suffix.getText(),
@@ -575,12 +610,54 @@ class ExpressionTypeResolver {
         state,
       );
       if (result.stop) {
-        return result.type;
+        return result.type === null
+          ? null
+          : { baseType: result.type, isArray: false };
       }
       current = result.info;
     }
 
-    return current.baseType;
+    return current;
+  }
+
+  /**
+   * #1303: the type of `global.Scope.member`, or null when the primary is not
+   * `global.` or its path names no scope member -- the case the struct walk
+   * in `getPostfixTypeInfo` then handles.
+   */
+  private static globalScopeMemberTypeInfo(
+    ctx: Parser.PostfixExpressionContext,
+    primary: Parser.PrimaryExpressionContext,
+    current: InternalTypeInfo,
+    state: TranspileState,
+    opCount: number | undefined,
+  ): InternalTypeInfo | null {
+    if (current.baseType !== ExpressionTypeResolver.GLOBAL_SENTINEL) {
+      return null;
+    }
+    const globalOps = ctx.postfixOp().slice(0, opCount);
+    if (globalOps.length === 0) return null;
+    return ExpressionTypeResolver.scopeMemberInternalTypeInfo(
+      primary,
+      globalOps,
+      state,
+    );
+  }
+
+  /** `scopeMemberOperandTypeInfo`, reduced to what the walk above tracks. */
+  private static scopeMemberInternalTypeInfo(
+    primary: Parser.PrimaryExpressionContext,
+    ops: Parser.PostfixOpContext[],
+    state: TranspileState,
+  ): InternalTypeInfo | null {
+    const memberInfo = ExpressionTypeResolver.scopeMemberOperandTypeInfo(
+      primary,
+      ops,
+      state,
+    );
+    return memberInfo
+      ? { baseType: memberInfo.baseType, isArray: memberInfo.isArray }
+      : null;
   }
 
   /**

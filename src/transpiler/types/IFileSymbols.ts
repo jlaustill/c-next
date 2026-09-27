@@ -44,13 +44,13 @@ interface IFileSymbols {
    * The qualified names of the enums, structs and bitmaps THIS FILE declares
    * inside a scope (ADR-057, collected by Declare's pass 0b).
    *
-   * Registers are excluded, matching `CodeGenState.isScopeType`: a register
-   * declares a variable at an address, not a type.
+   * Registers are excluded (TYPE_FORMING_KINDS): a register declares a
+   * variable at an address, not a type.
    *
-   * This is the per-file half of the question `externalScopeTypes` answers
-   * across a whole run. A file that reopens a scope declared elsewhere
-   * contributes only its own half here (#1333), which is exactly why the seed
-   * cannot be reconstructed from any single file and belongs to 1.4.
+   * This is the per-file half of the question. A file that reopens a scope
+   * declared elsewhere contributes only its own half here (#1333), which is
+   * exactly why what a file can SEE -- this set over its include closure --
+   * cannot be reconstructed from any single file and belongs to 1.4 (#1724).
    */
   readonly declaredScopeTypes: ReadonlySet<string>;
 }

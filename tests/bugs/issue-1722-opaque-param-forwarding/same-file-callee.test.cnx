@@ -1,0 +1,56 @@
+// test-execution
+// test-no-warnings
+// test-adr: 030
+// test-link: dev_impl.c
+// Issue #1722: an opaque-handle parameter forwarded to a C-Next function.
+//
+// `Dev` is an incomplete typedef, so ADR-030 makes a `Dev` parameter a `Dev*`,
+// and that pointer IS the handle. Forwarding the parameter must pass the
+// pointer unchanged. It was emitted `aPoke((*d))` -- a dereference of an
+// incomplete type, which gcc rejects -- while the transpiler exited 0.
+//
+// Controls, which the fix must leave alone:
+//   - the same parameter forwarded to a C function stays `dev_poke(d)`;
+//   - an opaque LOCAL forwarded to the same C-Next function stays `aPoke(e)`.
+// The complete-struct control is `complete-struct-control.test.cnx`.
+#include "dev.h"
+
+void aPoke(Dev d) {
+    dev_poke(d);
+}
+
+// The defect: `d` was rendered `(*d)` here.
+void configure(Dev d) {
+    aPoke(d);
+}
+
+// Control: forwarded to a C function.
+void cForward(Dev d) {
+    dev_poke(d);
+}
+
+// Control: an opaque local forwarded to the same C-Next function.
+i32 localForward() {
+    Dev e <- dev_create();
+    aPoke(e);
+    aPoke(e);
+    i32 n <- dev_pokes(e);
+    return n;
+}
+
+i32 main() {
+    Dev d <- dev_create();
+
+    configure(d);
+    i32 afterForward <- dev_pokes(d);
+    if (afterForward != 1) return 1;
+
+    cForward(d);
+    i32 afterC <- dev_pokes(d);
+    if (afterC != 2) return 2;
+
+    i32 viaLocal <- localForward();
+    if (viaLocal != 2) return 3;
+
+    return 0;
+}

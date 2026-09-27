@@ -1,0 +1,60 @@
+// test-execution
+// Issue #1696: a call through a callback-typed value gives each integer literal
+// argument its PARAMETER's suffix, as a named call does (#872) -- never the
+// suffix of whatever expression encloses the call.
+
+u32 sink32(u32 v) {
+    return v;
+}
+
+void sinkVoid(u32 v) {}
+
+i32 sinkI(i32 v) {
+    return v;
+}
+
+u64 wide(u64 v) {
+    return v;
+}
+
+struct Handlers {
+    sink32 f;
+    sinkVoid w;
+}
+
+u32 run(Handlers h, sinkI cb) {
+    f32 x <- h.f(5);
+    h.w(5);
+    u64 big <- h.f(12);
+    u64 b <- wide(cb(6));
+    u32 same <- h.f(7);
+    f32 y <- sink32(8);
+    sinkVoid(9);
+    u64 c <- wide(sinkI(6));
+    if (x < 4.5) {
+        return 1;
+    }
+    if (big != 12) {
+        return 2;
+    }
+    if (b != 6) {
+        return 3;
+    }
+    if (same != 7) {
+        return 4;
+    }
+    if (y < 7.5) {
+        return 5;
+    }
+    if (c != 6) {
+        return 6;
+    }
+    return 0;
+}
+
+u32 main() {
+    Handlers h;
+    h.f <- sink32;
+    h.w <- sinkVoid;
+    return run(h, sinkI);
+}

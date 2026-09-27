@@ -26,6 +26,19 @@ type TParameterInfo = {
    * Applies to both struct and primitive callback-compatible params.
    */
   forcePointerSemantics?: boolean;
+
+  /**
+   * ADR-030 / #1722: the parameter holds opaque handles -- its type is an
+   * incomplete struct, so C holds each value only as a pointer, and that
+   * pointer IS the value. For an array parameter, each ELEMENT is a handle: an
+   * array of handles is an array of pointers (#996).
+   *
+   * Decided once, when the parameter is registered. The signature reads it to
+   * spell `T*` (`T* arr[N]` for an array), and a whole-value use of the
+   * parameter reads it to render the bare name rather than `(*p)`, which C
+   * rejects for an incomplete type.
+   */
+  isOpaqueHandle?: boolean;
 };
 
 export default TParameterInfo;

@@ -83,7 +83,13 @@ class ParameterSignatureBuilder {
       return `${constPrefix}char ${param.name}${dims}`;
     }
 
-    return `${constPrefix}${param.mappedType} ${param.name}${dims}`;
+    // ADR-030 / #996: an array of opaque handles is an array of pointers, the
+    // same shape a scope member of that type takes -- `Dev arr[2]` is an array
+    // of an incomplete type, which C rejects.
+    const elementType = param.isOpaqueHandle
+      ? `${param.mappedType}*`
+      : param.mappedType;
+    return `${constPrefix}${elementType} ${param.name}${dims}`;
   }
 
   /**

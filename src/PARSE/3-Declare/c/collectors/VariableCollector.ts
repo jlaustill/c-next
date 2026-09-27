@@ -35,10 +35,7 @@ class VariableCollector {
 
     // Issue #978: Detect pointer variables (e.g., `font_t *ptr`).
     // C grammar puts `*` in the declarator, not the type specifier.
-    // Same pattern as FunctionCollector._resolveReturnType().
-    const hasPointer =
-      declarator?.pointer?.() !== null && declarator?.pointer?.() !== undefined;
-    const resolvedType = hasPointer ? `${baseType}*` : baseType;
+    const resolvedType = DeclaratorUtils.pointerType(baseType, declarator);
 
     return {
       kind: "variable",

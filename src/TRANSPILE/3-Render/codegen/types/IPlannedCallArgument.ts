@@ -2,10 +2,10 @@
  * One argument of a function call, reduced to what the call generator asks of
  * it (#1445 box 3).
  *
- * The generator asks an argument node four things and nothing else: is it a
- * bare identifier, what type is it, render it, and render it through ADR-006
- * reference semantics. Three of the four are deferred, and each for a
- * different reason.
+ * The generator asks an argument node five things and nothing else: is it a
+ * bare identifier, what type is it, is it a whole array, render it, and render
+ * it through ADR-006 reference semantics. Four of the five are deferred, for
+ * the reasons below.
  *
  * ## Exactly one render happens per argument, and which one is the decision
  *
@@ -41,6 +41,13 @@ interface IPlannedCallArgument {
 
   /** The argument's inferred type, asked where the generator asks it. */
   readonly expressionType: () => string | null;
+
+  /**
+   * Whether the argument is a whole array, which C decays to a pointer to its
+   * first element. Deferred for the reason `expressionType` is: it reads the
+   * same mutable render-time state, through the same resolver walk.
+   */
+  readonly isArray: () => boolean;
 
   /**
    * The argument, rendered.

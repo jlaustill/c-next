@@ -129,6 +129,58 @@ const _resolveArgType = (
   return null;
 };
 
+/** How many levels of pointer a C type spells: `Dev**` is 2, `const Dev*` 1. */
+const _pointerDepth = (cType: string): number => cType.split("*").length - 1;
+
+/**
+ * ADR-030 / #996: is this argument an element of an array whose elements are
+ * pointers? An array of opaque handles is an array of pointers, so `arr[i]` is
+ * already the handle and `&arr[i]` is a `T**` where a `T*` belongs.
+ *
+ * Asked of the array itself, which is where its declaration recorded it --
+ * `isOpaqueScopeVariableAccess` asks the same of a scope member. That split,
+ * two stores for one fact, is older than this helper; this makes the registry
+ * half answer for an element as the scope half already did, for a parameter,
+ * a file-scope or local variable, and one declared in an included file alike.
+ */
+const _isElementOfPointerArray = (
+  argCode: string,
+  orchestrator: IOrchestrator,
+): boolean => {
+  const bracketIndex = argCode.indexOf("[");
+  if (bracketIndex <= 0) {
+    return false;
+  }
+  const array = orchestrator.state.getVariableTypeInfo(
+    argCode.slice(0, bracketIndex),
+  );
+  return (array?.isArray ?? false) && (array?.isPointer ?? false);
+};
+
+/**
+ * How many pointers deep an argument's VALUE already is.
+ *
+ * A C variable says so in its declared type: `Dev**` is 2. Issue #895 Bug B:
+ * a variable inferred as a pointer is one; so is an opaque handle (ADR-030),
+ * held in a scope variable (#948) or as an element of an array of handles
+ * (#996). Anything else is a value, 0.
+ */
+const _argPointerDepth = (
+  argCode: string,
+  argType: string | null,
+  isRegisteredPointer: boolean,
+  orchestrator: IOrchestrator,
+): number => {
+  if (argType?.endsWith("*")) {
+    return _pointerDepth(argType);
+  }
+  const isPointer =
+    isRegisteredPointer ||
+    _isElementOfPointerArray(argCode, orchestrator) ||
+    orchestrator.state.isOpaqueScopeVariableAccess(argCode);
+  return isPointer ? 1 : 0;
+};
+
 /**
  * Generate argument code for a C/C++ function call.
  * Handles automatic address-of (&) for struct arguments passed to pointer params.
@@ -189,28 +241,40 @@ const _generateCFunctionArg = (
     typeInfo?.baseType,
     orchestrator,
   );
-  // Issue #895 Bug B: a variable already inferred as a pointer must not get `&`.
-  const isPointerVariable = typeInfo?.isPointer ?? false;
 
-  // Issue #948: Check if argument is an opaque scope variable (already a pointer)
-  // Issue #996: ...including an element of an opaque-handle array (arr[i])
-  const isOpaqueScopeVar =
-    orchestrator.state.isOpaqueScopeVariableAccess(argCode);
+  const argPointerDepth = _argPointerDepth(
+    argCode,
+    argType,
+    typeInfo?.isPointer ?? false,
+    orchestrator,
+  );
 
   // Add & if argument needs address-of to match parameter type.
   // Issue #322: struct types passed to pointer params.
   // Issue #832: typedef'd pointer types (e.g., handle_t passed to handle_t*).
-  // Issue #895 Bug B: Skip address-of for variables that are already pointers
-  // Issue #948: Skip address-of for opaque scope variables (already pointers)
+  //
+  // A value that is already a pointer takes `&` only for a parameter exactly
+  // one pointer deeper: a handle IS the argument for a `Dev*`, and its address
+  // is the argument for a `Dev**`, an out-parameter the callee writes a new
+  // handle through. "Already a pointer, pass it directly" asked no depth and
+  // passed `Board__held` to `dev_create_into(Dev** out)`.
+  //
+  // A whole array never takes `&`. C decays it to a pointer to its first
+  // element, which is what a pointer parameter takes; its address is a pointer
+  // to the ARRAY -- `CPoint (*)[2]`, or `CPoint**` for a parameter.
   const needsAddressOf =
-    argType &&
-    !argType.endsWith("*") &&
+    argType !== null &&
     !argCode.startsWith("&") &&
     !targetParam.isArray &&
-    !isPointerVariable &&
-    !isOpaqueScopeVar &&
-    (orchestrator.isStructType(argType) ||
-      _parameterExpectsAddressOf(targetParam.baseType, argType, orchestrator));
+    !arg.isArray() &&
+    (argPointerDepth > 0
+      ? _pointerDepth(targetParam.baseType) === argPointerDepth + 1
+      : orchestrator.isStructType(argType) ||
+        _parameterExpectsAddressOf(
+          targetParam.baseType,
+          argType,
+          orchestrator,
+        ));
 
   const finalArgCode = needsAddressOf ? `&${argCode}` : argCode;
 
@@ -251,6 +315,14 @@ const _shouldPassByValue = (
     !CallExprUtils.isStringType(targetParam.baseType);
 
   // Issue #551: Unknown types (external enums, typedefs) use pass-by-value
+  //
+  // ADR-030 / #1722: an opaque handle lands here too, and that is the right
+  // route rather than a lucky one -- the handle's C value IS the pointer the
+  // callee's `T*` parameter takes. Rendering an opaque PARAMETER as that value
+  // is the parameter registry's decision (`TParameterInfo.isOpaqueHandle`),
+  // not this function's. The by-reference route would take `&` of every opaque
+  // scope variable and array element (`&UI__held`), which #996's and #1722's
+  // fixtures pin.
   const isUnknownType =
     !orchestrator.isStructType(targetParam.baseType) &&
     !CallExprUtils.isKnownPrimitiveType(targetParam.baseType) &&
@@ -269,6 +341,26 @@ const _shouldPassByValue = (
 };
 
 /**
+ * The name a call's parameters are looked up by.
+ *
+ * ADR-029: a value of a callback type -- a struct field, a variable, a
+ * parameter -- holds a function with the parameters of the function that IS
+ * the type. A call through it takes exactly the arguments a direct call to
+ * that function takes, so every question about them is asked of that
+ * function's name. Asked of `h.onPeek`, which names no function, they found no
+ * parameters, and a struct argument went by value into a `const Point*`.
+ */
+const _signatureName = (
+  funcExpr: string,
+  calleeType: string | null,
+  input: IGeneratorInput,
+): string => {
+  const callbackType =
+    calleeType === null ? undefined : input.callbackTypes.get(calleeType);
+  return callbackType?.functionName ?? funcExpr;
+};
+
+/**
  * Generate C code for a function call.
  *
  * @param funcExpr - The function name or expression being called
@@ -276,6 +368,8 @@ const _shouldPassByValue = (
  * @param input - Generator input (type registry, function signatures, etc.)
  * @param _state - Generator state (unused but part of signature)
  * @param orchestrator - Orchestrator for callbacks into CodeGenerator
+ * @param calleeType - The C-Next type of the value being called, or null
+ *   when it is not a typed value (a function's own name)
  * @returns Generated code and effects
  */
 const generateFunctionCall = (
@@ -284,6 +378,7 @@ const generateFunctionCall = (
   input: IGeneratorInput,
   _state: IGeneratorState,
   orchestrator: IOrchestrator,
+  calleeType: string | null = null,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
@@ -294,8 +389,10 @@ const generateFunctionCall = (
     return { code: `${funcExpr}()`, effects };
   }
 
+  const signatureName = _signatureName(funcExpr, calleeType, input);
+
   // Check if this is a C-Next function (uses pass-by-reference)
-  const isCNextFunc = orchestrator.isCNextFunction(funcExpr);
+  const isCNextFunc = orchestrator.isCNextFunction(signatureName);
 
   // ADR-051: Handle safe_div() and safe_mod() built-in functions
   if (funcExpr === "safe_div" || funcExpr === "safe_mod") {
@@ -308,11 +405,11 @@ const generateFunctionCall = (
     // Issue #268: Track pass-through modifications for auto-const. Runs BEFORE
     // any argument renders, and mutates auto-const state -- it must not be
     // folded into the map below.
-    trackPassThroughModifications(funcExpr, args, orchestrator);
+    trackPassThroughModifications(signatureName, args, orchestrator);
   }
 
   // Get function signature once for all arguments
-  const sig = input.functionSignatures.get(funcExpr);
+  const sig = input.functionSignatures.get(signatureName);
 
   // Issue #992: Clear inDeclarationInit for function call arguments — struct
   // initializers inside function args need compound literals, not plain designated initializers.
@@ -323,7 +420,7 @@ const generateFunctionCall = (
         const resolved = CallExprUtils.resolveTargetParam(
           sig,
           idx,
-          funcExpr,
+          signatureName,
           input.symbolTable,
         );
         const targetParam = resolved.param;
@@ -336,7 +433,7 @@ const generateFunctionCall = (
         // C-Next function: check if target parameter should be passed by value
         if (
           _shouldPassByValue(
-            funcExpr,
+            signatureName,
             idx,
             targetParam,
             resolved.isCrossFile,

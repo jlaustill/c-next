@@ -1,0 +1,26 @@
+// test-execution
+// test-no-warnings
+// test-link: devout_impl.c
+// The cross-file form of `opaque-out-param`: the handles are declared in an
+// included `.cnx`. Each is still a `Dev*`, so the `Dev**` out-parameter takes
+// its address: `dev_create_into(&shared)`. Both were passed as the handle
+// itself.
+//
+// Control: the same handles passed to `dev_poke`, a `Dev*`, stay unchanged.
+#include "devout.h"
+#include "handles.cnx"
+
+i32 main() {
+    dev_create_into(shared);
+    dev_poke(shared);
+    i32 viaGlobal <- dev_pokes(shared);
+    if (viaGlobal != 1) return 1;
+
+    dev_create_into(Rack.unit);
+    dev_poke(Rack.unit);
+    dev_poke(Rack.unit);
+    i32 viaScope <- dev_pokes(Rack.unit);
+    if (viaScope != 2) return 2;
+
+    return 0;
+}

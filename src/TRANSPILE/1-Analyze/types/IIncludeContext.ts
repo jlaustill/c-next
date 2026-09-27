@@ -11,8 +11,15 @@
  * unit test answer the same way a files-mode run does.
  */
 interface IIncludeContext {
-  /** Absolute path of the file being analyzed. */
-  readonly sourcePath: string;
+  /**
+   * The directory a quoted include from this file resolves from, as DISCOVERY
+   * resolved it (#1435). Handed in rather than taken as `dirname` of the
+   * file's path: a source run's in-memory root may have no path, when the
+   * caller's `workingDir` stands in, and a second derivation here started
+   * from a different directory than discovery did. Discovery resolves a
+   * quoted `.cnx` include here and only here, by the same rule (#1672).
+   */
+  readonly quotedIncludeDirectory: string;
 
   /**
    * Directories an angle include is searched along, in priority order, as
@@ -22,7 +29,7 @@ interface IIncludeContext {
    */
   readonly searchPaths: readonly string[];
 
-  /** Whether a path exists, through the run's file system. */
+  /** Whether a path is an existing file, through the run's file system. */
   readonly fileExists: (path: string) => boolean;
 }
 

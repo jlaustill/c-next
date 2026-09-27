@@ -1,0 +1,10 @@
+// The handles for `cross-file`, one include hop away. The includer reaches them
+// only through this file's generated header, so it must still know each one is
+// a handle -- a `Dev*` -- whose address an out-parameter takes.
+#include "devout.h"
+
+Dev shared;
+
+scope Rack {
+    public Dev unit;
+}

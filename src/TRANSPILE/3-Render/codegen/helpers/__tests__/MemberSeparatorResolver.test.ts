@@ -198,6 +198,28 @@ describe("MemberSeparatorResolver", () => {
       expect(sep).toBe(".");
     });
 
+    // Issue #895: whether a callback-promoted parameter is a pointer in C++ is
+    // the struct-parameter helper's decision -- the one its whole-value wrap
+    // reads -- so it is handed over, not overridden here.
+    it.each<[boolean | undefined, boolean]>([
+      [true, true],
+      [false, false],
+      [undefined, false],
+    ])(
+      "hands forcePointerSemantics=%s to the struct-param helper",
+      (forcePointerSemantics, expected) => {
+        const deps = createMockDeps();
+        const ctx = createContext({
+          isStructParam: true,
+          forcePointerSemantics,
+        });
+
+        MemberSeparatorResolver.getFirstSeparator(["f"], ctx, deps);
+
+        expect(deps.getStructParamSeparator).toHaveBeenCalledWith(expected);
+      },
+    );
+
     it("should return _ for cross-scope access", () => {
       const deps = createMockDeps();
       const ctx = createContext({ isCrossScope: true });

@@ -1,0 +1,11 @@
+// Helper for #1724 (the issue's b.cnx). Reopens scope Motor (#1333) and names
+// `Config` bare. It includes the C header that declares `Config` and does NOT
+// include motor-config.cnx, so the C typedef is the only `Config` this file can
+// see: there is no scope type for ADR-057 to prefer over it.
+#include "ext_config.h"
+
+scope Motor {
+    public i32 useTheirs(Config c) {
+        return c.a;
+    }
+}

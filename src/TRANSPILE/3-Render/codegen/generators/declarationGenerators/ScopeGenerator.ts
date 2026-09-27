@@ -147,12 +147,13 @@ function renderRegularVariable(
     type = callbackTypedef;
   }
 
-  // Issue #948: Check if this is an opaque (forward-declared) struct type
-  // Issue #958: Also check for external typedef struct types (complete definitions)
-  // Both opaque and external typedef struct types must be declared as pointers
+  // Issue #948/#958: a scope member of an opaque type is declared as a pointer.
+  // The decision is `isHeldThroughPointer`, the one every declaration site and
+  // the header's `extern` read, so a public member's declaration in the `.h`
+  // cannot disagree with its definition here.
   const isOpaque = orchestrator.isOpaqueType(type);
-  const isExternalStruct = orchestrator.isTypedefStructType(type);
-  if (isOpaque || isExternalStruct) {
+  const isHandle = orchestrator.isHeldThroughPointer(type);
+  if (isHandle) {
     // ADR-030 decided here: the type is incomplete, so the member is emitted as
     // a pointer. Recorded at the DECLARATION's position, which is what puts this
     // in the scope-member context rather than crediting the scope keyword's line.
@@ -198,7 +199,7 @@ function renderRegularVariable(
   // NULL -- which is why the plan's initializer thunk routes through
   // getZeroInitializer(type, isArray), the single source of truth for
   // zero-initialization (ADR-015).
-  if ((isOpaque || isExternalStruct) && !plan.isArray) {
+  if (isHandle && !plan.isArray) {
     decl += " = NULL";
   } else {
     decl += plan.renderInitializer();

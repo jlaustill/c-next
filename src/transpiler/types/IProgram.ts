@@ -29,13 +29,19 @@ import type ICodeGenSymbols from "./ICodeGenSymbols";
  */
 interface IProgram {
   /**
-   * ADR-057: is this QUALIFIED name a type declared inside a scope, anywhere in
-   * the program?
+   * ADR-057: is this QUALIFIED name a type declared inside a scope that
+   * `sourceFile` can see -- declared by that file or by a file in its include
+   * closure?
    *
-   * The cross-file fact 1.3 Declare is not allowed to hold. A per-file answer
-   * to this question is the seed #1472 removed.
+   * The cross-file fact 1.3 Declare is not allowed to hold, and the ONE answer
+   * both of ADR-057's resolution points read: 1.4 settles each file's deferred
+   * types with it, and codegen asks it about the file being generated, so the
+   * `.h` and the `.c` cannot disagree. It asks for the file because the
+   * whole-program question has the wrong answer: a scope type from a sibling
+   * the file never includes captured a bare name the file could only mean as
+   * a C typedef, in both halves at once (#1724).
    */
-  isScopeType(qualifiedName: string): boolean;
+  isScopeTypeVisibleFrom(sourceFile: string, qualifiedName: string): boolean;
 
   /**
    * The C-Next symbol whose canonical identity is this transpiled C name.
@@ -108,7 +114,8 @@ interface IProgram {
   conflicts(): ReadonlyArray<IConflict>;
 
   /**
-   * The type names a file declares — struct, type, enum and class.
+   * The type names a file declares — struct, type, enum and class — by the C
+   * name a generated signature uses: a C-Next scope's `Point` is `Lib__Point`.
    *
    * "Which C header declares this type", asked from the file's side. Header
    * generation includes the header that defines a type rather than forward
@@ -192,6 +199,15 @@ interface IProgram {
    * would report against directories the run does not use.
    */
   includeSearchPaths(sourceFile: string): readonly string[];
+
+  /**
+   * #1435: the directory a quoted include from `sourceFile` resolves from, as
+   * discovery resolved it. Unlike the search path it has no empty answer:
+   * every file the run analyzes was discovered, so a missing entry is a
+   * defect, and guessing `dirname(sourceFile)` is the re-derivation that let
+   * discovery and E0506 disagree for an in-memory root.
+   */
+  quotedIncludeDirectory(sourceFile: string): string;
 
   /**
    * The run's scope graph, for the passes after 1.4 (#1452 box 3).

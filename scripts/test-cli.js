@@ -1139,11 +1139,13 @@ const includePathCases = [
     expected: "shared/utils.h",
   },
   {
-    // NOT a guard for ExternalTypeHeaderBuilder: its directive is deduplicated
-    // by stem before it reaches the output, so poisoning it reddens nothing
-    // here. That path is guarded at its producer, in IncludeResolver's unit
-    // tests. This case covers the layout where a type crosses the boundary,
-    // which reaches more header-generation code than a bare call does.
+    // Also a guard for ExternalTypeHeaderBuilder since #1435: its directive is
+    // deduplicated against the file's own include by the whole included path,
+    // not the basename stem, so a directive that loses the directory
+    // (<utils.h> beside "Display/utils.h") reaches the output and fails here.
+    // The producer is also pinned in IncludeResolver's unit tests. This case
+    // covers the layout where a type crosses the boundary, which reaches more
+    // header-generation code than a bare call does.
     name: "Issue #1467: a type crossing into the header gets the same path",
     includeSpec: "utils.cnx",
     utilsAt: "src/Display/utils.cnx",

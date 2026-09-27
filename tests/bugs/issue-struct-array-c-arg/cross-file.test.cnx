@@ -1,0 +1,29 @@
+// test-execution
+// test-no-warnings
+// test-link: pts_impl.c
+// The cross-file form of `struct-array-c-arg`: the arrays are declared in an
+// included `.cnx`, so this file knows them only through that file's symbols.
+// A whole array still decays to a pointer to its first element, so each call
+// passes the bare array. Both were emitted with an `&` -- a `CPoint (*)[2]`
+// where a `CPoint*` belongs.
+//
+// Control: one element of the same array is a value, passed by address.
+#include "pts.h"
+#include "shared_pts.cnx"
+
+i32 main() {
+    pts_bump2(sharedPts);
+    if (sharedPts[0].x != 1) return 1;
+    if (sharedPts[1].x != 2) return 2;
+
+    pts_bump2(Rack.slots);
+    if (Rack.slots[0].x != 1) return 3;
+    if (Rack.slots[1].x != 2) return 4;
+
+    // Control.
+    pts_bump1(sharedPts[1]);
+    if (sharedPts[0].x != 1) return 5;
+    if (sharedPts[1].x != 3) return 6;
+
+    return 0;
+}

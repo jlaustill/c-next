@@ -20,6 +20,8 @@ import createMockSymbols from "../../transpiler/__tests__/codeGenSymbolsHelpers"
 import UNRESOLVED_DIMENSION from "../../transpiler/constants/UNRESOLVED_DIMENSION";
 import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
 import Program from "../../PARSE/4-Resolve/Program";
+import CNextResolver from "../../PARSE/3-Declare/cnext/index";
+import parse from "../../PARSE/3-Declare/cnext/__tests__/testHelpers";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -415,8 +417,9 @@ describe("TranspileState", () => {
             type: "u32",
             isArray: false,
             isConst: false,
-            isPointer: false,
             isStruct: false,
+            isString: false,
+            isOpaqueHandle: false,
             arrayDims: "",
           },
         ],
@@ -536,6 +539,21 @@ describe("TranspileState", () => {
       expect(result?.isPointer).toBe(true);
     });
 
+    it("gives no answer for a C pointer to a pointer, which it cannot describe", () => {
+      // `{ baseType, isPointer }` says "one pointer to the struct". Stripping
+      // every `*` let `font_t**` claim that, and a call site took its address
+      // for a `font_t**` parameter. Its reader asks the declared C type.
+      state.symbolTable.markTypedefStructType("font_t", "lib.h");
+      state.symbolTable.addCSymbol(
+        createCVariableSymbol({
+          name: "font_table",
+          type: "font_t**",
+        }),
+      );
+
+      expect(state.getVariableTypeInfo("font_table")).toBeUndefined();
+    });
+
     it("getVariableTypeInfo ignores C array variables with primitive types", () => {
       state.symbolTable.addCSymbol(
         createCVariableSymbol({
@@ -581,6 +599,33 @@ describe("TranspileState", () => {
       // TSymbol should win (checked first in priority order)
       const result = state.getVariableTypeInfo("config");
       expect(result?.baseType).toBe("u32");
+    });
+
+    /**
+     * ADR-030: a C-Next variable of an opaque type declared in ANOTHER file is
+     * a pointer here as it is there -- an includer passed `&shared`, a `Dev**`.
+     * The control is a C header's global of the same type: C declared it, not
+     * C-Next, so it keeps its own type and still takes `&`.
+     */
+    it("getVariableTypeInfo reads a cross-file C-Next handle as a pointer", () => {
+      state.program = {
+        isOpaqueType: (name: string) => name === "Dev",
+      } as unknown as IProgram;
+      state.symbolTable.markTypedefStructType("Dev", "dev.h");
+      state.symbolTable.addTSymbol(
+        createCNextVariableSymbol({
+          name: "shared",
+          type: TTypeUtils.createExternal("Dev"),
+        }),
+      );
+      state.symbolTable.addCSymbol(
+        createCVariableSymbol({ name: "cDevice", type: "Dev" }),
+      );
+
+      expect(state.getVariableTypeInfo("shared")?.isPointer).toBe(true);
+      expect(state.getVariableTypeInfo("cDevice")?.isPointer).toBe(false);
+
+      state.program = null;
     });
 
     it("getVariableTypeInfo prefers local registry over SymbolTable", () => {
@@ -923,24 +968,79 @@ describe("TranspileState", () => {
 
       state.program = null;
     });
+
+    /**
+     * ADR-030: the one "held through a pointer" decision, as #948 and #958
+     * each gated it -- the program's opacity verdict or the symbol table's
+     * forward-declared typedef. A complete type is neither.
+     */
+    it.each<[string, boolean, boolean, boolean]>([
+      ["opaque by the program", true, false, true],
+      ["a forward-declared typedef struct", false, true, true],
+      ["neither", false, false, false],
+    ])(
+      "isHeldThroughPointer answers for a type %s",
+      (_label, isOpaque, isTypedefStruct, expected) => {
+        state.program = {
+          isOpaqueType: (name: string) => isOpaque && name === "Dev",
+        } as unknown as IProgram;
+        if (isTypedefStruct) {
+          state.symbolTable.markTypedefStructType("Dev", "dev.h");
+        }
+
+        expect(state.isHeldThroughPointer("Dev")).toBe(expected);
+
+        state.program = null;
+      },
+    );
   });
 
   describe("Scope Type Qualification (ADR-057)", () => {
-    it("isScopeType matches enums, structs and bitmaps by qualified name", () => {
-      installMockSymbols(state, {
-        knownEnums: new Set(["A__B"]),
-        knownStructs: new Set(["A__S"]),
-        knownBitmaps: new Set(["A__Flags"]),
+    it("isScopeType answers for the file being generated, from the program (#1724)", () => {
+      // `declares.cnx` declares three scope types. `includer.cnx` includes it;
+      // `sibling.cnx` is in the same run and does not. Codegen used to ask the
+      // run-wide symbol table, which holds all three for every file -- so a
+      // bare name in `sibling.cnx` qualified to a type its generated C cannot
+      // see, while 1.4 had settled the header's copy the same wrong way.
+      const declares = CNextResolver.resolve(
+        parse(
+          `scope A { public enum B { X } public struct S { u8 f; } public bitmap8 Flags { Ready, Mode[3], Reserved[4] } }`,
+        ),
+        "declares.cnx",
+        registry,
+      );
+      const includer = CNextResolver.resolve(
+        parse(`u32 x <- 1;`),
+        "includer.cnx",
+        registry,
+      );
+      const sibling = CNextResolver.resolve(
+        parse(`u32 y <- 1;`),
+        "sibling.cnx",
+        registry,
+      );
+      state.program = Program.build([declares, includer, sibling], {
+        registry,
+        visibility: {
+          cnextIncludesByFile: new Map([
+            ["includer.cnx", [{ path: "declares.cnx" }]],
+          ]),
+        },
       });
 
+      state.sourcePath = "includer.cnx";
       expect(state.isScopeType("A__B")).toBe(true);
       expect(state.isScopeType("A__S")).toBe(true);
       expect(state.isScopeType("A__Flags")).toBe(true);
       expect(state.isScopeType("A__Nope")).toBe(false);
+
+      state.sourcePath = "sibling.cnx";
+      expect(state.isScopeType("A__S")).toBe(false);
     });
 
-    it("isScopeType returns false without symbols", () => {
-      state.symbols = null;
+    it("isScopeType returns false without a program", () => {
+      state.program = null;
+      state.sourcePath = "includer.cnx";
       expect(state.isScopeType("A__B")).toBe(false);
     });
 

@@ -1,0 +1,31 @@
+// test-execution
+// Issue #1696, cross-file: a callback TYPE declared in an included .cnx, and a
+// callback held in a scope field, give each integer literal argument its
+// parameter's suffix. The named call beside each is the control.
+#include "remote-sink.cnx"
+
+scope Bus {
+    remoteSink listener <- remoteSink;
+
+    public u64 fire() {
+        u64 r <- listener(5);
+        return r;
+    }
+}
+
+u32 main() {
+    remoteSink cb <- remoteSink;
+    u64 big <- cb(12);
+    u64 control <- remoteSink(12);
+    u64 fired <- Bus.fire();
+    if (big != 12) {
+        return 1;
+    }
+    if (control != 12) {
+        return 2;
+    }
+    if (fired != 5) {
+        return 3;
+    }
+    return 0;
+}

@@ -4,7 +4,7 @@
 **Date:** 2026-01-28 (amended 2026-08-08 — type positions, #1130; amended 2026-08-27 — implementation detail removed, matrix declared, #1285)
 **Decision Makers:** Language Design Team
 **Related ADRs:** ADR-016 (Scopes — this ADR amends its name-resolution decision), ADR-017 (Enums), ADR-029 (Function Pointers — a function definition also creates a type), ADR-063 (Identifier Syntax — makes the qualified name injective)
-**Related Issues:** #1130, #1210, #1244, #1285
+**Related Issues:** #1130, #1210, #1244, #1285, #1724
 **Amends:** ADR-016 — which required explicit `this.` and `global.` and stated that implicit resolution does not exist. That requirement is withdrawn by this ADR.
 
 ## Context
@@ -258,8 +258,12 @@ None.
   is why that description is no longer carried here
 - ADR-063 — makes the qualified-name join injective, so a resolved name identifies
   its symbol without needing a scope to interpret it
+- Issue #1724 — a scope type declared in a file the resolving file does not
+  include captured a bare name there, over the C typedef the file could see;
+  only a declaration in the same file or an included one resolves
 - Fixtures: `tests/adr-057/` (including `shadow-global-from-scope-method.test.cnx`,
   the execution test pinning all three levels at once),
   `tests/bugs/issue-1210-bare-intra-scope-call/`,
-  `tests/bugs/issue-1244-adr057-scope-member-shadow/`
+  `tests/bugs/issue-1244-adr057-scope-member-shadow/`,
+  `tests/bugs/issue-1724-sibling-scope-type-not-included/`
 - Issue #1290 — a parameter shadowing a file-scope name is not yet covered

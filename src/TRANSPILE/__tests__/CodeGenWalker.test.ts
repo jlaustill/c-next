@@ -34,8 +34,10 @@ function declareAndResolveAs(
   sourcePath: string,
 ): TSymbol[] {
   const declared = CNextResolver.resolve(tree, sourcePath, registry);
-  return DeferredTypes.settle(declared.symbols, (qualifiedName) =>
-    declared.declaredScopeTypes.has(qualifiedName),
+  return DeferredTypes.settle(
+    declared.symbols,
+    (qualifiedName) => declared.declaredScopeTypes.has(qualifiedName),
+    () => false, // no headers: nothing is opaque (#1722)
   );
 }
 

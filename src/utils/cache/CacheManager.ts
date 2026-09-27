@@ -37,7 +37,10 @@ const defaultFs = NodeFileSystem.instance;
 // TCSymbol/TCppSymbol unions are types, so their keys cannot be enumerated at
 // runtime. Struct-state drift no longer needs a bump: STRUCT_STATE_SHAPE below
 // is derived and invalidates on its own.
-const CACHE_VERSION = 11; // Issue #1318: symbols carry `span`, not `sourceLine`
+// 12: a C declarator's pointer DEPTH is recorded now -- `Dev** out` was
+// stored as `Dev*` -- so an entry written before means a different type
+// under an unchanged shape, which no fingerprint above can see.
+const CACHE_VERSION = 12;
 
 const TRANSPILER_VERSION = packageJson.version;
 

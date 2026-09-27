@@ -2,7 +2,9 @@
  * Detects C-Next generation markers in header files.
  *
  * Used by the C/C++ entry point feature to discover which headers
- * were generated from .cnx source files.
+ * were generated from .cnx source files, and by header resolution to skip
+ * a header the transpiler generated -- since #1435 the marker is that
+ * header's only identity, not its basename.
  */
 class CNextMarkerDetector {
   /**

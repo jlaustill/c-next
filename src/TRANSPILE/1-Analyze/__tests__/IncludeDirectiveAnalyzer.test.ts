@@ -23,7 +23,7 @@ const analyze = (
   searchPaths: readonly string[] = [],
 ) =>
   new IncludeDirectiveAnalyzer().analyze(CNextSourceParser.parse(source).tree, {
-    sourcePath: "/project/src/main.cnx",
+    quotedIncludeDirectory: "/project/src",
     searchPaths,
     fileExists: (path) => present.includes(path),
   });

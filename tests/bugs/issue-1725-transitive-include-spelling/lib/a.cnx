@@ -1,0 +1,8 @@
+// Issue #1725: spells the header beside it, relative to lib/.
+#include "dev.h"
+
+scope A {
+    public u32 idOf(Dev d) {
+        return d.id;
+    }
+}

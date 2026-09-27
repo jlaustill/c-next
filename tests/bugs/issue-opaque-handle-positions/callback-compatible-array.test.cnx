@@ -1,0 +1,32 @@
+// test-execution
+// test-no-warnings
+// test-adr: 030
+// test-link: dev_impl.c
+// A function registered with a C callback typedef takes that typedef's shape
+// (#895), and the header declares it on a path of its own -- one that never
+// carried the opaque-handle decision. An array of handles, which is an array
+// of pointers (#996), was therefore `void onPair(Dev* pair[2])` in the `.c`
+// and `void onPair(Dev pair[2]);` in the `.h` the `.c` includes: an array of
+// an incomplete type, and a declaration contradicting its definition.
+#include "dev.h"
+
+void onPair(Dev[2] pair) {
+    dev_poke(pair[0]);
+    dev_poke(pair[1]);
+}
+
+i32 main() {
+    Dev[2] pair;
+    pair[0] <- dev_create();
+    pair[1] <- dev_create();
+
+    global.dev_pair_register(onPair);
+    global.dev_pair_invoke(pair);
+
+    i32 first <- dev_pokes(pair[0]);
+    if (first != 1) return 1;
+    i32 second <- dev_pokes(pair[1]);
+    if (second != 1) return 2;
+
+    return 0;
+}

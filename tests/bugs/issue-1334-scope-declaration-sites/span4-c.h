@@ -8,13 +8,11 @@
 
 #include <stdint.h>
 #include "span4-b.h"
+#include "span4-a.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* External type dependencies - include appropriate headers */
-typedef struct Span__Point Span__Point;
 
 /* Function prototypes */
 uint32_t Span__fromC(const Span__Point* p);

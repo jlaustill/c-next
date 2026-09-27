@@ -22,17 +22,19 @@ function createMockExpressionContext(text: string): Parser.ExpressionContext {
 /**
  * The planned arguments for a call, built the way
  * `CodeGenerator.planCallArguments` builds them -- by asking the orchestrator
- * the same four questions, in the same eager/lazy split.
+ * the same five questions, in the same eager/lazy split.
  *
  * #1445 box 3: the generator takes `IPlannedCallArgument[]` now. These tests
  * keep their mock expression contexts, because what the mock orchestrator's
  * `generateExpression` / `getSimpleIdentifier` / `getExpressionType` /
  * `generateFunctionArg` were always doing is standing in for the PLANNER. This
  * makes that explicit rather than deleting it, so every per-test override of
- * those four keeps working and no assertion moves.
+ * those four keeps working and no assertion moves. `isArrayExpression` is the
+ * fifth, added with the whole-array rule, and answers "not an array" unless a
+ * case says otherwise.
  *
  * The eager/lazy split is the part worth copying exactly: `simpleIdentifier` is
- * read once, here; the other three are deferred, because exactly one render
+ * read once, here; the other four are deferred, because exactly one render
  * may happen per argument.
  */
 function planArguments(
@@ -42,6 +44,7 @@ function planArguments(
   return expressions.map((expression) => ({
     simpleIdentifier: orchestrator.getSimpleIdentifier(expression),
     expressionType: () => orchestrator.getExpressionType(expression),
+    isArray: () => orchestrator.isArrayExpression(expression),
     render: () => orchestrator.generateExpression(expression),
     renderByReference: (targetParamBaseType: string | undefined) =>
       orchestrator.generateFunctionArg(expression, targetParamBaseType),
@@ -81,7 +84,7 @@ function createMockState(): IGeneratorState {
 }
 
 /**
- * The four planner operations this file stands in for.
+ * The five planner operations this file stands in for.
  *
  * #1445 box 3: they used to be declared on `IOrchestrator`, where **no
  * production generator called them** -- they were interface surface kept alive
@@ -92,6 +95,7 @@ function createMockState(): IGeneratorState {
 interface IArgumentPlannerStub {
   getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null;
   getExpressionType(ctx: Parser.ExpressionContext): string | null;
+  isArrayExpression(ctx: Parser.ExpressionContext): boolean;
   generateExpression(ctx: Parser.ExpressionContext): string;
   generateFunctionArg(
     ctx: Parser.ExpressionContext,
@@ -126,6 +130,7 @@ function createMockOrchestrator(
     isCppMode: vi.fn(() => false),
     isCppEnumClass: vi.fn(() => false),
     getExpressionType: vi.fn(() => null),
+    isArrayExpression: vi.fn(() => false),
     getKnownEnums: vi.fn(() => new Set<string>()),
     isParameterPassByValue: vi.fn(() => false),
     isCurrentParameter: vi.fn(() => false),
@@ -1362,6 +1367,217 @@ describe("CallExprGenerator", () => {
   // ========================================================================
   // Issue #832: Auto-reference for typedef pointer output parameters
   // ========================================================================
+  /**
+   * ADR-030 / #996: an array of opaque handles is an array of pointers, so its
+   * element is already the handle -- `dev_poke(&arr[0U])` passed a `Dev**`.
+   * Asked of the array's registration, as `isOpaqueScopeVariableAccess` asks
+   * it of a scope member. The complete-struct array is the control: its
+   * element is a value and keeps its `&`.
+   */
+  describe("element of an array that holds pointers (ADR-030 / #996)", () => {
+    it.each<[string, string, string, boolean, boolean, string]>([
+      ["handles", "handleArr", "Dev", true, false, "take(handleArr[0U])"],
+      [
+        "complete structs",
+        "pointArr",
+        "Point",
+        false,
+        true,
+        "take(&pointArr[0U])",
+      ],
+    ])(
+      "passes an element of an array of %s",
+      (_label, arrayName, elementType, isPointer, isStruct, expected) => {
+        const argExpressions = [
+          createMockExpressionContext(`${arrayName}[0U]`),
+        ];
+        const sigs = new Map([
+          [
+            "take",
+            {
+              name: "take",
+              parameters: [
+                {
+                  name: "p",
+                  baseType: `${elementType}*`,
+                  isConst: false,
+                  isArray: false,
+                },
+              ],
+            },
+          ],
+        ]);
+        const typeRegistry = new Map([
+          [
+            arrayName,
+            {
+              baseType: elementType,
+              bitWidth: 0,
+              isArray: true,
+              isConst: false,
+              isPointer,
+            },
+          ],
+        ]);
+        const input = createMockInput({
+          functionSignatures: sigs,
+          typeRegistry,
+        });
+        const orchestrator = createMockOrchestrator({
+          getExpressionType: vi.fn(() => elementType),
+          isStructType: vi.fn(() => isStruct),
+        });
+
+        const result = generateFunctionCall(
+          "take",
+          planArguments(orchestrator, argExpressions),
+          input,
+          createMockState(),
+          orchestrator,
+        );
+
+        expect(result.code).toBe(expected);
+      },
+    );
+  });
+
+  /** A C function `take` whose one parameter is `paramType`. */
+  const takeSignature = (paramType: string) =>
+    new Map([
+      [
+        "take",
+        {
+          name: "take",
+          parameters: [
+            { name: "p", baseType: paramType, isConst: false, isArray: false },
+          ],
+        },
+      ],
+    ]);
+
+  describe("a whole array reaches a C pointer parameter as itself", () => {
+    it.each<[string, boolean, string]>([
+      // C decays the array to a pointer to its first element; `&pts` is a
+      // pointer to the ARRAY -- `CPoint (*)[2]`, or `CPoint**` for a parameter.
+      ["a whole array", true, "take(pts)"],
+      // Control: a struct VALUE is still passed by address.
+      ["a struct value", false, "take(&pts)"],
+    ])("%s", (_label, isArray, expected) => {
+      const orchestrator = createMockOrchestrator({
+        getExpressionType: vi.fn(() => "CPoint"),
+        isStructType: vi.fn(() => true),
+        isArrayExpression: vi.fn(() => isArray),
+      });
+
+      const result = generateFunctionCall(
+        "take",
+        planArguments(orchestrator, [createMockExpressionContext("pts")]),
+        createMockInput({ functionSignatures: takeSignature("CPoint*") }),
+        createMockState(),
+        orchestrator,
+      );
+
+      expect(result.code).toBe(expected);
+    });
+  });
+
+  describe("a value already a pointer, against the parameter's pointer depth", () => {
+    it.each<[string, string, string, string]>([
+      // An opaque handle IS the argument for a `Dev*`...
+      ["a handle to a Dev*", "Dev", "Dev*", "take(d)"],
+      // ...and its address is the argument for a `Dev**` out-parameter.
+      ["a handle to a Dev**", "Dev", "Dev**", "take(&d)"],
+      // Only one level can be bridged by `&`; anything else is left alone.
+      ["a handle to a Dev***", "Dev", "Dev***", "take(d)"],
+      // A C variable declared `Dev*` says its depth in its type.
+      ["a Dev* variable to a Dev*", "Dev*", "Dev*", "take(d)"],
+      ["a Dev* variable to a Dev**", "Dev*", "Dev**", "take(&d)"],
+      ["a Dev** variable to a Dev**", "Dev**", "Dev**", "take(d)"],
+      ["a Dev** variable to a Dev***", "Dev**", "Dev***", "take(&d)"],
+    ])("%s", (_label, argType, paramType, expected) => {
+      const typeRegistry = new Map([
+        [
+          "d",
+          {
+            baseType: argType,
+            bitWidth: 0,
+            isArray: false,
+            isConst: false,
+            // A handle is registered as a pointer; a `Dev*` C variable is not
+            // registered here at all, so its type alone carries the depth.
+            isPointer: !argType.endsWith("*"),
+          },
+        ],
+      ]);
+      const orchestrator = createMockOrchestrator({
+        getExpressionType: vi.fn(() => argType),
+        isStructType: vi.fn(() => true),
+      });
+
+      const result = generateFunctionCall(
+        "take",
+        planArguments(orchestrator, [createMockExpressionContext("d")]),
+        createMockInput({
+          functionSignatures: takeSignature(paramType),
+          typeRegistry,
+        }),
+        createMockState(),
+        orchestrator,
+      );
+
+      expect(result.code).toBe(expected);
+    });
+  });
+
+  describe("a call through a callback-typed value (ADR-029)", () => {
+    it.each<[string, string | null, string]>([
+      // The field holds a `peek`, so the call takes `peek`'s parameters: the
+      // struct goes by reference, as it does in a direct `peek(p)`.
+      ["a value of a callback type", "peek", "h.onPeek(&p)"],
+      // Controls: nothing names a callback type, so nothing names parameters.
+      ["an untyped callee", null, "h.onPeek(p)"],
+      ["a callee of a non-callback type", "u32", "h.onPeek(p)"],
+    ])("%s", (_label, calleeType, expected) => {
+      const functionSignatures = new Map([
+        [
+          "peek",
+          {
+            name: "peek",
+            parameters: [
+              { name: "p", baseType: "Point", isConst: false, isArray: false },
+            ],
+          },
+        ],
+      ]);
+      const callbackTypes = new Map([
+        [
+          "peek",
+          {
+            functionName: "peek",
+            returnType: "uint32_t",
+            parameters: [],
+            typedefName: "peek_fp",
+          },
+        ],
+      ]);
+      const orchestrator = createMockOrchestrator({
+        isCNextFunction: vi.fn((name: string) => name === "peek"),
+        isStructType: vi.fn(() => true),
+      });
+
+      const result = generateFunctionCall(
+        "h.onPeek",
+        planArguments(orchestrator, [createMockExpressionContext("p")]),
+        createMockInput({ functionSignatures, callbackTypes }),
+        createMockState(),
+        orchestrator,
+        calleeType,
+      );
+
+      expect(result.code).toBe(expected);
+    });
+  });
+
   describe("Issue #832: typedef pointer output parameters", () => {
     it("adds & when typedef pointer type is passed to pointer-to-typedef param", () => {
       // handle_t is typedef'd pointer, create_handle expects handle_t*

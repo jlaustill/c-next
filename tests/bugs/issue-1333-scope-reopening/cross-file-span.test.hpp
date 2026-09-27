@@ -13,9 +13,6 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-typedef struct Lib__Point Lib__Point;
-
 /* Struct definitions */
 typedef struct Lib__Line {
     Lib__Point start;

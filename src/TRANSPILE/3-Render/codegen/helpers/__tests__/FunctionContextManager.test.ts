@@ -23,6 +23,7 @@ import TranspileState from "../../../../TranspileState";
 import type IPlannedType from "../../types/IPlannedType";
 import type IPlannedFunctionParameter from "../../types/IPlannedFunctionParameter";
 import type INamedTypeResolution from "../../../../../transpiler/types/INamedTypeResolution";
+import type IProgram from "../../../../../transpiler/types/IProgram";
 
 /**
  * Helper to set up state.symbols with minimal fields.
@@ -112,6 +113,29 @@ function plannedParam(
 
 let state = new TranspileState();
 
+/**
+ * #1722: registering a parameter reads its opaque-handle stamp from the settled
+ * symbol of the function being generated, as a real run does -- a parameter is
+ * only ever registered inside one. `stamps` names the parameters 1.4 marked.
+ */
+function generatingFunction(stamps: Record<string, boolean> = {}): void {
+  state.currentFunctionName = "use";
+  state.program = {
+    symbolByCName: (name: string) =>
+      name === "use"
+        ? {
+            kind: "function",
+            name: "use",
+            parameters: Object.entries(stamps).map(([param, isOpaque]) => ({
+              name: param,
+              isOpaqueHandle: isOpaque || undefined,
+            })),
+          }
+        : undefined,
+    callbackCompatibleFunctions: () => new Map<string, string>(),
+  } as unknown as IProgram;
+}
+
 describe("FunctionContextManager", () => {
   beforeEach(() => {
     state = new TranspileState();
@@ -161,6 +185,8 @@ describe("FunctionContextManager", () => {
   });
 
   describe("processParameterList", () => {
+    beforeEach(() => generatingFunction());
+
     it("clears existing parameters", () => {
       state.currentParameters.set("existing", {
         name: "existing",
@@ -197,6 +223,8 @@ describe("FunctionContextManager", () => {
   });
 
   describe("processParameter", () => {
+    beforeEach(() => generatingFunction());
+
     it("registers primitive parameter", () => {
       const callbacks = createMockCallbacks();
 
@@ -290,6 +318,60 @@ describe("FunctionContextManager", () => {
       expect(paramInfo).toBeDefined();
       expect(paramInfo!.isString).toBe(true);
     });
+
+    /**
+     * ADR-030 / #1722: the one opaque-handle decision, READ at registration.
+     *
+     * 1.4 Resolve stamps the settled parameter (`IParameterInfo.isOpaqueHandle`);
+     * registration reads that stamp through the function's settled symbol and
+     * asks no predicate of its own, so the `.h` prototype -- which reads the
+     * same stamp -- cannot disagree. Each row therefore supplies what a real run
+     * has: the function being generated, and its settled symbol.
+     *
+     * Every row registers `isStruct` -- the opaque ones through the stamp, the
+     * complete struct through its known fields -- which is exactly why
+     * `isStruct` could not carry this: the two look the same through it. The
+     * complete struct is the row that must NOT be a handle.
+     *
+     * An array of handles IS one, element-wise: #996 decided an array of them
+     * is an array of pointers, and this row used to pin the opposite, which is
+     * what left `Dev[2] arr` as `Dev arr[2]`. The registry's `isPointer` -- what
+     * a call site reads to skip `&` -- is asserted beside it, because it is the
+     * same decision and used to be read from a second predicate.
+     */
+    it.each<[string, string, boolean, boolean, boolean]>([
+      ["an opaque handle", "Dev", true, false, true],
+      ["a complete typedef'd struct", "Full", false, false, false],
+      ["an array of opaque handles", "Dev", true, true, true],
+    ])(
+      "registers %s with the matching isOpaqueHandle",
+      (_label, typeName, isOpaque, isArray, expected) => {
+        generatingFunction({ p: isOpaque });
+        // A struct with a body is a known struct; a forward-declared typedef
+        // is not -- the stamp is what makes it one.
+        const callbacks: IFunctionContextCallbacks = {
+          isStructType: vi.fn(() => !isOpaque),
+        };
+
+        FunctionContextManager.processParameter(
+          plannedParam(
+            "p",
+            plannedType({ named: named("bare", typeName), isArray }),
+            { isArray },
+          ),
+          callbacks,
+          0,
+          state,
+        );
+
+        const paramInfo = state.currentParameters.get("p");
+        expect(paramInfo!.isStruct).toBe(true);
+        expect(paramInfo!.isOpaqueHandle).toBe(expected);
+        expect(state.getVariableTypeInfo("p")!.isPointer ?? false).toBe(
+          expected,
+        );
+      },
+    );
   });
 
   describe("resolveParameterTypeInfo", () => {

@@ -22,7 +22,7 @@ import testAnalysisContext from "./testAnalysisContext";
  * parameter would have made them silent by omission.
  */
 const NO_INCLUDES = {
-  sourcePath: "/unit-test/analyzers.cnx",
+  quotedIncludeDirectory: "/unit-test",
   searchPaths: [] as readonly string[],
   fileExists: () => false,
 };

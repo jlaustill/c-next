@@ -7,8 +7,9 @@
  *
  * ## What this pass may know, and what it is handed
  *
- * The two facts these rules need beyond the parse tree are the file being
- * analyzed and where its angle includes are searched, and NEITHER may be read
+ * The two facts these rules need beyond the parse tree are the directory this
+ * file's quoted includes resolve from and where its angle includes are
+ * searched, and NEITHER may be re-derived from the file's path (#1435) or read
  * off shared state here. `CodeGenState.sourcePath` is written inside
  * `CodeGenerator.generate()`, which runs after the analyzers: measured, it is
  * `null` for the first file of a run and holds the PREVIOUS file's path for
@@ -38,11 +39,10 @@
  */
 
 import { ParseTreeWalker } from "antlr4ng";
-import { dirname, join, resolve } from "node:path";
-
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
+import IncludeDiscovery from "../../transpiler/data/IncludeDiscovery";
 import IncludeDirective from "./helpers/IncludeDirective";
 import IIncludeContext from "./types/IIncludeContext";
 import IIncludeDirectiveError from "./types/IIncludeDirectiveError";
@@ -117,8 +117,8 @@ class IncludeDirectiveListener extends CNextListener {
     if (!spec.isQuoted) return false;
     if (!CNEXT_EXTENSIONS.has(extensionOf(spec.path))) return false;
 
-    const target = resolve(dirname(this.context.sourcePath), spec.path);
-    if (this.context.fileExists(target)) return false;
+    // Where a quoted include resolves is one decision, shared with E0504.
+    if (this.quotedAlternative(spec.path) !== null) return false;
     // The help names no absolute path on purpose. The throw this replaces put
     // the resolved path in its message; it had no fixture, and the first one
     // written for it embedded this machine's checkout directory in an
@@ -162,19 +162,28 @@ class IncludeDirectiveListener extends CNextListener {
     );
   }
 
-  /** A quoted include resolves beside the including file, and only there. */
+  /**
+   * A quoted include resolves beside the including file, and only there.
+   * #1672: asked of the rule discovery resolved the include with, not a copy.
+   */
   private quotedAlternative(cnxPath: string): string | null {
-    const candidate = resolve(dirname(this.context.sourcePath), cnxPath);
-    return this.context.fileExists(candidate) ? candidate : null;
+    return IncludeDiscovery.resolveQuoted(
+      cnxPath,
+      this.context.quotedIncludeDirectory,
+      this.context.fileExists,
+    );
   }
 
-  /** An angle include is searched along the run's paths, in priority order. */
+  /**
+   * An angle include is searched along the run's paths, in priority order.
+   * #1672: the same rule discovery resolves one with.
+   */
   private angleAlternative(cnxPath: string): string | null {
-    for (const searchDir of this.context.searchPaths) {
-      const candidate = join(searchDir, cnxPath);
-      if (this.context.fileExists(candidate)) return candidate;
-    }
-    return null;
+    return IncludeDiscovery.resolveAlong(
+      cnxPath,
+      this.context.searchPaths,
+      this.context.fileExists,
+    );
   }
 
   private report(

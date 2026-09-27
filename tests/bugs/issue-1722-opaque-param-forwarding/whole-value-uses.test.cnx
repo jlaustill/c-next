@@ -1,0 +1,47 @@
+// test-execution
+// test-no-warnings
+// test-adr: 030
+// test-link: dev_impl.c
+// Issue #1722: the same defect outside a call. It was never the call site's:
+// a whole-value use of an opaque-handle parameter rendered `(*d)` wherever it
+// appeared, so an initializer, an assignment and a comparison each emitted a
+// dereference of an incomplete type. Each is the handle itself.
+#include "dev.h"
+
+i32 viaInitializer(Dev d) {
+    Dev e <- d;
+    dev_poke(e);
+    i32 n <- dev_pokes(d);
+    return n;
+}
+
+i32 viaAssignment(Dev d) {
+    Dev e <- dev_create();
+    e <- d;
+    dev_poke(e);
+    i32 n <- dev_pokes(d);
+    return n;
+}
+
+bool sameHandle(Dev a, Dev b) {
+    return a = b;
+}
+
+i32 main() {
+    Dev d <- dev_create();
+    Dev other <- dev_create();
+
+    i32 initialized <- viaInitializer(d);
+    if (initialized != 1) return 1;
+
+    i32 assigned <- viaAssignment(d);
+    if (assigned != 2) return 2;
+
+    bool same <- sameHandle(d, d);
+    if (same != true) return 3;
+
+    bool different <- sameHandle(d, other);
+    if (different != false) return 4;
+
+    return 0;
+}

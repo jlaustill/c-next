@@ -1,0 +1,11 @@
+// Helper for #1724 (the issue's a.cnx). Declares `Config` inside scope Motor.
+// It is a SIBLING of motor-uses-ext.cnx: neither file includes the other.
+scope Motor {
+    public struct Config {
+        u8 x;
+    }
+
+    public u8 useMine(Config c) {
+        return c.x;
+    }
+}

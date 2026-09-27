@@ -1,0 +1,41 @@
+// test-execution
+// test-adr: 057
+// Issue #1724: a bare type name inside a reopened scope resolves against what
+// ITS OWN FILE can see -- its declarations and its include closure -- and not
+// against every file in the run.
+//
+// motor-uses-ext.cnx reopens `scope Motor` and names `Config` bare. The only
+// `Config` it can see is the C typedef from ext_config.h. motor-config.cnx
+// declares a `Motor.Config` too, but motor-uses-ext.cnx never includes it:
+// this entry is the only file that includes both.
+//
+// Before the fix the `.h` and the `.c` of motor-uses-ext both said
+// `Motor__Config`. 1.4 settled the bare name against the union of every file's
+// scope types, and codegen asked a run-wide table the same question. The
+// header forward-declared `Motor__Config` and left out `#include "ext_config.h"`,
+// and gcc rejected the `.c` (`invalid use of incomplete typedef`) while the
+// transpiler exited 0. The link below is what compiles motor-uses-ext.c.
+//
+// Paired with sibling-declared-second.test.cnx (the same program with the
+// include order flipped), motor-uses-ext-alone.test.cnx (the sibling is not in
+// the run) and included-sibling-qualifies.test.cnx (the reopening file DOES
+// include the declaring one, so a bare `Config` must still qualify there).
+#include "ext_config.h"
+#include "motor-config.cnx"
+#include "motor-uses-ext.cnx"
+
+i32 main() {
+    Config theirs <- { a: 7, b: 9 };
+    i32 fromTheirs <- Motor.useTheirs(theirs);
+    if (fromTheirs != 7) {
+        return 1;
+    }
+
+    Motor.Config mine <- { x: 5 };
+    u8 fromMine <- Motor.useMine(mine);
+    if (fromMine != 5) {
+        return 2;
+    }
+
+    return 0;
+}

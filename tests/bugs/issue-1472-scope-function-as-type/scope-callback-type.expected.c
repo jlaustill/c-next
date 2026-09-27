@@ -42,12 +42,12 @@ void Motor__onTick(uint32_t ms) {
 }
 
 void Motor__runBare(Motor__onTick_fp handler) {
-    handler(3);
+    handler(3U);
 }
 
 // QUALIFIED, from outside the scope.
 void runQualified(Motor__onTick_fp handler) {
-    handler(5);
+    handler(5U);
 }
 
 int main(void) {

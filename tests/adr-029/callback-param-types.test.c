@@ -8,16 +8,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// test-transpile-only
+// test-execution
 // test-adr: 029
 // Tests: Callbacks with various parameter types
 // Validates: u8, u32, bool, and struct parameters work correctly
-// NOTE: Changed to transpile-only due to Issue #1223 - a callback invoked with a
-// struct argument passes it by value into a pointer parameter, so the generated C
-// does not compile (ph.handler(pt) should be ph.handler(&pt)).
-// The number here previously read #1033, which is a merged PR about C-style array
-// declarations and tracks nothing about callbacks -- so this downgrade read as
-// tracked to anyone who checked, while the bug had no issue attached to it.
+// Issue #1223: a callback invoked with a struct argument passed it by value into
+// a pointer parameter -- ph.handler(pt), not ph.handler(&pt) -- so the generated
+// C did not compile and this ran transpile-only. A call through a callback-typed
+// value now shapes its arguments from the function that is its type, as a direct
+// call does, and this runs again.
 // Callback with u8 parameter
 uint32_t processU8(uint8_t val) {
     return val + 100U;
@@ -93,11 +92,11 @@ int main(void) {
     CallbackParamType__Point pt = {0};
     pt.x = 10U;
     pt.y = 20U;
-    result = ph.handler(pt);
+    result = ph.handler(&pt);
     if (result != 30) return 7U;
     pt.x = 100U;
     pt.y = 200U;
-    result = ph.handler(pt);
+    result = ph.handler(&pt);
     if (result != 300) return 8U;
     return 0U;
 }

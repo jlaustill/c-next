@@ -516,15 +516,53 @@ class IncludeDiscovery {
       return fs.exists(includePath) ? includePath : null;
     }
 
-    // Search in each directory
+    return IncludeDiscovery.resolveAlong(
+      includePath,
+      searchPaths,
+      (path) => fs.exists(path) && fs.isFile(path),
+    );
+  }
+
+  /**
+   * The first search directory holding `includePath`, in priority order --
+   * how an angle include resolves. #1672: the one statement of that rule,
+   * which 2.1's E0504 asks as well as 1.1.
+   *
+   * @param isFile - Whether a path is an existing file, through the run's
+   *   file system
+   */
+  static resolveAlong(
+    includePath: string,
+    searchPaths: readonly string[],
+    isFile: (path: string) => boolean,
+  ): string | null {
     for (const searchDir of searchPaths) {
       const fullPath = join(searchDir, includePath);
-      if (fs.exists(fullPath) && fs.isFile(fullPath)) {
+      if (isFile(fullPath)) {
         return fullPath;
       }
     }
-
     return null;
+  }
+
+  /**
+   * #1672: where a quoted `.cnx` include resolves -- beside the file it
+   * appears in, and only there (ADR-010). The one statement of that rule: 1.1
+   * resolves such an include with it and 2.1's E0504/E0506 ask it too, so the
+   * file discovery pulls into the run and the include 2.1 accepts are one.
+   * 1.1 searched every search path, and pulled in a file 2.1 then said the
+   * include could not reach.
+   *
+   * @param isFile - Whether a path is an existing file, through the run's
+   *   file system
+   */
+  static resolveQuoted(
+    includePath: string,
+    quotedIncludeDirectory: string,
+    isFile: (path: string) => boolean,
+  ): string | null {
+    const candidate = resolve(quotedIncludeDirectory, includePath);
+    return isFile(candidate) ? candidate : null;
   }
 }
 

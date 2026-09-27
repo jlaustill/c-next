@@ -13,7 +13,6 @@
  * demonstrably fired.
  */
 
-import { dirname } from "node:path";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -45,7 +44,6 @@ async function forFixture(fixturePath: string): Promise<Map<string, number[]>> {
     result = await transpiler.transpile({
       kind: "source",
       source,
-      workingDir: dirname(fixturePath),
       sourcePath: fixturePath,
     });
   } catch {
