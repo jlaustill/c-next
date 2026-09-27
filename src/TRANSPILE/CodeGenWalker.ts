@@ -103,7 +103,7 @@ import includeGenerators from "./3-Render/codegen/generators/support/IncludeGene
 import commentUtils from "./3-Render/codegen/generators/support/CommentUtils";
 import DeclaredTypeInfo from "./2-Plan/DeclaredTypeInfo";
 import DeclaredPointer from "../utils/DeclaredPointer";
-import type ITargetDeclaration from "./2-Plan/types/ITargetDeclaration";
+import type IChainBase from "./2-Plan/types/IChainBase";
 import memberAccessChain from "./3-Render/codegen/memberAccessChain";
 import AssignmentHandlerRegistry from "./3-Render/codegen/assignment/index";
 import AssignmentClassifier from "./2-Plan/AssignmentClassifier";
@@ -576,8 +576,8 @@ class CodeGenWalker {
     // step. A `this.`/`global.` chain consumes its first `.name`, so the
     // typer's steps are the op list's tail.
     const typing = this.host.state.typingContext();
-    const steps =
-      typing === null ? [] : OperandTyper.chainOf(ctx, typing).steps;
+    const chain = typing === null ? null : OperandTyper.chainOf(ctx, typing);
+    const steps = chain?.steps ?? [];
     const offset = ops.length - steps.length;
     const plannedOps = ops.map((op, i) =>
       this.planPostfixOp(op, steps[i - offset]?.subscript ?? null),
@@ -598,6 +598,15 @@ class CodeGenWalker {
           )
         : 0,
       ops: plannedOps,
+      // #1668 (C7): the chain's bound base, from the same typed chain
+      base:
+        chain === null || typing === null
+          ? { root: null, rootTypeInfo: undefined, typeInfo: undefined }
+          : DeclaredTypeInfo.ofChain(
+              chain,
+              typing.symbols,
+              this.host.state.symbolTable,
+            ),
     };
   }
 
@@ -4692,7 +4701,7 @@ class CodeGenWalker {
   /** #1668 (C7): what an assignment target writes, by the one binder */
   private targetDeclaration(
     target: Parser.AssignmentTargetContext,
-  ): ITargetDeclaration {
+  ): IChainBase {
     const typing = this.host.state.typingContext();
     if (typing === null) {
       return { root: null, rootTypeInfo: undefined, typeInfo: undefined };

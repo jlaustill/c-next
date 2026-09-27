@@ -23,7 +23,7 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IAssignmentContext from "./types/IAssignmentContext";
 import IBitAccessAnalysis from "../../transpiler/types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../transpiler/types/TPlannedTargetOp";
-import type ITargetDeclaration from "./types/ITargetDeclaration";
+import type IChainBase from "./types/IChainBase";
 import type TranspileState from "../TranspileState";
 
 /**
@@ -31,7 +31,7 @@ import type TranspileState from "../TranspileState";
  */
 interface IContextBuilderDeps {
   /** #1668: what the target writes, bound where it was typed */
-  readonly target: ITargetDeclaration;
+  readonly target: IChainBase;
 
   /**
    * 2.3 Render's per-file working state (#1452 box 4), carried onto the built

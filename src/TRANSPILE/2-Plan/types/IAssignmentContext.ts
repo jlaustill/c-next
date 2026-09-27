@@ -7,7 +7,7 @@
  */
 import type IBitAccessAnalysis from "../../../transpiler/types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../../../transpiler/types/TPlannedTargetOp";
-import type ITargetDeclaration from "./ITargetDeclaration";
+import type IChainBase from "./IChainBase";
 import type TranspileState from "../../TranspileState";
 
 /**
@@ -166,7 +166,7 @@ interface IAssignmentContext {
    * #1668 (C7): what the target writes -- its root binding and the written
    * variable's declared type -- bound once, where the target is typed
    */
-  readonly target: ITargetDeclaration;
+  readonly target: IChainBase;
 
   // === Computed properties ===
 

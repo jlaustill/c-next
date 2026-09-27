@@ -6,7 +6,7 @@ import type TValueBinding from "../../../transpiler/types/TValueBinding";
  * is typed -- every classifier rule and handler reads this rather than a
  * registry keyed by a name each of them re-derived.
  */
-interface ITargetDeclaration {
+interface IChainBase {
   /** The chain's root, as its spelling binds at the target */
   readonly root: TValueBinding | null;
   /** The root's declared type; none for a scope */
@@ -15,4 +15,4 @@ interface ITargetDeclaration {
   readonly typeInfo: TTypeInfo | undefined;
 }
 
-export default ITargetDeclaration;
+export default IChainBase;

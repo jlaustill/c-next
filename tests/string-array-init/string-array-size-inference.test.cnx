@@ -1,3 +1,4 @@
+// test-execution
 // Issue #380: String array initializers with size inference
 // Tests: array size inferred from initializer count
 

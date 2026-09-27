@@ -9,6 +9,7 @@
  * - Property access (.length, .capacity, .size)
  */
 
+import type IChainBase from "../../../../../2-Plan/types/IChainBase";
 import type TSubscriptKind from "../../../../../../transpiler/types/TSubscriptKind";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import generatePostfixExpression from "../PostfixExpressionGenerator";
@@ -53,12 +54,9 @@ function createMockInput(overrides?: {
   symbols?: ICodeGenSymbols;
   typeRegistry?: Map<string, TTypeInfo>;
 }): IGeneratorInput {
-  // Also populate TranspileState with the type registry entries
-  // This is needed because PostfixExpressionGenerator now uses TranspileState directly
+  // #1668 (C7): the generator reads each chain's bound base off its plan,
+  // which `runPostfix` derives from this map
   const typeRegistry = overrides?.typeRegistry ?? new Map<string, TTypeInfo>();
-  for (const [name, info] of typeRegistry) {
-    sharedState.setVariableTypeInfo(name, info);
-  }
 
   return {
     symbolTable: null,
@@ -286,8 +284,10 @@ function createMockPostfixOp(options?: {
 }
 
 /** A plan, plus the primary text `runPostfix` renders through the orchestrator. */
-interface IMockPostfixPlan extends IPlannedPostfix {
+interface IMockPostfixPlan extends Omit<IPlannedPostfix, "base"> {
   readonly primaryText: string;
+  /** #1668: the bound base, when a case's chain is not a named primary's */
+  readonly base?: IChainBase;
 }
 
 function createMockPostfixExpressionContext(
@@ -333,9 +333,19 @@ function runPostfix(
   state: IGeneratorState,
   orchestrator: IOrchestrator & IPostfixPlannerStub,
 ) {
+  // The chain's bound base, as the walker plans it: a named primary binds
+  // itself, both as the root and as the variable its leading part reaches
+  const declared = plan.rootIdentifier
+    ? input.typeRegistry.get(plan.rootIdentifier)
+    : undefined;
   return generatePostfixExpression(
     {
       ...plan,
+      base: plan.base ?? {
+        root: null,
+        rootTypeInfo: declared,
+        typeInfo: declared,
+      },
       renderPrimary: () =>
         orchestrator.generatePrimaryExpr({
           getText: () => plan.primaryText,

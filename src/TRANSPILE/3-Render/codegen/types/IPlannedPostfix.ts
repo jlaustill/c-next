@@ -1,4 +1,5 @@
 import type TPlannedPostfixOp from "./TPlannedPostfixOp";
+import type IChainBase from "../../../2-Plan/types/IChainBase";
 
 /**
  * A postfix expression: a primary, and the operations applied to it.
@@ -46,6 +47,12 @@ interface IPlannedPostfix {
   readonly leadingSubscriptCount: number;
 
   readonly ops: readonly TPlannedPostfixOp[];
+
+  /**
+   * #1668 (C7): what the chain's leading names bind -- the root, and the
+   * variable its leading part reaches -- by the one operand typer
+   */
+  readonly base: IChainBase;
 }
 
 /** The variable a leading subscript run indexes, and how to name it. */

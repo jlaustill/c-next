@@ -11,7 +11,7 @@ import type ICodeGenApi from "../../../../../../transpiler/types/ICodeGenApi";
 import type ICodeGenSymbols from "../../../../../../transpiler/types/ICodeGenSymbols";
 import type TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
 import type IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
-import type ITargetDeclaration from "../../../../../2-Plan/types/ITargetDeclaration";
+import type IChainBase from "../../../../../2-Plan/types/IChainBase";
 import ScopeUtils from "../../../../../../utils/ScopeUtils";
 import QualifiedCName from "../../../../../../utils/QualifiedCName";
 
@@ -202,7 +202,7 @@ function targetOf(
     IAssignmentContext,
     "identifiers" | "resolvedBaseIdentifier" | "hasThis" | "hasGlobal"
   >,
-): ITargetDeclaration {
+): IChainBase {
   const declared = declarations.get(state) ?? new Map<string, TTypeInfo>();
   const ids = ctx.identifiers;
   const member = declared.get(

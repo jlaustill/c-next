@@ -11,6 +11,7 @@
  * This generator was extracted from CodeGenerator._generatePostfixExpr
  * to reduce the size and complexity of CodeGenerator.ts.
  */
+import type IChainBase from "../../../../2-Plan/types/IChainBase";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IPlannedPostfix from "../../types/IPlannedPostfix";
 import TPlannedPostfixOp from "../../types/TPlannedPostfixOp";
@@ -42,6 +43,12 @@ import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator"
  * Mutable tracking state threaded through the postfix op loop.
  */
 interface ITrackingState {
+  /**
+   * #1668 (C7): what the chain's leading names bind, planned once -- the
+   * root, and the variable the leading part reaches. Every declared-type read
+   * below is this, not a registry keyed by a name the walk re-derived.
+   */
+  readonly base: IChainBase;
   result: string;
   isRegisterChain: boolean;
   currentMemberIsArray: boolean;
@@ -92,6 +99,7 @@ const singleBitRead = (
  * Initialize tracking state from the primary expression.
  */
 const initializeTrackingState = (
+  base: IChainBase,
   rootIdentifier: string | undefined,
   result: string,
   primaryTypeInfo:
@@ -105,9 +113,7 @@ const initializeTrackingState = (
     ? input.symbols!.knownRegisters.has(rootIdentifier)
     : false;
 
-  const primaryBaseType = rootIdentifier
-    ? orchestrator.state.getVariableTypeInfo(rootIdentifier)?.baseType
-    : undefined;
+  const primaryBaseType = primaryTypeInfo?.baseType;
   const currentStructType =
     primaryBaseType && orchestrator.isKnownStruct(primaryBaseType)
       ? primaryBaseType
@@ -126,6 +132,7 @@ const initializeTrackingState = (
   }
 
   return {
+    base,
     result,
     isRegisterChain,
     currentMemberIsArray: false,
@@ -200,9 +207,7 @@ const generatePostfixExpression = (
   // through the pointer instead of pointer-indexing past it.
   const result: string = plan.renderPrimary();
 
-  const primaryTypeInfo = rootIdentifier
-    ? orchestrator.state.getVariableTypeInfo(rootIdentifier)
-    : undefined;
+  const primaryTypeInfo = rootIdentifier ? plan.base.rootTypeInfo : undefined;
 
   // Issue #1106: reject over-indexing the base variable (e.g. flags[4][3] on a
   // scalar u8, which would otherwise chain bit-indexes into always-zero code:
@@ -214,13 +219,14 @@ const generatePostfixExpression = (
   // are resolved first, then the shared validator does the counting.
   if (plan.subscriptBase) {
     SubscriptDepthValidator.validate(
-      orchestrator.state.getVariableTypeInfo(plan.subscriptBase.name),
+      plan.base.typeInfo,
       plan.leadingSubscriptCount,
       plan.subscriptBase.displayName,
     );
   }
 
   const tracking = initializeTrackingState(
+    plan.base,
     rootIdentifier,
     result,
     primaryTypeInfo,
@@ -245,6 +251,7 @@ const generatePostfixExpression = (
     } else if (op.kind === "subscript") {
       const subscriptResult = generateSubscriptAccess(
         {
+          base: tracking.base,
           result: tracking.result,
           subscript: op,
           rootIdentifier,
@@ -362,6 +369,7 @@ const handleMemberOp = (
   // Handle bitmap field access, scope member access, enum member access, etc.
   const memberResult = generateMemberAccess(
     {
+      base: tracking.base,
       result: tracking.result,
       memberName,
       rootIdentifier: ctx.rootIdentifier,
@@ -429,7 +437,7 @@ const handleGlobalPrefix = (
   }
 
   // Issue #612: Set currentStructType for global struct variables
-  const globalTypeInfo = ctx.orchestrator.state.getVariableTypeInfo(memberName);
+  const globalTypeInfo = tracking.base.rootTypeInfo;
   if (
     globalTypeInfo &&
     ctx.orchestrator.isKnownStruct(globalTypeInfo.baseType)
@@ -465,9 +473,7 @@ const handleThisScopeLength = (
     memberName,
   );
   tracking.resolvedIdentifier = tracking.result;
-  const resolvedTypeInfo = orchestrator.state.getVariableTypeInfo(
-    tracking.result,
-  );
+  const resolvedTypeInfo = tracking.base.typeInfo;
   if (
     resolvedTypeInfo &&
     orchestrator.isKnownStruct(resolvedTypeInfo.baseType)
@@ -492,9 +498,7 @@ const resolveStringTypeInfo = (
   orchestrator: IOrchestrator,
 ): TTypeInfo | undefined => {
   const identifier = tracking.resolvedIdentifier ?? rootIdentifier;
-  const typeInfo = identifier
-    ? orchestrator.state.getVariableTypeInfo(identifier)
-    : undefined;
+  const typeInfo = identifier ? tracking.base.typeInfo : undefined;
   if (typeInfo?.isString) {
     return typeInfo;
   }
@@ -529,6 +533,7 @@ const createExplicitLengthContext = (
   tracking: ITrackingState,
   rootIdentifier: string | undefined,
 ): IExplicitLengthContext => ({
+  base: tracking.base,
   result: tracking.result,
   rootIdentifier,
   resolvedIdentifier: tracking.resolvedIdentifier,
@@ -664,6 +669,7 @@ const tryPropertyAccess = (
  * Context for explicit length property generation.
  */
 interface IExplicitLengthContext {
+  base: IChainBase;
   result: string;
   rootIdentifier: string | undefined;
   resolvedIdentifier: string | undefined;
@@ -731,9 +737,7 @@ const generateBitLengthProperty = (
   }
 
   // Get type info for the resolved identifier
-  const typeInfo = ctx.resolvedIdentifier
-    ? orchestrator.state.getVariableTypeInfo(ctx.resolvedIdentifier)
-    : undefined;
+  const typeInfo = ctx.resolvedIdentifier ? ctx.base.typeInfo : undefined;
 
   if (!typeInfo) {
     invariant(
@@ -1005,9 +1009,7 @@ const generateByteLengthProperty = (
   }
 
   // Get type info for the resolved identifier
-  const typeInfo = ctx.resolvedIdentifier
-    ? orchestrator.state.getVariableTypeInfo(ctx.resolvedIdentifier)
-    : undefined;
+  const typeInfo = ctx.resolvedIdentifier ? ctx.base.typeInfo : undefined;
 
   if (!typeInfo) {
     invariant(
@@ -1068,14 +1070,8 @@ const generateStructFieldElementCount = (
 /**
  * Generate element_count from type info.
  */
-const generateTypeInfoElementCount = (
-  ctx: IExplicitLengthContext,
-  _input: IGeneratorInput,
-  orchestrator: IOrchestrator,
-): string => {
-  const typeInfo = ctx.resolvedIdentifier
-    ? orchestrator.state.getVariableTypeInfo(ctx.resolvedIdentifier)
-    : undefined;
+const generateTypeInfoElementCount = (ctx: IExplicitLengthContext): string => {
+  const typeInfo = ctx.resolvedIdentifier ? ctx.base.typeInfo : undefined;
 
   if (!typeInfo) {
     invariant(
@@ -1135,7 +1131,7 @@ const generateElementCountProperty = (
   }
 
   // Get type info for variable
-  return generateTypeInfoElementCount(ctx, input, orchestrator);
+  return generateTypeInfoElementCount(ctx);
 };
 
 /**
@@ -1174,9 +1170,7 @@ const generateCharCountProperty = (
   }
 
   // Get type info
-  const typeInfo = ctx.resolvedIdentifier
-    ? orchestrator.state.getVariableTypeInfo(ctx.resolvedIdentifier)
-    : undefined;
+  const typeInfo = ctx.resolvedIdentifier ? ctx.base.typeInfo : undefined;
 
   if (!typeInfo) {
     invariant(
@@ -1231,6 +1225,7 @@ interface MemberAccessResult {
  * Context for member access generation.
  */
 interface IMemberAccessContext {
+  base: IChainBase;
   result: string;
   memberName: string;
   rootIdentifier: string | undefined;
@@ -1352,7 +1347,7 @@ const tryBitmapFieldAccess = (
   if (!ctx.rootIdentifier) {
     return null;
   }
-  const typeInfo = orchestrator.state.getVariableTypeInfo(ctx.rootIdentifier);
+  const typeInfo = ctx.base.rootTypeInfo;
   if (!typeInfo?.isBitmap || !typeInfo.bitmapTypeName) {
     return null;
   }
@@ -1394,7 +1389,7 @@ const tryScopeMemberAccess = (
     output.result = fullName;
     output.resolvedIdentifier = fullName;
     if (!input.symbols!.knownEnums.has(fullName)) {
-      const resolvedTypeInfo = orchestrator.state.getVariableTypeInfo(fullName);
+      const resolvedTypeInfo = ctx.base.typeInfo;
       if (
         resolvedTypeInfo &&
         orchestrator.isKnownStruct(resolvedTypeInfo.baseType)
@@ -1426,9 +1421,7 @@ const tryKnownScopeAccess = (
   const output = initializeMemberOutput(ctx);
   output.result = `${ctx.result}${orchestrator.getScopeSeparator(ctx.isCppAccessChain)}${ctx.memberName}`;
   output.resolvedIdentifier = output.result;
-  const resolvedTypeInfo = orchestrator.state.getVariableTypeInfo(
-    output.result,
-  );
+  const resolvedTypeInfo = ctx.base.typeInfo;
   if (
     resolvedTypeInfo &&
     orchestrator.isKnownStruct(resolvedTypeInfo.baseType)
@@ -1583,6 +1576,7 @@ interface SubscriptAccessResult {
  * Context for subscript access generation.
  */
 interface ISubscriptAccessContext {
+  base: IChainBase;
   result: string;
   subscript: Extract<TPlannedPostfixOp, { kind: "subscript" }>;
   rootIdentifier: string | undefined;
@@ -1660,7 +1654,7 @@ const handleSingleSubscript = (
   validateNotBitmapMember(ctx, input);
 
   const isRegisterAccess = checkRegisterAccess(ctx, input);
-  const identifierTypeInfo = getIdentifierTypeInfo(ctx, input, orchestrator);
+  const identifierTypeInfo = getIdentifierTypeInfo(ctx);
 
   // Register access: bit extraction
   if (isRegisterAccess) {
@@ -1742,13 +1736,9 @@ const checkRegisterAccess = (
  */
 const getIdentifierTypeInfo = (
   ctx: ISubscriptAccessContext,
-  _input: IGeneratorInput,
-  orchestrator: IOrchestrator,
 ): TTypeInfo | undefined => {
   const identifierToCheck = ctx.resolvedIdentifier || ctx.rootIdentifier;
-  return identifierToCheck
-    ? orchestrator.state.getVariableTypeInfo(identifierToCheck)
-    : undefined;
+  return identifierToCheck ? ctx.base.typeInfo : undefined;
 };
 
 /**

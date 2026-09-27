@@ -26,7 +26,7 @@ import type TTypeInfo from "../../transpiler/types/TTypeInfo";
 import type TType from "../../transpiler/types/TType";
 import type TValueBinding from "../../transpiler/types/TValueBinding";
 import type IChainTyping from "../../transpiler/types/IChainTyping";
-import type ITargetDeclaration from "./types/ITargetDeclaration";
+import type IChainBase from "./types/IChainBase";
 
 /** What a local declaration and a variable symbol both say */
 interface IDeclared {
@@ -91,7 +91,7 @@ class DeclaredTypeInfo {
     chain: IChainTyping,
     symbols: ICodeGenSymbols | null,
     symbolTable: SymbolTable,
-  ): ITargetDeclaration {
+  ): IChainBase {
     const rootTypeInfo = DeclaredTypeInfo.of(chain.root, symbols, symbolTable);
     if (chain.root?.kind !== "scope") {
       return { root: chain.root, rootTypeInfo, typeInfo: rootTypeInfo };
