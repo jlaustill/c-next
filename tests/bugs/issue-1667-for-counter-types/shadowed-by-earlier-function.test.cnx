@@ -1,0 +1,39 @@
+// test-execution
+// #1667 probe 2: a `for` counter is typed by its own declaration, not by an
+// earlier function's variable of the same name. `first()` declares `u32 k`,
+// which the lookup by bare name used to find, so the `u8` counter took the
+// `u32` clamp and a `.bit_length` of 32.
+void first() {
+    u32 k <- 0;
+    k <- k + 1;
+}
+
+u32 probe() {
+    u32 w <- 0;
+    for (u8 k <- 0; k < 3; k <- k + 1) {
+        w <- k.bit_length;
+    }
+    return w;
+}
+
+// The u8 clamp saturates 250 + 10 at 255 and the loop ends after one pass.
+// Clamped as a u32, 260 truncates to 4 in the u8 and the loop runs on.
+u32 passes() {
+    u32 n <- 0;
+    for (u8 k <- 250; k < 255; k <- k + 10) {
+        n <- n + 1;
+        if (n > 3) {
+            return n;
+        }
+    }
+    return n;
+}
+
+u32 main() {
+    first();
+    u32 width <- probe();
+    if (width != 8) return 1;
+    u32 count <- passes();
+    if (count != 1) return 2;
+    return 0;
+}

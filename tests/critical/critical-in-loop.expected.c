@@ -55,6 +55,11 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
+}
+
 // test-c-only
 // test-coverage: 33.2-critical-inside-loop
 // Coverage: Section 7.7, 33.2 - Critical section inside loops
@@ -64,11 +69,11 @@ uint32_t sharedData[10] = {0};
 uint32_t counter = 0U;
 
 void criticalInFor(void) {
-    for (uint32_t i = 0U; i < 10; i = i + 1) {
+    for (uint32_t i = 0U; i < 10; i = cnx_clamp_add_u32(i, 1)) {
         {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
-            sharedData[i] = i * 2U;
+            sharedData[i] = cnx_clamp_mul_u32(i, 2U);
             counter = cnx_clamp_add_u32(counter, 1U);
             __cnx_set_PRIMASK(__primask);
         }
@@ -102,8 +107,8 @@ void criticalInDoWhile(void) {
 }
 
 void criticalInNestedLoop(void) {
-    for (uint32_t i = 0U; i < 3; i = i + 1) {
-        for (uint32_t j = 0U; j < 3; j = j + 1) {
+    for (uint32_t i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1)) {
+        for (uint32_t j = 0U; j < 3; j = cnx_clamp_add_u32(j, 1)) {
             {
                 uint32_t __primask = __cnx_get_PRIMASK();
                 __cnx_disable_irq();

@@ -49,9 +49,6 @@ class DeclaredTypeInfo {
     switch (binding?.kind) {
       case "local": {
         const declaration = binding.declaration;
-        // Transitional (#1667, deleted in C9): a `for` variable was never
-        // registered, so it has no type info yet
-        if (declaration.kind === "for") return undefined;
         if (declaration.kind === "parameter") {
           return DeclaredTypeInfo.parameter(declaration, symbols, symbolTable);
         }

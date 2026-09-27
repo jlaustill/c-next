@@ -43,9 +43,9 @@ class PlanTyping {
    *
    * A leaf counts only when it is a whole named variable -- an element, a
    * field or a call result has no declared behavior of its own (#1411, #1703
-   * stay out). Two arms carry today's answers until their issues remove them:
-   * a PARAMETER counts with no behavior of its own, i.e. as `wrap` (#1681),
-   * and a `for` variable is not counted at all (#1667).
+   * stay out). One arm carries today's answer until its issue removes it: a
+   * PARAMETER counts with no behavior of its own, i.e. as `wrap` (#1681). A
+   * `for` variable counts by its declaration like any local (#1667).
    */
   static overflowOf(
     leaves: ReadonlyArray<IOperandType | null>,
@@ -69,9 +69,7 @@ class PlanTyping {
       return undefined;
     }
     if (leaf.binding.kind === "local") {
-      const kind = leaf.binding.declaration.kind;
-      if (kind === "for") return undefined; // #1667
-      if (kind === "parameter") return null; // #1681
+      if (leaf.binding.declaration.kind === "parameter") return null; // #1681
     }
     return leaf.overflow;
   }

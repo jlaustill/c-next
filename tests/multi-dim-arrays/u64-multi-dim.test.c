@@ -15,9 +15,19 @@
    the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
    uint8_t parameter would return 0 -- the opposite of saturation. */
 
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
     if (b > (uint64_t)(UINT64_MAX - a)) return UINT64_MAX;
     return (uint64_t)(a + (uint64_t)b);
+}
+
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
 }
 
 // test-execution
@@ -56,7 +66,7 @@ int main(void) {
     if (64 != 64) return 16U;
     for (uint32_t i = 0U; i < 4; i += 1) {
         for (uint32_t j = 0U; j < 8; j += 1) {
-            matrix2d[i][j] = (((i * 100ULL + j)) & 0xFFFFFFFFFFFFFFFFULL);
+            matrix2d[i][j] = (((cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100ULL), j))) & 0xFFFFFFFFFFFFFFFFULL);
         }
     }
     if (matrix2d[0U][0U] != 0) return 17U;
@@ -67,7 +77,7 @@ int main(void) {
     for (uint32_t i = 0U; i < 2; i += 1) {
         for (uint32_t j = 0U; j < 3; j += 1) {
             for (uint32_t k = 0U; k < 4; k += 1) {
-                cube3d[i][j][k] = (((i * 100ULL + j * 10ULL + k)) & 0xFFFFFFFFFFFFFFFFULL);
+                cube3d[i][j][k] = (((cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100ULL), cnx_clamp_mul_u32(j, 10ULL)), k))) & 0xFFFFFFFFFFFFFFFFULL);
                 sum = cnx_clamp_add_u64(sum, cube3d[i][j][k]);
             }
         }

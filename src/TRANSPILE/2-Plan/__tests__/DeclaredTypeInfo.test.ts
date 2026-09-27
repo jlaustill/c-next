@@ -115,13 +115,13 @@ describe("DeclaredTypeInfo.of", () => {
     });
   });
 
-  it("has none yet for a `for` variable (#1667, transitional)", () => {
+  it("types a `for` variable by its declaration (#1667)", () => {
     expect(
       declaredAtR(
         "void f() {\nfor (u8 i <- 0; i < 3; i +<- 1) {\nu8 r <- i;\n}\n}",
         "i",
       ),
-    ).toBeUndefined();
+    ).toMatchObject({ baseType: "u8", overflowBehavior: "clamp" });
   });
 
   it("reads the member a `this.` root names", () => {

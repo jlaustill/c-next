@@ -1,0 +1,40 @@
+// test-execution
+// #1667 probe 3: a `u32` counter keeps its ADR-044 clamp. Untyped, its step
+// was emitted as a plain `i = i + 10U`, which wraps, while a local declared
+// in the body got `cnx_clamp_add_u32`.
+// The card's own probe, so the snapshot shows its spelling. The step reads
+// `cnx_clamp_add_u32(i, 1)`: the `U` a statement gets is #1647's, since a
+// `for` header does not go through the assignment pipeline.
+u32 steps() {
+    u32 n <- 0;
+    for (u32 i <- 0; i < 3; i <- i + 1) {
+        n <- n + 1;
+    }
+    return n;
+}
+
+u32 passes() {
+    u32 n <- 0;
+    for (u32 i <- 4294967290; i < 4294967295; i <- i + 10) {
+        n <- n + 1;
+        if (n > 3) {
+            return n;
+        }
+    }
+    return n;
+}
+
+u32 main() {
+    // ASSERTION: the counter saturates at 4294967295, ending the loop.
+    u32 count <- passes();
+    if (count != 1) return 1;
+
+    u32 three <- steps();
+    if (three != 3) return 3;
+
+    // CONTROL: a plain local of the same type, clamped all along.
+    u32 j <- 4294967290;
+    j <- j + 10;
+    if (j != 4294967295) return 2;
+    return 0;
+}

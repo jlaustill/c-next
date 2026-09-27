@@ -22,6 +22,11 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
 // Tests: Issue #636 - Const struct array with inferred size must include dimension in header
 // This is a regression test to ensure headers correctly declare array dimensions
 // when the size is inferred from an initializer.
@@ -45,7 +50,7 @@ extern const uint8_t ITEM_COUNT = 3U;
 
 int main(void) {
     uint32_t total = 0U;
-    for (uint8_t i = 0U; i < ITEM_COUNT; i = i + 1) {
+    for (uint8_t i = 0U; i < ITEM_COUNT; i = cnx_clamp_add_u8(i, 1)) {
         ConstInferred__TItem item = ITEMS[i];
         total = cnx_clamp_add_u32(total, item.value);
     }

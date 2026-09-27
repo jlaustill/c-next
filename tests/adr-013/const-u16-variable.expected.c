@@ -42,7 +42,7 @@ int main(void) {
     if (DEFAULT_PORT >= MAX_PORT) return 4U;
     uint16_t values[3] = {100U, 200U, 300U};
     uint16_t sum = 0U;
-    for (uint16_t i = 0U; i < 3; i = i + 1) {
+    for (uint16_t i = 0U; i < 3; i = cnx_clamp_add_u16(i, 1)) {
         sum = cnx_clamp_add_u16(sum, values[i]);
     }
     if (sum != 600) return 5U;

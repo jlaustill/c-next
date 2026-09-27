@@ -38,7 +38,7 @@ int main(void) {
     if (4 != 4) return 6U;
     if (5 != 5) return 7U;
     uint32_t sum = 0U;
-    for (uint32_t i = 0U; i < 5; i = i + 1) {
+    for (uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1)) {
         sum = cnx_clamp_add_u32(sum, numbers[i]);
     }
     if (sum != 150) return 8U;
