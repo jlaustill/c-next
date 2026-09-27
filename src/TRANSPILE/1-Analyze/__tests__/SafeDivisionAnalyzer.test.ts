@@ -57,6 +57,30 @@ describe("SafeDivisionAnalyzer (E0885)", () => {
     expect(errors(wrap("    err <- safe_div(nope, 10, 2, 0);"))).toEqual([]);
   });
 
+  it("accepts a global or a scope member as the output, and rejects a function", () => {
+    // #1668: the output binds through Program's one binder, so a variable
+    // that is not a local is still a variable, and a function is not one
+    const program = [
+      "u32 total <- 0;",
+      "u32 helper() { return 1; }",
+      "scope Acc {",
+      "    u32 sum <- 0;",
+      "    public void run() {",
+      "        bool e <- false;",
+      "        e <- safe_div(sum, 10, 2, 0);",
+      "    }",
+      "}",
+      "void main() {",
+      "    bool err <- false;",
+      "    err <- safe_div(total, 10, 2, 0);",
+      "    err <- safe_div(helper, 10, 2, 0);",
+      "}",
+    ].join("\n");
+    const found = errors(program);
+    // Only `helper`, on line 13: `total` and the member `sum` are variables
+    expect(found.map((e) => [e.code, e.line])).toEqual([["E0885", 13]]);
+  });
+
   it("is not confused by a member access ending in the same name", () => {
     // `lib.safe_div(...)` is a different function; only a bare primary
     // identifier followed by one call op is ADR-051's builtin.
