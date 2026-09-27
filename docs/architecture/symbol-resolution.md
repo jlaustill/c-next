@@ -760,6 +760,11 @@ type — they read the same answer. The resolver, and the 2.2 expression-type
 resolver beside it, are deleted rather than re-homed
 (`module-destinations.md`).
 
+Render reads the same answer rather than a second one: a postfix chain's plan
+carries the typer's step for each op, so render tracks no member type of its
+own, and an array dimension folds with the consts 1.4 settled as visible where
+it is written, not with a map the render walk fills.
+
 ## Related Issues
 
 ### Active (Remaining Phases)

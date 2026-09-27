@@ -17,7 +17,9 @@ class CompositeType {
    *
    * - a floating leaf vetoes it, and so does one whose category is unknown
    *   because a C++ overload set disagrees -- integer clamp helpers must not
-   *   see either;
+   *   see either. A header's float macro (`#define SCALE 2.5f`) is not seen
+   *   as floating at all, having no type C-Next can read, so the veto does
+   *   not cover it (#1688);
    * - an integer leaf of unknown width (a C `int_fast16_t`) vetoes it too:
    *   the helper would be sized by a guess;
    * - leaves with no essential category (an unsuffixed literal, a struct),

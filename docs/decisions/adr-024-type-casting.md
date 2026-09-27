@@ -275,6 +275,13 @@ u32 w <- (s > 0) ? i : j;   // OK: both arms unsigned; s appears only in the con
 
 A subscript into a scalar is a bit index and has no declared type, so the bit-indexed reinterpretation `b[0, 32]` stays exempt. That includes a subscript of a C header scalar integer. An array or pointer keeps element access. Each of these used to contribute no category, so `u32 + p.offset` (a signed field) compiled, and `u8 x <- arr[0] * 2.5` was rejected only by accident, as a `u32` narrowing.
 
+**What is an operand of the operator, for this rule** (consequences of the rulings above, #1668; none is a new decision):
+
+- A comparison or a `!` is one Boolean operand, whatever it compares. Its own operands are not operands of the enclosing operator, so with `u32 a, b` and `i32 c, d`, `(a < b) = (c < d)` compares two Booleans and is not a signed/unsigned mix.
+- A shift's count is not an operand of the shift. `a << s` has `a`'s category whatever `s`'s is, because Rule 10.4 does not govern a shift (the count is promoted on its own).
+- A register member has its declared category, as a variable does. A bitmap field wider than one bit is unsigned, and a one-bit field is Boolean.
+- A call to a C++ overload set whose candidates return different categories is not classified, because which candidate C++ chooses is not decided here. It is never taken into integer saturating arithmetic either, so `u * choose(y)` is computed in the category of the candidate C++ picks.
+
 **A float macro has no type C-Next can read.** `u32 i * SCALE_F`, with `#define SCALE_F 2.5f` in a header, is not rejected. How such an operand is typed is open, and is tracked as #1688.
 
 #### Compound assignment is the same operator
@@ -384,6 +391,11 @@ through a chain, and a cast are all conversions and all checked the same way.
 operand, width from the widest — in every position except a cast, where writing
 `(u8)(a + b)` is the author stating the width they mean.
 
+**The source is typed as an operand is** (#1668). A call's result, an
+ADR-029 callback's result, and `-x` or `~x` (the type of `x`) are checked like
+a variable: with a `u32 get()` and a `u32 w`, `u8 n <- get();` and
+`u8 m <- ~w;` both narrow.
+
 **A composite with a floating operand is not an integer composite** (#1668). It
 is floating arithmetic, so integer saturation (ADR-044) never applies to it, and
 it has no integer width to check. Rule 10.4 above rejects the mix wherever the
@@ -486,13 +498,13 @@ target through a declaration, an assignment, or a cast.
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
 | top-level function | imported direct     | error    |
-| scope method       | imported direct     | off      |
+| scope method       | imported direct     | error    |
 | global variable    | imported direct     | error    |
-| scope member       | imported direct     | off      |
+| scope member       | imported direct     | error    |
 | top-level function | imported transitive | error    |
-| scope method       | imported transitive | off      |
+| scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
-| scope member       | imported transitive | off      |
+| scope member       | imported transitive | error    |
 
 A conversion happens wherever a value meets a typed target, so it reaches an
 initializer as well as a function body -- all four same-file contexts. The two
@@ -500,19 +512,24 @@ scope contexts are where the rule had been SILENT: `u8 narrow <- this.wide;`
 inside a scope was accepted while the identical line at top level was not, and
 no fixture depended on that, so it is closed rather than reproduced.
 
+The scope contexts reach an included file too (#1668). A scope member or
+method narrowing a value declared in another file is the same conversion as
+at file scope, and it had been silent for two of the three ways a scope names
+it: a member of another scope written `Other.wide`, and `this.x` in a scope
+reopened in another file. A file-scope source was already checked there. All
+four cells are `error`, and each is occupied by a fixture that asserts it and
+keeps a wide-enough target beside it as a control.
+
 The imported columns matter because the rule asks the SOURCE's type, and the
 source may be declared in another file. A check reading only the file in front
 of it finds no type for it, and untyped never rejects -- the rule would go
-quiet across an include rather than fail. The scope contexts are `off` in those
-columns as a stated obligation, not a claim they cannot exist.
+quiet across an include rather than fail.
 
-**Two divergences preserved on purpose, both raised rather than decided.** The
-transpiler typed a composite source (`a + b`) on a declaration's initializer and
-never on an assignment statement, and it checked an assignment against the root
-variable's declared type -- so a u32 into a u8 FIELD reached through a chain was
-never checked at all. Twelve fixtures assert the lax paths. This ADR does not
-say how a composite is typed, and closing either gap is a behavior change on
-code the corpus treats as valid.
+**Two divergences this section once recorded are closed.** A composite source
+is checked on an assignment statement as it is on a declaration's initializer,
+and an assignment is checked against the declared type of the variable or
+field it writes, not its root's: with `u32 a, b`, `u8 g` and a `u8` field `f`,
+both `g <- a + b` and `p.f <- a` are E0869 (narrowing).
 
 ## References
 

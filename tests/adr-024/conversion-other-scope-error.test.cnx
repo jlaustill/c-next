@@ -1,0 +1,22 @@
+// test-error
+// test-adr: 024
+// E0869 on `Other.wide`, a member of another scope declared in an included
+// file -- matrix cells: imported direct, in the scope-member and scope-method
+// contexts (#1668). A scope-qualified operand from another file was not
+// typed, so each narrowing passed.
+
+#include "conversion-other-scope.cnx"
+
+scope Reader {
+    // NEGATIVE CONTROL -- a target wide enough for it.
+    u32 okMember <- Other.wide;
+
+    // ASSERTION -- scope member context.
+    u8 narrowMember <- Other.wide;
+
+    public u8 read() {
+        // ASSERTION -- scope method context.
+        u8 narrowLocal <- Other.wide;
+        return narrowLocal;
+    }
+}

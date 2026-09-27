@@ -19,8 +19,8 @@
  * agreed, which is the whole problem: nothing fails when they agree, and the
  * first edit that adds a fourth modifier has to find all three. `output/` may
  * not import `1-Analyze` (depcruise makes that an error), so the only home both
- * can reach is here, the same reason `PrimitiveKindUtils.widestIntegerOf` lives
- * in `utils/` (#1450).
+ * can reach is here, the same reason `CompositeType` lives in `utils/`
+ * (#1450, #1668).
  */
 class RegisterAccessMode {
   /**

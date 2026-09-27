@@ -100,9 +100,9 @@ class LiteralUtils {
    *
    * #1668: moved here from 2.2's ExpressionTypeResolver so that 2.1 can type a
    * composite's literal operand with the same rule 2.2 uses. Composite typing is
-   * one decision (`PrimitiveKindUtils.widestIntegerOf`) made in both layers, and
-   * it now treats a floating operand as a veto, so the two layers have to agree
-   * on which literal operands are floating.
+   * one decision (`CompositeType`) that both layers read, and it treats a
+   * floating operand as a veto, so both have to agree on which literal operands
+   * are floating.
    */
   static typeOf(ctx: Parser.LiteralContext): string | null {
     const text = ctx.getText();
