@@ -18,7 +18,7 @@
  * reverse it and rename every temp in the emitted C -- a diff no test
  * asserts directly. Rendering stays with the walker; this decides shape only.
  */
-import TYPE_LIMITS from "../../types/TYPE_LIMITS";
+import invariant from "../../../../../utils/invariant";
 import CppModeHelper from "../../helpers/CppModeHelper";
 import SaturatingCast from "../../helpers/SaturatingCast";
 import ReservedCnxName from "../../../../../utils/ReservedCnxName";
@@ -39,11 +39,12 @@ function generateCast(plan: IPlannedCast, state: TranspileState): string {
     CppModeHelper.cast(type, expr, state);
   if (plan.clampForm === null) return cast(plan.targetType, plan.operandCode);
 
-  const sourceType = plan.operandType!;
-  if (!TYPE_LIMITS.TYPE_MAX[plan.targetTypeName]) {
-    // Unknown type, fall back to raw cast - Issue #644
-    return cast(plan.targetType, plan.operandCode);
-  }
+  // The plan saturates only a float source into a C-Next integer target
+  // (`CastRequirement.requiresClamping`), and every one of those has limit
+  // macros. Render re-checked the limits and fell back to a raw cast, a path
+  // the plan's decision left unreachable (#1668 review).
+  const sourceType = plan.operandType;
+  invariant(sourceType !== null, "the plan saturates a typed float source");
 
   // The limit macros come from <limits.h>
   state.requireInclude("limits");
@@ -51,13 +52,15 @@ function generateCast(plan: IPlannedCast, state: TranspileState): string {
     state.markCastHelperUsed(sourceType, plan.targetTypeName);
     return `${ReservedCnxName.castHelper(sourceType, plan.targetTypeName)}(${plan.operandCode})`;
   }
-  return SaturatingCast.expression(
+  const expression = SaturatingCast.expression(
     plan.operandCode,
     sourceType,
     plan.targetTypeName,
     plan.targetType,
     cast,
-  )!;
+  );
+  invariant(expression !== null, "every C-Next integer target has limits");
+  return expression;
 }
 
 export default generateCast;

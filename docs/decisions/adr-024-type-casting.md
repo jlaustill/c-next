@@ -399,8 +399,8 @@ a variable: with a `u32 get()` and a `u32 w`, `u8 n <- get();` and
 **A composite with a floating operand is not an integer composite** (#1668). It
 is floating arithmetic, so integer saturation (ADR-044) never applies to it, and
 it has no integer width to check. Rule 10.4 above rejects the mix wherever the
-float's type is known, so what this sentence still decides is an operand no
-pass can type (#1688).
+float's type is known, so what this sentence still decides is an operand the
+program states no type for, such as a header's float macro (#1688).
 
 Two exceptions to that were live until #1322 and are recorded because the code
 they permitted is the code this decision exists to reject:
@@ -514,11 +514,10 @@ no fixture depended on that, so it is closed rather than reproduced.
 
 The scope contexts reach an included file too (#1668). A scope member or
 method narrowing a value declared in another file is the same conversion as
-at file scope, and it had been silent for two of the three ways a scope names
-it: a member of another scope written `Other.wide`, and `this.x` in a scope
-reopened in another file. A file-scope source was already checked there. All
-four cells are `error`, and each is occupied by a fixture that asserts it and
-keeps a wide-enough target beside it as a control.
+at file scope, whichever way the scope names the value: a file-scope source, a
+member of another scope written `Other.wide`, or `this.x` in a scope reopened
+in another file. All four cells are `error`, and each is occupied by a fixture
+that asserts it and keeps a wide-enough target beside it as a control.
 
 The imported columns matter because the rule asks the SOURCE's type, and the
 source may be declared in another file. A check reading only the file in front

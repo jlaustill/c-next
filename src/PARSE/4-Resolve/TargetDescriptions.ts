@@ -12,6 +12,7 @@
  * reporting a code.
  */
 import TARGET_DESCRIPTION_FIELDS from "../../transpiler/constants/TARGET_DESCRIPTION_FIELDS";
+import invariant from "../../utils/invariant";
 import type ITargetCatalogEntry from "../../transpiler/types/ITargetCatalogEntry";
 import type ITargetCatalogSource from "../../transpiler/types/ITargetCatalogSource";
 import type ITargetDescription from "../../transpiler/types/ITargetDescription";
@@ -82,9 +83,14 @@ class TargetDescriptions {
       return { errors };
     }
 
-    const description = Object.fromEntries(
-      fields,
-    ) as unknown as ITargetDescription;
+    const description: Record<string, unknown> = Object.fromEntries(fields);
+    // Checked against the schema, not cast (#1668 review): the fields above
+    // were validated one by one, and this says so in a form the compiler
+    // can hold the result to
+    invariant(
+      TargetDescriptions.isDescription(description),
+      "every field of a validated description has its schema's type",
+    );
     for (const chain of ORDERED_WIDTHS) {
       for (let i = 1; i < chain.length; i++) {
         const narrower = chain[i - 1];
@@ -95,6 +101,18 @@ class TargetDescriptions {
       }
     }
     return errors.length > 0 ? { errors } : { description };
+  }
+
+  /** Whether every schema field is present, or optional, with its kind's type */
+  private static isDescription(
+    value: Record<string, unknown>,
+  ): value is Record<string, unknown> & ITargetDescription {
+    return Object.entries(TARGET_DESCRIPTION_FIELDS).every(([field, spec]) => {
+      const present = value[field];
+      if (present === undefined) return spec.optional;
+      const jsType = spec.kind === "unsigned" ? "number" : spec.kind;
+      return typeof present === jsType;
+    });
   }
 
   /**

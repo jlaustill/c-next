@@ -126,9 +126,9 @@ describe("CastExprGenerator", () => {
       expect(state.needsLimits).toBe(true);
     });
 
-    it("falls back to a raw cast for a target with no limit macros", () => {
-      // Issue #644: `bool` is in INTEGER_TYPES but has no TYPE_MAX entry, so
-      // the clamp cannot be built and the plain cast is the correct answer.
+    it("casts plainly into a target the plan does not saturate", () => {
+      // Issue #644: `bool` is not a C-Next integer target, so the plan does
+      // not saturate a float into it and the plain cast is the answer.
       expect(generateCast(plan("bool", "bool", "f", "f32"), state)).toBe(
         "(bool)f",
       );

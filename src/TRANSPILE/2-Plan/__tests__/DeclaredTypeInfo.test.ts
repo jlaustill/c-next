@@ -98,7 +98,6 @@ describe("DeclaredTypeInfo.of", () => {
       isArray: false,
       isString: true,
       stringCapacity: 8,
-      isParameter: true,
     });
   });
 
@@ -107,7 +106,6 @@ describe("DeclaredTypeInfo.of", () => {
     // with none it was plain C arithmetic
     expect(declaredAtR("void f(u8 p) {\nu8 r <- 1;\n}", "p")).toMatchObject({
       baseType: "u8",
-      isParameter: true,
       overflowBehavior: "clamp",
     });
   });

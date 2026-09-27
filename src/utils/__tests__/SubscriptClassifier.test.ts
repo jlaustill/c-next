@@ -77,16 +77,16 @@ describe("SubscriptClassifier", () => {
     describe("parameter types (Issue #1100)", () => {
       // A parameter's array-ness is determined solely by its declared type
       // (isArray, from explicit `T[N]` syntax, ADR-006) — identical to local
-      // variables. `isParameter` alone must NOT force array classification;
-      // that was the Issue #579 heuristic reverted by Issue #1100 because it
-      // broke ADR-007 bit-indexing for scalar parameters.
+      // variables. A parameter flag forcing array classification was the
+      // Issue #579 heuristic, reverted by Issue #1100 because it broke ADR-007
+      // bit-indexing for scalar parameters; the flag itself is gone (#1668
+      // review: written for every parameter, read by nothing).
       it("returns bit_single for non-array parameter with single index", () => {
         const typeInfo: TTypeInfo = {
           baseType: "u8",
           bitWidth: 8,
           isArray: false,
           isConst: false,
-          isParameter: true,
         };
         const result = SubscriptClassifier.classify({
           typeInfo,
@@ -102,7 +102,6 @@ describe("SubscriptClassifier", () => {
           bitWidth: 8,
           isArray: false,
           isConst: false,
-          isParameter: true,
         };
         const result = SubscriptClassifier.classify({
           typeInfo,
@@ -118,7 +117,6 @@ describe("SubscriptClassifier", () => {
           bitWidth: 8,
           isArray: true,
           isConst: false,
-          isParameter: true,
         };
         const result = SubscriptClassifier.classify({
           typeInfo,
@@ -214,7 +212,6 @@ describe("SubscriptClassifier", () => {
         bitWidth: 8,
         isArray: false,
         isConst: false,
-        isParameter: true,
       };
       expect(SubscriptClassifier.isArrayAccess(typeInfo)).toBe(false);
     });
@@ -225,7 +222,6 @@ describe("SubscriptClassifier", () => {
         bitWidth: 8,
         isArray: true,
         isConst: false,
-        isParameter: true,
       };
       expect(SubscriptClassifier.isArrayAccess(typeInfo)).toBe(true);
     });

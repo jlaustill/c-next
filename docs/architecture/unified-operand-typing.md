@@ -761,7 +761,7 @@ A correct row reddens exactly the fixtures it names.
 
 **artifact-lifetime.** `ILexicalFrame` is added to `ARTIFACTS`. No roster row changes.
 
-**render-decides-nothing.** The `SubscriptClassifier` row is removed in C12, a visible roster change. `CastRequirement` keeps `CastExprGenerator.ts` as its pinned consumer.
+**render-decides-nothing.** The `SubscriptClassifier` row is removed in C12, a visible roster change. `CastRequirement`'s pinned consumer is `NarrowingCastHelper.ts` alone: C5 moved the cast's saturation decision into the plan (`IPlannedCast.clampForm`), so `CastExprGenerator.ts` reads the plan and consults nothing, and its pin was removed. After the review follow-ups the typer is `SubscriptClassifier`'s only caller.
 
 **#1664 box 3 guard.** It is new, beside `render-decides-nothing.test.ts`, and its population controls are listed in M29.
 

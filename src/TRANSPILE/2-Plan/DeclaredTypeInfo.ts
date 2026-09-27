@@ -177,7 +177,6 @@ class DeclaredTypeInfo {
       ...DeclaredTypeFacts.of(baseType, symbols, TYPE_WIDTH[baseType] || 0),
       isString,
       stringCapacity: isString ? capacity : undefined,
-      isParameter: true,
       ...(symbolTable.isTypedefStructType(baseType) && { isPointer: true }),
     };
   }
