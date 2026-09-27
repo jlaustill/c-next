@@ -23,7 +23,7 @@ import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import IScopeFrame from "./types/IScopeFrame";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
-import TChainRoot from "./types/TChainRoot";
+import TChainRoot from "../../transpiler/types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
 

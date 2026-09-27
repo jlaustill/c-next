@@ -1,4 +1,9 @@
 import type IFunctionSymbol from "./symbols/IFunctionSymbol";
+import type ILexicalFrame from "./ILexicalFrame";
+import type ILocalDeclaration from "./ILocalDeclaration";
+import type ISourceSpan from "./ISourceSpan";
+import type TChainRoot from "./TChainRoot";
+import type TValueBinding from "./TValueBinding";
 import type TRunTarget from "./TRunTarget";
 import type IScopeSymbol from "./symbols/IScopeSymbol";
 import type TSymbol from "./symbols/TSymbol";
@@ -185,6 +190,43 @@ interface IProgram {
    * default.
    */
   cnxIncludeRewrites(sourceFile: string): ReadonlyMap<string, string>;
+
+  /**
+   * #1668 / #1664: the innermost lexical frame of `sourceFile` containing
+   * `at`, or its file frame. Settled and frozen with the program.
+   */
+  lexicalFrameAt(
+    sourceFile: string,
+    at: Pick<ISourceSpan, "line" | "column">,
+  ): ILexicalFrame;
+
+  /**
+   * The local, parameter or `for` variable `name` binds to at `at`, or null.
+   * The lexical half of binding only; `bindValue` is the whole decision.
+   */
+  lexicalDeclarationAt(
+    sourceFile: string,
+    name: string,
+    at: Pick<ISourceSpan, "line" | "column">,
+  ): ILocalDeclaration | null;
+
+  /**
+   * What a value name, written bare, as `this.name` or as `global.name`,
+   * means at `at` -- the one place a spelling becomes a declaration, for
+   * typing and emission alike.
+   */
+  bindValue(
+    sourceFile: string,
+    root: TChainRoot,
+    name: string,
+    at: Pick<ISourceSpan, "line" | "column">,
+  ): TValueBinding | null;
+
+  /** Const values visible at `at`: the scope's, then the visible const locals */
+  constValuesAt(
+    sourceFile: string,
+    at: Pick<ISourceSpan, "line" | "column">,
+  ): ReadonlyMap<string, number>;
 
   /**
    * ADR-049: the run's one target, settled from every file's pragmas and the

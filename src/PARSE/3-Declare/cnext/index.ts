@@ -5,6 +5,7 @@
  * Produces TType-based symbols with proper IScopeSymbol references.
  */
 
+import LexicalScopeCollector from "./collectors/LexicalScopeCollector";
 import * as Parser from "../../2-Parse/grammar/CNextParser";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TSymbol from "../../../transpiler/types/symbols/TSymbol";
@@ -114,7 +115,16 @@ class CNextResolver {
       isScopeType,
     );
 
-    return { sourceFile, symbols, declaredScopeTypes };
+    // #1668: the lexical frames, over the same const values and ADR-057
+    // predicate the symbols were collected with.
+    const lexicalScopes = LexicalScopeCollector.collect(
+      tree,
+      registry,
+      constValues,
+      isScopeType,
+    );
+
+    return { sourceFile, symbols, declaredScopeTypes, lexicalScopes };
   }
 
   /**

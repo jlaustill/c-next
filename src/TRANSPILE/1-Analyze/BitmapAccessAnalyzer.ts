@@ -34,7 +34,7 @@ import ChainRoot from "./helpers/ChainRoot";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import IBitmapAccessError from "./types/IBitmapAccessError";
 import ScopeFrameResolver from "./ScopeFrameResolver";
-import TChainRoot from "./types/TChainRoot";
+import TChainRoot from "../../transpiler/types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 class BitmapAccessListener extends CNextListener {

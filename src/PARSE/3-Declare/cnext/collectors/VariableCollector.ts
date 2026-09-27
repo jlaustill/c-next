@@ -14,6 +14,7 @@ import TypeUtils from "../utils/TypeUtils";
 import StringUtils from "../../../../utils/StringUtils";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import type TType from "../../../../transpiler/types/TType";
+import type TOverflowBehavior from "../../../../transpiler/types/TOverflowBehavior";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../transpiler/types/TVisibility";
 import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
@@ -34,7 +35,7 @@ class VariableCollector {
    */
   private static resolveDeclaredType(
     typeStr: string,
-    ctx: Parser.VariableDeclarationContext,
+    ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
     resolved: TType,
   ): TType {
     if (typeStr !== "string") {
@@ -144,30 +145,31 @@ class VariableCollector {
   }
 
   /**
-   * Collect a variable declaration and return an IVariableSymbol.
+   * What a declaration SAYS: its type, modifiers, dimensions and initializer.
    *
-   * @param ctx The variable declaration context
-   * @param sourceFile Source file path
-   * @param scopePath The path of the scope this variable belongs to (dotted path, "" at file scope)
-   * @param visibility Required: #1161 -- a default here is a third source of
-   *   truth for one fact, which is how #1300 happened to the type kinds
-   * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
-   * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
-   * @returns The variable symbol with TType-based types and scope reference
+   * #1668: shared by a global or scope member (`collect`, below) and a local
+   * or `for` variable (`LexicalScopeCollector`), so a declaration means the
+   * same thing wherever it is written. Array dimensions fold the file's
+   * global consts here; a name only a local const can fold stays its text,
+   * for 1.4 Resolve to fold in the lexical environment.
    */
-  static collect(
-    ctx: Parser.VariableDeclarationContext,
-    sourceFile: string,
+  static declaredFacts(
+    ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
     scopePath: string,
-    visibility: TVisibility,
     constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
-  ): IVariableSymbol {
-    const name = ctx.IDENTIFIER().getText();
-    const span = ParserUtils.getSpan(ctx);
-
+  ): {
+    type: TType;
+    isConst: boolean;
+    isAtomic: boolean;
+    isVolatile: boolean;
+    overflowBehavior: TOverflowBehavior;
+    isArray: boolean;
+    arrayDimensions: (number | string)[];
+    initialValue: string | undefined;
+  } {
     // Get type string and convert to TType
-    const typeCtx = ctx.type();
+    const typeCtx = ctx.type()!;
     // #1298: members carry the scope's PATH, not the scope object. The path
     // holds every outer component, so nothing downstream can flatten it to a
     // leaf -- which is what the reference threaded here used to protect against.
@@ -178,8 +180,10 @@ class VariableCollector {
       TypeUtils.resolveType(typeCtx, scopePath, isScopeType),
     );
 
-    // Check for const modifier
-    const isConst = ctx.constModifier() !== null;
+    // Check for const modifier (a `for` variable has none)
+    const isConst =
+      ctx instanceof Parser.VariableDeclarationContext &&
+      ctx.constModifier() !== null;
 
     // Issue #468: Check for atomic modifier
     const isAtomic = ctx.atomicModifier() !== null;
@@ -225,6 +229,46 @@ class VariableCollector {
     // Issue #282: Capture initial value for const inlining
     const initialValue = initExpr?.getText();
 
+    return {
+      type,
+      isConst,
+      isAtomic,
+      isVolatile,
+      overflowBehavior,
+      isArray,
+      arrayDimensions,
+      initialValue,
+    };
+  }
+
+  /**
+   * A global or scope member: its identity, and what its declaration says.
+   * @param ctx The variable declaration context
+   * @param sourceFile Source file path
+   * @param scopePath The path of the scope this variable belongs to (dotted path, "" at file scope)
+   * @param visibility Required: #1161 -- a default here is a third source of
+   *   truth for one fact, which is how #1300 happened to the type kinds
+   * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
+   * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
+   * @returns The variable symbol with TType-based types and scope reference
+   */
+  static collect(
+    ctx: Parser.VariableDeclarationContext,
+    sourceFile: string,
+    scopePath: string,
+    visibility: TVisibility,
+    constValues?: Map<string, number>,
+    isScopeType?: (qualifiedName: string) => boolean,
+  ): IVariableSymbol {
+    const name = ctx.IDENTIFIER().getText();
+    const span = ParserUtils.getSpan(ctx);
+    const facts = VariableCollector.declaredFacts(
+      ctx,
+      scopePath,
+      constValues,
+      isScopeType,
+    );
+
     // Build base symbol
     const symbol: IVariableSymbol = {
       kind: "variable",
@@ -237,14 +281,15 @@ class VariableCollector {
       span,
       sourceLanguage: ESourceLanguage.CNext,
       visibility,
-      type,
-      isConst,
-      isAtomic,
-      isVolatile,
-      overflowBehavior,
-      isArray,
-      arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
-      initialValue,
+      type: facts.type,
+      isConst: facts.isConst,
+      isAtomic: facts.isAtomic,
+      isVolatile: facts.isVolatile,
+      overflowBehavior: facts.overflowBehavior,
+      isArray: facts.isArray,
+      arrayDimensions:
+        facts.arrayDimensions.length > 0 ? facts.arrayDimensions : undefined,
+      initialValue: facts.initialValue,
     };
 
     return symbol;

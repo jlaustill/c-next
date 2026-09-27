@@ -50,7 +50,7 @@ import ChainRoot from "./helpers/ChainRoot";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import IRegisterMember from "./types/IRegisterMember";
 import IRegisterAccessError from "./types/IRegisterAccessError";
-import TChainRoot from "./types/TChainRoot";
+import TChainRoot from "../../transpiler/types/TChainRoot";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ConstantExpression from "./helpers/ConstantExpression";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";

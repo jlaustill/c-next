@@ -122,7 +122,7 @@ class FunctionCollector {
    * Extract parameter information from parameter contexts.
    * Converts type strings to TType.
    */
-  private static collectParameters(
+  static collectParameters(
     params: Parser.ParameterContext[],
     scopePath = "",
     isScopeType?: (qualifiedName: string) => boolean,

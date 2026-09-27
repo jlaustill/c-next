@@ -819,6 +819,17 @@ const MOVES: readonly IMove[] = [
       "holds with no exception rather than with one recorded in a commit " +
       "message.",
   },
+  {
+    from: "src/TRANSPILE/1-Analyze/types/TChainRoot.ts",
+    to: "src/transpiler/types/TChainRoot.ts",
+    because:
+      "#1668 (unified operand typing, C2). `IProgram.bindValue` takes a chain " +
+      "root, so the shared contract names this type -- and " +
+      "`shared-contracts-cannot-import-a-pass` forbids `transpiler/types/` " +
+      "reaching `1-Analyze/`. It is a leaf union with no imports, named by 2.1 " +
+      "today and by the one operand typer in `utils/` next, so it is exactly " +
+      "the kind of type this directory holds.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */
@@ -945,6 +956,10 @@ function reportStaleImporters(): void {
     // The manifest records every old path on purpose, and so do the guards
     // whose subject IS a path string.
     if (file === "scripts/move-modules.ts") continue;
+    // `git ls-files` lists the index, which still holds every file this run
+    // just moved until the move is staged -- reading one threw ENOENT and
+    // crashed the report after a successful apply (#1668, moving TChainRoot).
+    if (!existsSync(join(rootDir, file))) continue;
 
     const source = readFileSync(join(rootDir, file), "utf8");
     // Only real module specifiers. Matching any OCCURRENCE reports every test

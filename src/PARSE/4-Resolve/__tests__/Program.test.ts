@@ -405,6 +405,7 @@ describe("Program", () => {
       const keys = Object.keys(program).sort();
 
       expect(keys).toEqual([
+        "bindValue",
         "callGraph",
         "callbackCompatibleFunctions",
         "cnxIncludeRewrites",
@@ -412,6 +413,7 @@ describe("Program", () => {
         "conflicts",
         "constValue",
         "constValues",
+        "constValuesAt",
         "constValuesIn",
         "externalStructFields",
         "functionParamLists",
@@ -420,6 +422,8 @@ describe("Program", () => {
         "isOpaqueType",
         "isScopeType",
         "knownEnums",
+        "lexicalDeclarationAt",
+        "lexicalFrameAt",
         "modifiedParameters",
         "opaqueTypes",
         "passByValueParams",

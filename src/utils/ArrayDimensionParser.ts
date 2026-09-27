@@ -88,8 +88,18 @@ class ArrayDimensionParser {
     expr: Parser.ExpressionContext,
     options?: IConstantEvalOptions,
   ): number | undefined {
-    const text = expr.getText().trim();
+    return ArrayDimensionParser.parseText(expr.getText().trim(), options);
+  }
 
+  /**
+   * The same evaluation from an expression's TEXT (#1668), for a pass that
+   * holds plain data rather than a parse tree -- 1.4 folding a const local's
+   * initializer in its lexical environment.
+   */
+  static parseText(
+    text: string,
+    options?: IConstantEvalOptions,
+  ): number | undefined {
     // Try integer literal first (most common case)
     const literalValue = LiteralUtils.parseIntegerLiteral(text);
     if (literalValue !== undefined) {

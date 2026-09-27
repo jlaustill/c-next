@@ -7,6 +7,7 @@ import Program from "../../../PARSE/4-Resolve/Program";
 import TargetCatalogFile from "../../../transpiler/data/TargetCatalogFile";
 import invariant from "../../../utils/invariant";
 import type IAnalysisContext from "../types/IAnalysisContext";
+import type ILexicalFrame from "../../../transpiler/types/ILexicalFrame";
 
 /** Where a test's source is taken to live */
 const TEST_SOURCE = "test.cnx";
@@ -30,8 +31,9 @@ const TEST_SOURCE = "test.cnx";
  * - the per-file view from `program.codeGenSymbolsFor`, as
  *   `Transpiler._analyzeFile` reads it.
  *
- * It refuses a context whose program has no resolved target, so a test cannot
- * run an analyzer against an unfinished program.
+ * It refuses a context whose program has no resolved target, or declares a
+ * function with no lexical frame, so a test cannot run an analyzer against an
+ * unfinished program.
  */
 function testAnalysisContextFor(
   source: string,
@@ -100,6 +102,23 @@ function testAnalysisContextFor(
 
   for (const file of files) {
     symbolTable.addTSymbols(program.symbolsInFile(file.path));
+  }
+
+  // Every function the test declares has its lexical frame, so an analyzer
+  // reading locals from Program cannot pass by finding none.
+  const framed = new Set<string>();
+  const collect = (frame: ILexicalFrame): void => {
+    if (frame.functionCName !== null) {
+      framed.add(frame.functionCName);
+    }
+    frame.children.forEach(collect);
+  };
+  collect(program.lexicalFrameAt(TEST_SOURCE, { line: 0, column: 0 }));
+  for (const symbol of program.symbolsInFile(TEST_SOURCE)) {
+    invariant(
+      symbol.kind !== "function" || framed.has(symbol.fullyQualifiedCName),
+      `function ${symbol.fullyQualifiedCName} has a lexical frame`,
+    );
   }
   const symbols = program.codeGenSymbolsFor(TEST_SOURCE);
   invariant(symbols, "1.4 built this file's symbol view");

@@ -24,7 +24,7 @@ import { ParserRuleContext } from "antlr4ng";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import IRegisterMember from "../types/IRegisterMember";
-import TChainRoot from "../types/TChainRoot";
+import TChainRoot from "../../../transpiler/types/TChainRoot";
 import ScopeFrameResolver from "../ScopeFrameResolver";
 import type IAnalysisContext from "../types/IAnalysisContext";
 import type ICodeGenSymbols from "../../../transpiler/types/ICodeGenSymbols";

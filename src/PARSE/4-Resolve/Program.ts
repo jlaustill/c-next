@@ -22,6 +22,13 @@
  * not declaring them on `IProgram`.
  */
 
+import type SymbolRegistry from "../3-Declare/SymbolRegistry";
+import LexicalFrames from "./LexicalFrames";
+import type ILexicalFrame from "../../transpiler/types/ILexicalFrame";
+import type ILocalDeclaration from "../../transpiler/types/ILocalDeclaration";
+import type ISourceSpan from "../../transpiler/types/ISourceSpan";
+import type TChainRoot from "../../transpiler/types/TChainRoot";
+import type TValueBinding from "../../transpiler/types/TValueBinding";
 import RunTarget from "./RunTarget";
 import type TRunTarget from "../../transpiler/types/TRunTarget";
 import invariant from "../../utils/invariant";
@@ -97,6 +104,9 @@ const NO_VISIBILITY: IVisibilityInput = {
   cnextIncludesByFile: new Map(),
 };
 
+/** A use's position */
+type TPosition = Pick<ISourceSpan, "line" | "column">;
+
 class Program {
   /**
    * Build the artifact from every declared file.
@@ -134,6 +144,20 @@ class Program {
         Program.constValuesIn(derivedConsts, scopedViews, scopePath),
     );
     const symbolsByCName = Program.indexByCName(symbolsByFile);
+    // #1668: each file's lexical frames, settled against the whole program's
+    // scope types and consts, then frozen with it.
+    const framesByFile = new Map(
+      files.map((file) => [
+        file.sourceFile,
+        LexicalFrames.settle(file.lexicalScopes, isScopeType, (scopePath) =>
+          Program.constValuesIn(derivedConsts, scopedViews, scopePath),
+        ),
+      ]),
+    );
+    const foreignNames = new Set([
+      ...foreign.c.map((symbol) => symbol.name),
+      ...foreign.cpp.map((symbol) => symbol.name),
+    ]);
     const knownEnums = Program.deriveKnownEnums(symbolsByFile);
     const externalStructFields =
       Program.deriveExternalStructFields(headerStructFields);
@@ -197,6 +221,45 @@ class Program {
         callbackCompatibleFunctions,
       cnxIncludeRewrites: (sourceFile: string): ReadonlyMap<string, string> =>
         discovery.cnxIncludeRewrites.get(sourceFile) ?? EMPTY_REWRITES,
+      lexicalFrameAt: (sourceFile: string, at: TPosition): ILexicalFrame => {
+        const root = framesByFile.get(sourceFile);
+        invariant(root, `${sourceFile} is a file of this program`);
+        return LexicalFrames.frameAt(root, at);
+      },
+      lexicalDeclarationAt: (
+        sourceFile: string,
+        name: string,
+        at: TPosition,
+      ): ILocalDeclaration | null => {
+        const root = framesByFile.get(sourceFile);
+        return root ? LexicalFrames.declarationAt(root, name, at) : null;
+      },
+      bindValue: (
+        sourceFile: string,
+        root: TChainRoot,
+        name: string,
+        at: TPosition,
+      ): TValueBinding | null =>
+        Program.bindValue(
+          { framesByFile, symbolsByCName, registry, foreignNames },
+          sourceFile,
+          root,
+          name,
+          at,
+        ),
+      constValuesAt: (
+        sourceFile: string,
+        at: TPosition,
+      ): ReadonlyMap<string, number> => {
+        const root = framesByFile.get(sourceFile);
+        const scopePath = root ? LexicalFrames.frameAt(root, at).scopePath : "";
+        const base = Program.constValuesIn(
+          derivedConsts,
+          scopedViews,
+          scopePath,
+        );
+        return root ? LexicalFrames.constValuesAt(root, at, base) : base;
+      },
       target: (): TRunTarget => {
         invariant(
           target,
@@ -562,6 +625,61 @@ class Program {
    * precedence. A genuine clash is a diagnostic 2.1 owns, not a silent
    * overwrite here.
    */
+  /**
+   * #1668: what a value name means at a position -- the one place a spelling
+   * becomes a declaration.
+   *
+   * A bare name: the innermost local, then the enclosing scope's member,
+   * then a file-scope global, then a C-Next scope, then a C/C++ header name.
+   * `this.x` is the enclosing scope's member only; `global.x` never binds a
+   * local. Scope members and globals are found by C-name identity, never by a
+   * first bare-name match, so a reopened scope in another file binds too.
+   */
+  private static bindValue(
+    facts: {
+      framesByFile: ReadonlyMap<string, ILexicalFrame>;
+      symbolsByCName: ReadonlyMap<string, TSymbol>;
+      registry: SymbolRegistry | null;
+      foreignNames: ReadonlySet<string>;
+    },
+    sourceFile: string,
+    root: TChainRoot,
+    name: string,
+    at: TPosition,
+  ): TValueBinding | null {
+    const frames = facts.framesByFile.get(sourceFile);
+    const scopePath = frames ? LexicalFrames.frameAt(frames, at).scopePath : "";
+    const variable = (cName: string): TValueBinding | null => {
+      const symbol = facts.symbolsByCName.get(cName);
+      return symbol?.kind === "variable" ? { kind: "variable", symbol } : null;
+    };
+    const member = (): TValueBinding | null =>
+      scopePath === ""
+        ? null
+        : variable(ScopeUtils.getTranspiledCName({ name, scopePath }));
+    const scope = (): TValueBinding | null =>
+      facts.registry?.getScope(name)
+        ? { kind: "scope", scopePath: name }
+        : null;
+
+    if (root === "this") {
+      return member();
+    }
+    if (root === "global") {
+      return variable(name) ?? scope();
+    }
+    const local = frames ? LexicalFrames.declarationAt(frames, name, at) : null;
+    if (local) {
+      return { kind: "local", declaration: local, scopePath };
+    }
+    return (
+      member() ??
+      variable(name) ??
+      scope() ??
+      (facts.foreignNames.has(name) ? { kind: "foreign", name } : null)
+    );
+  }
+
   private static indexByCName(
     symbolsByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
   ): Map<string, TSymbol> {

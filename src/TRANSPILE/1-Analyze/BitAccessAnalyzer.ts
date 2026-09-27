@@ -37,7 +37,7 @@ import EnclosingFunction from "./helpers/EnclosingFunction";
 import TypeText from "./helpers/TypeText";
 import IDeclaredVar from "./types/IDeclaredVar";
 import IBitAccessError from "./types/IBitAccessError";
-import TChainRoot from "./types/TChainRoot";
+import TChainRoot from "../../transpiler/types/TChainRoot";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import SHARED_FLOAT_TYPES from "../../transpiler/types/FLOAT_TYPES";
 import type IAnalysisContext from "./types/IAnalysisContext";

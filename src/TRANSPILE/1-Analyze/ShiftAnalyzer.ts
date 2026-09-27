@@ -50,7 +50,7 @@ import LiteralUtils from "../../utils/LiteralUtils";
 import ScopeCandidates from "./helpers/ScopeCandidates";
 import ScopeUtils from "../../utils/ScopeUtils";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
-import TChainRoot from "./types/TChainRoot";
+import TChainRoot from "../../transpiler/types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import StructFieldFacts from "../../utils/StructFieldFacts";
 

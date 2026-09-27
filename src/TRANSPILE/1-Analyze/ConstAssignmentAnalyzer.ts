@@ -39,7 +39,7 @@ import FunctionReference from "./helpers/FunctionReference";
 import SafeDivision from "./helpers/SafeDivision";
 import IConstAssignmentError from "./types/IConstAssignmentError";
 import IScopeFrame from "./types/IScopeFrame";
-import TChainRoot from "./types/TChainRoot";
+import TChainRoot from "../../transpiler/types/TChainRoot";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import type IAnalysisContext from "./types/IAnalysisContext";
 

@@ -18,7 +18,7 @@ import { ParserRuleContext } from "antlr4ng";
 import IScopeFrame from "./types/IScopeFrame";
 import IDeclaredVar from "./types/IDeclaredVar";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import TChainRoot from "./types/TChainRoot";
+import TChainRoot from "../../transpiler/types/TChainRoot";
 import DeclaredVariableFacts from "../../utils/DeclaredVariableFacts";
 import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 

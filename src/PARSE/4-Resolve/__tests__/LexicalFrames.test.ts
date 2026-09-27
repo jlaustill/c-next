@@ -1,0 +1,273 @@
+/**
+ * #1668 / #1664: lexical frames, built by 1.3 and settled by 1.4, and the
+ * binding decision every later pass reads from Program.
+ */
+import { describe, it, expect } from "vitest";
+import CNextSourceParser from "../../2-Parse/CNextSourceParser";
+import CNextResolver from "../../3-Declare/cnext/index";
+import SymbolRegistry from "../../3-Declare/SymbolRegistry";
+import Program from "../Program";
+import type ILexicalFrame from "../../../transpiler/types/ILexicalFrame";
+
+/** Build a program from path -> source, in dependency order */
+function build(files: Record<string, string>) {
+  const registry = new SymbolRegistry();
+  const declared = Object.entries(files).map(([path, source]) =>
+    CNextResolver.resolve(CNextSourceParser.parse(source).tree, path, registry),
+  );
+  return Program.build(declared, { registry });
+}
+
+/** The (1-based) line and 0-based column of the Nth `needle` in `source` */
+function at(source: string, needle: string, nth = 1) {
+  let index = -1;
+  for (let i = 0; i < nth; i++) {
+    index = source.indexOf(needle, index + 1);
+  }
+  expect(index).toBeGreaterThanOrEqual(0);
+  const before = source.slice(0, index);
+  return {
+    line: before.split("\n").length,
+    column: index - before.lastIndexOf("\n") - 1,
+  };
+}
+
+function kinds(frame: ILexicalFrame): unknown {
+  return {
+    kind: frame.kind,
+    names: frame.declarations.map((d) => `${d.kind}:${d.name}`),
+    children: frame.children.map(kinds),
+  };
+}
+
+describe("LexicalScopeCollector (1.3)", () => {
+  it("records every frame and what each declares, and no global", () => {
+    const source = `u32 g <- 1;
+void f(u8 p) {
+    u8 a <- 1;
+    for (u8 i <- 0; i < 3; i +<- 1) {
+        u8 b <- i;
+    }
+    {
+        u8 c <- 2;
+    }
+}`;
+    const program = build({ "a.cnx": source });
+    expect(
+      kinds(program.lexicalFrameAt("a.cnx", { line: 1, column: 0 })),
+    ).toEqual({
+      kind: "file",
+      names: [],
+      children: [
+        {
+          kind: "function",
+          names: ["parameter:p"],
+          children: [
+            {
+              kind: "block",
+              names: ["local:a"],
+              children: [
+                {
+                  kind: "for",
+                  names: ["for:i"],
+                  children: [
+                    { kind: "block", names: ["local:b"], children: [] },
+                  ],
+                },
+                { kind: "block", names: ["local:c"], children: [] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("names a scope's function frame by its C name, with the scope's path", () => {
+    const source = `scope Motor {
+    void run(u8 speed) {
+        u8 x <- speed;
+    }
+}`;
+    const program = build({ "a.cnx": source });
+    const frame = program.lexicalFrameAt("a.cnx", at(source, "speed;"));
+    expect(frame.scopePath).toBe("Motor");
+    const fn = program.lexicalFrameAt("a.cnx", at(source, "u8 speed"));
+    expect(fn).toMatchObject({ kind: "function", functionCName: "Motor__run" });
+  });
+
+  it("records the modifiers a local declares", () => {
+    const source = `void f() {
+    atomic wrap u8 a <- 1;
+    volatile const u16 b <- 2;
+}`;
+    const program = build({ "a.cnx": source });
+    const use = at(source, "}");
+    expect(program.lexicalDeclarationAt("a.cnx", "a", use)).toMatchObject({
+      isAtomic: true,
+      overflowBehavior: "wrap",
+      isConst: false,
+    });
+    expect(program.lexicalDeclarationAt("a.cnx", "b", use)).toMatchObject({
+      isConst: true,
+      isVolatile: true,
+      overflowBehavior: "clamp",
+      constValue: 2,
+    });
+  });
+});
+
+describe("binding (1.4)", () => {
+  it("does not bind a use to a declaration later in the same block (#1702)", () => {
+    const source = `u32 v <- 300;
+void f() {
+    u8 w <- v;
+    u8 v <- 1;
+}`;
+    const program = build({ "a.cnx": source });
+    const binding = program.bindValue("a.cnx", null, "v", at(source, "v;"));
+    expect(binding).toMatchObject({ kind: "variable" });
+  });
+
+  it("keeps sibling blocks disjoint (#1666)", () => {
+    const source = `void f() {
+    {
+        u32 x <- 1;
+    }
+    {
+        u8 x <- 2;
+        u8 y <- x;
+    }
+}`;
+    const program = build({ "a.cnx": source });
+    const binding = program.bindValue("a.cnx", null, "x", at(source, "x;", 3));
+    expect(binding).toMatchObject({
+      kind: "local",
+      declaration: { type: { kind: "primitive", primitive: "u8" } },
+    });
+  });
+
+  it("binds a local that shadows a scope member to the local (#1700)", () => {
+    const source = `scope S {
+    u32 n <- 1;
+    public void f() {
+        u8 n <- 2;
+        u8 m <- n;
+    }
+}`;
+    const program = build({ "a.cnx": source });
+    expect(
+      program.bindValue("a.cnx", null, "n", at(source, "n;", 3)),
+    ).toMatchObject({ kind: "local" });
+    expect(
+      program.bindValue("a.cnx", "this", "n", at(source, "n;", 3)),
+    ).toMatchObject({
+      kind: "variable",
+      symbol: { fullyQualifiedCName: "S__n" },
+    });
+  });
+
+  it("never binds global.x to a local that shadows it (#1701)", () => {
+    const source = `u32 x <- 1;
+void f() {
+    u8 x <- 2;
+    u32 y <- x;
+}`;
+    const program = build({ "a.cnx": source });
+    expect(
+      program.bindValue("a.cnx", "global", "x", at(source, "x;", 3)),
+    ).toMatchObject({ kind: "variable", symbol: { name: "x" } });
+  });
+
+  it("binds this.x in a scope reopened in another file (#1699)", () => {
+    const other = `scope S {
+    u32 x <- 300;
+}`;
+    const source = `#include "other.cnx"
+scope S {
+    public u8 get() {
+        return this.x;
+    }
+}`;
+    const program = build({ "other.cnx": other, "a.cnx": source });
+    expect(
+      program.bindValue("a.cnx", "this", "x", at(source, "x;")),
+    ).toMatchObject({
+      kind: "variable",
+      symbol: { fullyQualifiedCName: "S__x", sourceFile: "other.cnx" },
+    });
+  });
+
+  it("binds a scope name, and answers null for an unknown name", () => {
+    const source = `scope S {
+    public u32 x <- 1;
+}
+void f() {
+    u32 y <- S.x;
+}`;
+    const program = build({ "a.cnx": source });
+    const use = at(source, "S.x");
+    expect(program.bindValue("a.cnx", null, "S", use)).toEqual({
+      kind: "scope",
+      scopePath: "S",
+    });
+    expect(program.bindValue("a.cnx", null, "nothing", use)).toBeNull();
+  });
+
+  it("binds a parameter", () => {
+    const source = `void f(u16 p) {
+    u16 q <- p;
+}`;
+    const program = build({ "a.cnx": source });
+    expect(
+      program.bindValue("a.cnx", null, "p", at(source, "p;")),
+    ).toMatchObject({ kind: "local", declaration: { kind: "parameter" } });
+  });
+});
+
+describe("settling (1.4)", () => {
+  it("folds a const local, and a dimension that names it", () => {
+    const source = `const u32 BASE <- 4;
+void f() {
+    const u32 N <- BASE + 2;
+    u8[N] buf;
+    u8 last <- buf[0];
+}`;
+    const program = build({ "a.cnx": source });
+    const use = at(source, "buf[0]");
+    expect(program.lexicalDeclarationAt("a.cnx", "N", use)?.constValue).toBe(6);
+    expect(
+      program.lexicalDeclarationAt("a.cnx", "buf", use)?.arrayDimensions,
+    ).toEqual([6]);
+    expect(program.constValuesAt("a.cnx", use).get("N")).toBe(6);
+    expect(program.constValuesAt("a.cnx", use).get("BASE")).toBe(4);
+  });
+
+  it("does not show a const local before it is declared", () => {
+    const source = `void f() {
+    u8 a <- 1;
+    const u32 N <- 3;
+}`;
+    const program = build({ "a.cnx": source });
+    expect(program.constValuesAt("a.cnx", at(source, "u8 a")).has("N")).toBe(
+      false,
+    );
+  });
+
+  it("settles a local typed by a scope type another file declares", () => {
+    const other = `scope Lib {
+    public struct Point { u8 x; }
+}`;
+    const source = `#include "other.cnx"
+scope Lib {
+    public void f() {
+        Point p;
+        u8 q <- p.x;
+    }
+}`;
+    const program = build({ "other.cnx": other, "a.cnx": source });
+    expect(
+      program.lexicalDeclarationAt("a.cnx", "p", at(source, "p.x"))?.type,
+    ).toEqual({ kind: "struct", name: "Lib__Point" });
+  });
+});
