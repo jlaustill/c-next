@@ -23,6 +23,7 @@ import TranspileState from "../../../../TranspileState";
 import type IPlannedType from "../../types/IPlannedType";
 import type IPlannedFunctionParameter from "../../types/IPlannedFunctionParameter";
 import type INamedTypeResolution from "../../../../../transpiler/types/INamedTypeResolution";
+import type IProgram from "../../../../../transpiler/types/IProgram";
 
 /**
  * Helper to set up state.symbols with minimal fields.
@@ -290,6 +291,58 @@ describe("FunctionContextManager", () => {
       expect(paramInfo).toBeDefined();
       expect(paramInfo!.isString).toBe(true);
     });
+
+    /**
+     * ADR-030 / #1722: the one opaque-handle decision, made at registration.
+     *
+     * Every row registers `isStruct` -- the opaque ones through
+     * `isTypedefStructType`, the complete struct through its known fields --
+     * which is exactly why `isStruct` could not carry this: the two look the
+     * same through it. The complete struct is the row that must NOT be a
+     * handle.
+     *
+     * An array of handles IS one, element-wise: #996 decided an array of them
+     * is an array of pointers, and this row used to pin the opposite, which is
+     * what left `Dev[2] arr` as `Dev arr[2]`. The registry's `isPointer` -- what
+     * a call site reads to skip `&` -- is asserted beside it, because it is the
+     * same decision and used to be read from a second predicate.
+     */
+    it.each<[string, string, boolean, boolean, boolean]>([
+      ["an opaque handle", "Dev", true, false, true],
+      ["a complete typedef'd struct", "Full", false, false, false],
+      ["an array of opaque handles", "Dev", true, true, true],
+    ])(
+      "registers %s with the matching isOpaqueHandle",
+      (_label, typeName, isOpaque, isArray, expected) => {
+        state.program = {
+          isOpaqueType: (name: string) => isOpaque && name === typeName,
+        } as unknown as IProgram;
+        // As the symbol table answers: a forward-declared typedef is a
+        // "typedef struct type", and a struct with a body is a known struct.
+        const callbacks: IFunctionContextCallbacks = {
+          isStructType: vi.fn(() => !isOpaque),
+          isTypedefStructType: vi.fn(() => isOpaque),
+        };
+
+        FunctionContextManager.processParameter(
+          plannedParam(
+            "p",
+            plannedType({ named: named("bare", typeName), isArray }),
+            { isArray },
+          ),
+          callbacks,
+          0,
+          state,
+        );
+
+        const paramInfo = state.currentParameters.get("p");
+        expect(paramInfo!.isStruct).toBe(true);
+        expect(paramInfo!.isOpaqueHandle).toBe(expected);
+        expect(state.getVariableTypeInfo("p")!.isPointer ?? false).toBe(
+          expected,
+        );
+      },
+    );
   });
 
   describe("resolveParameterTypeInfo", () => {

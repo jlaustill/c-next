@@ -1,0 +1,14 @@
+// The functions for `cross-file`, one include hop away. The includer builds
+// their ADR-029 typedefs from their symbols rather than from a parse tree, so
+// the parameters a call through one of them takes come from those symbols too.
+struct Sample {
+    u32 value;
+}
+
+u32 readSample(Sample s) {
+    return s.value;
+}
+
+void bumpSample(Sample s) {
+    s.value <- s.value + 3;
+}

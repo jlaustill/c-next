@@ -18,6 +18,12 @@ interface ICallbackTypedefParameter {
    * and not a `*` glued onto the string.
    */
   readonly isString?: boolean;
+  /**
+   * ADR-030: the parameter is an opaque handle, so it is `T*` in C and C++
+   * alike -- never an ADR-006 reference -- and for an array each element is
+   * (#996). The prototype's `T*` comes from the same decision.
+   */
+  readonly isOpaqueHandle?: boolean;
   readonly isConst?: boolean;
   readonly isArray?: boolean;
   readonly arrayDims?: string;

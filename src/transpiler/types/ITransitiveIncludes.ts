@@ -10,10 +10,12 @@ import type ICodeGenSymbols from "./ICodeGenSymbols";
  * left was a second traversal of the same include tree.
  *
  * `paths` was added so the ADR-057 seed could be read from Declare's own
- * artifact; #1472 then took that seed out of Declare, so no production code
- * reads `paths` today -- 1.4's `Program.deriveVisibleSymbols` reads `sources`.
- * Since #1435 the closure is taken in memory, once per file per run, over the
- * include graph discovery resolved, not re-read from disk: the retained graph
+ * artifact; #1472 then took that seed out of Declare. 1.4 reads both halves:
+ * `Program.deriveVisibleSymbols` reads `sources`, and the scope types each file
+ * can see are joined against `paths` (#1724) -- in a walk of their own, because
+ * those scope types settle the symbols `sources` is built from.
+ * Since #1435 the closure is taken in memory over the include graph discovery
+ * resolved, not re-read from disk: the retained graph
  * `docs/architecture/symbol-view-scopes.md` names as the change that brings a
  * derived symbol view under its cost ceiling.
  */

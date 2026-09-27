@@ -1,0 +1,15 @@
+// The declarations for `file-scope-var-cross-file`, one include hop away. The
+// includer reaches them only through this file's generated header, so the
+// `extern` there must say what the definition here says.
+#include "dev.h"
+
+Dev shared;
+Dev[2] sharedPair;
+
+scope Rack {
+    public Dev unit;
+
+    public void attach() {
+        this.unit <- global.dev_create();
+    }
+}

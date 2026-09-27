@@ -4,8 +4,8 @@
  * Declare owns per-file facts, so for a bare `T` written inside a scope it can
  * only answer when this file declares the scope type. Otherwise the name is
  * either a global type or a scope type from an included file, and telling those
- * apart needs the set of scope types the whole PROGRAM declares -- a cross-file
- * fact, which is 1.4's to own.
+ * apart needs the scope types the file's include closure declares -- a
+ * cross-file fact, which is 1.4's to own.
  *
  * Declare records those sites as `TDeferredType`, carrying the identifier as
  * WRITTEN and the scope it was written in. That pair is the input ADR-057
@@ -33,12 +33,14 @@ import TypeResolver from "../../utils/TypeResolver";
 
 class DeferredTypes {
   /**
-   * Settle every deferred type in `symbols` against the program-wide answer.
+   * Settle every deferred type in `symbols` against what their file can see.
    *
    * @param symbols one file's declared symbols, as Declare emitted them
-   * @param isScopeType whether a QUALIFIED name is a scope type anywhere in the
-   *   program. This is the whole-program set; passing a per-file one would
-   *   reintroduce exactly the cross-file parameter Declare no longer takes.
+   * @param isScopeType whether a QUALIFIED name is a scope type visible from
+   *   the file these symbols belong to: declared there or anywhere in its
+   *   include closure. Not Declare's own set, which cannot see an include, and
+   *   not the whole program's, which also holds siblings the file never
+   *   includes (#1724).
    */
   static settle(
     symbols: ReadonlyArray<TSymbol>,

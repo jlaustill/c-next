@@ -67,10 +67,9 @@ interface IDiscoveryFacts {
    * re-derived it as `dirname(sourcePath)` while discovery resolved from
    * `workingDir`, so the two started from different directories -- and a
    * missing include read as a foreign header, E0426 declined, and C-Next
-   * member syntax reached the C output at exit 0. The directory is one
-   * decision now; whether a quoted include is FOUND is not yet, because
-   * discovery goes on along the whole search path where ADR-010 looks only
-   * here (#1672).
+   * member syntax reached the C output at exit 0. Whether a quoted `.cnx`
+   * include is found here is one decision too: 1.1 and 2.1 both ask
+   * `IncludeDiscovery.resolveQuoted` (#1672).
    */
   readonly quotedIncludeDirectories: ReadonlyMap<string, string>;
 }

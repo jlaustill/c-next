@@ -22,12 +22,14 @@ describe("Transpiler.determineProjectRoot", () => {
   });
 
   /**
-   * Helper to access the private determineProjectRoot method
+   * The project root the transpiler is anchored at before any run: what the
+   * private `determineProjectRoot` finds for `config.input` (#1719 made a run
+   * re-anchor where its own root lives; construction anchors at the input).
    */
   function getProjectRoot(transpiler: Transpiler): string | undefined {
     return (
-      transpiler as unknown as { determineProjectRoot(): string | undefined }
-    ).determineProjectRoot();
+      transpiler as unknown as { anchor: { projectRoot: string | undefined } }
+    ).anchor.projectRoot;
   }
 
   /**

@@ -625,11 +625,13 @@ class HeaderGeneratorUtils {
 
     const lines: string[] = ["/* External variables */"];
     for (const sym of variables) {
+      const mappedType = mapType(sym.type || "int");
       // Build normalized input for the unified formatter
       const input: IVariableFormatInput = {
         name: sym.name,
         cnextType: sym.type || "int",
-        mappedType: mapType(sym.type || "int"),
+        // ADR-030: a handle is declared as the pointer its definition is.
+        mappedType: sym.isOpaqueHandle ? `${mappedType}*` : mappedType,
         modifiers: {
           isConst: sym.isConst ?? false,
           isAtomic: sym.isAtomic ?? false,

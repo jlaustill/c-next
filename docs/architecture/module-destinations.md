@@ -99,7 +99,7 @@ tree-move does not rediscover them:
 | module                       | why                                                               |
 | ---------------------------- | ----------------------------------------------------------------- |
 | `Program.ts`                 | the artifact 1.4 emits                                            |
-| `DeferredTypes.ts`           | settles bare names against the whole-program scope-type set       |
+| `DeferredTypes.ts`           | settles bare names against the scope types each file can see      |
 | `TransitiveEnumCollector.ts` | walks the include graph, so it needs the graph rather than a file |
 
 ## TRANSPILE

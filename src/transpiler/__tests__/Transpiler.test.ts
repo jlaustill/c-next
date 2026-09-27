@@ -590,11 +590,22 @@ describe("Transpiler", () => {
           `#include "can/config.cnx"\n#include "uart/config.cnx"\nu32 main() { return 0; }\n`,
         );
 
-        const transpiler = new Transpiler({ input: entry, noCache: true });
+        const transpiler = new Transpiler({
+          input: entry,
+          outDir: testDir,
+          noCache: true,
+        });
 
         const result = await transpiler.transpile({ kind: "files" });
 
         expect(result.success).toBe(true);
+        // Everything this test writes stays in its own directory. Without an
+        // outDir the headers landed under the process cwd (#1705) -- the
+        // repository root -- which is how `can/config.h` and `uart/config.h`
+        // came to be committed there.
+        expect(
+          result.outputFiles.filter((p) => !p.startsWith(`${testDir}/`)),
+        ).toEqual([]);
 
         // Both files must reach the compilation (#1134) — before the fix only
         // can/config.* was generated and uart/config.* was silently dropped.

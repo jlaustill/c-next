@@ -12,9 +12,6 @@
 extern "C" {
 #endif
 
-/* External type dependencies - include appropriate headers */
-typedef struct NestedExtEnum__Config NestedExtEnum__Config;
-
 /* Function prototypes */
 void setHigh(NestedExtEnum__Config& cfg);
 

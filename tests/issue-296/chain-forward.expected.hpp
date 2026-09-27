@@ -7,13 +7,11 @@
  */
 
 #include <chain-types-mid.hpp>
+#include <chain-types-base.hpp>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* External type dependencies - include appropriate headers */
-typedef struct ChainTypesBase__Coordinate ChainTypesBase__Coordinate;
 
 /* Function prototypes */
 void Navigator__setDestination(const Waypoint& wp);

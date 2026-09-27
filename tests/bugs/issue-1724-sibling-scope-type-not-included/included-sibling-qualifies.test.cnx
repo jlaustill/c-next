@@ -1,0 +1,32 @@
+// test-execution
+// test-adr: 057
+// Issue #1724, LEGITIMATE CONTROL: this file reopens scope Motor and DOES
+// include motor-config.cnx, so it can see both `Motor.Config` and the C
+// typedef `Config`. ADR-057 puts the scope tier before the global one, so the
+// bare `Config` in the scope below must still become `Motor__Config`. A fix
+// that stopped qualifying cross-file scope types altogether fails here.
+#include "ext_config.h"
+#include "motor-config.cnx"
+
+scope Motor {
+    public u8 useShadowed(Config c) {
+        return c.x;
+    }
+}
+
+i32 main() {
+    Motor.Config mine <- { x: 11 };
+    u8 fromMine <- Motor.useShadowed(mine);
+    if (fromMine != 11) {
+        return 1;
+    }
+
+    // Outside any scope, so ADR-057's scope tier does not apply: a bare
+    // `Config` here is the C typedef.
+    Config theirs <- { a: 2, b: 3 };
+    if (theirs.a != 2) {
+        return 2;
+    }
+
+    return 0;
+}

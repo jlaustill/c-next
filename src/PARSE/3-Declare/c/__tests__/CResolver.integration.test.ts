@@ -737,3 +737,43 @@ describe("CResolver - Opaque Type Detection (Issue #948)", () => {
     expect(symbolTable.getStructTagAlias("_widget_t")).toBe("widget_t");
   });
 });
+
+describe("CResolver - a declarator's pointer depth", () => {
+  /** The symbol the resolver recorded under `name`. */
+  const symbolNamed = (source: string, name: string) => {
+    const tree = TestHelpers.parseC(source);
+    const { symbols } = CResolver.resolve(tree!, "test.h", new SymbolTable());
+    const symbol = symbols.find((s) => s.name === name);
+    expect(symbol).toBeDefined();
+    return symbol!;
+  };
+
+  it("records every pointer level of a parameter", () => {
+    // `Dev **out` is ONE `pointer` context holding two `*`. Recorded as
+    // `Dev*`, an out-parameter looked like a handle parameter, and codegen
+    // passed the handle where its address belongs.
+    const symbol = symbolNamed(
+      `typedef struct Dev Dev; void dev_create_into(Dev **out, Dev *keep);`,
+      "dev_create_into",
+    );
+    expect(symbol.kind).toBe("function");
+    const types =
+      symbol.kind === "function"
+        ? (symbol.parameters ?? []).map((p) => p.type)
+        : [];
+    expect(types).toEqual(["Dev**", "Dev*"]);
+  });
+
+  it("records every pointer level of a variable and a return type", () => {
+    const variable = symbolNamed(`extern char **names;`, "names");
+    expect(variable.kind === "variable" && variable.type).toBe("char**");
+
+    const func = symbolNamed(`char **list_names(void);`, "list_names");
+    expect(func.kind === "function" && func.type).toBe("char**");
+  });
+
+  it("adds no pointer where the declarator has none", () => {
+    const variable = symbolNamed(`extern int count;`, "count");
+    expect(variable.kind === "variable" && variable.type).toBe("int");
+  });
+});

@@ -55,8 +55,17 @@ class CallbackTypedefFormatter {
   ): string {
     const constModifier = parameter.isConst ? "const " : "";
 
+    // ADR-030: an opaque handle is a pointer in every mode, exactly as
+    // `ParameterSignatureBuilder` spells the prototype -- and for an array,
+    // each element is (#996).
+    const handleSuffix = parameter.isOpaqueHandle ? "*" : "";
+
     if (parameter.isArray) {
-      return `${constModifier}${parameter.type} ${parameter.name ?? ""}${parameter.arrayDims ?? ""}`;
+      return `${constModifier}${parameter.type}${handleSuffix} ${parameter.name ?? ""}${parameter.arrayDims ?? ""}`;
+    }
+
+    if (parameter.isOpaqueHandle) {
+      return `${constModifier}${parameter.type}${handleSuffix}`;
     }
 
     // ADR-045: `string<N>` is `const char*` at a parameter position -- the same

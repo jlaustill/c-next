@@ -58,7 +58,8 @@ class TypeUtils {
    * later from the resolved string, because a bare `Mode` that stayed bare and
    * `global.Mode` are byte-identical by then. So the unsettled case is recorded
    * as `TDeferredType`, carrying the written identifier and the scope it was
-   * written in, and 1.4 Resolve settles it against the whole program.
+   * written in, and 1.4 Resolve settles it against the scope types the file
+   * and its include closure declare.
    *
    * Everything else resolves exactly as before, through `getTypeName`, so the
    * settled path keeps one implementation rather than gaining a second.

@@ -1,0 +1,89 @@
+// test-execution
+// test-no-warnings
+// test-link: devout_impl.c
+// ADR-030 holds an opaque handle through a pointer, so a handle's value IS a
+// `Dev*` and reaches a `Dev*` parameter unchanged. An OUT-parameter is one
+// level deeper: `dev_create_into` takes a `Dev**`, the address of the place
+// the caller keeps its handle. The rule "already a pointer, pass it directly"
+// ignored that depth, so `dev_create_into(Board__held)` and
+// `dev_create_into(d)` passed the handle where its address belongs -- a `Dev*`
+// into a `Dev**`, which g++ rejects and gcc warns about -- while the
+// transpiler exited 0.
+//
+// A C variable says its depth in its declared type, and takes an `&` for the
+// same reason: `dev_spare`, a `Dev*`, into a `Dev**`, and `dev_slots`, a
+// `Dev**`, into the `Dev***` of `dev_slots_open`.
+//
+// Controls: the same handles passed to `dev_poke` and `dev_pokes`, whose
+// parameters are `Dev*`, stay unchanged -- the #1722 fixtures pin that rule
+// too -- and so does `dev_slots` passed to a `Dev**`. It was briefly
+// `&dev_slots` there: the registry said only "a pointer" for a `Dev**`.
+#include "devout.h"
+
+Dev gdev;
+Dev[2] gdevs;
+
+scope Board {
+    Dev held;
+
+    public void make() {
+        global.dev_create_into(this.held);
+    }
+
+    public void poke() {
+        global.dev_poke(this.held);
+    }
+
+    public i32 pokes() {
+        i32 n <- global.dev_pokes(this.held);
+        return n;
+    }
+}
+
+// A local handle, created through the out-parameter.
+i32 makeLocal() {
+    Dev d;
+    dev_create_into(d);
+    dev_poke(d);
+    dev_poke(d);
+    i32 n <- dev_pokes(d);
+    return n;
+}
+
+i32 main() {
+    // A scope member.
+    Board.make();
+    Board.poke();
+    i32 held <- Board.pokes();
+    if (held != 1) return 1;
+
+    // A local.
+    i32 local <- makeLocal();
+    if (local != 2) return 2;
+
+    // A file-scope variable.
+    dev_create_into(gdev);
+    dev_poke(gdev);
+    i32 fileScope <- dev_pokes(gdev);
+    if (fileScope != 1) return 3;
+
+    // One element of an array of handles.
+    dev_create_into(gdevs[1]);
+    dev_poke(gdevs[1]);
+    i32 element <- dev_pokes(gdevs[1]);
+    if (element != 1) return 4;
+
+    // A handle a C variable holds.
+    dev_create_into(dev_spare);
+    dev_poke(dev_spare);
+    i32 spare <- dev_pokes(dev_spare);
+    if (spare != 1) return 5;
+
+    // A C variable two pointers deep, into a parameter three deep, then two.
+    dev_slots_open(dev_slots);
+    dev_slots_fill(dev_slots);
+    i32 ready <- dev_slots_ready(dev_slots);
+    if (ready != 1) return 6;
+
+    return 0;
+}

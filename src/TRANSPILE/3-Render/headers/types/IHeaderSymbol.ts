@@ -39,6 +39,13 @@ interface IHeaderSymbol {
   /** Array dimensions (e.g., ["10"] or ["10", "20"]) */
   readonly arrayDimensions?: readonly string[];
 
+  /**
+   * ADR-030: a variable of an opaque type, held through a pointer -- `T*`, and
+   * for an array each element (#996). Set from `isHeldThroughPointer`, the
+   * decision its definition in the `.c` was made from.
+   */
+  readonly isOpaqueHandle?: boolean;
+
   /** Function parameters for signature generation */
   readonly parameters?: readonly IParameterSymbol[];
 

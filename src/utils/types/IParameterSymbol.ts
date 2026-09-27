@@ -12,7 +12,7 @@ interface IParameterSymbol {
   isCallbackConst?: boolean; // Issue #914: typedef says this param must be const
   isCallback?: boolean; // ADR-029/#1164: the param's declared type IS a callback function
   callbackTypedefName?: string; // ADR-029/#1164: the typedef to write it as (e.g. "onReceive_fp")
-  isOpaqueHandle?: boolean; // Issue #995: type is opaque (incomplete struct), needs pointer not reference
+  isOpaqueHandle?: boolean; // Issue #995: type is opaque (incomplete struct), needs pointer not reference -- each element's, for an array (#996)
 }
 
 export default IParameterSymbol;

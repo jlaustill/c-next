@@ -39,11 +39,10 @@
  */
 
 import { ParseTreeWalker } from "antlr4ng";
-import { join, resolve } from "node:path";
-
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
+import IncludeDiscovery from "../../transpiler/data/IncludeDiscovery";
 import IncludeDirective from "./helpers/IncludeDirective";
 import IIncludeContext from "./types/IIncludeContext";
 import IIncludeDirectiveError from "./types/IIncludeDirectiveError";
@@ -163,19 +162,28 @@ class IncludeDirectiveListener extends CNextListener {
     );
   }
 
-  /** A quoted include resolves beside the including file, and only there. */
+  /**
+   * A quoted include resolves beside the including file, and only there.
+   * #1672: asked of the rule discovery resolved the include with, not a copy.
+   */
   private quotedAlternative(cnxPath: string): string | null {
-    const candidate = resolve(this.context.quotedIncludeDirectory, cnxPath);
-    return this.context.fileExists(candidate) ? candidate : null;
+    return IncludeDiscovery.resolveQuoted(
+      cnxPath,
+      this.context.quotedIncludeDirectory,
+      this.context.fileExists,
+    );
   }
 
-  /** An angle include is searched along the run's paths, in priority order. */
+  /**
+   * An angle include is searched along the run's paths, in priority order.
+   * #1672: the same rule discovery resolves one with.
+   */
   private angleAlternative(cnxPath: string): string | null {
-    for (const searchDir of this.context.searchPaths) {
-      const candidate = join(searchDir, cnxPath);
-      if (this.context.fileExists(candidate)) return candidate;
-    }
-    return null;
+    return IncludeDiscovery.resolveAlong(
+      cnxPath,
+      this.context.searchPaths,
+      this.context.fileExists,
+    );
   }
 
   private report(

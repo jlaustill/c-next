@@ -505,6 +505,16 @@ describe("IncludeResolver", () => {
   // ========================================================================
 
   describe("resolveHeadersTransitively()", () => {
+    /** Each header as a root searched along `dir` (#1723). */
+    const rootsAlong = (
+      headers: ReadonlyArray<{
+        path: string;
+        type: EFileType;
+        extension: string;
+      }>,
+      dir: string,
+    ) => headers.map((file) => ({ file, searchPaths: [dir] }));
+
     it("should resolve single header without nested includes", () => {
       // types.h has no includes
       const rootHeaders = [
@@ -515,9 +525,9 @@ describe("IncludeResolver", () => {
         },
       ];
 
-      const result = IncludeResolver.resolveHeadersTransitively(rootHeaders, [
-        includeDir,
-      ]);
+      const result = IncludeResolver.resolveHeadersTransitively(
+        rootsAlong(rootHeaders, includeDir),
+      );
 
       expect(result.headers).toHaveLength(1);
       expect(result.headers[0].path).toContain("types.h");
@@ -542,9 +552,9 @@ describe("IncludeResolver", () => {
         },
       ];
 
-      const result = IncludeResolver.resolveHeadersTransitively(rootHeaders, [
-        nestedDir,
-      ]);
+      const result = IncludeResolver.resolveHeadersTransitively(
+        rootsAlong(rootHeaders, nestedDir),
+      );
 
       // Should have both headers, base.h first (dependency order)
       expect(result.headers).toHaveLength(2);
@@ -567,9 +577,9 @@ describe("IncludeResolver", () => {
         },
       ];
 
-      const result = IncludeResolver.resolveHeadersTransitively(rootHeaders, [
-        circularDir,
-      ]);
+      const result = IncludeResolver.resolveHeadersTransitively(
+        rootsAlong(rootHeaders, circularDir),
+      );
 
       // Should complete without hanging, include both headers once
       expect(result.headers).toHaveLength(2);
@@ -595,9 +605,9 @@ describe("IncludeResolver", () => {
         },
       ];
 
-      const result = IncludeResolver.resolveHeadersTransitively(rootHeaders, [
-        generatedDir,
-      ]);
+      const result = IncludeResolver.resolveHeadersTransitively(
+        rootsAlong(rootHeaders, generatedDir),
+      );
 
       // Should only include user.h, skip generated.h
       expect(result.headers).toHaveLength(1);
@@ -620,9 +630,9 @@ describe("IncludeResolver", () => {
         },
       ];
 
-      const result = IncludeResolver.resolveHeadersTransitively(rootHeaders, [
-        warningDir,
-      ]);
+      const result = IncludeResolver.resolveHeadersTransitively(
+        rootsAlong(rootHeaders, warningDir),
+      );
 
       expect(result.headers).toHaveLength(1);
       expect(result.warnings.some((w) => w.includes("missing.h"))).toBe(true);
@@ -643,13 +653,44 @@ describe("IncludeResolver", () => {
       const alreadyProcessed = new Set([join(processedDir, "already.h")]);
 
       const result = IncludeResolver.resolveHeadersTransitively(
-        rootHeaders,
-        [processedDir],
+        rootsAlong(rootHeaders, processedDir),
         { processedPaths: alreadyProcessed },
       );
 
       // Should skip the already-processed header
       expect(result.headers).toHaveLength(0);
+    });
+
+    it("searches a root's own includes along that root's path, and says so (#1723)", () => {
+      const libA = join(testDir, "libA");
+      const libB = join(testDir, "libB");
+      mkdirSync(libA, { recursive: true });
+      mkdirSync(libB, { recursive: true });
+      writeFileSync(join(libA, "a.h"), '#include "b.h"\nvoid a(void);');
+      writeFileSync(join(libB, "b.h"), "void b(void);");
+      const aHeader = {
+        path: join(libA, "a.h"),
+        type: EFileType.CHeader,
+        extension: ".h",
+      };
+
+      const along = IncludeResolver.resolveHeadersTransitively([
+        { file: aHeader, searchPaths: [libA, libB] },
+      ]);
+      // Control: the same root on a path without libB, as every header was
+      // searched before -- b.h is not found and is warned about.
+      const without = IncludeResolver.resolveHeadersTransitively([
+        { file: aHeader, searchPaths: [libA] },
+      ]);
+
+      expect(along.headers.map((h) => h.path)).toEqual([
+        join(libB, "b.h"),
+        join(libA, "a.h"),
+      ]);
+      expect(along.warnings).toEqual([]);
+      expect(along.searchPaths.get(join(libB, "b.h"))).toEqual([libA, libB]);
+      expect(without.headers.map((h) => h.path)).toEqual([join(libA, "a.h")]);
+      expect(without.warnings.some((w) => w.includes("b.h"))).toBe(true);
     });
   });
 

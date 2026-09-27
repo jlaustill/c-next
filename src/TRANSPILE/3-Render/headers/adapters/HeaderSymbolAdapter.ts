@@ -67,13 +67,19 @@ class HeaderSymbolAdapter {
     // ADR-057: type names arrive already scope-qualified from the symbol
     // layer (CNextResolver pre-pass), so no qualification is needed here.
     const parameters: IParameterSymbol[] = func.parameters.map((p) => {
+      const type = TypeResolver.getTypeName(p.type);
       return {
         name: p.name,
-        type: TypeResolver.getTypeName(p.type),
+        type,
         isConst: p.isConst,
         isArray: p.isArray,
         arrayDimensions: HeaderSymbolAdapter.headerArrayDimensions(p, state),
         isAutoConst: p.isAutoConst,
+        // ADR-030: the decision the `.c`'s prototype is spelled from, read here
+        // so every header path carries it -- the callback-compatible one set no
+        // flag at all, so an array of handles was `Dev ds[2]` in the `.h`
+        // against `Dev* ds[2]` in the `.c`.
+        isOpaqueHandle: state.isHeldThroughPointer(type) || undefined,
       };
     });
 
@@ -125,6 +131,9 @@ class HeaderSymbolAdapter {
       isVolatile: variable.isVolatile,
       isArray: variable.isArray,
       arrayDimensions,
+      // ADR-030: the decision the definition was made from, read rather than
+      // re-derived -- this `extern` declared `Dev device` against a `Dev* device`.
+      isOpaqueHandle: state.isHeldThroughPointer(typeStr) || undefined,
       parent: isGlobal ? undefined : variable.scopePath,
       sourceFile: variable.sourceFile,
       sourceLine: variable.span.line,

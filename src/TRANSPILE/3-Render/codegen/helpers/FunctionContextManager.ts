@@ -130,6 +130,22 @@ class FunctionContextManager {
       ? isCallbackPointerParam && typeInfo.isStruct
       : typeInfo.isStruct || isTypedefStruct;
 
+    // ADR-030 / #1722: whether this parameter holds opaque handles, registered
+    // ONCE, here. An opaque type reaches `isStruct` through `isTypedefStruct`
+    // and a complete one through its known fields, so `isStruct` alone cannot
+    // tell the two apart -- and they differ in exactly the fact that matters:
+    // a complete struct's value is `(*p)`, while an opaque handle's value is
+    // `p`, because the pointer IS the handle. The signature
+    // (`ParameterInputAdapter.fromAST`) and every whole-value use of the
+    // parameter read this answer rather than asking again.
+    //
+    // It is `isHeldThroughPointer`, the rule a scope member, a variable and a
+    // callback typedef's parameter read, so no shape of the parameter is
+    // excepted: an array of handles is an array of pointers (#996), and the
+    // `!isArray` this used to carry is what left `Dev[2] arr` as `Dev arr[2]`
+    // -- an array of an incomplete type -- and its whole-array uses as `(*arr)`.
+    const isOpaqueHandle = state.isHeldThroughPointer(typeInfo.typeName);
+
     // Issue #895: Primitive types that become pointers need dereferencing when used as values
     // e.g., "u8 buf" becoming "uint8_t* buf" requires "*buf" when accessing the value
     // #1600: a string<N> is ALREADY a char* -- it is not a primitive that
@@ -148,7 +164,7 @@ class FunctionContextManager {
       !typeInfo.isStruct &&
       !isArray &&
       !typeInfo.isString &&
-      !state.isOpaqueType(typeInfo.typeName);
+      !isOpaqueHandle;
 
     // Issue #958: typedef struct params need pointer semantics (like callback pointer params)
     const forcePointerSemantics = isCallbackPointerParam || isTypedefStruct;
@@ -165,15 +181,18 @@ class FunctionContextManager {
       isCallbackPointerPrimitive,
       // Issue #895/#958: Force pointer semantics for callback-compatible and typedef struct params
       forcePointerSemantics,
+      isOpaqueHandle,
     };
     state.currentParameters.set(name, paramInfo);
 
-    // Register in typeRegistry
+    // Register in typeRegistry. Its `isPointer` is what an argument asks to
+    // skip the `&` -- the same decision the signature spells `T*` from, so the
+    // two cannot disagree (#958 used `isTypedefStruct` here, a second reading).
     FunctionContextManager.registerParameterType(
       typeInfo,
       param,
       state,
-      isTypedefStruct,
+      isOpaqueHandle,
     );
   }
 
@@ -248,7 +267,7 @@ class FunctionContextManager {
     typeInfo: IParameterTypeInfo,
     param: IPlannedFunctionParameter,
     state: TranspileState,
-    isTypedefStruct = false,
+    isOpaqueHandle = false,
   ): void {
     const { typeName, isString } = typeInfo;
     const { name, isArray, isConst } = param;
@@ -280,8 +299,9 @@ class FunctionContextManager {
       isString,
       stringCapacity,
       isParameter: true,
-      // Issue #958: typedef struct params are already pointers — prevent &arg in call sites
-      ...(isTypedefStruct && { isPointer: true }),
+      // Issue #958 / ADR-030: an opaque handle is already a pointer -- and for an
+      // array, each element is (#996) -- so a call site takes no `&` of it.
+      ...(isOpaqueHandle && { isPointer: true }),
     };
     state.setVariableTypeInfo(name, registeredType);
   }

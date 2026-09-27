@@ -70,7 +70,8 @@ interface IParameterInput {
   /**
    * Issue #995: Whether the parameter type is an opaque handle (incomplete struct typedef).
    * This is a pass-through flag; the rule (suppress auto-const, force pointer) is applied
-   * in ParameterSignatureBuilder to avoid dual code paths.
+   * in ParameterSignatureBuilder to avoid dual code paths. For an array parameter it
+   * says each element is a handle, so the element is spelled `T*` (#996).
    */
   isOpaqueHandle?: boolean;
 }

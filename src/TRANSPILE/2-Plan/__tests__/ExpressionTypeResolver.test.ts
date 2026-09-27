@@ -11,6 +11,7 @@ import TTypeInfo from "../../../transpiler/types/TTypeInfo";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import enterScope from "../../../transpiler/__tests__/enterScope";
+import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 
 /** Parse a standalone C-Next expression into an ExpressionContext. */
 function parseExpression(source: string) {
@@ -515,6 +516,114 @@ describe("ExpressionTypeResolver", () => {
   // ========================================================================
   // Postfix Expression Type Detection
   // ========================================================================
+
+  describe("isArrayExpression", () => {
+    beforeEach(() => {
+      setTypeInfo("pts", {
+        baseType: "CPoint",
+        bitWidth: 0,
+        isArray: true,
+        isConst: false,
+      });
+      setTypeInfo("n", {
+        baseType: "u32",
+        bitWidth: 32,
+        isArray: false,
+        isConst: false,
+      });
+      setTypeInfo("bag", {
+        baseType: "Bag",
+        bitWidth: 0,
+        isArray: false,
+        isConst: false,
+      });
+      symbolTable.addStructField("Bag", "inner", "CPoint", [2]);
+    });
+
+    it("is true for a whole array, which C decays to a pointer", () => {
+      expect(
+        ExpressionTypeResolver.isArrayExpression(parseExpression("pts"), state),
+      ).toBe(true);
+    });
+
+    it("is false for one element of it", () => {
+      expect(
+        ExpressionTypeResolver.isArrayExpression(
+          parseExpression("pts[0]"),
+          state,
+        ),
+      ).toBe(false);
+    });
+
+    it("is true for a struct member that is an array", () => {
+      expect(
+        ExpressionTypeResolver.isArrayExpression(
+          parseExpression("bag.inner"),
+          state,
+        ),
+      ).toBe(true);
+    });
+
+    it("is false for a scalar and for an expression that is not a postfix", () => {
+      expect(
+        ExpressionTypeResolver.isArrayExpression(parseExpression("n"), state),
+      ).toBe(false);
+      expect(
+        ExpressionTypeResolver.isArrayExpression(
+          parseExpression("n + n"),
+          state,
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe("getPostfixTypeInfo", () => {
+    /** The postfix expression inside a parsed expression. */
+    const postfixOf = (source: string) => {
+      const postfix = ExpressionUnwrapper.getPostfixExpression(
+        parseExpression(source),
+      );
+      expect(postfix).not.toBeNull();
+      return postfix!;
+    };
+
+    beforeEach(() => {
+      setTypeInfo("h", {
+        baseType: "Handlers",
+        bitWidth: 0,
+        isArray: false,
+        isConst: false,
+      });
+      symbolTable.addStructField("Handlers", "onShift", "shifted");
+    });
+
+    it("types a prefix: the value a call calls is everything before it", () => {
+      const postfix = postfixOf("h.onShift(p).x");
+      expect(
+        ExpressionTypeResolver.getPostfixTypeInfo(postfix, state, 1),
+      ).toEqual({ baseType: "shifted", isArray: false });
+      expect(
+        ExpressionTypeResolver.getPostfixTypeInfo(postfix, state, 0),
+      ).toEqual({ baseType: "Handlers", isArray: false });
+    });
+
+    it("types the whole expression when no count is given", () => {
+      // `.x` of the callback type names no field, so the whole expression has
+      // no type -- which is why a call must ask about its own prefix.
+      expect(
+        ExpressionTypeResolver.getPostfixTypeInfo(
+          postfixOf("h.onShift(p).x"),
+          state,
+        ),
+      ).toBeNull();
+      expect(
+        ExpressionTypeResolver.getPostfixTypeInfo(
+          postfixOf("h.onShift"),
+          state,
+        ),
+      ).toEqual({ baseType: "shifted", isArray: false });
+    });
+  });
 
   describe("getPostfixExpressionType", () => {
     it("should return null when no primary expression", () => {

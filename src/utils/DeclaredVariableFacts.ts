@@ -70,15 +70,16 @@ class DeclaredVariableFacts {
     return byCName?.kind === "variable" && byCName.type ? byCName : undefined;
   }
   /**
-   * Strip trailing pointer stars from a C type string (e.g., "font_t*" → "font_t").
-   * Uses string operations instead of regex to avoid SonarCloud ReDoS flag (S5852).
+   * What a C pointer type points at: `font_t*` is `font_t`. One level only.
+   *
+   * The answer below is `{ baseType, isPointer }`, which can say "a pointer to
+   * the struct" and nothing deeper. Stripping every `*` made `Dev**` claim to
+   * be a `Dev*`, and a call site took its address for a `Dev**` parameter --
+   * a `Dev***`. One level leaves `Dev*`, which is no struct, so a pointer to a
+   * pointer gets no answer here and its reader asks the declared C type.
    */
-  private static stripTrailingPointers(type: string): string {
-    let end = type.length;
-    while (end > 0 && type[end - 1] === "*") {
-      end--;
-    }
-    return type.slice(0, end).trim();
+  private static stripOnePointer(type: string): string {
+    return type.endsWith("*") ? type.slice(0, -1).trim() : type;
   }
 
   /**
@@ -214,9 +215,7 @@ class DeclaredVariableFacts {
     // C types would cause regressions (e.g., array indexing misread as bit extraction).
     const cSymbol = symbolTable.getCSymbol(name);
     if (cSymbol?.kind === "variable" && cSymbol.type) {
-      const baseType = DeclaredVariableFacts.stripTrailingPointers(
-        cSymbol.type,
-      );
+      const baseType = DeclaredVariableFacts.stripOnePointer(cSymbol.type);
       if (
         symbolTable.isTypedefStructType(baseType) ||
         symbolTable.getStructFields(baseType)

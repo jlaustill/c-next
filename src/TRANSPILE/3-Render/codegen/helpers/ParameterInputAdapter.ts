@@ -75,11 +75,14 @@ interface IFromASTDeps {
   forceConst?: boolean;
 
   /**
-   * Issue #995: Check if a type is an opaque handle (incomplete struct typedef).
-   * Opaque handles should not get auto-const because they must be passed to
-   * C APIs that expect non-const pointers.
+   * Issue #995 / #1722: whether this parameter is an opaque handle (an
+   * incomplete struct typedef). Pre-computed, like `isPassByValue`: it is the
+   * parameter registry's answer (`TParameterInfo.isOpaqueHandle`), so the
+   * signature and every whole-value use of the parameter read one decision.
+   * An opaque handle takes pointer syntax and no auto-const, because the C
+   * APIs it is passed to expect a mutable pointer.
    */
-  isOpaqueType?: (typeName: string) => boolean;
+  isOpaqueHandle: boolean;
 }
 
 /**
@@ -144,8 +147,9 @@ class ParameterInputAdapter {
     const isKnownPrimitive = !!deps.typeMap[typeName];
     // Issue #958: C-header typedef struct types need pointer semantics
     const isTypedefStruct = deps.isTypedefStructType(typeName);
-    // Issue #995: Detect opaque handles — rule applied in ParameterSignatureBuilder
-    const isOpaque = deps.isOpaqueType?.(typeName) ?? false;
+    // Issue #995: Opaque handles — rule applied in ParameterSignatureBuilder.
+    // #1722: read, not re-derived; see IFromASTDeps.isOpaqueHandle.
+    const isOpaque = deps.isOpaqueHandle;
     if (isOpaque) {
       // ADR-030 decided here: an incomplete type can only be handled through a
       // pointer, which is why #995's `const T*` was wrong. Recorded at the
@@ -339,6 +343,13 @@ class ParameterInputAdapter {
   ): IParameterInput {
     const { name, typeName, mappedType, isConst, isString } = planned;
 
+    // ADR-030 / #996 decided here for an array of handles, exactly as the
+    // scalar branch records it for one handle: the element is held through a
+    // pointer. Recorded at the parameter's position, like that branch.
+    if (deps.isOpaqueHandle) {
+      AdrProvenance.record("030", planned.line);
+    }
+
     // Issue #1159 is decided by the planner: a dimension that is a
     // compile-time constant is folded to its value, because emitting the
     // identifier makes `u8[SIZE] buf` a VLA parameter while the matching local
@@ -382,6 +393,10 @@ class ParameterInputAdapter {
       // two agreed with each other and neither matched the typedef --
       // an incompatible-pointer-type warning at the registration, transpiler exit 0.
       forceConst: deps.forceConst,
+      // ADR-030 / #996: the registry's one answer, which for an array means
+      // each element is a handle -- `Dev* arr[2]`, not an array of an
+      // incomplete type.
+      isOpaqueHandle: deps.isOpaqueHandle || undefined,
     };
   }
 
@@ -415,6 +430,9 @@ class ParameterInputAdapter {
       // #1545: same as the AST array branch -- the typedef's const has to reach
       // the header too, or the .h contradicts the .c it was generated beside.
       forceConst: param.isCallbackConst || undefined,
+      // ADR-030 / #996: same as the AST array branch -- an array of handles is
+      // an array of pointers in the header too.
+      isOpaqueHandle: param.isOpaqueHandle || undefined,
     };
   }
 
@@ -440,10 +458,11 @@ class ParameterInputAdapter {
       isCallbackCompatible: deps.isCallbackCompatible,
       isArray,
       isKnownEnum: deps.isKnownEnum(typeName),
-      // #995: derived here rather than at the three call sites, so the string,
+      // #995: supplied here rather than at the three call sites, so the string,
       // array and general branches cannot disagree about it the way they
-      // disagreed about the callback term.
-      isOpaqueHandle: deps.isOpaqueType?.(typeName) ?? false,
+      // disagreed about the callback term. #1722: the parameter's one answer,
+      // which is false for an array -- where the rule has already refused.
+      isOpaqueHandle: deps.isOpaqueHandle,
     });
 
     // Recorded where the rule FIRED, which is what #1241 derives occupancy

@@ -9,6 +9,7 @@
 
 import type {
   DeclarationSpecifiersContext,
+  DeclaratorContext,
   StructOrUnionSpecifierContext,
   EnumSpecifierContext,
   StructDeclarationListContext,
@@ -105,13 +106,11 @@ class DeclaratorUtils {
     const baseType = DeclaratorUtils.extractTypeFromDeclSpecs(declSpecs);
     const isConst = declSpecs.getText().includes("const");
 
-    // Check for pointer and array in declarator
+    // Check for array in declarator
     const declarator = paramDecl.declarator?.();
-    let isPointer = false;
     let isArray = false;
 
     if (declarator) {
-      isPointer = Boolean(declarator.pointer?.());
       const directDecl = declarator.directDeclarator?.();
       if (directDecl) {
         const text = directDecl.getText();
@@ -121,12 +120,31 @@ class DeclaratorUtils {
 
     return ParameterExtractorUtils.buildParameterInfo(
       declarator,
-      baseType,
+      DeclaratorUtils.pointerType(baseType, declarator),
       isConst,
-      isPointer,
       isArray,
       DeclaratorUtils.extractDeclaratorName,
     );
+  }
+
+  /**
+   * The C type a declarator gives its base type: `Dev` under `**out` is
+   * `Dev**`.
+   *
+   * The grammar's `pointer` holds EVERY level -- `**out` is one context with
+   * two `*` -- so asking only whether it is present says "at least one". A
+   * parameter, a variable and a return type each asked exactly that, and a
+   * `Dev**` out-parameter was recorded as `Dev*`: codegen could not see that
+   * it takes the ADDRESS of a handle, and passed the handle itself. A typedef
+   * alone kept the depth (`typedef struct Sample **Grid`), by a count of its
+   * own. They all read it here now.
+   */
+  static pointerType(
+    baseType: string,
+    declarator: DeclaratorContext | null | undefined,
+  ): string {
+    const pointerText = declarator?.pointer()?.getText() ?? "";
+    return baseType + "*".repeat(pointerText.split("*").length - 1);
   }
 
   /**

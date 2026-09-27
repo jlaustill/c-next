@@ -291,6 +291,38 @@ describe("ServeCommand", () => {
       );
     });
 
+    it("answers from the source alone and runs no transpile", async () => {
+      // The symbols come from `parseWithSymbols`, which takes only the text
+      // and a registry of its own. A transpile run beside it was discarded
+      // whole -- a full discovery, header parse and codegen on every request,
+      // for a result nothing read.
+      await sendRequest({
+        id: 62,
+        method: "initialize",
+        params: { workspacePath: "/tmp" },
+      });
+      const transpiler = (
+        ServeCommand as unknown as {
+          transpiler: { transpile: (...args: unknown[]) => unknown };
+        }
+      ).transpiler;
+      const transpileSpy = vi.spyOn(transpiler, "transpile");
+      stdoutWriteSpy.mockClear();
+
+      try {
+        const response = await sendRequest({
+          id: 63,
+          method: "parseSymbols",
+          params: { source: "void myFunc() { }", filePath: "/tmp/test.cnx" },
+        });
+
+        expect(response).toMatchObject({ id: 63, result: { success: true } });
+        expect(transpileSpy).not.toHaveBeenCalled();
+      } finally {
+        transpileSpy.mockRestore();
+      }
+    });
+
     it("returns error for missing source param", async () => {
       const response = await sendRequest({
         id: 7,

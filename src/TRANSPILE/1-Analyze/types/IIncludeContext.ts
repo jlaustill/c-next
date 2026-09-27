@@ -16,8 +16,8 @@ interface IIncludeContext {
    * resolved it (#1435). Handed in rather than taken as `dirname` of the
    * file's path: a source run's in-memory root may have no path, when the
    * caller's `workingDir` stands in, and a second derivation here started
-   * from a different directory than discovery did. (Discovery still searches
-   * past this directory for a quoted include, where ADR-010 does not: #1672.)
+   * from a different directory than discovery did. Discovery resolves a
+   * quoted `.cnx` include here and only here, by the same rule (#1672).
    */
   readonly quotedIncludeDirectory: string;
 
@@ -29,7 +29,7 @@ interface IIncludeContext {
    */
   readonly searchPaths: readonly string[];
 
-  /** Whether a path exists, through the run's file system. */
+  /** Whether a path is an existing file, through the run's file system. */
   readonly fileExists: (path: string) => boolean;
 }
 

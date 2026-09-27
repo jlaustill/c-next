@@ -1,0 +1,40 @@
+// test-execution
+// test-no-warnings
+// test-link: dev_impl.c
+// The cross-file form of `callback-typedef`: the functions are declared in an
+// included `.cnx`, so this file builds their ADR-029 typedefs from the symbol
+// table rather than from a parse tree. Both builders must read the one
+// opaque-handle decision; two copies could only agree by coincidence.
+//
+// Not marked `test-adr: 030`, like #1722's cross-file fixture: the matrix
+// would credit what it records to the `direct` row through this file's include
+// depth (#1402), an occupancy that would move when #1402 is fixed.
+#include "dev.h"
+#include "pokers.cnx"
+
+struct RemoteHandlers {
+    remotePoke onDev;
+    remotePokeBoth onBoth;
+}
+
+i32 main() {
+    RemoteHandlers h;
+    h.onDev <- remotePoke;
+    h.onBoth <- remotePokeBoth;
+
+    Dev d <- dev_create();
+    h.onDev(d);
+    i32 viaHandle <- dev_pokes(d);
+    if (viaHandle != 1) return 1;
+
+    Dev[2] pair;
+    pair[0] <- dev_create();
+    pair[1] <- dev_create();
+    h.onBoth(pair);
+    i32 first <- dev_pokes(pair[0]);
+    if (first != 1) return 2;
+    i32 second <- dev_pokes(pair[1]);
+    if (second != 1) return 3;
+
+    return 0;
+}

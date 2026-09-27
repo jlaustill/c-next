@@ -142,11 +142,12 @@ class DeclaratorUtils {
       (abstractDecl &&
         DeclaratorUtils.abstractDeclaratorHasPointer(abstractDecl));
 
+    // One `*` whatever the declarator spells -- `Dev**` and a reference alike.
+    // The C extractor keeps the depth; this one never has.
     return ParameterExtractorUtils.buildParameterInfo(
       declarator,
-      baseType,
+      isPointer ? `${baseType}*` : baseType,
       isConst,
-      isPointer ?? false,
       false, // isArray - could be enhanced
       DeclaratorUtils.extractDeclaratorName,
     );

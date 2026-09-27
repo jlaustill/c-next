@@ -76,7 +76,10 @@ function createMockOrchestrator(options?: {
     setCurrentScope: vi.fn(),
     getCallbackTypedefName: vi.fn(() => options?.callbackTypedef ?? null),
     isOpaqueType: vi.fn(() => options?.isOpaque ?? false),
-    isTypedefStructType: vi.fn(() => options?.isTypedefStruct ?? false),
+    // The one ADR-030 decision, as TranspileState composes it: #948 or #958.
+    isHeldThroughPointer: vi.fn(
+      () => (options?.isOpaque ?? false) || (options?.isTypedefStruct ?? false),
+    ),
     markOpaqueScopeVariable: vi.fn(),
     enterFunctionContext: vi.fn(),
     updateFunctionParamsAutoConst: vi.fn(),

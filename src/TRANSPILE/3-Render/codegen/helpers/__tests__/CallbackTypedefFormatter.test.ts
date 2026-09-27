@@ -79,6 +79,31 @@ describe("CallbackTypedefFormatter", () => {
       );
     });
 
+    /**
+     * ADR-030: an opaque handle is a pointer in the typedef exactly as in the
+     * prototype -- in C++ too, where an ADR-006 struct would be a reference --
+     * and an array of them is an array of pointers (#996). It said
+     * `typedef void (*aPoke_fp)(Dev)` beside `void aPoke(Dev* d)`.
+     */
+    it.each<[string, boolean, Record<string, unknown>, string]>([
+      ["in C", false, {}, "Dev*"],
+      ["in C++", true, {}, "Dev*"],
+      ["with explicit const", false, { isConst: true }, "const Dev*"],
+      [
+        "as an array",
+        true,
+        { isArray: true, name: "ds", arrayDims: "[2]" },
+        "Dev* ds[2]",
+      ],
+    ])("spells an opaque handle %s", (_label, isCppMode, extra, expected) => {
+      const params = [
+        { type: "Dev", isStruct: false, isOpaqueHandle: true, ...extra },
+      ];
+      expect(
+        CallbackTypedefFormatter.formatParameterList(params, isCppMode),
+      ).toBe(expected);
+    });
+
     it("separates multiple parameters with a comma", () => {
       const params = [
         { type: "Message", isStruct: true, isConst: true },

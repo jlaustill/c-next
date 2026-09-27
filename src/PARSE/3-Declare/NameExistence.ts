@@ -38,9 +38,9 @@
  *     one means valid code stops compiling. Only the second is a regression, so
  *     the external side is deliberately permissive.
  *
- * `CodeGenState.isScopeType()` cannot serve here on either count: it reads the
- * run-wide table, and it filters to `ESourceLanguage.CNext`, so it is wrong in
- * both directions at once for this question.
+ * `TranspileState.isScopeType()` cannot serve here either: it answers only
+ * for a type declared inside a SCOPE that the file being generated can see
+ * (#1724), so it says nothing about a file-scope C-Next type or a C/C++ one.
  */
 
 import ESourceLanguage from "../../utils/types/ESourceLanguage";

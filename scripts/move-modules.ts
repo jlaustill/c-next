@@ -215,7 +215,7 @@ const MOVES: readonly IMove[] = [
     from: "src/transpiler/logic/symbols/DeferredTypes.ts",
     to: "src/PARSE/4-Resolve/DeferredTypes.ts",
     because:
-      "settles bare names against the whole-program scope-type set, which no single file has",
+      "settles bare names against the scope types each file's include closure declares, which no single file has",
   },
   {
     from: "src/transpiler/logic/symbols/TransitiveEnumCollector.ts",

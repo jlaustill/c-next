@@ -754,12 +754,11 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #958: Check if a type is an external typedef struct type.
-   * Used for scope variables which should always be pointers for external struct types.
+   * ADR-030: whether a declaration of this type is held through a pointer.
    * Part of IOrchestrator interface.
    */
-  isTypedefStructType(typeName: string): boolean {
-    return this.state.isTypedefStructType(typeName);
+  isHeldThroughPointer(typeName: string): boolean {
+    return this.state.isHeldThroughPointer(typeName);
   }
 
   /**

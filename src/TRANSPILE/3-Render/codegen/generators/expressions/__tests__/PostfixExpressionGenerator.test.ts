@@ -174,6 +174,7 @@ function createMockOrchestrator(overrides?: {
         ctx?.expression().map((expression) => ({
           simpleIdentifier: expression.getText(),
           expressionType: () => null,
+          isArray: () => false,
           render: () => expression.getText(),
           renderByReference: () => `&${expression.getText()}`,
         })) ?? null,
@@ -252,6 +253,8 @@ function createMockPostfixOp(options?: {
   identifier?: string;
   expressions?: { getText: () => string }[];
   argumentList?: { expression: () => { getText: () => string }[] } | null;
+  /** The type of the value a call op calls -- `peek` for `h.onPeek(...)`. */
+  calleeType?: string;
 }): TPlannedPostfixOp {
   if (options?.identifier) {
     return { kind: "member", name: options.identifier };
@@ -273,6 +276,7 @@ function createMockPostfixOp(options?: {
   return {
     kind: "call",
     line: 1,
+    calleeType: () => options?.calleeType ?? null,
     // Mirrors what `CodeGenerator.planCallArguments` does, against this file's
     // argument-list stand-in. It lived on the mock orchestrator until the
     // generator stopped asking for it.
@@ -280,6 +284,7 @@ function createMockPostfixOp(options?: {
       options?.argumentList?.expression().map((expression) => ({
         simpleIdentifier: expression.getText(),
         expressionType: () => null,
+        isArray: () => false,
         render: () => expression.getText(),
         renderByReference: () => `&${expression.getText()}`,
       })) ?? null,
@@ -386,59 +391,115 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.effects).toHaveLength(0);
     });
 
-    it("wraps struct parameter as whole value (ADR-006)", () => {
-      const params = new Map<string, TParameterInfo>([
+    /**
+     * ADR-006: a struct parameter used as a whole value is the struct it
+     * points at -- `(*point)` in C, the reference itself in C++.
+     *
+     * ADR-030 / #1722: an opaque handle is registered struct-like too, since
+     * its type is a typedef'd struct, but its value IS the pointer, so it is
+     * never dereferenced. The C++ rows are the reason this went unseen: there
+     * the struct row renders the bare name as well, so the two only differ in C.
+     * An array of handles is the array itself (#996): it rendered `(*arr)`.
+     *
+     * Issue #895: a callback-promoted parameter is a pointer in C++ too, so
+     * its whole value is `(*f)` there -- the row that rendered `f`, a `Full*`
+     * where a `Full` belongs, while its member access already said `f->`.
+     *
+     * An array of COMPLETE structs is the array itself, too: `CPoint pts[2]`
+     * is already the pointer C passes an array as, and `(*pts)` is its first
+     * element. Passed whole to a C function it became `&(*pts)`.
+     */
+    it.each<[string, string, string, Partial<TParameterInfo>, boolean, string]>(
+      [
+        ["struct parameter in C", "point", "Point", {}, false, "(*point)"],
+        ["struct parameter in C++", "point", "Point", {}, true, "point"],
         [
-          "point",
-          {
-            name: "point",
-            baseType: "Point",
-            isArray: false,
-            isStruct: true,
-            isConst: false,
-            isCallback: false,
-            isString: false,
-          },
+          "opaque handle in C",
+          "dev",
+          "Dev",
+          { isOpaqueHandle: true },
+          false,
+          "dev",
         ],
-      ]);
-      const ctx = createMockPostfixExpressionContext("point", []);
-      const input = createMockInput();
-      const state = createMockState({ currentParameters: params });
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "point",
-        isCppMode: () => false,
-      });
-
-      const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toBe("(*point)");
-    });
-
-    it("wraps struct parameter as reference in C++ mode", () => {
-      const params = new Map<string, TParameterInfo>([
         [
-          "point",
-          {
-            name: "point",
-            baseType: "Point",
-            isArray: false,
-            isStruct: true,
-            isConst: false,
-            isCallback: false,
-            isString: false,
-          },
+          "opaque handle in C++",
+          "dev",
+          "Dev",
+          { isOpaqueHandle: true },
+          true,
+          "dev",
         ],
-      ]);
-      const ctx = createMockPostfixExpressionContext("point", []);
-      const input = createMockInput();
-      const state = createMockState({ currentParameters: params });
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "point",
-        isCppMode: () => true,
-      });
+        [
+          "array of opaque handles in C",
+          "arr",
+          "Dev",
+          { isOpaqueHandle: true, isArray: true },
+          false,
+          "arr",
+        ],
+        [
+          "array of complete structs in C",
+          "pts",
+          "CPoint",
+          { isArray: true },
+          false,
+          "pts",
+        ],
+        [
+          "array of complete structs in C++",
+          "pts",
+          "CPoint",
+          { isArray: true },
+          true,
+          "pts",
+        ],
+        [
+          "callback-promoted struct parameter in C",
+          "f",
+          "Full",
+          { forcePointerSemantics: true },
+          false,
+          "(*f)",
+        ],
+        [
+          "callback-promoted struct parameter in C++",
+          "f",
+          "Full",
+          { forcePointerSemantics: true },
+          true,
+          "(*f)",
+        ],
+      ],
+    )(
+      "renders a whole-value %s",
+      (_label, name, baseType, overrides, cppMode, expected) => {
+        const params = new Map<string, TParameterInfo>([
+          [
+            name,
+            {
+              name,
+              baseType,
+              isArray: false,
+              isStruct: true,
+              isConst: false,
+              isCallback: false,
+              isString: false,
+              ...overrides,
+            },
+          ],
+        ]);
+        const ctx = createMockPostfixExpressionContext(name, []);
+        const input = createMockInput();
+        const state = createMockState({ currentParameters: params });
+        const orchestrator = createMockOrchestrator({
+          generatePrimaryExpr: () => name,
+          isCppMode: () => cppMode,
+        });
 
-      const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toBe("point");
-    });
+        const result = runPostfix(ctx, input, state, orchestrator);
+        expect(result.code).toBe(expected);
+      },
+    );
   });
 
   describe("global prefix handling (ADR-016)", () => {
@@ -1510,6 +1571,71 @@ describe("PostfixExpressionGenerator", () => {
       const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toContain("foo");
     });
+
+    /**
+     * ADR-029: the call op carries the type of the value it calls, and a
+     * value of a callback type is called with that type's parameters -- here
+     * `peek`'s, whose struct parameter takes the argument by reference.
+     * Without the type the call has no parameters in view and the struct goes
+     * by value.
+     */
+    it.each<[string, string | undefined, string]>([
+      ["a callback-typed field", "peek", "h.onPeek(&p)"],
+      ["an untyped callee", undefined, "h.onPeek(p)"],
+    ])(
+      "calls %s with the parameters its type names",
+      (_l, calleeType, code) => {
+        const ctx = createMockPostfixExpressionContext("h", [
+          createMockPostfixOp({ identifier: "onPeek" }),
+          createMockPostfixOp({
+            argumentList: {
+              expression: () => [createMockExpression("p")],
+            } as unknown as Parser.ArgumentListContext,
+            calleeType,
+          }),
+        ]);
+        const input = {
+          ...createMockInput(),
+          functionSignatures: new Map([
+            [
+              "peek",
+              {
+                name: "peek",
+                parameters: [
+                  {
+                    name: "p",
+                    baseType: "Point",
+                    isConst: false,
+                    isArray: false,
+                  },
+                ],
+              },
+            ],
+          ]),
+          callbackTypes: new Map([
+            [
+              "peek",
+              {
+                functionName: "peek",
+                returnType: "uint32_t",
+                parameters: [],
+                typedefName: "peek_fp",
+              },
+            ],
+          ]),
+        } as IGeneratorInput;
+        const orchestrator = Object.assign(
+          createMockOrchestrator({ generatePrimaryExpr: () => "h" }),
+          {
+            isCNextFunction: vi.fn((name: string) => name === "peek"),
+            isStructType: vi.fn(() => true),
+          },
+        );
+
+        const result = runPostfix(ctx, input, createMockState(), orchestrator);
+        expect(result.code).toBe(code);
+      },
+    );
   });
 
   describe("non-array parameter subscript (Issue #579)", () => {

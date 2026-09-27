@@ -68,6 +68,7 @@ function createDefaultASTDeps(overrides?: {
   isPassByValue?: boolean;
   isKnownStruct?: boolean;
   isKnownEnum?: boolean;
+  isOpaqueHandle?: boolean;
   callbackTypes?: ReadonlyMap<string, ICallbackTypeInfo>;
 }) {
   return {
@@ -80,6 +81,7 @@ function createDefaultASTDeps(overrides?: {
     isPassByValue: overrides?.isPassByValue ?? false,
     isCallbackCompatible: false,
     isTypedefStructType: () => false,
+    isOpaqueHandle: overrides?.isOpaqueHandle ?? false,
   };
 }
 
@@ -406,40 +408,31 @@ describe("ParameterInputAdapter", () => {
 
     /**
      * Auto-const is ONE derivation over three inputs -- the parameter's type,
-     * whether the body modifies it, and what `isOpaqueType` says -- so it is
-     * one table. Written out as four separate `it`s, three of them read as an
-     * S5976 cluster; the table is also the clearer form, because the two
-     * Issue #995 rows exist precisely to pin the two ways `isOpaqueType` can
-     * be absent AGAINST the ordinary case, which is a comparison a reader can
-     * only make when the rows sit together.
+     * whether the body modifies it, and whether it is an opaque handle -- so it
+     * is one table. Written out as four separate `it`s, three of them read as
+     * an S5976 cluster; the table is also the clearer form, because the
+     * Issue #995 rows exist precisely to pin the opaque answer AGAINST the
+     * ordinary case, which is a comparison a reader can only make when the
+     * rows sit together.
+     *
+     * #1722: the opaque answer arrives as the parameter registry's boolean
+     * rather than as an `isOpaqueType` predicate the adapter asked itself, so
+     * the row that pinned "predicate not supplied" has no input left to vary.
      */
-    it.each<
-      [
-        string,
-        string,
-        boolean,
-        { isOpaqueType?: (typeName: string) => boolean },
-        boolean,
-      ]
-    >([
-      ["unmodified non-const parameter", "u32", false, {}, true],
-      ["modified parameter", "u32", true, {}, false],
-      // Issue #995: a non-opaque type still gets auto-const ...
-      [
-        "non-opaque type, isOpaqueType returns false",
-        "Point",
-        false,
-        { isOpaqueType: () => false },
-        true,
-      ],
-      // ... and so does one whose deps supply no `isOpaqueType` at all.
-      ["user type, isOpaqueType not provided", "Point", false, {}, true],
+    it.each<[string, string, boolean, boolean, boolean]>([
+      ["unmodified non-const parameter", "u32", false, false, true],
+      ["modified parameter", "u32", true, false, false],
+      // Issue #995: a user type that is not an opaque handle still gets
+      // auto-const ...
+      ["non-opaque user type", "Point", false, false, true],
+      // ... and an opaque handle, unmodified, does not.
+      ["unmodified opaque handle", "widget_t", false, true, false],
     ])(
       "derives isAutoConst for %s",
-      (_label, typeName, isModified, depsOverride, expected) => {
+      (_label, typeName, isModified, isOpaqueHandle, expected) => {
         const result = ParameterInputAdapter.fromAST(
           planned({ name: "value", typeName }),
-          { ...createDefaultASTDeps({ isModified }), ...depsOverride },
+          createDefaultASTDeps({ isModified, isOpaqueHandle }),
         );
 
         expect(result.isAutoConst).toBe(expected);
@@ -646,14 +639,11 @@ describe("ParameterInputAdapter", () => {
     it("passes through isOpaqueHandle for opaque type parameter", () => {
       const result = ParameterInputAdapter.fromAST(
         planned({ name: "w", typeName: "widget_t" }),
-        {
-          ...createDefaultASTDeps({ isModified: false }),
-          isOpaqueType: (typeName: string) => typeName === "widget_t",
-        },
+        createDefaultASTDeps({ isModified: false, isOpaqueHandle: true }),
       );
 
-      // Adapter still passes the detection through; the builder still applies
-      // its own guard as a backstop.
+      // Adapter still passes the registry's decision through; the builder
+      // still applies its own guard as a backstop.
       expect(result.isOpaqueHandle).toBe(true);
       // #1545 review: isAutoConst is now FALSE here. The #995 exclusion moved
       // into AutoConstRule, which previously counted six exclusions while the
@@ -671,8 +661,7 @@ describe("ParameterInputAdapter", () => {
       const result = ParameterInputAdapter.fromAST(
         planned({ name: "w", typeName: "widget_t" }),
         {
-          ...createDefaultASTDeps({ isModified: false }),
-          isOpaqueType: (typeName: string) => typeName === "widget_t",
+          ...createDefaultASTDeps({ isModified: false, isOpaqueHandle: true }),
           isTypedefStructType: () => false, // Not a typedef struct
           isKnownEnum: () => false,
         },
@@ -682,6 +671,51 @@ describe("ParameterInputAdapter", () => {
       // (builder uses isOpaqueHandle instead)
       expect(result.forcePointerSyntax).toBeUndefined();
       expect(result.isOpaqueHandle).toBe(true);
+    });
+  });
+
+  /**
+   * ADR-030 / #996: an array of opaque handles is an array of pointers, so both
+   * array branches -- the `.c`'s and the header's -- carry the flag the builder
+   * spells `T*` elements from. Each dropped it, and `Dev[2] arr` became
+   * `Dev arr[2]`, an array of an incomplete type, in both files.
+   */
+  describe("array of opaque handles (#996)", () => {
+    it.each<[string, boolean, boolean | undefined]>([
+      ["the parse-tree adapter", true, true],
+      ["the parse-tree adapter, not a handle", false, undefined],
+    ])("%s carries the element flag", (_label, isOpaqueHandle, expected) => {
+      const result = ParameterInputAdapter.fromAST(
+        planned({
+          name: "arr",
+          typeName: "Dev",
+          renderDimensions: dimensions("2"),
+        }),
+        createDefaultASTDeps({ isOpaqueHandle }),
+      );
+
+      expect(result.isArray).toBe(true);
+      expect(result.isOpaqueHandle).toBe(expected);
+    });
+
+    it.each<[string, boolean | undefined, boolean | undefined]>([
+      ["the header adapter", true, true],
+      ["the header adapter, not a handle", undefined, undefined],
+    ])("%s carries the element flag", (_label, isOpaqueHandle, expected) => {
+      const result = ParameterInputAdapter.fromSymbol(
+        {
+          name: "arr",
+          type: "Dev",
+          isConst: false,
+          isArray: true,
+          arrayDimensions: ["2"],
+          isOpaqueHandle,
+        },
+        { mapType: (t: string) => t, isPassByValue: false },
+      );
+
+      expect(result.isArray).toBe(true);
+      expect(result.isOpaqueHandle).toBe(expected);
     });
   });
 });

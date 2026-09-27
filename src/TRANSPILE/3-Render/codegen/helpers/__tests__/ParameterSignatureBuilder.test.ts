@@ -403,6 +403,36 @@ describe("ParameterSignatureBuilder", () => {
       // Should use pointer (not reference) due to isOpaqueHandle
       expect(result).toBe("widget_t* widget");
     });
+
+    /**
+     * ADR-030 / #996: an array of handles is an array of pointers, in both
+     * modes -- `widget_t widgets[3]` is an array of an incomplete type. The
+     * last row is the control: the same array without the flag is unchanged.
+     */
+    it.each<[string, string, boolean, boolean, string]>([
+      ["in C", "*", false, true, "widget_t* widgets[3]"],
+      ["in C++", "&", false, true, "widget_t* widgets[3]"],
+      ["with explicit const", "*", true, true, "const widget_t* widgets[3]"],
+      ["without the flag", "*", false, false, "widget_t widgets[3]"],
+    ])(
+      "spells an array of opaque handles %s",
+      (_label, refSuffix, isConst, isOpaqueHandle, expected) => {
+        const input = createInput({
+          name: "widgets",
+          baseType: "widget_t",
+          mappedType: "widget_t",
+          isArray: true,
+          arrayDimensions: ["3"],
+          isPassByReference: false,
+          isConst,
+          isOpaqueHandle,
+        });
+
+        expect(ParameterSignatureBuilder.build(input, refSuffix)).toBe(
+          expected,
+        );
+      },
+    );
   });
 
   describe("ADR-013 escape hatch: explicit const on a callback parameter", () => {

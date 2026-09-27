@@ -816,6 +816,28 @@ describe("HeaderGeneratorUtils", () => {
 
       expect(lines).toContain("extern uint8_t buffer[64];");
     });
+
+    // ADR-030: a handle is declared as the pointer its definition is -- and an
+    // array of them as an array of pointers (#996).
+    it.each<[string, boolean, string[] | undefined, string]>([
+      ["a handle", false, undefined, "extern Dev* device;"],
+      ["an array of handles", true, ["2"], "extern Dev* device[2];"],
+    ])("declares %s as a pointer", (_label, isArray, dims, expected) => {
+      const variables = [
+        makeSymbol({
+          name: "device",
+          kind: "variable",
+          type: "Dev",
+          isArray,
+          arrayDimensions: dims,
+          isOpaqueHandle: true,
+        }),
+      ];
+
+      expect(HeaderGeneratorUtils.generateVariableSection(variables)).toContain(
+        expected,
+      );
+    });
   });
 
   describe("generateHeaderEnd", () => {

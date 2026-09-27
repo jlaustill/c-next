@@ -6,10 +6,11 @@
  * exists, so it is the first point at which a cross-file question has an
  * answer. Two things follow, and they are the whole pass:
  *
- *   - the scope-type index, combined from each file's `declaredScopeTypes`,
- *     which is the fact Declare used to be handed as a parameter; and
- *   - settling every `TDeferredType` against it, which is the ADR-057
- *     resolution Declare could not perform.
+ *   - the scope types each file can see, combined from the `declaredScopeTypes`
+ *     of the file and its include closure, which is the fact Declare used to be
+ *     handed as a parameter; and
+ *   - settling every `TDeferredType` against its own file's answer, which is
+ *     the ADR-057 resolution Declare could not perform.
  *
  * Building and settling are one step on purpose. A `Program` holding unsettled
  * symbols would be an artifact that says "complete" and is not, and every
@@ -96,6 +97,9 @@ const NO_VISIBILITY: IVisibilityInput = {
   cnextIncludesByFile: new Map(),
 };
 
+/** No symbol views, for a closure walk that reads only the paths it visits. */
+const NO_VIEWS: ReadonlyMap<string, ICodeGenSymbols> = new Map();
+
 class Program {
   /**
    * Build the artifact from every declared file.
@@ -117,13 +121,19 @@ class Program {
     const discovery = inputs.discovery ?? NO_DISCOVERY;
     const registry = inputs.registry ?? null;
 
-    // Each derivation is its own step, in dependency order: the scope-type
-    // index settles the types, settled types yield const values, const values
-    // resolve dimensions, and the finished symbols answer everything else.
-    // Written inline this read as one function with six nested loops, which is
-    // both hard to follow and hard to change one part of.
-    const isScopeType = Program.scopeTypeIndex(files);
-    const settledByFile = Program.settleEveryFile(files, isScopeType);
+    // Each derivation is its own step, in dependency order: the scope types
+    // each file can see settle the types, settled types yield const values,
+    // const values resolve dimensions, and the finished symbols answer
+    // everything else. Written inline this read as one function with six
+    // nested loops, which is both hard to follow and hard to change one part of.
+    const isScopeTypeVisibleFrom = Program.scopeTypeVisibility(
+      files,
+      visibility,
+    );
+    const settledByFile = Program.settleEveryFile(
+      files,
+      isScopeTypeVisibleFrom,
+    );
     const derivedConsts = Program.deriveConstValues(settledByFile);
     const scopedViews = new Map<string, ReadonlyMap<string, number>>();
     const constValues = derivedConsts.flat;
@@ -162,7 +172,7 @@ class Program {
     // reachable only through the functions below, which is what makes
     // `IProgram` impossible to bypass rather than merely discouraging it.
     return Object.freeze({
-      isScopeType,
+      isScopeTypeVisibleFrom,
       symbolByCName: (cName: string): TSymbol | undefined =>
         symbolsByCName.get(cName),
       symbolsInFile: (sourceFile: string): ReadonlyArray<TSymbol> =>
@@ -259,9 +269,14 @@ class Program {
       }
     };
 
+    // A C-Next type by the C name a generated signature names it with --
+    // `Lib__Point`, not `Point`. By its bare name, no header was found to
+    // declare what the signature says, so the type was forward-declared after
+    // the include that defines it, and a scope's `Data` answered for a C
+    // typedef `Data` in another header.
     for (const symbols of symbolsByFile.values()) {
       for (const symbol of symbols) {
-        record(symbol.sourceFile, symbol.kind, symbol.name);
+        record(symbol.sourceFile, symbol.kind, symbol.fullyQualifiedCName);
       }
     }
     for (const symbol of foreign.c) {
@@ -402,28 +417,52 @@ class Program {
   }
 
   /**
-   * ADR-057: every scope type the PROGRAM declares.
+   * ADR-057: the scope types each file can SEE -- the ones it declares, and the
+   * ones every file in its include closure declares.
    *
    * Combined from per-file answers rather than collected by a pass of its own:
    * Declare authored each file's set, and nothing may recompute a fact an
-   * earlier pass owns. This is the cross-file fact 1.3 no longer receives as a
-   * parameter.
+   * earlier pass owns. The closure is the one `deriveVisibleSymbols` takes, over
+   * the graph discovery resolved (#1435). Only its `paths` are read, because the
+   * views it can also join do not exist until these types are settled.
+   *
+   * #1724: this was the union over EVERY file in the run, so a bare `Config` in
+   * a reopened scope settled to `Motor__Config` from a sibling the file never
+   * includes, over the C typedef it could see -- and codegen, asking a run-wide
+   * table, agreed. The returned predicate is now the one answer both read.
    */
-  private static scopeTypeIndex(
+  private static scopeTypeVisibility(
     files: ReadonlyArray<IFileSymbols>,
-  ): (qualifiedName: string) => boolean {
-    const scopeTypes = new Set<string>();
+    visibility: IVisibilityInput,
+  ): (sourceFile: string, qualifiedName: string) => boolean {
+    const declaredBy = new Map(
+      files.map((file) => [file.sourceFile, file.declaredScopeTypes]),
+    );
+    const visibleBy = new Map<string, ReadonlySet<string>>();
     for (const file of files) {
-      for (const scopeType of file.declaredScopeTypes) {
-        scopeTypes.add(scopeType);
+      const visible = new Set(file.declaredScopeTypes);
+      const closure = TransitiveEnumCollector.collect(
+        file.sourceFile,
+        visibility.cnextIncludesByFile,
+        NO_VIEWS,
+      ).paths;
+      for (const included of closure) {
+        for (const scopeType of declaredBy.get(included) ?? EMPTY_NAMES) {
+          visible.add(scopeType);
+        }
       }
+      visibleBy.set(file.sourceFile, visible);
     }
-    return (qualifiedName: string): boolean => scopeTypes.has(qualifiedName);
+    return (sourceFile: string, qualifiedName: string): boolean =>
+      visibleBy.get(sourceFile)?.has(qualifiedName) ?? false;
   }
 
   /**
    * Settle every file's deferred types, and refuse to hand back a `Program`
    * that still holds one.
+   *
+   * Each file against what IT can see, which is why the predicate takes the
+   * file: a bare name means different things in two files of one run (#1724).
    *
    * The pass's own negative control, checked per file so the message can name
    * one. `TypeResolver.getTypeName` throws on a deferred type, so an escapee
@@ -432,13 +471,18 @@ class Program {
    */
   private static settleEveryFile(
     files: ReadonlyArray<IFileSymbols>,
-    isScopeType: (qualifiedName: string) => boolean,
+    isScopeTypeVisibleFrom: (
+      sourceFile: string,
+      qualifiedName: string,
+    ) => boolean,
   ): Map<string, ReadonlyArray<TSymbol>> {
     const settledByFile = new Map<string, ReadonlyArray<TSymbol>>();
     for (const file of files) {
       settledByFile.set(
         file.sourceFile,
-        DeferredTypes.settle(file.symbols, isScopeType),
+        DeferredTypes.settle(file.symbols, (qualifiedName) =>
+          isScopeTypeVisibleFrom(file.sourceFile, qualifiedName),
+        ),
       );
     }
 
