@@ -2891,8 +2891,9 @@ class Transpiler {
    *
    * #1435: a header the file includes itself takes the file's own spelling. A
    * header it reaches only through another file has no spelling of its own
-   * here and keeps the run's last one; this change leaves that case as it
-   * was. The ORDER is the run's first-seen order, unchanged, because
+   * here and keeps the run's last one, relative to that other file -- #1725,
+   * pre-existing on main. The ORDER is the run's first-seen order, unchanged,
+   * because
    * `ExternalTypeHeaderBuilder` lets the first header declaring a type win,
    * and `Map.set` on a key already present keeps its position.
    */
