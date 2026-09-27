@@ -11,7 +11,9 @@
 // #1668 (C6, S2/S3/S5): a cast's source is typed by the one operand typer.
 // A float call result, a scope method's, and a C header struct's float field
 // saturate like a float variable -- they were plain casts, which C leaves
-// undefined out of range. `!k` is a Boolean and is not saturated as a float.
+// undefined out of range. That `!k` is a Boolean, not a float, is asserted
+// in PlanTyping's unit test: a Boolean cast to an integer is a MISRA C:2012
+// Rule 10.5 violation in the C, which validate:c enforces.
 #include "cs_float.h"
 
 #include <stdint.h>
@@ -40,16 +42,13 @@ float Gauge__fn(void) {
 cs_float_t cS = { .v = -40.0 };
 
 int main(void) {
-    float k = 1.0;
     uint8_t a = cnx_cast_sat_f32_u8(half());
     if (a != 255) return 1U;
     uint8_t b = cnx_cast_sat_f32_u8(Gauge__fn());
     if (b != 2) return 2U;
     uint8_t c = ((cS.v) > ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (cS.v) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((cS.v)));
     if (c != 0) return 3U;
-    uint32_t d = static_cast<uint32_t>(!k);
-    if (d != 0) return 4U;
     uint8_t e = ((grid[0U]) > ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (grid[0U]) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((grid[0U])));
-    if (e != 255) return 5U;
+    if (e != 255) return 4U;
     return 0U;
 }

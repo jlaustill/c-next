@@ -2,7 +2,9 @@
 // #1668 (C6, S2/S3/S5): a cast's source is typed by the one operand typer.
 // A float call result, a scope method's, and a C header struct's float field
 // saturate like a float variable -- they were plain casts, which C leaves
-// undefined out of range. `!k` is a Boolean and is not saturated as a float.
+// undefined out of range. That `!k` is a Boolean, not a float, is asserted
+// in PlanTyping's unit test: a Boolean cast to an integer is a MISRA C:2012
+// Rule 10.5 violation in the C, which validate:c enforces.
 #include "cs_float.h"
 
 f32[2] grid <- [300.0, 7.0];
@@ -20,18 +22,14 @@ scope Gauge {
 cs_float_t cS <- { v: -40.0 };
 
 u32 main() {
-    f32 k <- 1.0;
-
     u8 a <- (u8)half();
     if (a != 255) return 1;
     u8 b <- (u8)Gauge.fn();
     if (b != 2) return 2;
     u8 c <- (u8)cS.v;
     if (c != 0) return 3;
-    u32 d <- (u32)!k;
-    if (d != 0) return 4;
     // NEGATIVE CONTROL: an element saturated before this change too
     u8 e <- (u8)grid[0];
-    if (e != 255) return 5;
+    if (e != 255) return 4;
     return 0;
 }

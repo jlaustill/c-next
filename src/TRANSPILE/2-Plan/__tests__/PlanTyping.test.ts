@@ -34,6 +34,39 @@ function overflowOf(source: string): string | null {
   return PlanTyping.overflowOf(OperandTyper.valueLeaves(expression, context));
 }
 
+describe("PlanTyping.castSourceType (ADR-024)", () => {
+  /** The type the cast in `r`'s initializer converts from, as 2.2 reads it */
+  const castSourceOf = (body: string): string | null => {
+    const { tree, context } = testAnalysisContextFor(
+      `f32 k <- 1.0;\nvoid main() {\n${body}\n}`,
+    );
+    let operand: Parser.UnaryExpressionContext | null = null;
+    ParseTreeWalker.DEFAULT.walk(
+      new (class extends CNextListener {
+        override enterCastExpression = (
+          ctx: Parser.CastExpressionContext,
+        ): void => {
+          operand = ctx.unaryExpression();
+        };
+      })(),
+      tree,
+    );
+    expect(operand).not.toBeNull();
+    return PlanTyping.castSourceType(OperandTyper.typeOf(operand!, context));
+  };
+
+  // A Boolean converts 0 or 1, so it is never saturated as its operand's
+  // float. Asserted here rather than in an execution fixture: any Boolean
+  // cast to an integer is a MISRA C:2012 Rule 10.5 violation in the C.
+  it("a Boolean is bool, whatever it negates", () => {
+    expect(castSourceOf("u32 r <- (u32)!k;")).toBe("bool");
+  });
+
+  it("CONTROL: the float it negates is still a float", () => {
+    expect(castSourceOf("u8 r <- (u8)k;")).toBe("f32");
+  });
+});
+
 describe("PlanTyping.directTypeName", () => {
   const globals = "u16 a <- 1;\nu16 b <- 2;\nu8 half() {\nreturn 1;\n}\n";
   const directTypeOf = (body: string): string | null => {
