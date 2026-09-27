@@ -27,6 +27,10 @@ This guide covers the development workflow for contributing to C-Next. We use a 
 
 - Node.js (v18+)
 - Java (for ANTLR parser generation)
+- The cross toolchains the tests compile every fixture with (a Cortex-M and an
+  AVR, against newlib and avr-libc). `npm test` stops at its preflight without
+  them. The package list is `scripts/cross-toolchain-packages.txt`, which CI
+  installs from too.
 
 ```bash
 # Install Java (Ubuntu/Debian)
@@ -35,6 +39,9 @@ sudo apt install default-jdk
 # Clone the repository
 git clone https://github.com/jlaustill/c-next.git
 cd c-next
+
+# Install the cross toolchains (Ubuntu/Debian)
+xargs sudo apt-get install -y < scripts/cross-toolchain-packages.txt
 
 # Install dependencies
 npm install

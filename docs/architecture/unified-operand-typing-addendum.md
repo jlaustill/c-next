@@ -30,6 +30,16 @@
 >    - ADR-049's capability pragmas are inline descriptions under the same completeness rule.
 >    - Cortex-M0+ has no LDREX/STREX.
 >    - The target errors get new codes, and ADR-049's E0802 example is corrected.
+>
+> 7. **T4 as built (2026-09-27).** It follows §A6, with these differences:
+>    - The matrix drives GCC, not clang (owner ruling, 2026-09-27); other compilers are #1761. A target's driver and flags come from its catalog row's `toolchain_triple` and `toolchain_cpu`.
+>    - The Cortex cells use a vendored CMSIS-Core (`vendor/cmsis-core/`, CMSIS 5.9.0) with `-D__PROGRAM_START`. CMSIS's own startup helper is not valid C++ under GCC 13, which is #1763.
+>    - The host-only shims (`tests/include/avr/*.h`, `tests/include/cmsis_gcc.h`) are deleted, and so is `requiresArmRuntime`. A fixture's target is the transpiler's own `Target:` report, so a pin in a helper, an inline description and `platformio.ini` count as well as a pragma. No `FixtureTargets` module re-reads the source.
+>    - Cross transpiles run in per-run mirrors of `tests/`, whose root carries a project-root marker so generated include guards match the committed ones. The plan's `-o <tmp>/` is not used.
+>    - Every cell, the host included, compiles every generated translation unit with `-Werror`. The host previously ran `-fsyntax-only` on the entry alone.
+>    - The marker is `// test-target-xfail: <target>... [c|cpp] #<issue>`: an issue is required (box 12), a mode is optional, and one line may name several targets. A stray marker fails the fixture.
+>    - The model probe covers every catalog row that names a toolchain, not only the matrix members, and asserts LDREX/STREX and BASEPRI from the compiler's architecture macros.
+>    - There is no `--targets` flag. `--transpile-only` runs no cross cells, so the warm re-run is host-only, as §A6.7 intended.
 
 # Addendum: rulings R2-R6 (2026-09-26)
 

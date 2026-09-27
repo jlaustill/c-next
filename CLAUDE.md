@@ -671,15 +671,17 @@ E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees 
 
 ### Test Types
 
-| Marker                   | Behavior                                                |
-| ------------------------ | ------------------------------------------------------- |
-| _(none)_                 | Run in BOTH C and C++ modes                             |
-| `// test-c-only`         | C mode only                                             |
-| `// test-cpp-only`       | C++ mode only                                           |
-| `// test-execution`      | Execute and validate (MUST use `if (x != y) return N;`) |
-| `// test-error`          | Expect compile error (create `.expected.error`)         |
-| `// test-transpile-only` | Skip compilation entirely                               |
-| `// test-no-warnings`    | Compile `-O3 -Wall -Wextra -Werror` (every TU)          |
+| Marker                                                | Behavior                                                                               |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| _(none)_                                              | Run in BOTH C and C++ modes                                                            |
+| `// test-c-only`                                      | C mode only                                                                            |
+| `// test-cpp-only`                                    | C++ mode only                                                                          |
+| `// test-execution`                                   | Execute and validate (MUST use `if (x != y) return N;`)                                |
+| `// test-error`                                       | Expect compile error (create `.expected.error`)                                        |
+| `// test-transpile-only`                              | Skip compilation entirely                                                              |
+| `// test-no-warnings`                                 | Compile `-O3 -Wall -Wextra -Werror` (every TU)                                         |
+| `// test-no-target`                                   | Pass no `--target`; the fixture is about where one comes from                          |
+| `// test-target-xfail: <target>... [c\|cpp] #<issue>` | Those targets' cells must fail until the issue is fixed (every mode, or the one named) |
 
 **Execution tests MUST validate every result** with unique return codes (1, 2, 3...). Return 0 only if ALL pass.
 
@@ -707,6 +709,23 @@ foo.expected.error    # Expected error (if test-error)
 
 ### Gotchas
 
+- **The target matrix (#1668)**: every fixture whose program names no target is
+  transpiled and compiled for the host (and executed there), and also for
+  `cortex-m7` and `atmega328p`, each against its real library: newlib and its C++
+  headers, avr-libc, and the vendored CMSIS-Core in `vendor/cmsis-core/`. A
+  fixture whose program names a target (a pragma, a helper's pragma, an inline
+  description, `platformio.ini`) runs for that target alone. The compilers are
+  GCC's (`TargetToolchain`, from the catalog's `toolchain_triple`/`toolchain_cpu`;
+  other compilers are #1761). Every cell compiles with `-Werror`. Install the
+  cross toolchains with `xargs sudo apt-get install -y < scripts/cross-toolchain-packages.txt`;
+  without them the run stops at its preflight, which also compiles a data-model
+  probe for every catalog row, so a false fact in `targets/targets.cnx` fails
+  before any fixture. **A cross target must produce the host's output byte for
+  byte** (and a `test-error` fixture the host's diagnostics). One that differs
+  legitimately, such as a C header integer's width, is pinned with
+  `#pragma target host`. A cell that fails for a known bug carries
+  `// test-target-xfail` naming its issue, and must keep failing: a marked cell
+  that passes, or a marker naming a cell that never runs, fails the fixture
 - **Cross-file testing**: Always test with symbols in included files, not just same-file
 - **Scope-context matrix (#1219)**: a check that works in one context routinely fails in
   another, and the corpus does not notice — 35 of 37 error codes have **zero** cross-file
