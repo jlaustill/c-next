@@ -1,0 +1,33 @@
+// test-error
+// test-adr: 024
+// #1668: E0869 types its source with the one operand typer, and a composite
+// by CompositeType -- the rule 2.2 sizes its clamp helper by -- and reads
+// every assignment site. Each assertion compiled at the parent.
+#include "c_ints.h"
+
+const u8 W <- 16;
+
+void main() {
+    u8 a8 <- 1;
+    u8 b8 <- 2;
+    u32 w <- 3;
+
+    // NEGATIVE CONTROLS -- widening, a same-width suffix, an in-range bit
+    // range, and the sanctioned reinterpret.
+    u16 ok1 <- 300u16;
+    u32 ok2 <- 5u16;
+    u8 ok3 <- a8 + w[0, 8];
+    u8 ok4 <- w[0, 8];
+    cs.n <- w;
+
+    // ASSERTIONS
+    u8 e1 <- 300u16;
+    i32 e2 <- 5u32;
+    u8 e3 <- -w;
+    u8 e4 <- (u32)a8 + b8;
+    u8 e5 <- a8 + w[0, W];
+    cs.v <- w;
+    for (u32 i <- 0; i < 3; a8 <- w) {
+        i +<- 1;
+    }
+}

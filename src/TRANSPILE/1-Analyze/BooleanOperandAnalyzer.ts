@@ -41,7 +41,7 @@ import type TAssignmentSite from "./types/TAssignmentSite";
 import type TBinaryOperatorLevel from "./types/TBinaryOperatorLevel";
 
 /**
- * Second pass: report essentially Boolean operands of guarded operators.
+ * Reports essentially Boolean operands of guarded operators.
  */
 class BooleanOperandListener extends CNextListener {
   constructor(

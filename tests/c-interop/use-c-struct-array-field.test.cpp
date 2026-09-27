@@ -28,7 +28,8 @@ int main(void) {
     DataBuffer buf = {};
     buf.len = 4U;
     for (uint32_t i = 0U; i < buf.len; i += 1) {
-        buf.data[i] = i * 10U;
+        uint32_t value = i * 10U;
+        buf.data[i] = ((value) & 0xFFU);
     }
     if (buf.data[0U] != 0) return 1U;
     if (buf.data[1U] != 10) return 2U;

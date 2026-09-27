@@ -5,17 +5,15 @@
  * The modulo operator (%) is only valid for integer types in C.
  * C-Next catches this early with a clear error message.
  *
- * Two-pass analysis:
- * 1. Build lexical scope frames (DeclarationScopeCollector)
- * 2. Detect modulo operations using float variables or literals
+ * Each operand is typed by the one operand typer (#1668), which binds names
+ * through Program's lexical frames and types every operand shape -- a field,
+ * an element, a call, a cast, a C or C++ header's value.
  *
- * Issue #1220: pass 1 used to be a private Set of float variable names built
+ * Issue #1220: this used to be a private Set of float variable names built
  * from this file's parse tree alone, so an `f32` arriving through an #include
  * was invisible and `floatValue % 2` compiled to C that gcc then rejects with
- * "invalid operands to binary %". Resolution now goes through
- * ScopeFrameResolver, which searches the lexical frames and falls back to the
- * symbol table -- one cross-file-aware answer shared with the other
- * essential-type analyzers instead of a per-analyzer cache.
+ * "invalid operands to binary %". The typer is the one cross-file-aware answer
+ * the essential-type analyzers share, instead of a per-analyzer cache.
  */
 
 import { ParseTreeWalker } from "antlr4ng";
@@ -27,7 +25,7 @@ import OperandTyper from "../../utils/OperandTyper";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
- * Second pass: Detect modulo operations with float operands
+ * Detects modulo operations with float operands
  */
 class FloatModuloListener extends CNextListener {
   private readonly analyzer: FloatModuloAnalyzer;
