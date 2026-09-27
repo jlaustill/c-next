@@ -1,5 +1,7 @@
 import type IBitmapFieldLayout from "../../../transpiler/types/IBitmapFieldLayout";
 import { readFileSync } from "node:fs";
+import type IOperandType from "../../../transpiler/types/IOperandType";
+import type TSubscriptKind from "../../../transpiler/types/TSubscriptKind";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentClassifier from "../AssignmentClassifier";
@@ -76,6 +78,35 @@ function createMockContext(
   return {
     ...ctx,
     target: overrides.target ?? HandlerTestUtils.targetOf(state, ctx),
+  };
+}
+
+/**
+ * #1668 (C12): the typer's step for a target's final subscript, which is what
+ * the classifier reads for a subscript's kind -- the case's INPUT, the way a
+ * declared type is, not a re-derivation of it.
+ */
+function typedLast(
+  ctx: IAssignmentContext,
+  subscript: TSubscriptKind,
+  typeName = "u8",
+): IAssignmentContext {
+  const before: IOperandType = {
+    typeName,
+    dimensions: [],
+    category: typeName.startsWith("i") ? "signed" : "unsigned",
+    bitWidth: Number.parseInt(typeName.slice(1), 10),
+    stringCapacity: null,
+    enumTypeName: null,
+    bitmapTypeName: null,
+    overflow: null,
+    hasSideEffect: false,
+    form: { kind: "declared" },
+    binding: null,
+  };
+  return {
+    ...ctx,
+    target: { ...ctx.target, last: { before, subscript, after: null } },
   };
 }
 
@@ -286,12 +317,15 @@ describe("AssignmentClassifier - Integer Bit Access", () => {
   it("classifies single bit access on integer", () => {
     declare("flags", createTypeInfo({ baseType: "u8" }));
 
-    const ctx = createMockContext(state, {
-      identifiers: ["flags"],
-      subscriptCount: 1, // Mock subscript
-      hasArrayAccess: true,
-      isSimpleIdentifier: false,
-    });
+    const ctx = typedLast(
+      createMockContext(state, {
+        identifiers: ["flags"],
+        subscriptCount: 1, // Mock subscript
+        hasArrayAccess: true,
+        isSimpleIdentifier: false,
+      }),
+      "bit_single",
+    );
 
     expect(AssignmentClassifier.classify(ctx, state)).toBe(
       AssignmentKind.INTEGER_BIT,
@@ -301,13 +335,17 @@ describe("AssignmentClassifier - Integer Bit Access", () => {
   it("classifies bit range access on integer", () => {
     declare("flags", createTypeInfo({ baseType: "u32" }));
 
-    const ctx = createMockContext(state, {
-      identifiers: ["flags"],
-      subscriptCount: 2,
-      hasArrayAccess: true,
-      isSimpleIdentifier: false,
-      lastSubscriptExprCount: 2, // bit range has 2 expressions [start, width]
-    });
+    const ctx = typedLast(
+      createMockContext(state, {
+        identifiers: ["flags"],
+        subscriptCount: 2,
+        hasArrayAccess: true,
+        isSimpleIdentifier: false,
+        lastSubscriptExprCount: 2, // bit range has 2 expressions [start, width]
+      }),
+      "bit_range",
+      "u32",
+    );
 
     expect(AssignmentClassifier.classify(ctx, state)).toBe(
       AssignmentKind.INTEGER_BIT_RANGE,
@@ -626,15 +664,18 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       createTypeInfo({ baseType: "u8", isArray: false }),
     );
 
-    const ctx = createMockContext(state, {
-      identifiers: ["flags"],
-      subscriptCount: 1,
-      hasThis: true,
-      hasArrayAccess: true,
-      postfixOpsCount: 1,
-      isSimpleIdentifier: false,
-      lastSubscriptExprCount: 1, // single bit
-    });
+    const ctx = typedLast(
+      createMockContext(state, {
+        identifiers: ["flags"],
+        subscriptCount: 1,
+        hasThis: true,
+        hasArrayAccess: true,
+        postfixOpsCount: 1,
+        isSimpleIdentifier: false,
+        lastSubscriptExprCount: 1, // single bit
+      }),
+      "bit_single",
+    );
 
     expect(AssignmentClassifier.classify(ctx, state)).toBe(
       AssignmentKind.INTEGER_BIT,
@@ -650,15 +691,19 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       createTypeInfo({ baseType: "u16", isArray: false }),
     );
 
-    const ctx = createMockContext(state, {
-      identifiers: ["value"],
-      subscriptCount: 2,
-      hasThis: true,
-      hasArrayAccess: true,
-      postfixOpsCount: 1,
-      isSimpleIdentifier: false,
-      lastSubscriptExprCount: 2, // bit range
-    });
+    const ctx = typedLast(
+      createMockContext(state, {
+        identifiers: ["value"],
+        subscriptCount: 2,
+        hasThis: true,
+        hasArrayAccess: true,
+        postfixOpsCount: 1,
+        isSimpleIdentifier: false,
+        lastSubscriptExprCount: 2, // bit range
+      }),
+      "bit_range",
+      "u16",
+    );
 
     expect(AssignmentClassifier.classify(ctx, state)).toBe(
       AssignmentKind.INTEGER_BIT_RANGE,
@@ -1042,56 +1087,75 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
     },
   );
 
+  // #1668 (C12): each row's subscript kind is the typer's answer, the
+  // classifier's input; the counts say whether an element was indexed first
+  const u8Array = createTypeInfo({
+    baseType: "u8",
+    bitWidth: 8,
+    isArray: true,
+    arrayDimensions: [16],
+  });
   const scopeVariableCases: ReadonlyArray<
-    readonly [string, TTypeInfo, number, number, AssignmentKind]
+    readonly [string, TTypeInfo, number, number, TSubscriptKind, AssignmentKind]
   > = [
     [
       "bit range on a scalar",
       createTypeInfo({ baseType: "u8", bitWidth: 8 }),
-      1,
       2,
+      2,
+      "bit_range",
       AssignmentKind.INTEGER_BIT_RANGE,
     ],
     [
       "bit on an array element",
-      createTypeInfo({
-        baseType: "u8",
-        bitWidth: 8,
-        isArray: true,
-        arrayDimensions: [16],
-      }),
+      u8Array,
       2,
       1,
+      "bit_single",
       AssignmentKind.ARRAY_ELEMENT_BIT,
     ],
     [
-      "slice on an array",
-      createTypeInfo({
-        baseType: "u8",
-        bitWidth: 8,
-        isArray: true,
-        arrayDimensions: [16],
-      }),
-      1,
+      "bit range on an array element (it was read as a slice)",
+      u8Array,
+      3,
       2,
+      "bit_range",
+      AssignmentKind.ARRAY_ELEMENT_BIT_RANGE,
+    ],
+    [
+      "slice on an array",
+      u8Array,
+      2,
+      2,
+      "array_slice",
       AssignmentKind.ARRAY_SLICE,
     ],
   ];
 
   it.each(scopeVariableCases)(
     "routes Scope.member[...] to the shared subscript decision: %s",
-    (_label, typeInfo, subscriptCount, lastSubscriptExprCount, expected) => {
+    (
+      _label,
+      typeInfo,
+      subscriptCount,
+      lastSubscriptExprCount,
+      kind,
+      expected,
+    ) => {
       setupSymbols({ knownScopes: new Set(["Other"]) });
       declare("Other__member", typeInfo);
 
-      const ctx = createMockContext(state, {
-        identifiers: ["Other", "member"],
-        subscriptCount,
-        lastSubscriptExprCount,
-        hasMemberAccess: true,
-        hasArrayAccess: true,
-        isSimpleIdentifier: false,
-      });
+      const ctx = typedLast(
+        createMockContext(state, {
+          identifiers: ["Other", "member"],
+          subscriptCount,
+          lastSubscriptExprCount,
+          hasMemberAccess: true,
+          hasArrayAccess: true,
+          isSimpleIdentifier: false,
+        }),
+        kind,
+      );
 
       expect(AssignmentClassifier.classify(ctx, state)).toBe(expected);
     },

@@ -1,5 +1,6 @@
 import type TTypeInfo from "../../../transpiler/types/TTypeInfo";
 import type TValueBinding from "../../../transpiler/types/TValueBinding";
+import type IChainStep from "../../../transpiler/types/IChainStep";
 
 /**
  * #1668 (C7): what an assignment target writes, bound once where the target
@@ -13,6 +14,12 @@ interface IChainBase {
   readonly rootTypeInfo: TTypeInfo | undefined;
   /** The written variable's declared type: the root, or `Scope.member`'s */
   readonly typeInfo: TTypeInfo | undefined;
+  /**
+   * #1668 (C12): the chain's final step as the one operand typer typed it --
+   * what the last op reads, and for a subscript whether it is an element, a
+   * slice, a bit or a bit range. Undefined when nothing typed the chain.
+   */
+  readonly last: IChainStep | undefined;
 }
 
 export default IChainBase;

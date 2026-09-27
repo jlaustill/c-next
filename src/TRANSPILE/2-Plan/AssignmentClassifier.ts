@@ -12,6 +12,7 @@ import IAssignmentContext from "./types/IAssignmentContext";
 import SubscriptClassifier from "../../utils/SubscriptClassifier";
 import SubscriptDepthValidator from "./SubscriptDepthValidator";
 import TTypeInfo from "../../transpiler/types/TTypeInfo";
+import type IOperandType from "../../transpiler/types/IOperandType";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
@@ -767,30 +768,41 @@ class AssignmentClassifier {
       displayName,
     );
 
-    // Use shared classifier for array vs bit access decision
-    // Use lastSubscriptExprCount to distinguish [0][0] (two ops, each 1 expr)
-    // from [0, 5] (one op, 2 exprs)
-    const subscriptKind = SubscriptClassifier.classify({
-      typeInfo,
-      subscriptCount: ctx.lastSubscriptExprCount,
-      isRegisterAccess: false,
-    });
+    // #1668 (C12): what the final subscript reads, and so whether it is an
+    // element, a slice, a bit or a bit range, is the one operand typer's
+    // answer -- the one 2.1 already checked. Classifying from the ROOT's type
+    // called `row[2][0, 4]` a slice of `row`, and a valid program failed with
+    // an internal error. A target nothing typed takes the classifier's own
+    // default for an unknown type, as the read path does.
+    const last = ctx.target.last;
+    const subscriptKind =
+      last?.subscript ??
+      SubscriptClassifier.classify({
+        typeInfo: null,
+        subscriptCount: ctx.lastSubscriptExprCount,
+        isRegisterAccess: false,
+      });
+    // The subscripts are flattened, so anything before the final op's own
+    // expressions indexed an array element first
+    const indexesAnElement = ctx.subscriptCount > ctx.lastSubscriptExprCount;
 
     switch (subscriptKind) {
+      case "bit_single":
+        if (!indexesAnElement) return AssignmentKind.INTEGER_BIT;
+        // e.g. matrix[i][j][bit] on an integer array's element
+        return AssignmentClassifier.isIntegerOperand(last?.before ?? null)
+          ? AssignmentKind.ARRAY_ELEMENT_BIT
+          : AssignmentKind.MULTI_DIM_ARRAY_ELEMENT;
+
+      case "bit_range":
+        return indexesAnElement
+          ? AssignmentKind.ARRAY_ELEMENT_BIT_RANGE
+          : AssignmentKind.INTEGER_BIT_RANGE;
+
       case "array_element":
         // Multi-dimensional array: matrix[i][j] has multiple subscript operations
         // but each with 1 expression (vs slice [0, 5] with 2 expressions in 1 op)
         if (ctx.subscriptCount > 1) {
-          // Check if last subscript is bit access on an integer array element
-          // e.g., matrix[i][j][bit] where matrix is 2D integer array
-          const numDims = typeInfo?.arrayDimensions?.length ?? 0;
-          if (
-            ctx.subscriptCount === numDims + 1 &&
-            typeInfo &&
-            TypeCheckUtils.isInteger(typeInfo.baseType)
-          ) {
-            return AssignmentKind.ARRAY_ELEMENT_BIT;
-          }
           return AssignmentKind.MULTI_DIM_ARRAY_ELEMENT;
         }
         // String array element (special case for 2D string arrays)
@@ -805,13 +817,12 @@ class AssignmentClassifier {
 
       case "array_slice":
         return AssignmentKind.ARRAY_SLICE;
-
-      case "bit_single":
-        return AssignmentKind.INTEGER_BIT;
-
-      case "bit_range":
-        return AssignmentKind.INTEGER_BIT_RANGE;
     }
+  }
+
+  /** An integer operand, by its category (a C header's `uint8_t` is one) */
+  private static isIntegerOperand(t: IOperandType | null): boolean {
+    return t?.category === "signed" || t?.category === "unsigned";
   }
 
   /**

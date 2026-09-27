@@ -6,6 +6,7 @@
  * - INTEGER_BIT_RANGE: flags[0, 3] <- 5
  * - STRUCT_MEMBER_BIT: item.byte[7] <- true
  * - ARRAY_ELEMENT_BIT: matrix[i][j][FIELD_BIT] <- false
+ * - ARRAY_ELEMENT_BIT_RANGE: row[i][0, 4] <- 6
  */
 import invariant from "../../../../../utils/invariant";
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
@@ -157,6 +158,29 @@ function handleStructChainBitRange(ctx: IAssignmentContext): string {
 }
 
 /**
+ * Handle a bit range on an array element: row[i][0, 4] <- 6,
+ * matrix[i][j][4, 4] <- 5 (#1668, C12).
+ *
+ * The subscripts are flattened, so the element's indices come first and the
+ * range's start and width are the last two. The element's type is what the
+ * typer said the final subscript reads, which picks the mask's width.
+ */
+function handleArrayElementBitRange(ctx: IAssignmentContext): string {
+  const elementIndices = ctx.subscriptCount - 2;
+  let element = ctx.resolvedBaseIdentifier;
+  for (let index = 0; index < elementIndices; index++) {
+    element += `[${ctx.renderSubscript(index)}]`;
+  }
+  return BitUtils.multiBitWrite(
+    element,
+    ctx.renderSubscript(elementIndices),
+    ctx.renderSubscript(elementIndices + 1),
+    ctx.generatedValue,
+    ctx.target.last?.before?.typeName ?? undefined,
+  );
+}
+
+/**
  * All bit access handlers for registration.
  *
  * Issue #1115: `this.flags[3]` no longer needs its own kinds. It classifies as
@@ -168,6 +192,7 @@ const bitAccessHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [
   [AssignmentKind.INTEGER_BIT, handleIntegerBit],
   [AssignmentKind.INTEGER_BIT_RANGE, handleIntegerBitRange],
   [AssignmentKind.ARRAY_ELEMENT_BIT, handleArrayElementBit],
+  [AssignmentKind.ARRAY_ELEMENT_BIT_RANGE, handleArrayElementBitRange],
   [AssignmentKind.STRUCT_CHAIN_BIT_RANGE, handleStructChainBitRange],
 ];
 

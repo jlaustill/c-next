@@ -22,6 +22,7 @@
  * through `this.host`, all of them already public.
  */
 import type ISubstringOps from "./3-Render/codegen/types/ISubstringOps";
+import type IChainStep from "../transpiler/types/IChainStep";
 import type IStringConcatOps from "./3-Render/codegen/types/IStringConcatOps";
 import { basename } from "node:path";
 import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
@@ -602,7 +603,12 @@ class CodeGenWalker {
       // #1668 (C7): the chain's bound base, from the same typed chain
       base:
         chain === null || typing === null
-          ? { root: null, rootTypeInfo: undefined, typeInfo: undefined }
+          ? {
+              root: null,
+              rootTypeInfo: undefined,
+              typeInfo: undefined,
+              last: undefined,
+            }
           : DeclaredTypeInfo.ofChain(
               chain,
               typing.symbols,
@@ -4651,14 +4657,13 @@ class CodeGenWalker {
    */
   analyzeMemberChainForBitAccess(
     targetCtx: Parser.AssignmentTargetContext,
+    lastStep: IChainStep | undefined,
   ): IBitAccessAnalysis {
-    // #1668 (C12): what the last subscript indexes is the typer's answer
-    const typing = this.host.state.typingContext();
+    // #1668 (C12): what the last subscript indexes is the typer's answer,
+    // typed once with the target (`IChainBase.last`)
     return MemberChainAnalyzer.analyze(
       targetCtx.IDENTIFIER()?.getText() ?? null,
-      typing === null
-        ? undefined
-        : OperandTyper.chainOf(targetCtx, typing).steps.at(-1),
+      lastStep,
       targetCtx.postfixTargetOp().map((op) => this.planTargetOp(op)),
     );
   }
@@ -4693,7 +4698,12 @@ class CodeGenWalker {
   ): IChainBase {
     const typing = this.host.state.typingContext();
     if (typing === null) {
-      return { root: null, rootTypeInfo: undefined, typeInfo: undefined };
+      return {
+        root: null,
+        rootTypeInfo: undefined,
+        typeInfo: undefined,
+        last: undefined,
+      };
     }
     return DeclaredTypeInfo.ofChain(
       OperandTyper.chainOf(target, typing),
@@ -4772,8 +4782,8 @@ class CodeGenWalker {
       generatedValue: () => value,
       generateAssignmentTarget: (target) =>
         this.generateAssignmentTarget(target),
-      analyzeMemberChainForBitAccess: (target) =>
-        this.analyzeMemberChainForBitAccess(target),
+      analyzeMemberChainForBitAccess: (target, lastStep) =>
+        this.analyzeMemberChainForBitAccess(target, lastStep),
       generateExpression: (expr) => this.generateExpression(expr),
       tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
       expressionType: (expr) => this.directTypeOf(expr),

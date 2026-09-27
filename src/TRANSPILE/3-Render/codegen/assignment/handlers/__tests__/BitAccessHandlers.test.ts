@@ -86,13 +86,15 @@ describe("BitAccessHandlers", () => {
       expect(kinds).toContain(AssignmentKind.INTEGER_BIT);
       expect(kinds).toContain(AssignmentKind.INTEGER_BIT_RANGE);
       expect(kinds).toContain(AssignmentKind.ARRAY_ELEMENT_BIT);
+      expect(kinds).toContain(AssignmentKind.ARRAY_ELEMENT_BIT_RANGE);
       expect(kinds).toContain(AssignmentKind.STRUCT_CHAIN_BIT_RANGE);
     });
 
     it("exports exactly 5 handlers", () => {
       // Issue #1115: THIS_BIT / THIS_BIT_RANGE retired -- `this.` bit access now
       // classifies as INTEGER_BIT / INTEGER_BIT_RANGE, which these handlers serve.
-      expect(bitAccessHandlers).toHaveLength(4);
+      // #1668 (C12): ARRAY_ELEMENT_BIT_RANGE is the fifth.
+      expect(bitAccessHandlers).toHaveLength(5);
     });
   });
 
@@ -303,6 +305,39 @@ describe("BitAccessHandlers", () => {
         "true",
       );
       expect(result).toBe("float_range_write_result");
+    });
+  });
+
+  describe("handleArrayElementBitRange (ARRAY_ELEMENT_BIT_RANGE)", () => {
+    // #1668 (C12): the subscripts are flattened -- the element's indices,
+    // then the range's start and width
+    const getHandler = () =>
+      bitAccessHandlers.find(
+        ([kind]) => kind === AssignmentKind.ARRAY_ELEMENT_BIT_RANGE,
+      )?.[1];
+
+    it.each([
+      ["a 1-D array's element", ["i"], "row[i]"],
+      ["a 2-D array's element", ["i", "j"], "row[i][j]"],
+    ])("writes the range into %s", (_label, indices, element) => {
+      HandlerTestUtils.setupMockGenerator(state, {
+        generateExpression: vi
+          .fn()
+          .mockImplementation((e: { mockValue: string }) => e.mockValue),
+      });
+      const ctx = createMockContext({
+        identifiers: ["row"],
+        generatedValue: "6",
+        ...HandlerTestUtils.subscriptsOf(
+          [...indices, "0", "4"].map((mockValue) => ({ mockValue }) as never),
+        ),
+      });
+
+      const result = getHandler()!(ctx);
+
+      expect(result).toContain(`${element} = `);
+      expect(result).toContain(`(${element} & ~(`);
+      expect(result).toContain("<< 0");
     });
   });
 

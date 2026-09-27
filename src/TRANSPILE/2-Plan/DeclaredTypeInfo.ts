@@ -90,14 +90,16 @@ class DeclaredTypeInfo {
     symbolTable: SymbolTable,
   ): IChainBase {
     const rootTypeInfo = DeclaredTypeInfo.of(chain.root, symbols, symbolTable);
+    const last = chain.steps.at(-1);
     if (chain.root?.kind !== "scope") {
-      return { root: chain.root, rootTypeInfo, typeInfo: rootTypeInfo };
+      return { root: chain.root, rootTypeInfo, typeInfo: rootTypeInfo, last };
     }
     const member = chain.steps[0]?.after?.binding ?? null;
     return {
       root: chain.root,
       rootTypeInfo,
       typeInfo: DeclaredTypeInfo.of(member, symbols, symbolTable),
+      last,
     };
   }
 

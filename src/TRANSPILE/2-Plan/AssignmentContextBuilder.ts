@@ -20,6 +20,7 @@
  * out of the population for real rather than by spelling.
  */
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import type IChainStep from "../../transpiler/types/IChainStep";
 import IAssignmentContext from "./types/IAssignmentContext";
 import IBitAccessAnalysis from "../../transpiler/types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../transpiler/types/TPlannedTargetOp";
@@ -55,6 +56,7 @@ interface IContextBuilderDeps {
   /** ADR-034: analyze the target's member chain for bit access */
   analyzeMemberChainForBitAccess(
     ctx: Parser.AssignmentTargetContext,
+    lastStep: IChainStep | undefined,
   ): IBitAccessAnalysis;
 
   /** Generate a subscript expression */
@@ -251,7 +253,7 @@ function buildAssignmentContext(
     state: deps.state,
     renderTarget: () => deps.generateAssignmentTarget(targetCtx),
     analyzeTargetForBitAccess: () =>
-      deps.analyzeMemberChainForBitAccess(targetCtx),
+      deps.analyzeMemberChainForBitAccess(targetCtx, deps.target.last),
     targetLine: targetCtx.start?.line,
     hasValue: valueCtx !== null,
     valueExpressionType: () => deps.expressionType(valueCtx),

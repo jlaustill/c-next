@@ -348,6 +348,7 @@ function runPostfix(
         root: null,
         rootTypeInfo: declared,
         typeInfo: declared,
+        last: undefined,
       },
       renderPrimary: () =>
         orchestrator.generatePrimaryExpr({
