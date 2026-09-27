@@ -29,7 +29,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 volatile uint32_t x = 0U;
 
-void f(void) {
+uint8_t f(void) {
     uint8_t f__x = 1U;
     {
         uint32_t __primask = __get_PRIMASK();
@@ -37,6 +37,5 @@ void f(void) {
         x = cnx_clamp_add_u32(x, 1U);
         __set_PRIMASK(__primask);
     }
-    uint8_t local = f__x;
-    local = local;
+    return f__x;
 }

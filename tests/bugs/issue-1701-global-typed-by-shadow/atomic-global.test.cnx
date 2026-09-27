@@ -5,9 +5,8 @@
 
 atomic u32 x <- 0;
 
-void f() {
+u8 f() {
     u8 x <- 1;
     global.x +<- 1;
-    u8 local <- x;
-    local <- local;
+    return x;
 }

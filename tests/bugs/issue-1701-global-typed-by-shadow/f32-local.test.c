@@ -25,15 +25,15 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // was emitted `x += 1000;` and wrapped to 999.
 uint32_t x = 4294967295U;
 
-void f(void) {
+float f(void) {
     float f__x = 1.0;
     x = cnx_clamp_add_u32(x, 1000U);
-    float local = f__x;
-    local = local;
+    return f__x;
 }
 
 int main(void) {
-    f();
+    float local = f();
+    if (local != 1.0) return 2U;
     if (x != 4294967295) return 1U;
     return 0U;
 }

@@ -12,15 +12,15 @@
 // emitted `x = (uint8_t)(x + 1.5);`.
 float x = 0.0;
 
-void f(void) {
+uint8_t f(void) {
     uint8_t f__x = 1U;
     x += 1.5;
-    uint8_t local = f__x;
-    local = local;
+    return f__x;
 }
 
 int main(void) {
-    f();
+    uint8_t local = f();
+    if (local != 1) return 2U;
     if (x != 1.5) return 1U;
     return 0U;
 }

@@ -25,15 +25,15 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // shadows. This was right before the fix.
 uint32_t x = 0U;
 
-void f(void) {
+uint8_t f(void) {
     uint8_t y = 1U;
     x = cnx_clamp_add_u32(x, 1000U);
-    uint8_t local = y;
-    local = local;
+    return y;
 }
 
 int main(void) {
-    f();
+    uint8_t local = f();
+    if (local != 1) return 2U;
     if (x != 1000) return 1U;
     return 0U;
 }

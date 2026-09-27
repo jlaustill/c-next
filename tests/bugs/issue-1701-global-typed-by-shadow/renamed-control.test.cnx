@@ -3,15 +3,15 @@
 // shadows. This was right before the fix.
 u32 x <- 0;
 
-void f() {
+u8 f() {
     u8 y <- 1;
     global.x +<- 1000;
-    u8 local <- y;
-    local <- local;
+    return y;
 }
 
 u32 main() {
-    f();
+    u8 local <- f();
+    if (local != 1) return 2;
     if (global.x != 1000) return 1;
     return 0;
 }

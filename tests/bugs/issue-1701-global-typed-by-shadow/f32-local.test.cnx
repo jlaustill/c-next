@@ -3,15 +3,15 @@
 // was emitted `x += 1000;` and wrapped to 999.
 u32 x <- 4294967295;
 
-void f() {
+f32 f() {
     f32 x <- 1.0;
     global.x +<- 1000;
-    f32 local <- x;
-    local <- local;
+    return x;
 }
 
 u32 main() {
-    f();
+    f32 local <- f();
+    if (local != 1.0) return 2;
     if (global.x != 4294967295) return 1;
     return 0;
 }

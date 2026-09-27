@@ -16,7 +16,7 @@ extern "C" {
 extern uint32_t x;
 
 /* Function prototypes */
-void f(void);
+uint8_t f(void);
 
 #ifdef __cplusplus
 }

@@ -12,15 +12,15 @@
 // `u8` local. It was clamped as a u8 and stayed at 4294967295.
 uint32_t x = 4294967295U;
 
-void f(void) {
+uint8_t f(void) {
     uint8_t f__x = 1U;
     x += 1U;
-    uint8_t local = f__x;
-    local = local;
+    return f__x;
 }
 
 int main(void) {
-    f();
+    uint8_t local = f();
+    if (local != 1) return 2U;
     if (x != 0) return 1U;
     return 0U;
 }

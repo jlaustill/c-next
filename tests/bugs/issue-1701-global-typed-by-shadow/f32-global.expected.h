@@ -6,6 +6,8 @@
  * Header file for cross-language interoperability
  */
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -14,7 +16,7 @@ extern "C" {
 extern float x;
 
 /* Function prototypes */
-void f(void);
+uint8_t f(void);
 
 #ifdef __cplusplus
 }
