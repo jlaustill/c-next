@@ -28,7 +28,8 @@ import type IChainStep from "../../../../transpiler/types/IChainStep";
 
 class MemberChainAnalyzer {
   /**
-   * Whether the chain's final subscript writes one bit of an integer.
+   * Whether the chain's final subscript writes a bit, or a bit range, of an
+   * integer.
    *
    * @param lastStep - The typer's step for the final op, or undefined
    * @param ops - The chain's ops
@@ -37,12 +38,14 @@ class MemberChainAnalyzer {
     lastStep: IChainStep | undefined,
     ops: readonly TPlannedTargetOp[],
   ): IBitAccessAnalysis {
-    const lastOp = ops.at(-1);
-    if (lastOp?.kind !== "subscript" || lastOp.indexCount !== 1) {
+    if (ops.at(-1)?.kind !== "subscript") {
       return { isBitAccess: false };
     }
     const indexed = lastStep?.before ?? null;
-    if (lastStep?.subscript !== "bit_single" || indexed === null) {
+    const isBits =
+      lastStep?.subscript === "bit_single" ||
+      lastStep?.subscript === "bit_range";
+    if (!isBits || indexed === null) {
       return { isBitAccess: false };
     }
     // A bit of an integer whose width is known

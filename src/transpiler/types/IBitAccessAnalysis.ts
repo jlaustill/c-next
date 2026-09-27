@@ -1,5 +1,5 @@
 /**
- * Whether an assignment target ends in a bit access of an integer.
+ * Whether an assignment target ends in a bit, or a bit range, of an integer.
  *
  * #1445: declared THREE times before this file existed -- in
  * `MemberChainAnalyzer` (which produces it), in `ICodeGenApi` (which dispatches

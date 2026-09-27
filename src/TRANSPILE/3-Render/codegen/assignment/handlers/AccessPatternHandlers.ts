@@ -27,6 +27,12 @@ import TAssignmentHandler from "./TAssignmentHandler";
  * shared by being one function rather than by two that happen to agree.
  */
 function handleQualifiedAccess(ctx: IAssignmentContext): string {
+  // #1668 review: a qualified chain can end in bits too, `global.gp.bits[3]`;
+  // this emitted `gp.bits[3] = true;`, which C rejects. The same decision and
+  // the same write as any member chain.
+  if (ctx.analyzeTargetForBitAccess().isBitAccess) {
+    return AssignmentHandlerUtils.writeBits(ctx);
+  }
   const target = ctx.renderTarget();
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
 }

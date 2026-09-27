@@ -93,7 +93,6 @@ describe("MemberChainAnalyzer", () => {
     it.each([
       ["no postfix operations", "value <- 1;"],
       ["a member as the last op", "point.flags <- 1;"],
-      ["a bit range, which is another handler's", "point.flags[0, 4] <- 1;"],
       ["an element of an array field", "grid.items[0] <- 1;"],
       ["a non-integer member", "point.x[0] <- true;"],
       ["a 2D array element", "matrix[0][1] <- 1;"],
@@ -108,6 +107,9 @@ describe("MemberChainAnalyzer", () => {
       // The write path counted an array field's subscripts itself and got
       // this one wrong: `s.arr[1][3] = true;`, which C rejects
       ["an array field's element (#1668, C12)", "point.arr[1][3] <- true;"],
+      // #1668 review: a range is bits too, one write for both, so a
+      // `global.` chain ending in one is written as bits
+      ["a bit range", "point.flags[0, 4] <- 1;"],
     ])("is a bit access: %s", (_why, statement) => {
       expect(analyze(statement).result).toEqual({ isBitAccess: true });
     });

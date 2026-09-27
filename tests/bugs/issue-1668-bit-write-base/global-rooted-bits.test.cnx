@@ -1,0 +1,31 @@
+// test-execution
+// #1668 review: a chain written `global.x...` that ends in bits writes the
+// bits. The qualified-access handler wrote the chain as a plain assignment:
+// `global.gp.bits[3] <- true` emitted `gp.bits[3] = true;` and
+// `global.gp.bits[4, 2] <- 3` emitted `gp.bits[4, 2] = 3U;`, both rejected by
+// the C compiler, at exit 0.
+struct P {
+    u8 bits;
+}
+
+P gp;
+
+scope S {
+    public P gp;
+
+    public void f() {
+        global.gp.bits[3] <- true;
+        global.gp.bits[4, 2] <- 3;
+        // The scope's own, through `this.`: #1660's shape, which wrote the
+        // whole struct before this branch
+        this.gp.bits[1] <- true;
+    }
+}
+
+u32 main() {
+    S.f();
+    if (gp.bits != 0x38) return 1;
+    u8 own <- S.gp.bits;
+    if (own != 2) return 2;
+    return 0;
+}
