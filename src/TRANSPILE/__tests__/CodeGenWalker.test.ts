@@ -17088,8 +17088,11 @@ describe("CodeGenWalker", () => {
         sourcePath: "test.cnx",
       });
 
-      // Const values are inlined, 5 gets U suffix per MISRA Rule 7.2
-      expect(code).toContain("uint8_t result = 10 + 5U;");
+      // Const values are inlined, 5 gets U suffix per MISRA Rule 7.2. The
+      // sum of a u8 const and a literal saturates (ADR-044): the transpiler
+      // always emitted this helper; the harness said `10 + 5U` only while
+      // 2.2's own lookup could not find the scope const (#1668, C6b).
+      expect(code).toContain("uint8_t result = cnx_clamp_add_u8(10, 5U);");
       expect(code).not.toContain("Bar_OFFSET");
     });
   });

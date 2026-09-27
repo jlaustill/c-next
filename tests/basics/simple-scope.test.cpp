@@ -15,6 +15,13 @@
    the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
    uint8_t parameter would return 0 -- the opposite of saturation. */
 
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
     return (uint32_t)(a + (uint32_t)b);
@@ -56,7 +63,7 @@ int32_t Temperature__getCelsius(void) {
 }
 
 int32_t Temperature__getFahrenheit(void) {
-    return (Temperature__celsius * 9 / 5) + 32;
+    return cnx_clamp_add_i32((Temperature__celsius * 9 / 5), 32);
 }
 
 int main(void) {

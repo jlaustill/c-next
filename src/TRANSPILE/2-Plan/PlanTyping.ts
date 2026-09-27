@@ -5,6 +5,7 @@
  * here decides what one site does with them, and nowhere else does.
  */
 import type IOperandType from "../../transpiler/types/IOperandType";
+import type TOverflowBehavior from "../../transpiler/types/TOverflowBehavior";
 
 class PlanTyping {
   /**
@@ -16,6 +17,48 @@ class PlanTyping {
    */
   static castSourceType(t: IOperandType | null): string | null {
     return t?.typeName ?? null;
+  }
+
+  /**
+   * ADR-044: whether a composite's arithmetic saturates or wraps, from its
+   * value leaves. Safety wins a mix: it wraps only when every counted integer
+   * leaf was declared `wrap`, so one saturating operand makes the result
+   * saturate (#231's bounds guards). Null when no leaf is counted, and the
+   * expression is left alone.
+   *
+   * A leaf counts only when it is a whole named variable -- an element, a
+   * field or a call result has no declared behavior of its own (#1411, #1703
+   * stay out). Two arms carry today's answers until their issues remove them:
+   * a PARAMETER counts with no behavior of its own, i.e. as `wrap` (#1681),
+   * and a `for` variable is not counted at all (#1667).
+   */
+  static overflowOf(
+    leaves: ReadonlyArray<IOperandType | null>,
+  ): TOverflowBehavior | null {
+    let counted = false;
+    for (const leaf of leaves) {
+      const behavior = PlanTyping.countedBehavior(leaf);
+      if (behavior === undefined) continue;
+      counted = true;
+      if (behavior === "clamp") return "clamp";
+    }
+    return counted ? "wrap" : null;
+  }
+
+  /** A leaf's behavior when it counts, null for a counted leaf with none */
+  private static countedBehavior(
+    leaf: IOperandType | null,
+  ): TOverflowBehavior | null | undefined {
+    if (leaf === null || leaf.binding === null) return undefined;
+    if (leaf.category !== "signed" && leaf.category !== "unsigned") {
+      return undefined;
+    }
+    if (leaf.binding.kind === "local") {
+      const kind = leaf.binding.declaration.kind;
+      if (kind === "for") return undefined; // #1667
+      if (kind === "parameter") return null; // #1681
+    }
+    return leaf.overflow;
   }
 }
 

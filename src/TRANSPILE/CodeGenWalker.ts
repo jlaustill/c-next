@@ -41,7 +41,9 @@ import DeclarationPlan from "./2-Plan/DeclarationPlan";
 import CastRequirement from "./2-Plan/CastRequirement";
 import OperandTyper from "../utils/OperandTyper";
 import PlanTyping from "./2-Plan/PlanTyping";
+import CompositeType from "../utils/CompositeType";
 import type IOperandType from "../transpiler/types/IOperandType";
+import type TOverflowBehavior from "../transpiler/types/TOverflowBehavior";
 import type TDeclarationKind from "../transpiler/types/TDeclarationKind";
 import type IEmissionPlan from "../transpiler/types/IEmissionPlan";
 import type IEmissionFacts from "../transpiler/types/IEmissionFacts";
@@ -837,19 +839,35 @@ class CodeGenWalker {
       // Asked AFTER the operands render, which is where they are asked today:
       // both read the type registry, and asking earlier asks about a state the
       // operands have not reached.
-      clampType: () =>
-        ExpressionTypeResolver.getCompositeIntegerType(ctx, this.host.state),
-      clampBehavior: () =>
-        ExpressionTypeResolver.getCompositeOverflowBehavior(
-          ctx,
-          this.host.state,
-        ),
+      clampType: () => this.compositeClampType(ctx),
+      clampBehavior: () => this.compositeClampBehavior(ctx),
       adrLine: ctx.start?.line,
       renderOperands: children.map(
         (child) => () =>
           this.renderBinaryLevel(this.planMultiplicativeLevel(child)),
       ),
     };
+  }
+
+  /**
+   * #1668 (C6b): a composite's integer type, by the one rule 2.1's E0869
+   * uses (`CompositeType.integerOf` over the typer's value leaves), so the
+   * clamp helper's width and the conversion check cannot count a different
+   * set of operands
+   */
+  private compositeClampType(ctx: ParserRuleContext): string | null {
+    const typing = this.host.state.typingContext();
+    if (typing === null) return null;
+    return CompositeType.integerOf(OperandTyper.valueLeaves(ctx, typing));
+  }
+
+  /** #1668 (C6b): ADR-044's behavior for a composite, PlanTyping's row */
+  private compositeClampBehavior(
+    ctx: ParserRuleContext,
+  ): TOverflowBehavior | null {
+    const typing = this.host.state.typingContext();
+    if (typing === null) return null;
+    return PlanTyping.overflowOf(OperandTyper.valueLeaves(ctx, typing));
   }
 
   private planMultiplicativeLevel(
@@ -866,13 +884,8 @@ class CodeGenWalker {
       kind: "arithmetic",
       defaultOperator: "*",
       operators: this.getOperatorsFromChildren(ctx),
-      clampType: () =>
-        ExpressionTypeResolver.getCompositeIntegerType(ctx, this.host.state),
-      clampBehavior: () =>
-        ExpressionTypeResolver.getCompositeOverflowBehavior(
-          ctx,
-          this.host.state,
-        ),
+      clampType: () => this.compositeClampType(ctx),
+      clampBehavior: () => this.compositeClampBehavior(ctx),
       adrLine: ctx.start?.line,
       // `generateUnaryExpr` applies its own effects, so a leaf contributes
       // none here -- matching the empty array the multiplicative tail passed.

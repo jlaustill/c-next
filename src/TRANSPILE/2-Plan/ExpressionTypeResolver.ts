@@ -11,7 +11,6 @@ import INTEGER_TYPES from "../../transpiler/types/INTEGER_TYPES";
 import FLOAT_TYPES from "../../transpiler/types/FLOAT_TYPES";
 import UNSIGNED_TYPES from "../../transpiler/types/UNSIGNED_TYPES";
 import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
-import type TOverflowBehavior from "../../transpiler/types/TOverflowBehavior";
 import type TTypeInfo from "../../transpiler/types/TTypeInfo";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import QualifiedCName from "../../utils/QualifiedCName";
@@ -164,72 +163,6 @@ class ExpressionTypeResolver {
    * its EXTRACTED width, not the variable's full width (typing `a + b[0, 32]`
    * as u64 would cast the composite to a wider type — MISRA Rule 10.8).
    */
-  /**
-   * Issue #1152: the C-Next integer type of any composite node, for callers
-   * that hold an `additiveExpression`/`multiplicativeExpression` rather than a
-   * whole `expression`. Same rule as getIntegerExpressionType: the (uniform,
-   * per Rule 10.4) category at the widest operand's width.
-   */
-  static getCompositeIntegerType(
-    node: ParserRuleContext,
-    state: TranspileState,
-  ): string | null {
-    return ExpressionTypeResolver.resolveCompositeIntegerType(node, state);
-  }
-
-  /**
-   * Issue #1152: the overflow behavior of a composite arithmetic expression.
-   *
-   * `clamp` is the default (ADR-044), and safety wins a mix: the expression
-   * wraps only when EVERY integer operand was explicitly declared `wrap`. One
-   * saturating operand is enough to make the result saturate, which is what
-   * makes a bounds guard like `offset + length <= limit` trustworthy when
-   * `offset` can saturate (see #231).
-   *
-   * Returns null when no operand resolves to a declared integer variable, in
-   * which case the caller should leave the expression alone.
-   */
-  static getCompositeOverflowBehavior(
-    node: ParserRuleContext,
-    state: TranspileState,
-  ): TOverflowBehavior | null {
-    let sawInteger = false;
-    for (const operand of ExpressionTypeResolver.collectOperandPostfixes(
-      node,
-    )) {
-      const info = ExpressionTypeResolver.operandTypeInfo(operand, state);
-      if (info === undefined) continue;
-      if (!ExpressionTypeResolver.isIntegerType(info.baseType)) continue;
-      sawInteger = true;
-      if (info.overflowBehavior === "clamp") return "clamp";
-    }
-    return sawInteger ? "wrap" : null;
-  }
-
-  /**
-   * The declared type info for a leaf operand, when it is a plain variable.
-   * Anything else (array element, member chain, call result) has no declared
-   * overflow behavior of its own to consult.
-   */
-  private static operandTypeInfo(
-    postfix: Parser.PostfixExpressionContext,
-    state: TranspileState,
-  ): TTypeInfo | undefined {
-    const primary = postfix.primaryExpression();
-    if (!primary) return undefined;
-
-    const ops = postfix.postfixOp();
-    if (ops.length === 0) {
-      const name = primary.getText();
-      return name ? state.getVariableTypeInfo(name) : undefined;
-    }
-
-    return ExpressionTypeResolver.scopeMemberOperandTypeInfo(
-      primary,
-      ops,
-      state,
-    );
-  }
 
   /**
    * The declared type info for a SCOPE MEMBER operand (`Counter.value`,

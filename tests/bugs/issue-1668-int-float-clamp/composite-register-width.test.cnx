@@ -1,0 +1,12 @@
+// #1668 (C6b, S22): a register member in a composite counts at its declared
+// width, so `small + STATUS.COUNT` saturates at u32 -- the helper this
+// snapshot names -- not at u8's.
+register STATUS @ 0x40000000 {
+    COUNT: u32 ro @ 0x00,
+}
+
+u8 small <- 1;
+
+u32 total() {
+    return small + STATUS.COUNT;
+}
