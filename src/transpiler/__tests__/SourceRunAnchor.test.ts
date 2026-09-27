@@ -112,6 +112,46 @@ u8 preferred() {
       expect(cliMain?.code).toContain('#include "drv/colors.h"');
       expect(fromOutside.files[0]?.code).toBe(cliMain?.code);
     });
+
+    // #1719 box 2: "that C matches what `cnext` writes for the same file" --
+    // the header and its guard as well as the `.c`, for each file, with and
+    // without a project root (the guard's identity is anchored differently in
+    // each: #1133). The same file means `cnext <that file>`: with no project
+    // root the CLI's own guard for colors.h depends on which entry it was
+    // built from, so no single literal CLI value exists to match.
+    it.each([
+      ["with no project root", false],
+      ["with a project root", true],
+    ])(
+      "give each file the .c, header and guard the CLI writes for it, %s",
+      async (_label, withRoot) => {
+        if (withRoot) {
+          writeFileSync(join(project, "cnext.config.json"), "{}\n");
+        }
+        for (const [file, text] of [
+          ["main.cnx", MAIN],
+          [join("drv", "colors.cnx"), COLORS],
+        ] as const) {
+          const path = join(project, "src", file);
+          const cli = await inDir(project, () =>
+            new Transpiler({
+              input: path,
+              outDir: join(base, "out"),
+              noCache: true,
+            }).transpile({ kind: "files" }),
+          );
+          const written = cli.files.find((f) => f.sourcePath === path);
+          const previewed = await inDir(join(base, "elsewhere"), () =>
+            preview(file, text),
+          );
+
+          expect(cli.errors).toEqual([]);
+          expect(previewed.errors).toEqual([]);
+          expect(previewed.files[0]?.code).toBe(written?.code);
+          expect(previewed.files[0]?.headerCode).toBe(written?.headerCode);
+        }
+      },
+    );
   });
 
   describe("the project's compile_commands.json", () => {
