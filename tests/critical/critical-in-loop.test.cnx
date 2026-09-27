@@ -1,5 +1,6 @@
 // test-c-only
 // test-coverage: 33.2-critical-inside-loop
+// test-target-xfail: host atmega328p #1147
 // Coverage: Section 7.7, 33.2 - Critical section inside loops
 // Tests: critical sections inside for, while, and do-while loops
 u32[10] sharedData;

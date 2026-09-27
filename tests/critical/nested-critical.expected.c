@@ -56,6 +56,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 // test-c-only
+// test-target-xfail: host atmega328p #1147
 // Coverage: Section 7.7 - Nested critical sections
 // Tests: critical sections nested inside other critical sections
 // Note: Nested critical is valid syntax - inner critical is redundant but allowed

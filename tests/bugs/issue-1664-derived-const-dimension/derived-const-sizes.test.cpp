@@ -9,6 +9,7 @@
 
 // test-execution
 // test-no-warnings
+// test-target-xfail: atmega328p c #1765
 // A const derived from another const sizes an array like a literal one does.
 // 1.3 and 1.4 folded integer literals only, and render re-folded the rest
 // itself. So `u8[B] table` was `table[4]` in the .c and `table[B]` in the .h,

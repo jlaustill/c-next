@@ -1,5 +1,6 @@
 // test-c-only
 // test-execution
+// test-target-xfail: host atmega328p #1147
 // Issue #269: Pass-by-value for small unmodified parameters
 // Tests that unmodified small primitive types pass by value,
 // while modified parameters still pass by pointer.

@@ -1,4 +1,5 @@
 // test-execution
+// test-target-xfail: atmega328p #1709
 // Simple test for float bit read inside function
 
 u32 main() {

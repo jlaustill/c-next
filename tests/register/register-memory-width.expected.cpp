@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 
+// test-target-xfail: atmega328p #1668
 // Tests: Memory access width must match bit-range width (Issue #187)
 // For embedded systems, the memory access WIDTH matters for hardware behavior
 // u32 register with different access widths

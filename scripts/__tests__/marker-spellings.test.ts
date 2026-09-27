@@ -55,6 +55,7 @@ describe("fixture markers are written in a spelling the harness reads (#1555)", 
       "test-no-target",
       "test-adr",
       "test-link",
+      "test-target-xfail",
     ]);
   });
 

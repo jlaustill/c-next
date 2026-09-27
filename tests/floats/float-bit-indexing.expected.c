@@ -12,6 +12,7 @@ _Static_assert(sizeof(float) == 4, "Float bit indexing requires 32-bit float");
 _Static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double");
 
 // test-execution
+// test-target-xfail: atmega328p #1709
 // Tests: f32/f64 bit indexing read/write operations
 // Helper to build f32 from LE bytes (like the user's use case)
 float fromBytesLE(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) {

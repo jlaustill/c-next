@@ -68,6 +68,7 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 
 // test-c-only
 // test-execution
+// test-target-xfail: host atmega328p #1147
 // Issue #269: Pass-by-value for small unmodified parameters
 // Tests that unmodified small primitive types pass by value,
 // while modified parameters still pass by pointer.

@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 
+// test-target-xfail: atmega328p #1766
 // ADR-036: Multi-dimensional arrays in structs
 Image screen = {0};
 

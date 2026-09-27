@@ -7,6 +7,8 @@
 // structs crashed or was measured at the wrong depth (2 bytes for a 6-byte
 // array); and a string array's `.bit_length` was one element's (ADR-058: an
 // array's is its whole storage).
+// Pinned: a C header integer's width is the target's (ADR-049), and a header `long` is 64 bits here.
+#pragma target host
 #include "prop.h"
 
 struct Inner {

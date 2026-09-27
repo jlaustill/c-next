@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 
+// test-target-xfail: atmega328p #1668
 // Postfix Chain Test: Multi-Bit Field Ranges
 // Tests: Bit range assignment [start, width] through chains
 // HIGH RISK: Lines 3373-3443 in CodeGenerator.ts - overflow protection needed

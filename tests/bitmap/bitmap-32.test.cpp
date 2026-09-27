@@ -10,6 +10,7 @@
 
 // test-coverage: 11-bitmap32
 // test-execution
+// test-target-xfail: atmega328p #1668
 // Tests: 32-bit bitmap type
 // 32-bit bitmap for IP address representation
 // 32-bit bitmap for status register

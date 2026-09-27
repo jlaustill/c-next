@@ -7,6 +7,7 @@
 
 // test-execution
 // test-adr: 001
+// test-target-xfail: atmega328p c #1765
 // ADR-001: `<-` assigns and `=` compares, exercised in all four structural
 // contexts at include depth 1 (one hop).
 //

@@ -2,6 +2,8 @@
 // #1668: E0858-E0861 read the buffer's shape and the source's type from the
 // one operand typer, and every assignment site. Before, a slice in a `for`
 // header was never checked (#1726), so an out-of-bounds span compiled.
+// Pinned: a C header integer's width is the target's (ADR-049), and its diagnostics name the host's widths.
+#pragma target host
 #include "c_ints.h"
 
 void main() {

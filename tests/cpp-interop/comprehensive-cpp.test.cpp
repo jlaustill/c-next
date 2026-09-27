@@ -6,6 +6,7 @@
 #include "comprehensive-cpp.test.hpp"
 
 // test-cpp-only
+// test-target-xfail: cortex-m7 atmega328p #1764
 // Comprehensive C++ Interop Test
 // Tests: C++ syntax patterns for scope resolution and type handling
 // This is a compilation-only test (no test-execution marker)

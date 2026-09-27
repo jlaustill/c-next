@@ -9,6 +9,7 @@ import { mkdtempSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import TestUtils from "./test-utils";
+import TargetMatrix from "./TargetMatrix";
 
 // Import shared types
 import ITools from "./types/ITools";
@@ -385,48 +386,6 @@ describe("TestUtils.hasCppFeatures", () => {
     it("should NOT detect C array declarations", () => {
       expect(TestUtils.hasCppFeatures("char buffer[64];")).toBe(false);
     });
-  });
-});
-
-describe("requiresArmRuntime", () => {
-  it("should return true for code with cmsis_gcc.h include", () => {
-    const cCode = '#include "cmsis_gcc.h"\nvoid main() {}';
-    expect(TestUtils.requiresArmRuntime(cCode)).toBe(true);
-  });
-
-  it("should return true for code with __LDREX", () => {
-    const cCode = "void main() { __LDREX(&x); }";
-    expect(TestUtils.requiresArmRuntime(cCode)).toBe(true);
-  });
-
-  it("should return true for code with __STREX", () => {
-    const cCode = "void main() { __STREX(1, &x); }";
-    expect(TestUtils.requiresArmRuntime(cCode)).toBe(true);
-  });
-
-  it("should return true for code with __get_PRIMASK", () => {
-    const cCode = "void main() { __get_PRIMASK(); }";
-    expect(TestUtils.requiresArmRuntime(cCode)).toBe(true);
-  });
-
-  it("should return true for code with __set_PRIMASK", () => {
-    const cCode = "void main() { __set_PRIMASK(0); }";
-    expect(TestUtils.requiresArmRuntime(cCode)).toBe(true);
-  });
-
-  it("should return true for code with __disable_irq", () => {
-    const cCode = "void main() { __disable_irq(); }";
-    expect(TestUtils.requiresArmRuntime(cCode)).toBe(true);
-  });
-
-  it("should return true for code with __enable_irq", () => {
-    const cCode = "void main() { __enable_irq(); }";
-    expect(TestUtils.requiresArmRuntime(cCode)).toBe(true);
-  });
-
-  it("should return false for regular C code", () => {
-    const cCode = "int main() { return 0; }";
-    expect(TestUtils.requiresArmRuntime(cCode)).toBe(false);
   });
 });
 
@@ -921,11 +880,13 @@ describe("getCompilerConfig is the one language decision (#1557)", () => {
     const tuFile = join(tempDir, "plain.test.c");
     writeFileSync(tuFile, "int main(void) { return 0; }\n");
 
-    TestUtils.compileTranslationUnitWithoutWarnings(
+    TestUtils.compileTranslationUnit(
       tuFile,
       dirname(tuFile),
       tempDir,
       "c",
+      TargetMatrix.hostToolchain(),
+      true,
     );
 
     expect(spy).toHaveBeenCalledWith("c", tuFile);
@@ -991,13 +952,14 @@ describe("no-warnings check honours the harness mode (#1557)", () => {
         "int main(void) { return twice(1) == 2 ? 0 : 1; }\n",
     );
 
-    const result: IValidationResult =
-      TestUtils.compileTranslationUnitWithoutWarnings(
-        tuFile,
-        dirname(tuFile),
-        tempDir,
-        "cpp",
-      );
+    const result: IValidationResult = TestUtils.compileTranslationUnit(
+      tuFile,
+      dirname(tuFile),
+      tempDir,
+      "cpp",
+      TargetMatrix.hostToolchain(),
+      true,
+    );
 
     expect(result.valid).toBe(true);
   });
@@ -1020,13 +982,14 @@ describe("no-warnings check honours the harness mode (#1557)", () => {
         "int main(void) { return helper(0, 1); }\n",
     );
 
-    const result: IValidationResult =
-      TestUtils.compileTranslationUnitWithoutWarnings(
-        tuFile,
-        dirname(tuFile),
-        tempDir,
-        "cpp",
-      );
+    const result: IValidationResult = TestUtils.compileTranslationUnit(
+      tuFile,
+      dirname(tuFile),
+      tempDir,
+      "cpp",
+      TargetMatrix.hostToolchain(),
+      true,
+    );
 
     expect(result.valid).toBe(false);
     expect(result.message).toContain("unused parameter");

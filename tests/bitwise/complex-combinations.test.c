@@ -7,6 +7,7 @@
 
 // test-coverage: 5.7-complex-combinations
 // test-execution
+// test-target-xfail: atmega328p #1668
 // Test complex bitwise combinations and expressions
 // Coverage: Section 5.7 - complex patterns, multiple operations, precedence
 int main(void) {

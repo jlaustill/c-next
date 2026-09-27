@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 // test-execution
+// test-target-xfail: atmega328p #1668
 // Tests: All bit range widths 1-32 on u32 type
 // Verifies correct mask generation and bit operations for every width
 int main(void) {

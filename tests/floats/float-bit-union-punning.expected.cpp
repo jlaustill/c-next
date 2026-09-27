@@ -9,6 +9,7 @@ static_assert(sizeof(float) == 4, "Float bit indexing requires 32-bit float");
 static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double");
 
 // test-execution
+// test-target-xfail: atmega328p #1709
 // Test that float bit access uses union-based type punning for MISRA 21.15 compliance
 // MISRA Rule 21.15 forbids memcpy between incompatible pointer types (float* and uint32_t*)
 int main(void) {

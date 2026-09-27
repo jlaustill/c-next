@@ -63,6 +63,7 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 
 // test-c-only
 // test-coverage: 33.2-critical-inside-if
+// test-target-xfail: host atmega328p #1147
 // Coverage: Section 7.7, 33.2 - Critical section inside if statements
 // Tests: critical sections inside if/else branches
 uint32_t sharedValue = 0U;

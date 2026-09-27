@@ -31,6 +31,11 @@ import detectCppSyntax from "../src/transpiler/logic/detectCppSyntax";
 import TestMarkers from "./TestMarkers";
 import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
 import TargetResolver from "../src/utils/TargetResolver";
+import type IGccToolchain from "../src/transpiler/types/IGccToolchain";
+import TargetMatrix from "./TargetMatrix";
+import type ITargetCell from "./types/ITargetCell";
+import type ITargetXfail from "./types/ITargetXfail";
+import type ITranspileCell from "./types/ITranspileCell";
 
 // Project root for CLI invocation (this file is in /workspace/scripts/)
 const PROJECT_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -142,18 +147,6 @@ interface ICliTranspileResult {
 }
 
 /**
- * Transpile a C-Next file using the CLI (not library imports).
- *
- * This ensures tests exercise the exact same code path as real users.
- * Previously tests imported Transpiler directly, which bypassed conflict
- * detection and other CLI-only features.
- *
- * @param cnxFile - Path to the .cnx file to transpile
- * @param _rootDir - Project root directory (unused, kept for API compatibility)
- * @param cppMode - Whether to use C++ mode (--cpp flag)
- * @param outputPath - Optional output path for the generated code file
- */
-/**
  * How a diagnostic is written into a `.expected.error` snapshot.
  *
  * `line:col message` when the diagnostic belongs to the fixture itself, and
@@ -170,23 +163,42 @@ interface ICliTranspileResult {
 function renderDiagnostic(
   e: { line: number; column: number; message: string; file?: string },
   entryPath: string,
+  root: string = PROJECT_ROOT,
 ): string {
-  const entry = relative(PROJECT_ROOT, entryPath);
+  const entry = relative(root, entryPath);
   const where = e.file !== undefined && e.file !== entry ? `${e.file}:` : "";
   return `${where}${e.line}:${e.column} ${e.message}`;
 }
 
+/**
+ * Transpile a C-Next file using the CLI (not library imports).
+ *
+ * This ensures tests exercise the exact same code path as real users.
+ * Previously tests imported Transpiler directly, which bypassed conflict
+ * detection and other CLI-only features.
+ *
+ * @param cnxFile - Path to the .cnx file to transpile
+ * @param cppMode - Whether to use C++ mode (--cpp flag)
+ * @param cell - A cross-target transpile's target and include directory
+ *   (#1668); the host transpile passes none
+ */
 function transpileViaCli(
   cnxFile: string,
-  _rootDir: string,
   cppMode: boolean,
-  outputPath?: string,
+  cell?: ITranspileCell,
 ): ICliTranspileResult {
   // Build CLI args - use PROJECT_ROOT for CLI/includes, but cnxFile is the actual test file path
   // Note: We don't clean up stale files - the CLI overwrites them and they're tracked in git
-  const cliArgs = [cnxFile, "--include", join(PROJECT_ROOT, "tests/include")];
+  const cliArgs = [
+    cnxFile,
+    "--include",
+    join(cell?.root ?? PROJECT_ROOT, "tests/include"),
+  ];
 
-  const target = TestUtils.harnessTarget(readFileSync(cnxFile, "utf-8"));
+  // #1668 box 15: a cross cell transpiles for its matrix target; otherwise the
+  // harness's own option (a fixture's pin still decides)
+  const target =
+    cell?.target ?? TestUtils.harnessTarget(readFileSync(cnxFile, "utf-8"));
   if (target !== undefined) {
     cliArgs.push("--target", target);
   }
@@ -195,22 +207,10 @@ function transpileViaCli(
     cliArgs.push("--cpp");
   }
 
-  // Determine output paths
-  let codePath: string;
-  let headerPath: string;
-  const codeExt = cppMode ? ".cpp" : ".c";
-  const headerExt = cppMode ? ".hpp" : ".h";
-
-  if (outputPath) {
-    cliArgs.push("-o", outputPath);
-    codePath = outputPath;
-    // Header goes next to the code file with matching extension
-    headerPath = outputPath.replace(/\.(c|cpp)$/, headerExt);
-  } else {
-    const basePath = cnxFile.replace(/\.cnx$/, "");
-    codePath = basePath + codeExt;
-    headerPath = basePath + headerExt;
-  }
+  // The CLI writes next to the source
+  const basePath = cnxFile.replace(/\.cnx$/, "");
+  const codePath = basePath + (cppMode ? ".cpp" : ".c");
+  const headerPath = basePath + (cppMode ? ".hpp" : ".h");
 
   // Run CLI from project root (where src/index.ts exists)
   // Clear VITEST env so the CLI's main() function runs
@@ -221,7 +221,7 @@ function transpileViaCli(
   // Use pre-built bundle when available (fast), fall back to npx tsx for dev
   const result = USE_BUILT
     ? spawnSync(process.execPath, [DIST_ENTRY, ...cliArgs], {
-        cwd: PROJECT_ROOT,
+        cwd: cell?.root ?? PROJECT_ROOT,
         encoding: "utf-8",
         timeout: 30000,
         env: cleanEnv,
@@ -230,7 +230,7 @@ function transpileViaCli(
         "npx",
         ["tsx", join(PROJECT_ROOT, "src/index.ts"), ...cliArgs],
         {
-          cwd: PROJECT_ROOT,
+          cwd: cell?.root ?? PROJECT_ROOT,
           encoding: "utf-8",
           timeout: 30000,
           env: cleanEnv,
@@ -602,21 +602,6 @@ class TestUtils {
   }
 
   /**
-   * Check if generated C code requires ARM runtime (can't execute on x86)
-   */
-  static requiresArmRuntime(cCode: string): boolean {
-    return (
-      cCode.includes("cmsis_gcc.h") ||
-      cCode.includes("__LDREX") ||
-      cCode.includes("__STREX") ||
-      cCode.includes("__get_PRIMASK") ||
-      cCode.includes("__set_PRIMASK") ||
-      cCode.includes("__disable_irq") ||
-      cCode.includes("__enable_irq")
-    );
-  }
-
-  /**
    * Get a unique path for a test executable in the temp directory
    */
   static getExecutablePath(cnxFile: string): string {
@@ -776,55 +761,70 @@ class TestUtils {
   }
 
   /**
-   * Compile ONE translation unit and report any warning as a failure.
+   * Compile ONE translation unit for a target: how this corpus compiles every
+   * unit, for every cell of the target matrix (#1668 box 15).
+   *
+   * The target's GCC and architecture flags wrap the language
+   * `getCompilerConfig` decides. `-Werror` makes anything the compiler warns
+   * about by default fail the cell: a shift past the width of an AVR `int`, or
+   * an intrinsic called with no declaration, is a warning and not an error in
+   * GCC 13, and each is a real defect. `strict` adds what
+   * `// test-no-warnings` asks for, `-O3 -Wall -Wextra`; the optimizer is what
+   * lets the middle-end diagnostics fire at all (#1143).
+   *
+   * This replaced two functions: an entry-only `-fsyntax-only` check and the
+   * no-warnings compile, each spelling its own flags. A cross target needs the
+   * same compile with a different driver, so the rule is stated once.
    *
    * @param tuFile - The .c/.cpp file to compile
    * @param sourceRootDir - The fixture's source root: the directory every
    *        unit's self-include is relative to, which is the ENTRY's directory
    *        and the same for every unit in the fixture (#1544)
-   * @param rootDir - Project root directory for include paths
+   * @param rootDir - The tree whose `tests/include` is on the path: the
+   *        project, or a cross target's mirror of it
    * @param mode - The mode the harness is compiling this fixture in (#1557)
+   * @param toolchain - The target's GCC (`TargetMatrix.toolchainFor`)
+   * @param strict - Whether the fixture is `// test-no-warnings`
    */
-  static compileTranslationUnitWithoutWarnings(
+  static compileTranslationUnit(
     tuFile: string,
     sourceRootDir: string,
     rootDir: string,
     mode: TTestMode,
+    toolchain: IGccToolchain,
+    strict: boolean,
   ): IValidationResult {
     try {
-      // Issue #1557: the mode is the authoritative answer and this site used to
-      // re-derive it from the file's contents, so a `.cpp` tripping none of the
-      // sniffer's patterns was handed to `gcc -std=c99`.
       const compilerConfig = TestUtils.getCompilerConfig(mode, tuFile);
-      const compiler = compilerConfig.compiler;
-      const stdFlag = compilerConfig.stdFlag;
-
-      // Compile with -Werror to treat warnings as errors.
-      // Issue #1143: -Wstringop-overflow / -Warray-bounds are middle-end
-      // diagnostics produced by value-range propagation, so they need an
-      // optimizing compile. The previous "-fsyntax-only" (with no -O) stopped
-      // after parsing and could not emit them at all -- a guaranteed 32-byte
-      // memcpy into an 8-byte buffer passed silently.
-      //
-      // -O3 rather than -O2: measured against a known-bad fixture (a clamped
-      // offset saturating to UINT32_MAX past a wrapping bounds guard), -O2
-      // reports nothing and -O3 reports it. All test-no-warnings fixtures are
-      // clean at -O3, so the extra inlining costs no false positives here.
+      // The vendored CMSIS-Core header, configured as every C++ Cortex build
+      // must: CMSIS's own startup helper (`__cmsis_start`) is not valid C++
+      // under GCC 13, in CMSIS 5.9.0 and 6.1.0 alike, and `__PROGRAM_START` is
+      // CMSIS's documented hook for a project that supplies its own startup.
+      // It removes only that helper; every intrinsic generated code calls stays.
+      // What a user is told about it is #1763.
+      const cmsis = toolchain.cmsisCore
+        ? [
+            "-I",
+            TargetMatrix.cmsisIncludeDir(PROJECT_ROOT),
+            "-D__PROGRAM_START",
+          ]
+        : [];
       execFileSync(
-        compiler,
+        toolchain.driverPrefix + compilerConfig.compiler,
         [
+          ...toolchain.archFlags,
           "-c",
           "-o",
           "/dev/null",
-          "-O3",
-          stdFlag,
-          "-Wall",
-          "-Wextra",
+          ...(strict ? ["-O3"] : []),
+          compilerConfig.stdFlag,
+          ...(strict ? ["-Wall", "-Wextra"] : []),
           "-Werror",
+          ...cmsis,
           ...TestUtils.fixtureCompileFlags(sourceRootDir, rootDir),
           tuFile,
         ],
-        { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
+        { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
       );
       return { valid: true };
     } catch (error: unknown) {
@@ -833,23 +833,28 @@ class TestUtils {
         stdout?: string;
         message: string;
       };
-      // Extract just the warning/error messages
       const output = err.stderr || err.stdout || err.message;
       const warnings = output
         .split("\n")
-        .filter((line) => line.includes("warning:") || line.includes("error:"))
+        .filter(
+          (line) =>
+            line.includes("warning:") ||
+            line.includes("error:") ||
+            line.includes("sorry, unimplemented:"),
+        )
         .map((line) => line.replace(tuFile + ":", ""))
         .slice(0, 5)
         .join("\n");
       return {
         valid: false,
-        message: `${basename(tuFile)}: ${warnings || "Compilation produced warnings"}`,
+        message: `${basename(tuFile)}: ${warnings || output.split("\n")[0]}`,
       };
     }
   }
 
   /**
-   * Validate that a fixture's translation units compile without any warnings.
+   * Compile every translation unit a fixture's run generated, stopping at the
+   * first that fails.
    *
    * Issue #1553: the entry alone is not the fixture. `-c` compiles one
    * translation unit, so a helper's implementation reached a compiler only at
@@ -858,30 +863,418 @@ class TestUtils {
    * #1143 shape: a guard green on a check that does not run. Every unit the
    * fixture generates is compiled here, under identical flags.
    *
-   * @param cFile - Path to the entry C file
-   * @param rootDir - Project root directory for include paths
-   * @param mode - The mode the harness is compiling this fixture in (#1557)
+   * @param entryImpl - The entry's implementation file
    * @param helperImplFiles - Helper implementations the fixture also generates
+   * @param rootDir - As `compileTranslationUnit`
+   * @param mode - The mode the harness is compiling this fixture in (#1557)
+   * @param toolchain - The target's GCC
+   * @param strict - Whether the fixture is `// test-no-warnings`
    */
-  static validateNoWarnings(
-    cFile: string,
+  static compileProgram(
+    entryImpl: string,
+    helperImplFiles: readonly string[],
     rootDir: string,
     mode: TTestMode,
-    helperImplFiles: string[] = [],
+    toolchain: IGccToolchain,
+    strict: boolean,
   ): IValidationResult {
-    // The source root is the ENTRY's directory -- `cFile` is the entry, and
-    // every unit's self-include is relative to that one directory (#1544).
-    const sourceRootDir = dirname(cFile);
-    for (const translationUnit of [cFile, ...helperImplFiles]) {
-      const result = TestUtils.compileTranslationUnitWithoutWarnings(
+    const sourceRootDir = dirname(entryImpl);
+    for (const translationUnit of [entryImpl, ...helperImplFiles]) {
+      const result = TestUtils.compileTranslationUnit(
         translationUnit,
         sourceRootDir,
         rootDir,
         mode,
+        toolchain,
+        strict,
       );
       if (!result.valid) return result;
     }
     return { valid: true };
+  }
+
+  /**
+   * The host cell (#1668 box 15): every unit compiled with the build
+   * machine's GCC, then, for a `test-execution` fixture, linked and run. What
+   * the run printed is kept on `result` for the C/C++ parity check.
+   */
+  private static hostCell(
+    cnxFile: string,
+    source: string,
+    mode: TTestMode,
+    entryImpl: string,
+    helperImplFiles: readonly string[],
+    rootDir: string,
+    strict: boolean,
+    xfails: readonly ITargetXfail[],
+    result: IModeResult,
+  ): ITargetCell {
+    const compiled = TestUtils.compileProgram(
+      entryImpl,
+      helperImplFiles,
+      rootDir,
+      mode,
+      TargetMatrix.hostToolchain(),
+      strict,
+    );
+    if (!compiled.valid) {
+      return TestUtils.settleCell(
+        TargetMatrix.HOST,
+        mode,
+        `${mode.toUpperCase()} compilation failed: ${compiled.message}`,
+        "compiled",
+        xfails,
+      );
+    }
+    if (!TestMarkers.has("test-execution", source)) {
+      return TestUtils.settleCell(
+        TargetMatrix.HOST,
+        mode,
+        null,
+        "compiled",
+        xfails,
+      );
+    }
+    const failure = TestUtils.executeOnHost(
+      cnxFile,
+      source,
+      entryImpl,
+      helperImplFiles,
+      rootDir,
+      mode,
+      result,
+    );
+    return TestUtils.settleCell(
+      TargetMatrix.HOST,
+      mode,
+      failure,
+      "executed",
+      xfails,
+    );
+  }
+
+  /**
+   * Link a fixture's units with the host GCC and run the program. Returns why
+   * it failed, or null; what it printed is kept on `result`.
+   */
+  private static executeOnHost(
+    cnxFile: string,
+    source: string,
+    entryImpl: string,
+    helperImplFiles: readonly string[],
+    rootDir: string,
+    mode: TTestMode,
+    result: IModeResult,
+  ): string | null {
+    const compilerConfig = TestUtils.getCompilerConfig(mode, entryImpl);
+    const execPath = TestUtils.getExecutablePath(cnxFile);
+    const sourceFiles: string[] = [
+      entryImpl,
+      ...helperImplFiles,
+      ...TestUtils.findLinkedSourceFiles(cnxFile, source),
+    ];
+    try {
+      execFileSync(
+        compilerConfig.compiler,
+        [
+          compilerConfig.stdFlag,
+          ...TestUtils.fixtureCompileFlags(dirname(entryImpl), rootDir),
+          "-o",
+          execPath,
+          ...sourceFiles,
+        ],
+        { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
+      );
+    } catch (compileError: unknown) {
+      const err = compileError as { stderr?: string; message: string };
+      return `${mode.toUpperCase()} compile for execution failed: ${err.stderr || err.message}`;
+    }
+    try {
+      result.stdout = execFileSync(execPath, [], {
+        encoding: "utf-8",
+        timeout: 5000,
+        stdio: "pipe",
+      });
+      return null;
+    } catch (execError: unknown) {
+      const err = execError as { status?: number; stdout?: string };
+      result.stdout = err.stdout;
+      return `${mode.toUpperCase()} execution failed with exit code ${err.status || 1}`;
+    } finally {
+      try {
+        if (existsSync(execPath)) unlinkSync(execPath);
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  }
+
+  /**
+   * A compile-only cell: the fixture's units, as generated for `target`,
+   * compiled with that target's GCC. Used for a program that names its own
+   * target, which is compiled for it in place.
+   */
+  private static compileCell(
+    target: string,
+    mode: TTestMode,
+    entryImpl: string,
+    helperImplFiles: readonly string[],
+    rootDir: string,
+    strict: boolean,
+    xfails: readonly ITargetXfail[],
+  ): ITargetCell {
+    const toolchain = TargetMatrix.toolchainFor(target);
+    if (typeof toolchain === "string") {
+      const marked = xfails.some(
+        (xfail) => xfail.target === TestUtils.catalogName(target),
+      );
+      return marked
+        ? {
+            target,
+            mode,
+            outcome: "failed",
+            detail: `\`// test-target-xfail\` marks ${target}, which nothing compiles for (${toolchain}); remove the marker`,
+          }
+        : { target, mode, outcome: "not-compiled", detail: toolchain };
+    }
+    const compiled = TestUtils.compileProgram(
+      entryImpl,
+      helperImplFiles,
+      rootDir,
+      mode,
+      toolchain,
+      strict,
+    );
+    return TestUtils.settleCell(
+      target,
+      mode,
+      compiled.valid
+        ? null
+        : `${target} ${mode.toUpperCase()} compile failed: ${compiled.message}`,
+      "compiled",
+      xfails,
+    );
+  }
+
+  /**
+   * A cross target's cell (#1668 box 15): the fixture transpiled for the
+   * target in that target's mirror of \`tests/\`, and every unit it generated
+   * compiled with the target's GCC against its real library.
+   */
+  private static crossCell(
+    cnxFile: string,
+    mode: TTestMode,
+    target: string,
+    rootDir: string,
+    mirrors: Record<string, string> | undefined,
+    strict: boolean,
+    xfails: readonly ITargetXfail[],
+  ): ITargetCell {
+    const mirror = mirrors?.[target];
+    if (mirror === undefined) {
+      return {
+        target,
+        mode,
+        outcome: "failed",
+        detail: `no mirror of tests/ for ${target}: the runner creates one per cross target before any fixture runs`,
+      };
+    }
+    const mirrored = join(mirror, relative(join(rootDir, "tests"), cnxFile));
+    const transpile = transpileViaCli(mirrored, mode === "cpp", {
+      target,
+      root: dirname(mirror),
+    });
+    if (!transpile.success) {
+      const errors = transpile.errors
+        .map((e) => renderDiagnostic(e, mirrored))
+        .join("\n");
+      return TestUtils.settleCell(
+        target,
+        mode,
+        `transpile for ${target} failed: ${errors || transpile.stderr}`,
+        "compiled",
+        xfails,
+      );
+    }
+    const dependent = TestUtils.targetDependentOutput(
+      target,
+      [...transpile.generatedImplPaths, ...transpile.generatedHeaderPaths],
+      mirror,
+      rootDir,
+    );
+    if (dependent !== null) {
+      return { target, mode, outcome: "failed", detail: dependent };
+    }
+    const entryImpl = mirrored.replace(
+      /\.cnx$/,
+      mode === "cpp" ? ".cpp" : ".c",
+    );
+    return TestUtils.compileCell(
+      target,
+      mode,
+      entryImpl,
+      transpile.generatedImplPaths.filter((path) => path !== entryImpl),
+      dirname(mirror),
+      strict,
+      xfails,
+    );
+  }
+
+  /**
+   * #1668 (addendum A6.6): a program that names no target generates the same
+   * C for every target, so one snapshot set holds for all of them. A file the
+   * cross transpile wrote that differs from the host's means the output
+   * depends on the target, and the fixture must pin one with
+   * \`#pragma target\`. No marker excuses it: a dependence on the target is
+   * not an expected bug.
+   */
+  private static targetDependentOutput(
+    target: string,
+    generated: readonly string[],
+    mirror: string,
+    rootDir: string,
+  ): string | null {
+    for (const path of generated) {
+      const relativePath = relative(mirror, path);
+      const hostPath = join(rootDir, "tests", relativePath);
+      const same =
+        existsSync(hostPath) &&
+        readFileSync(hostPath, "utf-8") === readFileSync(path, "utf-8");
+      if (!same) {
+        return `target-dependent output: tests/${relativePath} differs for ${target} -- pin the fixture with \`#pragma target\`, or make its output target-independent`;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * The same for a \`test-error\` fixture's diagnostics: each cross target
+   * transpiles it in its mirror and must report exactly what the host did.
+   * A pinned fixture passes trivially, because its pin decides both runs; a
+   * \`// test-no-target\` fixture is about where the target comes from, so it
+   * is not run for a named one.
+   */
+  private static targetDependentDiagnostics(
+    cnxFile: string,
+    source: string,
+    cppMode: boolean,
+    hostDiagnostics: string,
+    rootDir: string,
+    mirrors: Record<string, string> | undefined,
+  ): string | null {
+    if (mirrors === undefined || TestMarkers.has("test-no-target", source)) {
+      return null;
+    }
+    for (const target of TargetMatrix.CROSS) {
+      const mirror = mirrors[target];
+      if (mirror === undefined) {
+        return `no mirror of tests/ for ${target}: the runner creates one per cross target before any fixture runs`;
+      }
+      const mirrored = join(mirror, relative(join(rootDir, "tests"), cnxFile));
+      const root = dirname(mirror);
+      const result = transpileViaCli(mirrored, cppMode, { target, root });
+      const diagnostics = result.success
+        ? "(no errors)"
+        : result.errors
+            .map((e) => renderDiagnostic(e, mirrored, root))
+            .join("\n");
+      if (
+        TestUtils.normalize(diagnostics) !==
+        TestUtils.normalize(hostDiagnostics)
+      ) {
+        return `target-dependent diagnostics: ${target} reports\n${diagnostics}\n-- pin the fixture with \`#pragma target\`, or make its diagnostics target-independent`;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * A cell's outcome once its \`// test-target-xfail\` marker, if any, is
+   * applied: a marked cell must fail (#1668 box 12, "it must still fail"), and
+   * an unmarked one must not.
+   */
+  static settleCell(
+    target: string,
+    mode: TTestMode,
+    failure: string | null,
+    passed: "executed" | "compiled",
+    xfails: readonly ITargetXfail[],
+  ): ITargetCell {
+    const xfail = xfails.find(
+      (candidate) =>
+        candidate.target === TestUtils.catalogName(target) &&
+        (candidate.mode === undefined || candidate.mode === mode),
+    );
+    if (xfail === undefined) {
+      return failure === null
+        ? { target, mode, outcome: passed }
+        : { target, mode, outcome: "failed", detail: failure };
+    }
+    return failure === null
+      ? {
+          target,
+          mode,
+          outcome: "failed",
+          detail: `\`// test-target-xfail: ${xfail.target} #${xfail.issue}\` expects ${target} to fail, and it passed: remove the marker and update #${xfail.issue}`,
+        }
+      : {
+          target,
+          mode,
+          outcome: "xfail",
+          detail: `#${xfail.issue}: ${failure}`,
+        };
+  }
+
+  /** The catalog row a target name resolves to, aliases included */
+  private static catalogName(target: string): string {
+    return TargetResolver.byName(target)?.name ?? target;
+  }
+
+  /**
+   * The fixture's \`// test-target-xfail\` markers, or why one is malformed.
+   *
+   * \`// test-target-xfail: <target>... [c|cpp] #<issue>\`: each named
+   * target's cells must fail until the issue is fixed -- in the named mode
+   * only, when one is given. A marker must name an issue, so an expected
+   * failure always says what fixes it.
+   */
+  static targetXfails(source: string): ITargetXfail[] | string {
+    const xfails: ITargetXfail[] = [];
+    for (const match of source.matchAll(
+      TestMarkers.globalSpellingOf("test-target-xfail"),
+    )) {
+      const argument = match[1].trim();
+      const usage = `\`// test-target-xfail: ${argument}\` must name targets, an optional mode and an issue, e.g. \`// test-target-xfail: avr cpp #1234\``;
+      const words = argument.split(/[ \t]+/);
+      const issue = /^#(\d+)$/.exec(words.at(-1) ?? "");
+      if (issue === null || words.length < 2) {
+        return usage;
+      }
+      const modes = words.filter(
+        (word): word is TTestMode => word === "c" || word === "cpp",
+      );
+      if (modes.length > 1) {
+        return usage;
+      }
+      const targets = words
+        .slice(0, -1)
+        .filter((word) => word !== "c" && word !== "cpp");
+      if (targets.length === 0) {
+        return usage;
+      }
+      for (const target of targets) {
+        const description = TargetResolver.byName(target);
+        if (description === undefined) {
+          return `\`// test-target-xfail: ${argument}\` names '${target}', which is not a catalog target`;
+        }
+        xfails.push({
+          target: description.name,
+          mode: modes.at(0),
+          issue: Number(issue[1]),
+        });
+      }
+    }
+    return xfails;
   }
 
   /**
@@ -1183,7 +1576,7 @@ class TestUtils {
     // Always transpile via CLI: every test is re-transpiled in the same pass
     // that compiles and executes it, so a stale .cnx can never be silently
     // validated against pre-existing generated files (Issue #1018).
-    const transpileResult = transpileViaCli(cnxFile, rootDir, mode === "cpp");
+    const transpileResult = transpileViaCli(cnxFile, mode === "cpp");
 
     if (!transpileResult.success) {
       const errors = transpileResult.errors
@@ -1417,146 +1810,99 @@ class TestUtils {
       return result;
     }
 
-    // Compile with mode-specific compiler. Issue #1557: the same decision the
-    // no-warnings compile asks, from the same function -- this site and that one
-    // used to spell the rule differently, and the no-warnings copy left out the
-    // mode entirely.
-    const compileConfig = TestUtils.getCompilerConfig(mode, expectedImplPath);
-    const actualCompiler = compileConfig.compiler;
-    const actualStdFlag = compileConfig.stdFlag;
+    // #1668 box 15: which targets this mode runs under is the program's own
+    // answer, as the transpiler reported it. A program that names a target --
+    // a pragma, a helper's pragma, an inline description, `platformio.ini` --
+    // runs for that target alone. One that names none ran for the host (the
+    // harness's option decided), and also runs for every cross target.
+    const reported = transpileResult.target;
+    if (reported === undefined) {
+      result.error =
+        "CLI reported no target -- could not parse its `Target: <name> " +
+        "(<source>)` line. Update TestUtils.parseTarget to match.";
+      return result;
+    }
+    const xfails = TestUtils.targetXfails(source);
+    if (typeof xfails === "string") {
+      result.error = xfails;
+      return result;
+    }
+    const strict = TestUtils.hasNoWarningsMarker(source);
+    const execution = TestMarkers.has("test-execution", source);
 
-    if (tools.gcc) {
-      try {
-        execFileSync(
-          actualCompiler,
-          [
-            "-fsyntax-only",
-            actualStdFlag,
-            ...TestUtils.fixtureCompileFlags(
-              dirname(expectedImplPath),
-              rootDir,
-            ),
-            expectedImplPath,
-          ],
-          { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
-        );
-        result.compileSuccess = true;
-      } catch (error: unknown) {
-        const err = error as {
-          stderr?: string;
-          stdout?: string;
-          message: string;
-        };
-        const output = err.stderr || err.stdout || err.message;
-        const errors = output
-          .split("\n")
-          .filter((line) => line.includes("error:"))
-          .slice(0, 5)
-          .join("\n");
-        result.error = `${mode.toUpperCase()} compilation failed: ${errors}`;
-        // No cleanup needed for helper files
-        return result;
-      }
-    } else {
-      result.compileSuccess = true; // Skip if no gcc
+    // No compiler, nothing to compile or run: the runner refuses to start
+    // without gcc unless it was asked to transpile only, so this is a caller
+    // that compares snapshots and nothing else
+    if (!tools.gcc) {
+      result.compileSuccess = true;
+      result.execSuccess = true;
+      return result;
     }
 
-    // Static analysis (cppcheck, clang-tidy, MISRA, flawfinder) runs as a
-    // separate batch step via `npm run validate:c` / scripts/batch-validate.mjs.
-    // This avoids paying per-file tool startup costs during integration tests
-    // and ensures local + CI behavior are identical.
-
-    // No-warnings check runs inline since it uses the same gcc compiler
-    // already available and is fast (syntax-only check).
-    // Issue #1553: the helpers are passed too -- the entry alone is not the
-    // fixture, and a warning in a helper's implementation was invisible.
-    // Issue #1557: every mode the fixture is compiled in, not C alone. The
-    // fixture's C++ output was produced, compiled, and never warning-checked --
-    // the marker read as "this fixture is warning-clean" and meant "this
-    // fixture's C output is warning-clean".
-    if (TestUtils.hasNoWarningsMarker(source)) {
-      const noWarningsResult = TestUtils.validateNoWarnings(
-        expectedImplPath,
-        rootDir,
-        mode,
-        helperImplFiles,
+    const cells: ITargetCell[] = [];
+    if (reported.name === TargetMatrix.HOST) {
+      cells.push(
+        TestUtils.hostCell(
+          cnxFile,
+          source,
+          mode,
+          expectedImplPath,
+          helperImplFiles,
+          rootDir,
+          strict,
+          xfails,
+          result,
+        ),
       );
-      if (!noWarningsResult.valid) {
-        result.error = `No-warnings check failed: ${noWarningsResult.message}`;
-        // No cleanup needed for helper files
-        return result;
-      }
-    }
-
-    // Execute test-execution tests, unless the generated code needs an ARM runtime
-    if (TestMarkers.has("test-execution", source)) {
-      // Read freshly generated code to check for ARM runtime requirements
-      const existingCode = readFileSync(expectedImplPath, "utf-8");
-      if (TestUtils.requiresArmRuntime(existingCode)) {
-        result.execSuccess = true;
-        result.skippedExec = true;
-        result.skipReason = "arm";
-        // No cleanup needed for helper files
-        return result;
-      }
-
-      const execPath = TestUtils.getExecutablePath(cnxFile);
-      const sourceFiles: string[] = [
-        expectedImplPath,
-        ...helperImplFiles,
-        ...TestUtils.findLinkedSourceFiles(cnxFile, source),
-      ];
-
-      try {
-        // Compile to executable (reuse auto-detected compiler from above)
-        execFileSync(
-          actualCompiler,
-          [
-            actualStdFlag,
-            ...TestUtils.fixtureCompileFlags(
-              dirname(expectedImplPath),
+      if (reported.source === "option") {
+        for (const target of TargetMatrix.CROSS) {
+          cells.push(
+            TestUtils.crossCell(
+              cnxFile,
+              mode,
+              target,
               rootDir,
+              options.targetMirrors,
+              strict,
+              xfails,
             ),
-            "-o",
-            execPath,
-            ...sourceFiles,
-          ],
-          { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
-        );
-
-        // Execute and capture stdout for parity comparison
-        try {
-          const stdout = execFileSync(execPath, [], {
-            encoding: "utf-8",
-            timeout: 5000,
-            stdio: "pipe",
-          });
-          result.execSuccess = true;
-          result.stdout = stdout; // Capture for parity comparison
-        } catch (execError: unknown) {
-          const err = execError as { status?: number; stdout?: string };
-          const exitCode = err.status || 1;
-          result.error = `${mode.toUpperCase()} execution failed with exit code ${exitCode}`;
-          result.stdout = err.stdout; // Capture stdout even on failure
-          // No cleanup needed for helper files
-          return result;
-        } finally {
-          try {
-            if (existsSync(execPath)) unlinkSync(execPath);
-          } catch {
-            // Ignore cleanup errors
-          }
+          );
         }
-      } catch (compileError: unknown) {
-        const err = compileError as { stderr?: string; message: string };
-        result.error = `${mode.toUpperCase()} compile for execution failed: ${err.stderr || err.message}`;
-        // No cleanup needed for helper files
-        return result;
       }
     } else {
-      result.execSuccess = true; // No execution requested
+      // Compiled for its own target, in place, and not run: this machine is
+      // not that target
+      cells.push(
+        TestUtils.compileCell(
+          reported.name,
+          mode,
+          expectedImplPath,
+          helperImplFiles,
+          rootDir,
+          strict,
+          xfails,
+        ),
+      );
+      if (execution) {
+        result.skippedExec = true;
+        result.skipReason = "target";
+      }
+    }
+    result.cells = cells;
+
+    const host = cells.find((cell) => cell.target === TargetMatrix.HOST);
+    if (execution && host?.outcome === "xfail") {
+      result.skippedExec = true;
+      result.skipReason = "xfail";
     }
 
+    const failed = cells.find((cell) => cell.outcome === "failed");
+    if (failed !== undefined) {
+      result.error = failed.detail;
+      return result;
+    }
+    result.compileSuccess = true;
+    result.execSuccess = true;
     // No cleanup needed for helper files
     return result;
   }
@@ -1662,6 +2008,8 @@ class TestUtils {
 
       return TestUtils.runErrorTest(
         cnxFile,
+        source,
+        options,
         basePath,
         expectedErrorFile,
         updateMode,
@@ -1687,11 +2035,46 @@ class TestUtils {
     }
 
     // Aggregate results
-    return TestUtils.aggregateModeResults(
+    const aggregated = TestUtils.aggregateModeResults(
       modeResults,
       modes as TTestMode[],
       updateMode,
     );
+    return TestUtils.withStrayXfailCheck(aggregated, source);
+  }
+
+  /**
+   * A \`// test-target-xfail\` marker that matched no cell -- a target or mode
+   * the fixture never runs -- could never fail, so it would outlive its bug
+   * unseen. Checked across every mode at once: a per-mode check cannot see a
+   * marker for a mode that never runs.
+   */
+  private static withStrayXfailCheck(
+    result: ITestResult,
+    source: string,
+  ): ITestResult {
+    const cells = result.cells ?? [];
+    const xfails = TestUtils.targetXfails(source);
+    if (!result.passed || cells.length === 0 || typeof xfails === "string") {
+      return result;
+    }
+    const stray = xfails.find(
+      (xfail) =>
+        !cells.some(
+          (cell) =>
+            TestUtils.catalogName(cell.target) === xfail.target &&
+            (xfail.mode === undefined || cell.mode === xfail.mode),
+        ),
+    );
+    if (stray === undefined) {
+      return result;
+    }
+    const mode = stray.mode === undefined ? "" : ` ${stray.mode}`;
+    return {
+      ...result,
+      passed: false,
+      message: `\`// test-target-xfail: ${stray.target}${mode} #${stray.issue}\` names a cell this fixture does not run; remove the marker`,
+    };
   }
 
   /**
@@ -1856,6 +2239,8 @@ class TestUtils {
    */
   private static async runErrorTest(
     cnxFile: string,
+    source: string,
+    options: ITestOptions,
     basePath: string,
     expectedErrorFile: string,
     updateMode: boolean,
@@ -1901,7 +2286,7 @@ class TestUtils {
     // Transpile via CLI to check for errors. #1319: in the fixture's declared
     // mode -- a `// test-cpp-only` error fixture asserts an error that only
     // exists in C++, and running it as C now reports E0507 instead.
-    const result = transpileViaCli(cnxFile, rootDir, cppMode);
+    const result = transpileViaCli(cnxFile, cppMode);
 
     if (result.success) {
       // Issue #1316: --update must not resolve "a diagnostic was dropped" in
@@ -1960,6 +2345,18 @@ class TestUtils {
           renderDiagnostic(e, cnxFile),
       )
       .join("\n");
+
+    const dependent = TestUtils.targetDependentDiagnostics(
+      cnxFile,
+      source,
+      cppMode,
+      actualErrors,
+      rootDir,
+      options.targetMirrors,
+    );
+    if (dependent !== null) {
+      return { passed: false, message: dependent };
+    }
 
     if (updateMode) {
       writeFileSync(expectedErrorFile, actualErrors + "\n");
@@ -2045,6 +2442,7 @@ class TestUtils {
       skippedExec: anySkippedExec,
       skipReason,
       noSnapshot,
+      cells: results.flatMap((r) => r.cells ?? []),
     };
 
     if (!allPassed && firstFailure) {

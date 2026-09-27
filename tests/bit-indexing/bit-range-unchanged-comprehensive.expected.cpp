@@ -7,6 +7,7 @@
 #include <stdbool.h>
 
 // test-execution
+// test-target-xfail: atmega328p #1668
 // Tests: Writing to bit ranges must NOT affect other bits
 // Verifies correct mask generation for read-modify-write operations
 // Pattern: Start with all 1s, write 0s to a range, verify only target bits change

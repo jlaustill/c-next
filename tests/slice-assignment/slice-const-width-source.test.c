@@ -19,6 +19,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 // test-execution
+// test-target-xfail: atmega328p #1668
 // Issue #1085 review: a composite slice source whose bit-extraction width is a
 // CONST (b[0, WIDTH]) must type at the extracted width, exactly like the literal
 // form (b[0, 24]). Before the fix, bitExtractionWidth() only matched a literal

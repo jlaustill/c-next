@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 
+// test-target-xfail: atmega328p cpp #1767
 // Issue #1300 review: a public struct field's array dimension is the ONLY path
 // from the header to this private enum.
 //

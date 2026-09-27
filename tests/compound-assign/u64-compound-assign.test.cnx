@@ -1,4 +1,5 @@
 // test-execution
+// test-target-xfail: host cortex-m7 atmega328p #1062
 // Tests: u64 compound assignment operators
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage

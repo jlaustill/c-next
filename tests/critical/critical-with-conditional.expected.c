@@ -56,6 +56,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 // test-c-only
+// test-target-xfail: host atmega328p #1147
 // ADR-050: Critical section with conditional
 // Tests: if/else inside critical section
 uint32_t counter = 0U;

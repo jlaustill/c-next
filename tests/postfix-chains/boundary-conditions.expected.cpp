@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// test-target-xfail: atmega328p #1668
 // Postfix Chain Test: Boundary Conditions
 // Tests: Edge cases at type boundaries, max indices, etc.
 /* Scope: BoundaryTest */

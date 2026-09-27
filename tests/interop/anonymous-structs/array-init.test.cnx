@@ -1,5 +1,6 @@
 // test-cpp-only
 // test-execution
+// test-target-xfail: atmega328p #1767
 // Test: Array of structs with anonymous members
 #include "anon_types.h"
 

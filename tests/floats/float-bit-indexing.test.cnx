@@ -1,4 +1,5 @@
 // test-execution
+// test-target-xfail: atmega328p #1709
 // Tests: f32/f64 bit indexing read/write operations
 
 // Helper to build f32 from LE bytes (like the user's use case)

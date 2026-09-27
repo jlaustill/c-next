@@ -6,6 +6,7 @@
 #include "wide-bits.test.h"
 
 // test-execution
+// test-target-xfail: atmega328p #1668
 // #1668 review: a bit write takes its mask's width from the value it
 // writes, whatever that value's type is spelled. The width came from the
 // type NAME, which matched only `u64`/`i64`: a header's `uint64_t`, and a

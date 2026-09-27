@@ -1,14 +1,14 @@
-24:13 error[E0869]: Cannot assign u16 to u8 (narrowing)
+26:13 error[E0869]: Cannot assign u16 to u8 (narrowing)
        help: Use bit indexing to say which bits you mean: value[0, 8]
-25:14 error[E0869]: Cannot assign u32 to i32 (sign change)
+27:14 error[E0869]: Cannot assign u32 to i32 (sign change)
        help: Use bit indexing to reinterpret the bits explicitly: value[0, 32]
-26:13 error[E0869]: Cannot assign u32 to u8 (narrowing)
+28:13 error[E0869]: Cannot assign u32 to u8 (narrowing)
        help: Use bit indexing to say which bits you mean: value[0, 8]
-27:13 error[E0869]: Cannot assign u32 to u8 (narrowing)
+29:13 error[E0869]: Cannot assign u32 to u8 (narrowing)
        help: Use bit indexing to say which bits you mean: value[0, 8]
-28:13 error[E0869]: Cannot assign u16 to u8 (narrowing)
+30:13 error[E0869]: Cannot assign u16 to u8 (narrowing)
        help: Use bit indexing to say which bits you mean: value[0, 8]
-29:12 error[E0869]: Cannot assign u32 to i32 (sign change)
+31:12 error[E0869]: Cannot assign u32 to i32 (sign change)
        help: Use bit indexing to reinterpret the bits explicitly: value[0, 32]
-30:34 error[E0869]: Cannot assign u32 to u8 (narrowing)
+32:34 error[E0869]: Cannot assign u32 to u8 (narrowing)
        help: Use bit indexing to say which bits you mean: value[0, 8]

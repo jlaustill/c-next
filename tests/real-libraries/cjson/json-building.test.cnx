@@ -1,5 +1,6 @@
 // test-execution
 // test-link: cjson_api.c ../../libs/cJSON/cJSON.c
+// test-target-xfail: cortex-m7 atmega328p #1764
 // Tests: cJSON object/array construction through ADR-061 C boundary layer
 // Issue #931: Real-world library integration tests
 

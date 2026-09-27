@@ -26,6 +26,7 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a * (uint32_t)b);
 }
 
+// test-target-xfail: atmega328p #1668
 // ADR-004: Write-only register operations test
 // Tests: Valid write-only register bit operations with various index types
 // Coverage: Section 12 - Register Declaration (write-only bit access)

@@ -30,9 +30,9 @@ describe("TestOutcome.classify (Issue #1397)", () => {
     // for every skip, including the two that are transpile-only.
     expect(
       TestOutcome.classify(
-        resultWith({ passed: true, skippedExec: true, skipReason: "arm" }),
+        resultWith({ passed: true, skippedExec: true, skipReason: "target" }),
       ),
-    ).toEqual({ kind: "passed", execSkip: "arm" });
+    ).toEqual({ kind: "passed", execSkip: "target" });
 
     expect(
       TestOutcome.classify(

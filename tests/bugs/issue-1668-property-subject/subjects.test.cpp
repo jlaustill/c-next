@@ -5,6 +5,8 @@
 
 #include "subjects.test.hpp"
 
+#include "prop.h"
+
 // test-execution
 // #1668 review: a property measures the typer's type for the value it is
 // taken of, root or member alike -- what E0867 in 2.1 decides from too.
@@ -14,7 +16,7 @@
 // structs crashed or was measured at the wrong depth (2 bytes for a 6-byte
 // array); and a string array's `.bit_length` was one element's (ADR-058: an
 // array's is its whole storage).
-#include "prop.h"
+// Pinned: a C header integer's width is the target's (ADR-049), and a header `long` is 64 bits here.
 
 #include <stdint.h>
 #include <string.h>

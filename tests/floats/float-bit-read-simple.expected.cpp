@@ -9,6 +9,7 @@ static_assert(sizeof(float) == 4, "Float bit indexing requires 32-bit float");
 static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double");
 
 // test-execution
+// test-target-xfail: atmega328p #1709
 // Simple test for float bit read inside function
 int main(void) {
     float testVal = 1.0;

@@ -23,6 +23,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 
 // test-execution
 // test-adr: 001
+// test-target-xfail: atmega328p c #1765
 // ADR-001: `<-` assigns and `=` compares. Exercised in all four structural
 // contexts of the scope-context matrix, at include depth 0 (same file).
 //

@@ -3,6 +3,8 @@
 // #1668: E0869 types its source with the one operand typer, and a composite
 // by CompositeType -- the rule 2.2 sizes its clamp helper by -- and reads
 // every assignment site. Each assertion compiled at the parent.
+// Pinned: a C header integer's width is the target's (ADR-049), and its diagnostics name the host's widths.
+#pragma target host
 #include "c_ints.h"
 
 const u8 W <- 16;

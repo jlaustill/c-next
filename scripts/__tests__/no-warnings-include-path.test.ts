@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import TestUtils from "../test-utils";
+import TargetMatrix from "../TargetMatrix";
 
 // Precedent: scripts/__tests__/examples-transpile.test.ts. These cases shell
 // out to gcc, and a missing compiler surfaces through validateNoWarnings's
@@ -41,7 +42,14 @@ describe.skipIf(!gccAvailable)("TestUtils.validateNoWarnings", () => {
       "#include <helper.h>\n\nint entryValue(void) {\n    return helperValue();\n}\n",
     );
 
-    const result = TestUtils.validateNoWarnings(cFile, process.cwd(), "c");
+    const result = TestUtils.compileProgram(
+      cFile,
+      [],
+      process.cwd(),
+      "c",
+      TargetMatrix.hostToolchain(),
+      true,
+    );
 
     expect(result.valid).toBe(true);
   });
@@ -53,7 +61,14 @@ describe.skipIf(!gccAvailable)("TestUtils.validateNoWarnings", () => {
       "int withUnusedParam(int unusedValue) {\n    return 0;\n}\n",
     );
 
-    const result = TestUtils.validateNoWarnings(cFile, process.cwd(), "c");
+    const result = TestUtils.compileProgram(
+      cFile,
+      [],
+      process.cwd(),
+      "c",
+      TargetMatrix.hostToolchain(),
+      true,
+    );
 
     expect(result.valid).toBe(false);
     expect(result.message).toContain("unused parameter");
@@ -68,7 +83,14 @@ describe.skipIf(!gccAvailable)("TestUtils.validateNoWarnings", () => {
         "int withUnusedParam(int unusedValue) {\n    return helperValue();\n}\n",
     );
 
-    const result = TestUtils.validateNoWarnings(cFile, process.cwd(), "c");
+    const result = TestUtils.compileProgram(
+      cFile,
+      [],
+      process.cwd(),
+      "c",
+      TargetMatrix.hostToolchain(),
+      true,
+    );
 
     expect(result.valid).toBe(false);
     expect(result.message).toContain("unused parameter");
@@ -85,12 +107,24 @@ describe.skipIf(!gccAvailable)("TestUtils.validateNoWarnings", () => {
     );
 
     // The entry alone is clean, so this passes iff the helper is compiled too.
-    const entryOnly = TestUtils.validateNoWarnings(cFile, process.cwd(), "c");
+    const entryOnly = TestUtils.compileProgram(
+      cFile,
+      [],
+      process.cwd(),
+      "c",
+      TargetMatrix.hostToolchain(),
+      true,
+    );
     expect(entryOnly.valid).toBe(true);
 
-    const withHelper = TestUtils.validateNoWarnings(cFile, process.cwd(), "c", [
-      helperImpl,
-    ]);
+    const withHelper = TestUtils.compileProgram(
+      cFile,
+      [helperImpl],
+      process.cwd(),
+      "c",
+      TargetMatrix.hostToolchain(),
+      true,
+    );
 
     expect(withHelper.valid).toBe(false);
     expect(withHelper.message).toContain("unused parameter");
