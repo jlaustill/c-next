@@ -39,6 +39,8 @@ import EmissionPlan from "./2-Plan/EmissionPlan";
 import DeclarationPlan from "./2-Plan/DeclarationPlan";
 import CastRequirement from "./2-Plan/CastRequirement";
 import OperandTyper from "../utils/OperandTyper";
+import SubscriptClassifier from "../utils/SubscriptClassifier";
+import type TSubscriptKind from "../transpiler/types/TSubscriptKind";
 import PlanTyping from "./2-Plan/PlanTyping";
 import CompositeType from "../utils/CompositeType";
 import type IOperandType from "../transpiler/types/IOperandType";
@@ -567,7 +569,17 @@ class CodeGenWalker {
     // question from two representations behind a `"kind" in op` probe. Planning
     // is pure (it builds thunks and renders nothing), so doing it first costs
     // nothing and leaves the validator one branch and one shape.
-    const plannedOps = ops.map((op) => this.planPostfixOp(op));
+    //
+    // #1668 (S25): each subscript's kind is the one operand typer's, step by
+    // step. A `this.`/`global.` chain consumes its first `.name`, so the
+    // typer's steps are the op list's tail.
+    const typing = this.host.state.typingContext();
+    const steps =
+      typing === null ? [] : OperandTyper.chainOf(ctx, typing).steps;
+    const offset = ops.length - steps.length;
+    const plannedOps = ops.map((op, i) =>
+      this.planPostfixOp(op, steps[i - offset]?.subscript ?? null),
+    );
 
     return {
       rootIdentifier,
@@ -588,7 +600,10 @@ class CodeGenWalker {
   }
 
   /** Which of `postfixOp`'s three shapes this one is. */
-  private planPostfixOp(op: Parser.PostfixOpContext): TPlannedPostfixOp {
+  private planPostfixOp(
+    op: Parser.PostfixOpContext,
+    typedAs: TSubscriptKind | null,
+  ): TPlannedPostfixOp {
     const identifier = op.IDENTIFIER();
     if (identifier) {
       return { kind: "member", name: identifier.getText() };
@@ -610,6 +625,14 @@ class CodeGenWalker {
           widthExpr === undefined
             ? undefined
             : this.tryEvaluateConstant(widthExpr),
+        // An operand the typer cannot type takes the classifier's own
+        // default for an unknown type, which is what it always was.
+        typedAs:
+          typedAs ??
+          SubscriptClassifier.classify({
+            typeInfo: null,
+            subscriptCount: indexes.length,
+          }),
       };
     }
 

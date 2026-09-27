@@ -1011,6 +1011,25 @@ class OperandTyper {
       : dimensions;
   }
 
+  /**
+   * What the classifier is told about a subscripted value.
+   *
+   * ADR-024's "a subscript into a scalar is a bit index" is about integers
+   * whose bits C-Next can see, so a C or C++ header's scalar integer is one
+   * (S25). A header's value that is NOT an integer -- a struct, a C++ type
+   * with its own `operator[]` -- is left to C and C++: shown as unknown, so
+   * its subscript stays the element access it always was.
+   */
+  private static subscriptedShape(
+    t: IOperandType | null,
+  ): { isArray: boolean; isString: boolean } | null {
+    if (t === null) return null;
+    const isArray = t.dimensions.length > 0;
+    const isInteger = t.category === "signed" || t.category === "unsigned";
+    if (t.form.kind === "foreign" && !isArray && !isInteger) return null;
+    return { isArray, isString: t.stringCapacity !== null };
+  }
+
   private static subscriptOf(
     current: TChainValue,
     indices: Parser.ExpressionContext[],
@@ -1019,12 +1038,7 @@ class OperandTyper {
   ): { next: TChainValue; subscript: TSubscriptKind | null } {
     const t = current.k === "value" ? current.t : null;
     const subscript = SubscriptClassifier.classify({
-      typeInfo: t
-        ? {
-            isArray: t.dimensions.length > 0,
-            isString: t.stringCapacity !== null,
-          }
-        : null,
+      typeInfo: OperandTyper.subscriptedShape(t),
       subscriptCount: indices.length,
       isRegisterAccess: current.k === "value" && current.register,
     });

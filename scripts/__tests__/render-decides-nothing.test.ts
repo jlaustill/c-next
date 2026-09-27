@@ -273,7 +273,10 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
     "codegen/generators/declarationGenerators/RegisterBlockPlacement.ts",
   ],
   SubscriptClassifier: [
-    "codegen/generators/expressions/PostfixExpressionGenerator.ts",
+    // #1668 (S25): `PostfixExpressionGenerator` classified a subscript here
+    // from the type registry, which holds no C header variable. It reads the
+    // kind the plan carries now -- the one operand typer's, the answer 2.1's
+    // bit-access rules read -- so the consultation left render.
   ],
   SubscriptDepthValidator: [
     // #1445 box 3 split this decider's two entry points between two modules,

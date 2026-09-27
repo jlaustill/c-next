@@ -1,0 +1,22 @@
+// test-cpp-only
+// test-execution
+// test-adr: 024
+// #1668 (S25): only a C or C++ header's INTEGER is subscripted as bits. A C++
+// type with its own `operator[]` keeps its element access -- C-Next knows no
+// bit layout for it -- where typing it as a scalar made `sbuf[2]` a shift of
+// a struct, which C++ rejects.
+#include "cpp_index.hpp"
+
+u32 main() {
+    // NEGATIVE CONTROLS: the type's own operator[], and a field's array.
+    u8 a <- sbuf[2];
+    if (a != 7) return 1;
+    u8 c <- sbuf.data[3];
+    if (c != 8) return 2;
+
+    // ASSERTION: a header integer is bits in C++ too.
+    bool d <- cWord[4];
+    if (d != true) return 3;
+
+    return 0;
+}

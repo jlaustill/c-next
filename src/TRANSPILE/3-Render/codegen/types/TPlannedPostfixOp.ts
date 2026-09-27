@@ -1,4 +1,5 @@
 import type IPlannedCallArgument from "./IPlannedCallArgument";
+import type TSubscriptKind from "../../../../transpiler/types/TSubscriptKind";
 
 /**
  * One operation applied to a postfix expression's primary.
@@ -41,6 +42,13 @@ type TPlannedPostfixOp =
        * arm asks.
        */
       readonly foldWidth: () => number | undefined;
+      /**
+       * What this subscript IS -- an element, a slice, a bit, a bit range --
+       * as the one operand typer's chain classifies it (#1668). 2.1's
+       * bit-access rules read the same answer, so a C header's scalar
+       * integer is subscripted as bits (ADR-024) in both passes.
+       */
+      readonly typedAs: TSubscriptKind;
     }
   /**
    * `(args)`

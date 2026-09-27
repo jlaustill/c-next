@@ -1,0 +1,22 @@
+// test-execution
+// test-adr: 024
+// #1668 (S23): a composite's ADR-044 clamp helper counts a C header's
+// integer at its C type's width. Before, 2.2 skipped the foreign leaf and
+// sized the helper by `b` alone, so `b + cU32` saturated at u8's 255.
+#include "c_int.h"
+
+u32 main() {
+    u8 b <- 200;
+
+    u32 r <- b + cU32;
+    if (r != 70200) return 1;
+    u32 r16 <- b + cU16;
+    if (r16 != 1200) return 2;
+
+    // NEGATIVE CONTROL: a C-Next leaf of the same width was always counted.
+    u32 w <- 70000;
+    u32 rv <- b + w;
+    if (rv != 70200) return 3;
+
+    return 0;
+}

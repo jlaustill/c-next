@@ -1,0 +1,20 @@
+// test-execution
+// test-adr: 024
+// #1668 (S24): a C integer whose width is the C library's choice
+// (`uint_fast16_t`) cannot size an ADR-044 clamp helper, so the composite is
+// native C. Before, 2.2 skipped the foreign leaf and sized the helper by `b`
+// alone, so `b + cFast` saturated at u8's 255.
+#include "c_int.h"
+
+u32 main() {
+    u8 b <- 200;
+
+    u32 r <- b + cFast;
+    if (r != 1200) return 1;
+
+    // NEGATIVE CONTROL: a C integer of known width still gets its helper.
+    u32 r16 <- b + cU16;
+    if (r16 != 1200) return 2;
+
+    return 0;
+}

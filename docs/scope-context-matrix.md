@@ -153,6 +153,14 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | -      | -          | n/a         | n/a        |
 | scope method       | ok        | -      | -          | n/a         | n/a        |
 
+5 linked fixtures with no derivable context:
+
+- `bugs/issue-1668-c-integers/subscript-cpp.test.cnx`
+- `bugs/issue-1668-c-integers/subscript.test.cnx`
+- `bugs/issue-1668-c-integers/unknown-width.test.cnx`
+- `bugs/issue-1668-c-integers/width.test.cnx`
+- `bugs/issue-1668-suffixed-literals/width.test.cnx`
+
 ## ADR-025
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |

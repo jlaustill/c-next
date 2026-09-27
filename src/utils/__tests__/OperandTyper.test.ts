@@ -18,6 +18,8 @@ import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan"
 import testAnalysisContextFor from "../../TRANSPILE/1-Analyze/__tests__/testAnalysisContextFor";
 import type IOperandType from "../../transpiler/types/IOperandType";
 import type ITypingContext from "../../transpiler/types/ITypingContext";
+import type TSubscriptKind from "../../transpiler/types/TSubscriptKind";
+import ExpressionUnwrapper from "../ExpressionUnwrapper";
 
 /** Register a C symbol, as Stage 2 would from a header */
 function withC(
@@ -755,6 +757,60 @@ void main() {
     p.word[3] <- true;
 }`);
     expect(chain.steps.at(-1)?.subscript).toBe("bit_single");
+  });
+
+  describe("a subscript's kind on a C or C++ header's value (S25)", () => {
+    /** The subscript kind of `r`'s initializer, a postfix chain */
+    function subscriptOf(
+      body: string,
+      table: SymbolTable,
+    ): TSubscriptKind | null {
+      const { node, ctx } = initializerOf(inMain(body), "r", table);
+      const postfix = ExpressionUnwrapper.getPostfixExpression(node);
+      expect(postfix).not.toBeNull();
+      return (
+        OperandTyper.chainOf(postfix!, ctx).steps.at(-1)?.subscript ?? null
+      );
+    }
+
+    const c = header(`#include <stdint.h>
+extern uint32_t word;
+extern uint8_t buf[];
+extern uint8_t *ptr;
+extern float cf;
+typedef struct { uint8_t v; } pod_t;
+extern pod_t pod;`);
+
+    it.each([
+      [
+        "a scalar integer is bits (ADR-024)",
+        "bool r <- word[4];",
+        "bit_single",
+      ],
+      ["an unsized array is elements", "u8 r <- buf[3];", "array_element"],
+      ["a pointer is elements", "u8 r <- ptr[1];", "array_element"],
+      ["a float is left to C", "u8 r <- cf[1];", "array_element"],
+      ["a struct is left to C", "u8 r <- pod[1];", "array_element"],
+    ])("%s", (_why, body, expected) => {
+      expect(subscriptOf(body, c)).toBe(expected);
+    });
+
+    it("leaves a C++ type's own operator[] to C++", () => {
+      const cpp = header(
+        `#include <stdint.h>
+struct SBuf { uint8_t data[4]; uint8_t operator[](int i) const; };
+extern SBuf sbuf;`,
+        true,
+      );
+      expect(subscriptOf("u8 r <- sbuf[2];", cpp)).toBe("array_element");
+    });
+
+    it("keeps a C-Next scalar's subscript a bit", () => {
+      // The control: the header rule does not reach C-Next's own values
+      expect(
+        subscriptOf("u32 w <- 16;\nbool r <- w[4];", new SymbolTable()),
+      ).toBe("bit_single");
+    });
   });
 
   it("consumes a this. root's first member", () => {

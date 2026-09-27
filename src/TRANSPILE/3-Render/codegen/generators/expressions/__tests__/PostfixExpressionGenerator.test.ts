@@ -9,6 +9,7 @@
  * - Property access (.length, .capacity, .size)
  */
 
+import type TSubscriptKind from "../../../../../../transpiler/types/TSubscriptKind";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import generatePostfixExpression from "../PostfixExpressionGenerator";
 import type IPlannedPostfix from "../../../types/IPlannedPostfix";
@@ -243,6 +244,8 @@ function createMockExpression(text: string): { getText: () => string } {
 
 function createMockPostfixOp(options?: {
   identifier?: string;
+  /** #1668: the typer's kind for a subscript; the unknown-type default */
+  typedAs?: TSubscriptKind;
   expressions?: { getText: () => string }[];
   argumentList?: { expression: () => { getText: () => string }[] } | null;
 }): TPlannedPostfixOp {
@@ -259,6 +262,9 @@ function createMockPostfixOp(options?: {
       // Rebound by `runPostfix` to the orchestrator's `tryEvaluateConstant`,
       // which is where these cases configure the Issue #1094 fold.
       foldWidth: () => undefined,
+      typedAs:
+        options?.typedAs ??
+        (expressions.length === 2 ? "bit_range" : "array_element"),
       widthText: expressions[expressions.length - 1]?.getText(),
     } as TPlannedPostfixOp & { widthText?: string };
   }
@@ -1128,7 +1134,10 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("val", [
-        createMockPostfixOp({ expressions: [createMockExpression("3")] }),
+        createMockPostfixOp({
+          expressions: [createMockExpression("3")],
+          typedAs: "bit_single",
+        }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -1552,7 +1561,10 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("val", [
-        createMockPostfixOp({ expressions: [createMockExpression("3")] }),
+        createMockPostfixOp({
+          expressions: [createMockExpression("3")],
+          typedAs: "bit_single",
+        }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();

@@ -26,7 +26,6 @@ import BitRangeHelper from "../../helpers/BitRangeHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
-import SubscriptClassifier from "../../../../../utils/SubscriptClassifier";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
 import TYPE_WIDTH from "../../../../../transpiler/constants/TYPE_WIDTH";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
@@ -1705,14 +1704,8 @@ const handleSingleSubscript = (
     );
   }
 
-  // Default: classify subscript type
-  return handleDefaultSubscript(
-    ctx,
-    index,
-    identifierTypeInfo,
-    output,
-    orchestrator,
-  );
+  // Default: the subscript's kind as planned
+  return handleDefaultSubscript(ctx, index, output, orchestrator);
 };
 
 /**
@@ -1800,22 +1793,21 @@ const handlePrimaryArraySubscript = (
 };
 
 /**
- * Handle default subscript (classify and apply).
+ * Handle default subscript: a bit read or an element access, as planned.
+ *
+ * #1668 (S25): the kind is the one operand typer's (`typedAs`), the answer
+ * 2.1's bit-access rules read, so a C header's scalar integer reads a bit
+ * here as ADR-024 says. This used to classify from the type registry, which
+ * holds no C header variable, so `word[4]` became an element access on a
+ * scalar -- invalid C that the transpiler emitted with exit 0.
  */
 const handleDefaultSubscript = (
   ctx: ISubscriptAccessContext,
   index: string,
-  typeInfo: TTypeInfo | undefined,
   output: SubscriptAccessResult,
   orchestrator: IOrchestrator,
 ): SubscriptAccessResult => {
-  const subscriptKind = SubscriptClassifier.classify({
-    typeInfo: typeInfo ?? null,
-    subscriptCount: 1,
-    isRegisterAccess: false,
-  });
-
-  if (subscriptKind === "bit_single") {
+  if (ctx.subscript.typedAs === "bit_single") {
     output.result = singleBitRead(ctx.result, index, orchestrator);
   } else {
     output.result = `${ctx.result}[${index}]`;
