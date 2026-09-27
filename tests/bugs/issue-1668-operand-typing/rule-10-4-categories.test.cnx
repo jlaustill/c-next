@@ -21,6 +21,7 @@ void main() {
     // NEGATIVE CONTROLS -- no category, the same category, MISRA's exception.
     u32 ok1 <- a + 5;
     i32 ok2 <- s + 5i32;
+    i32 ok2r <- 5i32 + s;
     u32 ok3 <- a + 'A';
     bool ok4 <- ch = (u8)'A';
     bool ok5 <- c = Color.GREEN;
