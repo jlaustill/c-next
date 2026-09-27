@@ -24,7 +24,6 @@ import IAssignmentContext from "./types/IAssignmentContext";
 import IBitAccessAnalysis from "../../transpiler/types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../transpiler/types/TPlannedTargetOp";
 import type IChainBase from "./types/IChainBase";
-import type TTypeInfo from "../../transpiler/types/TTypeInfo";
 import type TranspileState from "../TranspileState";
 
 /**
@@ -56,7 +55,6 @@ interface IContextBuilderDeps {
   /** ADR-034: analyze the target's member chain for bit access */
   analyzeMemberChainForBitAccess(
     ctx: Parser.AssignmentTargetContext,
-    rootTypeInfo: TTypeInfo | undefined,
   ): IBitAccessAnalysis;
 
   /** Generate a subscript expression */
@@ -253,7 +251,7 @@ function buildAssignmentContext(
     state: deps.state,
     renderTarget: () => deps.generateAssignmentTarget(targetCtx),
     analyzeTargetForBitAccess: () =>
-      deps.analyzeMemberChainForBitAccess(targetCtx, deps.target.rootTypeInfo),
+      deps.analyzeMemberChainForBitAccess(targetCtx),
     targetLine: targetCtx.start?.line,
     hasValue: valueCtx !== null,
     valueExpressionType: () => deps.expressionType(valueCtx),

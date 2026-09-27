@@ -4651,13 +4651,15 @@ class CodeGenWalker {
    */
   analyzeMemberChainForBitAccess(
     targetCtx: Parser.AssignmentTargetContext,
-    rootTypeInfo: TTypeInfo | undefined,
   ): IBitAccessAnalysis {
+    // #1668 (C12): what the last subscript indexes is the typer's answer
+    const typing = this.host.state.typingContext();
     return MemberChainAnalyzer.analyze(
       targetCtx.IDENTIFIER()?.getText() ?? null,
-      rootTypeInfo,
+      typing === null
+        ? undefined
+        : OperandTyper.chainOf(targetCtx, typing).steps.at(-1),
       targetCtx.postfixTargetOp().map((op) => this.planTargetOp(op)),
-      this.host.state,
     );
   }
 
@@ -4770,8 +4772,8 @@ class CodeGenWalker {
       generatedValue: () => value,
       generateAssignmentTarget: (target) =>
         this.generateAssignmentTarget(target),
-      analyzeMemberChainForBitAccess: (target, rootTypeInfo) =>
-        this.analyzeMemberChainForBitAccess(target, rootTypeInfo),
+      analyzeMemberChainForBitAccess: (target) =>
+        this.analyzeMemberChainForBitAccess(target),
       generateExpression: (expr) => this.generateExpression(expr),
       tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
       expressionType: (expr) => this.directTypeOf(expr),

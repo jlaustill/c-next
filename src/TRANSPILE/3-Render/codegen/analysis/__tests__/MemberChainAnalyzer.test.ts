@@ -1,403 +1,135 @@
 /**
  * Unit tests for MemberChainAnalyzer
  *
- * Issue #644: Tests for the extracted member chain analyzer.
- * Updated to use unified postfixTargetOp grammar after consolidation.
- * Migrated to use TranspileState instead of constructor DI.
+ * #1668 (C12): whether a chain's final subscript writes a bit is the one
+ * operand typer's answer, read off the last step of the target's chain. So
+ * each case is a real declared and resolved program, typed as the walk types
+ * it, rather than render state set up by hand.
  *
- * #1445: the chain is `TPlannedTargetOp[]` now, so these build values rather
- * than mock parse contexts cast `as unknown as Parser.AssignmentTargetContext`
- * -- a cast that made the whole surface invisible to the type checker.
- *
- * The thunks also let a test assert something the callback version could not:
- * that a chain the walk rejects renders NO index. Rendering one queues a
- * pending temp declaration, so an eager version would leak one per rejected
- * chain.
+ * The ops' thunks let a test assert what an eager version could not: that a
+ * chain which is not a bit access renders NO index. Rendering one queues a
+ * pending temp declaration, so an eager version would leak one per chain.
  */
-
-import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
+import { ParseTreeWalker } from "antlr4ng";
+import { CNextListener } from "../../../../../PARSE/2-Parse/grammar/CNextListener";
+import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import MemberChainAnalyzer from "../MemberChainAnalyzer";
-import TranspileState from "../../../../TranspileState";
-import SymbolTable from "../../../../../PARSE/3-Declare/SymbolTable";
-import createMockSymbols from "../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import OperandTyper from "../../../../../utils/OperandTyper";
+import testAnalysisContextFor from "../../../../1-Analyze/__tests__/testAnalysisContextFor";
 import type TPlannedTargetOp from "../../../../../transpiler/types/TPlannedTargetOp";
+import type IBitAccessAnalysis from "../../../../../transpiler/types/IBitAccessAnalysis";
 
-/** A member access step: `.memberName` */
-function member(name: string): TPlannedTargetOp {
-  return { kind: "member", name };
+const DECLARATIONS = `
+struct Point {
+    u8 flags;
+    f32 x;
+    u8[4] arr;
 }
-
-/** A single-index subscript step: `[expr]` */
-function subscript(index: string): TPlannedTargetOp {
-  return { kind: "subscript", indexCount: 1, renderIndexes: () => [index] };
+struct Grid {
+    u8[10] items;
 }
+u8 value;
+Point point;
+Grid grid;
+Point[4] devices;
+u8[3][3] matrix;
+`;
 
-/** A bit-range step: `[start, width]` */
-function bitRange(start: string, width: string): TPlannedTargetOp {
-  return {
-    kind: "subscript",
-    indexCount: 2,
-    renderIndexes: () => [start, width],
-  };
-}
-
-let state = new TranspileState();
-
-/** #1668 (C7): each case's base declaration -- the caller passes its type */
-const declared = new Map<string, TTypeInfo>();
-function declare(name: string, info: TTypeInfo): void {
-  declared.set(name, info);
+/**
+ * The first assignment in `main`'s body, analyzed as the walk analyzes it:
+ * the typer's last step, and the ops planned from the target. `rendered`
+ * counts the index thunks that ran.
+ */
+function analyze(statement: string): {
+  result: IBitAccessAnalysis;
+  rendered: number;
+} {
+  const { tree, context } = testAnalysisContextFor(
+    `${DECLARATIONS}\nvoid main() {\n    ${statement}\n}`,
+  );
+  let target: Parser.AssignmentTargetContext | null = null;
+  ParseTreeWalker.DEFAULT.walk(
+    new (class extends CNextListener {
+      override enterAssignmentTarget = (
+        ctx: Parser.AssignmentTargetContext,
+      ): void => {
+        target ??= ctx;
+      };
+    })(),
+    tree,
+  );
+  expect(target).not.toBeNull();
+  const found = target!;
+  let rendered = 0;
+  const ops: TPlannedTargetOp[] = found.postfixTargetOp().map((op) => {
+    const name = op.IDENTIFIER();
+    if (name) return { kind: "member", name: name.getText() };
+    const indexes = op.expression();
+    return {
+      kind: "subscript",
+      indexCount: indexes.length,
+      renderIndexes: () => {
+        rendered += 1;
+        return indexes.map((index) => index.getText());
+      },
+    };
+  });
+  const result = MemberChainAnalyzer.analyze(
+    found.IDENTIFIER()?.getText() ?? null,
+    OperandTyper.chainOf(found, context).steps.at(-1),
+    ops,
+  );
+  return { result, rendered };
 }
 
 describe("MemberChainAnalyzer", () => {
-  beforeEach(() => {
-    declared.clear();
-    state = new TranspileState();
-  });
-
-  /** A base identifier and the chain applied to it. */
-  function createTarget(
-    baseName: string | null,
-    ops: TPlannedTargetOp[],
-  ): { baseName: string | null; ops: TPlannedTargetOp[] } {
-    return { baseName, ops };
-  }
-
-  /**
-   * Helper to set up struct fields in state.symbolTable
-   * Issue #831: SymbolTable is now the single source of truth for struct fields
-   */
-  function setupStructFields(
-    structName: string,
-    fields: Map<string, string>,
-    arrayFields: Set<string> = new Set(),
-  ): void {
-    // Initialize symbolTable if not set
-    if (!state.symbolTable) {
-      state.symbolTable = new SymbolTable();
-    }
-
-    // Register struct fields in SymbolTable
-    for (const [fieldName, fieldType] of fields) {
-      const isArray = arrayFields.has(fieldName);
-      state.symbolTable.addStructField(
-        structName,
-        fieldName,
-        fieldType,
-        isArray ? [10] : undefined, // Use realistic dimension for arrays
-      );
-    }
-
-    // Also mark struct as known (for isKnownStruct checks).
-    // #1445: this wrote out all 23 fields of ICodeGenSymbols by hand, a copy
-    // of `createMockSymbols` that a new field would have broken silently.
-    state.symbols ??= createMockSymbols({});
-    (state.symbols.knownStructs as Set<string>).add(structName);
-  }
-
   describe("analyze", () => {
     it("returns isBitAccess false when no base identifier", () => {
-      const target = createTarget(null, []);
-      const result = MemberChainAnalyzer.analyze(
-        target.baseName,
-        target.baseName === null ? undefined : declared.get(target.baseName),
-        target.ops,
-        state,
-      );
-      expect(result.isBitAccess).toBe(false);
-    });
-
-    it("returns isBitAccess false when no postfix operations", () => {
-      const target = createTarget("x", []);
-      const result = MemberChainAnalyzer.analyze(
-        target.baseName,
-        target.baseName === null ? undefined : declared.get(target.baseName),
-        target.ops,
-        state,
-      );
-      expect(result.isBitAccess).toBe(false);
-    });
-
-    it("returns isBitAccess false when last op is member access", () => {
-      // point.flags (no subscript at end)
-      declare("point", {
-        baseType: "Point",
-        bitWidth: 0,
-        isArray: false,
-        isConst: false,
+      expect(MemberChainAnalyzer.analyze(null, undefined, [])).toEqual({
+        isBitAccess: false,
       });
-      const pointFields = new Map<string, string>();
-      pointFields.set("flags", "u8");
-      setupStructFields("Point", pointFields);
-
-      const target = createTarget("point", [member("flags")]);
-      const result = MemberChainAnalyzer.analyze(
-        target.baseName,
-        target.baseName === null ? undefined : declared.get(target.baseName),
-        target.ops,
-        state,
-      );
-      expect(result.isBitAccess).toBe(false);
     });
 
-    it("returns isBitAccess false when last subscript has 2 expressions (bit range)", () => {
-      // flags[0, 8] - bit range, not single bit access
-      declare("flags", {
-        baseType: "u32",
-        bitWidth: 32,
-        isArray: false,
-        isConst: false,
-      });
-
-      const target = createTarget("flags", [bitRange("0", "8")]);
-      const result = MemberChainAnalyzer.analyze(
-        target.baseName,
-        target.baseName === null ? undefined : declared.get(target.baseName),
-        target.ops,
-        state,
-      );
-      expect(result.isBitAccess).toBe(false);
+    it.each([
+      ["no postfix operations", "value <- 1;"],
+      ["a member as the last op", "point.flags <- 1;"],
+      ["a bit range, which is another handler's", "point.flags[0, 4] <- 1;"],
+      ["an element of an array field", "grid.items[0] <- 1;"],
+      ["a non-integer member", "point.x[0] <- true;"],
+      ["a 2D array element", "matrix[0][1] <- 1;"],
+    ])("is not a bit access: %s", (_why, statement) => {
+      expect(analyze(statement).result).toEqual({ isBitAccess: false });
     });
 
-    it("detects bit access on struct member: point.flags[3]", () => {
-      // Setup: struct Point { u8 flags; }
-      const pointFields = new Map<string, string>();
-      pointFields.set("flags", "u8");
-      setupStructFields("Point", pointFields);
-
-      declare("point", {
-        baseType: "Point",
-        bitWidth: 0,
-        isArray: false,
-        isConst: false,
-      });
-
-      const target = createTarget("point", [member("flags"), subscript("3")]);
-
-      const result = MemberChainAnalyzer.analyze(
-        target.baseName,
-        target.baseName === null ? undefined : declared.get(target.baseName),
-        target.ops,
-        state,
-      );
-
-      expect(result.isBitAccess).toBe(true);
-      expect(result.baseTarget).toBe("point.flags");
-      expect(result.bitIndex).toBe("3");
-      expect(result.baseType).toBe("u8");
-    });
-
-    it("returns false for subscript on array member: grid.items[0]", () => {
-      // Setup: struct Grid { u8 items[10]; }
-      const gridFields = new Map<string, string>();
-      gridFields.set("items", "u8");
-      setupStructFields("Grid", gridFields, new Set(["items"]));
-
-      declare("grid", {
-        baseType: "Grid",
-        bitWidth: 0,
-        isArray: false,
-        isConst: false,
-      });
-
-      const target = createTarget("grid", [member("items"), subscript("0")]);
-
-      const result = MemberChainAnalyzer.analyze(
-        target.baseName,
-        target.baseName === null ? undefined : declared.get(target.baseName),
-        target.ops,
-        state,
-      );
-
-      // items is an array, so [0] is array access, not bit access
-      expect(result.isBitAccess).toBe(false);
-    });
-
-    it("returns false for non-integer member: point.name[0]", () => {
-      // Setup: struct Point { string name; }
-      const pointFields = new Map<string, string>();
-      pointFields.set("name", "string");
-      setupStructFields("Point", pointFields);
-
-      declare("point", {
-        baseType: "Point",
-        bitWidth: 0,
-        isArray: false,
-        isConst: false,
-      });
-
-      const target = createTarget("point", [member("name"), subscript("0")]);
-
-      const result = MemberChainAnalyzer.analyze(
-        target.baseName,
-        target.baseName === null ? undefined : declared.get(target.baseName),
-        target.ops,
-        state,
-      );
-
-      // name is a string, not an integer, so no bit access
-      expect(result.isBitAccess).toBe(false);
-    });
-
-    it("detects bit access through array-of-structs: devices[0].flags[7]", () => {
-      // Setup: struct Device { u8 flags; }, Device devices[4];
-      const deviceFields = new Map<string, string>();
-      deviceFields.set("flags", "u8");
-      setupStructFields("Device", deviceFields);
-
-      declare("devices", {
-        baseType: "Device",
-        bitWidth: 0,
-        isArray: true,
-        isConst: false,
-        arrayDimensions: [4],
-      });
-
-      const target = createTarget("devices", [
-        subscript("0"),
-        member("flags"),
-        subscript("7"),
-      ]);
-
-      const result = MemberChainAnalyzer.analyze(
-        target.baseName,
-        target.baseName === null ? undefined : declared.get(target.baseName),
-        target.ops,
-        state,
-      );
-
-      expect(result.isBitAccess).toBe(true);
-      expect(result.baseTarget).toBe("devices[0].flags");
-      expect(result.bitIndex).toBe("7");
-      expect(result.baseType).toBe("u8");
-    });
-
-    it("returns false for 2D array element: matrix[0][1]", () => {
-      // matrix[0][1] is array access, not bit access
-      declare("matrix", {
+    it.each([
+      ["a struct member", "point.flags[3] <- true;", "point.flags", "3"],
+      [
+        "an array of structs' member",
+        "devices[0].flags[7] <- true;",
+        "devices[0].flags",
+        "7",
+      ],
+      ["a 2D array element", "matrix[0][1][3] <- true;", "matrix[0][1]", "3"],
+      // The write path counted an array field's subscripts itself and got
+      // this one wrong: `s.arr[1][3] = true;`, which C rejects
+      [
+        "an array field's element (#1668, C12)",
+        "point.arr[1][3] <- true;",
+        "point.arr[1]",
+        "3",
+      ],
+    ])("is a bit access: %s", (_why, statement, baseTarget, bitIndex) => {
+      expect(analyze(statement).result).toEqual({
+        isBitAccess: true,
+        baseTarget,
+        bitIndex,
         baseType: "u8",
-        bitWidth: 8,
-        isArray: true,
-        isConst: false,
-        arrayDimensions: [4, 4],
       });
-
-      const target = createTarget("matrix", [subscript("0"), subscript("1")]);
-
-      const result = MemberChainAnalyzer.analyze(
-        target.baseName,
-        target.baseName === null ? undefined : declared.get(target.baseName),
-        target.ops,
-        state,
-      );
-
-      // This is 2D array access, not bit access
-      expect(result.isBitAccess).toBe(false);
     });
 
-    it("detects bit access on 2D array element: matrix[0][1][3]", () => {
-      // matrix[0][1][3] where matrix is u8[4][4]
-      // The third subscript [3] is bit access on the u8 element
-      declare("matrix", {
-        baseType: "u8",
-        bitWidth: 8,
-        isArray: true,
-        isConst: false,
-        arrayDimensions: [4, 4],
-      });
-
-      const target = createTarget("matrix", [
-        subscript("0"),
-        subscript("1"),
-        subscript("3"),
-      ]);
-
-      const result = MemberChainAnalyzer.analyze(
-        target.baseName,
-        target.baseName === null ? undefined : declared.get(target.baseName),
-        target.ops,
-        state,
-      );
-
-      expect(result.isBitAccess).toBe(true);
-      expect(result.baseTarget).toBe("matrix[0][1]");
-      expect(result.bitIndex).toBe("3");
-      expect(result.baseType).toBe("u8");
-    });
-
-    it("returns false for unknown base variable", () => {
-      // unknownVar.field[0] - unknownVar not in typeRegistry
-      const target = createTarget("unknownVar", [
-        member("field"),
-        subscript("0"),
-      ]);
-
-      const result = MemberChainAnalyzer.analyze(
-        target.baseName,
-        target.baseName === null ? undefined : declared.get(target.baseName),
-        target.ops,
-        state,
-      );
-
-      expect(result.isBitAccess).toBe(false);
-    });
-
-    /**
-     * The laziness, asserted rather than commented. Rendering an index queues
-     * a pending temp declaration in some shapes, so a chain the walk rejects
-     * must render nothing -- and most chains are rejected.
-     */
     it("renders no index for a chain that is not bit access", () => {
-      declare("matrix", {
-        baseType: "u8",
-        bitWidth: 8,
-        isArray: true,
-        isConst: false,
-        arrayDimensions: [4, 4],
-      });
-
-      let rendered = 0;
-      const counting = (index: string): TPlannedTargetOp => ({
-        kind: "subscript",
-        indexCount: 1,
-        renderIndexes: () => {
-          rendered += 1;
-          return [index];
-        },
-      });
-
-      // matrix[0][1] is 2D array access, so the walk rejects it.
-      const result = MemberChainAnalyzer.analyze(
-        "matrix",
-        declared.get("matrix"),
-        [counting("0"), counting("1")],
-        state,
-      );
-
-      expect(result.isBitAccess).toBe(false);
-      expect(rendered).toBe(0);
-    });
-
-    it("returns false for member access on non-struct", () => {
-      // x.field[0] where x is a primitive
-      declare("x", {
-        baseType: "u32",
-        bitWidth: 32,
-        isArray: false,
-        isConst: false,
-      });
-
-      const target = createTarget("x", [member("field"), subscript("0")]);
-
-      const result = MemberChainAnalyzer.analyze(
-        target.baseName,
-        target.baseName === null ? undefined : declared.get(target.baseName),
-        target.ops,
-        state,
-      );
-
-      expect(result.isBitAccess).toBe(false);
+      expect(analyze("grid.items[0] <- 1;").rendered).toBe(0);
     });
   });
 });
