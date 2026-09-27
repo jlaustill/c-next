@@ -1,0 +1,27 @@
+// test-error
+// #1668: E0428 types its target and value with the one operand typer and
+// reads every assignment site. Before, an assignment in a `for` header was
+// never checked (#1726), so `m <- 5` there compiled.
+enum Mode {
+    IDLE,
+    RUN
+}
+
+void main() {
+    Mode m <- Mode.IDLE;
+
+    // NEGATIVE CONTROLS -- a member in a `for` update, and bare members in
+    // a ternary whose position names the enum.
+    for (u32 i <- 0; i < 3; m <- Mode.RUN) {
+        i +<- 1;
+    }
+    Mode ok <- (m = Mode.IDLE) ? IDLE : RUN;
+
+    // ASSERTIONS
+    for (u32 j <- 0; j < 3; m <- 5) {
+        j +<- 1;
+    }
+    for (m <- 1; m != Mode.RUN; m <- Mode.RUN) {
+        m <- Mode.RUN;
+    }
+}

@@ -8,6 +8,7 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import OperandTyper from "../OperandTyper";
+import QualifiedCName from "../QualifiedCName";
 import HeaderParser from "../../PARSE/2-Parse/HeaderParser";
 import CResolver from "../../PARSE/3-Declare/c/index";
 import CppResolver from "../../PARSE/3-Declare/cpp/index";
@@ -181,6 +182,20 @@ void f() {
       typeOf(inMain("volatile u8 a <- 1;\nu8 r <- a;"))?.hasSideEffect,
     ).toBe(true);
     expect(typeOf(inMain("u8 a <- 1;\nu8 r <- a;"))?.hasSideEffect).toBe(false);
+  });
+});
+
+describe("OperandTyper.typeOfWritten (#1668)", () => {
+  it.each([
+    ["this.T inside its scope", "this.EMode", ["Motor", "EMode"]],
+    ["a bare T inside its scope", "EMode", ["Motor", "EMode"]],
+    ["global.T", "global.EMode", ["EMode"]],
+    ["Scope.T", "Motor.EMode", ["Motor", "EMode"]],
+  ])("types a cast to %s by 1.3's one ladder", (_why, written, parts) => {
+    const source = `enum EMode { A, B }\nscope Motor {\nenum EMode { C, D }\npublic void f() {\nu8 x <- 1;\nu8 r <- (${written})x;\n}\n}`;
+    const t = typeOf(source);
+    expect(t?.category).toBe("enum");
+    expect(t?.enumTypeName).toBe(QualifiedCName.fromParts(parts));
   });
 });
 

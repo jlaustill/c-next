@@ -25,6 +25,7 @@ import QualifiedCName from "./QualifiedCName";
 import ScopeUtils from "./ScopeUtils";
 import SubscriptClassifier from "./SubscriptClassifier";
 import TypeResolver from "./TypeResolver";
+import TypeBinding from "../PARSE/3-Declare/TypeBinding";
 import type IChainStep from "../transpiler/types/IChainStep";
 import type IChainTyping from "../transpiler/types/IChainTyping";
 import type IOperandType from "../transpiler/types/IOperandType";
@@ -472,7 +473,7 @@ class OperandTyper {
   ): IOperandType | null {
     const operand = node.unaryExpression();
     const inner = operand ? OperandTyper.typeOf(operand, ctx) : null;
-    const target = OperandTyper.namedType(
+    const target = OperandTyper.typeOfWritten(
       node.type(),
       ctx,
       ParserUtils.getPosition(node),
@@ -487,8 +488,13 @@ class OperandTyper {
     };
   }
 
-  /** A written type, as a cast names it */
-  private static namedType(
+  /**
+   * A written type -- a cast's, a declaration's -- resolved by 1.3's one
+   * ladder (`TypeBinding`), so `this.T`, `global.T`, `Scope.T` and a bare `T`
+   * name what they name everywhere else; qualifying the source text by hand
+   * read `this.EMode` as a type called `this_EMode`.
+   */
+  static typeOfWritten(
     typeCtx: Parser.TypeContext,
     ctx: ITypingContext,
     at: { line: number; column: number },
@@ -501,29 +507,21 @@ class OperandTyper {
         ctx,
       );
     }
-    const text = typeCtx.getText();
-    const scopePath = ctx.program.lexicalFrameAt(ctx.sourceFile, at).scopePath;
     const symbols = ctx.symbols;
-    const qualified = ScopeUtils.qualifyScopeType(
-      text,
-      scopePath,
-      (name) =>
-        symbols.knownEnums.has(name) ||
-        symbols.knownStructs.has(name) ||
-        symbols.knownBitmaps.has(name),
+    const known = (name: string): boolean =>
+      symbols.knownEnums.has(name) ||
+      symbols.knownStructs.has(name) ||
+      symbols.knownBitmaps.has(name);
+    const cName = TypeBinding.resolveNamedType(
+      typeCtx,
+      ctx.program.lexicalFrameAt(ctx.sourceFile, at).scopePath,
+      { isScopeType: known },
     );
-    const cName = qualified.includes(".")
-      ? QualifiedCName.fromParts(qualified.split("."))
-      : qualified;
-    if (
-      symbols.knownEnums.has(cName) ||
-      symbols.knownBitmaps.has(cName) ||
-      symbols.knownStructs.has(cName)
-    ) {
+    if (cName !== null && known(cName)) {
       return OperandTyper.fromType({ kind: "struct", name: cName }, [], ctx);
     }
     return ForeignTypeFacts.operandType(
-      text,
+      typeCtx.getText(),
       ctx.symbolTable,
       OperandTyper.target(ctx),
     );

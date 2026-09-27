@@ -76,7 +76,7 @@ class BareEnumMemberListener extends CNextListener {
   ) {
     super();
     this.types = new OperandTypeResolver(scopes, context);
-    this.values = new EnumValueResolver(scopes, context);
+    this.values = new EnumValueResolver(context);
   }
 
   public errors(): IBareEnumMemberError[] {
@@ -133,7 +133,9 @@ class BareEnumMemberListener extends CNextListener {
    */
   private expectedEnum(node: ParserRuleContext, frame: IScopeFrame): TExpected {
     const text = this.expectedTypeText(node, frame);
-    return text === null ? null : this.values.enumTypeNameFor(text, frame);
+    return text === null
+      ? null
+      : this.values.enumTypeNameFor(text, frame.scopePath);
   }
 
   /**

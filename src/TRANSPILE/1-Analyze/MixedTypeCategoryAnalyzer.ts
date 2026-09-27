@@ -49,6 +49,7 @@ import IMixedTypeCategoryError from "./types/IMixedTypeCategoryError";
 import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import BooleanOperandAnalyzer from "./BooleanOperandAnalyzer";
+import EnumValueResolver from "./EnumValueResolver";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -74,10 +75,14 @@ const NOT_RULE_10_4_ASSIGNMENTS: ReadonlySet<string> = new Set([
 const CHARACTER_ARITHMETIC: ReadonlySet<string> = new Set(["+", "+<-"]);
 
 class MixedCategoryCheck {
+  private readonly enums: EnumValueResolver;
+
   constructor(
     private readonly analyzer: MixedTypeCategoryAnalyzer,
     private readonly context: IAnalysisContext,
-  ) {}
+  ) {
+    this.enums = new EnumValueResolver(context);
+  }
 
   /**
    * An operand's Rule 10.4 category, or null when it has none. The policy
@@ -121,6 +126,7 @@ class MixedCategoryCheck {
   ): void {
     const parent = operands[0]?.parent;
     for (let i = 0; i < operands.length - 1; i += 1) {
+      if (this.enumComparison(operands[i], operands[i + 1], level)) continue;
       const left = this.operandCategory(operands[i]);
       const right = this.operandCategory(operands[i + 1]);
       if (MixedCategoryCheck.ownedElsewhere(left, right, level)) continue;
@@ -133,22 +139,35 @@ class MixedCategoryCheck {
   }
 
   /**
-   * Whether another rule reports this pair, so that one defect has one code:
-   * ADR-017 a comparison with an enum operand (E0434, with its own message),
-   * and Rule 10.1 a Boolean operand anywhere it admits none (E0806/E0807).
+   * Whether ADR-017 reports this pair (E0434, with its own message), so that
+   * one defect has one code. Asked of E0434's own reading, so the two cannot
+   * disagree about what is a C-Next enum: a header's enum is not one there,
+   * and its comparison with an integer is this rule's mix.
+   */
+  private enumComparison(
+    left: ParserRuleContext,
+    right: ParserRuleContext,
+    level: TBinaryOperatorLevel,
+  ): boolean {
+    if (level !== "equality" && level !== "relational") return false;
+    return (
+      this.enums.classify(left).kind === "enum" ||
+      this.enums.classify(right).kind === "enum"
+    );
+  }
+
+  /**
+   * Whether Rule 10.1 reports this pair: a Boolean operand anywhere it admits
+   * none (E0806/E0807), so that one defect has one code.
    */
   private static ownedElsewhere(
     left: Category,
     right: Category,
     level: TBinaryOperatorLevel | "compound",
   ): boolean {
-    const either = (is: (c: string) => boolean) =>
-      (left !== null && is(left)) || (right !== null && is(right));
-    const comparison = level === "equality" || level === "relational";
-    if (comparison && either((c) => c.startsWith("enum:"))) return true;
     return (
       !BooleanOperandAnalyzer.admitsBoolean(level) &&
-      either((c) => c === "boolean")
+      (left === "boolean" || right === "boolean")
     );
   }
 

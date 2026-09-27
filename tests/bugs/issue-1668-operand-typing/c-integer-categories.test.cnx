@@ -20,4 +20,8 @@ void main() {
     u32 e3 <- a + cSensor;
     u32 e4 <- a + cs.v;
     u32 e5 <- a + cColor;
+    // A header enum is not a C-Next enum to ADR-017, so E0434 does not own
+    // this comparison and Rule 10.4 does; E0810 once deferred it to E0434,
+    // which never fired.
+    bool e6 <- a = cColor;
 }

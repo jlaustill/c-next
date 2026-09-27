@@ -7,10 +7,13 @@
  * and silently accepted everything else, which is why a bool, an f32, a
  * non-enum call and `1 + 1` were all assignable to an enum.
  *
- * Here the question is asked of the parse tree and of declared types, so the
- * answer is total: every expression is an enum of a named type, an integer, a
- * value of some other resolvable type, or unresolvable. Only the last is passed
- * over, and only because reporting an unresolvable name is E0427's job.
+ * Here the question is asked of the one operand typer (#1668), so the answer
+ * is total: every expression is an enum of a named type, an integer, a value
+ * of some other resolvable type, or unresolvable. Only the last is passed
+ * over, and only because reporting an unresolvable name is E0427's job. This
+ * class is the ADR-017 reading of the typer's facts, and decides nothing the
+ * typer decides: a cast is the type it names, `Scope.Enum.MEMBER` is an enum
+ * member however it is qualified, and a C enum is an enum.
  */
 
 import { ParserRuleContext, ParseTree } from "antlr4ng";
@@ -19,12 +22,10 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeCandidates from "./helpers/ScopeCandidates";
 import ScopeUtils from "../../utils/ScopeUtils";
-import TypeCheckUtils from "../../utils/TypeCheckUtils";
-import IScopeFrame from "./types/IScopeFrame";
-import OperandTypeResolver from "./OperandTypeResolver";
-import ScopeFrameResolver from "./ScopeFrameResolver";
+import OperandTyper from "../../utils/OperandTyper";
 import TChainRoot from "../../transpiler/types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import type IOperandType from "../../transpiler/types/IOperandType";
 import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
 
 /** An expression's kind, as ADR-017's rules need to see it. */
@@ -38,62 +39,63 @@ const UNRESOLVED: TValueKind = { kind: "unresolved" };
 const INTEGER: TValueKind = { kind: "integer" };
 const OTHER: TValueKind = { kind: "other" };
 
-/** A decimal, hex or binary integer literal, as the lexer produces it. */
-const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
-
 class EnumValueResolver {
-  private readonly types: OperandTypeResolver;
+  public constructor(private readonly context: IAnalysisContext) {}
 
-  public constructor(
-    scopes: ScopeFrameResolver,
-    private readonly context: IAnalysisContext,
-  ) {
-    this.types = new OperandTypeResolver(scopes, context);
+  public classify(ctx: ParserRuleContext): TValueKind {
+    return EnumValueResolver.kindOf(OperandTyper.typeOf(ctx, this.context));
   }
 
-  public classify(ctx: ParserRuleContext, frame: IScopeFrame): TValueKind {
-    const node = EnumValueResolver.descend(ctx);
-
-    // A cast states its own type, and ADR-017 makes the cast the SANCTIONED
-    // way to cross between an enum and an integer. Typing it by what is inside
-    // the parentheses would reject `(State)1`, which the language allows.
-    if (node instanceof Parser.CastExpressionContext) {
-      return this.ofTypeName(node.type().getText(), frame);
+  /**
+   * An operand type, read as one of the kinds above. An unsuffixed integer
+   * literal is an integer here, though it has no essential category of its
+   * own, and so is arithmetic whose every leaf is one: `1 + 1` folds to `2`
+   * in a later pass, which is why ADR-017's `s <- 1;` must catch it here.
+   */
+  public static kindOf(t: IOperandType | null): TValueKind {
+    if (t === null) return UNRESOLVED;
+    // A ternary is its arms' kind when they agree; a bare member arm, legal
+    // where the position names the enum, binds to nothing and so is unresolved
+    if (t.form.kind === "ternary") {
+      const [whenTrue, whenFalse] = t.form.arms.map((arm) =>
+        EnumValueResolver.kindOf(arm),
+      );
+      if (whenTrue.kind === "unresolved" || whenFalse.kind === "unresolved") {
+        return UNRESOLVED;
+      }
+      const agree =
+        whenTrue.kind === whenFalse.kind &&
+        (whenTrue.kind !== "enum" ||
+          (whenFalse.kind === "enum" &&
+            whenTrue.typeName === whenFalse.typeName));
+      return agree ? whenTrue : OTHER;
     }
-
-    if (node instanceof Parser.PrimaryExpressionContext) {
-      const inner = node.expression();
-      if (inner) return this.classify(inner, frame);
+    // ADR-017 governs C-Next enums; a header's enum is enum-category to Rule
+    // 10.4 (E0810) but has no C-Next enum type here (it carries no
+    // `enumTypeName`), which is why E0810 asks this reading what E0434 owns
+    if (t.category === "enum" && t.enumTypeName !== null) {
+      return { kind: "enum", typeName: t.enumTypeName };
     }
-
-    // An enum MEMBER access names a type that no declaration carries, so it is
-    // recognized structurally before the declared-type resolver is asked.
-    const member = this.enumOfMemberAccess(node, frame);
-    if (member !== null) return { kind: "enum", typeName: member };
-
-    // Asked of the ORIGINAL node, not the descended one: `typeOfOperand` does
-    // its own descent and reads the levels on the way down. Handing it a bare
-    // terminal instead loses the postfix level that carries the name, which is
-    // how the first version of this resolved every plain variable to nothing.
-    const declared = this.types.typeOfOperand(ctx, frame);
-    if (declared !== null) return this.ofTypeName(declared, frame);
-
-    const text = node.getText();
-    if (INTEGER_LITERAL.test(text)) return INTEGER;
-    if (text === "true" || text === "false") return OTHER;
-
-    // A multi-operand arithmetic level has no declared type, but if every
-    // operand is an integer the level is one. This is what makes `1 + 1`
-    // reachable: the codegen check matched the source text against a pattern for a bare literal,
-    // and folding to `2` happens afterwards, in a later pass.
-    if (
-      node instanceof ParserRuleContext &&
-      EnumValueResolver.isArithmetic(node) &&
-      this.everyOperandIsInteger(node, frame)
-    ) {
-      return INTEGER;
+    if (EnumValueResolver.isInteger(t)) return INTEGER;
+    if (t.form.kind === "composite") {
+      const leaves = t.form.leaves;
+      if (
+        leaves.length > 0 &&
+        leaves.every(
+          (leaf) => EnumValueResolver.kindOf(leaf).kind === "integer",
+        )
+      ) {
+        return INTEGER;
+      }
+      if (leaves.some((leaf) => leaf === null)) return UNRESOLVED;
     }
-    return UNRESOLVED;
+    return OTHER;
+  }
+
+  private static isInteger(t: IOperandType): boolean {
+    if (t.dimensions.length > 0) return false;
+    if (t.category === "signed" || t.category === "unsigned") return true;
+    return t.form.kind === "literal" && t.form.literal === "integer";
   }
 
   /**
@@ -137,7 +139,7 @@ class EnumValueResolver {
    * enum", the rule inverted: it reported every correct assignment inside a
    * scope as a non-enum value. Twelve fixtures caught it.
    */
-  public enumTypeNameFor(written: string, frame: IScopeFrame): string | null {
+  public enumTypeNameFor(written: string, scopePath: string): string | null {
     let path = written;
     // `global.` states FILE scope, so it both names no component and forbids
     // qualifying by the enclosing scope. `this.` states the enclosing scope and
@@ -164,7 +166,7 @@ class EnumValueResolver {
     // ADR-057's order: the enclosing scope first, then file scope.
     const candidates = ScopeCandidates.forRoot(
       rooted,
-      ScopeUtils.qualifyInScope(transpiled, frame.scopePath),
+      ScopeUtils.qualifyInScope(transpiled, scopePath),
       [transpiled, path],
     );
 
@@ -173,88 +175,6 @@ class EnumValueResolver {
         return candidate;
     }
     return null;
-  }
-
-  /** A resolved type name, read as one of the kinds above. */
-  private ofTypeName(typeName: string, frame: IScopeFrame): TValueKind {
-    const enumName = this.enumTypeNameFor(typeName, frame);
-    if (enumName !== null) return { kind: "enum", typeName: enumName };
-    if (TypeCheckUtils.isInteger(typeName)) return INTEGER;
-    return OTHER;
-  }
-
-  /**
-   * The enum type an enum-member access names, or null.
-   *
-   * The components come from the postfix chain rather than from splitting the
-   * text, so `Motor.State.IDLE` is three named steps and not three substrings.
-   * The LAST step is the member; everything before it names the enum, which is
-   * why the join stops one short.
-   */
-  private enumOfMemberAccess(
-    node: ParseTree,
-    frame: IScopeFrame,
-  ): string | null {
-    if (!(node instanceof Parser.PostfixExpressionContext)) return null;
-
-    const primary = node.primaryExpression();
-    if (!primary) return null;
-
-    const ops = node.postfixOp();
-    const parts: string[] = [];
-    let rootIsThis = false;
-
-    if (primary.THIS()) {
-      rootIsThis = true;
-    } else if (primary.GLOBAL()) {
-      // `global.` states file scope; it names no component of the type.
-    } else {
-      const identifier = primary.IDENTIFIER()?.getText();
-      if (!identifier) return null;
-      parts.push(identifier);
-    }
-
-    for (const op of ops) {
-      // A subscript or a call is not part of a member path.
-      if (op.LBRACKET() !== null || op.DOT() === null) return null;
-      const name = op.IDENTIFIER()?.getText();
-      if (!name) return null;
-      parts.push(name);
-    }
-
-    // The last component is the member, so at least one has to precede it.
-    if (parts.length < 2) return null;
-
-    // Handed to the SAME normalizer a declared type goes through, so
-    // `this.EMode.OFF`, `global.EGlobal.A`, `Motor.State.IDLE` and a bare
-    // `B.c` inside `B`'s own scope all arrive at the one name `knownEnums`
-    // holds. Resolving member access separately is what let a scope-local
-    // `B.c` read as "not an enum" while `B` was a perfectly good enum.
-    const written = (rootIsThis ? "this." : "") + parts.slice(0, -1).join(".");
-    return this.enumTypeNameFor(written, frame);
-  }
-
-  private everyOperandIsInteger(
-    node: ParserRuleContext,
-    frame: IScopeFrame,
-  ): boolean {
-    const operands: ParserRuleContext[] = [];
-    for (let index = 0; index < node.getChildCount(); index += 1) {
-      const child = node.getChild(index);
-      if (child instanceof ParserRuleContext) operands.push(child);
-    }
-    if (operands.length < 2) return false;
-    return operands.every(
-      (operand) => this.classify(operand, frame).kind === "integer",
-    );
-  }
-
-  /** Arithmetic levels, where an all-integer operand list makes the level one. */
-  private static isArithmetic(node: ParserRuleContext): boolean {
-    return (
-      node instanceof Parser.AdditiveExpressionContext ||
-      node instanceof Parser.MultiplicativeExpressionContext
-    );
   }
 
   /** Descend through pass-through levels that carry exactly one child. */
