@@ -1,6 +1,9 @@
 import type SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import type TCSymbol from "../transpiler/types/symbols/c/TCSymbol";
 import type TCppSymbol from "../transpiler/types/symbols/cpp/TCppSymbol";
+import type IForeignSymbolLookup from "../transpiler/types/IForeignSymbolLookup";
+import type IOperandType from "../transpiler/types/IOperandType";
+import type ITargetDescription from "../transpiler/types/ITargetDescription";
 
 /**
  * What C-Next may read of a C or C++ header symbol's type.
@@ -135,6 +138,289 @@ class ForeignTypeFacts {
       type = ForeignTypeFacts.unqualified(typedef.type);
     }
     return null;
+  }
+
+  /**
+   * #1668 (R4): a C or C++ value's operand type, from its declared spelling
+   * and the run's target.
+   *
+   * The spelling is matched against the C types the language knows at EVERY
+   * hop of the typedef walk, before the typedef is followed. Headers are
+   * preprocessed with a toolchain chosen independently of the target, so
+   * `uint32_t -> __uint32_t -> unsigned int` would otherwise take `int`'s
+   * width from the wrong platform; the fixed-width name is fixed.
+   *
+   * - integers: category from the C type, width from `target` (the
+   *   `intN_t` family is always N; `int_fastN_t` and `intmax_t` are the C
+   *   library's choice, so their width is unknown);
+   * - `char` is character, `_Bool`/`bool` Boolean, a C or C++ enum enum;
+   * - `float`/`double`/`long double` floating, at the target's widths;
+   * - a struct keeps its name, for field access;
+   * - an array keeps its dimensions whatever its element (#978), so a
+   *   subscript on it stays element access; a pointer is untyped.
+   *
+   * @param dimensions the declaration's array dimensions, if it is an array
+   */
+  static operandType(
+    cType: string,
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+    dimensions: ReadonlyArray<number | string> = [],
+  ): IOperandType | null {
+    const walked = ForeignTypeFacts.elementOf(cType, lookup, target);
+    const element = walked?.element ?? null;
+    // The declaration's own dimensions lead: `vec3 gv[2]` is `float[2][3]`
+    const allDimensions = [...dimensions, ...(walked?.dimensions ?? [])];
+    if (element === null && allDimensions.length === 0) {
+      return null;
+    }
+    return {
+      typeName: null,
+      category: "none",
+      bitWidth: null,
+      ...element,
+      dimensions: allDimensions,
+      stringCapacity: null,
+      enumTypeName: null,
+      bitmapTypeName: null,
+      overflow: null,
+      hasSideEffect: false,
+      form: { kind: "foreign", indeterminate: false },
+      binding: null,
+    };
+  }
+
+  /** A C variable (C first, then C++): `name` as a header declares it */
+  static variableOperand(
+    name: string,
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+  ): IOperandType | null {
+    const symbol = lookup.getCSymbol(name) ?? lookup.getCppSymbol(name);
+    if (symbol?.kind !== "variable" || !symbol.type) return null;
+    return ForeignTypeFacts.operandType(
+      symbol.type,
+      lookup,
+      target,
+      symbol.isArray ? (symbol.arrayDimensions ?? [""]) : [],
+    );
+  }
+
+  /** A field of a C struct */
+  static fieldOperand(
+    structName: string,
+    field: string,
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+  ): IOperandType | null {
+    const info = lookup.getStructFieldInfo(structName, field);
+    if (!info?.type) return null;
+    return ForeignTypeFacts.operandType(
+      info.type,
+      lookup,
+      target,
+      info.arrayDimensions ?? [],
+    );
+  }
+
+  /**
+   * The result of calling a C function or a C++ function (by its `::` key).
+   * A C++ overload set whose return categories disagree is indeterminate:
+   * which one the call selects is C++'s overload resolution, not ours.
+   */
+  static callOperand(
+    name: string,
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+  ): IOperandType | null {
+    const cFunction = lookup.getCSymbol(name);
+    const returns =
+      cFunction?.kind === "function"
+        ? [cFunction.type]
+        : lookup
+            .getCppOverloads(name)
+            .filter((symbol) => symbol.kind === "function")
+            .map((symbol) => ("type" in symbol ? symbol.type : undefined));
+    const results = returns.map((type) =>
+      type ? ForeignTypeFacts.operandType(type, lookup, target) : null,
+    );
+    if (results.length === 0) return null;
+    const first = results[0];
+    const agree = results.every(
+      (result) =>
+        result?.category === first?.category &&
+        result?.typeName === first?.typeName,
+    );
+    if (!agree) {
+      return {
+        ...ForeignTypeFacts.UNTYPED,
+        hasSideEffect: true,
+        form: { kind: "foreign", indeterminate: true },
+      };
+    }
+    return first ? { ...first, hasSideEffect: true } : null;
+  }
+
+  private static readonly UNTYPED: IOperandType = {
+    typeName: null,
+    dimensions: [],
+    category: "none",
+    bitWidth: null,
+    stringCapacity: null,
+    enumTypeName: null,
+    bitmapTypeName: null,
+    overflow: null,
+    hasSideEffect: false,
+    form: { kind: "foreign", indeterminate: false },
+    binding: null,
+  };
+
+  /**
+   * The element type a spelling denotes, walking typedefs spelling-first, and
+   * the array dimensions the typedefs it passed through add.
+   */
+  private static elementOf(
+    cType: string,
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+  ): {
+    element: Pick<IOperandType, "typeName" | "category" | "bitWidth"> | null;
+    dimensions: Array<number | string>;
+  } | null {
+    const dimensions: Array<number | string> = [];
+    const found = (
+      element: Pick<IOperandType, "typeName" | "category" | "bitWidth"> | null,
+    ) => ({ element, dimensions });
+    let type = ForeignTypeFacts.spellingOf(cType);
+    for (let hop = 0; hop < ForeignTypeFacts.MAX_TYPEDEF_HOPS; hop += 1) {
+      if (type.includes("*") || type.includes("&")) {
+        return dimensions.length > 0 ? found(null) : null;
+      }
+      const known = ForeignTypeFacts.knownSpelling(type, target);
+      if (known !== undefined) return found(known);
+      if (type.startsWith("enum ") || ForeignTypeFacts.isEnum(lookup, type)) {
+        return found({
+          typeName: type.replace(/^enum /, ""),
+          category: "enum",
+          bitWidth: null,
+        });
+      }
+      const tag = type.replace(/^struct /, "");
+      if (lookup.isTypedefStructType(tag) || lookup.getStructFields(tag)) {
+        return found({ typeName: tag, category: "none", bitWidth: null });
+      }
+      const typedef = lookup.getCSymbol(type) ?? lookup.getCppSymbol(type);
+      if (typedef?.kind !== "type" || !typedef.type) {
+        return dimensions.length > 0 ? found(null) : null;
+      }
+      if ("arrayDimensions" in typedef && typedef.arrayDimensions) {
+        dimensions.push(...typedef.arrayDimensions);
+      }
+      type = ForeignTypeFacts.spellingOf(typedef.type);
+    }
+    return null;
+  }
+
+  private static isEnum(lookup: IForeignSymbolLookup, type: string): boolean {
+    return (
+      lookup.getCSymbol(type)?.kind === "enum" ||
+      lookup.getCppSymbol(type)?.kind === "enum"
+    );
+  }
+
+  /** Qualifiers and a leading `std::` or `::` removed, blanks collapsed */
+  private static spellingOf(cType: string): string {
+    return ForeignTypeFacts.unqualified(cType).replace(/^(?:std)?::/, "");
+  }
+
+  /**
+   * The C types the language knows by name, or undefined for any other
+   * spelling. A known name with no width on this target (no target, or the C
+   * library's choice) keeps its category and gives a null width.
+   */
+  private static knownSpelling(
+    type: string,
+    target: ITargetDescription | null,
+  ): Pick<IOperandType, "typeName" | "category" | "bitWidth"> | undefined {
+    const fixed = /^(u?)int(?:_least)?(8|16|32|64)_t$/.exec(type);
+    if (fixed) {
+      return ForeignTypeFacts.integer(fixed[1] === "u", Number(fixed[2]));
+    }
+    if (/^u?int_fast(?:8|16|32|64)_t$|^u?intmax_t$/.test(type)) {
+      return ForeignTypeFacts.integer(type.startsWith("u"), null);
+    }
+    switch (type) {
+      case "size_t":
+        return ForeignTypeFacts.integer(true, target?.size_t_bits ?? null);
+      case "ptrdiff_t":
+      case "intptr_t":
+        return ForeignTypeFacts.integer(false, target?.pointer_bits ?? null);
+      case "uintptr_t":
+        return ForeignTypeFacts.integer(true, target?.pointer_bits ?? null);
+      case "char":
+        return { typeName: "char", category: "character", bitWidth: 8 };
+      case "_Bool":
+      case "bool":
+        return { typeName: "bool", category: "boolean", bitWidth: null };
+      case "float":
+        return ForeignTypeFacts.floating(target?.float_bits ?? 32);
+      case "double":
+        return ForeignTypeFacts.floating(target?.double_bits ?? 64);
+      case "long double":
+        return ForeignTypeFacts.floating(target?.long_double_bits ?? null);
+    }
+    return ForeignTypeFacts.standardInteger(type, target);
+  }
+
+  /** `signed char`, `unsigned`, `long long int` and the rest of C's integers */
+  private static standardInteger(
+    type: string,
+    target: ITargetDescription | null,
+  ): Pick<IOperandType, "typeName" | "category" | "bitWidth"> | undefined {
+    const words = type.split(" ");
+    const allowed = new Set([
+      "signed",
+      "unsigned",
+      "short",
+      "long",
+      "int",
+      "char",
+    ]);
+    if (!words.every((word) => allowed.has(word))) return undefined;
+    const isUnsigned = words.includes("unsigned");
+    if (words.includes("char")) {
+      return words.length === 2
+        ? ForeignTypeFacts.integer(isUnsigned, 8)
+        : undefined;
+    }
+    const longs = words.filter((word) => word === "long").length;
+    let width: number | null | undefined = target?.int_bits;
+    if (words.includes("short")) width = target?.short_bits;
+    if (longs === 1) width = target?.long_bits;
+    if (longs === 2) width = target?.long_long_bits;
+    return ForeignTypeFacts.integer(isUnsigned, width ?? null);
+  }
+
+  private static integer(
+    isUnsigned: boolean,
+    width: number | null,
+  ): Pick<IOperandType, "typeName" | "category" | "bitWidth"> {
+    const sized = width !== null && [8, 16, 32, 64].includes(width);
+    return {
+      typeName: sized ? `${isUnsigned ? "u" : "i"}${width}` : null,
+      category: isUnsigned ? "unsigned" : "signed",
+      bitWidth: width,
+    };
+  }
+
+  private static floating(
+    width: number | null,
+  ): Pick<IOperandType, "typeName" | "category" | "bitWidth"> {
+    return {
+      typeName: width === 32 || width === 64 ? `f${width}` : null,
+      category: "floating",
+      bitWidth: null,
+    };
   }
 
   private static unqualified(cType: string): string {

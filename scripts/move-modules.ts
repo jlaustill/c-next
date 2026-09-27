@@ -830,6 +830,38 @@ const MOVES: readonly IMove[] = [
       "today and by the one operand typer in `utils/` next, so it is exactly " +
       "the kind of type this directory holds.",
   },
+  {
+    from: "src/TRANSPILE/2-Plan/TSubscriptKind.ts",
+    to: "src/transpiler/types/TSubscriptKind.ts",
+    because:
+      "#1668 (unified operand typing, C3). `IChainStep` is a shared contract " +
+      "and names the subscript kind, and `shared-contracts-cannot-import-a-pass` " +
+      "forbids `transpiler/types/` reaching `2-Plan/`. A leaf union.",
+  },
+  {
+    from: "src/TRANSPILE/2-Plan/SubscriptClassifier.ts",
+    to: "src/utils/SubscriptClassifier.ts",
+    because:
+      "#1668 (C3). The one element-or-bit decision, now asked by the one " +
+      "operand typer in `utils/` for 2.1 and 2.2 alike; `analyze-cannot-" +
+      "import-plan` forbids 2.1 reaching it in `2-Plan/`. It imports only " +
+      "`TSubscriptKind` and `TTypeInfo`, both shared contracts.",
+  },
+  {
+    from: "src/TRANSPILE/1-Analyze/helpers/ChainRoot.ts",
+    to: "src/utils/ChainRoot.ts",
+    because:
+      "#1668 (C3). Reading a chain's root off a node is what the operand " +
+      "typer does first, for 2.1 and 2.2 alike, and `render-cannot-import-" +
+      "analyzers` forbids 2.2/2.3 reaching `1-Analyze/`.",
+  },
+  {
+    from: "src/TRANSPILE/2-Plan/__tests__/SubscriptClassifier.test.ts",
+    to: "src/utils/__tests__/SubscriptClassifier.test.ts",
+    because:
+      "#1668 (C3). Follows its module, so the test sits in the `__tests__` " +
+      "beside what it tests.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */

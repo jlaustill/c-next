@@ -29,13 +29,13 @@ one.
 
 | Layer                   | Modules |
 | ----------------------- | ------: |
-| `src/TRANSPILE/`        |      67 |
+| `src/TRANSPILE/`        |      66 |
 | `src/PARSE/`            |      19 |
-| `src/utils/`            |      10 |
+| `src/utils/`            |      12 |
 | `src/transpiler/`       |       3 |
 | `src/transpiler/types/` |       2 |
 | `src/transpiler/logic/` |       1 |
-| **total**               | **102** |
+| **total**               | **103** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -89,7 +89,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/1-Analyze/FunctionCallAnalyzer.ts`               | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/GrammarCoverageListener.ts`            | antlr4ng          |
 | `src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts`         | grammar           |
-| `src/TRANSPILE/1-Analyze/helpers/ChainRoot.ts`                  | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/helpers/ConstantExpression.ts`         | grammar           |
 | `src/TRANSPILE/1-Analyze/helpers/EnclosingFunction.ts`          | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/helpers/FunctionReference.ts`          | grammar           |
@@ -141,11 +140,13 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/ast/AssignmentTargetExtractor.ts`                    | grammar           |
 | `src/utils/ast/ChildStatementCollector.ts`                      | grammar           |
 | `src/utils/ast/StatementExpressionCollector.ts`                 | grammar           |
+| `src/utils/ChainRoot.ts`                                        | antlr4ng, grammar |
 | `src/utils/ExpressionUnwrapper.ts`                              | grammar           |
 | `src/utils/ExpressionUtils.ts`                                  | grammar           |
 | `src/utils/LiteralUtils.ts`                                     | grammar           |
+| `src/utils/OperandTyper.ts`                                     | antlr4ng, grammar |
 | `src/utils/OverflowBehaviorUtils.ts`                            | grammar           |
 | `src/utils/ParserUtils.ts`                                      | antlr4ng, grammar |
 | `src/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-102 module(s).
+103 module(s).

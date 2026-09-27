@@ -32,7 +32,7 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import ChainRoot from "./helpers/ChainRoot";
+import ChainRoot from "../../utils/ChainRoot";
 import EnclosingFunction from "./helpers/EnclosingFunction";
 import TypeText from "./helpers/TypeText";
 import IDeclaredVar from "./types/IDeclaredVar";

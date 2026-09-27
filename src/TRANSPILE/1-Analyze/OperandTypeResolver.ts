@@ -35,7 +35,7 @@ import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
-import ChainRoot from "./helpers/ChainRoot";
+import ChainRoot from "../../utils/ChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import StructFieldFacts from "../../utils/StructFieldFacts";
 

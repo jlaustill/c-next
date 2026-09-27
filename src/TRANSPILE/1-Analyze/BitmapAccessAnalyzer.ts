@@ -30,7 +30,7 @@ import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import PROPERTY_NAMES from "./helpers/PROPERTY_NAMES";
-import ChainRoot from "./helpers/ChainRoot";
+import ChainRoot from "../../utils/ChainRoot";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import IBitmapAccessError from "./types/IBitmapAccessError";
 import ScopeFrameResolver from "./ScopeFrameResolver";

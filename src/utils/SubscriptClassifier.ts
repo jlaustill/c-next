@@ -30,15 +30,15 @@
  * use explicit array syntax (`u8[N] buf`), which was already the ADR-006
  * documented and supported spelling — see tests/params/param-array-indexing.test.cnx.
  */
-import TSubscriptKind from "./TSubscriptKind";
-import TTypeInfo from "../../transpiler/types/TTypeInfo";
+import TSubscriptKind from "../transpiler/types/TSubscriptKind";
+import TTypeInfo from "../transpiler/types/TTypeInfo";
 
 /**
  * Context needed for subscript classification
  */
 interface ISubscriptContext {
   /** Type information for the variable being subscripted, null if unknown */
-  typeInfo: TTypeInfo | null;
+  typeInfo: Pick<TTypeInfo, "isArray" | "isString"> | null;
   /** Number of subscript expressions (1 for single index, 2 for range/slice) */
   subscriptCount: number;
   /** Whether this is a register access (registers always use bit manipulation) */
@@ -95,7 +95,9 @@ class SubscriptClassifier {
    * @param typeInfo - Type information, or null if unknown
    * @returns true if subscript should be treated as array access
    */
-  static isArrayAccess(typeInfo: TTypeInfo | null): boolean {
+  static isArrayAccess(
+    typeInfo: Pick<TTypeInfo, "isArray" | "isString"> | null,
+  ): boolean {
     if (!typeInfo) {
       // Unknown type - default to array access for safety
       // This matches the expression path's fallback behavior

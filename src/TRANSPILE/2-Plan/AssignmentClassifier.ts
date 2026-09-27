@@ -9,7 +9,7 @@
  */
 import AssignmentKind from "../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "./types/IAssignmentContext";
-import SubscriptClassifier from "./SubscriptClassifier";
+import SubscriptClassifier from "../../utils/SubscriptClassifier";
 import SubscriptDepthValidator from "./SubscriptDepthValidator";
 import TTypeInfo from "../../transpiler/types/TTypeInfo";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";

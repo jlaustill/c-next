@@ -26,7 +26,7 @@ import BitRangeHelper from "../../helpers/BitRangeHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
-import SubscriptClassifier from "../../../../2-Plan/SubscriptClassifier";
+import SubscriptClassifier from "../../../../../utils/SubscriptClassifier";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
 import TYPE_WIDTH from "../../../../../transpiler/constants/TYPE_WIDTH";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";

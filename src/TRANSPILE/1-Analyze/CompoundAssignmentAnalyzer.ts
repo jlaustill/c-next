@@ -36,7 +36,7 @@ import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ICompoundAssignmentError from "./types/ICompoundAssignmentError";
-import ChainRoot from "./helpers/ChainRoot";
+import ChainRoot from "../../utils/ChainRoot";
 import StructFieldFacts from "../../utils/StructFieldFacts";
 import type IAnalysisContext from "./types/IAnalysisContext";
 

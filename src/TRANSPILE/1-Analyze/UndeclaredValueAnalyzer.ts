@@ -34,7 +34,7 @@ import { ParserRuleContext, ParseTreeWalker, TerminalNode } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import BUILTIN_TYPE_NAMES from "../../transpiler/constants/BUILTIN_TYPE_NAMES";
-import ChainRoot from "./helpers/ChainRoot";
+import ChainRoot from "../../utils/ChainRoot";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import IScopeFrame from "./types/IScopeFrame";

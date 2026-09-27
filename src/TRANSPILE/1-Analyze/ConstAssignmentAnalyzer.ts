@@ -33,7 +33,7 @@ import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
 import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import ChainRoot from "./helpers/ChainRoot";
+import ChainRoot from "../../utils/ChainRoot";
 import EnclosingFunction from "./helpers/EnclosingFunction";
 import FunctionReference from "./helpers/FunctionReference";
 import SafeDivision from "./helpers/SafeDivision";

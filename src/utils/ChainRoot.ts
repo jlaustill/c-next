@@ -14,8 +14,8 @@
  */
 
 import { TerminalNode } from "antlr4ng";
-import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
-import TChainRoot from "../../../transpiler/types/TChainRoot";
+import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
+import TChainRoot from "../transpiler/types/TChainRoot";
 
 class ChainRoot {
   /** The root a postfix expression starts from. */

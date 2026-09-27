@@ -273,8 +273,20 @@ class CResolver {
 
       if (ctx.isTypedef) {
         const typedefType = CResolver.buildTypedefType(baseType, declarator);
+        // An array typedef (`typedef float vec3[3]`) keeps its dimensions;
+        // a pointer or function-pointer typedef has none to keep
+        const arrayDimensions =
+          typedefType === baseType && declarator
+            ? DeclaratorUtils.extractArrayDimensions(declarator)
+            : [];
         ctx.symbols.push(
-          TypedefCollector.collect(name, typedefType, ctx.sourceFile, ctx.span),
+          TypedefCollector.collect(
+            name,
+            typedefType,
+            ctx.sourceFile,
+            ctx.span,
+            arrayDimensions,
+          ),
         );
       } else if (isFunction) {
         ctx.symbols.push(
