@@ -84,15 +84,11 @@ class LengthPropertyListener extends CNextListener {
       return;
     }
 
-    // A property name is only a property when it names nothing else. A scope
-    // variable may be called `length` (#212), and `this.length` then reads it
-    // -- so if the WHOLE chain resolves to a declared type, the last step was
-    // a member access and no property rule applies. Asked for every name in
-    // the set, not just `length`: `capacity` is as ordinary an identifier.
-    if (OperandTyper.typeOf(ctx, this.context) !== null) return;
-
     // The subject is the chain WITHOUT the property step: the typer's last
     // step is the property, and what it applies to is that step's `before`.
+    // A scope variable may be called `length` (#212): `this.length` binds
+    // the member at the chain's root, so there is no property step and no
+    // subject, and no property rule applies.
     const subject =
       OperandTyper.chainOf(ctx, this.context).steps.at(-1)?.before ?? null;
     if (subject === null) return; // unresolved -- another diagnostic's to report
