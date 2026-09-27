@@ -14,13 +14,39 @@
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import generateCast from "../CastExprGenerator";
 import TranspileState from "../../../../../TranspileState";
+import CastRequirement from "../../../../../2-Plan/CastRequirement";
+import type IPlannedCast from "../../../types/IPlannedCast";
 
+/** The plan's saturation decision, asked of the one function that makes it */
+const clampFormOf = (
+  operandType: string | null,
+  targetTypeName: string,
+  helper: boolean,
+): IPlannedCast["clampForm"] => {
+  if (!CastRequirement.requiresClamping(operandType, targetTypeName)) {
+    return null;
+  }
+  return helper ? "helper" : "inline";
+};
+
+/**
+ * A plan as 2.2 builds it. Whether the cast saturates is the plan's decision,
+ * asked of the one function that makes it; `helper` states the side-effect
+ * half, which the plan reads off the operand typer (#1668).
+ */
 const plan = (
   targetType: string,
   targetTypeName: string,
   operandCode: string,
   operandType: string | null,
-) => ({ targetType, targetTypeName, operandCode, operandType });
+  helper = false,
+): IPlannedCast => ({
+  targetType,
+  targetTypeName,
+  operandCode,
+  operandType,
+  clampForm: clampFormOf(operandType, targetTypeName, helper),
+});
 
 describe("CastExprGenerator", () => {
   let state = new TranspileState();
@@ -106,6 +132,24 @@ describe("CastExprGenerator", () => {
       expect(generateCast(plan("bool", "bool", "f", "f32"), state)).toBe(
         "(bool)f",
       );
+    });
+  });
+
+  describe("a side-effecting operand (#1668)", () => {
+    it("calls the single-evaluation helper, and records it", () => {
+      const code = generateCast(
+        plan("uint8_t", "u8", "produce()", "f32", true),
+        state,
+      );
+      expect(code).toBe("cnx_cast_sat_f32_u8(produce())");
+      expect([...state.usedCastHelpers]).toEqual(["f32_u8"]);
+      expect(state.needsLimits).toBe(true);
+    });
+
+    it("inlines the bounded ternary for a pure operand, recording nothing", () => {
+      const code = generateCast(plan("uint8_t", "u8", "x", "f32"), state);
+      expect(code.startsWith("((x) > ")).toBe(true);
+      expect(state.usedCastHelpers.size).toBe(0);
     });
   });
 });

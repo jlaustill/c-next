@@ -366,6 +366,17 @@ void main() {
     expect(OperandTyper.isBoolean(t)).toBe(false);
   });
 
+  it("gives an element read the side effect of its index (#1668, C26)", () => {
+    const decls =
+      "u32 calls <- 0;\nf32[4] arr;\nu32 nextIndex() { calls +<- 1; return 0; }\n";
+    const called = typeOf(
+      `${decls}void main() {\nf32 r <- arr[nextIndex()];\n}`,
+    );
+    expect(called?.hasSideEffect).toBe(true);
+    const pure = typeOf(`${decls}void main() {\nf32 r <- arr[0];\n}`);
+    expect(pure?.hasSideEffect).toBe(false);
+  });
+
   it("types a string field as a string, not an array of its C buffer", () => {
     const struct = "struct Config {\nstring<32> name;\nstring<8>[4] tags;\n}\n";
     const name = typeOf(

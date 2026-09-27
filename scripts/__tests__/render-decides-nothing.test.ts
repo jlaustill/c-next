@@ -231,9 +231,9 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
   CastRequirement: [
     // #1445 box 3 slice 38: `CodeGenerator` consulted this inline while
     // walking a cast; the render half moved to `CastExprGenerator` and the
-    // consultation went with it. The site changed, the edge did not -- which
-    // is exactly the event this table exists to make visible in a diff.
-    "codegen/generators/expressions/CastExprGenerator.ts",
+    // consultation went with it. #1668 (C5) then moved the decision itself
+    // into the plan: `IPlannedCast.clampForm` says whether and how a cast
+    // saturates, so `CastExprGenerator` reads the plan and consults nothing.
     "codegen/helpers/NarrowingCastHelper.ts",
   ],
   ComplianceAnnotations: [

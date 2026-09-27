@@ -10,6 +10,9 @@
  */
 import TYPE_MAP from "../../types/TYPE_MAP";
 import OverflowHelperTemplates from "./OverflowHelperTemplates";
+import SaturatingCast from "../../helpers/SaturatingCast";
+import CppModeHelper from "../../helpers/CppModeHelper";
+import ReservedCnxName from "../../../../../utils/ReservedCnxName";
 import ToolchainRequirements from "../../../../../instrumentation/ToolchainRequirements";
 
 /**
@@ -138,10 +141,51 @@ const generateSafeDivHelpers = (
   return lines;
 };
 
+/**
+ * #1668: the single-evaluation saturating casts a file calls, one per
+ * source/target pair (`"f32_u8"`). Each body is ADR-024's bounded ternary,
+ * from the one shape `SaturatingCast` writes, over its parameter -- which is
+ * the operand, evaluated once, at the call.
+ */
+const generateCastHelpers = (
+  keys: readonly string[],
+  cppMode: boolean,
+): string[] => {
+  if (keys.length === 0) return [];
+  const cast = (type: string, expr: string): string =>
+    CppModeHelper.castIn(cppMode, type, expr);
+  const lines: string[] = [
+    "/* ADR-024 / #1668: a saturating float-to-integer cast whose operand has a side effect -- a",
+    "   call, or a volatile or atomic read -- calls one of these, so the operand is evaluated once.",
+    "   The inline bounded ternary reads its operand up to three times, repeating the side effect. */",
+    "",
+  ];
+  for (const key of keys) {
+    const [sourceType, targetType] = key.split("_");
+    const cType = TYPE_MAP[targetType];
+    const body = SaturatingCast.expression(
+      "value",
+      sourceType,
+      targetType,
+      cType,
+      cast,
+    );
+    if (cType === undefined || body === null) continue;
+    lines.push(
+      `static inline ${cType} ${ReservedCnxName.castHelper(sourceType, targetType)}(${SaturatingCast.floatCType(sourceType)} value) {`,
+      `    return ${body};`,
+      "}",
+      "",
+    );
+  }
+  return lines;
+};
+
 // Export as an object for consistent module pattern
 const helperGenerators = {
   generateOverflowHelpers,
   generateSafeDivHelpers,
+  generateCastHelpers,
 };
 
 export default helperGenerators;

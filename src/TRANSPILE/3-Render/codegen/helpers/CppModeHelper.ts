@@ -70,7 +70,15 @@ class CppModeHelper {
    * @returns The cast expression
    */
   static cast(type: string, expr: string, state: TranspileState): string {
-    return state.cppMode ? `static_cast<${type}>(${expr})` : `(${type})${expr}`;
+    return CppModeHelper.castIn(state.cppMode, type, expr);
+  }
+
+  /**
+   * The same decision for a caller that holds the mode rather than the
+   * state -- a helper emitted once per file (#1668)
+   */
+  static castIn(cppMode: boolean, type: string, expr: string): string {
+    return cppMode ? `static_cast<${type}>(${expr})` : `(${type})${expr}`;
   }
 
   /**

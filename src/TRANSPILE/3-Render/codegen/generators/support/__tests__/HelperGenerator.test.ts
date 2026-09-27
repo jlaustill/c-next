@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import helperGenerators from "../HelperGenerator";
 import ToolchainRequirements from "../../../../../../instrumentation/ToolchainRequirements";
 
-const { generateOverflowHelpers, generateSafeDivHelpers } = helperGenerators;
+const { generateOverflowHelpers, generateSafeDivHelpers, generateCastHelpers } =
+  helperGenerators;
 
 /**
  * Issue #1143: the debug branch records `overflow-panic-hosted-libc`, so these
@@ -290,5 +291,32 @@ describe("HelperGenerator - generateSafeDivHelpers", () => {
       expect(code).not.toContain("cnx_safe_div_u32");
       expect(code).not.toContain("cnx_safe_mod_u8");
     });
+  });
+});
+
+// #1668: a saturating cast whose operand has a side effect calls a helper, so
+// the operand -- its parameter -- is evaluated once
+describe("generateCastHelpers", () => {
+  it("emits nothing when no cast needs one", () => {
+    expect(generateCastHelpers([], false)).toEqual([]);
+  });
+
+  it("emits one helper per pair, the bounded ternary over its parameter", () => {
+    const code = generateCastHelpers(["f32_u8", "f64_i16"], false).join("\n");
+    expect(code).toContain(
+      "static inline uint8_t cnx_cast_sat_f32_u8(float value) {",
+    );
+    expect(code).toContain(
+      "static inline int16_t cnx_cast_sat_f64_i16(double value) {",
+    );
+    expect(code).toContain(
+      "return ((value) > ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (value) < 0.0f ? (uint8_t)0 : (uint8_t)(value));",
+    );
+  });
+
+  it("spells the casts static_cast in C++", () => {
+    const code = generateCastHelpers(["f32_u8"], true).join("\n");
+    expect(code).toContain("static_cast<uint8_t>(UINT8_MAX)");
+    expect(code).not.toContain("(uint8_t)UINT8_MAX");
   });
 });

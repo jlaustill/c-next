@@ -1,0 +1,54 @@
+/**
+ * ADR-024 / Issue #632: the one shape of a saturating float-to-integer cast.
+ *
+ * C leaves an out-of-range float-to-int conversion undefined, and C-Next's
+ * default is to saturate, so the cast is a bounded ternary. Written once
+ * because it is emitted in two places (#1668): inline, and as the body of the
+ * single-evaluation helper a side-effecting operand is routed through. Two
+ * copies of the ternary would be free to disagree about a bound.
+ *
+ * MISRA C:2012 Rule 10.3: the limit macros have type `int`, so each is cast
+ * to the target type before use (the naive form assigns an `int` expression
+ * to a narrower essential type).
+ */
+import TYPE_LIMITS from "../types/TYPE_LIMITS";
+
+class SaturatingCast {
+  /**
+   * The bounded ternary saturating `operand` (a float expression, evaluated
+   * up to three times) into `targetTypeName`, or null when the target has no
+   * known limits (#644: the caller casts plainly).
+   *
+   * @param cast the mode's cast spelling, `(T)x` or `static_cast<T>(x)`
+   */
+  static expression(
+    operand: string,
+    sourceType: string,
+    targetTypeName: string,
+    targetCType: string,
+    cast: (type: string, expr: string) => string,
+  ): string | null {
+    const maxValue = TYPE_LIMITS.TYPE_MAX[targetTypeName];
+    const minValue = TYPE_LIMITS.TYPE_MIN[targetTypeName];
+    if (!maxValue) return null;
+
+    const floatSuffix = sourceType === "f32" ? "f" : "";
+    const floatCType = SaturatingCast.floatCType(sourceType);
+    // For unsigned types, minValue is "0", for signed a macro like INT8_MIN
+    const minComparison =
+      minValue === "0" ? `0.0${floatSuffix}` : `((${floatCType})${minValue})`;
+    const maxComparison = `((${floatCType})${maxValue})`;
+
+    const finalCast = cast(targetCType, `(${operand})`);
+    const castMax = cast(targetCType, maxValue);
+    const castMin = cast(targetCType, minValue);
+    return `((${operand}) > ${maxComparison} ? ${castMax} : (${operand}) < ${minComparison} ? ${castMin} : ${finalCast})`;
+  }
+
+  /** The C type of a float source: `float` for `f32`, else `double` */
+  static floatCType(sourceType: string): string {
+    return sourceType === "f32" ? "float" : "double";
+  }
+}
+
+export default SaturatingCast;

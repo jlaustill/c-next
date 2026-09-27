@@ -75,6 +75,11 @@ class ReservedCnxName {
   static clampHelper(operation: string, cnxType: string): string {
     return `${ReservedCnxName.PREFIX}clamp_${operation}_${cnxType}`;
   }
+
+  /** #1668: a single-evaluation saturating cast, `cnx_cast_sat_f32_u8` */
+  static castHelper(sourceType: string, targetType: string): string {
+    return `${ReservedCnxName.PREFIX}cast_sat_${sourceType}_${targetType}`;
+  }
 }
 
 export default ReservedCnxName;

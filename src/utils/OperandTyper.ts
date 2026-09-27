@@ -18,6 +18,7 @@ import { ParserRuleContext, ParseTree, TerminalNode } from "antlr4ng";
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import ArrayDimensionParser from "./ArrayDimensionParser";
 import ChainRoot from "./ChainRoot";
+import ExpressionUtils from "./ExpressionUtils";
 import ForeignTypeFacts from "./ForeignTypeFacts";
 import LiteralUtils from "./LiteralUtils";
 import ParserUtils from "./ParserUtils";
@@ -1028,7 +1029,17 @@ class OperandTyper {
       isRegisterAccess: current.k === "value" && current.register,
     });
     if (t === null) return { next: UNKNOWN, subscript };
-    const keep = { hasSideEffect: t.hasSideEffect };
+    // An element read whose index calls, or reads a volatile, has that side
+    // effect too: `arr[nextIndex()]` is not a pure read
+    const keep = {
+      hasSideEffect:
+        t.hasSideEffect ||
+        indices.some(
+          (index) =>
+            ExpressionUtils.hasFunctionCall(index) ||
+            OperandTyper.typeOf(index, ctx)?.hasSideEffect === true,
+        ),
+    };
 
     switch (subscript) {
       case "array_element": {
@@ -1044,6 +1055,7 @@ class OperandTyper {
                 overflow: null,
                 binding: null,
                 form: DECLARED,
+                ...keep,
               },
             },
           };
@@ -1069,7 +1081,7 @@ class OperandTyper {
           next: {
             k: "value",
             register: false,
-            t: { ...t, overflow: null, binding: null },
+            t: { ...t, overflow: null, binding: null, ...keep },
           },
         };
       case "bit_single":

@@ -20,6 +20,7 @@ import type ITypeBindingDeps from "../transpiler/types/ITypeBindingDeps";
 import StructFieldFacts from "../utils/StructFieldFacts";
 import DeclaredVariableFacts from "../utils/DeclaredVariableFacts";
 import type IProgram from "../transpiler/types/IProgram";
+import type ITypingContext from "../transpiler/types/ITypingContext";
 import type IDeclarationPlan from "../transpiler/types/IDeclarationPlan";
 import type IFunctionSignature from "../transpiler/types/IFunctionSignature";
 import invariant from "../utils/invariant";
@@ -108,6 +109,8 @@ class TranspileState {
   usedClampOps: Set<string> = new Set();
   /** Track which safe division helpers are needed: "div_u32", "mod_i16" */
   usedSafeDivOps: Set<string> = new Set();
+  /** #1668: single-evaluation saturating casts, as `"f32_u8"` keys */
+  usedCastHelpers: Set<string> = new Set();
 
   /**
    * THE sink for include and deferred-emission requests.
@@ -203,6 +206,33 @@ class TranspileState {
     // Internal helper-op key (e.g. "div_u32"), not a scope-qualified C name.
     // HelperGenerator matches these with a single underscore.
     this.usedSafeDivOps.add(`${operation}_${cnxType}`);
+  }
+
+  /**
+   * #1668: mark a single-evaluation saturating cast as used -- the helper a
+   * clamped cast calls when its operand has a side effect. The helper uses
+   * the limit macros, so it needs `<limits.h>` exactly as the inline form does.
+   */
+  markCastHelperUsed(sourceType: string, targetType: string): void {
+    this.usedCastHelpers.add(`${sourceType}_${targetType}`);
+    this.requireInclude("limits");
+  }
+
+  /**
+   * #1668: the operand typer's context for this file, over the facts 1.4
+   * settled -- the same artifact 2.1's analyzers read, so 2.2 types an operand
+   * exactly as 2.1 did. Null for a render with no program behind it (a unit
+   * test that builds codegen state alone).
+   */
+  typingContext(): ITypingContext | null {
+    if (this.program === null || this.symbols === null) return null;
+    if (this.sourcePath === null) return null;
+    return {
+      sourceFile: this.sourcePath,
+      symbols: this.symbols,
+      program: this.program,
+      symbolTable: this.symbolTable,
+    };
   }
 
   /**
@@ -1677,6 +1707,7 @@ class TranspileState {
     this.opaqueScopeVariables = new Set();
     this.usedClampOps = new Set();
     this.usedSafeDivOps = new Set();
+    this.usedCastHelpers = new Set();
     this.needsStdint = false;
     this.needsStdbool = false;
     this.needsString = false;

@@ -100,6 +100,7 @@ class EmissionPlan {
         !HeaderOwnership.ownsDeclarations(facts.selfIncludeAdded),
       clampOps: [...facts.clampOps],
       safeDivOps: [...facts.safeDivOps],
+      castHelpers: [...facts.castHelpers].sort((a, b) => a.localeCompare(b)),
     };
 
     return Object.freeze(plan);
