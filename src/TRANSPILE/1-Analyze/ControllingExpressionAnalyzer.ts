@@ -32,10 +32,8 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ExpressionUtils from "../../utils/ExpressionUtils";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import OperandTyper from "../../utils/OperandTyper";
 import IControllingExpressionError from "./types/IControllingExpressionError";
-import IScopeFrame from "./types/IScopeFrame";
-import ScopeFrameResolver from "./ScopeFrameResolver";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 const CALL_HELP = "Store the function result in a variable first.";
@@ -43,7 +41,7 @@ const CALL_HELP = "Store the function result in a variable first.";
 class ControllingExpressionListener extends CNextListener {
   private readonly found: IControllingExpressionError[] = [];
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
   }
 
@@ -205,8 +203,9 @@ class ControllingExpressionListener extends CNextListener {
   private suggestionFor(node: ParserRuleContext, text: string): string {
     const negated = text.startsWith("!");
     const base = negated ? text.slice(1) : text;
-    const frame: IScopeFrame = this.scopes.frameFor(node);
-    if (this.scopes.typeOfName(base, frame) === "bool") {
+    if (
+      OperandTyper.isBoolean(OperandTyper.typeOfName(base, node, this.context))
+    ) {
       return `write it out, e.g. ${base} = ${negated ? "false" : "true"}`;
     }
     return `write it out, e.g. ${text} > 0 or ${text} != 0`;
@@ -218,12 +217,7 @@ class ControllingExpressionAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): IControllingExpressionError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    const listener = new ControllingExpressionListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-    );
+    const listener = new ControllingExpressionListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

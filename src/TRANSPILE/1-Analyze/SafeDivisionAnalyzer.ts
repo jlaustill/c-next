@@ -31,10 +31,9 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import SafeDivision from "./helpers/SafeDivision";
 import ISafeDivisionError from "./types/ISafeDivisionError";
-import ScopeFrameResolver from "./ScopeFrameResolver";
+import BoundDeclaration from "./helpers/BoundDeclaration";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** ADR-051 fixes the signature at four. */
@@ -43,10 +42,7 @@ const REQUIRED_ARGUMENTS = 4;
 class SafeDivisionListener extends CNextListener {
   private readonly found: ISafeDivisionError[] = [];
 
-  public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    private readonly context: IAnalysisContext,
-  ) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
   }
 
@@ -104,11 +100,18 @@ class SafeDivisionListener extends CNextListener {
     );
   }
 
-  /** Whether the name is a variable: a lexical declaration, or the program's. */
+  /**
+   * Whether the name binds to a variable here -- a local, a member or a
+   * global, this file's or an included one's -- through Program's one binder
+   */
   private isVariable(name: string, at: ParserRuleContext): boolean {
-    const frame = this.scopes.frameFor(at);
-    if (this.scopes.declarationOfNameLexical(name, frame) !== null) return true;
-    return this.context.program.symbolByCName(name)?.kind === "variable";
+    const binding = this.context.program.bindValue(
+      this.context.sourceFile,
+      null,
+      name,
+      ParserUtils.getPosition(at),
+    );
+    return BoundDeclaration.of(binding) !== null;
   }
 
   private report(
@@ -127,12 +130,7 @@ class SafeDivisionAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): ISafeDivisionError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-    const listener = new SafeDivisionListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-      this.context,
-    );
+    const listener = new SafeDivisionListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

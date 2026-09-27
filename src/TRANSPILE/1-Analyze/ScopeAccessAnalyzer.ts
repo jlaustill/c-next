@@ -40,10 +40,8 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import OperandTyper from "../../utils/OperandTyper";
 import IScopeAccessError from "./types/IScopeAccessError";
-import IScopeFrame from "./types/IScopeFrame";
-import ScopeFrameResolver from "./ScopeFrameResolver";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** `Scope.member`, as written, with where it was written. */
@@ -57,10 +55,7 @@ interface IAccess {
 class ScopeAccessListener extends CNextListener {
   private readonly found: IScopeAccessError[] = [];
 
-  public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    private readonly context: IAnalysisContext,
-  ) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
   }
 
@@ -157,12 +152,11 @@ class ScopeAccessListener extends CNextListener {
     // goes through the single encoder rather than being spelled by hand.
     if (this.isScopedRegister(access)) return;
 
-    const frame = this.scopes.frameFor(node);
-    const here = frame.scopePath;
+    const here = OperandTyper.scopePathAt(node, this.context);
 
     if (this.reportOwnScope(access, here)) return;
     if (this.reportPrivate(access, here)) return;
-    this.reportShadowedGlobal(access, here, frame);
+    this.reportShadowedGlobal(access, here);
   }
 
   /** E0435: `Counter.value` inside `Counter`. `global.Counter.value` is allowed. */
@@ -202,11 +196,7 @@ class ScopeAccessListener extends CNextListener {
    * `global.`. Bare, the name would resolve to the shadow and generate C that
    * names the wrong thing.
    */
-  private reportShadowedGlobal(
-    access: IAccess,
-    here: string,
-    frame: IScopeFrame,
-  ): void {
+  private reportShadowedGlobal(access: IAccess, here: string): void {
     if (access.viaGlobal || here === "") return;
     const symbols = this.context.symbols;
 
@@ -218,7 +208,12 @@ class ScopeAccessListener extends CNextListener {
       symbols.scopeMembers.get(here)?.has(access.scope) ?? false;
     const shadowedByLocal =
       isRegister &&
-      this.scopes.declarationOfNameLexical(access.scope, frame) !== null;
+      this.context.program.bindValue(
+        this.context.sourceFile,
+        null,
+        access.scope,
+        ParserUtils.getPosition(access.at),
+      )?.kind === "local";
     if (!shadowedByMember && !shadowedByLocal) return;
 
     const kind = isEnum ? "enum" : "register";
@@ -257,13 +252,7 @@ class ScopeAccessAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): IScopeAccessError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    const listener = new ScopeAccessListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-      this.context,
-    );
+    const listener = new ScopeAccessListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

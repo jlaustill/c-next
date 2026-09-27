@@ -34,6 +34,7 @@ import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import ChainRoot from "../../utils/ChainRoot";
 import FunctionReference from "./helpers/FunctionReference";
+import BoundDeclaration from "./helpers/BoundDeclaration";
 import SafeDivision from "./helpers/SafeDivision";
 import IConstAssignmentError from "./types/IConstAssignmentError";
 import TChainRoot from "../../transpiler/types/TChainRoot";
@@ -184,16 +185,9 @@ class ConstAssignmentListener extends CNextListener {
       name,
       ParserUtils.getPosition(at),
     );
-    if (binding?.kind === "local") {
-      if (!binding.declaration.isConst) return null;
-      return binding.declaration.kind === "parameter"
-        ? "parameter"
-        : "variable";
-    }
-    if (binding?.kind === "variable") {
-      return binding.symbol.isConst ? "variable" : null;
-    }
-    return null;
+    const declared = BoundDeclaration.of(binding);
+    if (declared === null || !declared.isConst) return null;
+    return declared.isParameter ? "parameter" : "variable";
   }
 
   private report(

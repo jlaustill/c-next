@@ -209,6 +209,27 @@ class OperandTyper {
     return null;
   }
 
+  /**
+   * A bare name's value type as it binds at `at`: a local, a member, a
+   * global or a header's variable, through Program's one binder. For a rule
+   * that holds a name rather than an expression node.
+   */
+  static typeOfName(
+    name: string,
+    at: ParserRuleContext,
+    ctx: ITypingContext,
+  ): IOperandType | null {
+    const binding = ctx.program.bindValue(
+      ctx.sourceFile,
+      null,
+      name,
+      ParserUtils.getPosition(at),
+    );
+    return binding && binding.kind !== "scope"
+      ? OperandTyper.boundValue(binding, ctx)
+      : null;
+  }
+
   /** The value type an assignment target writes */
   static typeOfTarget(
     target: Parser.AssignmentTargetContext,

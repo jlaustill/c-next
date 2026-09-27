@@ -48,6 +48,7 @@ import OperandTyper from "../../utils/OperandTyper";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import ChainRoot from "../../utils/ChainRoot";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
+import BoundDeclaration from "./helpers/BoundDeclaration";
 import IRegisterMember from "./types/IRegisterMember";
 import IRegisterAccessError from "./types/IRegisterAccessError";
 import TChainRoot from "../../transpiler/types/TChainRoot";
@@ -180,10 +181,7 @@ class RegisterAccessListener extends CNextListener {
       name,
       ParserUtils.getPosition(node),
     );
-    let declared: { isConst: boolean; initialValue?: string | null } | null =
-      null;
-    if (binding?.kind === "local") declared = binding.declaration;
-    if (binding?.kind === "variable") declared = binding.symbol;
+    const declared = BoundDeclaration.of(binding);
     return (
       declared !== null &&
       declared.isConst &&
