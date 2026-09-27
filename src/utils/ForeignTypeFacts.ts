@@ -35,19 +35,10 @@ class ForeignTypeFacts {
 
     const baseType = ForeignTypeFacts.stripOnePointer(symbol.type);
     if (ForeignTypeFacts.isStruct(symbolTable, baseType)) return baseType;
-    if (symbol.isArray) return null;
-    return ForeignTypeFacts.usableType(symbolTable, symbol.type);
-  }
-
-  /** A scalar C type as C-Next may use it: a struct, or floating. */
-  private static usableType(
-    symbolTable: SymbolTable,
-    cType: string,
-  ): string | null {
-    const baseType = ForeignTypeFacts.stripOnePointer(cType);
-    if (ForeignTypeFacts.isStruct(symbolTable, baseType)) return baseType;
-    if (cType.endsWith("*")) return null;
-    return ForeignTypeFacts.floatingType(symbolTable, cType);
+    // The struct question is asked once, above. A second helper used to ask
+    // it again of the same type, an arm that could never answer.
+    if (symbol.isArray || symbol.type.endsWith("*")) return null;
+    return ForeignTypeFacts.floatingType(symbolTable, symbol.type);
   }
 
   /**
@@ -63,7 +54,7 @@ class ForeignTypeFacts {
 
   private static isStruct(symbolTable: SymbolTable, type: string): boolean {
     return (
-      symbolTable.isTypedefStructType(type) ||
+      symbolTable.isOpaqueType(type) ||
       symbolTable.getStructFields(type) !== undefined
     );
   }
@@ -171,7 +162,7 @@ class ForeignTypeFacts {
     return (
       (c !== undefined && kinds.has(c.kind)) ||
       (cpp !== undefined && kinds.has(cpp.kind)) ||
-      lookup.isTypedefStructType(name)
+      lookup.isOpaqueType(name)
     );
   }
 
@@ -377,7 +368,7 @@ class ForeignTypeFacts {
         });
       }
       const tag = type.replace(/^struct /, "");
-      if (lookup.isTypedefStructType(tag) || lookup.getStructFields(tag)) {
+      if (lookup.isOpaqueType(tag) || lookup.getStructFields(tag)) {
         return found({ typeName: tag, category: "none", bitWidth: null });
       }
       const typedef = lookup.getCSymbol(type) ?? lookup.getCppSymbol(type);

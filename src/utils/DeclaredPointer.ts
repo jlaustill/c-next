@@ -46,15 +46,15 @@ class DeclaredPointer {
    */
   static isHandleType(
     cType: string,
-    foreign: Pick<SymbolTable, "isTypedefStructType">,
+    foreign: Pick<SymbolTable, "isOpaqueType">,
   ): boolean {
-    return foreign.isTypedefStructType(cType);
+    return foreign.isOpaqueType(cType);
   }
 
   /** Whether the declaration is a pointer, by the three arms above */
   static of(
     facts: IPointerFacts,
-    foreign: Pick<SymbolTable, "isTypedefStructType" | "getCSymbol">,
+    foreign: Pick<SymbolTable, "isOpaqueType" | "getCSymbol">,
   ): boolean {
     if (facts.cType.endsWith("*")) return true;
     if (DeclaredPointer.isHandleType(facts.cType, foreign)) return true;

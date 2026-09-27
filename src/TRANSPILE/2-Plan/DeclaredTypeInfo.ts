@@ -91,7 +91,7 @@ class DeclaredTypeInfo {
   ): IChainBase {
     const rootTypeInfo = DeclaredTypeInfo.of(chain.root, symbols, symbolTable);
     const last = chain.steps.at(-1);
-    if (chain.root?.kind !== "scope") {
+    if (DeclaredTypeInfo.nameSteps(chain) === 0) {
       return { root: chain.root, rootTypeInfo, typeInfo: rootTypeInfo, last };
     }
     const member = chain.steps[0]?.after?.binding ?? null;
@@ -101,6 +101,18 @@ class DeclaredTypeInfo {
       typeInfo: DeclaredTypeInfo.of(member, symbols, symbolTable),
       last,
     };
+  }
+
+  /**
+   * How many of a chain's steps belong to the variable's NAME: a scope's
+   * member (`Scope.member`) is one; `x`, `this.x` and `global.x` bind in the
+   * root, so none. The steps after them are operations on the variable. The
+   * one answer `ofChain` and every reader of "is this a name, and what
+   * follows it" share (#1668: it was spelled twice, and a third copy missed
+   * `Scope.arr[i]`).
+   */
+  static nameSteps(chain: IChainTyping): number {
+    return chain.root?.kind === "scope" ? 1 : 0;
   }
 
   /** A local or a global: what its declaration says, as C will hold it */

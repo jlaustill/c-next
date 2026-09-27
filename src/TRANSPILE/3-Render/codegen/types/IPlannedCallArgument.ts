@@ -48,8 +48,8 @@ interface IPlannedCallArgument {
   readonly declared: TTypeInfo | undefined;
 
   /**
-   * Whether the argument is a whole array or a string's buffer, which C decays
-   * to a pointer to its first element (`OperandTyper.decaysToPointer`).
+   * Whether the argument is a whole array, which C decays to a pointer to its
+   * first element (`OperandTyper.decaysToPointer`).
    * Deferred like `expressionType`, and like it read from the typer over 1.4's
    * settled declarations.
    */

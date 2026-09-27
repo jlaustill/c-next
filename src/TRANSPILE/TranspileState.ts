@@ -330,14 +330,6 @@ class TranspileState {
    */
   publicCallbackTypeReferences: Set<string> = new Set();
   /**
-   * Tracks scope variables with opaque (forward-declared) struct types.
-   * These are generated as pointers with NULL initialization and should
-   * be passed directly (not with &) since they're already pointers.
-   * Maps qualified name (e.g., "MyScope_widget") to true.
-   */
-  private opaqueScopeVariables: Set<string> = new Set();
-
-  /**
    * 2.2 Plan's declaration decisions, asserted present.
    *
    * A decision read before it was made is a defect, not a default: answering
@@ -415,40 +407,6 @@ class TranspileState {
    */
   headerOwnsCallbackTypedef(functionName: string): boolean {
     return this.publicCallbackTypeReferences.has(functionName);
-  }
-  /**
-   * Check if generated code accesses an opaque scope variable (and is thus
-   * already a pointer). Used during argument generation to decide whether an
-   * address-of (&) prefix is needed.
-   *
-   * Handles two forms:
-   * - Direct access:        "MyScope_widget"     → the handle itself (pointer)
-   * - Array-element access: "MyScope_widgets[i]" → an element of an opaque
-   *   handle array, which is itself a pointer (Issue #996)
-   *
-   * @param generatedCode - The generated access expression (e.g. "UI_widgets[i]")
-   * @returns true if this resolves to an opaque scope variable (already a pointer)
-   */
-  isOpaqueScopeVariableAccess(generatedCode: string): boolean {
-    if (this.opaqueScopeVariables.has(generatedCode)) {
-      return true;
-    }
-    // Issue #996: An element of an opaque-handle array is already a pointer.
-    // Match on the base array name that precedes the subscript.
-    const bracketIndex = generatedCode.indexOf("[");
-    if (bracketIndex === -1) {
-      return false;
-    }
-    return this.opaqueScopeVariables.has(generatedCode.slice(0, bracketIndex));
-  }
-  /**
-   * Mark a scope variable as having an opaque (forward-declared) struct type.
-   * These are generated as pointers with NULL initialization.
-   *
-   * @param qualifiedName - The fully qualified variable name (e.g., "MyScope_widget")
-   */
-  markOpaqueScopeVariable(qualifiedName: string): void {
-    this.opaqueScopeVariables.add(qualifiedName);
   }
 
   /** Expected type for struct initializers and enum inference */
@@ -1002,18 +960,6 @@ class TranspileState {
       isScopeType: this.scopeTypePredicate,
       resolveQualifiedType,
     };
-  }
-
-  /**
-   * Issue #948: Check if a type name is an opaque (forward-declared) struct type.
-   * Opaque types are incomplete types that can only be used as pointers.
-   * Example: `typedef struct _widget_t widget_t;` without a body makes `widget_t` opaque.
-   */
-  isOpaqueType(typeName: string): boolean {
-    // #1511: the artifact resolved this once for the whole program. It used to
-    // read a per-file set that `mergeOpaqueTypes` patched the cross-file answer
-    // into, which made this a second place the question was answered.
-    return this.program?.isOpaqueType(typeName) ?? false;
   }
 
   /**
@@ -1588,7 +1534,6 @@ class TranspileState {
     this.callbackTypeReferences = new Set();
     this.publicCallbackTypeReferences = new Set();
     this.declarationPlanOrNull = null;
-    this.opaqueScopeVariables = new Set();
     this.usedClampOps = new Set();
     this.usedSafeDivOps = new Set();
     this.usedCastHelpers = new Set();

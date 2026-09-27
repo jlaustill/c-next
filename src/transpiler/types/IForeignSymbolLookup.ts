@@ -17,7 +17,7 @@ interface IForeignSymbolLookup {
   getStructFields(
     structName: string,
   ): Map<string, IStructFieldInfo> | undefined;
-  isTypedefStructType(typeName: string): boolean;
+  isOpaqueType(typeName: string): boolean;
 }
 
 export default IForeignSymbolLookup;

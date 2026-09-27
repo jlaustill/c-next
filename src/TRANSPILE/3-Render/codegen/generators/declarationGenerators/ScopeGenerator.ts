@@ -151,26 +151,23 @@ function renderRegularVariable(
   // The decision is `isHeldThroughPointer`, the one every declaration site and
   // the header's `extern` read, so a public member's declaration in the `.h`
   // cannot disagree with its definition here.
-  const isOpaque = orchestrator.isOpaqueType(type);
   const isHandle = orchestrator.isHeldThroughPointer(type);
   if (isHandle) {
     // ADR-030 decided here: the type is incomplete, so the member is emitted as
     // a pointer. Recorded at the DECLARATION's position, which is what puts this
     // in the scope-member context rather than crediting the scope keyword's line.
-    // #1511: the opacity verdict is the artifact's, so this is the point where a
-    // cross-file fact changes generated shape -- and the only kind of site the
+    // #1511: opacity is a fact of the whole program (one mark, one rule), so
+    // this is the point where a cross-file fact changes generated shape -- and
+    // the only kind of site the
     // matrix can derive an occupancy from for ADR-030's OPAQUE-HANDLE half,
     // which reports nothing. The ADR's other half raises E0422/E0423/E0426/E0427
     // and its fixtures occupy cells here on their own reported positions (#1582),
     // so an occupied cell is not evidence that this line still exists.
-    if (isOpaque) {
-      AdrProvenance.record("030", plan.declarationLine);
-    }
+    AdrProvenance.record("030", plan.declarationLine);
     type = `${type}*`;
-    // Mark as "opaque" scope variable so CallExprGenerator knows this is already
-    // a pointer and doesn't add '&' when passing to functions. The name is historical
-    // but the tracking applies to any scope variable declared as a pointer type.
-    orchestrator.markOpaqueScopeVariable(plan.fullName);
+    // A call site reads the same fact from the member's declared type
+    // (`DeclaredPointer`), so nothing is recorded here for it: the set of
+    // generated names this used to fill was a second store of that fact.
   }
 
   // Issue #998: modifiers come from the one builder, which validates the

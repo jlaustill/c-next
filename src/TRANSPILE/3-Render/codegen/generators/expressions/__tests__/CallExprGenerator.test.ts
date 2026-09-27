@@ -1381,8 +1381,8 @@ describe("CallExprGenerator", () => {
   /**
    * ADR-030 / #996: an array of opaque handles is an array of pointers, so its
    * element is already the handle -- `dev_poke(&arr[0U])` passed a `Dev**`.
-   * Asked of the array's registration, as `isOpaqueScopeVariableAccess` asks
-   * it of a scope member. The complete-struct array is the control: its
+   * Asked of the array's declaration, however the array is named (a scope
+   * member's too). The complete-struct array is the control: its
    * element is a value and keeps its `&`.
    */
   describe("element of an array that holds pointers (ADR-030 / #996)", () => {

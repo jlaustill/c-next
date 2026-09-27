@@ -141,20 +141,14 @@ const _pointerDepth = (cType: string): number => cType.split("*").length - 1;
  * (#996). Anything else is a value, 0.
  */
 const _argPointerDepth = (
-  argCode: string,
   argType: string | null,
   isRegisteredPointer: boolean,
   isHandleArrayElement: boolean,
-  orchestrator: IOrchestrator,
 ): number => {
   if (argType?.endsWith("*")) {
     return _pointerDepth(argType);
   }
-  const isPointer =
-    isRegisteredPointer ||
-    isHandleArrayElement ||
-    orchestrator.state.isOpaqueScopeVariableAccess(argCode);
-  return isPointer ? 1 : 0;
+  return isRegisteredPointer || isHandleArrayElement ? 1 : 0;
 };
 
 /**
@@ -219,11 +213,9 @@ const _generateCFunctionArg = (
   );
 
   const argPointerDepth = _argPointerDepth(
-    argCode,
     argType,
     typeInfo?.isPointer ?? false,
     arg.isHandleArrayElement(),
-    orchestrator,
   );
 
   // Add & if argument needs address-of to match parameter type.

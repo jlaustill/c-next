@@ -13,10 +13,11 @@
  * Resolution (e.g., "is this type truly opaque?") happens at query time.
  */
 interface IStructSymbolState {
-  /** Typedef names declared with forward-declared structs (additive only) */
+  /**
+   * Typedef names declared against a forward-declared struct (additive only).
+   * The one handle mark: `OpaqueTypeResolution` decides whether a body arrived.
+   */
   opaqueTypes: Set<string>;
-  /** ALL typedef struct types from C headers: name → sourceFile (additive only) */
-  typedefStructTypes: Map<string, string>;
   /** Struct tag → typedef name (e.g., "_widget_t" → "widget_t") */
   structTagAliases: Map<string, string>;
   /** Typedef name → struct tag (reverse of structTagAliases) */

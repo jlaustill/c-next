@@ -281,12 +281,13 @@ class OperandTyper {
   }
 
   /**
-   * Whether an operand is a value C decays to a pointer to its first element:
-   * a whole array (`pts`, not `pts[0]`), or a string's buffer. Such an
-   * argument never takes `&` -- its address is a pointer to the ARRAY.
+   * Whether an operand is a whole array (`pts`, not `pts[0]`), which C decays
+   * to a pointer to its first element. Such an argument never takes `&` -- its
+   * address is a pointer to the ARRAY. A string's buffer is not asked here: a
+   * string argument never reaches that `&` (measured, #1668's merge of main).
    */
   static decaysToPointer(t: IOperandType | null): boolean {
-    return t !== null && (t.dimensions.length > 0 || OperandTyper.isString(t));
+    return t !== null && t.dimensions.length > 0;
   }
 
   /**

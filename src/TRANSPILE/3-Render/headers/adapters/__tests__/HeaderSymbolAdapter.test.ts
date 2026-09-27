@@ -149,7 +149,7 @@ describe("HeaderSymbolAdapter", () => {
     ])(
       "marks a variable of %s by whether it is held through a pointer",
       (_label, typeName, expected) => {
-        state.symbolTable.markTypedefStructType("Dev", "handles.h");
+        state.symbolTable.markOpaqueType("Dev");
         const tSymbol: IVariableSymbol = {
           ...TestSymbolUtils.base({
             kind: "variable",

@@ -82,7 +82,7 @@ class StructCollector {
     const needsStructKeyword = Boolean(identifier && !isTypedef);
 
     if (symbolTable) {
-      StructCollector.updateSymbolTable(symbolTable, name, sourceFile, {
+      StructCollector.updateSymbolTable(symbolTable, name, {
         needsStructKeyword,
         hasBody,
         isTypedef,
@@ -112,7 +112,6 @@ class StructCollector {
   private static updateSymbolTable(
     symbolTable: SymbolTable,
     name: string,
-    sourceFile: string,
     options: IUpdateOptions,
   ): void {
     const {
@@ -135,22 +134,17 @@ class StructCollector {
       symbolTable.markPointerTypedef(typedefName);
     }
 
-    // Issue #948: Track opaque types (forward-declared typedef structs)
-    // Issue #957: Don't mark pointer typedefs as opaque.
-    // For "typedef struct X *Y", Y is already a pointer type, not an opaque struct.
+    // Issue #948/#958: a typedef declared against a forward-declared struct
+    // -- the one handle mark (ADR-030). Such a type is held through a pointer
+    // (ADR-006) unless a body arrives for its tag, which `OpaqueTypeResolution`
+    // decides. Inline typedefs with bodies (typedef struct { ... } X;) are
+    // concrete value types. Issue #957: a pointer typedef
+    // ("typedef struct X *Y") is already a pointer, not a handle.
     if (isTypedef && !hasBody && typedefName && !isPointerTypedef) {
       symbolTable.markOpaqueType(typedefName);
       if (structTag) {
         symbolTable.registerStructTagAlias(structTag, typedefName);
       }
-    }
-
-    // Issue #958: Track forward-declared typedef struct types (no body).
-    // These always need pointer semantics (ADR-006). Inline typedefs with
-    // bodies (typedef struct { ... } X;) are concrete value types.
-    // Issue #957: Don't track pointer typedefs - they're already pointers.
-    if (isTypedef && !hasBody && typedefName && !isPointerTypedef) {
-      symbolTable.markTypedefStructType(typedefName, sourceFile);
     }
 
     // Issue #958: Record struct tag body for query-time opaque resolution

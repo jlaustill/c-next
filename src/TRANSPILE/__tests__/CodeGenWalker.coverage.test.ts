@@ -1144,7 +1144,7 @@ describe("CodeGenWalker Coverage Tests", () => {
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const symbolTable = new SymbolTable();
         // As a header's `typedef struct Dev Dev;` with no body registers it.
-        symbolTable.markTypedefStructType("Dev", "dev.h");
+        symbolTable.markOpaqueType("Dev");
         const tSymbols = CNextResolver.resolve(
           tree,
           "test.cnx",

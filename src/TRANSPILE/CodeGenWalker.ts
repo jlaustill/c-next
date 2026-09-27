@@ -1169,11 +1169,9 @@ class CodeGenWalker {
     const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
     if (postfix === null) return undefined;
     const chain = OperandTyper.chainOf(postfix, typing);
-    const isName =
-      chain.root?.kind === "scope"
-        ? chain.steps.length === 1
-        : chain.steps.length === 0;
-    if (!isName) return undefined;
+    if (chain.steps.length !== DeclaredTypeInfo.nameSteps(chain)) {
+      return undefined;
+    }
     return DeclaredTypeInfo.ofChain(
       chain,
       typing.symbols,
@@ -1183,23 +1181,25 @@ class CodeGenWalker {
 
   /**
    * ADR-030 / #996: whether an argument is one element of an array held
-   * through pointers -- `handles[i]` of a `Dev[4] handles`. The array's own
-   * declaration says so (`isPointer` on an array of handles, from
-   * `DeclaredPointer`), for a parameter, a file-scope or local variable, and
-   * one declared in an included file alike.
+   * through pointers -- `handles[i]` of a `Dev[4] handles`, however the array
+   * is named: bare, `this.`, `global.`, or `Scope.` from outside the scope.
+   * The array's own declaration says so (`isPointer` on an array of handles,
+   * from `DeclaredPointer`), for a parameter, a file-scope, local or scope
+   * variable, and one declared in an included file alike.
    */
   private isHandleArrayElement(ctx: Parser.ExpressionContext): boolean {
     const typing = this.host.state.typingContext();
     const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
     if (postfix === null) return false;
     const chain = OperandTyper.chainOf(postfix, typing);
-    if (chain.steps[0]?.subscript !== "array_element") return false;
-    const root = DeclaredTypeInfo.ofChain(
+    const subscript = chain.steps[DeclaredTypeInfo.nameSteps(chain)];
+    if (subscript?.subscript !== "array_element") return false;
+    const array = DeclaredTypeInfo.ofChain(
       chain,
       typing.symbols,
       this.host.state.symbolTable,
-    ).rootTypeInfo;
-    return (root?.isArray ?? false) && (root?.isPointer ?? false);
+    ).typeInfo;
+    return (array?.isArray ?? false) && (array?.isPointer ?? false);
   }
 
   /**

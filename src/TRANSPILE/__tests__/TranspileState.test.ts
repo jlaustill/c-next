@@ -414,47 +414,23 @@ describe("TranspileState", () => {
       expect(state.isKnownScope("UnknownScope")).toBe(false);
     });
 
-    it("isOpaqueType returns false without a program", () => {
-      state.program = null;
-      expect(state.isOpaqueType("widget_t")).toBe(false);
-    });
-
-    it("isOpaqueType returns true for opaque type", () => {
-      // #1511: read from the artifact. This used to install a per-file
-      // `ICodeGenSymbols.opaqueTypes` set that `mergeOpaqueTypes` patched the
-      // whole-program answer into; both are gone, so the question has one owner.
-      const opaque = new Set(["widget_t", "display_t"]);
-      state.program = {
-        isOpaqueType: (name: string) => opaque.has(name),
-      } as unknown as IProgram;
-
-      expect(state.isOpaqueType("widget_t")).toBe(true);
-      expect(state.isOpaqueType("display_t")).toBe(true);
-      expect(state.isOpaqueType("Point")).toBe(false);
-
-      state.program = null;
-    });
-
     /**
      * ADR-030: the one "held through a pointer" decision, which a
-     * declaration's own pointer-ness (`DeclaredPointer.of`) asks too. #948
-     * and #958 each gated it with a predicate of their own -- the program's
-     * opacity verdict and the symbol table's forward-declared typedef -- but
-     * `StructCollector`, the only writer of either, marks both under one
-     * condition, and one "did a body arrive" rule resolves both. So a type
-     * opaque to the program but not a typedef struct cannot be produced, and
-     * the decision asks one of them: `DeclaredPointer.isHandleType`. Measured
-     * across the corpus while merging main (1412 fixtures): the two never
-     * disagreed. A complete type is not a handle.
+     * declaration's own pointer-ness (`DeclaredPointer.of`) and 1.4's
+     * parameter stamp (#1722) share. #948 and #958 each gated it with a mark
+     * and a copy of the "did a body arrive" rule of their own; StructCollector
+     * set both marks under one condition, so they are one mark now, resolved
+     * by `OpaqueTypeResolution` (measured: the two never disagreed across the
+     * 1412 fixtures). A complete type is not a handle.
      */
     it.each<[string, boolean, boolean]>([
-      ["a forward-declared typedef struct", true, true],
+      ["a typedef of a forward-declared struct", true, true],
       ["a complete type", false, false],
     ])(
       "isHeldThroughPointer answers for %s",
       (_label, isTypedefStruct, expected) => {
         if (isTypedefStruct) {
-          state.symbolTable.markTypedefStructType("Dev", "dev.h");
+          state.symbolTable.markOpaqueType("Dev");
         }
 
         expect(state.isHeldThroughPointer("Dev")).toBe(expected);

@@ -570,50 +570,10 @@ describe("SymbolTable", () => {
     });
   });
 
-  // ========================================================================
-  // Typedef Struct Type Tracking (Issue #958)
-  // ========================================================================
-
-  describe("Typedef Struct Type Tracking", () => {
-    it("should mark and check typedef struct types", () => {
-      symbolTable.markTypedefStructType("widget_t", "widget_types.h");
-      expect(symbolTable.isTypedefStructType("widget_t")).toBe(true);
-      expect(symbolTable.isTypedefStructType("other_t")).toBe(false);
-    });
-
-    it("should return false when underlying struct tag has body (issue #948)", () => {
-      // Issue #948: Query-time resolution - if the underlying struct tag
-      // has a full body definition, this is NOT an external typedef struct
-      symbolTable.markTypedefStructType("point_t", "point.h");
-      expect(symbolTable.isTypedefStructType("point_t")).toBe(true);
-      // After marking the body, typedef struct type should return false
-      // because it's now a complete type (value semantics, not pointer)
-      symbolTable.registerStructTagAlias("_point", "point_t");
-      symbolTable.markStructTagHasBody("_point");
-      expect(symbolTable.isTypedefStructType("point_t")).toBe(false);
-    });
-
-    it("should get all typedef struct types", () => {
-      symbolTable.markTypedefStructType("handle_t", "handle.h");
-      symbolTable.markTypedefStructType("context_t", "context.h");
-      const all = symbolTable.getAllTypedefStructTypes();
-      expect(all).toHaveLength(2);
-      expect(all).toContainEqual(["handle_t", "handle.h"]);
-      expect(all).toContainEqual(["context_t", "context.h"]);
-    });
-
-    it("should restore typedef struct types from cache", () => {
-      const source = new SymbolTable();
-      source.markTypedefStructType("widget_t", "widget_types.h");
-      source.markTypedefStructType("handle_t", "handle.h");
-
-      symbolTable.restoreStructState(source.serializeStructState());
-
-      expect(symbolTable.isTypedefStructType("widget_t")).toBe(true);
-      expect(symbolTable.isTypedefStructType("handle_t")).toBe(true);
-      expect(symbolTable.getAllTypedefStructTypes()).toHaveLength(2);
-    });
-  });
+  // Typedef struct type tracking (#958) had its own mark and its own copy of
+  // the #948 body rule. StructCollector set it under exactly the condition it
+  // sets the opaque mark, so it is folded into that mark; the opaque tests
+  // above (mark, #948 body resolution, restore from cache) cover it.
 
   // ========================================================================
   // Struct Tag Aliases and Body Tracking (Issue #958)

@@ -264,23 +264,11 @@ interface IOrchestrator {
   // === Issue #948: Opaque Type Helpers ===
 
   /**
-   * Check if a type is an opaque (forward-declared) struct type.
-   * Opaque types can only be used as pointers (cannot be instantiated).
-   */
-  isOpaqueType(typeName: string): boolean;
-
-  /**
    * ADR-030: whether a declaration of this type is held through a pointer.
    * The one answer every declaration site reads -- see
    * `TranspileState.isHeldThroughPointer`.
    */
   isHeldThroughPointer(typeName: string): boolean;
-
-  /**
-   * Mark a scope variable as having an opaque type.
-   * These variables are generated as pointers with NULL initialization.
-   */
-  markOpaqueScopeVariable(qualifiedName: string): void;
 }
 
 export default IOrchestrator;
