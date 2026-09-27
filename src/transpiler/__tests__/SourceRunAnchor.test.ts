@@ -151,6 +151,9 @@ u8 preferred() {
           expect(previewed.files[0]?.headerCode).toBe(written?.headerCode);
         }
       },
+      // Four full transpiles per case. It took 963-3857 ms on CI and timed out
+      // at 5176 ms on the loaded self-hosted runners, as the cwd test did.
+      30_000,
     );
   });
 
