@@ -656,10 +656,13 @@ jobs:
           TOOL: ${{ matrix.tool }}
         run: npm run validate:c -- --tool "$TOOL"
 
+  # Fork pull requests get no SONAR_TOKEN here; sonar.yml scans them on
+  # workflow_run instead (#1680), so this job never runs for one.
   sonar:
     name: SonarCloud
-    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
+    runs-on: self-hosted
     needs: [unit-tests]
+    if: github.event_name == 'push' || !github.event.pull_request.head.repo.fork
 
     steps:
       - name: Checkout code
@@ -674,7 +677,7 @@ jobs:
           path: ./coverage
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@ba9859eae8dd6bd29e412f25ddbbef3d032000f4 # v8.2.2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
@@ -713,7 +716,8 @@ jobs:
           [ "${{ needs.format-fidelity.result }}" != "success" ] && echo "❌ Format Fidelity" && FAILED=1 || echo "✅ Format Fidelity"
           [ "${{ needs.verify-clean.result }}" != "success" ] && echo "❌ Verify Clean" && FAILED=1 || echo "✅ Verify Clean"
           [ "${{ needs.c-validation.result }}" != "success" ] && echo "⚠️ C Static Analysis (advisory)" || echo "✅ C Static Analysis"
-          [ "${{ needs.sonar.result }}" != "success" ] && echo "❌ SonarCloud" && FAILED=1 || echo "✅ SonarCloud"
+          # A fork's Sonar job is skipped by design: sonar.yml scans it, and the ruleset requires the App's "SonarCloud Code Analysis" check (#1680).
+          [ "${{ needs.sonar.result }}" != "success" ] && ! { [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ] && [ "${{ needs.sonar.result }}" = "skipped" ]; } && echo "❌ SonarCloud" && FAILED=1 || echo "✅ SonarCloud"
           [ $FAILED -eq 1 ] && exit 1 || echo "::notice::All checks passed!"
 
   # ============================================================================
