@@ -6,6 +6,9 @@
 import { describe, it, expect } from "vitest";
 import ShiftAnalyzer from "../ShiftAnalyzer";
 import testAnalysisContextFor from "./testAnalysisContextFor";
+import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
+import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 
 describe("ShiftAnalyzer", () => {
   // ========================================================================
@@ -702,5 +705,58 @@ describe("ShiftAnalyzer -- E0873 shift amount (MISRA C:2012 Rule 12.2)", () => {
       "}",
     ].join("\n");
     expect(errors(source).map((e) => e.line)).toEqual([3, 4]);
+  });
+});
+
+// #1668: every operand typed by the one operand typer
+describe("ShiftAnalyzer -- operands typed by the one operand typer", () => {
+  function analyze(source: string, symbolTable?: SymbolTable) {
+    const { tree, context } = testAnalysisContextFor(source, { symbolTable });
+    return new ShiftAnalyzer(context).analyze(tree);
+  }
+
+  it.each([
+    ["a signed cast", "u32 w <- 1; u32 r <- (i32)w << 2;"],
+    ["a signed element", "i32[2] v <- [1, 2]; i32 r <- v[0] << 2;"],
+    ["a signed call result", "i32 r <- minusOne() << 2;"],
+  ])("rejects %s (E0805)", (_why, body) => {
+    const errors = analyze(
+      `i32 minusOne() { return -1; } void main() { ${body} }`,
+    );
+    expect(errors.map((e) => e.code)).toEqual(["E0805"]);
+  });
+
+  it.each([
+    [
+      "a signed ternary condition",
+      "i32 s <- 1; u32 a <- 1; u32 b <- 2; u32 r <- ((s > 0) ? a : b) << 2;",
+    ],
+    ["a negated composite", "u32 w <- 1; u32 r <- -(5 + w) << 2;"],
+    ["a leading-zero amount (#1728)", "u32 w <- 1; u32 r <- w << 037;"],
+  ])("accepts %s", (_why, body) => {
+    expect(analyze(`void main() { ${body} }`)).toHaveLength(0);
+  });
+
+  it("rejects a signed C header operand, and checks a C operand's width", () => {
+    const symbolTable = new SymbolTable();
+    for (const [name, type] of [
+      ["cSigned", "int"],
+      ["cByte", "uint8_t"],
+    ]) {
+      symbolTable.addCSymbol({
+        kind: "variable",
+        name,
+        type,
+        sourceFile: "api.h",
+        span: TestSourceSpan.at(1),
+        sourceLanguage: ESourceLanguage.C,
+        visibility: "public",
+      });
+    }
+    const errors = analyze(
+      "void main() { u32 a <- cSigned << 2; u8 b <- cByte << 9; }",
+      symbolTable,
+    );
+    expect(errors.map((e) => e.code)).toEqual(["E0805", "E0873"]);
   });
 });

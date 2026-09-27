@@ -1,4 +1,5 @@
 import type IFunctionSymbol from "./symbols/IFunctionSymbol";
+import type IVariableSymbol from "./symbols/IVariableSymbol";
 import type ILexicalFrame from "./ILexicalFrame";
 import type ILocalDeclaration from "./ILocalDeclaration";
 import type ISourceSpan from "./ISourceSpan";
@@ -86,6 +87,13 @@ interface IProgram {
    * imported ZERO emitted a real division by zero that compiled clean.
    */
   constValue(name: string): number | undefined;
+
+  /**
+   * #1668: what THIS const is worth, by identity rather than by name. The
+   * name-keyed maps share a bare key across scopes (#1538), so a binding --
+   * which already knows which declaration a spelling means -- asks here.
+   */
+  constValueOfSymbol(symbol: IVariableSymbol): number | undefined;
 
   /** Every const name to its integer value, keyed by bare name. */
   constValues(): ReadonlyMap<string, number>;

@@ -15,6 +15,8 @@ type TOperandForm =
       readonly kind: "literal";
       readonly literal: "integer" | "float" | "bool" | "char";
       readonly suffixed: boolean;
+      /** A minus applied to the literal itself, `-5` (not `-(5 + a)`) */
+      readonly negated: boolean;
     }
   | { readonly kind: "cast" }
   /** One bit of a scalar, `x[3]` */

@@ -199,6 +199,8 @@ class Program {
       externalStructFields: (): ReadonlyMap<string, ReadonlySet<string>> =>
         externalStructFields,
       constValue: (name: string): number | undefined => constValues.get(name),
+      constValueOfSymbol: (symbol: IVariableSymbol): number | undefined =>
+        Program.constValueOf(symbol),
       constValues: (): ReadonlyMap<string, number> => constValues,
       constValuesIn: (scopePath: string): ReadonlyMap<string, number> =>
         Program.constValuesIn(derivedConsts, scopedViews, scopePath),

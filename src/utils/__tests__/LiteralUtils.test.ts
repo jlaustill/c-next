@@ -580,4 +580,23 @@ describe("LiteralUtils", () => {
       });
     });
   });
+
+  // #1668: the one reading of an integer literal's value as written
+  describe("integerValue", () => {
+    it.each([
+      ["9", 9],
+      ["0", 0],
+      ["9u8", 9],
+      ["3i32", 3],
+      ["0x1F", 31],
+      ["0b101", 5],
+      // C reads a leading-zero literal as octal; its value is #1728's
+      ["010", null],
+      ["1.5", null],
+      ["true", null],
+      ["N", null],
+    ])("reads %j as %j", (text, value) => {
+      expect(LiteralUtils.integerValue(text)).toBe(value);
+    });
+  });
 });

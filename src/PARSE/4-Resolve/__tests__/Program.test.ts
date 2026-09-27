@@ -412,6 +412,7 @@ describe("Program", () => {
         "codeGenSymbolsFor",
         "conflicts",
         "constValue",
+        "constValueOfSymbol",
         "constValues",
         "constValuesAt",
         "constValuesIn",

@@ -144,6 +144,13 @@ class OperandTyper {
       const operand = inner.unaryExpression();
       if (operator === "&") return [];
       if ((operator === "-" || operator === "~") && operand) {
+        // `-5` is one leaf, a negated literal; `-(5 + a)` negates no leaf
+        if (
+          operator === "-" &&
+          OperandTyper.descend(operand) instanceof Parser.LiteralContext
+        ) {
+          return [OperandTyper.typeOf(inner, ctx)];
+        }
         return OperandTyper.valueLeaves(operand, ctx);
       }
     }
@@ -165,6 +172,49 @@ class OperandTyper {
     ctx: ITypingContext,
   ): IChainTyping {
     return OperandTyper.walkChain(node, ctx).typing;
+  }
+
+  /**
+   * An operand's compile-time integer value: an integer literal under any
+   * number of leading minus signs, or a name that binds here to a const --
+   * bare, `this.NAME` or `global.NAME`, through the one binder, so a const
+   * local shadows as it does everywhere else. Anything else (arithmetic, a
+   * call, an element, `~x`) is a runtime value: null.
+   */
+  static constantOf(
+    node: ParserRuleContext,
+    ctx: ITypingContext,
+  ): number | null {
+    const inner = OperandTyper.descend(node);
+    if (inner instanceof Parser.UnaryExpressionContext) {
+      const operand = inner.unaryExpression();
+      if (inner.MINUS() === null || !operand) return null;
+      const value = OperandTyper.constantOf(operand, ctx);
+      return value === null ? null : -value;
+    }
+    if (inner instanceof Parser.LiteralContext) {
+      return LiteralUtils.integerValue(inner.getText());
+    }
+    let root: TValueBinding | null = null;
+    if (inner instanceof Parser.PostfixExpressionContext) {
+      const typing = OperandTyper.chainOf(inner, ctx);
+      if (typing.steps.length > 0) return null;
+      root = typing.root;
+    } else if (inner instanceof Parser.PrimaryExpressionContext) {
+      const name = inner.IDENTIFIER()?.getText();
+      if (name === undefined) return null;
+      root = ctx.program.bindValue(
+        ctx.sourceFile,
+        null,
+        name,
+        ParserUtils.getPosition(inner),
+      );
+    }
+    if (root?.kind === "local") return root.declaration.constValue;
+    if (root?.kind === "variable") {
+      return ctx.program.constValueOfSymbol(root.symbol) ?? null;
+    }
+    return null;
   }
 
   /** The value type an assignment target writes */
@@ -325,7 +375,12 @@ class OperandTyper {
     }
     if ((operator === "-" || operator === "~") && operand) {
       const t = OperandTyper.typeOf(operand, ctx);
-      return t ? { ...t, overflow: null, binding: null } : null;
+      if (t === null) return null;
+      const form =
+        operator === "-" && t.form.kind === "literal"
+          ? { ...t.form, negated: !t.form.negated }
+          : t.form;
+      return { ...t, form, overflow: null, binding: null };
     }
     // `&x` is an address, never a value operand (#1152)
     return null;
@@ -365,7 +420,12 @@ class OperandTyper {
         ...OperandTyper.plain("char"),
         category: "character",
         bitWidth: 8,
-        form: { kind: "literal", literal: "char", suffixed: false },
+        form: {
+          kind: "literal",
+          literal: "char",
+          suffixed: false,
+          negated: false,
+        },
       };
     }
     const typeName = LiteralUtils.typeOf(node);
@@ -374,7 +434,12 @@ class OperandTyper {
       return {
         ...OperandTyper.plain("bool"),
         category: "boolean",
-        form: { kind: "literal", literal: "bool", suffixed: false },
+        form: {
+          kind: "literal",
+          literal: "bool",
+          suffixed: false,
+          negated: false,
+        },
       };
     }
     const floatWidth = LiteralUtils.floatLiteralWidth(text);
@@ -386,6 +451,7 @@ class OperandTyper {
           kind: "literal",
           literal: "float",
           suffixed: /[fF](?:32|64)$/.test(text),
+          negated: false,
         },
       };
     }
@@ -396,7 +462,7 @@ class OperandTyper {
       ...OperandTyper.plain(typeName),
       category: suffixed ? OperandTyper.categoryOf(typeName) : "none",
       bitWidth: suffixed ? OperandTyper.widthOf(typeName) : null,
-      form: { kind: "literal", literal: "integer", suffixed },
+      form: { kind: "literal", literal: "integer", suffixed, negated: false },
     };
   }
 

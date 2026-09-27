@@ -194,6 +194,20 @@ class LiteralUtils {
 
     return undefined;
   }
+
+  /**
+   * The value of an integer literal as written in C-Next source, with any
+   * width suffix (`9u8`, `3i32`): decimal, hex or binary. Null for anything
+   * else, and for a leading-zero literal (`010`), which the emitted C reads as
+   * octal while `parseIntegerLiteral` reads decimal -- #1728 owns what it
+   * means; until then no rule asserts a value C may disagree with (#1076).
+   */
+  static integerValue(text: string): number | null {
+    if (/^0\d/.test(text)) return null;
+    const match = /^(0[xX][\da-fA-F]+|0[bB][01]+|\d+)([uUiI]\d+)?$/.exec(text);
+    if (match === null) return null;
+    return LiteralUtils.parseIntegerLiteral(match[1]) ?? null;
+  }
 }
 
 export default LiteralUtils;

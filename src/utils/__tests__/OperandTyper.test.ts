@@ -184,6 +184,51 @@ void f() {
   });
 });
 
+describe("OperandTyper.constantOf (#1668)", () => {
+  function constantOf(source: string): number | null {
+    const { node, ctx } = initializerOf(source, "r");
+    return OperandTyper.constantOf(node as ParserRuleContext, ctx);
+  }
+
+  it.each([
+    ["a literal", "u8 r <- 9;", 9],
+    ["a suffixed literal", "u8 r <- 9u8;", 9],
+    ["a negated literal", "i8 r <- -9;", -9],
+    ["a doubly negated literal", "i8 r <- - -9;", 9],
+    ["a const local", "const u8 N <- 7;\nu8 r <- N;", 7],
+    ["a mutable local", "u8 N <- 7;\nu8 r <- N;", null],
+    ["a leading-zero literal (#1728)", "u8 r <- 010;", null],
+    ["arithmetic", "u8 r <- 2 + 3;", null],
+    ["a bitwise complement", "u8 r <- ~3;", null],
+  ])("evaluates %s", (_why, body, value) => {
+    expect(constantOf(inMain(body))).toBe(value);
+  });
+
+  it("binds a file const, and a const local shadowing it", () => {
+    expect(constantOf("const u8 N <- 4;\nvoid main() {\nu8 r <- N;\n}")).toBe(
+      4,
+    );
+    expect(
+      constantOf(
+        "const u8 N <- 4;\nvoid main() {\nconst u8 N <- 6;\nu8 r <- N;\n}",
+      ),
+    ).toBe(6);
+  });
+
+  it("binds this.NAME and global.NAME to the scope's and the file's", () => {
+    const source = (spelling: string) =>
+      `const u8 N <- 4;\nscope S {\nconst u8 N <- 6;\npublic void f() {\nu8 r <- ${spelling};\n}\n}`;
+    expect(constantOf(source("this.N"))).toBe(6);
+    expect(constantOf(source("global.N"))).toBe(4);
+  });
+
+  it("does not evaluate an element of a const array", () => {
+    expect(constantOf(inMain("const u8[2] T <- [1, 2];\nu8 r <- T[0];"))).toBe(
+      null,
+    );
+  });
+});
+
 describe("OperandTyper.typeOf: literals (R2)", () => {
   it.each([
     ["an unsuffixed integer", "5", "int", "none", null, "literal"],
