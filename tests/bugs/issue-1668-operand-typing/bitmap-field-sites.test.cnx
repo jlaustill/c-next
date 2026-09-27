@@ -1,0 +1,41 @@
+// test-error
+// #1668: E0881 types a bitmap variable with the one operand typer and reads
+// every assignment site. Before, a scope's bitmap variable -- its type
+// spelled `this.Flags` -- was never recognized as a bitmap, and a write in a
+// `for` header was never checked (#1726).
+scope Motor {
+    bitmap8 Flags {
+        Mode[3],
+        Enable[1],
+        Reserved[4]
+    }
+
+    this.Flags f <- 0;
+
+    public void run() {
+        // NEGATIVE CONTROL -- a value that fits the field
+        this.f.Mode <- 7;
+        // ASSERTION
+        this.f.Mode <- 8;
+    }
+}
+
+bitmap8 Global {
+    Mode[3],
+    Enable[1],
+    Reserved[4]
+}
+
+Global g <- 0;
+
+void main() {
+    Motor.run();
+    // NEGATIVE CONTROL
+    for (u32 i <- 0; i < 3; g.Mode <- 7) {
+        i +<- 1;
+    }
+    // ASSERTION
+    for (u32 j <- 0; j < 3; g.Mode <- 8) {
+        j +<- 1;
+    }
+}

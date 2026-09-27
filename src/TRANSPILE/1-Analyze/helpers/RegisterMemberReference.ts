@@ -25,7 +25,8 @@ import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import IRegisterMember from "../types/IRegisterMember";
 import TChainRoot from "../../../transpiler/types/TChainRoot";
-import ScopeFrameResolver from "../ScopeFrameResolver";
+import OperandTyper from "../../../utils/OperandTyper";
+import ParserUtils from "../../../utils/ParserUtils";
 import type IAnalysisContext from "../types/IAnalysisContext";
 import type ICodeGenSymbols from "../../../transpiler/types/ICodeGenSymbols";
 
@@ -142,23 +143,33 @@ class RegisterMemberReference {
     root: TChainRoot,
     chain: string[],
     node: ParserRuleContext,
-    scopes: ScopeFrameResolver,
     context: IAnalysisContext,
   ): IRegisterMember | null {
     const symbols = context.symbols;
     if (chain.length < 2) return null;
 
-    const frame = scopes.frameFor(node);
+    // A bare root that names a declared value here -- a local, a member, a
+    // global, this file's or an included one's -- shadows a register of that
+    // spelling; Program's one binder decides what the name means (#1668)
+    const scopePath = OperandTyper.scopePathAt(node, context);
+    const binding =
+      root === null
+        ? context.program.bindValue(
+            context.sourceFile,
+            null,
+            chain[0],
+            ParserUtils.getPosition(node),
+          )
+        : null;
     const isShadowed =
-      root === null &&
-      scopes.declarationOfNameLexical(chain[0], frame) !== null;
+      binding?.kind === "local" || binding?.kind === "variable";
 
     const prefix = root === null ? "" : `${root}.`;
     for (const { reg, at } of RegisterMemberReference.registerCandidates(
       symbols,
       root,
       chain,
-      frame.scopePath,
+      scopePath,
       isShadowed,
     )) {
       const member = chain[at];

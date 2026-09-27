@@ -44,14 +44,14 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
-import ScopeUtils from "../../utils/ScopeUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import OperandTyper from "../../utils/OperandTyper";
+import AssignmentSiteListener from "./AssignmentSiteListener";
 import ChainRoot from "../../utils/ChainRoot";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import IRegisterMember from "./types/IRegisterMember";
 import IRegisterAccessError from "./types/IRegisterAccessError";
 import TChainRoot from "../../transpiler/types/TChainRoot";
-import ScopeFrameResolver from "./ScopeFrameResolver";
+import type TAssignmentSite from "./types/TAssignmentSite";
 import ConstantExpression from "./helpers/ConstantExpression";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -59,10 +59,7 @@ import type IAnalysisContext from "./types/IAnalysisContext";
 class RegisterAccessListener extends CNextListener {
   private readonly found: IRegisterAccessError[] = [];
 
-  public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    private readonly context: IAnalysisContext,
-  ) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
   }
 
@@ -89,9 +86,8 @@ class RegisterAccessListener extends CNextListener {
     this.reportRead(found, ctx);
   };
 
-  override enterAssignmentStatement = (
-    ctx: Parser.AssignmentStatementContext,
-  ): void => {
+  /** A write, in a statement or a `for` header (#1726) */
+  public checkSite(ctx: TAssignmentSite): void {
     const target = ctx.assignmentTarget();
     const root: TChainRoot = ChainRoot.ofTarget(target);
     const ops = target.postfixTargetOp();
@@ -135,7 +131,7 @@ class RegisterAccessListener extends CNextListener {
       `Cannot assign ${what} write-only register ${noun} ${found.spelling}[${index}]`,
       "Writing 0 to a write-1 register (`wo`, `w1s`, `w1c`) does not clear the bit -- the hardware ignores zeros, and a spelled-out zero (`0x0`, a const) would have SET it. Use the corresponding CLEAR register to clear bits.",
     );
-  };
+  }
 
   // --- Resolution ---------------------------------------------------------
 
@@ -151,13 +147,7 @@ class RegisterAccessListener extends CNextListener {
     chain: string[],
     node: ParserRuleContext,
   ): IRegisterMember | null {
-    return RegisterMemberReference.resolve(
-      root,
-      chain,
-      node,
-      this.scopes,
-      this.context,
-    );
+    return RegisterMemberReference.resolve(root, chain, node, this.context);
   }
 
   private isZero(
@@ -171,26 +161,34 @@ class RegisterAccessListener extends CNextListener {
     // which diagnostic fired. `isFalseConst` below was already scope-aware.
     const value = ConstantExpression.valueIn(
       expr,
-      this.scopes.frameFor(node).scopePath,
+      OperandTyper.scopePathAt(node, this.context),
       this.context.program,
     );
     if (value !== null) return value === 0;
     return this.isFalseConst(text, node);
   }
 
-  /** `const bool NAME <- false`, declared at file scope or in the enclosing scope. */
+  /**
+   * `const bool NAME <- false`, as the name binds here: a const local, a
+   * scope member or a file-scope const, through Program's one binder (#1668)
+   */
   private isFalseConst(name: string, node: ParserRuleContext): boolean {
     if (!/^[A-Za-z_]\w*$/.test(name)) return false;
-    const here = this.scopes.frameFor(node).scopePath;
-    const cNames = [name];
-    if (here !== "")
-      cNames.unshift(ScopeUtils.getTranspiledCName({ scopePath: here, name }));
-    for (const cName of cNames) {
-      const symbol = this.context.program.symbolByCName(cName);
-      if (symbol?.kind !== "variable" || !symbol.isConst) continue;
-      return symbol.initialValue?.trim() === "false";
-    }
-    return false;
+    const binding = this.context.program.bindValue(
+      this.context.sourceFile,
+      null,
+      name,
+      ParserUtils.getPosition(node),
+    );
+    let declared: { isConst: boolean; initialValue?: string | null } | null =
+      null;
+    if (binding?.kind === "local") declared = binding.declaration;
+    if (binding?.kind === "variable") declared = binding.symbol;
+    return (
+      declared !== null &&
+      declared.isConst &&
+      declared.initialValue?.trim() === "false"
+    );
   }
 
   // --- Reporting ----------------------------------------------------------
@@ -221,15 +219,16 @@ class RegisterAccessAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): IRegisterAccessError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    const listener = new RegisterAccessListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-      this.context,
-    );
+    const listener = new RegisterAccessListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+    ParseTreeWalker.DEFAULT.walk(
+      new AssignmentSiteListener((site) => listener.checkSite(site)),
+      tree,
+    );
+    // Reported in source order, as the one walk these replace did
+    return listener
+      .errors()
+      .sort((a, b) => a.line - b.line || a.column - b.column);
   }
 }
 

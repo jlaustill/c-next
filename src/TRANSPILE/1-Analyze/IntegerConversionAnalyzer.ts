@@ -32,9 +32,9 @@
  * than the type the value actually lands in. The second is the sharper one:
  * `c.col <- wide` emitted `c.col = wide;`, a u32 truncated into a u8 field with
  * no diagnostic, because the lookup found `c` -- a struct -- and skipped.
- * Reading the chain to the field is what `typeOfAssignmentTarget` already did
- * for ADR-036's bounds rule, so both holes closed by asking the question that
- * was already being asked next door.
+ * Reading the chain to the field is what ADR-036's bounds rule already did,
+ * so both holes closed by asking the question that was already being asked
+ * next door -- now the one operand typer's `typeOfTarget` (#1668).
  *
  * ## A third hole this closes
  *

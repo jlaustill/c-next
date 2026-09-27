@@ -28,22 +28,20 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import OperandTyper from "../../utils/OperandTyper";
+import AssignmentSiteListener from "./AssignmentSiteListener";
 import PROPERTY_NAMES from "../../utils/constants/PROPERTY_NAMES";
 import ChainRoot from "../../utils/ChainRoot";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import IBitmapAccessError from "./types/IBitmapAccessError";
-import ScopeFrameResolver from "./ScopeFrameResolver";
+import type TAssignmentSite from "./types/TAssignmentSite";
 import TChainRoot from "../../transpiler/types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 class BitmapAccessListener extends CNextListener {
   private readonly found: IBitmapAccessError[] = [];
 
-  public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    private readonly context: IAnalysisContext,
-  ) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
   }
 
@@ -77,9 +75,8 @@ class BitmapAccessListener extends CNextListener {
   };
 
   /** Targets: `f.Mode <- 10;` and `this.SysTick.CTRL[0] <- true;`. */
-  override enterAssignmentStatement = (
-    ctx: Parser.AssignmentStatementContext,
-  ): void => {
+  /** A write, in a statement or a `for` header (#1726) */
+  public checkSite(ctx: TAssignmentSite): void {
     const target = ctx.assignmentTarget();
     const ops = target.postfixTargetOp();
     const names = ops.map((op) =>
@@ -113,7 +110,7 @@ class BitmapAccessListener extends CNextListener {
       `Value ${value} exceeds ${layout.width}-bit field '${bitmapAt.field}' maximum of ${maximum}`,
       `A ${layout.width}-bit field holds 0 through ${maximum}; widen the field in the bitmap declaration, or write a value that fits (ADR-034).`,
     );
-  };
+  }
 
   /**
    * Walk one chain. Reports E0882 and E0883 where they apply, and returns the
@@ -186,7 +183,6 @@ class BitmapAccessListener extends CNextListener {
       root,
       chain,
       node,
-      this.scopes,
       this.context,
     );
     if (member !== null) {
@@ -197,19 +193,24 @@ class BitmapAccessListener extends CNextListener {
       return null;
     }
 
-    // A declared variable: `Flags f;` then `f.Mode`. `this.f` resolves through
-    // the enclosing scope's frame, which is where a scope member is recorded.
+    // A declared variable: `Flags f;` then `f.Mode`, or `this.f.Mode`. The
+    // typer binds the root and names its bitmap type as `bitmapFields` keys
+    // it, however the declaration spelled the type (#1668)
     if (root === "global") return null;
-    const name = chain[0];
-    if (name === undefined) return null;
-    const declared = this.scopes.declarationOfNameLexical(
-      name,
-      this.scopes.frameFor(node),
-    );
-    const typeText = declared?.typeText;
-    if (typeText === undefined) return null;
-    return symbols.bitmapFields.has(typeText)
-      ? { bitmap: typeText, at: 1 }
+    if (
+      !(node instanceof Parser.PostfixExpressionContext) &&
+      !(node instanceof Parser.AssignmentTargetContext)
+    ) {
+      return null;
+    }
+    // An ARRAY of bitmaps is not a bitmap: `arr[0].Mode` indexes the array
+    const declared = OperandTyper.chainOf(node, this.context).steps[0]?.before;
+    const bitmap =
+      declared && declared.dimensions.length === 0
+        ? declared.bitmapTypeName
+        : null;
+    return bitmap !== null && symbols.bitmapFields.has(bitmap)
+      ? { bitmap, at: 1 }
       : null;
   }
 
@@ -229,14 +230,16 @@ class BitmapAccessAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): IBitmapAccessError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-    const listener = new BitmapAccessListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-      this.context,
-    );
+    const listener = new BitmapAccessListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+    ParseTreeWalker.DEFAULT.walk(
+      new AssignmentSiteListener((site) => listener.checkSite(site)),
+      tree,
+    );
+    // Reported in source order, as the one walk these replace did
+    return listener
+      .errors()
+      .sort((a, b) => a.line - b.line || a.column - b.column);
   }
 }
 

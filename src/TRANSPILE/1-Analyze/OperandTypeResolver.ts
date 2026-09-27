@@ -250,24 +250,6 @@ class OperandTypeResolver {
   }
 
   /**
-   * Declared type of an assignment target, following `postfixTargetOp` steps.
-   *
-   * #1322 review: this used to say "`global.x` and a bare `x` resolve the same
-   * way", and it did -- which cost ADR-036's bounds check an out-of-bounds
-   * WRITE. With a `u8[16]` shadowing a file-scope `u8[4]`, `global.arr[9] <- 7`
-   * was measured against the local, passed, and emitted `arr[9] = 7U;` against
-   * the four-element array. Every root now resolves through
-   * `ScopeFrameResolver.declarationFor`, which is the only place that decision
-   * is made.
-   */
-  public typeOfAssignmentTarget(
-    ctx: Parser.AssignmentTargetContext,
-    frame: IScopeFrame,
-  ): string | null {
-    return this.typeOfAssignmentTargetPrefix(ctx, frame, 0);
-  }
-
-  /**
    * The same walk with the last `dropTrailingOps` operations left off.
    *
    * #1322: ADR-036's bounds check asks, at each subscript of a TARGET, what

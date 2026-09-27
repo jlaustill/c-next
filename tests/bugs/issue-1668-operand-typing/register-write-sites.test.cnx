@@ -1,0 +1,20 @@
+// test-error
+// #1668: E0871 reads every assignment site. Before, a write in a `for`
+// header was never checked (#1726), so a read-only member could be written
+// there.
+register STATUS_REG @ 0x40000000 {
+    FLAGS: u32 ro @ 0x00,
+    CTRL: u32 rw @ 0x04,
+}
+
+void main() {
+    // NEGATIVE CONTROL -- a writable member in a `for` update
+    for (u32 i <- 0; i < 3; STATUS_REG.CTRL <- 0xFF) {
+        i +<- 1;
+    }
+
+    // ASSERTION
+    for (u32 j <- 0; j < 3; STATUS_REG.FLAGS <- 0xFF) {
+        j +<- 1;
+    }
+}
