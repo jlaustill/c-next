@@ -15,7 +15,7 @@ typedef struct {
     struct {
         unsigned int flag_a: 1;
         unsigned int flag_b: 1;
-        unsigned int reserved: 30;
+        unsigned int reserved: 14;
     } flags;
 } SimpleConfig;
 

@@ -1,5 +1,5 @@
 #pragma once
-#include <cstdint>
+#include <stdint.h>
 
 // Minimal C++ header to enable C++ mode
 // This file declares SOME types, but NOT all that are used in the test

@@ -1,6 +1,6 @@
 #pragma once
-#include <cstdint>
-#include <cstddef>
+#include <stdint.h>
+#include <stddef.h>
 
 // ============================================================================
 // SECTION 1: NAMESPACES

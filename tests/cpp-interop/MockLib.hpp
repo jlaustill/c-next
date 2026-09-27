@@ -1,5 +1,5 @@
 #pragma once
-#include <cstdint>
+#include <stdint.h>
 
 // Nested namespace with a type - reproducer for issue #388
 namespace MockLib {

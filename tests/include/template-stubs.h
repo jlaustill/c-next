@@ -5,7 +5,7 @@
 #ifndef TEMPLATE_STUBS_H
 #define TEMPLATE_STUBS_H
 
-#include <cstdint>
+#include <stdint.h>
 
 // Generic template type stub with variadic parameters
 // Supports = 0 initialization via constructor
