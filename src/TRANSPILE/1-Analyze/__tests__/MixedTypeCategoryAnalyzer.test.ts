@@ -597,5 +597,39 @@ describe("MixedTypeCategoryAnalyzer", () => {
       expect(errors).toHaveLength(1);
       expect(errors[0].message).toContain("(unsigned and enum c_color_t)");
     });
+
+    it("keeps one category for an anonymous C enum reached through an alias", () => {
+      const symbolTable = new SymbolTable();
+      const at = {
+        sourceFile: "api.h",
+        span: TestSourceSpan.at(1),
+        sourceLanguage: ESourceLanguage.C,
+        visibility: "public",
+      } as const;
+      symbolTable.addCSymbol({
+        kind: "type",
+        name: "c_color_t",
+        type: "enum {C_RED,C_GREEN}",
+        ...at,
+      });
+      symbolTable.addCSymbol({
+        kind: "type",
+        name: "alias_t",
+        type: "c_color_t",
+        ...at,
+      });
+      for (const [name, type] of [
+        ["cColor", "c_color_t"],
+        ["cAlias", "alias_t"],
+      ]) {
+        symbolTable.addCSymbol({ kind: "variable", name, type, ...at });
+      }
+      const errors = analyze(
+        "void main() { bool same <- cColor = cAlias; u32 a <- 1; u32 r <- a + cAlias; }",
+        symbolTable,
+      );
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain("(unsigned and enum c_color_t)");
+    });
   });
 });
