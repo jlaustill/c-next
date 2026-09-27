@@ -24,16 +24,18 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // #1701: `global.x` is the file-scope `u32 x` wherever it is written, including
 // after a local `u8 x` shadows it. ADR-057 held for the emitted name but not
 // the type: the write saturated as a u8 (255), the read clamped as a u8, and
-// `.bit_length` was 8.
+// `.bit_length` was 8. The card's checks, each with its own code: the minimal
+// program's write (1), the read `global.x + 1000` = 1000, taken before that
+// write (2), `.bit_length` (3), and the bare `x` still the local (4).
 uint32_t x = 0U;
 
 uint32_t f(void) {
     uint8_t f__x = 1U;
-    x = cnx_clamp_add_u32(x, 1000U);
     uint32_t r = cnx_clamp_add_u32(x, 1000U);
+    x = cnx_clamp_add_u32(x, 1000U);
     uint32_t n = 32;
     uint32_t local = f__x;
-    if (r != 2000) return 2U;
+    if (r != 1000) return 2U;
     if (n != 32) return 3U;
     if (local != 1) return 4U;
     return 0U;
@@ -41,7 +43,7 @@ uint32_t f(void) {
 
 int main(void) {
     uint32_t checks = f();
-    if (checks != 0) return checks;
     if (x != 1000) return 1U;
+    if (checks != 0) return checks;
     return 0U;
 }
