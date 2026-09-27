@@ -905,10 +905,7 @@ class OperandTyper {
     const scopePath = ctx.program.lexicalFrameAt(ctx.sourceFile, at).scopePath;
     const nextIsCall = ops[0] !== undefined && OperandTyper.isCall(ops[0]);
     if (nextIsCall) {
-      const fn = ctx.program.resolveFunction(
-        name,
-        ctx.program.scope(scopePath) ?? ctx.program.globalScope(),
-      );
+      const fn = ctx.program.resolveFunction(name, scopePath);
       if (fn)
         return {
           binding: null,

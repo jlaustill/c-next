@@ -652,6 +652,43 @@ describe("Program", () => {
     });
   });
 
+  describe("resolveFunction (#1698)", () => {
+    // Where a bare call's lookup starts is decided here, once: the typer and
+    // the C name a call is emitted under pass the scope path they stand in,
+    // and used to derive the start scope from it themselves.
+    const program = (): ReturnType<typeof Program.build> =>
+      Program.build(
+        [
+          declare(
+            `u32 get() { return 1; }
+u32 other() { return 2; }
+scope Gauge {
+  u8 get() { return 3; }
+}`,
+            "a.cnx",
+          ),
+        ],
+        { registry },
+      );
+
+    it("finds a scope's own function before a global of the same name", () => {
+      expect(program().resolveFunction("get", "Gauge")?.scopePath).toBe(
+        "Gauge",
+      );
+    });
+
+    it("walks out to the global scope from inside a scope", () => {
+      expect(program().resolveFunction("other", "Gauge")?.name).toBe("other");
+    });
+
+    it("starts at the global scope at file scope and for an unknown path", () => {
+      expect(program().resolveFunction("get", "")?.scopePath).toBe("");
+      expect(program().resolveFunction("get", "NoSuchScope")?.scopePath).toBe(
+        "",
+      );
+    });
+  });
+
   describe("the query surface", () => {
     it("answers by canonical C name, by file, and lists its files", () => {
       const lib = declare(
@@ -703,7 +740,6 @@ describe("Program", () => {
         "constantOf",
         "externalStructFields",
         "functionParamLists",
-        "globalScope",
         "includeSearchPaths",
         "isOpaqueType",
         "isScopeTypeVisibleFrom",

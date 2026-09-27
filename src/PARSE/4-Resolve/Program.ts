@@ -318,13 +318,14 @@ class Program {
       // selects between, so it could not have noticed them diverging.
       scopePathOf: (name: string): string =>
         registry?.scopePathOf(name) ?? name,
-      globalScope: (): IScopeSymbol =>
-        registry?.getGlobalScope() ?? ScopeUtils.createGlobalScope(),
       resolveFunction: (
         name: string,
-        fromScope: IScopeSymbol,
+        fromScopePath: string,
       ): IFunctionSymbol | null =>
-        registry?.resolveFunction(name, fromScope) ?? null,
+        registry?.resolveFunction(
+          name,
+          registry.getScope(fromScopePath) ?? registry.getGlobalScope(),
+        ) ?? null,
     });
   }
 

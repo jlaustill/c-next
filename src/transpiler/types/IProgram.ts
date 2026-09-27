@@ -271,14 +271,18 @@ interface IProgram {
    */
   scopePathOf(name: string): string;
 
-  /** The global scope for this run. */
-  globalScope(): IScopeSymbol;
-
-  /** Resolve `name` from `fromScope`, walking current -> parent -> global. */
-  resolveFunction(
-    name: string,
-    fromScope: IScopeSymbol,
-  ): IFunctionSymbol | null;
+  /**
+   * The function a bare call to `name` means from inside `fromScopePath`
+   * (`""` at file scope), walking current -> parent -> global (ADR-057). A
+   * path that names no scope resolves from the global scope.
+   *
+   * It takes the PATH, not a scope, so where a lookup starts is decided here
+   * once. The typer (#1698) and the C name a call is emitted under each
+   * derived the start scope themselves, the same expression twice; the key a
+   * call is typed by and the name it is emitted under now share one
+   * resolution rather than two that agreed.
+   */
+  resolveFunction(name: string, fromScopePath: string): IFunctionSymbol | null;
 }
 
 export default IProgram;

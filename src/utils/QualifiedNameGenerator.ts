@@ -61,8 +61,7 @@ class QualifiedNameGenerator {
     // #1452 box 3: the scope graph arrives as an argument rather than off a
     // global. `utils/` authors no facts and now reaches for none either.
     if (!program) return ScopeUtils.qualifyInScope(funcName, scopePath);
-    const lookupScope = program.scope(scopePath) ?? program.globalScope();
-    const func = program.resolveFunction(funcName, lookupScope);
+    const func = program.resolveFunction(funcName, scopePath);
     if (func) {
       return this.forFunction(func);
     }
