@@ -1,0 +1,21 @@
+// test-cpp-only
+// test-error
+// test-adr: 024
+// #1668 review: a C++ header's instance method, a namespace's variable and
+// a field of one are typed like any header value. An instance method was
+// looked up as a field and missed; a namespace path was typed only when
+// called; and a namespace's struct is keyed `NS::PS` where its variable
+// spells `PS`. Each operand below was untyped, so `i * dev.read()` went to
+// cnx_clamp_mul_u32.
+#include "fo.hpp"
+
+void f(u32 i) {
+    f32 a <- i * dev.read();
+    u32 b <- i + dev.readI();
+    f32 c <- i * NS.nf;
+    u32 d <- i + NS.ns;
+    f32 e <- i * NS.nps.pf;
+    f32 g <- i * global.NS.nf;
+    // NEGATIVE CONTROL: floating arithmetic on the same names
+    f32 ok <- dev.read() * NS.nps.pf;
+}

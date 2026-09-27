@@ -1,0 +1,23 @@
+// test-error
+// test-adr: 024
+// #1668 review: a C-Next declaration typed by a header's integer type is
+// typed by it, so a conversion from it is checked like any other. A
+// `uint32_t` parameter stored into a `u8`, and an `int32_t` into a `u32`,
+// compiled with no E0869: the parameter had no type.
+#include "fo.h"
+
+u8 narrow(uint32_t big) {
+    u8 n <- big;
+    return n;
+}
+
+u32 signChange(int32_t cs) {
+    u32 n <- cs;
+    return n;
+}
+
+// NEGATIVE CONTROL: the same width and signedness
+u32 same(uint32_t v) {
+    u32 n <- v;
+    return n;
+}

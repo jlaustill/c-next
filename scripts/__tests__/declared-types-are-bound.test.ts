@@ -152,13 +152,16 @@ describe("declared types are bound, not registered", () => {
     ).toBe(true);
   });
 
+  // The first arm to walk every source file pays for ts-morph parsing all of
+  // src/: 1.3 s alone, 13.5 s measured on a loaded machine, past vitest's
+  // 5 s default -- the budget the other whole-tree script tests also set.
   it("arm C: no code in src/ names the registry, tests excluded", () => {
     const paths = project
       .getSourceFiles()
       .map((f) => relative(repoRoot, f.getFilePath()))
       .filter((path) => path.startsWith("src/") && !path.includes("__tests__"));
     expect(referencesTo(paths, REGISTRY)).toEqual([]);
-  });
+  }, 60_000);
 
   it("arm C control: a call into the registry is found in code", () => {
     const planted = project.createSourceFile(

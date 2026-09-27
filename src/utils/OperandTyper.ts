@@ -53,6 +53,8 @@ type TChainValue =
   | { readonly k: "function"; readonly returnType: TType }
   /** An unresolved name path: a C/C++ namespace, class or function */
   | { readonly k: "foreignPath"; readonly parts: readonly string[] }
+  /** A header's function pointer, not yet called: its call's result */
+  | { readonly k: "foreignFunction"; readonly result: IOperandType | null }
   | { readonly k: "unknown" };
 
 const UNKNOWN: TChainValue = { k: "unknown" };
@@ -607,7 +609,21 @@ class OperandTyper {
     dimensions: ReadonlyArray<number | string>,
     ctx: ITypingContext,
   ): IOperandType {
-    if (type.kind === "external") {
+    // A header's type named in a C-Next declaration (`real_t x`,
+    // `float32_t v`): 1.3 guesses a named type's kind from its spelling
+    // (#1720), so a name that is no C-Next struct, enum or bitmap, and that is
+    // a C type or a header's, is asked of the header too (#1668 review:
+    // it was untyped, and `x * i` went to an integer clamp helper).
+    if (
+      type.kind === "external" ||
+      (OperandTyper.isNamedKind(type) &&
+        !OperandTyper.declaresNamedType(type.name, ctx) &&
+        ForeignTypeFacts.isForeignType(
+          type.name,
+          ctx.symbolTable,
+          OperandTyper.target(ctx),
+        ))
+    ) {
       const foreign = ForeignTypeFacts.operandType(
         type.name,
         ctx.symbolTable,
@@ -641,6 +657,24 @@ class OperandTyper {
       default:
         return base;
     }
+  }
+
+  private static isNamedKind(
+    type: TType,
+  ): type is Extract<TType, { kind: "struct" | "enum" | "bitmap" }> {
+    return (
+      type.kind === "struct" || type.kind === "enum" || type.kind === "bitmap"
+    );
+  }
+
+  /** Whether this file sees `name` declared as a C-Next struct, enum or bitmap */
+  private static declaresNamedType(name: string, ctx: ITypingContext): boolean {
+    const symbols = ctx.symbols;
+    return (
+      symbols.knownStructs.has(name) ||
+      symbols.knownEnums.has(name) ||
+      symbols.knownBitmaps.has(name)
+    );
   }
 
   /**
@@ -745,6 +779,9 @@ class OperandTyper {
         ops,
       };
     }
+    if (binding?.kind === "foreign") {
+      return OperandTyper.foreignStart(binding, name, ops, ctx);
+    }
     if (binding) {
       const t = OperandTyper.boundValue(binding, ctx);
       return {
@@ -830,16 +867,35 @@ class OperandTyper {
       };
     }
     if (binding?.kind === "foreign") {
-      const t = OperandTyper.boundValue(binding, ctx);
-      return {
-        binding,
-        value: t
-          ? { k: "value", t, register: false }
-          : { k: "foreignPath", parts: [name] },
-        ops,
-      };
+      return OperandTyper.foreignStart(binding, name, ops, ctx);
     }
     return { binding: null, value: { k: "foreignPath", parts: [name] }, ops };
+  }
+
+  /**
+   * A header's name at the head of a chain, bare or as `global.name`: its
+   * variable's type, or a path a following call or member resolves (a
+   * function, a namespace). One arm for both spellings (#1668 review:
+   * `global.cGetF()` stopped at an untyped root).
+   */
+  private static foreignStart(
+    binding: TValueBinding,
+    name: string,
+    ops: ReadonlyArray<Parser.PostfixOpContext | Parser.PostfixTargetOpContext>,
+    ctx: ITypingContext,
+  ): {
+    binding: TValueBinding | null;
+    value: TChainValue;
+    ops: ReadonlyArray<Parser.PostfixOpContext | Parser.PostfixTargetOpContext>;
+  } {
+    const t = OperandTyper.boundValue(binding, ctx);
+    return {
+      binding,
+      value: t
+        ? { k: "value", t, register: false }
+        : { k: "foreignPath", parts: [name] },
+      ops,
+    };
   }
 
   /** What `Scope.name` denotes: a member, a function, an enum or a register */
@@ -938,7 +994,7 @@ class OperandTyper {
         return { k: "value", register: true, t };
       }
       case "foreignPath":
-        return { k: "foreignPath", parts: [...current.parts, member] };
+        return OperandTyper.foreignPathOf([...current.parts, member], ctx);
       case "value":
         return OperandTyper.fieldOf(current.t, member, ctx);
       default:
@@ -999,13 +1055,48 @@ class OperandTyper {
       ctx.symbolTable,
       OperandTyper.target(ctx),
     );
-    return foreign
-      ? {
-          k: "value",
-          register: false,
-          t: { ...foreign, hasSideEffect: t.hasSideEffect },
-        }
+    // A C struct's function-pointer field, `ops.get()` (#1668 review: its
+    // call's result was untyped)
+    const pointer = ForeignTypeFacts.fieldCallOperand(
+      t.typeName,
+      member,
+      ctx.symbolTable,
+      OperandTyper.target(ctx),
+    );
+    if (pointer !== undefined) {
+      return { k: "foreignFunction", result: pointer };
+    }
+    if (foreign) {
+      return {
+        k: "value",
+        register: false,
+        t: { ...foreign, hasSideEffect: t.hasSideEffect },
+      };
+    }
+    // A C++ class's member function, `dev.read()`: named `Dev::read`, as a
+    // static member's call already is, so the call that follows
+    // resolves it (#1668 review: an instance method's result was untyped)
+    return t.form.kind === "foreign" || t.form.kind === "declared"
+      ? { k: "foreignPath", parts: [t.typeName, member] }
       : UNKNOWN;
+  }
+
+  /**
+   * A path into a C++ namespace or class, `NS.nf`: a variable the path names
+   * is typed where it is reached, so a member after it resolves too
+   * (`NS.nps.pf`); anything else stays a path, for a call to resolve
+   * (#1668 review: a namespace variable was typed only when called).
+   */
+  private static foreignPathOf(
+    parts: readonly string[],
+    ctx: ITypingContext,
+  ): TChainValue {
+    const t = ForeignTypeFacts.variableOperand(
+      parts.join("::"),
+      ctx.symbolTable,
+      OperandTyper.target(ctx),
+    );
+    return t ? { k: "value", register: false, t } : { k: "foreignPath", parts };
   }
 
   /**
@@ -1178,6 +1269,15 @@ class OperandTyper {
           },
         };
       }
+    }
+    if (current.k === "foreignFunction") {
+      return current.result
+        ? {
+            k: "value",
+            register: false,
+            t: { ...current.result, hasSideEffect: true, form: call },
+          }
+        : UNKNOWN;
     }
     if (current.k === "foreignPath") {
       const t = ForeignTypeFacts.callOperand(

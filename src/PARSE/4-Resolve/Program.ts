@@ -683,8 +683,9 @@ class Program {
    *
    * A bare name: the innermost local, then the enclosing scope's member,
    * then a file-scope global, then a C-Next scope, then a C/C++ header name.
-   * `this.x` is the enclosing scope's member only; `global.x` never binds a
-   * local. Scope members and globals are found by C-name identity, never by a
+   * `this.x` is the enclosing scope's member only; `global.x` is a
+   * file-scope global, a C-Next scope or a header name, never a local or a
+   * member. Scope members and globals are found by C-name identity, never by a
    * first bare-name match, so a reopened scope in another file binds too.
    */
   private static bindValue(
@@ -729,19 +730,18 @@ class Program {
       facts.registry?.getScope(name)
         ? { kind: "scope", scopePath: name }
         : null;
+    const foreign = (): TValueBinding | null =>
+      facts.foreignNames.has(name) ? { kind: "foreign", name } : null;
 
     if (root === "this") {
       return member();
     }
     if (root === "global") {
-      return variable(name) ?? scope();
+      // #1668 review: a header's name too. `global.` is how a scope reaches
+      // one its own member shadows, and binding nothing left it untyped.
+      return variable(name) ?? scope() ?? foreign();
     }
-    return (
-      member() ??
-      variable(name) ??
-      scope() ??
-      (facts.foreignNames.has(name) ? { kind: "foreign", name } : null)
-    );
+    return member() ?? variable(name) ?? scope() ?? foreign();
   }
 
   private static indexByCName(

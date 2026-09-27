@@ -190,6 +190,28 @@ class ForeignTypeFacts {
     };
   }
 
+  /**
+   * Whether `name` is a C or C++ type: one of C's own (`uint32_t`, `size_t`,
+   * `unsigned int` -- known by spelling, as `operandType` knows them), or a
+   * typedef, struct, class or enum a header declares. A name that is
+   * neither is not a header's type, whatever a C-Next declaration spelled.
+   */
+  static isForeignType(
+    name: string,
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+  ): boolean {
+    if (ForeignTypeFacts.knownSpelling(name, target) !== undefined) return true;
+    const kinds = new Set(["type", "struct", "class", "enum"]);
+    const c = lookup.getCSymbol(name);
+    const cpp = lookup.getCppSymbol(name);
+    return (
+      (c !== undefined && kinds.has(c.kind)) ||
+      (cpp !== undefined && kinds.has(cpp.kind)) ||
+      lookup.isTypedefStructType(name)
+    );
+  }
+
   /** A C variable (C first, then C++): `name` as a header declares it */
   static variableOperand(
     name: string,
@@ -199,11 +221,41 @@ class ForeignTypeFacts {
     const symbol = lookup.getCSymbol(name) ?? lookup.getCppSymbol(name);
     if (symbol?.kind !== "variable" || !symbol.type) return null;
     return ForeignTypeFacts.operandType(
-      symbol.type,
+      ForeignTypeFacts.inNamespaceOf(name, symbol.type, lookup),
       lookup,
       target,
       symbol.isArray ? (symbol.arrayDimensions ?? [""]) : [],
     );
+  }
+
+  /**
+   * A type spelled inside a C++ namespace, as C++ looks it up: `PS` in
+   * `namespace NS` is `NS::PS` when NS declares one, else the enclosing
+   * namespace's, out to the global one. A header's collectors key a
+   * namespace's types by their full name, and a variable records its type
+   * as written (#1668 review: `NS.nps.pf` was untyped).
+   */
+  private static inNamespaceOf(
+    qualifiedName: string,
+    type: string,
+    lookup: IForeignSymbolLookup,
+  ): string {
+    const spelling = ForeignTypeFacts.spellingOf(type);
+    const scopes = qualifiedName.split("::").slice(0, -1);
+    for (let depth = scopes.length; depth > 0; depth -= 1) {
+      const candidate = [...scopes.slice(0, depth), spelling].join("::");
+      const symbol = lookup.getCppSymbol(candidate);
+      if (
+        symbol !== undefined &&
+        (symbol.kind === "type" ||
+          symbol.kind === "struct" ||
+          symbol.kind === "class" ||
+          symbol.kind === "enum")
+      ) {
+        return candidate;
+      }
+    }
+    return type;
   }
 
   /** A field of a C struct */
@@ -221,6 +273,58 @@ class ForeignTypeFacts {
       target,
       info.arrayDimensions ?? [],
     );
+  }
+
+  /**
+   * What calling a C struct's function-pointer field gives, `ops.get()`:
+   * the pointed-to function's result, through any typedefs to the pointer
+   * (`typedef float (*getter_t)(void)`). Null when the result is a type
+   * C-Next does not read; undefined when the field is not a function
+   * pointer at all.
+   */
+  static fieldCallOperand(
+    structName: string,
+    field: string,
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+  ): IOperandType | null | undefined {
+    const info = lookup.getStructFieldInfo(structName, field);
+    if (!info?.type || info.arrayDimensions?.length) return undefined;
+    let type = ForeignTypeFacts.spellingOf(info.type);
+    for (let hop = 0; hop < ForeignTypeFacts.MAX_TYPEDEF_HOPS; hop += 1) {
+      const result = ForeignTypeFacts.pointedFunctionResult(type);
+      if (result !== null) {
+        return ForeignTypeFacts.operandType(result, lookup, target);
+      }
+      const typedef = lookup.getCSymbol(type) ?? lookup.getCppSymbol(type);
+      if (typedef?.kind !== "type" || !typedef.type) return undefined;
+      type = ForeignTypeFacts.spellingOf(typedef.type);
+    }
+    return undefined;
+  }
+
+  /**
+   * The result type a function-pointer spelling names: `float` for
+   * `float (*)(void)`, null for any other spelling. String operations rather
+   * than a regex, as `stripTrailingPointers` does, to avoid backtracking
+   * (SonarCloud S5852).
+   */
+  private static pointedFunctionResult(type: string): string | null {
+    const star = type.indexOf("*");
+    const open = star < 0 ? -1 : type.lastIndexOf("(", star);
+    const close = star < 0 ? -1 : type.indexOf(")", star);
+    if (open < 0 || close < 0) return null;
+    const between = type.slice(open + 1, star) + type.slice(star + 1, close);
+    const parameters = type.slice(close + 1).trim();
+    if (
+      between.trim() !== "" ||
+      !parameters.startsWith("(") ||
+      !parameters.endsWith(")")
+    ) {
+      return null;
+    }
+    const result = type.slice(0, open).trim();
+    return result === "" ? null : result;
   }
 
   /**
