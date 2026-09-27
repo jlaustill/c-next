@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-408 fixture(s) assert a diagnostic; 393 carry a code.
+409 fixture(s) assert a diagnostic; 394 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -330,6 +330,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1668-operand-typing/bool-for-header-compound.test.cnx                           | E0806, E0807        |
 | tests/bugs/issue-1668-operand-typing/c-integer-categories.test.cnx                               | E0810               |
 | tests/bugs/issue-1668-operand-typing/callback-assign-sites.test.cnx                              | E0879               |
+| tests/bugs/issue-1668-operand-typing/compound-assign-sites.test.cnx                              | E0857               |
 | tests/bugs/issue-1668-operand-typing/enum-assign-sites.test.cnx                                  | E0428               |
 | tests/bugs/issue-1668-operand-typing/float-modulo-shapes.test.cnx                                | E0804               |
 | tests/bugs/issue-1668-operand-typing/integer-conversion-sources.test.cnx                         | E0869               |

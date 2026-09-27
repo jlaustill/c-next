@@ -366,6 +366,18 @@ void main() {
     expect(OperandTyper.isBoolean(t)).toBe(false);
   });
 
+  it("types a string field as a string, not an array of its C buffer", () => {
+    const struct = "struct Config {\nstring<32> name;\nstring<8>[4] tags;\n}\n";
+    const name = typeOf(
+      `${struct}void main() {\nConfig c;\nstring<32> r <- c.name;\n}`,
+    );
+    expect(name).toMatchObject({ stringCapacity: 32, dimensions: [] });
+    const tags = typeOf(
+      `${struct}void main() {\nConfig c;\nstring<8> r <- c.tags[1];\n}`,
+    );
+    expect(tags).toMatchObject({ stringCapacity: 8, dimensions: [] });
+  });
+
   it("does not call an array of bools a Boolean", () => {
     const row = typeOf(inMain("bool[2][3] f;\nbool r <- f[0];"));
     expect(row).toMatchObject({ typeName: "bool", dimensions: [3] });
