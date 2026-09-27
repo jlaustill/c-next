@@ -50,13 +50,10 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import OperandTyper from "../../utils/OperandTyper";
 import EnumMemberSuggestion from "./helpers/EnumMemberSuggestion";
 import EnumValueResolver from "./EnumValueResolver";
 import IBareEnumMemberError from "./types/IBareEnumMemberError";
-import IScopeFrame from "./types/IScopeFrame";
-import OperandTypeResolver from "./OperandTypeResolver";
-import ScopeFrameResolver from "./ScopeFrameResolver";
 import UndeclaredValueAnalyzer from "./UndeclaredValueAnalyzer";
 import TypeText from "./helpers/TypeText";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -67,15 +64,10 @@ type TExpected = string | null;
 
 class BareEnumMemberListener extends CNextListener {
   private readonly found: IBareEnumMemberError[] = [];
-  private readonly types: OperandTypeResolver;
   private readonly values: EnumValueResolver;
 
-  public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    private readonly context: IAnalysisContext,
-  ) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
-    this.types = new OperandTypeResolver(scopes, context);
     this.values = new EnumValueResolver(context);
   }
 
@@ -97,21 +89,19 @@ class BareEnumMemberListener extends CNextListener {
     const declaring = EnumMemberSuggestion.enumsDeclaring(name, symbols);
     if (declaring.length === 0) return;
 
-    const frame = this.scopes.frameFor(ctx);
+    const scopePath = OperandTyper.scopePathAt(ctx, this.context);
     if (
       UndeclaredValueAnalyzer.isDeclaredValue(
         name,
-        frame,
-        frame.scopePath,
-        this.scopes,
-        this.context.symbolTable,
+        ctx,
+        scopePath,
         this.context,
       )
     ) {
       return;
     }
 
-    const expected = this.expectedEnum(ctx, frame);
+    const expected = this.expectedEnum(ctx, scopePath);
     if (expected !== null && symbols.enumMembers.get(expected)?.has(name)) {
       return;
     }
@@ -131,11 +121,9 @@ class BareEnumMemberListener extends CNextListener {
    * position names none. Walks up to the nearest establishing node, stopping
    * early at the nodes that clear or suppress the expected type.
    */
-  private expectedEnum(node: ParserRuleContext, frame: IScopeFrame): TExpected {
-    const text = this.expectedTypeText(node, frame);
-    return text === null
-      ? null
-      : this.values.enumTypeNameFor(text, frame.scopePath);
+  private expectedEnum(node: ParserRuleContext, scopePath: string): TExpected {
+    const text = this.expectedTypeText(node, scopePath);
+    return text === null ? null : this.values.enumTypeNameFor(text, scopePath);
   }
 
   /**
@@ -145,11 +133,11 @@ class BareEnumMemberListener extends CNextListener {
    */
   private expectedTypeText(
     node: ParserRuleContext,
-    frame: IScopeFrame,
+    scopePath: string,
   ): TExpected {
     let cursor: ParserRuleContext | null = node.parent;
     while (cursor) {
-      const answer = this.establishedBy(cursor, frame);
+      const answer = this.establishedBy(cursor, scopePath);
       if (answer !== undefined) return answer;
       cursor = cursor.parent;
     }
@@ -170,7 +158,7 @@ class BareEnumMemberListener extends CNextListener {
    */
   private establishedBy(
     cursor: ParserRuleContext,
-    frame: IScopeFrame,
+    scopePath: string,
   ): TExpected | undefined {
     // --- clears and suppressions ------------------------------------------
     // A postfix operation: a subscript index (`size_t`) or a call's argument
@@ -204,23 +192,23 @@ class BareEnumMemberListener extends CNextListener {
       return BareEnumMemberListener.declaredTypeText(cursor.type());
     }
     if (cursor instanceof Parser.AssignmentStatementContext) {
-      return this.assignmentTargetType(cursor.assignmentTarget(), frame);
+      return this.assignmentTargetType(cursor.assignmentTarget());
     }
     if (cursor instanceof Parser.ReturnStatementContext) {
       return BareEnumMemberListener.enclosingFunctionType(cursor);
     }
     if (cursor instanceof Parser.FieldInitializerContext) {
-      return this.fieldType(cursor, frame);
+      return this.fieldType(cursor, scopePath);
     }
     if (cursor instanceof Parser.ArrayInitializerContext) {
       // An element is generated under the array's ELEMENT type, which is the
       // declared type with its dimensions removed -- what the walk above this
       // node answers, since `declaredTypeText` strips them.
-      return this.expectedTypeText(cursor, frame);
+      return this.expectedTypeText(cursor, scopePath);
     }
     if (cursor instanceof Parser.StructInitializerContext) {
       // Reached from a field: the struct's type, explicit or inherited.
-      return this.structTypeOf(cursor, frame);
+      return this.structTypeOf(cursor, scopePath);
     }
     if (
       cursor instanceof Parser.StatementContext ||
@@ -237,29 +225,28 @@ class BareEnumMemberListener extends CNextListener {
   /** The type of an assignment's target, spelled as declared, or null. */
   private assignmentTargetType(
     target: Parser.AssignmentTargetContext,
-    frame: IScopeFrame,
   ): TExpected {
     // A slice or bit-range write (`arr[off, len] <- v`) has no element
     // expected type; codegen's resolver answered null for it.
     if (target.postfixTargetOp().some((op) => op.expression().length === 2)) {
       return null;
     }
-    return this.types.typeOfAssignmentTarget(target, frame);
+    return OperandTyper.typeOfTarget(target, this.context)?.typeName ?? null;
   }
 
   /** The type of the field a `name: value` initializer sets, or null. */
   private fieldType(
     field: Parser.FieldInitializerContext,
-    frame: IScopeFrame,
+    scopePath: string,
   ): TExpected {
     const initializer = field.parent?.parent;
     if (!(initializer instanceof Parser.StructInitializerContext)) return null;
-    const structText = this.structTypeOf(initializer, frame);
+    const structText = this.structTypeOf(initializer, scopePath);
     if (structText === null) return null;
     const fieldName = field.IDENTIFIER().getText();
     for (const spelling of BareEnumMemberListener.structSpellings(
       structText,
-      frame,
+      scopePath,
     )) {
       const type = StructFieldFacts.typeOf(
         this.context.symbols,
@@ -276,8 +263,8 @@ class BareEnumMemberListener extends CNextListener {
    * enclosing scope's `X`, `global.X` is file scope, a bare `X` inside a scope
    * is tried as the scope's before file scope (ADR-057's order).
    */
-  private static structSpellings(text: string, frame: IScopeFrame): string[] {
-    const here = frame.scopePath;
+  private static structSpellings(text: string, scopePath: string): string[] {
+    const here = scopePath;
     if (text.startsWith("this.")) {
       return here === "" ? [] : [`${here}.${text.slice(5)}`];
     }
@@ -293,9 +280,9 @@ class BareEnumMemberListener extends CNextListener {
    */
   private structTypeOf(
     initializer: Parser.StructInitializerContext,
-    frame: IScopeFrame,
+    scopePath: string,
   ): TExpected {
-    return this.expectedTypeText(initializer, frame);
+    return this.expectedTypeText(initializer, scopePath);
   }
 
   /** A declaration's type as written, without its array dimensions. */
@@ -320,13 +307,7 @@ class BareEnumMemberAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): IBareEnumMemberError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    const listener = new BareEnumMemberListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-      this.context,
-    );
+    const listener = new BareEnumMemberListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

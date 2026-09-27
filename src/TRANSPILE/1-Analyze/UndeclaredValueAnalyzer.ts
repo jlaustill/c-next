@@ -35,29 +35,20 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import BUILTIN_TYPE_NAMES from "../../transpiler/constants/BUILTIN_TYPE_NAMES";
 import ChainRoot from "../../utils/ChainRoot";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
-import IScopeFrame from "./types/IScopeFrame";
 import IUndeclaredValueError from "./types/IUndeclaredValueError";
 import NameExistence from "../../PARSE/3-Declare/NameExistence";
 import ParserUtils from "../../utils/ParserUtils";
 import REJECTED_KEYWORDS from "../../transpiler/constants/REJECTED_KEYWORDS";
-import ScopeFrameResolver from "./ScopeFrameResolver";
 import ScopeUtils from "../../utils/ScopeUtils";
+import OperandTyper from "../../utils/OperandTyper";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import TChainRoot from "../../transpiler/types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 class UndeclaredValueListener extends CNextListener {
-  private readonly analyzer: UndeclaredValueAnalyzer;
-
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly scopes: ScopeFrameResolver;
-
-  constructor(analyzer: UndeclaredValueAnalyzer, scopes: ScopeFrameResolver) {
+  constructor(private readonly analyzer: UndeclaredValueAnalyzer) {
     super();
-    this.analyzer = analyzer;
-    this.scopes = scopes;
   }
 
   /**
@@ -151,8 +142,7 @@ class UndeclaredValueListener extends CNextListener {
       return;
     }
 
-    const frame = this.scopes.frameFor(ctx);
-    if (this.analyzer.isVisible(name, root, frame, this.scopes)) {
+    if (this.analyzer.isVisible(name, root, ctx)) {
       return;
     }
 
@@ -187,16 +177,7 @@ class UndeclaredValueAnalyzer {
       return this.errors;
     }
 
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    ParseTreeWalker.DEFAULT.walk(
-      new UndeclaredValueListener(
-        this,
-        new ScopeFrameResolver(declarations, this.context.symbolTable),
-      ),
-      tree,
-    );
+    ParseTreeWalker.DEFAULT.walk(new UndeclaredValueListener(this), tree);
     return this.errors;
   }
 
@@ -205,11 +186,11 @@ class UndeclaredValueAnalyzer {
    *
    * ADR-016's root is PART of the question, not a decoration on it: `this.x`
    * asks the enclosing scope, `global.x` asks file scope, and only a bare name
-   * searches outward. `ScopeFrameResolver.declarationFor` is the one encoder of
-   * that distinction over this file's lexical frames (#1322 found four copies
-   * of it disagreeing, three of which emitted broken C at exit 0), so the root
-   * is handed to it rather than re-branched. The arms below are the CROSS-FILE
-   * half, which frames built from this file's parse tree cannot answer.
+   * searches outward (#1322 found four copies of that distinction disagreeing,
+   * three of which emitted broken C at exit 0). A local is Program's lexical
+   * frames' answer (#1668); a file-scope value -- this file's or an included
+   * one's -- is `NameExistence.isValueName`'s, and a scope member is
+   * `isScopeMemberValue`'s, whichever file declared it.
    *
    * Without the split, `this.gx` where `gx` is a file-scope global -- not a
    * member of the enclosing scope -- passes on the bare lookup and emits
@@ -222,47 +203,36 @@ class UndeclaredValueAnalyzer {
    * `Scope__gx` at exit 0. Two predicates that agree by inspection are the
    * divergence this analyzer exists to prevent.
    */
-  isVisible(
-    name: string,
-    root: TChainRoot,
-    frame: IScopeFrame,
-    scopes: ScopeFrameResolver,
-  ): boolean {
+  isVisible(name: string, root: TChainRoot, at: ParserRuleContext): boolean {
     const symbols = this.context.symbols;
+    const scopePath = OperandTyper.scopePathAt(at, this.context);
 
     if (root === null) {
       return (
         UndeclaredValueAnalyzer.isDeclaredValue(
           name,
-          frame,
-          frame.scopePath,
-          scopes,
-          this.context.symbolTable,
+          at,
+          scopePath,
           this.context,
         ) || NameExistence.isKnownEnumMember(name, symbols)
       );
     }
 
-    if (scopes.declarationFor(root, name, frame) !== null) {
-      return true;
-    }
-
-    // `global.x` may still name a file-scope variable that arrived through an
-    // `#include`, which this file's frames never held. The include-filtered
-    // predicate is the cross-file half, exactly as it is for a bare name.
+    // `global.x` is a file-scope value, this file's or one an `#include`
+    // brought: the include-filtered predicate answers both.
     if (root === "global") {
       return NameExistence.isValueName(name, symbols, this.context.symbolTable);
     }
 
     // `this.` outside any scope is E0431's to reject, and two diagnostics for
     // one name is worse than one.
-    if (frame.scopePath === "") {
+    if (scopePath === "") {
       return true;
     }
 
     return UndeclaredValueAnalyzer.isScopeMemberValue(
       name,
-      frame.scopePath,
+      scopePath,
       symbols,
       this.context.symbolTable,
     );
@@ -307,13 +277,13 @@ class UndeclaredValueAnalyzer {
    */
   static isDeclaredValue(
     name: string,
-    frame: IScopeFrame,
+    at: ParserRuleContext,
     scopePath: string,
-    scopes: ScopeFrameResolver,
-    symbolTable: SymbolTable,
     context: IAnalysisContext,
   ): boolean {
-    // A declared variable in an enclosing lexical frame of THIS file.
+    const symbolTable = context.symbolTable;
+    // A local, parameter or `for` variable in an enclosing lexical frame of
+    // THIS file, declared before `at` (#1668: Program's frames).
     //
     // #1398: deliberately the lexical half alone. The full `typeOfName` falls
     // back to the run-wide symbol table, which answers "declared anywhere in
@@ -323,7 +293,13 @@ class UndeclaredValueAnalyzer {
     // answered by `NameExistence.isValueName` below, whose `knownVariables`
     // term is include-filtered. The fallback itself stays for #1220's
     // essential-type analyzers, which want exactly the run-wide answer.
-    if (scopes.typeOfNameLexical(name, frame) !== null) {
+    if (
+      context.program.lexicalDeclarationAt(
+        context.sourceFile,
+        name,
+        ParserUtils.getPosition(at),
+      ) !== null
+    ) {
       return true;
     }
 
