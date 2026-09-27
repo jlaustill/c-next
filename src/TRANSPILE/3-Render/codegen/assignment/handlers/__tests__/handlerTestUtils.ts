@@ -12,6 +12,8 @@ import type ICodeGenSymbols from "../../../../../../transpiler/types/ICodeGenSym
 import type TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
 import type IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
 import type IChainBase from "../../../../../2-Plan/types/IChainBase";
+import type IChainStep from "../../../../../../transpiler/types/IChainStep";
+import type IOperandType from "../../../../../../transpiler/types/IOperandType";
 import ScopeUtils from "../../../../../../utils/ScopeUtils";
 import QualifiedCName from "../../../../../../utils/QualifiedCName";
 
@@ -221,7 +223,96 @@ function targetOf(
   return { root: null, rootTypeInfo, typeInfo, last: undefined };
 }
 
+/** A declared scalar's operand type, as the typer gives it */
+function operandOf(
+  typeName: string,
+  integer: boolean,
+  signed: boolean,
+): IOperandType {
+  let category: IOperandType["category"] = "none";
+  if (integer) category = signed ? "signed" : "unsigned";
+  else if (typeName.startsWith("f")) category = "floating";
+  return {
+    typeName,
+    dimensions: [],
+    category,
+    bitWidth: integer ? TYPE_BIT_WIDTHS[typeName] : null,
+    stringCapacity: null,
+    enumTypeName: null,
+    bitmapTypeName: null,
+    overflow: null,
+    hasSideEffect: false,
+    form: { kind: "declared" },
+    binding: null,
+  };
+}
+
+/**
+ * #1668 review: what a bit write reads off its context, built from a case's
+ * flattened subscripts -- the last `lastIndexCount` of them are the bit's --
+ * or from the ops a case gives itself. The final op, the target without it
+ * (the value whose bits are written), and the typer's step for that value,
+ * typed from what the case declared.
+ */
+function bitWriteOf(
+  ctx: Pick<
+    IAssignmentContext,
+    | "subscriptCount"
+    | "renderSubscript"
+    | "resolvedBaseIdentifier"
+    | "postfixOps"
+  >,
+  lastIndexCount: 1 | 2,
+  declared: TTypeInfo | undefined,
+): {
+  postfixOps: IAssignmentContext["postfixOps"];
+  renderBitTarget: () => string;
+  last: IChainStep;
+} {
+  const leading = ctx.subscriptCount - lastIndexCount;
+  const ops: IAssignmentContext["postfixOps"] =
+    ctx.postfixOps.length > 0
+      ? ctx.postfixOps
+      : [
+          ...Array.from({ length: leading }, (_, index) => ({
+            kind: "subscript" as const,
+            indexCount: 1,
+            renderIndexes: () => [ctx.renderSubscript(index)],
+          })),
+          {
+            kind: "subscript" as const,
+            indexCount: lastIndexCount,
+            renderIndexes: () =>
+              Array.from({ length: lastIndexCount }, (_, i) =>
+                ctx.renderSubscript(leading + i),
+              ),
+          },
+        ];
+  const baseType = declared?.baseType ?? null;
+  const signed = baseType !== null && /^i\d/.test(baseType);
+  const integer = baseType !== null && /^[ui]\d+$/.test(baseType);
+  return {
+    postfixOps: ops,
+    renderBitTarget: () =>
+      ctx.resolvedBaseIdentifier +
+      ops
+        .slice(0, -1)
+        .map((op) =>
+          op.kind === "member"
+            ? `.${op.name}`
+            : `[${op.renderIndexes().join("][")}]`,
+        )
+        .join(""),
+    last: {
+      before: baseType === null ? null : operandOf(baseType, integer, signed),
+      subscript: lastIndexCount === 2 ? "bit_range" : "bit_single",
+      after: null,
+    },
+  };
+}
+
 export default class HandlerTestUtils {
+  static readonly bitWriteOf = bitWriteOf;
   static readonly setupMockSymbols = setupMockSymbols;
   static readonly setupMockGenerator = setupMockGenerator;
   static readonly subscriptsOf = subscriptsOf;

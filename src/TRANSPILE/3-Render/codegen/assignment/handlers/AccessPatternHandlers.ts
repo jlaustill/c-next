@@ -9,7 +9,7 @@
  */
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
-import BitUtils from "../../../../../utils/BitUtils";
+import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 
 /**
@@ -46,12 +46,7 @@ function handleMemberChain(ctx: IAssignmentContext): string {
 
   if (bitAnalysis.isBitAccess) {
     // #1322: compound assignment on this target is E0857 in pass 2.1.
-
-    const { baseTarget, bitIndex, baseType } = bitAnalysis;
-    const one = BitUtils.oneForType(baseType!);
-    const intValue = BitUtils.boolToInt(ctx.generatedValue.trim());
-
-    return `${baseTarget} = (${baseTarget} & ~(${one} << ${bitIndex})) | (${intValue} << ${bitIndex});`;
+    return AssignmentHandlerUtils.writeBits(ctx);
   }
 
   // Normal member chain assignment

@@ -36,8 +36,8 @@ int main(void) {
     float vx = meshes[0U].vertices[0U].x;
     float vz = meshes[0U].vertices[7U].z;
     grid[2][3].flags = 0xFFU;
-    grid[2][3].flags = (grid[2][3].flags & ~(1U << 0)) | (1U << 0);
-    grid[2][3].flags = (grid[2][3].flags & ~(1U << 7)) | (0U << 7);
+    grid[2][3].flags = (uint8_t)((grid[2][3].flags & ~(1U << 0)) | (1U << 0));
+    grid[2][3].flags = (uint8_t)((grid[2][3].flags & ~(1U << 7)) | (0U << 7));
     bool bit0 = ((((grid[2U][3U].flags) & 1)) != 0U);
     bool bit7 = ((((grid[2U][3U].flags >> 7U) & 1)) != 0U);
     meshes[1].indices[0] = 0U;

@@ -46,6 +46,8 @@ int main(void) {
     const uint8_t F = cnx_clamp_add_u8(E, E);
     uint8_t last = arr[cnx_clamp_sub_u8(F, 252U)];
     if (last != 8) return 4U;
+    uint8_t direct = arr[cnx_clamp_sub_u8(A, 3U)];
+    if (direct != 5) return 6U;
     const uint8_t G = cnx_clamp_add_u8(A, 3U);
     uint8_t five[5] = {0};
     if (5 != 5) return 5U;

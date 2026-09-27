@@ -17,13 +17,13 @@ BoundaryTest__Data items[16] = {0};
 // Max reasonable array size for testing
 int main(void) {
     items[0].byte = 0xFFU;
-    items[0].byte = (items[0].byte & ~(1U << 0)) | (1U << 0);
-    items[0].byte = (items[0].byte & ~(1U << 7)) | (0U << 7);
+    items[0].byte = (uint8_t)((items[0].byte & ~(1U << 0)) | (1U << 0));
+    items[0].byte = (uint8_t)((items[0].byte & ~(1U << 7)) | (0U << 7));
     bool b0 = ((((items[0U].byte) & 1)) != 0U);
     bool b7 = ((((items[0U].byte >> 7U) & 1)) != 0U);
     items[0].word = 0xFFFFU;
-    items[0].word = (items[0].word & ~(1U << 0)) | (1U << 0);
-    items[0].word = (items[0].word & ~(1U << 15)) | (0U << 15);
+    items[0].word = (uint16_t)((items[0].word & ~(1U << 0)) | (1U << 0));
+    items[0].word = (uint16_t)((items[0].word & ~(1U << 15)) | (0U << 15));
     bool w0 = ((((items[0U].word) & 1)) != 0U);
     bool w15 = ((((items[0U].word >> 15U) & 1)) != 0U);
     items[0].dword = 0xFFFFFFFFU;
@@ -32,8 +32,8 @@ int main(void) {
     bool d0 = ((((items[0U].dword) & 1)) != 0U);
     bool d31 = ((((items[0U].dword >> 31U) & 1)) != 0U);
     items[0].qword = 0ULL;
-    items[0].qword = (items[0].qword & ~(1ULL << 0)) | (1U << 0);
-    items[0].qword = (items[0].qword & ~(1ULL << 30)) | (1U << 30);
+    items[0].qword = (items[0].qword & ~(1ULL << 0)) | ((uint64_t)1U << 0);
+    items[0].qword = (items[0].qword & ~(1ULL << 30)) | ((uint64_t)1U << 30);
     bool q0 = ((((items[0U].qword) & 1)) != 0U);
     bool q30 = ((((items[0U].qword >> 30U) & 1)) != 0U);
     items[15].byte = 0xAAU;
@@ -53,7 +53,7 @@ int main(void) {
     items[15].dword = 0xFFFFFFFFU;
     items[15].dword = (items[15].dword & ~(1U << 31)) | (0U << 31);
     bool complexMax = ((((items[15U].dword >> 31U) & 1)) != 0U);
-    items[0].byte = (items[0].byte & ~(1U << 0)) | (1U << 0);
+    items[0].byte = (uint8_t)((items[0].byte & ~(1U << 0)) | (1U << 0));
     bool zeroIdx = ((((items[0U].byte) & 1)) != 0U);
     uint8_t consecutive = 0xFFU;
     consecutive = (uint8_t)((consecutive & ~(1U << 0)) | (0U << 0));

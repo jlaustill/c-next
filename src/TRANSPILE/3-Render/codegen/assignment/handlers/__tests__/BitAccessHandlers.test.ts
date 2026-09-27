@@ -64,9 +64,18 @@ function createMockContext(
     ...overrides,
   } as IAssignmentContext;
   // #1668 (C7): what the target writes, as the binder would bind it
+  const target = overrides.target ?? HandlerTestUtils.targetOf(state, ctx);
+  // #1668 review: the final op, the target without it and the typer's step
+  const bits = HandlerTestUtils.bitWriteOf(
+    ctx,
+    ctx.lastSubscriptExprCount === 2 ? 2 : 1,
+    target.typeInfo,
+  );
   return {
     ...ctx,
-    target: overrides.target ?? HandlerTestUtils.targetOf(state, ctx),
+    postfixOps: bits.postfixOps,
+    renderBitTarget: overrides.renderBitTarget ?? bits.renderBitTarget,
+    target: { ...target, last: target.last ?? bits.last },
   };
 }
 
@@ -215,6 +224,7 @@ describe("BitAccessHandlers", () => {
           .mockReturnValueOnce("4"),
       });
       const ctx = createMockContext({
+        lastSubscriptExprCount: 2,
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0" } as never,
           { mockValue: "4" } as never,
@@ -238,6 +248,7 @@ describe("BitAccessHandlers", () => {
           .mockReturnValueOnce("8"),
       });
       const ctx = createMockContext({
+        lastSubscriptExprCount: 2,
         identifiers: ["data"],
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "4" } as never,
@@ -262,6 +273,7 @@ describe("BitAccessHandlers", () => {
           .mockReturnValueOnce("16"),
       });
       const ctx = createMockContext({
+        lastSubscriptExprCount: 2,
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "32" } as never,
           { mockValue: "16" } as never,
@@ -288,6 +300,7 @@ describe("BitAccessHandlers", () => {
           .mockReturnValueOnce("8"),
       });
       const ctx = createMockContext({
+        lastSubscriptExprCount: 2,
         identifiers: ["f"],
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0" } as never,
@@ -326,6 +339,7 @@ describe("BitAccessHandlers", () => {
           .mockImplementation((e: { mockValue: string }) => e.mockValue),
       });
       const ctx = createMockContext({
+        lastSubscriptExprCount: 2,
         identifiers: ["row"],
         generatedValue: "6",
         ...HandlerTestUtils.subscriptsOf(
@@ -420,15 +434,28 @@ describe("BitAccessHandlers", () => {
       expect(result).toContain("1ULL << 40");
     });
 
-    it("throws when variable is not an array", () => {
-      HandlerTestUtils.declareTypes(state, [["notArray", { baseType: "u32" }]]);
+    it("writes the element's bit when no C-Next declaration gives the array's dimensions", () => {
+      // #1668 review: a C header's array (`extern uint8_t bytes[4]`) has none.
+      // The handler asserted the root's C-Next dimensions and was an
+      // internal error on `bytes[1][3] <- true`.
+      HandlerTestUtils.setupMockGenerator(state, {
+        generateExpression: vi
+          .fn()
+          .mockReturnValueOnce("1")
+          .mockReturnValueOnce("3"),
+      });
       const ctx = createMockContext({
-        identifiers: ["notArray"],
+        identifiers: ["bytes"],
+        ...HandlerTestUtils.subscriptsOf([
+          { mockValue: "1" } as never,
+          { mockValue: "3" } as never,
+        ]),
       });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "agree on a variable's array-ness",
-      );
+      const result = getHandler()!(ctx);
+
+      expect(result).toContain("bytes[1] =");
+      expect(result).toContain("& ~(1U << 3)");
     });
   });
 

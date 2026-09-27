@@ -51,7 +51,7 @@ static uint8_t Reg__flags = 0U;
 
 uint8_t Reg__elementBit(void) {
     Reg__buffer[3] = 0U;
-    Reg__buffer[3] = (Reg__buffer[3] & ~(1U << 1)) | (1U << 1);
+    Reg__buffer[3] = (uint8_t)((Reg__buffer[3] & ~(1U << 1)) | (1U << 1));
     return Reg__buffer[3U];
 }
 
@@ -74,7 +74,7 @@ uint8_t Reg__bitRange(void) {
 
 uint8_t Reg__viaGlobalPrefix(void) {
     globalBuffer[3] = 0U;
-    globalBuffer[3] = (globalBuffer[3] & ~(1U << 1)) | (1U << 1);
+    globalBuffer[3] = (uint8_t)((globalBuffer[3] & ~(1U << 1)) | (1U << 1));
     return globalBuffer[3U];
 }
 
@@ -97,7 +97,7 @@ uint8_t Reg__globalSliceByte(uint32_t index) {
 
 uint8_t Reg__scopedElementBit(void) {
     Other__buffer[3] = 0;
-    Other__buffer[3] = (Other__buffer[3] & ~(1U << 1)) | (1U << 1);
+    Other__buffer[3] = (uint8_t)((Other__buffer[3] & ~(1U << 1)) | (1U << 1));
     return Other__buffer[3U];
 }
 
@@ -120,7 +120,7 @@ uint8_t Reg__scopedBitRange(void) {
 
 uint8_t Reg__bareScopedElementBit(void) {
     Other__buffer[3] = 0;
-    Other__buffer[3] = (Other__buffer[3] & ~(1U << 1)) | (1U << 1);
+    Other__buffer[3] = (uint8_t)((Other__buffer[3] & ~(1U << 1)) | (1U << 1));
     return Other__buffer[3U];
 }
 
@@ -143,7 +143,7 @@ uint8_t Reg__bareScopedBitRange(void) {
 
 int main(void) {
     globalBuffer[3] = 0U;
-    globalBuffer[3] = (globalBuffer[3] & ~(1U << 1)) | (1U << 1);
+    globalBuffer[3] = (uint8_t)((globalBuffer[3] & ~(1U << 1)) | (1U << 1));
     if (globalBuffer[3U] != 2) return 1U;
     uint8_t viaThis = Reg__elementBit();
     if (viaThis != 2) return 2U;

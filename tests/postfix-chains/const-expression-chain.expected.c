@@ -46,16 +46,16 @@ int main(void) {
     uint32_t id0 = sensors[INDEX_0].id;
     uint32_t id1 = sensors[INDEX_1].id;
     sensors[INDEX_0].data = 0xFFU;
-    sensors[INDEX_0].data = (sensors[INDEX_0].data & ~(1U << LED_BIT)) | (0U << LED_BIT);
-    sensors[INDEX_0].data = (sensors[INDEX_0].data & ~(1U << STATUS_BIT)) | (1U << STATUS_BIT);
+    sensors[INDEX_0].data = (uint8_t)((sensors[INDEX_0].data & ~(1U << LED_BIT)) | (0U << LED_BIT));
+    sensors[INDEX_0].data = (uint8_t)((sensors[INDEX_0].data & ~(1U << STATUS_BIT)) | (1U << STATUS_BIT));
     GPIO__DR = (GPIO__DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
     GPIO__DR = (GPIO__DR & ~(1U << STATUS_BIT)) | (0U << STATUS_BIT);
     GPIO__DR_SET = (1U << LED_BIT);
     const uint32_t COMPUTED_IDX = cnx_clamp_add_u32(INDEX_1, INDEX_1);
     sensors[COMPUTED_IDX].id = 500U;
     uint32_t computedId = sensors[COMPUTED_IDX].id;
-    sensors[INDEX_0].data = (sensors[INDEX_0].data & ~(1U << LED_BIT)) | (1U << LED_BIT);
-    sensors[INDEX_1].data = (sensors[INDEX_1].data & ~(1U << STATUS_BIT)) | (0U << STATUS_BIT);
+    sensors[INDEX_0].data = (uint8_t)((sensors[INDEX_0].data & ~(1U << LED_BIT)) | (1U << LED_BIT));
+    sensors[INDEX_1].data = (uint8_t)((sensors[INDEX_1].data & ~(1U << STATUS_BIT)) | (0U << STATUS_BIT));
     if (((sensors[INDEX_0].data >> LED_BIT) & 1) == true) {
         GPIO__DR = (GPIO__DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
     }
@@ -64,7 +64,7 @@ int main(void) {
     const uint32_t FIELD_BIT = 5U;
     uint8_t matrix[4][4] = {0};
     matrix[ROW][COL] = 0xFFU;
-    matrix[ROW][COL] = (matrix[ROW][COL] & ~(1U << FIELD_BIT)) | (0U << FIELD_BIT);
+    matrix[ROW][COL] = (uint8_t)((matrix[ROW][COL] & ~(1U << FIELD_BIT)) | (0U << FIELD_BIT));
     uint8_t value = matrix[ROW][COL];
     bool bit = ((((matrix[ROW][COL] >> FIELD_BIT) & 1)) != 0U);
 }

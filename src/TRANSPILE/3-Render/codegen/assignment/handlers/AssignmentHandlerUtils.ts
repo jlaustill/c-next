@@ -9,6 +9,9 @@ import IRegisterNameResult from "./IRegisterNameResult";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import invariant from "../../../../../utils/invariant";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
+import BitUtils from "../../../../../utils/BitUtils";
+import CompositeType from "../../../../../utils/CompositeType";
+import type IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 
 /**
  * Validate that compound assignment operators are not used with bit field access.
@@ -98,9 +101,38 @@ function buildRegisterNameWithScopeDetection(
 }
 
 /**
+ * The one bit write: the target without its final subscript, rendered by
+ * the target renderer, and that subscript's bit or bit range (#1668 review).
+ *
+ * Five handlers and the member-chain one each rebuilt the base from the
+ * source spelling, so a local renamed `f__gs` was written as the global
+ * `gs`, and each picked the mask's width from a type NAME only `u64`/`i64`
+ * matched: a header's `uint64_t` or a `u64` struct field got `1U << 40`,
+ * undefined behavior. The width is the typer's now, for the value the
+ * subscript indexes, whatever its spelling -- and the MISRA C:2012 Rule
+ * 10.3 narrowing cast comes with it for every form, not only two.
+ */
+function writeBits(ctx: IAssignmentContext): string {
+  const last = ctx.postfixOps.at(-1);
+  invariant(
+    last?.kind === "subscript",
+    "a bit write's target ends in a subscript: the classifier routed it here",
+  );
+  // Source order: the base's own subscripts, then the bit's
+  const base = ctx.renderBitTarget();
+  const [start, width] = last.renderIndexes();
+  const type =
+    CompositeType.integerOf([ctx.target.last?.before ?? null]) ?? undefined;
+  return width === undefined
+    ? BitUtils.singleBitWrite(base, start, ctx.generatedValue, type)
+    : BitUtils.multiBitWrite(base, start, width, ctx.generatedValue, type);
+}
+
+/**
  * Assignment Handler Utilities
  */
 class AssignmentHandlerUtils {
+  static readonly writeBits = writeBits;
   static readonly validateWriteOnlyValue = validateWriteOnlyValue;
   static readonly buildScopedRegisterName = buildScopedRegisterName;
   static readonly buildRegisterNameWithScopeDetection =

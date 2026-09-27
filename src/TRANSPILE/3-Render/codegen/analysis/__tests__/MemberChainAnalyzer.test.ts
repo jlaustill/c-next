@@ -6,9 +6,9 @@
  * each case is a real declared and resolved program, typed as the walk types
  * it, rather than render state set up by hand.
  *
- * The ops' thunks let a test assert what an eager version could not: that a
- * chain which is not a bit access renders NO index. Rendering one queues a
- * pending temp declaration, so an eager version would leak one per chain.
+ * The ops' thunks let a test assert that deciding renders nothing: rendering
+ * an index queues a pending temp declaration, so a decision that rendered
+ * would leak one per chain. The write renders, once (`writeBits`).
  */
 import { describe, it, expect } from "vitest";
 import { ParseTreeWalker } from "antlr4ng";
@@ -76,7 +76,6 @@ function analyze(statement: string): {
     };
   });
   const result = MemberChainAnalyzer.analyze(
-    found.IDENTIFIER()?.getText() ?? null,
     OperandTyper.chainOf(found, context).steps.at(-1),
     ops,
   );
@@ -85,8 +84,8 @@ function analyze(statement: string): {
 
 describe("MemberChainAnalyzer", () => {
   describe("analyze", () => {
-    it("returns isBitAccess false when no base identifier", () => {
-      expect(MemberChainAnalyzer.analyze(null, undefined, [])).toEqual({
+    it("returns isBitAccess false for a chain with no ops", () => {
+      expect(MemberChainAnalyzer.analyze(undefined, [])).toEqual({
         isBitAccess: false,
       });
     });
@@ -103,29 +102,14 @@ describe("MemberChainAnalyzer", () => {
     });
 
     it.each([
-      ["a struct member", "point.flags[3] <- true;", "point.flags", "3"],
-      [
-        "an array of structs' member",
-        "devices[0].flags[7] <- true;",
-        "devices[0].flags",
-        "7",
-      ],
-      ["a 2D array element", "matrix[0][1][3] <- true;", "matrix[0][1]", "3"],
+      ["a struct member", "point.flags[3] <- true;"],
+      ["an array of structs' member", "devices[0].flags[7] <- true;"],
+      ["a 2D array element", "matrix[0][1][3] <- true;"],
       // The write path counted an array field's subscripts itself and got
       // this one wrong: `s.arr[1][3] = true;`, which C rejects
-      [
-        "an array field's element (#1668, C12)",
-        "point.arr[1][3] <- true;",
-        "point.arr[1]",
-        "3",
-      ],
-    ])("is a bit access: %s", (_why, statement, baseTarget, bitIndex) => {
-      expect(analyze(statement).result).toEqual({
-        isBitAccess: true,
-        baseTarget,
-        bitIndex,
-        baseType: "u8",
-      });
+      ["an array field's element (#1668, C12)", "point.arr[1][3] <- true;"],
+    ])("is a bit access: %s", (_why, statement) => {
+      expect(analyze(statement).result).toEqual({ isBitAccess: true });
     });
 
     it("renders no index for a chain that is not bit access", () => {

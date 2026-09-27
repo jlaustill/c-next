@@ -21,6 +21,10 @@ u32 main() {
     const u8 F <- E + E;
     u8 last <- arr[F - 252];
     if (last != 8) return 4;
+    // No declaration in between: a subscript that is arithmetic on a typed
+    // const is clamped too, `arr[cnx_clamp_sub_u8(A, 3U)]`, element 0
+    u8 direct <- arr[A - 3];
+    if (direct != 5) return 6;
     // NEGATIVE CONTROL: a fold every operand's type holds still folds
     const u8 G <- A + 3;
     u8[G] five;

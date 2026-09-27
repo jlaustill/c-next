@@ -17,7 +17,9 @@
  * count was wrong for an element of an array field, so `s.arr[1][3] <- true`
  * was emitted as `s.arr[1][3] = true;`, and it knew only C-Next integer names,
  * so a C header's `uint8_t` field was never a bit target. What is left here is
- * rendering: the base target's C text and the bit index.
+ * the decision; the write itself is `AssignmentHandlerUtils.writeBits`, the
+ * one every bit handler uses (#1668 review: this class rendered the base
+ * from the source spelling, so a renamed local wrote the global it shadows).
  */
 
 import IBitAccessAnalysis from "../../../../transpiler/types/IBitAccessAnalysis";
@@ -28,63 +30,25 @@ class MemberChainAnalyzer {
   /**
    * Whether the chain's final subscript writes one bit of an integer.
    *
-   * @param baseName - The chain's root identifier, as written
    * @param lastStep - The typer's step for the final op, or undefined
-   * @param ops - The chain's ops, for rendering the base target
+   * @param ops - The chain's ops
    */
   static analyze(
-    baseName: string | null,
     lastStep: IChainStep | undefined,
     ops: readonly TPlannedTargetOp[],
   ): IBitAccessAnalysis {
-    if (!baseName || ops.length === 0) {
+    const lastOp = ops.at(-1);
+    if (lastOp?.kind !== "subscript" || lastOp.indexCount !== 1) {
       return { isBitAccess: false };
     }
-
-    const lastOp = ops.at(-1)!;
-    if (lastOp.kind !== "subscript" || lastOp.indexCount !== 1) {
-      return { isBitAccess: false };
-    }
-
     const indexed = lastStep?.before ?? null;
     if (lastStep?.subscript !== "bit_single" || indexed === null) {
       return { isBitAccess: false };
     }
-    // A bit of an integer whose width is known; the width picks `1U` or
-    // `1ULL` for the mask
+    // A bit of an integer whose width is known
     const isInteger =
       indexed.category === "signed" || indexed.category === "unsigned";
-    if (!isInteger || indexed.typeName === null) {
-      return { isBitAccess: false };
-    }
-
-    return {
-      isBitAccess: true,
-      baseTarget: MemberChainAnalyzer.buildBaseTarget(
-        baseName,
-        ops.slice(0, -1),
-      ),
-      bitIndex: lastOp.renderIndexes()[0],
-      baseType: indexed.typeName,
-    };
-  }
-
-  /**
-   * Build the target expression string from base identifier and postfix operations.
-   */
-  private static buildBaseTarget(
-    baseId: string,
-    ops: readonly TPlannedTargetOp[],
-  ): string {
-    let result = baseId;
-    for (const op of ops) {
-      if (op.kind === "member") {
-        result += "." + op.name;
-      } else {
-        result += "[" + op.renderIndexes().join(", ") + "]";
-      }
-    }
-    return result;
+    return { isBitAccess: isInteger && indexed.bitWidth !== null };
   }
 }
 

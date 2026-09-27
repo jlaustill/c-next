@@ -39,6 +39,17 @@ interface IAssignmentContext {
    */
   readonly renderTarget: () => string;
 
+  /**
+   * The target without its final subscript, by the same renderer: the value
+   * whose bits a bit write reads and writes (#1668 review).
+   *
+   * The bit-write handlers used to build it themselves from the source
+   * spelling, so a local renamed `f__gs` was written as `gs` -- the global
+   * it shadows -- and `S.cfg`, `pv` and a struct parameter's `p.arr` were
+   * emitted as written, not as C names.
+   */
+  readonly renderBitTarget: () => string;
+
   /** ADR-034 bit-access analysis of the target's member chain. */
   readonly analyzeTargetForBitAccess: () => IBitAccessAnalysis;
 

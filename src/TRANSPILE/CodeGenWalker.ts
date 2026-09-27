@@ -1297,12 +1297,21 @@ class CodeGenWalker {
    * Generate an assignment target.
    * Part of IOrchestrator interface.
    * Issue #387: Unified postfix chain - all patterns now use IDENTIFIER postfixTargetOp*
+   *
+   * @param opCount how many of the target's postfix operations to render;
+   *        all of them unless given. A bit write renders its target without
+   *        the final subscript through this same renderer (#1668 review), so
+   *        a renamed local, a scope member or a struct parameter is spelled
+   *        once, here.
    */
-  generateAssignmentTarget(ctx: Parser.AssignmentTargetContext): string {
+  generateAssignmentTarget(
+    ctx: Parser.AssignmentTargetContext,
+    opCount?: number,
+  ): string {
     const hasGlobal = ctx.GLOBAL() !== null;
     const hasThis = ctx.THIS() !== null;
     const identifier = ctx.IDENTIFIER()?.getText();
-    const postfixOps = ctx.postfixTargetOp();
+    const postfixOps = ctx.postfixTargetOp().slice(0, opCount);
 
     // SonarCloud S3776: Use SimpleIdentifierResolver for simple identifier case
     if (!hasGlobal && !hasThis && postfixOps.length === 0 && identifier) {
@@ -4663,7 +4672,6 @@ class CodeGenWalker {
     // #1668 (C12): what the last subscript indexes is the typer's answer,
     // typed once with the target (`IChainBase.last`)
     return MemberChainAnalyzer.analyze(
-      targetCtx.IDENTIFIER()?.getText() ?? null,
       lastStep,
       targetCtx.postfixTargetOp().map((op) => this.planTargetOp(op)),
     );
@@ -4781,8 +4789,8 @@ class CodeGenWalker {
       state: this.host.state,
       // Already rendered, inside the expectedType window above -- never again.
       generatedValue: () => value,
-      generateAssignmentTarget: (target) =>
-        this.generateAssignmentTarget(target),
+      generateAssignmentTarget: (target, opCount) =>
+        this.generateAssignmentTarget(target, opCount),
       analyzeMemberChainForBitAccess: (target, lastStep) =>
         this.analyzeMemberChainForBitAccess(target, lastStep),
       generateExpression: (expr) => this.generateExpression(expr),

@@ -17,10 +17,10 @@
 S s = {0};
 
 int main(void) {
-    s.flags = (s.flags & ~(1U << 3)) | (1U << 3);
+    s.flags = (uint8_t)((s.flags & ~(1U << 3)) | (1U << 3));
     uint8_t f = s.flags;
     if (f != 8) return 1U;
-    s.arr[1] = (s.arr[1] & ~(1U << 3)) | (1U << 3);
+    s.arr[1] = (uint8_t)((s.arr[1] & ~(1U << 3)) | (1U << 3));
     uint8_t e = s.arr[1U];
     if (e != 8) return 2U;
     s.arr[2] = 5U;

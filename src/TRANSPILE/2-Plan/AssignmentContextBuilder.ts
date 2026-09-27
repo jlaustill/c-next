@@ -50,8 +50,14 @@ interface IContextBuilderDeps {
    */
   generatedValue(): string;
 
-  /** Generate fully-resolved assignment target with scope prefixes */
-  generateAssignmentTarget(ctx: Parser.AssignmentTargetContext): string;
+  /**
+   * Generate the fully-resolved assignment target with scope prefixes, or
+   * its first `opCount` postfix operations
+   */
+  generateAssignmentTarget(
+    ctx: Parser.AssignmentTargetContext,
+    opCount?: number,
+  ): string;
 
   /** ADR-034: analyze the target's member chain for bit access */
   analyzeMemberChainForBitAccess(
@@ -252,6 +258,8 @@ function buildAssignmentContext(
   return {
     state: deps.state,
     renderTarget: () => deps.generateAssignmentTarget(targetCtx),
+    renderBitTarget: () =>
+      deps.generateAssignmentTarget(targetCtx, postfixOps.length - 1),
     analyzeTargetForBitAccess: () =>
       deps.analyzeMemberChainForBitAccess(targetCtx, deps.target.last),
     targetLine: targetCtx.start?.line,
