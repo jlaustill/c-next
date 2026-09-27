@@ -123,7 +123,6 @@ export default class CodeGenerator implements IOrchestrator {
       inFunctionBody: this.state.inFunctionBody,
       currentParameters: this.state.currentParameters,
       localVariables: this.state.localVariables,
-      localArrays: this.state.localArrays,
       expectedType: this.state.expectedType,
       headerOwnsTypeDefinitions:
         this.state.declarationPlan().headerOwnsTypeDefinitions, // #369/#1450

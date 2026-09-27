@@ -138,6 +138,7 @@ import IPostfixChainDeps from "./3-Render/codegen/types/IPostfixChainDeps";
 import IPostfixOperation from "./3-Render/codegen/types/IPostfixOperation";
 import ExpressionUnwrapper from "../utils/ExpressionUnwrapper";
 import ParserUtils from "../utils/ParserUtils";
+import type ISourcePosition from "../utils/types/ISourcePosition";
 import IMemberSeparatorDeps from "./3-Render/codegen/types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./3-Render/codegen/types/IParameterDereferenceDeps";
 import ISeparatorContext from "./3-Render/codegen/types/ISeparatorContext";
@@ -1302,7 +1303,7 @@ class CodeGenWalker {
       return SimpleIdentifierResolver.resolve(
         identifier,
         this._buildSimpleIdentifierDeps(),
-        ctx.start?.line,
+        ParserUtils.getPosition(ctx),
       );
     }
 
@@ -1313,7 +1314,6 @@ class CodeGenWalker {
     let resolvedIdentifier = identifier ?? "";
     if (!hasGlobal && !hasThis && identifier) {
       const isParameter = this.host.state.currentParameters.has(identifier);
-      const isLocalVariable = this.host.state.localVariables.has(identifier);
       const isKnownRegister =
         this.host.state.symbols?.knownRegisters.has(identifier);
       // Issue #1100: Parameters with postfix ops (array/bit subscript, member
@@ -1342,10 +1342,9 @@ class CodeGenWalker {
         // the local, in the same function, compiling clean.
         const resolved = TypeValidator.resolveBareIdentifier(
           identifier,
-          isLocalVariable,
+          ParserUtils.getPosition(ctx),
           (name: string) => this.host.isKnownStruct(name),
           this.host.state,
-          ctx.start?.line,
         );
         if (resolved !== null) {
           resolvedIdentifier = resolved;
@@ -1642,7 +1641,10 @@ class CodeGenWalker {
     if (ctx.IDENTIFIER()) {
       const id = ctx.IDENTIFIER()!.getText();
       // #1322: `break`/`continue` (ADR-026, E0703) are rejected in pass 2.1.
-      return this._resolveIdentifierExpression(id, ctx.start?.line);
+      return this._resolveIdentifierExpression(
+        id,
+        ParserUtils.getPosition(ctx),
+      );
     }
     if (ctx.literal()) {
       return this._generateLiteralExpression(ctx.literal()!);
@@ -4872,15 +4874,12 @@ class CodeGenWalker {
           paramInfo,
           this._buildParameterDereferenceDeps(),
         ),
-      isLocalVariable: (name: string) =>
-        this.host.state.localVariables.has(name),
-      resolveBareIdentifier: (name: string, isLocal: boolean, line?: number) =>
+      resolveBareIdentifier: (name: string, at: ISourcePosition) =>
         TypeValidator.resolveBareIdentifier(
           name,
-          isLocal,
+          at,
           (n: string) => this.host.isKnownStruct(n),
           this.host.state,
-          line,
         ),
     };
   }
@@ -5295,7 +5294,10 @@ class CodeGenWalker {
    * Resolve an identifier in a primary expression context
    * Handles: main args, parameters, local variables, scope resolution, enum members
    */
-  private _resolveIdentifierExpression(id: string, line?: number): string {
+  private _resolveIdentifierExpression(
+    id: string,
+    at: ISourcePosition,
+  ): string {
     // Special case: main function's args parameter -> argv
     if (this.host.state.mainArgsName && id === this.host.state.mainArgsName) {
       return "argv";
@@ -5312,13 +5314,11 @@ class CodeGenWalker {
     }
 
     // ADR-016: Resolve bare identifier using local -> scope -> global priority
-    const isLocalVariable = this.host.state.localVariables.has(id);
     const resolved = TypeValidator.resolveBareIdentifier(
       id,
-      isLocalVariable,
+      at,
       (name: string) => this.host.isKnownStruct(name),
       this.host.state,
-      line,
     );
     if (resolved !== null) {
       // Issue #741: Check if this is a private const that should be inlined

@@ -7,6 +7,7 @@ import ReservedCnxName from "../utils/ReservedCnxName";
 import ICodeGenSymbols from "../transpiler/types/ICodeGenSymbols";
 import TTypeInfo from "../transpiler/types/TTypeInfo";
 import type TChainRoot from "../transpiler/types/TChainRoot";
+import type TValueBinding from "../transpiler/types/TValueBinding";
 import type ISourcePosition from "../utils/types/ISourcePosition";
 import DeclaredTypeInfo from "./2-Plan/DeclaredTypeInfo";
 import TParameterInfo from "../transpiler/types/TParameterInfo";
@@ -242,13 +243,28 @@ class TranspileState {
   ): TTypeInfo | undefined {
     const typing = this.typingContext();
     if (typing === null) return undefined;
-    const binding = typing.program.bindValue(
+    const binding = this.bindingAt(root, name, at);
+    return DeclaredTypeInfo.of(binding, typing.symbols, this.symbolTable);
+  }
+
+  /**
+   * #1668 (C7): which declaration a name means where it is used -- the
+   * binder's local -> scope -> global order (ADR-057). `name` may be a
+   * shadowing local's emitted name, mapped back to its source name.
+   */
+  bindingAt(
+    root: TChainRoot,
+    name: string,
+    at: ISourcePosition,
+  ): TValueBinding | null {
+    const typing = this.typingContext();
+    if (typing === null) return null;
+    return typing.program.bindValue(
       typing.sourceFile,
       root,
       this.sourceLocalName(name),
       at,
     );
-    return DeclaredTypeInfo.of(binding, typing.symbols, this.symbolTable);
   }
 
   typingContext(): ITypingContext | null {
@@ -676,9 +692,6 @@ class TranspileState {
   /** ADR-016: Local variables in current function (allowed as bare identifiers) */
   localVariables: Set<string> = new Set();
 
-  /** ADR-006: Local array variables (no & needed when passing) */
-  localArrays: Set<string> = new Set();
-
   /**
    * ADR-057: bare source name -> the C identifier a shadowing local is emitted
    * under.
@@ -826,14 +839,13 @@ class TranspileState {
    *
    * One owner for the whole family. Four copies of this block existed, and they
    * had already diverged: one of them cleared three of the four registers and
-   * left `localArrays` to leak between functions. Adding `localRenames` to four
+   * left a local-array set (since deleted, #1668) to leak between functions. Adding `localRenames` to four
    * call sites would have made that five. (The copy that diverged lived on
    * `FunctionContextManager`, which #1450 deleted as production-dead; the point
    * survives it, so it is stated without the name.)
    */
   private clearFunctionLocals(): void {
     this.localVariables.clear();
-    this.localArrays.clear();
     this.localRenames.clear();
     this.floatBitShadows.clear();
     this.floatShadowCurrent.clear();
@@ -1235,13 +1247,6 @@ class TranspileState {
   }
 
   /**
-   * Check if a name is a local array.
-   */
-  isLocalArray(name: string): boolean {
-    return this.localArrays.has(name);
-  }
-
-  /**
    * Get members of a scope.
    */
   getScopeMembers(scopePath: string): Set<string> | undefined {
@@ -1543,7 +1548,7 @@ class TranspileState {
    *
    * Needed where a helper is handed the emitted name for code generation but
    * must still register under the name the source used: every registry
-   * (`localVariables`, `localArrays`, `typeRegistry`) is keyed by the source
+   * (`localVariables`, `typeRegistry`) is keyed by the source
    * spelling, because that is what references in the source say.
    */
   sourceLocalName(emittedName: string): string {
@@ -1565,12 +1570,9 @@ class TranspileState {
    * caller that registered first would ask about a name that is already local
    * and always be told "no collision".
    */
-  registerLocalVariable(name: string, isArray: boolean = false): void {
+  registerLocalVariable(name: string): void {
     this.planShadowingLocalName(name);
     this.localVariables.add(name);
-    if (isArray) {
-      this.localArrays.add(name);
-    }
   }
 
   /**
@@ -1698,7 +1700,6 @@ class TranspileState {
     this.currentFunctionName = null;
     this.currentParameters = new Map();
     this.localVariables = new Set();
-    this.localArrays = new Set();
     this.localRenames = new Map();
     this.scopeMembers = new Map();
     this.floatBitShadows = new Set();

@@ -1,3 +1,4 @@
+import type ISourcePosition from "../../../../utils/types/ISourcePosition";
 /**
  * Simple Identifier Resolver
  *
@@ -27,13 +28,14 @@ class SimpleIdentifierResolver {
    *
    * @param id The identifier to resolve
    * @param deps Dependencies for resolution
-   * @param line Source line of the reference, when the caller has one (#1241)
+   * @param at Position of the reference (#1668: the binding's, and #1241's
+   *   provenance line)
    * @returns The resolved identifier string
    */
   static resolve(
     id: string,
     deps: ISimpleIdentifierDeps,
-    line?: number,
+    at: ISourcePosition,
   ): string {
     // ADR-006: Check if it's a function parameter
     const paramInfo = deps.getParameterInfo(id);
@@ -41,11 +43,8 @@ class SimpleIdentifierResolver {
       return deps.resolveParameter(id, paramInfo);
     }
 
-    // Check if it's a local variable
-    const isLocalVariable = deps.isLocalVariable(id);
-
     // ADR-016: Resolve bare identifier using local -> scope -> global priority
-    const resolved = deps.resolveBareIdentifier(id, isLocalVariable, line);
+    const resolved = deps.resolveBareIdentifier(id, at);
 
     // If resolved to a different name, use it
     if (resolved !== null) {

@@ -3,13 +3,15 @@ import SimpleIdentifierResolver from "../SimpleIdentifierResolver";
 import ISimpleIdentifierDeps from "../../types/ISimpleIdentifierDeps";
 import TParameterInfo from "../../../../../transpiler/types/TParameterInfo";
 
+/** Where the reference is -- the binding's position (#1668) */
+const AT = { line: 3, column: 4 };
+
 describe("SimpleIdentifierResolver", () => {
   const createMockDeps = (
     overrides: Partial<ISimpleIdentifierDeps> = {},
   ): ISimpleIdentifierDeps => ({
     getParameterInfo: vi.fn(() => undefined),
     resolveParameter: vi.fn((name) => name),
-    isLocalVariable: vi.fn(() => false),
     resolveBareIdentifier: vi.fn(() => null),
     ...overrides,
   });
@@ -18,16 +20,11 @@ describe("SimpleIdentifierResolver", () => {
     it("should return original identifier when not a parameter and no resolution", () => {
       const deps = createMockDeps();
 
-      const result = SimpleIdentifierResolver.resolve("myVar", deps);
+      const result = SimpleIdentifierResolver.resolve("myVar", deps, AT);
 
       expect(result).toBe("myVar");
       expect(deps.getParameterInfo).toHaveBeenCalledWith("myVar");
-      expect(deps.isLocalVariable).toHaveBeenCalledWith("myVar");
-      expect(deps.resolveBareIdentifier).toHaveBeenCalledWith(
-        "myVar",
-        false,
-        undefined,
-      );
+      expect(deps.resolveBareIdentifier).toHaveBeenCalledWith("myVar", AT);
     });
 
     it("should resolve parameter using resolveParameter", () => {
@@ -45,7 +42,7 @@ describe("SimpleIdentifierResolver", () => {
         resolveParameter: vi.fn(() => "(*count)"),
       });
 
-      const result = SimpleIdentifierResolver.resolve("count", deps);
+      const result = SimpleIdentifierResolver.resolve("count", deps, AT);
 
       expect(result).toBe("(*count)");
       expect(deps.resolveParameter).toHaveBeenCalledWith("count", paramInfo);
@@ -53,18 +50,14 @@ describe("SimpleIdentifierResolver", () => {
       expect(deps.resolveBareIdentifier).not.toHaveBeenCalled();
     });
 
-    it("should pass isLocalVariable flag to resolveBareIdentifier", () => {
-      const deps = createMockDeps({
-        isLocalVariable: vi.fn(() => true),
-      });
+    it("binds the name where the reference is (#1668)", () => {
+      // Locality is the binding's at this position, not a flag the caller
+      // computes from a per-function set of names
+      const deps = createMockDeps();
 
-      SimpleIdentifierResolver.resolve("localVar", deps);
+      SimpleIdentifierResolver.resolve("localVar", deps, AT);
 
-      expect(deps.resolveBareIdentifier).toHaveBeenCalledWith(
-        "localVar",
-        true,
-        undefined,
-      );
+      expect(deps.resolveBareIdentifier).toHaveBeenCalledWith("localVar", AT);
     });
 
     it("should return resolved identifier when bare resolution succeeds", () => {
@@ -72,7 +65,7 @@ describe("SimpleIdentifierResolver", () => {
         resolveBareIdentifier: vi.fn(() => "Scope_member"),
       });
 
-      const result = SimpleIdentifierResolver.resolve("member", deps);
+      const result = SimpleIdentifierResolver.resolve("member", deps, AT);
 
       expect(result).toBe("Scope_member");
     });
@@ -82,7 +75,7 @@ describe("SimpleIdentifierResolver", () => {
         resolveBareIdentifier: vi.fn(() => null),
       });
 
-      const result = SimpleIdentifierResolver.resolve("unknown", deps);
+      const result = SimpleIdentifierResolver.resolve("unknown", deps, AT);
 
       expect(result).toBe("unknown");
     });
@@ -103,7 +96,7 @@ describe("SimpleIdentifierResolver", () => {
         resolveBareIdentifier: vi.fn(() => "Scope_x"),
       });
 
-      const result = SimpleIdentifierResolver.resolve("x", deps);
+      const result = SimpleIdentifierResolver.resolve("x", deps, AT);
 
       // Parameter takes priority
       expect(result).toBe("(*x)");

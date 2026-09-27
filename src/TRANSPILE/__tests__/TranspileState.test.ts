@@ -289,13 +289,6 @@ describe("TranspileState", () => {
     it("registerLocalVariable adds to localVariables", () => {
       state.registerLocalVariable("localVar");
       expect(state.localVariables.has("localVar")).toBe(true);
-      expect(state.localArrays.has("localVar")).toBe(false);
-    });
-
-    it("registerLocalVariable with isArray adds to both sets", () => {
-      state.registerLocalVariable("localArr", true);
-      expect(state.localVariables.has("localArr")).toBe(true);
-      expect(state.localArrays.has("localArr")).toBe(true);
     });
 
     it("setCurrentScopeByPath resolves a DOTTED PATH to the registered scope", () => {
@@ -393,7 +386,6 @@ describe("TranspileState", () => {
       // local of the same name.
       expect(state.emittedLocalName("count")).toBe("count");
       expect(state.localVariables.size).toBe(0);
-      expect(state.localArrays.size).toBe(0);
     });
 
     it("registerCallbackType adds to callbackTypes", () => {
@@ -951,12 +943,6 @@ describe("TranspileState", () => {
       expect(state.isLocalVariable("myVar")).toBe(false);
       state.localVariables.add("myVar");
       expect(state.isLocalVariable("myVar")).toBe(true);
-    });
-
-    it("isLocalArray returns correct value", () => {
-      expect(state.isLocalArray("myArr")).toBe(false);
-      state.localArrays.add("myArr");
-      expect(state.isLocalArray("myArr")).toBe(true);
     });
   });
 

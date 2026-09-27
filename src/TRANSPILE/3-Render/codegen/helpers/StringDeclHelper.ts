@@ -109,11 +109,6 @@ class StringDeclHelper {
 
     const decl = `${extern}${constMod}${atomic}${volatileMod}char ${name}${plan.dimensions}[${plan.elementCapacity + 1}]`;
 
-    // Track as local array
-    // ADR-057: `name` is the EMITTED identifier; every registry keys on the
-    // source spelling, which is what references in the source say.
-    state.localArrays.add(state.sourceLocalName(name));
-
     // No initializer - zero-initialize
     if (!plan.renderInit) {
       return `${decl} = {0};`;

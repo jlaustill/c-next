@@ -143,8 +143,6 @@ class VariableDeclHelper {
         ),
       );
       if (arrayInitResult) {
-        // Track as local array for type resolution
-        state.localArrays.add(sourceName);
         // When size inference happens and the empty dim is in arrayType,
         // dimensionSuffix already contains the inferred size - don't duplicate
         const fullDimSuffix = plan.hasEmptyArrayTypeDimension
@@ -162,7 +160,6 @@ class VariableDeclHelper {
     // Generate dimensions: arrayType dimension first, then arrayDimension dimensions
     const newDecl =
       decl + plan.arrayTypeDimensions + plan.renderCStyleDimensions();
-    state.localArrays.add(sourceName);
 
     return { handled: false, code: "", decl: newDecl, isArray: true };
   }

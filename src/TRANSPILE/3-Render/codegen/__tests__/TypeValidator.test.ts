@@ -133,7 +133,7 @@ describe("TypeValidator", () => {
       setupState({ symbols, currentScopePath: "" });
       const result = TypeValidator.resolveBareIdentifier(
         "State",
-        false,
+        { line: 1, column: 0 },
         () => false,
         state,
       );
@@ -144,7 +144,7 @@ describe("TypeValidator", () => {
       setupState({ currentScopePath: "" });
       const result = TypeValidator.resolveBareIdentifier(
         "Point",
-        false,
+        { line: 1, column: 0 },
         () => true,
         state,
       );
@@ -156,7 +156,7 @@ describe("TypeValidator", () => {
       setupState({ symbols, currentScopePath: "" });
       const result = TypeValidator.resolveBareIdentifier(
         "GPIO",
-        false,
+        { line: 1, column: 0 },
         () => false,
         state,
       );

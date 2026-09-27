@@ -1,0 +1,17 @@
+// test-execution
+// #1700 NEGATIVE CONTROL: a bare member reference with no shadowing local
+// binds the member (ADR-057), and saturates at the member's u8.
+scope S {
+    u8 x <- 200;
+
+    public u8 f() {
+        u8 y <- x + x;
+        return y;
+    }
+}
+
+u32 main() {
+    u8 r <- S.f();
+    if (r != 255) return 1;
+    return 0;
+}

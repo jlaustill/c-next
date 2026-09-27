@@ -350,7 +350,6 @@ class FunctionContextManager {
       state.deleteVariableTypeInfo(name);
     }
     state.currentParameters.clear();
-    state.localArrays.clear();
   }
 
   /**

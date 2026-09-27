@@ -75,7 +75,6 @@ describe("ArrayInitHelper", () => {
       expect(result!.isArrayInit).toBe(true);
       expect(result!.dimensionSuffix).toBe("[3]");
       expect(result!.initValue).toBe("{1, 2, 3}");
-      expect(state.localArrays.has("arr")).toBe(true);
     });
 
     it("asserts, since #1322, that the fill-all form never reaches an inferred size (E0876 owns it)", () => {

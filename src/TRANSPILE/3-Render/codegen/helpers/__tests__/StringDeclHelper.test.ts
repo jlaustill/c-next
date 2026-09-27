@@ -828,18 +828,6 @@ describe("StringDeclHelper", () => {
       expect(code).toContain('{""}');
     });
 
-    it("tracks local arrays in localArrays set", () => {
-      StringDeclHelper.generateStringDecl(
-        array({ elementCapacity: 20, dimensions: "[3]", declaredSize: 3 }),
-        "tracked",
-        NO_MODS,
-        false,
-        state,
-      );
-
-      expect(state.localArrays.has("tracked")).toBe(true);
-    });
-
     it("generates string array with modifiers", () => {
       const code = StringDeclHelper.generateStringDecl(
         array({ elementCapacity: 8, dimensions: "[2]", declaredSize: 2 }),

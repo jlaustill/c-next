@@ -82,8 +82,6 @@ class ArrayInitHelper {
       return null;
     }
 
-    state.localArrays.add(name);
-
     const dimensionSuffix = hasEmptyArrayDim
       ? ArrayInitHelper._processSizeInference(name, state)
       : ArrayInitHelper._processExplicitSize(declaredSize, callbacks, state);

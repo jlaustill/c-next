@@ -138,8 +138,6 @@ describe("VariableDeclHelper", () => {
         "uint8_t main__arr",
         state,
       );
-
-      expect(state.localArrays.has("arr")).toBe(true);
     });
 
     it("completes the declaration itself when the initializer is processed", () => {

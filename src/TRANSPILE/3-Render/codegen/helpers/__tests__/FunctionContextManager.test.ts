@@ -550,14 +550,6 @@ describe("FunctionContextManager", () => {
 
       expect(state.currentParameters.size).toBe(0);
     });
-
-    it("clears localArrays set", () => {
-      state.localArrays.add("arr");
-
-      FunctionContextManager.clearParameters(state);
-
-      expect(state.localArrays.size).toBe(0);
-    });
   });
 
   describe("enterFunctionBody", () => {

@@ -301,7 +301,6 @@ describe("CodeGenWalker", () => {
         expect(typeof state.inFunctionBody).toBe("boolean");
         expect(state.currentParameters).toBeInstanceOf(Map);
         expect(state.localVariables).toBeInstanceOf(Set);
-        expect(state.localArrays).toBeInstanceOf(Set);
         expect(state.scopeMembers).toBeInstanceOf(Map);
       });
     });

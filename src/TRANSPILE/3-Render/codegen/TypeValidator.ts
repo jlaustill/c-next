@@ -3,6 +3,7 @@
  * Static class using CodeGenState for all state access.
  * Issue #63: Validation logic separated for independent testing
  */
+import type ISourcePosition from "../../../utils/types/ISourcePosition";
 import AdrProvenance from "../../../instrumentation/AdrProvenance";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
 import QualifiedCName from "../../../utils/QualifiedCName";
@@ -68,20 +69,29 @@ class TypeValidator {
   // E0878 in pass 2.1, decided once from the frames and the program's symbols
   // rather than from `currentParameters` and the type registry.
   /**
-   * @param line Source line of the reference, when the caller has one. Used only
-   *   to record #1241 provenance: an ADR-057 resolution is invisible to the
-   *   scope-context matrix without a position, because a successful resolution
-   *   emits no diagnostic to take one from. Recorded HERE rather than at the
-   *   three callers, which are required not to re-derive this decision.
+   * The C name a bare identifier emits under, or null to leave it as written.
+   *
+   * #1668 (C7): which declaration a value name means is the binder's -- local,
+   * then scope, then global (ADR-057) -- at the reference's position. This
+   * used to take a per-function set of local names, which could not tell a
+   * block's local from its sibling block's, and ask a registry keyed by
+   * spelling whether a global existed. Function, enum, struct and register
+   * names are not value bindings and keep their own checks below.
+   *
+   * @param at Position of the reference. Its line also records #1241
+   *   provenance: an ADR-057 resolution is invisible to the scope-context
+   *   matrix otherwise, because a successful resolution emits no diagnostic
+   *   to take one from. Recorded HERE rather than at the three callers,
+   *   which are required not to re-derive this decision.
    */
   static resolveBareIdentifier(
     identifier: string,
-    isLocalVariable: boolean,
+    at: ISourcePosition,
     isKnownStruct: (name: string) => boolean,
     state: TranspileState,
-    line?: number,
   ): string | null {
-    if (isLocalVariable) {
+    const binding = state.bindingAt(null, identifier, at);
+    if (binding?.kind === "local") {
       // ADR-057: a local normally emits under its own name (null = "leave it
       // alone"). One that shadows a file-scope symbol was given a distinct C
       // identifier at its declaration, and every reference must follow it.
@@ -91,8 +101,14 @@ class TypeValidator {
       }
       // The rename IS ADR-057's shadowing rule firing; a local that shadows
       // nothing is the rule declining to act, which is not evidence of it.
-      AdrProvenance.record("057", line);
+      AdrProvenance.record("057", at.line);
       return emitted;
+    }
+
+    // A scope member, by the binder's middle tier
+    if (binding?.kind === "variable" && binding.symbol.scopePath !== "") {
+      AdrProvenance.record("057", at.line);
+      return binding.symbol.fullyQualifiedCName;
     }
 
     const currentScopePath = state.currentScopePath;
@@ -104,12 +120,15 @@ class TypeValidator {
         state,
       );
       if (scopeResolved) {
-        AdrProvenance.record("057", line);
+        AdrProvenance.record("057", at.line);
         return scopeResolved;
       }
     }
 
+    const isGlobalValue =
+      binding?.kind === "variable" || binding?.kind === "foreign";
     if (
+      isGlobalValue ||
       TypeValidator._isKnownGlobalIdentifier(
         identifier,
         currentScopePath,
@@ -151,11 +170,6 @@ class TypeValidator {
     isKnownStruct: (name: string) => boolean,
     state: TranspileState,
   ): boolean {
-    const typeInfo = state.getVariableTypeInfo(identifier);
-    if (typeInfo && !QualifiedCName.isQualified(identifier)) {
-      return true;
-    }
-
     if (
       state.knownFunctions.has(identifier) &&
       // #1295: pass the PATH, not its leaf. `isInScope` needs no help encoding
