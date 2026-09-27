@@ -136,7 +136,7 @@ choice between two bad states; that shape usually means an option was ruled out 
 - If two code paths must produce identical output, they MUST share the same logic — not copy it
 - When fixing a bug caused by divergent paths, **unify the paths** rather than patching both independently
 - **Single source of truth means the _decision_, not just the data.** Sharing one detection function (or setting one flag on a shared model) is NOT enough if each path then re-derives the _consequences_ independently. Paths that agree only "by coincidence" — e.g. because some unrelated predicate currently happens to hold — are a latent divergence, not a unified path
-- **Example (Issue #914):** `.c` and `.h` generation had separate callback-handling logic. The fix resolved callback info ONCE onto `IParameterSymbol`, eliminating the duplicate path entirely
+- **Example (Issue #914):** `.c` and `.h` generation had separate callback-handling logic. The fix put the decision in one parser, `TypedefParamParser`: the `.h` path stores its answer on `IParameterSymbol` (`isCallbackPointer`/`isCallbackConst`) and the `.c` path asks the same parser (`FunctionContextManager.getCallbackTypedefParamInfo`). One rule — but the rest of a parameter's signature is still derived twice, once per path, which #1639 tracks
 
 Having to update something in 2 places instead of 1 is the WORST anti-pattern in this project. When you find it, fix it.
 
@@ -606,16 +606,19 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 - **SymbolTable ownership**: `TranspileState.symbolTable` is single owner
 - **TSymbols use bare names**: `name: "init"` with `scopePath: string` -- the dotted path of the enclosing scope (`""` at file scope), never the scope object. #1298: holding the object gave every symbol a chain to walk and a cycle to represent, which made the graph unserializable and left `getScopePath`'s identity-based guard unable to fire on a proxy chain. The scope object is one `SymbolRegistry.getScope(path)` away where a mutable member list is genuinely needed
 - **Lookup key by layer**: `getOverloads(bareName)` answers "what does `init` mean _here_?" and needs ADR-057 scope context; `getOverloadsByCName("Motor__init")` answers "which symbol _is_ this?" and is an exact canonical identity. Codegen and anything downstream of it holds the latter — asking the bare-name index with a transpiled C name returns empty for every scoped symbol, which reads as "no such symbol" rather than "wrong question" (#1139). Build the key with `ScopeUtils.getTranspiledCName()`, the single encoder; never re-derive a qualified name by hand
-- **Per-file vs run-wide symbol views**: `ICodeGenSymbols.known*` is built by
-  `TSymbolInfoAdapter.convert` (from `Transpiler._publishResolvedFile`, after 1.4 settles the
-  file's symbols) and holds what **this file** can see. `_declareFile` does not build it, and
-  since #1472 takes only `(tree, sourcePath)` — it returns `IFileSymbols`;
-  `SymbolTable.getOverloadsByCName` accumulates the **whole run** and is cleared once. A
-  sibling that was never included is absent from the first and present in the second — that
-  disagreement _is_ #1312. `TranspileState.isScopeType()` answers neither visibility question:
-  it reads the run-wide table **and** filters to `ESourceLanguage.CNext`, so it reports
-  "exists" in the file that cannot see it and "missing" for every C/C++ header type. Ask the
-  per-file sets about a C-Next name and the run-wide table about a foreign one
+- **Per-file vs run-wide symbol views**: `ICodeGenSymbols.known*` is built by 1.4 Resolve
+  (`Program.deriveVisibleSymbols`, through `TSymbolInfoAdapter.convert`) over the file's
+  include closure — the include graph discovery resolved (#1435) — and holds what **this
+  file** can see; a later pass reads it through `IProgram.codeGenSymbolsFor`. `_declareFile`
+  does not build it, and since #1472 takes only `(tree, sourcePath)` — it returns
+  `IFileSymbols`; `SymbolTable.getOverloadsByCName` accumulates the **whole run** and is
+  cleared once. A sibling that was never included is absent from the first and present in
+  the second — that disagreement _is_ #1312. `TranspileState.isScopeType()` is per-file: it
+  asks `IProgram.isScopeTypeVisibleFrom(sourcePath, name)` — the scope types the file being
+  generated declares or includes — the same predicate 1.4 settled that file's types with
+  (#1724). It reads the run-wide table no longer, and answers "missing" for every C/C++
+  header type, since a scope type is a C-Next one. Ask the per-file sets about a C-Next name
+  and the run-wide table about a foreign one
 - **Test isolation**: build a fresh `new SymbolRegistry()` per test and pass it to `CNextResolver.resolve(tree, file, registry)` — there is no global registry to reset (#1452 box 3 deleted the static and its `reset()`)
 - **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` — numbers for resolved constants, strings for C macros
 - **What an analyzer may read is `IAnalysisContext`, and nothing else.** #1456
@@ -647,8 +650,8 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
   outlives its hazard
 - **Analyzer type tracking**: Use `trackType(typeCtx, identifier)` helper pattern (see `FloatModuloAnalyzer.trackIfFloat()`, `ArrayIndexTypeAnalyzer.trackType()`) to avoid jscpd duplication across `enterVariableDeclaration`/`enterParameter`/`enterForVarDecl`
 - **Ternary grammar**: `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0 — and address them via `orExpression()`, **never `getChild(i)`**: the condition is parenthesized, so `getChild(0)` is `(` and an index-based skip silently does nothing
-- **Callback header params**: `IParameterSymbol.isCallbackPointer`/`isCallbackConst` resolved in `Transpiler.convertToHeaderSymbols()` via `TypedefParamParser` — single source of truth for both `.c` and `.h` generation
-- **Scope type predicate**: `TranspileState.isScopeType(qualifiedName)` checks if a qualified name is a known enum/struct/bitmap. Codegen sites bind it through `TranspileState.typeBindingDeps()`, which pairs `TranspileState.scopeTypePredicate` with the caller's `resolveQualifiedType` — don't re-pair the predicate with `currentScopePath` at each site, and don't inline `knownEnums || knownStructs || knownBitmaps`. This used to name `CodeGenState.qualifyScopeType(bareName)`; that method had **no production caller** and is deleted (#1452), because a rule naming a helper nothing uses teaches the next reader a pattern the codebase does not have.
+- **Callback header params**: a callback-compatible function's parameters take pointer and const from its typedef, found by `TranspileState.callbackTypedefTypeFor` and read by `TypedefParamParser.isParamPointer`/`isParamConst` — one rule for both files. The `.h` path (`Transpiler.convertToHeaderSymbols()`) stores it on `IParameterSymbol.isCallbackPointer`/`isCallbackConst`; the `.c` path asks the parser through `FunctionContextManager.getCallbackTypedefParamInfo`. The two paths are two call chains to one rule, the shape #1639 tracks
+- **Scope type predicate**: `TranspileState.isScopeType(qualifiedName)` checks whether a qualified name is a scope type — an enum, struct, bitmap or ADR-029 function-as-type — that the file being generated can see: declared by it or by a file in its include closure (`IProgram.isScopeTypeVisibleFrom`, #1724). Codegen sites bind it through `TranspileState.typeBindingDeps()`, which pairs `TranspileState.scopeTypePredicate` with the caller's `resolveQualifiedType` — don't re-pair the predicate with `currentScopePath` at each site, and don't inline `knownEnums || knownStructs || knownBitmaps`. This used to name `CodeGenState.qualifyScopeType(bareName)`; that method had **no production caller** and is deleted (#1452), because a rule naming a helper nothing uses teaches the next reader a pattern the codebase does not have.
 
 ---
 
@@ -754,7 +757,7 @@ foo.expected.error    # Expected error (if test-error)
 - **String comparison vs indexing**: `a = b` / `a != b` on whole `string<N>` values compiles to `strcmp` (value comparison, ADR-045). Indexing a string (`s[i]`) yields a `char` and compares as a `char` — e.g. `s[0] != 'H'` generates `s[0] != 'H'`, not `strcmp`. (Verified 2026-06-26; the prior note claiming `str[0]` generates `strcmp` was stale.)
 - **Array declarations**: use prefix syntax `u32[N] arr` — C-style `u32 arr[N]` is rejected. `N` may be a literal or a `const`; the transpiler resolves consts to their value (no C VLA), so const-sized arrays are fine
 - **C++ mode**: `const T` params become `const T&` with `.` access (not pointers)
-- **Helper files**: Create `.expected.h` to prevent test framework cleanup
+- **Helper files**: the harness does not clean up a helper's generated files. An `.expected.h`/`.expected.c` beside a helper is a snapshot it compares (#1521) — create one to assert that helper's output, not to protect it from cleanup
 - **Struct tests**: Need `.expected.h` alongside `.expected.c`
 - **Bug reproduction**: `tests/bugs/issue-<name>/` directories — commit with fixes for regression prevention. They live under `tests/` so every fixture-walking script picks them up (#1142); a top-level `bugs/` tree was invisible to `npm test`, `test:all` and `validate:c`
 - **test-error stale artifacts**: a test that compiled before becoming `test-error` leaves `.test.c/.test.h` behind — `rm` them or the guard fails with "stale generated artifacts". **This also contaminates mutation-checking**: a mutation that lets a `test-error` fixture compile leaves those artifacts behind, and they fail the guard on every later run even after the source is restored — so one mutation appears to redden fixtures it never touched. Delete them between runs or the attribution is wrong (found while mutation-checking #847's E0708 fixtures; the first table read as a stronger result than the truth)
@@ -833,7 +836,7 @@ buffer[0] = (uint8_t)(magic);
 
 - **expectedType**: Use `this.context.expectedType` to disambiguate (e.g., enum members)
 - **Struct access**: Track `currentStructType` through member chains
-- **C++ mode**: Parameter signatures go through `ParameterSignatureBuilder.build()` — single path for both `.c` and `.h` generation. Use `CppModeHelper` for mode-specific logic
+- **C++ mode**: Parameter signatures are rendered by `ParameterSignatureBuilder.build()` for both `.c` and `.h` generation — shared from the builder inwards; what reaches it is still derived once per path (#1639). Use `CppModeHelper` for mode-specific logic
 - **Handler state**: reach it through the context you were handed —
   `IAssignmentContext.state` in a handler, `IOrchestrator.state` in a generator,
   `this.host.state` in the walk (234 sites); `CodeGenWalker.transpileState` is
@@ -877,7 +880,7 @@ name in prose; only a reader can.
 
 ### Struct Param Access Helpers
 
-Use `memberAccessChain.ts` helpers rather than inlining the mode check: `getStructParamSeparator()` for `->` vs `.`, and `wrapStructParamValue()` for `(*param)` vs `param`. Never inline these.
+Use `memberAccessChain.ts` helpers rather than inlining the pointer-or-reference check: `getStructParamSeparator()` for `->` vs `.`, and `wrapStructParamValue()` for `(*param)` vs `param`. Both read one decision — a pointer in C, and a pointer in C++ too for a callback-promoted parameter (`forcePointerSemantics`) — so a member access and a whole-value use of one parameter cannot disagree. Never inline these. A whole-value use of an opaque handle (`TParameterInfo.isOpaqueHandle`, ADR-030) or of an array parameter is not wrapped at all: the pointer is the value.
 
 This used to name a third, `buildStructParamMemberAccess()`, "for chains". It had **no production caller** — chains are built incrementally by `MemberSeparatorResolver` and the postfix generator, never in one call — and knip could not report it, because its six test callers count as usage (#1418). Deleted under #1450. A rule naming a helper nothing uses teaches the next reader a pattern the codebase does not have.
 
@@ -885,10 +888,14 @@ This used to name a third, `buildStructParamMemberAccess()`, "for chains". It ha
 
 **Key principle**: Ask "What does the TARGET parameter expect?" not "What is the argument?"
 
-- If target expects pointer and arg is already pointer → pass directly
+- If target expects a pointer and the arg is a pointer of the same depth → pass directly
+- If target expects a pointer exactly one level deeper than the arg → `&arg` (a handle passed to a `Dev**` out-parameter)
+- If target expects a pointer and the arg is a struct value → `&arg`
+- A whole array never takes `&`: it decays to a pointer to its first element
 - If target expects value and arg is pointer → dereference
 - Handler: `CallExprGenerator._generateCFunctionArg()` implements this logic
 - Callback-promoted params (`forcePointerSemantics=true`) are already pointers matching typedef
+- A call through a callback-typed value (a struct field, parameter or local) shapes its arguments from the function that is its type (`_signatureName`), exactly as a direct call to that function does
 
 ---
 
@@ -924,11 +931,11 @@ Update both when adding new statement types.
 - **Self-scope reference**: `Scope.member` inside `Scope` → error, use `this.member`
 - **Global prefix**: `global.Scope.member` inside `Scope` → allowed
 - **Private access**: Own scope can access via `this.` or `global.Scope.`
-- **ADR-057 type qualification**: Check the _qualified_ name against `knownEnums`/`knownStructs`/`knownBitmaps`, not the bare name against `scopeMembers`. This prevents non-type scope members (functions/variables) from capturing a same-named global type at a type position.
+- **ADR-057 type qualification**: Check the _qualified_ name against the scope types the file can see (`TranspileState.isScopeType`), not the bare name against `scopeMembers`. This prevents non-type scope members (functions/variables) from capturing a same-named global type at a type position.
 - **Qualify only the bare `userType()` branch.** `this.T`, `global.T` and `Scope.T` state their answer in the syntax and keep their own branches. This is not a style point: once a type name is resolved to a string, `global.Mode` and a bare `Mode` are byte-identical, so anything that qualifies _after_ resolution silently rewrites `global.` references. A post-pass over resolved names cannot be made correct — qualify while the parse tree is still available.
 - **Two resolution points, one decision.** Type names are resolved twice, in different layers, and both must qualify:
-  - **Symbols layer** — `TypeUtils.resolveType()`, fed an `isScopeType` predicate threaded from `CNextResolver.resolve()`. (`dispatchTypeResolution` was named here and was removed by #1285.) It answers with a settled name OR a `TDeferredType` when 1.3 cannot settle a bare name, and 1.4 Resolve settles those. Everything downstream (`TSymbol`, `HeaderSymbolAdapter`, the `.h`) inherits the name from here and must NOT re-qualify.
-  - **Codegen layer** — `CodeGenWalker.getTypeName()` and friends (the method is the walker's; `CodeGenerator` has none), via the deps `TranspileState.typeBindingDeps()` hands to `TypeBinding`. The decision is still made here; it is reached by resolving a whole `TypeContext` rather than by qualifying a bare name at the call site.
+  - **Symbols layer** — `TypeUtils.resolveType()`, fed an `isScopeType` predicate threaded from `CNextResolver.resolve()`. (`dispatchTypeResolution` was named here and was removed by #1285.) It answers with a settled name OR a `TDeferredType` when 1.3 cannot settle a bare name, and 1.4 Resolve settles those against the scope types that file can see — its own and its include closure's (`IProgram.isScopeTypeVisibleFrom`, #1724). Everything downstream (`TSymbol`, `HeaderSymbolAdapter`, the `.h`) inherits the name from here and must NOT re-qualify.
+  - **Codegen layer** — `CodeGenWalker.getTypeName()` and friends (the method is the walker's; `CodeGenerator` has none), via the deps `TranspileState.typeBindingDeps()` hands to `TypeBinding`. The decision is still made here; it is reached by resolving a whole `TypeContext` rather than by qualifying a bare name at the call site. Its predicate is the symbols layer's: `TranspileState.isScopeType` asks `IProgram.isScopeTypeVisibleFrom` about the file being generated, so the `.h` and the `.c` qualify from one answer (#1724).
 - **`CNextResolver` Pass 0b** collects the qualified names of scope-declared enums/structs/bitmaps _before_ any type is resolved, so qualification does not depend on whether a type is declared above or below its use. Do not swap this for `scope.members`: that list is kind-agnostic (a function named `B` would capture global type `B`) and is still being built while collectors read it.
 - **`ScopeUtils.qualifyScopeType()`**: Shared utility in `src/utils/ScopeUtils.ts`. Takes `typeName`, the enclosing `scopePath`, and an `isKnownType(qualifiedName)` predicate. Its production callers are the symbols layer — `3-Declare/TypeBinding.ts` and `4-Resolve/DeferredTypes.ts`. Codegen reaches the same decision through `TranspileState.typeBindingDeps()`; `TypeGenerationHelper` injects the predicate through `ITypeGenerationDeps` instead, to stay unit-testable.
 - **`ParameterInputAdapter.fromAST` struct detection**: `isKnownStruct` must check both the bare name AND the qualified name (`ScopeUtils.qualifyInScope(typeName, currentScopePath)` -- the whole PATH, not a scope's leaf name) for scope-local struct types. Without this, scope struct params get classified as pass-by-value while `mappedType` comes back qualified, causing `.c` body to use `->` on a non-pointer.
