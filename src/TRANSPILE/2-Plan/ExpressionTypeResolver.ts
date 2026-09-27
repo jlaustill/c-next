@@ -591,17 +591,14 @@ class ExpressionTypeResolver {
     // Tried first, and only when it answers: `global.plainVar` resolves here
     // too (a one-part path is its own key), while `global.someStruct.field`
     // does not and falls through to the struct handling below, unchanged.
-    if (current.baseType === ExpressionTypeResolver.GLOBAL_SENTINEL) {
-      const globalOps = ctx.postfixOp().slice(0, opCount);
-      if (globalOps.length > 0) {
-        const memberInfo = ExpressionTypeResolver.scopeMemberInternalTypeInfo(
-          primary,
-          globalOps,
-          state,
-        );
-        if (memberInfo) return memberInfo;
-      }
-    }
+    const globalMember = ExpressionTypeResolver.globalScopeMemberTypeInfo(
+      ctx,
+      primary,
+      current,
+      state,
+      opCount,
+    );
+    if (globalMember) return globalMember;
 
     // The grammar is `primaryExpression postfixOp*`, so every child after the
     // primary is one operation, in order.
@@ -621,6 +618,30 @@ class ExpressionTypeResolver {
     }
 
     return current;
+  }
+
+  /**
+   * #1303: the type of `global.Scope.member`, or null when the primary is not
+   * `global.` or its path names no scope member -- the case the struct walk
+   * in `getPostfixTypeInfo` then handles.
+   */
+  private static globalScopeMemberTypeInfo(
+    ctx: Parser.PostfixExpressionContext,
+    primary: Parser.PrimaryExpressionContext,
+    current: InternalTypeInfo,
+    state: TranspileState,
+    opCount: number | undefined,
+  ): InternalTypeInfo | null {
+    if (current.baseType !== ExpressionTypeResolver.GLOBAL_SENTINEL) {
+      return null;
+    }
+    const globalOps = ctx.postfixOp().slice(0, opCount);
+    if (globalOps.length === 0) return null;
+    return ExpressionTypeResolver.scopeMemberInternalTypeInfo(
+      primary,
+      globalOps,
+      state,
+    );
   }
 
   /** `scopeMemberOperandTypeInfo`, reduced to what the walk above tracks. */
