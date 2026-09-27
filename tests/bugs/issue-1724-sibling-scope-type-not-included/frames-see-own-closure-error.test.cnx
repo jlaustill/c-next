@@ -1,0 +1,18 @@
+// test-error
+// test-adr: 057
+// Issue #1724 in 1.4's lexical frames (#1668's merge of main). A parameter
+// typed by a bare `Config` in a reopened scope settles to what ITS file can
+// see -- the C typedef from ext_config.h -- and not to motor-config.cnx's
+// `Motor.Config`, which this run holds but motor-sum.cnx never includes. So
+// `c.a` is the typedef's `int32_t a`, and adding a `u32` is E0810.
+//
+// Settled against every file in the run, `c` became the sibling's struct,
+// which has no `a`: the operand went untyped and the E0810 vanished, a silent
+// false negative. `plusOne` is the control, which must stay silent.
+#include "ext_config.h"
+#include "motor-config.cnx"
+#include "motor-sum.cnx"
+
+i32 main() {
+    return 0;
+}

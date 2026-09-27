@@ -1,0 +1,16 @@
+// Helper for frames-see-own-closure-error. Reopens scope Motor and types a
+// parameter by a bare `Config`: the C typedef from ext_config.h is the only
+// `Config` this file can see (it does not include motor-config.cnx).
+#include "ext_config.h"
+
+scope Motor {
+    // Control: `c.a + 1` mixes nothing and stays silent
+    public i32 plusOne(Config c) {
+        return c.a + 1;
+    }
+
+    // E0810: the C typedef's `int32_t a` plus a `u32`
+    public i32 sumOf(Config c, u32 u) {
+        return c.a + u;
+    }
+}

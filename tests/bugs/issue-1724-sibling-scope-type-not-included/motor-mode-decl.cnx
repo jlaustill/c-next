@@ -1,0 +1,8 @@
+// Helper for typer-sees-own-closure-error, the sibling: declares `Mode`
+// inside scope Motor. motor-mode-bad.cnx never includes it.
+scope Motor {
+    public enum Mode {
+        IDLE,
+        RUN
+    }
+}

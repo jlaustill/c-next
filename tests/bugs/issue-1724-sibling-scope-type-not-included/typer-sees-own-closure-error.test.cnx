@@ -1,0 +1,20 @@
+// test-error
+// test-adr: 057
+// Issue #1724 in the operand typer (#1668's merge of main). A declaration's
+// written type is qualified by ADR-057 against the scope types ITS file can
+// see. In motor-mode-bad.cnx, a bare `Mode` inside the reopened scope Motor is
+// the global enum, because motor-mode-decl.cnx's `Motor.Mode` is in this run
+// but not in that file's include closure. So `Mode bad <- global.Speed.HIGH`
+// is E0428.
+//
+// Qualified against every file in the run, `Mode` became `Motor__Mode`, which
+// that file does not see declared: the written type went untyped, and the
+// enum-safety check was skipped. The E0428 vanished, a silent false negative.
+// The `ok` declaration is the control, which must stay silent.
+#include "modes.cnx"
+#include "motor-mode-decl.cnx"
+#include "motor-mode-bad.cnx"
+
+i32 main() {
+    return 0;
+}

@@ -1,0 +1,10 @@
+// Helper for typer-sees-own-closure-error: two global enums
+enum Mode {
+    SLOW,
+    FAST
+}
+
+enum Speed {
+    LOW,
+    HIGH
+}

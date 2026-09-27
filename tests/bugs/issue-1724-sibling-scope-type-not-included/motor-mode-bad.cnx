@@ -1,0 +1,18 @@
+// Helper for typer-sees-own-closure-error. Reopens scope Motor and declares
+// locals of a bare `Mode`: the global enum from modes.cnx is the only `Mode`
+// this file can see.
+#include "modes.cnx"
+
+scope Motor {
+    public u8 pick() {
+        // Control: a Mode member into a Mode, which must stay silent
+        Mode ok <- global.Mode.FAST;
+        // E0428: a Speed member into a Mode
+        Mode bad <- global.Speed.HIGH;
+        u8 r <- 0;
+        if (ok = global.Mode.FAST) {
+            r <- 1;
+        }
+        return r;
+    }
+}
