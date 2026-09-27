@@ -55,6 +55,14 @@ uint8_t addInto(uint8_t* a, uint8_t b) {
     return (*a);
 }
 
+// A compound into a local of the parameter's type. Its target is a local, so
+// it clamped at the parent too; the parameter target above is what did not.
+uint8_t addToLocal(uint8_t a) {
+    uint8_t x = 200U;
+    x = cnx_clamp_add_u8(x, a);
+    return x;
+}
+
 // NEGATIVE CONTROL: a compound follows its target, and this one wraps
 uint8_t wrapped(uint8_t b) {
     uint8_t w = 200U;
@@ -72,7 +80,9 @@ int main(void) {
     uint8_t p = 200U;
     uint8_t c = addInto(&p, 100U);
     if (c != 255) return 4U;
+    uint8_t l = addToLocal(100U);
+    if (l != 255) return 5U;
     uint8_t w = wrapped(100U);
-    if (w != 44) return 5U;
+    if (w != 44) return 6U;
     return 0U;
 }

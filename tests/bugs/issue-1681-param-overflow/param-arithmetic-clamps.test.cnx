@@ -23,6 +23,14 @@ u8 addInto(u8 a, u8 b) {
     return a;
 }
 
+// A compound into a local of the parameter's type. Its target is a local, so
+// it clamped at the parent too; the parameter target above is what did not.
+u8 addToLocal(u8 a) {
+    u8 x <- 200;
+    x +<- a;
+    return x;
+}
+
 // NEGATIVE CONTROL: a compound follows its target, and this one wraps
 u8 wrapped(u8 b) {
     wrap u8 w <- 200;
@@ -40,7 +48,9 @@ u32 main() {
     u8 p <- 200;
     u8 c <- addInto(p, 100);
     if (c != 255) return 4;
+    u8 l <- addToLocal(100);
+    if (l != 255) return 5;
     u8 w <- wrapped(100);
-    if (w != 44) return 5;
+    if (w != 44) return 6;
     return 0;
 }
