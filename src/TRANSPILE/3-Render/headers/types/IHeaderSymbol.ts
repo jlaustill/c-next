@@ -35,6 +35,12 @@ interface IHeaderSymbol {
 
   /** Whether this is an array */
   readonly isArray?: boolean;
+  /**
+   * #958/#895 (#1668): a variable C declares through a pointer -- the
+   * declaration's own `DeclaredPointer` answer, so the `.h` and the `.c`
+   * cannot declare one variable two ways
+   */
+  readonly isPointer?: boolean;
 
   /** Array dimensions (e.g., ["10"] or ["10", "20"]) */
   readonly arrayDimensions?: readonly string[];

@@ -5,6 +5,7 @@
  * CHeaderGenerator and CppHeaderGenerator.
  */
 
+import DeclaredPointer from "../../../utils/DeclaredPointer";
 import IHeaderSymbol from "./types/IHeaderSymbol";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
@@ -626,7 +627,10 @@ class HeaderGeneratorUtils {
       const input: IVariableFormatInput = {
         name: sym.name,
         cnextType: sym.type || "int",
-        mappedType: mapType(sym.type || "int"),
+        mappedType: DeclaredPointer.spell(
+          mapType(sym.type || "int"),
+          sym.isPointer ?? false,
+        ),
         modifiers: {
           isConst: sym.isConst ?? false,
           isAtomic: sym.isAtomic ?? false,

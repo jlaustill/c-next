@@ -28,6 +28,15 @@ interface IPointerFacts {
 }
 
 class DeclaredPointer {
+  /**
+   * The C type a declaration is written with: its type, and a `*` when it
+   * is a pointer its type does not already spell. The one consequence the
+   * `.c` definition and the `.h` declaration both follow.
+   */
+  static spell(cType: string, isPointer: boolean): string {
+    return isPointer && !cType.endsWith("*") ? `${cType}*` : cType;
+  }
+
   /** Whether the declaration is a pointer, by the three arms above */
   static of(
     facts: IPointerFacts,

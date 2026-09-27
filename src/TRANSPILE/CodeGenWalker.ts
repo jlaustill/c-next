@@ -102,6 +102,7 @@ import helperGenerators from "./3-Render/codegen/generators/support/HelperGenera
 import includeGenerators from "./3-Render/codegen/generators/support/IncludeGenerator";
 import commentUtils from "./3-Render/codegen/generators/support/CommentUtils";
 import DeclaredTypeInfo from "./2-Plan/DeclaredTypeInfo";
+import DeclaredPointer from "../utils/DeclaredPointer";
 import type ITargetDeclaration from "./2-Plan/types/ITargetDeclaration";
 import memberAccessChain from "./3-Render/codegen/memberAccessChain";
 import AssignmentHandlerRegistry from "./3-Render/codegen/assignment/index";
@@ -4529,7 +4530,7 @@ class CodeGenWalker {
       line: declarator.line,
       column: declarator.column + 1,
     });
-    return info?.isPointer && !type.endsWith("*") ? `${type}*` : type;
+    return DeclaredPointer.spell(type, info?.isPointer ?? false);
   }
 
   /**

@@ -5,6 +5,7 @@
  * to IHeaderSymbol for header generation.
  */
 
+import DeclaredTypeInfo from "../../../2-Plan/DeclaredTypeInfo";
 import TSymbol from "../../../../transpiler/types/symbols/TSymbol";
 import IHeaderSymbol from "../types/IHeaderSymbol";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
@@ -124,6 +125,12 @@ class HeaderSymbolAdapter {
       isAtomic: variable.isAtomic,
       isVolatile: variable.isVolatile,
       isArray: variable.isArray,
+      isPointer:
+        DeclaredTypeInfo.of(
+          { kind: "variable", symbol: variable },
+          state.symbols,
+          state.symbolTable,
+        )?.isPointer ?? false,
       arrayDimensions,
       parent: isGlobal ? undefined : variable.scopePath,
       sourceFile: variable.sourceFile,
