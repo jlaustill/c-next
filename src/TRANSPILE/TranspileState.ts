@@ -897,7 +897,7 @@ class TranspileState {
 
   /**
    * Check if a *qualified* name is a known type declared in a scope.
-   * Used by QualifedCName.qualifyScopeType() to ensure only actual type
+   * `ScopeUtils.qualifyScopeType()` asks it through `typeBindingDeps()`, so only actual type
    * declarations (enum/struct/bitmap/function) capture the name at a type
    * position. ADR-029 makes a function definition create a callback type, so a
    * scope function is a type declaration for this purpose; a scope VARIABLE is

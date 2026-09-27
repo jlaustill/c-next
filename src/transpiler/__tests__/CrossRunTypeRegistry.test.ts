@@ -1,23 +1,28 @@
 /**
  * #1432: a safety diagnostic lost to the PREVIOUS RUN's type registry.
  *
- * `CodeGenState.getVariableTypeInfo` probes the per-file `typeRegistry` before
- * falling back to the symbol table. `CodeGenerator.generate()` fills that map
- * and `CodeGenState.reset()` clears it -- both AFTER the analyzers run.
+ * `CodeGenState.getVariableTypeInfo` probed the per-file `typeRegistry` before
+ * falling back to the symbol table. `CodeGenerator.generate()` filled that map
+ * and `CodeGenState.reset()` cleared it -- both AFTER the analyzers ran.
  *
  * #1320 hoisted 2.1 Analyze whole-program, which removed the symptom #1432 was
  * filed with: its reproduction swapped two `#include` lines in ONE run, and
- * both orders now give the right answer. That fixed the ordering, not the
- * read. The map is still never cleared between RUNS, and `ServeCommand` holds
- * a `private static transpiler` that serves many of them -- so what the
- * analyzer sees is whatever file the previous run generated last.
+ * both orders then gave the right answer. That fixed the ordering, not the
+ * read. The map was never cleared between RUNS, and `ServeCommand` holds a
+ * `private static transpiler` that serves many of them -- so what the analyzer
+ * saw was whatever file the previous run generated last.
  *
- * The case below is the one that matters: the subscript variable is declared
- * in an INCLUDED file, so the analyzer's own per-file map misses and it falls
+ * #1668 deleted the registry: an operand is typed by the frames 1.4 settles for
+ * the run being analyzed. The test stays, because what it asserts -- nothing
+ * one run leaves behind types an operand in the next -- is not a fact about
+ * the registry.
+ *
+ * The case below is the one that mattered: the subscript variable is declared
+ * in an INCLUDED file, so the analyzer's own per-file map missed and it fell
  * through to the stale answer. `idx` is `i32` at file scope, which E0850
- * exists to reject; a previous run's function-local `u8 idx` makes it look
+ * exists to reject; a previous run's function-local `u8 idx` made it look
  * unsigned, and a signed array subscript -- undefined behavior in C --
- * reaches generated code with the transpile reporting success.
+ * reached generated code with the transpile reporting success.
  *
  * The negative control is the same second program run on its own. It must
  * still fail, or this test would pass just as well against an analyzer that

@@ -585,21 +585,29 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 
 ### Enum `expectedType` Contexts
 
-| Works (bare members)                     | Requires qualified (`EnumType.MEMBER`)         |
-| ---------------------------------------- | ---------------------------------------------- |
-| Variable declarations: `EColor c <- RED` | Comparisons: `cfg.pType != EPressureType.PSIA` |
-| Same-file struct field assignments       | Function arguments                             |
-| Return statements (enum return type)     | Array dimensions: `u8[EColor.COUNT]`           |
-| Struct field inits: `{color: RED}`       | Cross-file struct assignments                  |
-| Switch cases, ternary arms               |                                                |
+| Works (bare members)                              | Requires qualified (`EnumType.MEMBER`)              |
+| ------------------------------------------------- | --------------------------------------------------- |
+| Variable declarations: `EColor c <- RED`          | Comparisons: `cfg.pType != EPressureType.PSIA`      |
+| Assignments, a struct field's in any file         | Function arguments                                  |
+| Return statements (enum return type)              | Array dimensions and subscripts: `u8[EColor.COUNT]` |
+| Struct field inits `{color: RED}`, array elements | A `for` header's declaration or update              |
+| Switch cases, ternary arms                        |                                                     |
+
+The table is `BareEnumMemberAnalyzer`'s (2.1), which walks up from the identifier to
+the nearest node that establishes a type. It used to list "cross-file struct
+assignments" as requiring qualification, which was false on `main` too: with the
+struct and the variable in an included file, `shared.color <- GREEN` transpiles to
+`shared.color = EColor__GREEN;`.
 
 ### Enum Error Locations (E0424 "not defined; did you mean")
 
-| Location                                               | Context                                     |
-| ------------------------------------------------------ | ------------------------------------------- |
-| `ControlFlowGenerator.rejectUnqualifiedEnumInReturn()` | Return statements with non-enum return type |
-| `SwitchGenerator.rejectUnqualifiedEnumMember()`        | Switch cases with non-enum switch type      |
-| `CodeGenerator._resolveUnqualifiedEnumMember()`        | All other contexts (comparisons, args)      |
+E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees the case.
+
+| Location                                        | Context                                                                                         |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `BareEnumMemberAnalyzer`                        | Every position in the table above, returns included                                             |
+| `SwitchStatementAnalyzer`                       | Case labels: a bare member when the switch is not on an enum, or one its enum does not declare  |
+| `CodeGenWalker._resolveUnqualifiedEnumMember()` | Render: qualifies an accepted bare member, and an `invariant` that a rejected one never arrives |
 
 ### Key Patterns
 
@@ -620,7 +628,7 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 - **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` — numbers for resolved constants, strings for C macros
 - **What an analyzer may read is `IAnalysisContext`, and nothing else.** #1456
   made it a parameter: `symbols` (this file's view), `program` (1.4's artifact),
-  `symbolTable`, and `reachesForeignHeader`. `Transpiler._analyzeFile` builds it
+  `symbolTable`, `reachesForeignHeader`, and `sourceFile`. `Transpiler._analyzeFile` builds it
   from artifacts settled before 2.1 begins, and
   `analyzers-cannot-reach-codegen-state` (`error`, `reachable: true`) makes an
   analyzer that reaches `TranspileState` fail the **`lint`** job — through a
@@ -632,23 +640,27 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
   struct fields are derived by 1.4 Resolve and read as
   `context.program.externalStructFields()`. Use
   `context.symbols.functionReturnTypes` for the ADR-029 function-as-type fact
-- **Analyzer test isolation**: build the context, not the state —
-  `testAnalysisContext(state, overrides)` in
-  `src/TRANSPILE/1-Analyze/__tests__/`. It reads the facts off a
-  `TranspileState` the test already set up, which is why that helper lives under
-  `__tests__` and is the one place allowed to
-- **The timing hazard this list used to describe is gone.** It said `typeRegistry`
-  is private and "three analyzers call it in production today", so an analyzer
-  could read a stale per-file local ahead of the correct cross-file answer. At
-  HEAD **zero** analyzers call `getVariableTypeInfo` (`grep` finds two mentions,
-  both in comments), because none of them can reach the state at all. Kept as a
-  sentence rather than deleted: the paragraph survived the boundary it described
-  by being renamed `CodeGenState` → `TranspileState`, which is how a hazard note
-  outlives its hazard
-- **Analyzer type tracking**: Use `trackType(typeCtx, identifier)` helper pattern (see `FloatModuloAnalyzer.trackIfFloat()`, `ArrayIndexTypeAnalyzer.trackType()`) to avoid jscpd duplication across `enterVariableDeclaration`/`enterParameter`/`enterForVarDecl`
+- **Analyzer test isolation**: build the context, not the state. Both helpers live in
+  `src/TRANSPILE/1-Analyze/__tests__/`, the one place allowed to read a
+  `TranspileState` into a context. `testAnalysisContextFor(source)` runs the real
+  1.3 and 1.4 on the source and returns a context with a settled `program`; use it
+  for anything that types an operand or binds a name. `testAnalysisContext(state)`
+  reads the facts a test set on a `TranspileState` and stands an
+  **empty** `Program` in for one the test never built, so a typing test built on it
+  passes by asserting silence
+- **The timing hazard this list used to describe is gone, and so is the registry.**
+  It said three analyzers read the private per-file `typeRegistry`, so one could see
+  a stale per-file local ahead of the cross-file answer. #1456 put the state out of
+  analyzers' reach, and #1668 deleted the registry and `getVariableTypeInfo` with
+  it; what `grep` still finds is comments recounting that history
+- **Analyzer operand types**: ask `OperandTyper` (`typeOf`, `valueLeaves`,
+  `chainOf`) with the analysis context, and `program.bindValue` for what a name binds
+  to. Do not record declarations in an analyzer's own `enterVariableDeclaration` /
+  `enterParameter` / `enterForVarDecl`: that is a second binding decision, and #1220
+  removed the `trackType` helpers this entry used to recommend
 - **Ternary grammar**: `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0 — and address them via `orExpression()`, **never `getChild(i)`**: the condition is parenthesized, so `getChild(0)` is `(` and an index-based skip silently does nothing
 - **Callback header params**: `IParameterSymbol.isCallbackPointer`/`isCallbackConst` resolved in `Transpiler.convertToHeaderSymbols()` via `TypedefParamParser` — single source of truth for both `.c` and `.h` generation
-- **Scope type predicate**: `TranspileState.isScopeType(qualifiedName)` checks if a qualified name is a known enum/struct/bitmap. Codegen sites bind it through `TranspileState.typeBindingDeps()`, which pairs `TranspileState.scopeTypePredicate` with the caller's `resolveQualifiedType` — don't re-pair the predicate with `currentScopePath` at each site, and don't inline `knownEnums || knownStructs || knownBitmaps`. This used to name `CodeGenState.qualifyScopeType(bareName)`; that method had **no production caller** and is deleted (#1452), because a rule naming a helper nothing uses teaches the next reader a pattern the codebase does not have.
+- **Scope type predicate**: `TranspileState.isScopeType(qualifiedName)` checks if a qualified name is a known enum/struct/bitmap, or a function (ADR-029 makes it a callback type) — the kinds are `TYPE_FORMING_KINDS`. Codegen sites bind it through `TranspileState.typeBindingDeps()`, which pairs `TranspileState.scopeTypePredicate` with the caller's `resolveQualifiedType` — don't re-pair the predicate with `currentScopePath` at each site, and don't inline `knownEnums || knownStructs || knownBitmaps`. This used to name `CodeGenState.qualifyScopeType(bareName)`; that method had **no production caller** and is deleted (#1452), because a rule naming a helper nothing uses teaches the next reader a pattern the codebase does not have.
 
 ---
 
@@ -831,12 +843,14 @@ buffer[0] = (uint8_t)(magic);
 
 ### Essential Patterns
 
-- **expectedType**: Use `this.context.expectedType` to disambiguate (e.g., enum members)
+- **expectedType**: render reads `state.expectedType` to qualify a bare enum member
+  that 2.1 has already accepted; whether one is allowed is 2.1's decision (see
+  "Enum `expectedType` Contexts")
 - **Struct access**: Track `currentStructType` through member chains
 - **C++ mode**: Parameter signatures go through `ParameterSignatureBuilder.build()` — single path for both `.c` and `.h` generation. Use `CppModeHelper` for mode-specific logic
 - **Handler state**: reach it through the context you were handed —
   `IAssignmentContext.state` in a handler, `IOrchestrator.state` in a generator,
-  `this.host.state` in the walk (234 sites); `CodeGenWalker.transpileState` is
+  `this.host.state` in the walk; `CodeGenWalker.transpileState` is
   the accessor the ORCHESTRATOR reads, not the walk's own route. Never import
   `TranspileState` to
   construct one
@@ -863,7 +877,7 @@ Update: `src/index.ts` (parse + pass), `src/transpiler/types/ITranspilerConfig.t
 2. Add the `needs<Effect>` field to **`TranspileState`** (reset in its `reset()`)
 3. Handle it in **`CodeGenerator.applyEffects()`**, which delegates to the one sink,
    `TranspileState.requireInclude()` — never set a `needs*` field directly
-4. Emit it in **`CodeGenerator.assembleGeneratedOutput()`** (via `addAutoIncludes()` for
+4. Emit it in **`CodeGenWalker.assembleGeneratedOutput()`** (via `addAutoIncludes()` for
    a real `#include`, or `addGeneratedHelpers()` for the three deferred code-emission
    members)
 
@@ -910,10 +924,11 @@ This used to name a third, `buildStructParamMemberAccess()`, "for chains". It ha
 
 ### Const Inference
 
-`walkStatementForModifications()` uses two helpers:
+`PassByValueAnalyzer.walkStatementForModifications()` (2.2 Plan) uses two collectors
+in `src/utils/ast/`:
 
-- `collectExpressionsFromStatement()` — returns all expressions from any statement type
-- `getChildStatementsAndBlocks()` — returns child statements/blocks for recursion
+- `StatementExpressionCollector.collectAll()` — returns all expressions from any statement type
+- `ChildStatementCollector.collectAll()` — returns child statements/blocks for recursion
 
 Update both when adding new statement types.
 
@@ -929,8 +944,8 @@ Update both when adding new statement types.
 - **Two resolution points, one decision.** Type names are resolved twice, in different layers, and both must qualify:
   - **Symbols layer** — `TypeUtils.resolveType()`, fed an `isScopeType` predicate threaded from `CNextResolver.resolve()`. (`dispatchTypeResolution` was named here and was removed by #1285.) It answers with a settled name OR a `TDeferredType` when 1.3 cannot settle a bare name, and 1.4 Resolve settles those. Everything downstream (`TSymbol`, `HeaderSymbolAdapter`, the `.h`) inherits the name from here and must NOT re-qualify.
   - **Codegen layer** — `CodeGenWalker.getTypeName()` and friends (the method is the walker's; `CodeGenerator` has none), via the deps `TranspileState.typeBindingDeps()` hands to `TypeBinding`. The decision is still made here; it is reached by resolving a whole `TypeContext` rather than by qualifying a bare name at the call site.
-- **`CNextResolver` Pass 0b** collects the qualified names of scope-declared enums/structs/bitmaps _before_ any type is resolved, so qualification does not depend on whether a type is declared above or below its use. Do not swap this for `scope.members`: that list is kind-agnostic (a function named `B` would capture global type `B`) and is still being built while collectors read it.
-- **`ScopeUtils.qualifyScopeType()`**: Shared utility in `src/utils/ScopeUtils.ts`. Takes `typeName`, the enclosing `scopePath`, and an `isKnownType(qualifiedName)` predicate. Its production callers are the symbols layer — `3-Declare/TypeBinding.ts` and `4-Resolve/DeferredTypes.ts`. Codegen reaches the same decision through `TranspileState.typeBindingDeps()`; `TypeGenerationHelper` injects the predicate through `ITypeGenerationDeps` instead, to stay unit-testable.
+- **`CNextResolver` Pass 0b** collects the qualified names of scope-declared types (`TYPE_FORMING_KINDS`: enums, structs, bitmaps, and functions, which ADR-029 makes callback types) _before_ any type is resolved, so qualification does not depend on whether a type is declared above or below its use. Do not swap this for `scope.members`: that list is kind-agnostic (a scope variable named `B` would capture global type `B`) and is still being built while collectors read it.
+- **`ScopeUtils.qualifyScopeType()`**: Shared utility in `src/utils/ScopeUtils.ts`. Takes `typeName`, the enclosing `scopePath`, and an `isKnownType(qualifiedName)` predicate. Its production callers are the symbols layer — `3-Declare/TypeBinding.ts` and `4-Resolve/DeferredTypes.ts` — and `OperandTyper`, with `program.isScopeType`, when an operand names an enum type. Codegen reaches the same decision through `TranspileState.typeBindingDeps()`; `TypeGenerationHelper` injects the predicate through `ITypeGenerationDeps` instead, to stay unit-testable.
 - **`ParameterInputAdapter.fromAST` struct detection**: `isKnownStruct` must check both the bare name AND the qualified name (`ScopeUtils.qualifyInScope(typeName, currentScopePath)` -- the whole PATH, not a scope's leaf name) for scope-local struct types. Without this, scope struct params get classified as pass-by-value while `mappedType` comes back qualified, causing `.c` body to use `->` on a non-pointer.
 
 ---

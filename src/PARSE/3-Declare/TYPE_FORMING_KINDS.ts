@@ -4,8 +4,8 @@ import TSymbolKindCNext from "../../transpiler/types/symbol-kinds/TSymbolKindCNe
  * The symbol kinds whose declaration introduces a TYPE NAME.
  *
  * ADR-057 qualifies a bare type name against the enclosing scope only when the
- * name actually names a type -- a scope function or variable called `Config`
- * must not capture a global `struct Config` at a type position. That decision
+ * name actually names a type -- a scope variable called `Config` must not
+ * capture a global `struct Config` at a type position. That decision
  * was previously spread across four parallel `known*` sets, and #1281 proposed
  * adding a fifth (`knownCallbackTypes`) for the one kind the other four had
  * missed. A fifth set is the same bug again: the question "does this name form

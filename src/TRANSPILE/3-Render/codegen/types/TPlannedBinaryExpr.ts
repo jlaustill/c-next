@@ -90,9 +90,8 @@ type TPlannedBinaryExpr =
    * or joined.
    *
    * `clampType` and `clampBehavior` are thunks asked AFTER the operands render,
-   * which is where they are asked today: they read the type registry through
-   * `CodeGenState.getVariableTypeInfo`, and asking them earlier would ask about
-   * a state the operands had not yet reached.
+   * which is where they are asked today. Both read the typer over 1.4's settled
+   * declarations (#1668), so the order is not load-bearing.
    */
   | {
       readonly kind: "arithmetic";
