@@ -50,6 +50,19 @@ uint32_t peekVia(peek_fp cb, const Point* p) {
     return cb(p);
 }
 
+// #1561: a local struct through a parameter of the callback type takes its
+// address, as a direct call does -- the other argument form of the defect.
+uint32_t peekLocalVia(peek_fp cb) {
+    Point local = { .x = 30U };
+    return cb(&local);
+}
+
+// #1561 control: a primitive through a parameter of the callback type stays
+// by value, so a fix that takes the address of every argument fails here.
+uint32_t twiceVia(twice_fp cb, uint32_t v) {
+    return cb(v);
+}
+
 int main(void) {
     Handlers h = {0};
     h.onPeek = peek;
@@ -75,5 +88,9 @@ int main(void) {
     if (direct != 42) return 7;
     uint32_t directPeek = peek(&p);
     if (directPeek != 12) return 8;
+    uint32_t viaParamLocal = peekLocalVia(peek);
+    if (viaParamLocal != 30) return 9;
+    uint32_t viaParamScalar = twiceVia(twice, n);
+    if (viaParamScalar != 42) return 10;
     return 0;
 }

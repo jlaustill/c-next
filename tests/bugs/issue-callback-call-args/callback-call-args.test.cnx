@@ -44,6 +44,19 @@ u32 peekVia(peek cb, Point p) {
     return cb(p);
 }
 
+// #1561: a local struct through a parameter of the callback type takes its
+// address, as a direct call does -- the other argument form of the defect.
+u32 peekLocalVia(peek cb) {
+    Point local <- { x: 30 };
+    return cb(local);
+}
+
+// #1561 control: a primitive through a parameter of the callback type stays
+// by value, so a fix that takes the address of every argument fails here.
+u32 twiceVia(twice cb, u32 v) {
+    return cb(v);
+}
+
 i32 main() {
     Handlers h;
     h.onPeek <- peek;
@@ -86,6 +99,11 @@ i32 main() {
     // Control: the direct call to the struct function is unchanged.
     u32 directPeek <- peek(p);
     if (directPeek != 12) return 8;
+
+    u32 viaParamLocal <- peekLocalVia(peek);
+    if (viaParamLocal != 30) return 9;
+    u32 viaParamScalar <- twiceVia(twice, n);
+    if (viaParamScalar != 42) return 10;
 
     return 0;
 }

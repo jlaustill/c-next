@@ -37,6 +37,8 @@ void poke(Point& p);
 uint32_t twice(uint32_t v);
 Point shifted(const Point& p);
 uint32_t peekVia(peek_fp cb, const Point& p);
+uint32_t peekLocalVia(peek_fp cb);
+uint32_t twiceVia(twice_fp cb, uint32_t v);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 Handlers Handlers_init(void);
 
