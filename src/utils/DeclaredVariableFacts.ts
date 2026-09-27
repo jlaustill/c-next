@@ -20,11 +20,11 @@ import type TTypeInfo from "../transpiler/types/TTypeInfo";
  * either side: `TranspileState` delegates, and an analyzer passes what its
  * `IAnalysisContext` carries.
  *
- * Deliberately NOT the per-file `typeRegistry`, and that omission is the point
- * -- see `TranspileState.getVariableTypeInfo`, which layers the registry on top
- * of these for codegen. #1432 is what happens when an analyzer gets the
- * registry: it reads the PREVIOUS run's variables, and a signed array
- * subscript reaches generated C with the transpile reporting success.
+ * Never a registry filled as a pass walks: #1432 is what happened when an
+ * analyzer read the per-file one, which held the PREVIOUS run's variables, so
+ * a signed array subscript reached generated C with the transpile reporting
+ * success. #1668 (C8) deleted that registry; codegen binds a name through
+ * the program and reads its declaration here too (`DeclaredTypeInfo`).
  */
 
 /**
@@ -140,12 +140,9 @@ class DeclaredVariableFacts {
    * What a variable's type is according to what the program DECLARES -- the
    * answer that does not depend on which file has been generated.
    *
-   * #1432. This is the tail of `TranspileState.getVariableTypeInfo`, split out
-   * rather
-   * than copied, so the symbol-table half stays one decision: a change to how
-   * a C struct global is read reaches codegen and the analyzers together.
-   * What codegen has and 2.1 does not is the `typeRegistry` probe, and that is
-   * the whole difference between the two methods.
+   * #1432. Codegen and the analyzers read it alike, so the symbol-table half
+   * stays one decision: a change to how a C struct global is read reaches
+   * both together.
    *
    * An analyzer that probed the registry got the PREVIOUS RUN's answer, because
    * nothing clears it between runs and `ServeCommand` holds a static
@@ -171,7 +168,7 @@ class DeclaredVariableFacts {
 
     // Issue #978 / #1668: a C header variable, where C-Next may use its type
     // at all -- a struct global, or a floating scalar. `ForeignTypeFacts` owns
-    // that decision, and `typeNameOf` asks the same question.
+    // that decision.
     const foreign = ForeignTypeFacts.variableType(symbolTable, name);
     const cSymbol = symbolTable.getCSymbol(name);
     if (foreign !== null && cSymbol?.kind === "variable") {

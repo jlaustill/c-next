@@ -155,7 +155,7 @@ interface IPostfixContext {
  * zero or more postfix operations (member access, subscripts, function calls).
  *
  * @param ctx - The postfix expression context
- * @param input - Generator input (type registry, symbols, etc.)
+ * @param input - Generator input (symbols, symbol table, etc.)
  * @param state - Generator state (current scope, parameters, etc.)
  * @param orchestrator - Orchestrator for callbacks into CodeGenerator
  * @returns Generated code and effects

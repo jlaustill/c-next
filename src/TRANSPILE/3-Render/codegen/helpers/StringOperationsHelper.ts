@@ -5,10 +5,11 @@
  *
  * ADR-045: String type support
  *
- * ## It asks the type registry, not the tree (#1445)
+ * ## It asks a declaration, not the tree (#1445)
  *
- * Every question here is answered from a NAME and the render-time type
- * registry: how long is this literal, how wide is this declared string. The
+ * Every question here is answered from a NAME and the declared type it binds
+ * to where the expression is (#1668, C7: the caller binds it through the
+ * program): how long is this literal, how wide is this declared string. The
  * tree navigation that used to sit in front of those questions --
  * "is this expression a two-operand `+`", "is it an identifier with one
  * subscript" -- moved to `ExpressionUnwrapper`, which is what that utility is

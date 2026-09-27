@@ -32,6 +32,9 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IShiftError from "./types/IShiftError";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
+import CompositeType from "../../utils/CompositeType";
+import TypeCheckUtils from "../../utils/TypeCheckUtils";
+import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -59,16 +62,13 @@ class ShiftCheck {
         continue;
       }
 
-      // Rule 12.2: the amount against the leading operand's width. Codegen
-      // typed the first unary of the left additive expression -- `a + b << 9`
-      // reads as `a`'s width -- and that is reproduced, not widened.
-      const leading =
-        left instanceof Parser.AdditiveExpressionContext
-          ? left.multiplicativeExpression()[0]?.unaryExpression()[0]
-          : undefined;
-      if (!leading) continue;
+      // Rule 12.2: the amount against the width of the value shifted. For a
+      // composite that is ADR-044's composite type, the one codegen emits it
+      // by (#1668 review: this read the first leaf's, so `a + b << 9` with a
+      // u8 `a` and a u32 `b` was E0873 against 8 bits, while the C shifts
+      // `cnx_clamp_add_u32(a, b)`)
       this.checkAmount(
-        OperandTyper.typeOf(leading, this.context),
+        ShiftCheck.shiftedType(left, this.context),
         operands[i + 1],
         parent,
       );
@@ -93,6 +93,28 @@ class ShiftCheck {
       return;
     }
     this.checkAmount(targetType, site.expression(), site);
+  }
+
+  /**
+   * The type of the value a shift shifts: a composite's integer type by
+   * `CompositeType`, the one composite rule, or the operand's own type.
+   */
+  private static shiftedType(
+    left: ParserRuleContext,
+    context: IAnalysisContext,
+  ): IOperandType | null {
+    const t = OperandTyper.typeOf(left, context);
+    if (t?.form.kind !== "composite") return t;
+    const name = CompositeType.integerOf(
+      OperandTyper.valueLeaves(left, context),
+    );
+    if (name === null) return null;
+    return {
+      ...t,
+      typeName: name,
+      category: TypeCheckUtils.isSigned(name) ? "signed" : "unsigned",
+      bitWidth: TYPE_WIDTH[name],
+    };
   }
 
   /** Any value leaf signed, or a negated literal */

@@ -371,12 +371,16 @@ describe("AssignmentClassifier - Array Access", () => {
       }),
     );
 
-    const ctx = createMockContext(state, {
-      identifiers: ["arr"],
-      subscriptCount: 1,
-      hasArrayAccess: true,
-      isSimpleIdentifier: false,
-    });
+    // #1668 (C12): the typer types every subscript; this is its answer
+    const ctx = typedLast(
+      createMockContext(state, {
+        identifiers: ["arr"],
+        subscriptCount: 1,
+        hasArrayAccess: true,
+        isSimpleIdentifier: false,
+      }),
+      "array_element",
+    );
 
     expect(AssignmentClassifier.classify(ctx, state)).toBe(
       AssignmentKind.ARRAY_ELEMENT,
@@ -392,13 +396,17 @@ describe("AssignmentClassifier - Array Access", () => {
       }),
     );
 
-    const ctx = createMockContext(state, {
-      identifiers: ["buffer"],
-      subscriptCount: 2,
-      hasArrayAccess: true,
-      isSimpleIdentifier: false,
-      lastSubscriptExprCount: 2, // slice has 2 expressions [start, length]
-    });
+    // #1668 (C12): the typer types every subscript; this is its answer
+    const ctx = typedLast(
+      createMockContext(state, {
+        identifiers: ["buffer"],
+        subscriptCount: 2,
+        hasArrayAccess: true,
+        isSimpleIdentifier: false,
+        lastSubscriptExprCount: 2, // slice has 2 expressions [start, length]
+      }),
+      "array_slice",
+    );
 
     expect(AssignmentClassifier.classify(ctx, state)).toBe(
       AssignmentKind.ARRAY_SLICE,
@@ -604,14 +612,18 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
   it("classifies global.arr[i] as ARRAY_ELEMENT", () => {
     setupSymbols();
 
-    const ctx = createMockContext(state, {
-      identifiers: ["arr"],
-      subscriptCount: 1,
-      hasGlobal: true,
-      hasArrayAccess: true,
-      postfixOpsCount: 1,
-      isSimpleIdentifier: false,
-    });
+    // #1668 (C12): the typer types every subscript; this is its answer
+    const ctx = typedLast(
+      createMockContext(state, {
+        identifiers: ["arr"],
+        subscriptCount: 1,
+        hasGlobal: true,
+        hasArrayAccess: true,
+        postfixOpsCount: 1,
+        isSimpleIdentifier: false,
+      }),
+      "array_element",
+    );
 
     expect(AssignmentClassifier.classify(ctx, state)).toBe(
       AssignmentKind.ARRAY_ELEMENT,
@@ -638,14 +650,18 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
     setupSymbols();
     enterScope(state, "Buffer");
 
-    const ctx = createMockContext(state, {
-      identifiers: ["data"],
-      subscriptCount: 1,
-      hasThis: true,
-      hasArrayAccess: true,
-      postfixOpsCount: 1,
-      isSimpleIdentifier: false,
-    });
+    // #1668 (C12): the typer types every subscript; this is its answer
+    const ctx = typedLast(
+      createMockContext(state, {
+        identifiers: ["data"],
+        subscriptCount: 1,
+        hasThis: true,
+        hasArrayAccess: true,
+        postfixOpsCount: 1,
+        isSimpleIdentifier: false,
+      }),
+      "array_element",
+    );
 
     expect(AssignmentClassifier.classify(ctx, state)).toBe(
       AssignmentKind.ARRAY_ELEMENT,
@@ -719,15 +735,19 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       createTypeInfo({ baseType: "u8", isArray: true, arrayDimensions: [10] }),
     );
 
-    const ctx = createMockContext(state, {
-      identifiers: ["data"],
-      subscriptCount: 1,
-      hasThis: true,
-      hasArrayAccess: true,
-      postfixOpsCount: 1,
-      isSimpleIdentifier: false,
-      lastSubscriptExprCount: 1,
-    });
+    // #1668 (C12): the typer types every subscript; this is its answer
+    const ctx = typedLast(
+      createMockContext(state, {
+        identifiers: ["data"],
+        subscriptCount: 1,
+        hasThis: true,
+        hasArrayAccess: true,
+        postfixOpsCount: 1,
+        isSimpleIdentifier: false,
+        lastSubscriptExprCount: 1,
+      }),
+      "array_element",
+    );
 
     expect(AssignmentClassifier.classify(ctx, state)).toBe(
       AssignmentKind.ARRAY_ELEMENT,
@@ -1353,13 +1373,17 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
       }),
     );
 
-    const ctx = createMockContext(state, {
-      identifiers: ["names"],
-      generatedValue: '"hi"',
-      subscriptCount: 1,
-      hasArrayAccess: true,
-      isSimpleIdentifier: false,
-    });
+    // #1668 (C12): the typer types every subscript; this is its answer
+    const ctx = typedLast(
+      createMockContext(state, {
+        identifiers: ["names"],
+        generatedValue: '"hi"',
+        subscriptCount: 1,
+        hasArrayAccess: true,
+        isSimpleIdentifier: false,
+      }),
+      "array_element",
+    );
 
     expect(AssignmentClassifier.classify(ctx, state)).toBe(
       AssignmentKind.STRING_ARRAY_ELEMENT,

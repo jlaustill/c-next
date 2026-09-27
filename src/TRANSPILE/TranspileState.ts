@@ -234,7 +234,6 @@ class TranspileState {
     at: ISourcePosition,
   ): TTypeInfo | undefined {
     const typing = this.typingContext();
-    if (typing === null) return undefined;
     const binding = this.bindingAt(root, name, at);
     return DeclaredTypeInfo.of(binding, typing.symbols, this.symbolTable);
   }
@@ -250,7 +249,6 @@ class TranspileState {
     at: ISourcePosition,
   ): TValueBinding | null {
     const typing = this.typingContext();
-    if (typing === null) return null;
     return typing.program.bindValue(
       typing.sourceFile,
       root,
@@ -259,9 +257,19 @@ class TranspileState {
     );
   }
 
-  typingContext(): ITypingContext | null {
-    if (this.program === null || this.symbols === null) return null;
-    if (this.sourcePath === null) return null;
+  /**
+   * What the one operand typer reads for the file being rendered. Render
+   * always runs against a program (#1668 review: fifteen sites carried a
+   * default for a missing one, guards that could not fire in production and
+   * would have answered wrongly if they had).
+   */
+  typingContext(): ITypingContext {
+    invariant(
+      this.program !== null &&
+        this.symbols !== null &&
+        this.sourcePath !== null,
+      "render runs against a program: set program, symbols and sourcePath first",
+    );
     return {
       sourceFile: this.sourcePath,
       symbols: this.symbols,

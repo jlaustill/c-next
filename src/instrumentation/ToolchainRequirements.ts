@@ -35,9 +35,9 @@
  *
  * and every read -- `takeDeferredSites` at plan-build, `collect` for the banner
  * and for the result -- happens inside the same `generate()` call for the same
- * file. The one `requireInclude` caller outside Render
- * (`TypeRegistrationEngine`, 2.2 Plan) passes `"string"`, which is not a
- * deferred key and records no requirement, so it cannot reach either map.
+ * file. Every `requireInclude` caller is Render's walk; the one 2.2 caller
+ * this once excepted (`TypeRegistrationEngine`, which passed `"string"`, not a
+ * deferred key) was deleted with the per-file type registry (#1668, C8).
  *
  * That makes the move out of `CodeGenState` a correction rather than a
  * relocation: the accumulation was per-file and single-pass the whole time, and

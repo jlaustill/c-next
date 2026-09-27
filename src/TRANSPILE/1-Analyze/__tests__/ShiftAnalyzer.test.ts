@@ -671,18 +671,32 @@ describe("ShiftAnalyzer -- E0873 shift amount (MISRA C:2012 Rule 12.2)", () => {
     expect(found).toHaveLength(3);
   });
 
-  it("stays silent on a runtime amount, a literal left operand and a composite", () => {
-    // A literal has no declared width; `(a + 1)` is a composite, untyped here
-    // as it was in codegen -- reproduced, not widened.
+  it("stays silent on a runtime amount, a literal left operand and a wide composite", () => {
+    // A literal has no declared width. `a + w` is a u32 composite (ADR-044),
+    // shifted as `cnx_clamp_add_u32(a, w)`, so 9 is inside its width; the
+    // first leaf's u8 was the wrong width to measure (#1668 review).
     const source = [
       "void main(u8 s) {",
       "    u8 a <- 1;",
+      "    u32 w <- 2;",
       "    u8 b <- a << s;",
       "    u8 c <- 1 << 9;",
-      "    u8 d <- (a + 1) << 9;",
+      "    u32 d <- a + w << 9;",
       "}",
     ].join("\n");
     expect(errors(source)).toEqual([]);
+  });
+
+  it("measures a composite by the composite's width (#1668 review)", () => {
+    // `(a + 1)` is `cnx_clamp_add_u8(a, 1U)`: essentially u8, so 9 is past
+    // its width. It was untyped while a composite had no type.
+    const source = [
+      "void main() {",
+      "    u8 a <- 1;",
+      "    u8 d <- (a + 1) << 9;",
+      "}",
+    ].join("\n");
+    expect(errors(source).map((e) => [e.code, e.line])).toEqual([["E0873", 3]]);
   });
 
   it("reports the signed rule and not the width rule on a signed operand", () => {

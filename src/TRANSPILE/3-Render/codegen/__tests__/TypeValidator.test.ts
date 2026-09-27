@@ -11,6 +11,7 @@ import type ICallbackTypeInfo from "../../../../transpiler/types/ICallbackTypeIn
 import type TParameterInfo from "../../../../transpiler/types/TParameterInfo";
 import TypeValidator from "../TypeValidator";
 import enterScope from "../../../../transpiler/__tests__/enterScope";
+import testAnalysisContextFor from "../../../1-Analyze/__tests__/testAnalysisContextFor";
 
 // ========================================================================
 // Test Helpers - Mock Symbols
@@ -121,35 +122,31 @@ describe("TypeValidator", () => {
   // a method and asserts nothing is the shape of a guard that cannot fail.
 
   describe("resolveBareIdentifier - outside scope coverage", () => {
-    it("returns null for enum identifier when outside scope", () => {
-      const symbols = createMockSymbols({ knownEnums: new Set(["State"]) });
-      setupState({ symbols, currentScopePath: "" });
-      const result = TypeValidator.resolveBareIdentifier(
-        "State",
-        { line: 1, column: 0 },
-        () => false,
-        state,
-      );
-      expect(result).toBeNull();
-    });
+    // #1668 review: render always runs against a program, so these bind the
+    // names as the walk does -- declared in real source, asked at file scope
+    const SOURCE = `enum State {
+    IDLE
+}
+struct Point {
+    u8 x;
+}
+register GPIO @ 0x40000000 {
+    DATA: u32 rw @ 0x00,
+}
+u32 after <- 1;`;
 
-    it("returns null for struct identifier when outside scope", () => {
-      setupState({ currentScopePath: "" });
+    it.each([
+      ["an enum", "State"],
+      ["a struct", "Point"],
+      ["a register", "GPIO"],
+    ])("returns null for %s identifier when outside scope", (_what, name) => {
+      const { context } = testAnalysisContextFor(SOURCE);
+      setupState({ symbols: context.symbols, currentScopePath: "" });
+      state.program = context.program;
+      state.sourcePath = context.sourceFile;
       const result = TypeValidator.resolveBareIdentifier(
-        "Point",
-        { line: 1, column: 0 },
-        () => true,
-        state,
-      );
-      expect(result).toBeNull();
-    });
-
-    it("returns null for register identifier when outside scope", () => {
-      const symbols = createMockSymbols({ knownRegisters: new Set(["GPIO"]) });
-      setupState({ symbols, currentScopePath: "" });
-      const result = TypeValidator.resolveBareIdentifier(
-        "GPIO",
-        { line: 1, column: 0 },
+        name,
+        { line: 10, column: 0 },
         () => false,
         state,
       );

@@ -36,8 +36,9 @@ function capacityOf(ctx: IAssignmentContext): number {
  * Emit a bounded copy into whatever `ctx.targetCtx` renders to, sized by the
  * `string<N>` the target writes.
  *
- * STRING_SIMPLE, STRING_GLOBAL and STRING_THIS_MEMBER differ in exactly one
- * thing: how the registry key is spelled. Everything downstream of that -- the
+ * STRING_SIMPLE, STRING_GLOBAL and STRING_THIS_MEMBER differed in exactly one
+ * thing: how a registry key was spelled, before #1668 (C7) bound the target
+ * once. Everything downstream of that -- the
  * `<string.h>` requirement, the target, the `strncpy`/null-terminator pair --
  * was derived separately for the bare key and the qualified one, so a change
  * to how a bounded string copy is emitted needed two edits that nothing held

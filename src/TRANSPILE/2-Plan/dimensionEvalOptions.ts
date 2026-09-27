@@ -28,17 +28,14 @@ import type IConstantEvalOptions from "../../utils/types/IConstantEvalOptions";
  *
  * Render held one mutable map per file instead, seeded with every const under
  * its bare name and written as the walk passed a local const, so a local `N`
- * in one function sized another's `u8[N]`. Empty for a render with no
- * program behind it (a unit test that builds codegen state alone).
+ * in one function sized another's `u8[N]`.
  */
 function dimensionEvalOptions(
   state: TranspileState,
   at: ISourcePosition,
 ): IConstantEvalOptions {
   const typing = state.typingContext();
-  return typing === null
-    ? ConstantFold.options(() => undefined)
-    : ConstantFold.at(typing.program, typing.sourceFile, at);
+  return ConstantFold.at(typing.program, typing.sourceFile, at);
 }
 
 export default dimensionEvalOptions;

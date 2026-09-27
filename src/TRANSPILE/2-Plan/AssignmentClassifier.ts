@@ -9,7 +9,7 @@
  */
 import AssignmentKind from "../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "./types/IAssignmentContext";
-import SubscriptClassifier from "../../utils/SubscriptClassifier";
+import invariant from "../../utils/invariant";
 import SubscriptDepthValidator from "./SubscriptDepthValidator";
 import TTypeInfo from "../../transpiler/types/TTypeInfo";
 import type IOperandType from "../../transpiler/types/IOperandType";
@@ -669,7 +669,7 @@ class AssignmentClassifier {
 
   /**
    * Classify this.reg[bit] / this.arr[i] / this.flags[3] patterns with array access.
-   * Issue #954: Uses SubscriptClassifier to distinguish array vs bit access.
+   * Issue #954: array vs bit access is the typer's subscript kind (#1668, C12).
    *
    * Issue #1115: only the scoped-register check is `this.`-specific. Everything
    * after it is the same decision the bare path makes, so it delegates rather
@@ -706,8 +706,8 @@ class AssignmentClassifier {
    * Classify simple array/bit access (no prefix, no member access).
    * Pattern: arr[i] or flags[bit]
    *
-   * Issue #579: Uses shared SubscriptClassifier to ensure consistent behavior
-   * with the expression path in CodeGenerator._generatePostfixExpr.
+   * Issue #579: the subscript's kind is the typer's, the same one the
+   * expression path reads (#1668, C12).
    */
   private static classifyArrayOrBitAccess(
     ctx: IAssignmentContext,
@@ -745,6 +745,17 @@ class AssignmentClassifier {
     ctx: IAssignmentContext,
     displayName: string,
   ): AssignmentKind {
+    // A chain that ends in a member (`this.buffer[i].value`) writes that
+    // member, and its subscripts index on the way there -- a member chain, as
+    // the bare spelling `buffer[i].value` is. The rules below are about a
+    // FINAL subscript; this reached them and was classified by the
+    // classifier's default for an unknown type, whose handler wrote the right
+    // text by coincidence (#1668 review).
+    const last = ctx.target.last;
+    if (last !== undefined && last.subscript === null) {
+      return AssignmentKind.MEMBER_CHAIN;
+    }
+
     const typeInfo = ctx.target.typeInfo ?? null;
 
     // `assignmentTarget` consumes the leading `IDENTIFIER` (and any `this .` /
@@ -772,16 +783,13 @@ class AssignmentClassifier {
     // element, a slice, a bit or a bit range, is the one operand typer's
     // answer -- the one 2.1 already checked. Classifying from the ROOT's type
     // called `row[2][0, 4]` a slice of `row`, and a valid program failed with
-    // an internal error. A target nothing typed takes the classifier's own
-    // default for an unknown type, as the read path does.
-    const last = ctx.target.last;
-    const subscriptKind =
-      last?.subscript ??
-      SubscriptClassifier.classify({
-        typeInfo: null,
-        subscriptCount: ctx.lastSubscriptExprCount,
-        isRegisterAccess: false,
-      });
+    // an internal error. The typer types every subscript it walks, an
+    // untyped value's included (the classifier's default for an unknown type).
+    const subscriptKind = last?.subscript ?? null;
+    invariant(
+      subscriptKind !== null,
+      "the typer typed this target's final subscript",
+    );
     // The subscripts are flattened, so anything before the final op's own
     // expressions indexed an array element first
     const indexesAnElement = ctx.subscriptCount > ctx.lastSubscriptExprCount;

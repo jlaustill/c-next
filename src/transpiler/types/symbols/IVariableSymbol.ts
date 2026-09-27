@@ -51,7 +51,7 @@ interface IVariableSymbol extends IBaseSymbol {
   /** Initial value expression (as string) */
   readonly initialValue?: string;
 
-  /** #895: what the initializer calls (`DeclaredPointer.calleeOf`) */
+  /** #895: what the initializer calls (`VariableCollector.calleeOf`) */
   readonly initializerCallee?: string | null;
 }
 

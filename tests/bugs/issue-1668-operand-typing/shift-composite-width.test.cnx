@@ -1,0 +1,16 @@
+// test-execution
+// #1668 review: E0873 measures a shift amount against the width of the
+// value shifted, which for a composite is the composite's (ADR-044, the rule
+// codegen emits it by). It measured the first leaf's: `a + b << 9` with a u8
+// `a` and a u32 `b` was rejected as `9 >= 8`, while the C is
+// `cnx_clamp_add_u32(a, b) << 9U`, a u32 shift.
+u32 main() {
+    u8 a <- 1;
+    u32 b <- 2;
+    u32 r <- a + b << 9;
+    if (r != 1536) return 1;
+    // NEGATIVE CONTROL: the same composite the other way round, as before
+    u32 s <- b + a << 9;
+    if (s != 1536) return 2;
+    return 0;
+}

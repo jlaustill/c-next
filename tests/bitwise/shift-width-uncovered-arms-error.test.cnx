@@ -13,9 +13,8 @@ const u8 N <- 9;
 const u8 OK_AMOUNT <- 7;
 
 // NEGATIVE CONTROLS -- everything the rule must stay silent on: an amount
-// below the width in every form, a runtime amount, a literal left operand
-// (no declared width), and a composite left operand, which is untyped here as
-// it was in codegen.
+// below the width in every form, a runtime amount, and a literal left operand
+// (no declared width).
 void controls(u8 p, u8 s) {
     u8 a <- 1;
     u8[4] arr <- [1, 2, 3, 4];
@@ -25,7 +24,6 @@ void controls(u8 p, u8 s) {
     arr[1] <<<- OK_AMOUNT;
     u8 b <- a << s;
     u8 c <- 1 << 9;
-    u8 e <- (a + 1) << 9;
     u8 f <- p << OK_AMOUNT;
 }
 
@@ -42,6 +40,10 @@ void main() {
     u8 b <- a << N;
     // ASSERTION 5 -- a parameter-typed operand through the const.
     u8 c <- arr[0] << N;
+    // ASSERTION 6 -- a composite left operand has the composite's width
+    // (ADR-044): `(a + 1)` is `cnx_clamp_add_u8(a, 1U)`, essentially u8. This
+    // was a negative control while a composite had no type (#1668 review).
+    u8 e <- (a + 1) << 9;
 }
 
 scope Board {

@@ -39,7 +39,6 @@ import EmissionPlan from "./2-Plan/EmissionPlan";
 import DeclarationPlan from "./2-Plan/DeclarationPlan";
 import CastRequirement from "./2-Plan/CastRequirement";
 import OperandTyper from "../utils/OperandTyper";
-import SubscriptClassifier from "../utils/SubscriptClassifier";
 import PlanTyping from "./2-Plan/PlanTyping";
 import CompositeType from "../utils/CompositeType";
 import type IOperandType from "../transpiler/types/IOperandType";
@@ -577,8 +576,8 @@ class CodeGenWalker {
     // step. A `this.`/`global.` chain consumes its first `.name`, so the
     // typer's steps are the op list's tail.
     const typing = this.host.state.typingContext();
-    const chain = typing === null ? null : OperandTyper.chainOf(ctx, typing);
-    const steps = chain?.steps ?? [];
+    const chain = OperandTyper.chainOf(ctx, typing);
+    const steps = chain.steps;
     const offset = ops.length - steps.length;
     const plannedOps = ops.map((op, i) =>
       this.planPostfixOp(op, steps[i - offset] ?? null),
@@ -600,19 +599,11 @@ class CodeGenWalker {
         : 0,
       ops: plannedOps,
       // #1668 (C7): the chain's bound base, from the same typed chain
-      base:
-        chain === null || typing === null
-          ? {
-              root: null,
-              rootTypeInfo: undefined,
-              typeInfo: undefined,
-              last: undefined,
-            }
-          : DeclaredTypeInfo.ofChain(
-              chain,
-              typing.symbols,
-              this.host.state.symbolTable,
-            ),
+      base: DeclaredTypeInfo.ofChain(
+        chain,
+        typing.symbols,
+        this.host.state.symbolTable,
+      ),
     };
   }
 
@@ -634,6 +625,9 @@ class CodeGenWalker {
       // rather than a runtime one. Captured here rather than indexed inside
       // the thunk so the arity check above is what guarantees it exists.
       const widthExpr = indexes.at(-1);
+      // The typer types every subscript it walks, an untyped value's
+      // included (the classifier's default for an unknown type)
+      invariant(typedAs !== null, "the typer typed this subscript");
       return {
         kind: "subscript",
         indexCount: indexes.length,
@@ -643,14 +637,7 @@ class CodeGenWalker {
           widthExpr === undefined
             ? undefined
             : this.tryEvaluateConstant(widthExpr),
-        // An operand the typer cannot type takes the classifier's own
-        // default for an unknown type, which is what it always was.
-        typedAs:
-          typedAs ??
-          SubscriptClassifier.classify({
-            typeInfo: null,
-            subscriptCount: indexes.length,
-          }),
+        typedAs,
         step,
       };
     }
@@ -875,9 +862,9 @@ class CodeGenWalker {
       kind: "arithmetic",
       defaultOperator: "+",
       operators: this.getOperatorsFromChildren(ctx),
-      // Asked AFTER the operands render, which is where they are asked today:
-      // both read the type registry, and asking earlier asks about a state the
-      // operands have not reached.
+      // Asked AFTER the operands render, which is where they are asked today.
+      // Both read the typer over 1.4's settled declarations, so the order is
+      // not load-bearing; it is kept because it is where the plan asks.
       clampType: () => this.compositeClampType(ctx),
       clampBehavior: () => this.compositeClampBehavior(ctx),
       adrLine: ctx.start?.line,
@@ -896,7 +883,6 @@ class CodeGenWalker {
    */
   private compositeClampType(ctx: ParserRuleContext): string | null {
     const typing = this.host.state.typingContext();
-    if (typing === null) return null;
     return CompositeType.integerOf(OperandTyper.valueLeaves(ctx, typing));
   }
 
@@ -905,7 +891,6 @@ class CodeGenWalker {
     ctx: ParserRuleContext,
   ): TOverflowBehavior | null {
     const typing = this.host.state.typingContext();
-    if (typing === null) return null;
     return PlanTyping.overflowOf(OperandTyper.valueLeaves(ctx, typing));
   }
 
@@ -957,9 +942,7 @@ class CodeGenWalker {
     // too, so the case label and the E0428/E0434 checks cannot disagree
     // about whether the switch is on an enum. A header's enum has no C-Next
     // enum type: its members are global C names and need no qualifying.
-    const typing = this.host.state.typingContext();
-    if (typing === null) return null;
-    const t = OperandTyper.typeOf(ctx, typing);
+    const t = OperandTyper.typeOf(ctx, this.host.state.typingContext());
     return t?.category === "enum" ? t.enumTypeName : null;
   }
 
@@ -1176,7 +1159,7 @@ class CodeGenWalker {
   private nameTypeOf(ctx: Parser.ExpressionContext): TTypeInfo | undefined {
     const typing = this.host.state.typingContext();
     const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
-    if (typing === null || postfix === null) return undefined;
+    if (postfix === null) return undefined;
     const chain = OperandTyper.chainOf(postfix, typing);
     const isName =
       chain.root?.kind === "scope"
@@ -1200,9 +1183,9 @@ class CodeGenWalker {
 
   /** #1668 (C6c): an expression's one type for 2.2, PlanTyping's row */
   private directTypeOf(ctx: ParserRuleContext): string | null {
-    const typing = this.host.state.typingContext();
-    if (typing === null) return null;
-    return PlanTyping.directTypeName(OperandTyper.typeOf(ctx, typing));
+    return PlanTyping.directTypeName(
+      OperandTyper.typeOf(ctx, this.host.state.typingContext()),
+    );
   }
 
   /**
@@ -1216,7 +1199,6 @@ class CodeGenWalker {
   /** Whether any value leaf is floating, or indeterminate (CompositeType) */
   private hasFloatingLeaf(ctx: ParserRuleContext): boolean {
     const typing = this.host.state.typingContext();
-    if (typing === null) return false;
     return CompositeType.anyFloating(OperandTyper.valueLeaves(ctx, typing));
   }
 
@@ -4121,13 +4103,13 @@ class CodeGenWalker {
    *
    * ## This planner WRITES, and the order is the contract
    *
-   * `inferVariableType` renders; `trackLocalVariable` registers the variable's
-   * type info; `emittedLocalName` is only correct after that registration; and
-   * ADR-045's string discrimination reads the registry registration filled --
-   * which is why `string<32> s <- s + "x"` is detected as a concatenation and
-   * rejected E0864 for "capacity 33", the 32 read back off `s` itself (#1643
-   * tracks that the name resolves at all). So this is not a description
-   * computed ahead of time; it is the sequence the renderer used to perform,
+   * `inferVariableType` renders; `trackLocalVariable` records the local's
+   * name for the walk. What a name is typed as is not written here: it binds
+   * through 1.4's lexical frames (#1668, C8), which is why
+   * `string<32> s <- s + "x"` is detected as a concatenation and rejected
+   * E0864 for "capacity 33", the 32 read off `s`'s own declaration (#1643
+   * tracks that the name binds in its own initializer at all). The steps are
+   * still the sequence the renderer used to perform,
    * with the rendering lifted out of it.
    */
   private planVariableDecl(
@@ -4225,11 +4207,12 @@ class CodeGenWalker {
     const args = argListCtx.IDENTIFIER().map((argNode) => {
       const argName = argNode.getText();
       const typing = this.host.state.typingContext();
-      const binding =
-        typing?.program.bindValue(typing.sourceFile, null, argName, {
-          line: argNode.symbol.line,
-          column: argNode.symbol.column,
-        }) ?? null;
+      const binding = typing.program.bindValue(
+        typing.sourceFile,
+        null,
+        argName,
+        { line: argNode.symbol.line, column: argNode.symbol.column },
+      );
       if (binding?.kind === "variable") {
         return binding.symbol.fullyQualifiedCName;
       }
@@ -4410,14 +4393,11 @@ class CodeGenWalker {
    * #1445 box 3: `StringDeclHelper` used to be handed the `TypeContext` and do
    * this navigation itself.
    *
-   * WHERE it is called from is load-bearing and was measured. `planVariableDecl`
-   * calls `trackLocalVariable` before it reaches this, and that registers the
-   * declared variable's type info -- string capacity included -- so the
-   * variable's own name resolves inside its own initializer:
+   * WHERE it is called from was load-bearing while a per-file registry was
+   * filled as the walk went; #1668 (C8) deleted it. The variable's own name
+   * binds through 1.4's lexical frames wherever this is called, so
    * `string<32> s <- s + "x"` is detected as a concatenation and rejected
-   * E0864 for "capacity 33", the 32 read back off `s` itself. Moving this call
-   * ahead of the registration asks the registry before it is filled and loses
-   * the diagnostic. (That the name resolves at all is a separate defect,
+   * E0864 for "capacity 33", the 32 read off `s`'s own declaration. (That the name resolves at all is a separate defect,
    * #1643.)
    */
   private planStringDecl(
@@ -4463,8 +4443,8 @@ class CodeGenWalker {
    * The four ways a bounded string's initializer can be written, ready to be
    * asked in ADR-045's order.
    *
-   * `concat` is eager because deciding it reads the type registry by name and
-   * generates nothing. The other two are unevaluated: `renderSubstring`
+   * `concat` is eager because deciding it reads the typer and generates
+   * nothing. The other two are unevaluated: `renderSubstring`
    * generates the index expressions once it decides the source IS a string,
    * and `render` generates the whole initializer -- either can request an
    * include or queue a C++ temp, so raising those effects for an arm that is
@@ -4706,14 +4686,6 @@ class CodeGenWalker {
     target: Parser.AssignmentTargetContext,
   ): IChainBase {
     const typing = this.host.state.typingContext();
-    if (typing === null) {
-      return {
-        root: null,
-        rootTypeInfo: undefined,
-        typeInfo: undefined,
-        last: undefined,
-      };
-    }
     return DeclaredTypeInfo.ofChain(
       OperandTyper.chainOf(target, typing),
       typing.symbols,
@@ -5370,11 +5342,10 @@ class CodeGenWalker {
     const targetType = this.generateType(ctx.type());
     const targetTypeName = ctx.type().getText();
     const operandCode = this.generateUnaryExpr(ctx.unaryExpression());
-    const typing = this.host.state.typingContext();
-    const operand =
-      typing === null
-        ? null
-        : OperandTyper.typeOf(ctx.unaryExpression(), typing);
+    const operand = OperandTyper.typeOf(
+      ctx.unaryExpression(),
+      this.host.state.typingContext(),
+    );
     const operandType = PlanTyping.castSourceType(operand);
 
     return {

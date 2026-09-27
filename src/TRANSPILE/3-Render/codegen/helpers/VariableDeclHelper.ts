@@ -19,12 +19,11 @@
  *
  * ## The planner writes state, and that is not an accident
  *
- * Building the plan registers the variable's type info, marks it as a pointer
- * when its type was inferred as one, and resolves its emitted name -- in that
- * order, because `emittedLocalName` is only correct after registration and
- * ADR-045's string discrimination reads the registry that registration filled.
- * The plan is therefore built immediately before it is rendered, in the same
- * call. What is left here is assembly: prefixes, dimension placement, the
+ * Building the plan records the local, marks it as a pointer when its type
+ * was inferred as one, and resolves its emitted name. What the name is typed
+ * as is not written here: it binds through the lexical frames 1.4 settled
+ * (#1668, C8, which deleted the render-time registry this once filled). The
+ * plan is built immediately before it is rendered, in the same call. What is left here is assembly: prefixes, dimension placement, the
  * MISRA Rule 10.3 cast, and the C++ assignment queue.
  */
 
@@ -266,8 +265,8 @@ class VariableDeclHelper {
   ): string {
     // ADR-057: the DECLARED identifier is the emitted one -- a local shadowing a
     // file-scope name carries a distinct C name so `global.x` still reaches
-    // past it. Every registry stays keyed on the bare source name, which is
-    // what references in the source actually say; only the text moves.
+    // past it. References in the source say the bare name, and bind to this
+    // declaration through the lexical frames; only the text moves.
     const base = `${plan.modifierPrefix}${plan.type} ${plan.emittedName}`;
 
     // Array declarations can complete the whole declaration themselves.

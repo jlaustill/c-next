@@ -21,15 +21,12 @@
  * bounded copy sequences, and the capacity diagnostics.
  *
  * The plan is built at the call site rather than in `CodeGenerator`, where
- * every other planner on this branch sits, and that placement is MEASURED
- * rather than preferred. `VariableDeclHelper.generateVariableDecl` calls
- * `trackLocalVariable` -- which registers the declared variable's type info,
- * string capacity included -- BEFORE it reaches the string path, so the
- * variable's own name resolves inside its own initializer: `string<32> s <-
- * s + "x"` is detected as a concatenation and rejected with E0864 for
- * "capacity 33", which is 32 read back off `s`'s own declaration. Planning one
- * frame earlier, in `CodeGenerator.generateVariableDecl`, would ask the
- * registry before that registration and lose the diagnostic. (That the name
+ * every other planner on this branch sits. That placement once carried an
+ * ordering contract with a per-file type registry the render walk filled as
+ * it went; #1668 (C8) deleted the registry. A name binds through the lexical
+ * frames 1.4 settled before rendering, so `string<32> s <- s + "x"` reads
+ * `s`'s own declaration -- detected as a concatenation and rejected with
+ * E0864 for "capacity 33" -- wherever the plan is built. (That the name
  * resolves at all is a separate defect, filed as #1643; this comment records
  * why the placement cannot be changed while it holds.)
  */

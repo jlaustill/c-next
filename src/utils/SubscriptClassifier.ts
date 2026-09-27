@@ -1,9 +1,10 @@
 /**
  * Issue #579 / Issue #1100: Shared subscript classifier for array vs bit access
  *
- * This utility unifies the classification logic used by:
- * - AssignmentClassifier (assignment path)
- * - CodeGenerator._generatePostfixExpr (expression path)
+ * Its one caller is the operand typer (`OperandTyper.subscriptOf`), which
+ * classifies every subscript it walks, for an assignment target and an
+ * expression alike; the assignment classifier and the postfix render read
+ * the kind off the typer's step (#1668, C12 and review).
  *
  * The classification rule is:
  * 1. If isArray or isString -> array access
