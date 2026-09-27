@@ -15,6 +15,7 @@
  * chain.
  */
 
+import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import { describe, it, expect, beforeEach } from "vitest";
 import MemberChainAnalyzer from "../MemberChainAnalyzer";
 import TranspileState from "../../../../TranspileState";
@@ -43,8 +44,15 @@ function bitRange(start: string, width: string): TPlannedTargetOp {
 
 let state = new TranspileState();
 
+/** #1668 (C7): each case's base declaration -- the caller passes its type */
+const declared = new Map<string, TTypeInfo>();
+function declare(name: string, info: TTypeInfo): void {
+  declared.set(name, info);
+}
+
 describe("MemberChainAnalyzer", () => {
   beforeEach(() => {
+    declared.clear();
     state = new TranspileState();
   });
 
@@ -93,6 +101,7 @@ describe("MemberChainAnalyzer", () => {
       const target = createTarget(null, []);
       const result = MemberChainAnalyzer.analyze(
         target.baseName,
+        target.baseName === null ? undefined : declared.get(target.baseName),
         target.ops,
         state,
       );
@@ -103,6 +112,7 @@ describe("MemberChainAnalyzer", () => {
       const target = createTarget("x", []);
       const result = MemberChainAnalyzer.analyze(
         target.baseName,
+        target.baseName === null ? undefined : declared.get(target.baseName),
         target.ops,
         state,
       );
@@ -111,7 +121,7 @@ describe("MemberChainAnalyzer", () => {
 
     it("returns isBitAccess false when last op is member access", () => {
       // point.flags (no subscript at end)
-      state.setVariableTypeInfo("point", {
+      declare("point", {
         baseType: "Point",
         bitWidth: 0,
         isArray: false,
@@ -124,6 +134,7 @@ describe("MemberChainAnalyzer", () => {
       const target = createTarget("point", [member("flags")]);
       const result = MemberChainAnalyzer.analyze(
         target.baseName,
+        target.baseName === null ? undefined : declared.get(target.baseName),
         target.ops,
         state,
       );
@@ -132,7 +143,7 @@ describe("MemberChainAnalyzer", () => {
 
     it("returns isBitAccess false when last subscript has 2 expressions (bit range)", () => {
       // flags[0, 8] - bit range, not single bit access
-      state.setVariableTypeInfo("flags", {
+      declare("flags", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -142,6 +153,7 @@ describe("MemberChainAnalyzer", () => {
       const target = createTarget("flags", [bitRange("0", "8")]);
       const result = MemberChainAnalyzer.analyze(
         target.baseName,
+        target.baseName === null ? undefined : declared.get(target.baseName),
         target.ops,
         state,
       );
@@ -154,7 +166,7 @@ describe("MemberChainAnalyzer", () => {
       pointFields.set("flags", "u8");
       setupStructFields("Point", pointFields);
 
-      state.setVariableTypeInfo("point", {
+      declare("point", {
         baseType: "Point",
         bitWidth: 0,
         isArray: false,
@@ -165,6 +177,7 @@ describe("MemberChainAnalyzer", () => {
 
       const result = MemberChainAnalyzer.analyze(
         target.baseName,
+        target.baseName === null ? undefined : declared.get(target.baseName),
         target.ops,
         state,
       );
@@ -181,7 +194,7 @@ describe("MemberChainAnalyzer", () => {
       gridFields.set("items", "u8");
       setupStructFields("Grid", gridFields, new Set(["items"]));
 
-      state.setVariableTypeInfo("grid", {
+      declare("grid", {
         baseType: "Grid",
         bitWidth: 0,
         isArray: false,
@@ -192,6 +205,7 @@ describe("MemberChainAnalyzer", () => {
 
       const result = MemberChainAnalyzer.analyze(
         target.baseName,
+        target.baseName === null ? undefined : declared.get(target.baseName),
         target.ops,
         state,
       );
@@ -206,7 +220,7 @@ describe("MemberChainAnalyzer", () => {
       pointFields.set("name", "string");
       setupStructFields("Point", pointFields);
 
-      state.setVariableTypeInfo("point", {
+      declare("point", {
         baseType: "Point",
         bitWidth: 0,
         isArray: false,
@@ -217,6 +231,7 @@ describe("MemberChainAnalyzer", () => {
 
       const result = MemberChainAnalyzer.analyze(
         target.baseName,
+        target.baseName === null ? undefined : declared.get(target.baseName),
         target.ops,
         state,
       );
@@ -231,7 +246,7 @@ describe("MemberChainAnalyzer", () => {
       deviceFields.set("flags", "u8");
       setupStructFields("Device", deviceFields);
 
-      state.setVariableTypeInfo("devices", {
+      declare("devices", {
         baseType: "Device",
         bitWidth: 0,
         isArray: true,
@@ -247,6 +262,7 @@ describe("MemberChainAnalyzer", () => {
 
       const result = MemberChainAnalyzer.analyze(
         target.baseName,
+        target.baseName === null ? undefined : declared.get(target.baseName),
         target.ops,
         state,
       );
@@ -259,7 +275,7 @@ describe("MemberChainAnalyzer", () => {
 
     it("returns false for 2D array element: matrix[0][1]", () => {
       // matrix[0][1] is array access, not bit access
-      state.setVariableTypeInfo("matrix", {
+      declare("matrix", {
         baseType: "u8",
         bitWidth: 8,
         isArray: true,
@@ -271,6 +287,7 @@ describe("MemberChainAnalyzer", () => {
 
       const result = MemberChainAnalyzer.analyze(
         target.baseName,
+        target.baseName === null ? undefined : declared.get(target.baseName),
         target.ops,
         state,
       );
@@ -282,7 +299,7 @@ describe("MemberChainAnalyzer", () => {
     it("detects bit access on 2D array element: matrix[0][1][3]", () => {
       // matrix[0][1][3] where matrix is u8[4][4]
       // The third subscript [3] is bit access on the u8 element
-      state.setVariableTypeInfo("matrix", {
+      declare("matrix", {
         baseType: "u8",
         bitWidth: 8,
         isArray: true,
@@ -298,6 +315,7 @@ describe("MemberChainAnalyzer", () => {
 
       const result = MemberChainAnalyzer.analyze(
         target.baseName,
+        target.baseName === null ? undefined : declared.get(target.baseName),
         target.ops,
         state,
       );
@@ -317,6 +335,7 @@ describe("MemberChainAnalyzer", () => {
 
       const result = MemberChainAnalyzer.analyze(
         target.baseName,
+        target.baseName === null ? undefined : declared.get(target.baseName),
         target.ops,
         state,
       );
@@ -330,7 +349,7 @@ describe("MemberChainAnalyzer", () => {
      * must render nothing -- and most chains are rejected.
      */
     it("renders no index for a chain that is not bit access", () => {
-      state.setVariableTypeInfo("matrix", {
+      declare("matrix", {
         baseType: "u8",
         bitWidth: 8,
         isArray: true,
@@ -351,6 +370,7 @@ describe("MemberChainAnalyzer", () => {
       // matrix[0][1] is 2D array access, so the walk rejects it.
       const result = MemberChainAnalyzer.analyze(
         "matrix",
+        declared.get("matrix"),
         [counting("0"), counting("1")],
         state,
       );
@@ -361,7 +381,7 @@ describe("MemberChainAnalyzer", () => {
 
     it("returns false for member access on non-struct", () => {
       // x.field[0] where x is a primitive
-      state.setVariableTypeInfo("x", {
+      declare("x", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -372,6 +392,7 @@ describe("MemberChainAnalyzer", () => {
 
       const result = MemberChainAnalyzer.analyze(
         target.baseName,
+        target.baseName === null ? undefined : declared.get(target.baseName),
         target.ops,
         state,
       );

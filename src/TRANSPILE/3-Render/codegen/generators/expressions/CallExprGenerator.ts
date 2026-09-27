@@ -182,7 +182,7 @@ const _generateCFunctionArg = (
 
   // Resolve the argument's type (expression type → variable registry → C symbol
   // table for extern globals) to decide whether it needs address-of.
-  const typeInfo = orchestrator.state.getVariableTypeInfo(argCode);
+  const typeInfo = arg.declared;
   const argType = _resolveArgType(
     arg,
     argCode,
@@ -299,7 +299,7 @@ const generateFunctionCall = (
 
   // ADR-051: Handle safe_div() and safe_mod() built-in functions
   if (funcExpr === "safe_div" || funcExpr === "safe_mod") {
-    return generateSafeDivMod(funcExpr, args, effects, orchestrator);
+    return generateSafeDivMod(funcExpr, args, effects);
   }
 
   // Regular function call handling
@@ -379,7 +379,6 @@ const generateSafeDivMod = (
   funcName: string,
   args: readonly IPlannedCallArgument[],
   effects: TGeneratorEffect[],
-  orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   // #1322: ADR-051's call shape is E0884 (four arguments) and E0885 (the first
   // is a variable to receive the result) in pass 2.1, and a `const` output is
@@ -398,7 +397,7 @@ const generateSafeDivMod = (
   );
 
   // Look up the type of the output parameter
-  const typeInfo = orchestrator.state.getVariableTypeInfo(outputArgId);
+  const typeInfo = args[0].declared;
   invariant(
     typeInfo,
     `${funcName}'s output parameter is a declared variable with a type -- E0885 rejects this in pass 2.1, before this runs`,

@@ -10,11 +10,20 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import StringOperationsHelper from "../StringOperationsHelper";
-import TranspileState from "../../../../TranspileState";
+import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 
-/** A declared `string<capacity>` in the render-time type registry. */
+/**
+ * #1668 (C7): what each case declares, by name. The helper holds only an
+ * operand's text, so its caller -- which holds the node -- binds the name
+ * and passes this lookup.
+ */
+const declared = new Map<string, TTypeInfo>();
+const declaredType = (name: string): TTypeInfo | undefined =>
+  declared.get(name);
+
+/** A declared `string<capacity>` */
 function declareString(name: string, capacity: number): void {
-  state.setVariableTypeInfo(name, {
+  declared.set(name, {
     baseType: "char",
     bitWidth: 8,
     isArray: true,
@@ -25,11 +34,9 @@ function declareString(name: string, capacity: number): void {
   });
 }
 
-let state = new TranspileState();
-
 describe("StringOperationsHelper", () => {
   beforeEach(() => {
-    state = new TranspileState();
+    declared.clear();
   });
 
   // ========================================================================
@@ -40,7 +47,7 @@ describe("StringOperationsHelper", () => {
     it("returns literal length for string literal", () => {
       const capacity = StringOperationsHelper.getStringExprCapacity(
         '"hello"',
-        state,
+        declaredType,
       );
       expect(capacity).toBe(5);
     });
@@ -48,7 +55,7 @@ describe("StringOperationsHelper", () => {
     it("returns literal length for empty string", () => {
       const capacity = StringOperationsHelper.getStringExprCapacity(
         '""',
-        state,
+        declaredType,
       );
       expect(capacity).toBe(0);
     });
@@ -59,7 +66,7 @@ describe("StringOperationsHelper", () => {
       ["complex expression", "a + b"],
     ])("returns null for %s", (_label, expression) => {
       expect(
-        StringOperationsHelper.getStringExprCapacity(expression, state),
+        StringOperationsHelper.getStringExprCapacity(expression, declaredType),
       ).toBeNull();
     });
 
@@ -68,13 +75,13 @@ describe("StringOperationsHelper", () => {
 
       const capacity = StringOperationsHelper.getStringExprCapacity(
         "myStr",
-        state,
+        declaredType,
       );
       expect(capacity).toBe(32);
     });
 
     it("returns null for non-string variable", () => {
-      state.setVariableTypeInfo("myInt", {
+      declared.set("myInt", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -84,7 +91,7 @@ describe("StringOperationsHelper", () => {
 
       const capacity = StringOperationsHelper.getStringExprCapacity(
         "myInt",
-        state,
+        declaredType,
       );
       expect(capacity).toBeNull();
     });
@@ -104,7 +111,7 @@ describe("StringOperationsHelper", () => {
       const result = StringOperationsHelper.getStringConcatOperands(
         "str1",
         "str2",
-        state,
+        declaredType,
       );
 
       expect(result).toEqual({
@@ -119,7 +126,7 @@ describe("StringOperationsHelper", () => {
       const result = StringOperationsHelper.getStringConcatOperands(
         '"hello"',
         '"world"',
-        state,
+        declaredType,
       );
 
       expect(result).toEqual({
@@ -134,7 +141,7 @@ describe("StringOperationsHelper", () => {
       const result = StringOperationsHelper.getStringConcatOperands(
         "str1",
         '"hello-world"',
-        state,
+        declaredType,
       );
 
       expect(result).not.toBeNull();
@@ -147,7 +154,11 @@ describe("StringOperationsHelper", () => {
       ["only the right operand is a string", "5", "str2"],
     ])("returns null when %s", (_label, left, right) => {
       expect(
-        StringOperationsHelper.getStringConcatOperands(left, right, state),
+        StringOperationsHelper.getStringConcatOperands(
+          left,
+          right,
+          declaredType,
+        ),
       ).toBeNull();
     });
   });
@@ -166,7 +177,7 @@ describe("StringOperationsHelper", () => {
         StringOperationsHelper.getSubstringOperands(
           "myStr",
           () => ["0", "5"],
-          state,
+          declaredType,
         ),
       ).toEqual({
         source: "myStr",
@@ -181,7 +192,7 @@ describe("StringOperationsHelper", () => {
         StringOperationsHelper.getSubstringOperands(
           "myStr",
           () => ["3"],
-          state,
+          declaredType,
         ),
       ).toEqual({
         source: "myStr",
@@ -195,7 +206,7 @@ describe("StringOperationsHelper", () => {
       const ops = StringOperationsHelper.getSubstringOperands(
         "myStr",
         () => ["generated_idx", "generated_len"],
-        state,
+        declaredType,
       );
 
       expect(ops).not.toBeNull();
@@ -207,7 +218,7 @@ describe("StringOperationsHelper", () => {
       ["a non-string variable", "myInt"],
       ["an undeclared name", "unknown"],
     ])("returns null for %s", (_label, sourceName) => {
-      state.setVariableTypeInfo("myInt", {
+      declared.set("myInt", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -219,7 +230,7 @@ describe("StringOperationsHelper", () => {
         StringOperationsHelper.getSubstringOperands(
           sourceName,
           () => ["0"],
-          state,
+          declaredType,
         ),
       ).toBeNull();
     });
@@ -240,7 +251,7 @@ describe("StringOperationsHelper", () => {
           generated += 1;
           return ["0", "5"];
         },
-        state,
+        declaredType,
       );
 
       expect(ops).toBeNull();

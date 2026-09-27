@@ -104,6 +104,7 @@ import commentUtils from "./3-Render/codegen/generators/support/CommentUtils";
 import DeclaredTypeInfo from "./2-Plan/DeclaredTypeInfo";
 import DeclaredPointer from "../utils/DeclaredPointer";
 import type IChainBase from "./2-Plan/types/IChainBase";
+import type TTypeInfo from "../transpiler/types/TTypeInfo";
 import memberAccessChain from "./3-Render/codegen/memberAccessChain";
 import AssignmentHandlerRegistry from "./3-Render/codegen/assignment/index";
 import AssignmentClassifier from "./2-Plan/AssignmentClassifier";
@@ -1137,12 +1138,14 @@ class CodeGenWalker {
     targetParamBaseType?: string,
   ): string {
     const simpleId = ExpressionUnwrapper.getSimpleIdentifier(ctx);
+    const declared = this.nameTypeOf(ctx);
     // #1445: thunks closing over `ctx`. `ArgumentGenerator` never read a
     // member off the node -- it threaded it through five callbacks and four
     // private helpers only to hand it back -- so the node stays here, where
     // the tree already is.
     return ArgumentGenerator.generateArg(
       simpleId,
+      declared,
       targetParamBaseType,
       {
         generateExpression: () => this.generateExpression(ctx),
@@ -1154,6 +1157,30 @@ class CodeGenWalker {
       },
       this.host.state,
     );
+  }
+
+  /**
+   * #1668 (C7): the declared type of what an expression NAMES -- a variable
+   * spelled bare, `this.x`, `global.x` or `Scope.x`, with nothing applied to
+   * it -- and undefined for anything else. The registry reads this replaces
+   * were keyed by an argument's rendered text, which only ever matched a
+   * name's.
+   */
+  private nameTypeOf(ctx: Parser.ExpressionContext): TTypeInfo | undefined {
+    const typing = this.host.state.typingContext();
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
+    if (typing === null || postfix === null) return undefined;
+    const chain = OperandTyper.chainOf(postfix, typing);
+    const isName =
+      chain.root?.kind === "scope"
+        ? chain.steps.length === 1
+        : chain.steps.length === 0;
+    if (!isName) return undefined;
+    return DeclaredTypeInfo.ofChain(
+      chain,
+      typing.symbols,
+      this.host.state.symbolTable,
+    ).typeInfo;
   }
 
   /**
@@ -2914,7 +2941,7 @@ class CodeGenWalker {
     return StringOperationsHelper.getStringConcatOperands(
       operands[0],
       operands[1],
-      this.host.state,
+      this.declaredTypeAt(ctx),
     );
   }
 
@@ -2934,8 +2961,19 @@ class CodeGenWalker {
     return StringOperationsHelper.getSubstringOperands(
       subscript.name,
       () => subscript.indexes.map((index) => this.generateExpression(index)),
-      this.host.state,
+      this.declaredTypeAt(ctx),
     );
+  }
+
+  /**
+   * #1668 (C7): a bare name's declared type where `ctx` is, for a helper
+   * that holds only an operand's text
+   */
+  private declaredTypeAt(
+    ctx: ParserRuleContext,
+  ): (name: string) => TTypeInfo | undefined {
+    const at = ParserUtils.getPosition(ctx);
+    return (name) => this.host.state.declarationTypeInfo(null, name, at);
   }
 
   private _isFloatType(typeName: string): boolean {
@@ -3589,6 +3627,7 @@ class CodeGenWalker {
 
     return ctx.expression().map((expression) => ({
       simpleIdentifier: this.getSimpleIdentifier(expression),
+      declared: this.nameTypeOf(expression),
       expressionType: () => this.getExpressionType(expression),
       render: () => this.generateExpression(expression),
       renderByReference: (targetParamBaseType: string | undefined) =>
@@ -4449,6 +4488,10 @@ class CodeGenWalker {
       concat: this._getStringConcatOperands(expression),
       renderSubstring: () => this._getSubstringOperands(expression),
       text: expression.getText(),
+      sourceCapacity: StringOperationsHelper.getStringExprCapacity(
+        expression.getText(),
+        this.declaredTypeAt(expression),
+      ),
       render: () => this.generateExpression(expression),
     };
   }
@@ -4666,9 +4709,11 @@ class CodeGenWalker {
    */
   analyzeMemberChainForBitAccess(
     targetCtx: Parser.AssignmentTargetContext,
+    rootTypeInfo: TTypeInfo | undefined,
   ): IBitAccessAnalysis {
     return MemberChainAnalyzer.analyze(
       targetCtx.IDENTIFIER()?.getText() ?? null,
+      rootTypeInfo,
       targetCtx.postfixTargetOp().map((op) => this.planTargetOp(op)),
       this.host.state,
     );
@@ -4795,8 +4840,8 @@ class CodeGenWalker {
       generatedValue: () => value,
       generateAssignmentTarget: (target) =>
         this.generateAssignmentTarget(target),
-      analyzeMemberChainForBitAccess: (target) =>
-        this.analyzeMemberChainForBitAccess(target),
+      analyzeMemberChainForBitAccess: (target, rootTypeInfo) =>
+        this.analyzeMemberChainForBitAccess(target, rootTypeInfo),
       generateExpression: (expr) => this.generateExpression(expr),
       tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
       expressionType: (expr) => this.directTypeOf(expr),

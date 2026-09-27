@@ -276,6 +276,7 @@ function createMockPostfixOp(options?: {
     planArguments: () =>
       options?.argumentList?.expression().map((expression) => ({
         simpleIdentifier: expression.getText(),
+        declared: undefined,
         expressionType: () => null,
         render: () => expression.getText(),
         renderByReference: () => `&${expression.getText()}`,

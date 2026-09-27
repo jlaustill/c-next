@@ -19,6 +19,7 @@ import TYPE_MAP from "../types/TYPE_MAP";
 import IArgumentGeneratorCallbacks from "./types/IArgumentGeneratorCallbacks";
 import QualifiedNameGenerator from "../../../../utils/QualifiedNameGenerator";
 import type TranspileState from "../../../TranspileState";
+import type TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 
 /**
  * Generates function arguments with proper pass-by-reference semantics.
@@ -28,23 +29,24 @@ class ArgumentGenerator {
    * Handle simple identifier argument (parameter, local array, scope member, or variable).
    * This is a pure function that only reads from state.
    */
-  static handleIdentifierArg(id: string, state: TranspileState): string {
+  static handleIdentifierArg(
+    id: string,
+    declared: TTypeInfo | undefined,
+    state: TranspileState,
+  ): string {
     // Parameters are already pointers
     if (state.currentParameters.get(id)) {
       return id;
     }
 
-    // Local arrays decay to pointers
-    if (state.localArrays.has(id)) {
-      return id;
-    }
-
-    // Arrays decay to pointers, strings included: a `char[N]` decays to `char*`
+    // Arrays decay to pointers, local or not, strings included (#1668: the
+    // declaration's answer, which the `localArrays` set only duplicated): a
+    // `char[N]` decays to `char*`
     // exactly like any other array, and a `string<N>` parameter is generated as
     // `char*`. Taking its address instead yields `char (*)[N]`, an incompatible
     // pointer type -- the defect `e3dff5f4` fixed by deleting the `isString`
     // exception this comment used to argue for.
-    const typeInfo = state.getVariableTypeInfo(id);
+    const typeInfo = declared;
     if (typeInfo?.isArray) {
       return id;
     }
@@ -228,13 +230,14 @@ class ArgumentGenerator {
    */
   static generateArg(
     simpleId: string | null,
+    declared: TTypeInfo | undefined,
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
     state: TranspileState,
   ): string {
     // Handle simple identifiers
     if (simpleId) {
-      return ArgumentGenerator.handleIdentifierArg(simpleId, state);
+      return ArgumentGenerator.handleIdentifierArg(simpleId, declared, state);
     }
 
     // Check if expression is an lvalue

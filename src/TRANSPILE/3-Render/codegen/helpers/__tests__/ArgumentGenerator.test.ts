@@ -8,8 +8,15 @@ import ArgumentGenerator from "../ArgumentGenerator";
 import TranspileState from "../../../../TranspileState";
 import IArgumentGeneratorCallbacks from "../types/IArgumentGeneratorCallbacks";
 import enterScope from "../../../../../transpiler/__tests__/enterScope";
+import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 
 let state = new TranspileState();
+
+/** #1668 (C7): what each case declares, by name -- a call passes it in */
+const declared = new Map<string, TTypeInfo>();
+function declare(name: string, info: TTypeInfo): void {
+  declared.set(name, info);
+}
 
 describe("ArgumentGenerator", () => {
   // #1445: the callbacks are thunks and `generateArg` takes no node, so the 22
@@ -29,6 +36,7 @@ describe("ArgumentGenerator", () => {
   });
 
   beforeEach(() => {
+    declared.clear();
     state = new TranspileState();
   });
 
@@ -45,23 +53,36 @@ describe("ArgumentGenerator", () => {
           isString: false,
         });
 
-        const result = ArgumentGenerator.handleIdentifierArg("cfg", state);
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "cfg",
+          declared.get("cfg"),
+          state,
+        );
         expect(result).toBe("cfg");
       });
     });
 
     describe("local arrays", () => {
       it("returns array name unchanged (decay to pointers)", () => {
-        state.localArrays.add("buffer");
+        declare("buffer", {
+          baseType: "u8",
+          bitWidth: 8,
+          isArray: true,
+          isConst: false,
+        });
 
-        const result = ArgumentGenerator.handleIdentifierArg("buffer", state);
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "buffer",
+          declared.get("buffer"),
+          state,
+        );
         expect(result).toBe("buffer");
       });
     });
 
     describe("global arrays", () => {
       it("returns global array name unchanged", () => {
-        state.setVariableTypeInfo("globalArr", {
+        declare("globalArr", {
           baseType: "u8",
           bitWidth: 8,
           isArray: true,
@@ -70,6 +91,7 @@ describe("ArgumentGenerator", () => {
 
         const result = ArgumentGenerator.handleIdentifierArg(
           "globalArr",
+          declared.get("globalArr"),
           state,
         );
         expect(result).toBe("globalArr");
@@ -83,7 +105,7 @@ describe("ArgumentGenerator", () => {
       // execution tests passed and only `-Werror` could tell.
       it("lets a global string decay, like any other array", () => {
         state.cppMode = false;
-        state.setVariableTypeInfo("name", {
+        declare("name", {
           baseType: "char",
           bitWidth: 8,
           isArray: true,
@@ -91,7 +113,11 @@ describe("ArgumentGenerator", () => {
           isString: true,
         });
 
-        const result = ArgumentGenerator.handleIdentifierArg("name", state);
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "name",
+          declared.get("name"),
+          state,
+        );
         expect(result).toBe("name");
       });
     });
@@ -104,6 +130,7 @@ describe("ArgumentGenerator", () => {
 
         const result = ArgumentGenerator.handleIdentifierArg(
           "brightness",
+          declared.get("brightness"),
           state,
         );
         expect(result).toBe("&LED__brightness");
@@ -116,6 +143,7 @@ describe("ArgumentGenerator", () => {
 
         const result = ArgumentGenerator.handleIdentifierArg(
           "brightness",
+          declared.get("brightness"),
           state,
         );
         expect(result).toBe("LED__brightness");
@@ -126,14 +154,22 @@ describe("ArgumentGenerator", () => {
       it("adds & for local variable in C mode", () => {
         state.cppMode = false;
 
-        const result = ArgumentGenerator.handleIdentifierArg("value", state);
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "value",
+          declared.get("value"),
+          state,
+        );
         expect(result).toBe("&value");
       });
 
       it("returns local variable unchanged in C++ mode", () => {
         state.cppMode = true;
 
-        const result = ArgumentGenerator.handleIdentifierArg("value", state);
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "value",
+          declared.get("value"),
+          state,
+        );
         expect(result).toBe("value");
       });
     });
@@ -434,6 +470,7 @@ describe("ArgumentGenerator", () => {
 
       const result = ArgumentGenerator.generateArg(
         "value",
+        declared.get("value"),
         "u8",
         callbacks,
         state,
@@ -457,6 +494,7 @@ describe("ArgumentGenerator", () => {
 
       const result = ArgumentGenerator.generateArg(
         "cfg",
+        declared.get("cfg"),
         "Config",
         callbacks,
         state,
@@ -474,7 +512,9 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.generateArg(
-        null, // no simple identifier
+        null,
+        undefined,
+        // no simple identifier
         "u8",
         callbacks,
         state,
@@ -490,7 +530,9 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.generateArg(
-        null, // no simple identifier
+        null,
+        undefined,
+        // no simple identifier
         "u8",
         callbacks,
         state,

@@ -41,12 +41,16 @@ function planArguments(
 ): readonly IPlannedCallArgument[] {
   return expressions.map((expression) => ({
     simpleIdentifier: orchestrator.getSimpleIdentifier(expression),
+    declared: declaredTypes.get(expression.getText()),
     expressionType: () => orchestrator.getExpressionType(expression),
     render: () => orchestrator.generateExpression(expression),
     renderByReference: (targetParamBaseType: string | undefined) =>
       orchestrator.generateFunctionArg(expression, targetParamBaseType),
   }));
 }
+
+/** What each case declares, by name -- see `createMockInput` */
+let declaredTypes: ReadonlyMap<string, TTypeInfo> = new Map();
 
 function createMockInput(
   overrides: Partial<IGeneratorInput> = {},
@@ -55,9 +59,9 @@ function createMockInput(
   // This is needed because CallExprGenerator now uses TranspileState directly
   const typeRegistry =
     (overrides.typeRegistry as Map<string, TTypeInfo>) ?? new Map();
-  for (const [name, info] of typeRegistry) {
-    sharedState.setVariableTypeInfo(name, info);
-  }
+  // #1668 (C7): an argument carries its declared type on its plan, which
+  // `planArguments` reads from these
+  declaredTypes = typeRegistry;
 
   return {
     symbols: null,

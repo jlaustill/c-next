@@ -26,7 +26,7 @@ import ISubstringOps from "../types/ISubstringOps";
 import IStringConcatOps from "../types/IStringConcatOps";
 import StringUtils from "../../../../utils/StringUtils";
 import BareIdentifier from "../../../../utils/BareIdentifier";
-import type TranspileState from "../../../TranspileState";
+import type TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 
 /**
  * Helper for string operation rendering.
@@ -36,25 +36,27 @@ class StringOperationsHelper {
   /**
    * Get the capacity of a string expression.
    * For string literals, capacity equals content length.
-   * For string variables, capacity is from the type registry.
+   * For a string variable, capacity is its declaration's.
    *
    * ADR-045: String capacity resolution for concatenation and bounds checking.
    *
    * @param exprCode - Expression code text (e.g., "hello" or varName)
+   * @param declaredType - #1668 (C7): a bare name's declared type where the
+   *   expression is, bound by the caller that holds the node
    * @returns Capacity in characters, or null if not a string
    */
   static getStringExprCapacity(
     exprCode: string,
-    state: TranspileState,
+    declaredType: (name: string) => TTypeInfo | undefined,
   ): number | null {
     // String literal - capacity equals content length
     if (exprCode.startsWith('"') && exprCode.endsWith('"')) {
       return StringUtils.literalLength(exprCode);
     }
 
-    // Variable - check type registry
+    // A string variable, by its declaration
     if (BareIdentifier.matches(exprCode)) {
-      const typeInfo = state.getVariableTypeInfo(exprCode);
+      const typeInfo = declaredType(exprCode);
       if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
         return typeInfo.stringCapacity;
       }
@@ -76,15 +78,15 @@ class StringOperationsHelper {
   static getStringConcatOperands(
     leftText: string,
     rightText: string,
-    state: TranspileState,
+    declaredType: (name: string) => TTypeInfo | undefined,
   ): IStringConcatOps | null {
     const leftCapacity = StringOperationsHelper.getStringExprCapacity(
       leftText,
-      state,
+      declaredType,
     );
     const rightCapacity = StringOperationsHelper.getStringExprCapacity(
       rightText,
-      state,
+      declaredType,
     );
 
     if (leftCapacity === null || rightCapacity === null) {
@@ -128,11 +130,11 @@ class StringOperationsHelper {
   static getSubstringOperands(
     sourceName: string,
     generateIndexes: () => readonly string[],
-    state: TranspileState,
+    declaredType: (name: string) => TTypeInfo | undefined,
   ): ISubstringOps | null {
     const sourceCapacity = StringOperationsHelper.getStringExprCapacity(
       sourceName,
-      state,
+      declaredType,
     );
     if (sourceCapacity === null) return null;
 

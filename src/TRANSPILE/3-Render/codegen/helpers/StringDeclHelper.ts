@@ -40,7 +40,6 @@ import IRenderedModifiers from "../types/IRenderedModifiers";
 import IStringConcatOps from "../types/IStringConcatOps";
 import ISubstringOps from "../types/ISubstringOps";
 import TPlannedStringDecl from "../types/TPlannedStringDecl";
-import StringOperationsHelper from "./StringOperationsHelper";
 import StringUtils from "../../../../utils/StringUtils";
 import invariant from "../../../../utils/invariant";
 import type TranspileState from "../../../TranspileState";
@@ -242,8 +241,8 @@ class StringDeclHelper {
     // Validate and check if it's a literal or variable
     const isLiteral = StringDeclHelper._validateStringInit(
       init.text,
+      init.sourceCapacity,
       capacity,
-      state,
     );
 
     if (isLiteral) {
@@ -280,8 +279,8 @@ class StringDeclHelper {
    */
   private static _validateStringInit(
     exprText: string,
+    sourceCapacity: number | null,
     capacity: number,
-    state: TranspileState,
   ): boolean {
     // Validate string literal fits capacity
     if (exprText.startsWith('"') && exprText.endsWith('"')) {
@@ -295,11 +294,8 @@ class StringDeclHelper {
       return true; // Is a literal
     }
 
-    // Check for string variable assignment
-    const srcCapacity = StringOperationsHelper.getStringExprCapacity(
-      exprText,
-      state,
-    );
+    // A string variable's capacity, as the plan bound it (#1668)
+    const srcCapacity = sourceCapacity;
     if (srcCapacity !== null && srcCapacity > capacity) {
       invariant(
         false,

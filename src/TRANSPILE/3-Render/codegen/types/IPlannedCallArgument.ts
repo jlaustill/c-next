@@ -1,3 +1,4 @@
+import type TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 /**
  * One argument of a function call, reduced to what the call generator asks of
  * it (#1445 box 3).
@@ -41,6 +42,12 @@ interface IPlannedCallArgument {
 
   /** The argument's inferred type, asked where the generator asks it. */
   readonly expressionType: () => string | null;
+
+  /**
+   * #1668 (C7): the declared type of the variable the argument names, when
+   * it is one (bare, `this.x`, `global.x`, `Scope.x`); undefined otherwise
+   */
+  readonly declared: TTypeInfo | undefined;
 
   /**
    * The argument, rendered.

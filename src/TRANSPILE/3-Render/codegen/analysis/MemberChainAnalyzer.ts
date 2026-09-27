@@ -21,6 +21,7 @@
  * subscript, which the union now states.
  */
 
+import type TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 import IBitAccessAnalysis from "../../../../transpiler/types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../../../transpiler/types/TPlannedTargetOp";
 import type TranspileState from "../../../TranspileState";
@@ -47,11 +48,14 @@ class MemberChainAnalyzer {
    * For patterns like grid[2][3].flags[0], detects that [0] is bit access.
    *
    * @param baseName - the target's base identifier, or null if it has none
+   * @param baseTypeInfo - #1668 (C7): that base's declared type, as the
+   *   target binds it
    * @param ops - the postfix chain applied to it
    * @returns Analysis result with bit access information
    */
   static analyze(
     baseName: string | null,
+    baseTypeInfo: TTypeInfo | undefined,
     ops: readonly TPlannedTargetOp[],
     transpileState: TranspileState,
   ): IBitAccessAnalysis {
@@ -69,7 +73,7 @@ class MemberChainAnalyzer {
     // Walk through the chain to find the type and array status before the last subscript
     const leadingOps = ops.slice(0, -1);
     const targetInfo = MemberChainAnalyzer.resolveTargetTypeAndArrayStatus(
-      baseName,
+      baseTypeInfo,
       leadingOps,
       transpileState,
     );
@@ -106,11 +110,10 @@ class MemberChainAnalyzer {
    * dead too. Both are gone.
    */
   private static resolveTargetTypeAndArrayStatus(
-    baseId: string,
+    baseTypeInfo: TTypeInfo | undefined,
     ops: readonly TPlannedTargetOp[],
     transpileState: TranspileState,
   ): { type: string; isArray: boolean } | undefined {
-    const baseTypeInfo = transpileState.getVariableTypeInfo(baseId);
     if (!baseTypeInfo) {
       return undefined;
     }
