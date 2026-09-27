@@ -40,7 +40,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // Included to validate this continues to work correctly
 // ============================================================
 uint32_t sumFourBytes(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) {
-    return b0 + b1 + b2 + b3;
+    return static_cast<uint32_t>(b0) + static_cast<uint32_t>(b1) + static_cast<uint32_t>(b2) + static_cast<uint32_t>(b3);
 }
 
 // ============================================================

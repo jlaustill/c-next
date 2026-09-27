@@ -17,7 +17,7 @@ extern "C" {
 typedef uint32_t (*getU32Value_fp)(uint32_t);
 typedef uint8_t (*getU8Value_fp)(uint32_t);
 typedef bool (*checkThreshold_fp)(uint32_t);
-typedef int32_t (*getSignedValue_fp)(uint32_t);
+typedef int32_t (*getSignedValue_fp)(int32_t);
 
 /* Struct definitions */
 typedef struct U32Returner {
@@ -37,7 +37,7 @@ typedef struct I32Returner {
 uint32_t getU32Value(uint32_t input);
 uint8_t getU8Value(uint32_t input);
 bool checkThreshold(uint32_t value);
-int32_t getSignedValue(uint32_t input);
+int32_t getSignedValue(int32_t input);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 U32Returner U32Returner_init(void);
 U8Returner U8Returner_init(void);

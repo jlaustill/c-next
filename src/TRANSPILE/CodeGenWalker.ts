@@ -4729,10 +4729,8 @@ class CodeGenWalker {
   private generateAssignment(ctx: Parser.AssignmentStatementContext): string {
     const targetCtx = ctx.assignmentTarget();
 
-    // Issue #644: Set expected type for inferred struct initializers and overflow behavior
+    // Issue #644: Set expected type for inferred struct initializers
     // Delegated to AssignmentExpectedTypeResolver helper
-    const savedAssignmentContext = { ...this.host.state.assignmentContext };
-
     // Issue #644: AssignmentExpectedTypeResolver is now static
     // #1445: the resolver takes the target's SHAPE -- a name, a chain of names
     // and two booleans. The walk stays here, where the node is.
@@ -4745,7 +4743,7 @@ class CodeGenWalker {
       baseId && postfixOps.length > 0
         ? analyzePostfixOps(baseId, postfixOps)
         : { identifiers: [] as string[], hasSubscript: false };
-    const resolved = AssignmentExpectedTypeResolver.resolve(
+    const expectedType = AssignmentExpectedTypeResolver.resolve(
       {
         baseId,
         identifiers: chain.identifiers,
@@ -4759,20 +4757,10 @@ class CodeGenWalker {
       },
       this.host.state,
     );
-    if (resolved.assignmentContext) {
-      this.host.state.assignmentContext = resolved.assignmentContext;
-    }
-
-    // Use withExpectedType for exception safety on expectedType,
-    // manually save/restore assignmentContext
-    let value: string;
-    try {
-      value = this.host.state.withExpectedType(resolved.expectedType, () =>
-        this.generateExpression(ctx.expression()),
-      );
-    } finally {
-      this.host.state.assignmentContext = savedAssignmentContext;
-    }
+    // withExpectedType restores expectedType however the render exits
+    const value = this.host.state.withExpectedType(expectedType, () =>
+      this.generateExpression(ctx.expression()),
+    );
 
     // #1322: the operator was mapped to its C form here and used for nothing
     // but the `isCompound` flag that `AssignmentValidator` took. ADR-065's

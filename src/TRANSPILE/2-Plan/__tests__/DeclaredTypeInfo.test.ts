@@ -102,6 +102,16 @@ describe("DeclaredTypeInfo.of", () => {
     });
   });
 
+  it("gives a parameter its ADR-044 behavior, which clamps (#1681)", () => {
+    // A compound assignment to a parameter reads its target's behavior, and
+    // with none it was plain C arithmetic
+    expect(declaredAtR("void f(u8 p) {\nu8 r <- 1;\n}", "p")).toMatchObject({
+      baseType: "u8",
+      isParameter: true,
+      overflowBehavior: "clamp",
+    });
+  });
+
   it("keeps main's C-style args as an unresolved-dimension array", () => {
     expect(
       declaredAtR(

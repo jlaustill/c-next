@@ -1,0 +1,46 @@
+// test-execution
+// #1681: ADR-044's default clamp applies to a parameter like any integer.
+// An expression whose operands were all parameters counted none of them, so
+// it emitted plain C and wrapped (200 + 100 was 44), and a compound
+// assignment to a parameter wrapped because its target had no behavior.
+u8 add(u8 a, u8 b) {
+    u8 x <- a + b;
+    return x;
+}
+
+u8 sub(u8 a, u8 b) {
+    u8 x <- a - b;
+    return x;
+}
+
+u8 mul(u8 a, u8 b) {
+    u8 x <- a * b;
+    return x;
+}
+
+u8 addInto(u8 a, u8 b) {
+    a +<- b;
+    return a;
+}
+
+// NEGATIVE CONTROL: a compound follows its target, and this one wraps
+u8 wrapped(u8 b) {
+    wrap u8 w <- 200;
+    w +<- b;
+    return w;
+}
+
+u32 main() {
+    u8 s <- add(200, 100);
+    if (s != 255) return 1;
+    u8 d <- sub(100, 200);
+    if (d != 0) return 2;
+    u8 m <- mul(20, 20);
+    if (m != 255) return 3;
+    u8 p <- 200;
+    u8 c <- addInto(p, 100);
+    if (c != 255) return 4;
+    u8 w <- wrapped(100);
+    if (w != 44) return 5;
+    return 0;
+}

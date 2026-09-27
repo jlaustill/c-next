@@ -109,10 +109,10 @@ describe("PlanTyping.overflowOf (ADR-044)", () => {
     expect(overflowOf(`${globals}void main() {\n${body}\n}`)).toBe(expected);
   });
 
-  it("counts a parameter with no behavior of its own, as wrap (#1681)", () => {
+  it("counts a parameter by its declaration, which clamps (#1681)", () => {
     expect(
       overflowOf("void f(u32 p) {\nu32 r <- p + 1;\n}\nvoid main() {\n}"),
-    ).toBe("wrap");
+    ).toBe("clamp");
   });
 
   it("counts a `for` variable by its declaration (#1667)", () => {

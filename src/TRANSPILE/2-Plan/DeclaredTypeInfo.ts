@@ -170,6 +170,8 @@ class DeclaredTypeInfo {
       isArray,
       arrayDimensions: dimensions.length > 0 ? dimensions : undefined,
       isConst: d.isConst,
+      // #1681: a compound assignment to a parameter clamps like any target
+      overflowBehavior: d.overflowBehavior,
       ...DeclaredTypeFacts.of(baseType, symbols, TYPE_WIDTH[baseType] || 0),
       isString,
       stringCapacity: isString ? capacity : undefined,

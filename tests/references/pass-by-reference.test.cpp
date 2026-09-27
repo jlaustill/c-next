@@ -7,10 +7,25 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 // ADR-006: Pass-by-reference
 // Tests: function modifies caller's variable
 void increment(int32_t& value) {
-    value = value + 1;
+    value = cnx_clamp_add_i32(value, 1);
 }
 
 int main(void) {

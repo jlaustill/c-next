@@ -122,27 +122,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
         const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
-        expect(result.expectedType).toBe("u32");
-        expect(result.assignmentContext).toEqual({
-          targetName: "counter",
-          targetType: "u32",
-          overflowBehavior: "clamp",
-        });
-      });
-
-      it("should use specified overflow behavior", () => {
-        declare("counter", {
-          baseType: "u8",
-          bitWidth: 8,
-          isArray: false,
-          isConst: false,
-          overflowBehavior: "wrap",
-        });
-        const target = parseAssignmentTarget("counter");
-
-        const result = AssignmentExpectedTypeResolver.resolve(target, state);
-
-        expect(result.assignmentContext?.overflowBehavior).toBe("wrap");
+        expect(result).toBe("u32");
       });
 
       it("should return null for unknown variable", () => {
@@ -150,8 +130,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
         const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
-        expect(result.expectedType).toBeNull();
-        expect(result.assignmentContext).toBeNull();
+        expect(result).toBeNull();
       });
     });
 
@@ -168,7 +147,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
         const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
-        expect(result.expectedType).toBe("Status");
+        expect(result).toBe("Status");
       });
 
       it("should walk nested struct chain", () => {
@@ -184,7 +163,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
         const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
-        expect(result.expectedType).toBe("Mode");
+        expect(result).toBe("Mode");
       });
 
       it("should return null for non-struct root", () => {
@@ -198,7 +177,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
         const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
-        expect(result.expectedType).toBeNull();
+        expect(result).toBeNull();
       });
 
       it("should return null for unknown field", () => {
@@ -213,7 +192,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
         const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
-        expect(result.expectedType).toBeNull();
+        expect(result).toBeNull();
       });
     });
 
@@ -230,7 +209,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
         const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
-        expect(result.expectedType).toBe("u32");
+        expect(result).toBe("u32");
       });
 
       it("should resolve expected type for u8 array element access", () => {
@@ -244,7 +223,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
         const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
-        expect(result.expectedType).toBe("u8");
+        expect(result).toBe("u8");
       });
 
       it("should resolve expected type for struct member array access", () => {
@@ -266,7 +245,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
         const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
-        expect(result.expectedType).toBe("u8");
+        expect(result).toBe("u8");
       });
 
       it("should resolve expected type for multi-dimensional array element", () => {
@@ -281,7 +260,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
         const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
-        expect(result.expectedType).toBe("u8");
+        expect(result).toBe("u8");
       });
 
       it("should return null for unknown array variable", () => {
@@ -289,7 +268,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
         const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
-        expect(result.expectedType).toBeNull();
+        expect(result).toBeNull();
       });
 
       // Issue #1085: an array SLICE (2-expression subscript `arr[off, len]`)
@@ -308,7 +287,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
         const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
-        expect(result.expectedType).toBeNull();
+        expect(result).toBeNull();
       });
     });
   });

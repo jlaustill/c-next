@@ -32,7 +32,7 @@ uint32_t Meter__reading(void) {
 }
 
 uint32_t Meter__doubled(uint8_t small) {
-    return small + Meter__reading();
+    return cnx_clamp_add_u32(small, Meter__reading());
 }
 
 int main(void) {

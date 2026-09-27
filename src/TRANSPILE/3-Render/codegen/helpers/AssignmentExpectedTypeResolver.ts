@@ -3,25 +3,17 @@
  *
  * Issue #644: Extracted from CodeGenerator.generateAssignment() to reduce cognitive complexity.
  *
- * Sets up expectedType and assignmentContext for expression generation,
- * enabling type-aware resolution of unqualified enum members and overflow behavior.
+ * Sets up expectedType for expression generation, enabling type-aware
+ * resolution of unqualified enum members and MISRA C:2012 Rule 7.2's `U`.
+ * #1681: it no longer sets an overflow context. Nothing read it once 2.2
+ * decided ADR-044's behavior from the operands (`PlanTyping.overflowOf`),
+ * and its default disagreed with the one decision that is read.
  *
  * Migrated to use CodeGenState instead of constructor DI.
  */
 
-import IAssignmentOverflowContext from "../../../../transpiler/types/IAssignmentOverflowContext";
 import type TranspileState from "../../../TranspileState";
 import type TTypeInfo from "../../../../transpiler/types/TTypeInfo";
-
-/**
- * Result of resolving expected type for an assignment target.
- */
-interface IExpectedTypeResult {
-  /** The resolved expected type (e.g., "u32", "Status"), or null if not resolved */
-  expectedType: string | null;
-  /** Assignment context for overflow behavior tracking */
-  assignmentContext: IAssignmentOverflowContext | null;
-}
 
 /**
  * Resolves expected type for assignment targets.
@@ -57,18 +49,17 @@ class AssignmentExpectedTypeResolver {
    * The walk stays with the caller, which holds the tree.
    *
    * @param target - The target's resolved shape
-   * @returns The resolved expected type and assignment context
+   * @returns The expected type (e.g. "u32", "Status"), or null
    */
   static resolve(
     target: IPlannedAssignmentTarget,
     state: TranspileState,
-  ): IExpectedTypeResult {
+  ): string | null {
     const { baseId, identifiers, hasSubscript } = target;
 
     // Case 1: Simple identifier (x <- value) - no postfix ops
     if (baseId && !target.hasPostfixOps) {
       return AssignmentExpectedTypeResolver.resolveForSimpleIdentifier(
-        baseId,
         target.rootTypeInfo,
       );
     }
@@ -105,28 +96,16 @@ class AssignmentExpectedTypeResolver {
     }
 
     // Case 3: Complex patterns we can't resolve
-    return { expectedType: null, assignmentContext: null };
+    return null;
   }
 
   /**
    * Resolve expected type for a simple identifier target.
    */
   private static resolveForSimpleIdentifier(
-    id: string,
     typeInfo: TTypeInfo | undefined,
-  ): IExpectedTypeResult {
-    if (!typeInfo) {
-      return { expectedType: null, assignmentContext: null };
-    }
-
-    return {
-      expectedType: typeInfo.baseType,
-      assignmentContext: {
-        targetName: id,
-        targetType: typeInfo.baseType,
-        overflowBehavior: typeInfo.overflowBehavior || "clamp",
-      },
-    };
+  ): string | null {
+    return typeInfo?.baseType ?? null;
   }
 
   /**
@@ -142,7 +121,7 @@ class AssignmentExpectedTypeResolver {
     identifiers: readonly string[],
     rootTypeInfo: TTypeInfo | undefined,
     state: TranspileState,
-  ): IExpectedTypeResult {
+  ): string | null {
     return AssignmentExpectedTypeResolver.walkMemberChain(
       identifiers,
       rootTypeInfo,
@@ -164,17 +143,17 @@ class AssignmentExpectedTypeResolver {
   private static resolveForArrayElement(
     hasRangeSubscript: boolean,
     typeInfo: TTypeInfo | undefined,
-  ): IExpectedTypeResult {
+  ): string | null {
     if (!typeInfo?.isArray) {
-      return { expectedType: null, assignmentContext: null };
+      return null;
     }
 
     if (hasRangeSubscript) {
-      return { expectedType: null, assignmentContext: null };
+      return null;
     }
 
     // Element type is the baseType (e.g., u8[10] -> "u8")
-    return { expectedType: typeInfo.baseType, assignmentContext: null };
+    return typeInfo.baseType;
   }
 
   /**
@@ -188,7 +167,7 @@ class AssignmentExpectedTypeResolver {
     identifiers: readonly string[],
     rootTypeInfo: TTypeInfo | undefined,
     state: TranspileState,
-  ): IExpectedTypeResult {
+  ): string | null {
     return AssignmentExpectedTypeResolver.walkMemberChain(
       identifiers,
       rootTypeInfo,
@@ -206,13 +185,13 @@ class AssignmentExpectedTypeResolver {
     identifiers: readonly string[],
     rootTypeInfo: TTypeInfo | undefined,
     state: TranspileState,
-  ): IExpectedTypeResult {
+  ): string | null {
     if (identifiers.length < 2) {
-      return { expectedType: null, assignmentContext: null };
+      return null;
     }
 
     if (!rootTypeInfo || !state.isKnownStruct(rootTypeInfo.baseType)) {
-      return { expectedType: null, assignmentContext: null };
+      return null;
     }
 
     let currentStructType: string | undefined = rootTypeInfo.baseType;
@@ -231,7 +210,7 @@ class AssignmentExpectedTypeResolver {
       }
 
       if (i === identifiers.length - 1) {
-        return { expectedType: memberType, assignmentContext: null };
+        return memberType;
       } else if (state.isKnownStruct(memberType)) {
         currentStructType = memberType;
       } else {
@@ -239,7 +218,7 @@ class AssignmentExpectedTypeResolver {
       }
     }
 
-    return { expectedType: null, assignmentContext: null };
+    return null;
   }
 }
 

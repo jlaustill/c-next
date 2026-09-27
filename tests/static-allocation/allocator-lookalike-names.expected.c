@@ -8,6 +8,19 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // test-execution
 // ADR-003 / #1306 review: THE negative control for the allocator name rule.
 //
@@ -31,19 +44,19 @@
 // evaluated, because the first analyzer to report halts the step loop; this
 // fixture has no diagnostic to halt it, which is what makes it able to fail.
 uint32_t myfree(uint32_t slot) {
-    return slot + 1U;
+    return cnx_clamp_add_u32(slot, 1U);
 }
 
 uint32_t saferealloc(uint32_t size) {
-    return size + 2U;
+    return cnx_clamp_add_u32(size, 2U);
 }
 
 uint32_t free_list_init(uint32_t count) {
-    return count + 3U;
+    return cnx_clamp_add_u32(count, 3U);
 }
 
 uint32_t mallocation(uint32_t n) {
-    return n + 4U;
+    return cnx_clamp_add_u32(n, 4U);
 }
 
 uint8_t pool[8] = {0};
@@ -51,7 +64,7 @@ uint8_t pool[8] = {0};
 // Matches `_free` and is a C-Next definition, not an import.
 uint32_t pool_free(uint32_t slot) {
     pool[slot] = 0U;
-    return slot + 5U;
+    return cnx_clamp_add_u32(slot, 5U);
 }
 
 // Matches `_free` and does not release anything at all -- a predicate.

@@ -29,7 +29,6 @@ import type IFunctionSignature from "../transpiler/types/IFunctionSignature";
 import invariant from "../utils/invariant";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 import type TIncludeHeader from "../transpiler/types/TIncludeHeader";
-import type IAssignmentOverflowContext from "../transpiler/types/IAssignmentOverflowContext";
 
 /**
  * 2.3 Render's per-file working state, as an INSTANCE.
@@ -44,16 +43,10 @@ import type IAssignmentOverflowContext from "../transpiler/types/IAssignmentOver
  * that. So the statics dissolve BEFORE the file moves, and this is where they
  * go.
  *
- * Owned by `CodeGenerator` * Owned by `CodeGenerator`, which the walker reaches as `this.host`, so both
+ * Owned by `CodeGenerator`, which the walker reaches as `this.host`, so both
  * read one object instead of one global.
  */
 class TranspileState {
-  /** ADR-044: Current assignment context for overflow behavior */
-  assignmentContext: IAssignmentOverflowContext = {
-    targetName: null,
-    targetType: null,
-    overflowBehavior: "clamp",
-  };
   /**
    * Issue #1467: author spelling -> resolved header path for this file's `.cnx`
    * includes. Decided by PathResolver during discovery and handed here; codegen
@@ -1626,11 +1619,6 @@ class TranspileState {
     this.pendingCallbackTypedefs = [];
     this.currentFunctionReturnType = null;
     this.indentLevel = 0;
-    this.assignmentContext = {
-      targetName: null,
-      targetType: null,
-      overflowBehavior: "clamp",
-    };
     this.lengthCache = null;
     this.debugMode = false;
     this.selfIncludeAdded = false;

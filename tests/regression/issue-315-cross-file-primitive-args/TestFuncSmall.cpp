@@ -7,10 +7,23 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
 // Issue #315: Helper scope for cross-file small primitive argument test
 // This file defines a scope with u8 parameters to test SMALL_PRIMITIVE_TYPES path
 /* Scope: TestFuncSmall */
 
 uint8_t TestFuncSmall__addBytes(uint8_t a, uint8_t b) {
-    return a + b;
+    return cnx_clamp_add_u8(a, b);
 }

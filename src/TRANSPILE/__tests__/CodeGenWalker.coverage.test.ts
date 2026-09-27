@@ -1069,7 +1069,8 @@ describe("CodeGenWalker Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("return a + b");
+      // #1681: arithmetic on parameters clamps (ADR-044)
+      expect(code).toContain("return cnx_clamp_add_u32(a, b)");
     });
   });
 

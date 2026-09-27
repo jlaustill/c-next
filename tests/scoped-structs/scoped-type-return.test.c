@@ -7,6 +7,21 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 // test-execution
 // Tests: this.Type and Scope.Type as function return types
 // Coverage: Section 13.2 this.Type as return, 13.3 Scope.Type as return/parameter
@@ -31,8 +46,8 @@ Geometry__Point Geometry__midpoint(const Geometry__Point* a, const Geometry__Poi
 
 // Function outside scope taking Scope.Type as parameter
 void movePoint(Geometry__Point* p, int32_t dx, int32_t dy) {
-    p->x = p->x + dx;
-    p->y = p->y + dy;
+    p->x = cnx_clamp_add_i32(p->x, dx);
+    p->y = cnx_clamp_add_i32(p->y, dy);
 }
 
 // Function outside scope returning Scope.Type

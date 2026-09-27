@@ -7,17 +7,30 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
+}
+
 // test-execution
 // Test: Private functions (with explicit 'private' keyword) generate 'static' and are callable within scope
 // ADR-016: Functions are public by default, use 'private' keyword for internal helpers
 /* Scope: Calculator */
 
 static uint32_t Calculator__square(uint32_t n) {
-    return n * n;
+    return cnx_clamp_mul_u32(n, n);
 }
 
 static uint32_t Calculator__cube(uint32_t n) {
-    return n * Calculator__square(n);
+    return cnx_clamp_mul_u32(n, Calculator__square(n));
 }
 
 uint32_t Calculator__computeSquare(uint32_t n) {

@@ -31,8 +31,8 @@ uint8_t Handler__setValue(Config* cfg, uint32_t val) {
 }
 
 uint32_t Handler__getNext(Config* cfg, uint32_t current) {
-    cfg->value = current + 1U;
-    return current + 1U;
+    cfg->value = cnx_clamp_add_u32(current, 1U);
+    return cnx_clamp_add_u32(current, 1U);
 }
 
 // For loop with modifying call in the UPDATE part

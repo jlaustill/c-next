@@ -32,7 +32,7 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 void incrementN(uint32_t& value, uint32_t times) {
     uint32_t i = 0U;
     while (i < times) {
-        value = value + 1U;
+        value = cnx_clamp_add_u32(value, 1U);
         i = cnx_clamp_add_u32(i, 1U);
     }
 }
@@ -41,7 +41,7 @@ void incrementN(uint32_t& value, uint32_t times) {
 void doubleN(uint32_t& value, uint32_t times) {
     uint32_t i = 0U;
     while (i < times) {
-        value = value * 2U;
+        value = cnx_clamp_mul_u32(value, 2U);
         i = cnx_clamp_add_u32(i, 1U);
     }
 }
@@ -70,8 +70,8 @@ void factorial(uint32_t n, uint32_t& result) {
 void parallelIncrement(uint32_t& a, uint32_t& b, uint32_t times) {
     uint32_t i = 0U;
     while (i < times) {
-        a = a + 1U;
-        b = b + 2U;
+        a = cnx_clamp_add_u32(a, 1U);
+        b = cnx_clamp_add_u32(b, 2U);
         i = cnx_clamp_add_u32(i, 1U);
     }
 }

@@ -43,9 +43,9 @@ class PlanTyping {
    *
    * A leaf counts only when it is a whole named variable -- an element, a
    * field or a call result has no declared behavior of its own (#1411, #1703
-   * stay out). One arm carries today's answer until its issue removes it: a
-   * PARAMETER counts with no behavior of its own, i.e. as `wrap` (#1681). A
-   * `for` variable counts by its declaration like any local (#1667).
+   * stay out). A parameter (#1681) and a `for` variable (#1667) count by
+   * their declarations like any local: a parameter has no modifier in the
+   * grammar, so it clamps.
    */
   static overflowOf(
     leaves: ReadonlyArray<IOperandType | null>,
@@ -67,9 +67,6 @@ class PlanTyping {
     if (leaf === null || leaf.binding === null) return undefined;
     if (leaf.category !== "signed" && leaf.category !== "unsigned") {
       return undefined;
-    }
-    if (leaf.binding.kind === "local") {
-      if (leaf.binding.declaration.kind === "parameter") return null; // #1681
     }
     return leaf.overflow;
   }

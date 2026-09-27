@@ -20,6 +20,13 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+static inline int32_t cnx_clamp_mul_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a * b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 uint32_t data[4] = {};
 
 uint32_t sum(void) {
@@ -31,5 +38,5 @@ uint32_t sum(void) {
 }
 
 int32_t twice(int32_t i) {
-    return i * 2;
+    return cnx_clamp_mul_i32(i, 2);
 }

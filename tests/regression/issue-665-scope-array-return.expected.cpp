@@ -7,6 +7,24 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
+static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)a) return 0;
+    return (uint8_t)(a - (uint8_t)b);
+}
+
 // test-execution
 // Tests: Scope array return with enum index
 // Issue #665: Returning this.values[idx] from scope generates bit extraction
@@ -77,11 +95,11 @@ void TestArithmetic__set(uint8_t idx, int32_t value) {
 }
 
 int32_t TestArithmetic__getNext(uint8_t idx) {
-    return TestArithmetic__arr[idx + 1U];
+    return TestArithmetic__arr[cnx_clamp_add_u8(idx, 1U)];
 }
 
 int32_t TestArithmetic__getPrev(uint8_t idx) {
-    return TestArithmetic__arr[idx - 1U];
+    return TestArithmetic__arr[cnx_clamp_sub_u8(idx, 1U)];
 }
 
 int main(void) {

@@ -2757,9 +2757,10 @@ describe("CodeGenWalker", () => {
       expect(code).toContain("uint32_t add(");
       expect(code).toContain("uint32_t sub(");
       expect(code).toContain("uint32_t mul(");
-      expect(code).toContain("return a + b");
-      expect(code).toContain("return a - b");
-      expect(code).toContain("return a * b");
+      // #1681: arithmetic on parameters clamps (ADR-044)
+      expect(code).toContain("return cnx_clamp_add_u32(a, b)");
+      expect(code).toContain("return cnx_clamp_sub_u32(a, b)");
+      expect(code).toContain("return cnx_clamp_mul_u32(a, b)");
     });
   });
 
@@ -16326,7 +16327,8 @@ describe("CodeGenWalker", () => {
         });
 
         expect(code).toContain("uint32_t add(uint32_t a, uint32_t b)");
-        expect(code).toContain("return a + b");
+        // #1681: arithmetic on parameters clamps (ADR-044)
+        expect(code).toContain("return cnx_clamp_add_u32(a, b)");
       });
 
       it("should generate function with array parameter", () => {

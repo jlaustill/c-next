@@ -7,41 +7,71 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
+}
+
+static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a - b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
+static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)a) return 0;
+    return (uint32_t)(a - (uint32_t)b);
+}
+
 // test-execution
 // Tests: Auto-const with compound assignments
 // Coverage: Parameters modified via compound assignment operators
 // Compound add - should NOT get const
 void addToValue(uint32_t* val, uint32_t amount) {
-    (*val) += amount;
+    (*val) = cnx_clamp_add_u32((*val), amount);
 }
 
 // Compound subtract - should NOT get const
 void subtractFromValue(int32_t* val, int32_t amount) {
-    (*val) -= amount;
+    (*val) = cnx_clamp_sub_i32((*val), amount);
 }
 
 // Compound multiply - should NOT get const
 void multiplyValue(uint32_t* val, uint32_t factor) {
-    (*val) *= factor;
+    (*val) = cnx_clamp_mul_u32((*val), factor);
 }
 
 // Read then compound - should NOT get const
 uint32_t readAndAdd(uint32_t* val, uint32_t amount) {
     uint32_t original = (*val);
-    (*val) += amount;
+    (*val) = cnx_clamp_add_u32((*val), amount);
     return original;
 }
 
 // Multiple compound ops - should NOT get const
 void multipleCompound(uint32_t* val) {
-    (*val) += 10U;
-    (*val) *= 2U;
-    (*val) -= 5U;
+    (*val) = cnx_clamp_add_u32((*val), 10U);
+    (*val) = cnx_clamp_mul_u32((*val), 2U);
+    (*val) = cnx_clamp_sub_u32((*val), 5U);
 }
 
 // Only reads with arithmetic - SHOULD get const
 uint32_t onlyReads(uint32_t a, uint32_t b) {
-    return a + b * 2U;
+    return cnx_clamp_add_u32(a, cnx_clamp_mul_u32(b, 2U));
 }
 
 int main(void) {

@@ -29,7 +29,7 @@ void level3Modify(uint32_t* val) {
 }
 
 uint32_t level3Read(uint32_t val) {
-    return val + 1U;
+    return cnx_clamp_add_u32(val, 1U);
 }
 
 // Level 2: Middle functions
