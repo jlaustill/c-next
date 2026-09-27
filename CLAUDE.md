@@ -585,13 +585,13 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 
 ### Enum `expectedType` Contexts
 
-| Works (bare members)                              | Requires qualified (`EnumType.MEMBER`)              |
-| ------------------------------------------------- | --------------------------------------------------- |
-| Variable declarations: `EColor c <- RED`          | Comparisons: `cfg.pType != EPressureType.PSIA`      |
-| Assignments, a struct field's in any file         | Function arguments                                  |
-| Return statements (enum return type)              | Array dimensions and subscripts: `u8[EColor.COUNT]` |
-| Struct field inits `{color: RED}`, array elements | A `for` header's declaration or update              |
-| Switch cases, ternary arms                        |                                                     |
+| Works (bare members)                              | Requires qualified (`EnumType.MEMBER`)                |
+| ------------------------------------------------- | ----------------------------------------------------- |
+| Variable declarations: `EColor c <- RED`          | Comparisons: `cfg.pType != EPressureType.PSIA`        |
+| Assignments, a struct field's in any file         | Function arguments                                    |
+| Return statements (enum return type)              | Array dimensions and subscripts: `u8[EColor.COUNT]`   |
+| Struct field inits `{color: RED}`, array elements | A `for` header's declaration or update (#1537: a bug) |
+| Switch cases, ternary arms                        |                                                       |
 
 The table is `BareEnumMemberAnalyzer`'s (2.1), which walks up from the identifier to
 the nearest node that establishes a type. It used to list "cross-file struct
