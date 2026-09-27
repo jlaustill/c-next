@@ -80,7 +80,6 @@ function createDefaultASTDeps(overrides?: {
     isModified: overrides?.isModified ?? false,
     isPassByValue: overrides?.isPassByValue ?? false,
     isCallbackCompatible: false,
-    isTypedefStructType: () => false,
     isOpaqueHandle: overrides?.isOpaqueHandle ?? false,
   };
 }
@@ -656,20 +655,23 @@ describe("ParameterInputAdapter", () => {
       expect(result.isAutoConst).toBe(false);
     });
 
-    // Issue #995: Opaque handles don't set forcePointerSyntax — builder handles it
-    it("does not set forcePointerSyntax for opaque type (builder handles it)", () => {
+    // #1722: an opaque handle is decided once (1.4's stamp) and handed in as
+    // `isOpaqueHandle`; #958's "typedef struct needs pointer semantics" reads
+    // that same answer. This case used to hand in `isOpaqueHandle: true`
+    // beside `isTypedefStructType: () => false` and expect no
+    // forcePointerSyntax -- a combination StructCollector cannot produce, since
+    // it marks an opaque type and a typedef struct under one condition. In a
+    // real run an opaque parameter always took forcePointerSyntax.
+    it("gives an opaque handle pointer semantics from the one decision it is handed", () => {
       const result = ParameterInputAdapter.fromAST(
         planned({ name: "w", typeName: "widget_t" }),
         {
           ...createDefaultASTDeps({ isModified: false, isOpaqueHandle: true }),
-          isTypedefStructType: () => false, // Not a typedef struct
           isKnownEnum: () => false,
         },
       );
 
-      // forcePointerSyntax not set by adapter for opaque handles
-      // (builder uses isOpaqueHandle instead)
-      expect(result.forcePointerSyntax).toBeUndefined();
+      expect(result.forcePointerSyntax).toBe(true);
       expect(result.isOpaqueHandle).toBe(true);
     });
   });

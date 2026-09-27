@@ -89,7 +89,9 @@ u8 preferred() {
       }
 
       expect(new Set(outputs).size).toBe(1);
-    });
+      // Eight full transpiles; past vitest's 5 s default when the machine is
+      // loaded (it timed out at a load average near 100, and passes alone).
+    }, 30_000);
 
     it("match what the CLI writes for the same file", async () => {
       const cli = await inDir(project, () =>

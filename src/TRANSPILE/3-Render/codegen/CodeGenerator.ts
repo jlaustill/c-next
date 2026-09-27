@@ -864,8 +864,6 @@ export default class CodeGenerator implements IOrchestrator {
   private _getFunctionContextCallbacks(): IFunctionContextCallbacks {
     return {
       isStructType: (typeName: string) => this.isStructType(typeName),
-      isTypedefStructType: (t: string) =>
-        this.state.symbolTable?.isTypedefStructType(t) ?? false,
     };
   }
 

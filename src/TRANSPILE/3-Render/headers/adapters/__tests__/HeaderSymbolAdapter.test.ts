@@ -268,14 +268,17 @@ describe("HeaderSymbolAdapter", () => {
     });
 
     /**
-     * ADR-030: every parameter carries the decision its `.c` prototype is
-     * spelled from -- a scalar handle and an array of them (#996) alike -- so
-     * the header's callback-compatible path, which sets nothing else about
-     * opacity, still declares `Dev* pair[2]`. The complete type is the control.
+     * ADR-030 / #1722: every parameter carries the stamp 1.4 set on it -- the
+     * decision its `.c` prototype is spelled from too -- a scalar handle and an
+     * array of them (#996) alike, so the header's callback-compatible path,
+     * which sets nothing else about opacity, still declares `Dev* pair[2]`. The
+     * adapter reads the stamp and asks no predicate: the program here says
+     * NOTHING is opaque, so a stamp that were re-derived would come out false.
+     * The complete type is the control.
      */
-    it("marks each parameter by whether its type is held through a pointer", () => {
+    it("marks each parameter by the opaque-handle stamp it was settled with", () => {
       state.program = {
-        isOpaqueType: (name: string) => name === "Dev",
+        isOpaqueType: () => false,
       } as unknown as IProgram;
       const tSymbol: IFunctionSymbol = {
         ...TestSymbolUtils.base({
@@ -293,6 +296,7 @@ describe("HeaderSymbolAdapter", () => {
             type: TTypeUtils.createExternal("Dev"),
             isConst: false,
             isArray: false,
+            isOpaqueHandle: true,
           },
           {
             name: "pair",
@@ -300,6 +304,7 @@ describe("HeaderSymbolAdapter", () => {
             isConst: false,
             isArray: true,
             arrayDimensions: [2],
+            isOpaqueHandle: true,
           },
           {
             name: "f",

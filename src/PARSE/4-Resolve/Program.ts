@@ -130,9 +130,13 @@ class Program {
       files,
       visibility,
     );
+    // Opacity is a fact of the headers alone, so it is ready before the settle,
+    // which stamps each opaque parameter with it (#1722).
+    const opaqueTypes = Program.deriveOpaqueTypes(foreign);
     const settledByFile = Program.settleEveryFile(
       files,
       isScopeTypeVisibleFrom,
+      opaqueTypes,
     );
     const derivedConsts = Program.deriveConstValues(settledByFile);
     const scopedViews = new Map<string, ReadonlyMap<string, number>>();
@@ -152,7 +156,6 @@ class Program {
     // why it could not live here: the C-Next half was inserted after this point.
     // Flattened in file-declaration order so the report order is unchanged.
     const typesByFile = Program.deriveTypesByFile(symbolsByFile, foreign);
-    const opaqueTypes = Program.deriveOpaqueTypes(foreign);
     const visibleByFile = Program.deriveVisibleSymbols(
       symbolsByFile,
       visibility,
@@ -475,13 +478,17 @@ class Program {
       sourceFile: string,
       qualifiedName: string,
     ) => boolean,
+    opaqueTypes: ReadonlySet<string>,
   ): Map<string, ReadonlyArray<TSymbol>> {
     const settledByFile = new Map<string, ReadonlyArray<TSymbol>>();
     for (const file of files) {
       settledByFile.set(
         file.sourceFile,
-        DeferredTypes.settle(file.symbols, (qualifiedName) =>
-          isScopeTypeVisibleFrom(file.sourceFile, qualifiedName),
+        DeferredTypes.settle(
+          file.symbols,
+          (qualifiedName) =>
+            isScopeTypeVisibleFrom(file.sourceFile, qualifiedName),
+          (typeName) => opaqueTypes.has(typeName),
         ),
       );
     }

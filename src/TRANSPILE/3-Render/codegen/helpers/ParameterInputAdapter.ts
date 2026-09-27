@@ -57,9 +57,6 @@ interface IFromASTDeps {
    */
   forcePassByReference?: boolean;
 
-  /** Issue #958: Check if a type name is a typedef'd struct from C headers */
-  isTypedefStructType: (typeName: string) => boolean;
-
   /**
    * #1545: Whether a type name is a known enum. ADR-013 passes enums by value,
    * so they take no auto-const. The header path already excluded them and this
@@ -145,11 +142,14 @@ class ParameterInputAdapter {
     // Determine classification for non-array, non-string types
     const isKnownStruct = deps.isKnownStruct(typeName);
     const isKnownPrimitive = !!deps.typeMap[typeName];
-    // Issue #958: C-header typedef struct types need pointer semantics
-    const isTypedefStruct = deps.isTypedefStructType(typeName);
     // Issue #995: Opaque handles — rule applied in ParameterSignatureBuilder.
-    // #1722: read, not re-derived; see IFromASTDeps.isOpaqueHandle.
+    // #1722: read, not re-derived; see IFromASTDeps.isOpaqueHandle. It is also
+    // #958's "C-header typedef struct needs pointer semantics": that asked
+    // `isTypedefStructType`, which StructCollector marks under exactly the
+    // condition it marks an opaque type, so it was the same fact decided a
+    // second time.
     const isOpaque = deps.isOpaqueHandle;
+    const isTypedefStruct = isOpaque;
     if (isOpaque) {
       // ADR-030 decided here: an incomplete type can only be handled through a
       // pointer, which is why #995's `const T*` was wrong. Recorded at the

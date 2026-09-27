@@ -314,8 +314,12 @@ function parseWithSymbols(source: string): IParseWithSymbolsResult {
     "<source>",
     new SymbolRegistry(),
   );
-  const tSymbols = DeferredTypes.settle(declared.symbols, (qualifiedName) =>
-    declared.declaredScopeTypes.has(qualifiedName),
+  // No header reaches this API, so no typedef here can be opaque (ADR-030,
+  // #1722): opacity is decided over the headers a program includes.
+  const tSymbols = DeferredTypes.settle(
+    declared.symbols,
+    (qualifiedName) => declared.declaredScopeTypes.has(qualifiedName),
+    () => false,
   );
   const symbols = convertTSymbolsToISymbolInfo(tSymbols);
 

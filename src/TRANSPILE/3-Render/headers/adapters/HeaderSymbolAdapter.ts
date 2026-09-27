@@ -75,11 +75,11 @@ class HeaderSymbolAdapter {
         isArray: p.isArray,
         arrayDimensions: HeaderSymbolAdapter.headerArrayDimensions(p, state),
         isAutoConst: p.isAutoConst,
-        // ADR-030: the decision the `.c`'s prototype is spelled from, read here
-        // so every header path carries it -- the callback-compatible one set no
-        // flag at all, so an array of handles was `Dev ds[2]` in the `.h`
-        // against `Dev* ds[2]` in the `.c`.
-        isOpaqueHandle: state.isHeldThroughPointer(type) || undefined,
+        // ADR-030 / #1722: the stamp 1.4 set on the parameter, which the `.c`
+        // prototype and its call sites read too. This asked
+        // `isHeldThroughPointer` itself, a second decision that agreed with the
+        // `.c`'s only because both called one predicate.
+        isOpaqueHandle: p.isOpaqueHandle || undefined,
       };
     });
 

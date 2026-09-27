@@ -408,6 +408,56 @@ describe("Program", () => {
     });
   });
 
+  describe("an opaque parameter (#1722)", () => {
+    // ADR-030: whether a parameter holds an opaque handle is decided ONCE, onto
+    // the settled parameter. The `.c` signature, the `.c` call sites and the
+    // `.h` prototype all read this stamp; none of them asks the type again, so
+    // they cannot disagree about one parameter.
+    const withFunction = (structTagsWithBodies: string[]) =>
+      Program.build(
+        [declare(`void use(Dev d, Dev[2] ds, Full f, u32 n) {\n}\n`, "a.cnx")],
+        {
+          headerStructFields: new Map(),
+          foreign: {
+            ...noForeign,
+            opaqueTypedefs: new Set(["Dev", "Full"]),
+            typedefToTag: new Map([
+              ["Dev", "_Dev"],
+              ["Full", "_Full"],
+            ]),
+            structTagsWithBodies: new Set(structTagsWithBodies),
+          },
+        },
+      );
+
+    const stampsOf = (program: ReturnType<typeof withFunction>) => {
+      const use = program.symbolByCName("use");
+      expect(use && SymbolGuards.isFunction(use)).toBe(true);
+      return SymbolGuards.isFunction(use!)
+        ? use.parameters.map((p) => [p.name, p.isOpaqueHandle === true])
+        : [];
+    };
+
+    it("stamps a parameter of an opaque type, and an array of handles", () => {
+      // `Full`'s tag receives a body, so it is complete and passes as any struct.
+      expect(stampsOf(withFunction(["_Full"]))).toEqual([
+        ["d", true],
+        ["ds", true],
+        ["f", false],
+        ["n", false],
+      ]);
+    });
+
+    it("control: a type whose tag received a body is not stamped", () => {
+      expect(stampsOf(withFunction(["_Dev", "_Full"]))).toEqual([
+        ["d", false],
+        ["ds", false],
+        ["f", false],
+        ["n", false],
+      ]);
+    });
+  });
+
   describe("isOpaqueType", () => {
     // #1511: resolved once when the artifact is built, from the RAW bookkeeping
     // the C collectors recorded. The rule itself is shared with SymbolTable via

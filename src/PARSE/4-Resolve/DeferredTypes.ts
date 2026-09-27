@@ -21,6 +21,13 @@
  * object by path, so a rebuilt scope would leave the registry holding the
  * unsettled functions. That array is written in place, from the same memo the
  * rebuild uses, so both readers end up on one object.
+ *
+ * #1722: the settle also stamps each function parameter whose type is opaque
+ * (`IParameterInfo.isOpaqueHandle`). That too is a fact Declare cannot know --
+ * whether a typedef ever received a body is decided over every header -- and
+ * stamping here, where the one settled object is made, is what lets the scope's
+ * copy carry it: a separate pass would rebuild the function a second time and
+ * leave `scope.functions` on the unstamped one.
  */
 
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
@@ -41,10 +48,13 @@ class DeferredTypes {
    *   include closure. Not Declare's own set, which cannot see an include, and
    *   not the whole program's, which also holds siblings the file never
    *   includes (#1724).
+   * @param isOpaqueType whether a settled type name is an opaque C typedef, so
+   *   a parameter of it holds a handle (ADR-030, #1722)
    */
   static settle(
     symbols: ReadonlyArray<TSymbol>,
     isScopeType: (qualifiedName: string) => boolean,
+    isOpaqueType: (typeName: string) => boolean,
   ): TSymbol[] {
     // Memoized on the ORIGINAL object, so a symbol reached twice yields one
     // settled object rather than two equal ones. A scope's member function is
@@ -57,7 +67,11 @@ class DeferredTypes {
       if (existing) {
         return existing;
       }
-      const result = DeferredTypes.settleSymbol(symbol, isScopeType);
+      const result = DeferredTypes.settleSymbol(
+        symbol,
+        isScopeType,
+        isOpaqueType,
+      );
       settled.set(symbol, result);
       return result;
     };
@@ -108,6 +122,7 @@ class DeferredTypes {
   private static settleSymbol(
     symbol: TSymbol,
     isScopeType: (qualifiedName: string) => boolean,
+    isOpaqueType: (typeName: string) => boolean,
   ): TSymbol {
     const settle = (type: TType): TType =>
       DeferredTypes.settleType(type, isScopeType);
@@ -127,9 +142,14 @@ class DeferredTypes {
       let parametersChanged = false;
       const parameters = symbol.parameters.map((parameter): IParameterInfo => {
         const type = settle(parameter.type);
-        if (type === parameter.type) return parameter;
+        // #1722: decided here, once, on the settled type -- a bare name that
+        // settles to a scope type is C-Next's own and never opaque.
+        const isOpaqueHandle = isOpaqueType(TypeResolver.getTypeName(type));
+        if (type === parameter.type && !isOpaqueHandle) return parameter;
         parametersChanged = true;
-        return { ...parameter, type };
+        return isOpaqueHandle
+          ? { ...parameter, type, isOpaqueHandle }
+          : { ...parameter, type };
       });
       if (returnType === symbol.returnType && !parametersChanged) {
         return symbol;

@@ -566,6 +566,7 @@ describe("CNextResolver Integration", () => {
       const settled = DeferredTypes.settle(
         declared.symbols,
         (qualifiedName) => qualifiedName === "Spanned__Point",
+        () => false, // no headers: nothing is opaque (#1722)
       );
       const origin = settled.find((sym) => sym.name === "origin");
       expect(origin && SymbolGuards.isFunction(origin)).toBe(true);
@@ -575,7 +576,11 @@ describe("CNextResolver Integration", () => {
         );
       }
 
-      const unqualified = DeferredTypes.settle(declared.symbols, () => false);
+      const unqualified = DeferredTypes.settle(
+        declared.symbols,
+        () => false,
+        () => false,
+      );
       const bare = unqualified.find((sym) => sym.name === "origin");
       if (bare && SymbolGuards.isFunction(bare)) {
         expect(TypeResolver.getTypeName(bare.returnType)).toBe("Point");
@@ -679,7 +684,11 @@ describe("CNextResolver Integration", () => {
       // is unchanged: a scope member that is not a type must not capture a
       // same-named global one.
       const declared = CNextResolver.resolve(parse(code), "test.cnx", registry);
-      const symbols = DeferredTypes.settle(declared.symbols, () => false);
+      const symbols = DeferredTypes.settle(
+        declared.symbols,
+        () => false,
+        () => false,
+      );
 
       const use = symbols.find((sym) => sym.name === "use");
       expect(use && SymbolGuards.isFunction(use)).toBe(true);

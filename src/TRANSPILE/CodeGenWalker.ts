@@ -3891,8 +3891,6 @@ class CodeGenWalker {
       isCallbackCompatible,
       forcePassByReference,
       forceConst,
-      isTypedefStructType: (t) =>
-        this.host.state.symbolTable?.isTypedefStructType(t) ?? false,
       // #1545: the one named accessor, which is also what _isPassByValueType
       // asks, so the auto-const rule and the pass-by-value decision cannot
       // disagree about what an enum is. `t` arrives from getTypeName, which

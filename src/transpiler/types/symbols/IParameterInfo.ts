@@ -21,6 +21,15 @@ interface IParameterInfo {
 
   /** Issue #268: true if parameter should get auto-const (unmodified pointer) */
   readonly isAutoConst?: boolean;
+
+  /**
+   * ADR-030 / #1722: the parameter's type is an opaque (incomplete) C type, so
+   * it is held through a pointer -- for an array, each element is. Decided
+   * once, by 1.4 Resolve, which knows which typedefs never received a body;
+   * the `.c` signature, its call sites and the `.h` prototype all read this
+   * stamp rather than asking the type again, so they cannot disagree.
+   */
+  readonly isOpaqueHandle?: boolean;
 }
 
 export default IParameterInfo;
