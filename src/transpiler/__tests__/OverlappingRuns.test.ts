@@ -6,7 +6,7 @@ import {
   writeFileSync,
   rmSync,
 } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
@@ -110,6 +110,55 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
     expect(firstResult.files[0]?.code).toBe(firstAlone.files[0]?.code);
     expect(secondResult.errors).toEqual([]);
     expect(secondResult.files[0]?.code).toBe(secondAlone.files[0]?.code);
+  });
+
+  it("keeps the parked run's .cnx include rewrite (the lost-rewrite shape)", async () => {
+    // What went wrong on `main` without an error: the second run's
+    // `_initializeRun` cleared the include rewrites the parked run's render
+    // still had to read, so its `#include` fell back to the author's spelling.
+    // That is only VISIBLE when the rewrite differs from that spelling -- a
+    // header output root does it: the author writes "../lib/colors.cnx", and
+    // the header lands at include/lib/colors.h, so the rewrite says
+    // "lib/colors.h". `workingDir` is what `ServeCommand` passed on `main`; this
+    // branch reads the text's own directory and ignores it, so the same test
+    // runs on both.
+    writeFileSync(join(tempDir, "cnext.config.json"), "{}\n");
+    mkdirSync(join(tempDir, "lib"));
+    writeFileSync(
+      join(tempDir, "lib", "colors.cnx"),
+      "enum EColor { RED, GREEN }\n",
+    );
+    const sourcePath = join(tempDir, "src", "main.cnx");
+    const parked = {
+      kind: "source" as const,
+      source:
+        '#include "board.h"\n#include "../lib/colors.cnx"\n\nvoid main() {\n    EColor c <- EColor.GREEN;\n    board_init();\n}\n',
+      sourcePath,
+      workingDir: dirname(sourcePath),
+    };
+    const config = {
+      input: "",
+      noCache: true,
+      headerOutDir: join(tempDir, "include"),
+    };
+    const firstAlone = await new Transpiler(config).transpile(parked);
+    // The self-check: the rewrite is observable here, so losing it shows.
+    expect(firstAlone.errors).toEqual([]);
+    expect(firstAlone.files[0]?.code).not.toContain(
+      '#include "../lib/colors.h"',
+    );
+
+    const release = holdPreprocessor();
+    const transpiler = new Transpiler(config);
+    const firstRun = transpiler.transpile(parked);
+    await new Promise((resolve) => setImmediate(resolve));
+    const secondRun = transpiler.transpile(second());
+    await new Promise((resolve) => setImmediate(resolve));
+    release();
+    const [firstResult] = await Promise.all([firstRun, secondRun]);
+
+    expect(firstResult.errors).toEqual([]);
+    expect(firstResult.files[0]?.code).toBe(firstAlone.files[0]?.code);
   });
 
   it("control: the same runs one after the other on one instance", async () => {
