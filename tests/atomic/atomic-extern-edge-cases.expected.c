@@ -85,11 +85,15 @@ int main(void) {
     do {
         uint16_t __old = __LDREXH(&sequence);
         uint16_t __new = __old + 1U;
-        if (__STREXH(__new, &sequence) == 0) break;
+        if (__STREXH(__new, &sequence) == 0) {
+            break;
+        }
     } while (1);
     do {
         int8_t __old = __LDREXB(&temperature);
         int8_t __new = cnx_clamp_add_i8(__old, 10);
-        if (__STREXB(__new, &temperature) == 0) break;
+        if (__STREXB(__new, &temperature) == 0) {
+            break;
+        }
     } while (1);
 }

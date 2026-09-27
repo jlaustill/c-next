@@ -30,17 +30,23 @@ void incrementTicks(void) {
     do {
         uint8_t __old = __LDREXB(&tick8);
         uint8_t __new = __old + 1U;
-        if (__STREXB(__new, &tick8) == 0) break;
+        if (__STREXB(__new, &tick8) == 0) {
+            break;
+        }
     } while (1);
     do {
         uint16_t __old = __LDREXH(&tick16);
         uint16_t __new = __old + 1U;
-        if (__STREXH(__new, &tick16) == 0) break;
+        if (__STREXH(__new, &tick16) == 0) {
+            break;
+        }
     } while (1);
     do {
         uint32_t __old = __LDREXW(&tick32);
         uint32_t __new = __old + 1U;
-        if (__STREXW(__new, &tick32) == 0) break;
+        if (__STREXW(__new, &tick32) == 0) {
+            break;
+        }
     } while (1);
 }
 
@@ -48,7 +54,9 @@ void nextSequence(void) {
     do {
         uint8_t __old = __LDREXB(&sequenceNumber);
         uint8_t __new = __old + 1U;
-        if (__STREXB(__new, &sequenceNumber) == 0) break;
+        if (__STREXB(__new, &sequenceNumber) == 0) {
+            break;
+        }
     } while (1);
 }
 
@@ -56,7 +64,9 @@ void nextFrame(void) {
     do {
         uint16_t __old = __LDREXH(&frameCounter);
         uint16_t __new = __old + 1U;
-        if (__STREXH(__new, &frameCounter) == 0) break;
+        if (__STREXH(__new, &frameCounter) == 0) {
+            break;
+        }
     } while (1);
 }
 
@@ -64,7 +74,9 @@ void addToTicks(uint32_t delta) {
     do {
         uint32_t __old = __LDREXW(&tick32);
         uint32_t __new = __old + delta;
-        if (__STREXW(__new, &tick32) == 0) break;
+        if (__STREXW(__new, &tick32) == 0) {
+            break;
+        }
     } while (1);
 }
 
@@ -72,7 +84,9 @@ void subtractFromTick8(uint8_t delta) {
     do {
         uint8_t __old = __LDREXB(&tick8);
         uint8_t __new = __old - delta;
-        if (__STREXB(__new, &tick8) == 0) break;
+        if (__STREXB(__new, &tick8) == 0) {
+            break;
+        }
     } while (1);
 }
 

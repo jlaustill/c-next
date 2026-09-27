@@ -26,6 +26,23 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 const TESTS_DIR = join(ROOT, "tests");
 const INCLUDE_DIR = join(ROOT, "tests/include");
+const CMSIS_DIR = join(ROOT, "vendor/cmsis-core");
+
+/**
+ * #1668: a file generated for a Cortex-M target includes `<cmsis_gcc.h>`.
+ * ARM's real header, vendored for the target matrix, declares its intrinsics
+ * only for architectures that have them, and this analysis runs on the host.
+ * So a Cortex file is analyzed as ARMv7E-M code against ARM's own
+ * declarations, which declares every intrinsic generated code calls. It
+ * replaced a test stub that declared them for every CPU, and whose presence
+ * hid 34 MISRA C:2012 Rule 15.6 violations from cppcheck. Analyzing each file
+ * for its own target is #1714.
+ */
+function cortexArgs(file) {
+  return /#include\s*<cmsis_gcc\.h>/.test(readFileSync(file, "utf-8"))
+    ? ["-I", CMSIS_DIR, "-D__ARM_ARCH_7EM__=1", "-D__ARM_FEATURE_LDREX=7"]
+    : [];
+}
 
 // ============================================================================
 // CLI argument parsing
@@ -328,11 +345,15 @@ function runMisra() {
   for (const file of misraFiles) {
     let output;
     try {
-      execFileSync("cppcheck", MisraBaseline.buildArgs(file, INCLUDE_DIR), {
-        encoding: "utf-8",
-        timeout: 60000,
-        stdio: "pipe",
-      });
+      execFileSync(
+        "cppcheck",
+        MisraBaseline.buildArgs(file, INCLUDE_DIR, cortexArgs(file)),
+        {
+          encoding: "utf-8",
+          timeout: 60000,
+          stdio: "pipe",
+        },
+      );
       continue; // exit 0 → no findings at all
     } catch (error) {
       // Exit 1 is the expected "findings present" signal; any other status

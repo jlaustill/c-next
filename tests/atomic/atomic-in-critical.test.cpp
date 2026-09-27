@@ -77,12 +77,16 @@ void criticalUpdate(void) {
         do {
             uint32_t __old = __LDREXW(&sharedCounter);
             uint32_t __new = cnx_clamp_add_u32(__old, 1U);
-            if (__STREXW(__new, &sharedCounter) == 0) break;
+            if (__STREXW(__new, &sharedCounter) == 0) {
+                break;
+            }
         } while (1);
         do {
             uint16_t __old = __LDREXH(&sequence);
             uint16_t __new = __old + 1U;
-            if (__STREXH(__new, &sequence) == 0) break;
+            if (__STREXH(__new, &sequence) == 0) {
+                break;
+            }
         } while (1);
         __cnx_set_PRIMASK(__primask);
     }
@@ -98,7 +102,9 @@ void enqueueWithCount(uint8_t data) {
         do {
             uint32_t __old = __LDREXW(&sharedCounter);
             uint32_t __new = cnx_clamp_add_u32(__old, 1U);
-            if (__STREXW(__new, &sharedCounter) == 0) break;
+            if (__STREXW(__new, &sharedCounter) == 0) {
+                break;
+            }
         } while (1);
         __cnx_set_PRIMASK(__primask);
     }
@@ -112,12 +118,16 @@ void batchUpdate(uint32_t delta) {
         do {
             uint32_t __old = __LDREXW(&sharedCounter);
             uint32_t __new = cnx_clamp_add_u32(__old, delta);
-            if (__STREXW(__new, &sharedCounter) == 0) break;
+            if (__STREXW(__new, &sharedCounter) == 0) {
+                break;
+            }
         } while (1);
         do {
             uint16_t __old = __LDREXH(&sequence);
             uint16_t __new = __old + 1U;
-            if (__STREXH(__new, &sequence) == 0) break;
+            if (__STREXH(__new, &sequence) == 0) {
+                break;
+            }
         } while (1);
         __cnx_set_PRIMASK(__primask);
     }
@@ -132,7 +142,9 @@ void conditionalIncrement(void) {
             do {
                 uint32_t __old = __LDREXW(&sharedCounter);
                 uint32_t __new = cnx_clamp_add_u32(__old, 1U);
-                if (__STREXW(__new, &sharedCounter) == 0) break;
+                if (__STREXW(__new, &sharedCounter) == 0) {
+                    break;
+                }
             } while (1);
         }
         __cnx_set_PRIMASK(__primask);

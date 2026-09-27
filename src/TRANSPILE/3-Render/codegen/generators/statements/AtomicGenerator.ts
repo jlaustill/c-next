@@ -117,7 +117,9 @@ function generateLdrexStrexLoop(
   const code = `do {
     ${cType} __old = ${ldrex}(&${target});
     ${cType} __new = ${innerOp};
-    if (${strex}(__new, &${target}) == 0) break;
+    if (${strex}(__new, &${target}) == 0) {
+        break;
+    }
 } while (1);`;
 
   return { code, effects };

@@ -48,16 +48,22 @@ int main(void) {
     do {
         uint8_t __old = __LDREXB(&byte_counter);
         uint8_t __new = cnx_clamp_add_u8(__old, 1U);
-        if (__STREXB(__new, &byte_counter) == 0) break;
+        if (__STREXB(__new, &byte_counter) == 0) {
+            break;
+        }
     } while (1);
     do {
         uint16_t __old = __LDREXH(&word_counter);
         uint16_t __new = cnx_clamp_add_u16(__old, 1U);
-        if (__STREXH(__new, &word_counter) == 0) break;
+        if (__STREXH(__new, &word_counter) == 0) {
+            break;
+        }
     } while (1);
     do {
         uint32_t __old = __LDREXW(&dword_counter);
         uint32_t __new = cnx_clamp_add_u32(__old, 1U);
-        if (__STREXW(__new, &dword_counter) == 0) break;
+        if (__STREXW(__new, &dword_counter) == 0) {
+            break;
+        }
     } while (1);
 }

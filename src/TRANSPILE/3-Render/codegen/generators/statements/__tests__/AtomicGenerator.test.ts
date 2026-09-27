@@ -157,8 +157,12 @@ describe("AtomicGenerator", () => {
       expect(result.code).toContain("uint32_t __old = __LDREXW(&counter)");
       expect(result.code).toContain("uint32_t __new = __old + 1");
       expect(result.code).toContain(
-        "if (__STREXW(__new, &counter) == 0) break;",
+        "if (__STREXW(__new, &counter) == 0) {\n        break;\n    }",
       );
+      // MISRA C:2012 Rule 15.6: the if's body is a compound statement. The
+      // unbraced form reached every LDREX target's output, hidden from
+      // cppcheck by a test stub that declared the intrinsics (#1668)
+      expect(result.code).not.toMatch(/\)\s*break;/);
       expect(result.code).toContain("} while (1);");
       expect(result.effects).toContainEqual({
         type: "include",

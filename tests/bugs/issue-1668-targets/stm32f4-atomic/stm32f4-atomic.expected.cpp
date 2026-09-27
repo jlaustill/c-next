@@ -34,6 +34,8 @@ void increment(void) {
     do {
         uint32_t __old = __LDREXW(&counter);
         uint32_t __new = cnx_clamp_add_u32(__old, 1U);
-        if (__STREXW(__new, &counter) == 0) break;
+        if (__STREXW(__new, &counter) == 0) {
+            break;
+        }
     } while (1);
 }

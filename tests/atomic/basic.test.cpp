@@ -39,16 +39,22 @@ void increment(void) {
     do {
         uint32_t __old = __LDREXW(&counter);
         uint32_t __new = cnx_clamp_add_u32(__old, 1U);
-        if (__STREXW(__new, &counter) == 0) break;
+        if (__STREXW(__new, &counter) == 0) {
+            break;
+        }
     } while (1);
     do {
         uint8_t __old = __LDREXB(&brightness);
         uint8_t __new = cnx_clamp_add_u8(__old, 10U);
-        if (__STREXB(__new, &brightness) == 0) break;
+        if (__STREXB(__new, &brightness) == 0) {
+            break;
+        }
     } while (1);
     do {
         uint32_t __old = __LDREXW(&ticks);
         uint32_t __new = __old + 1U;
-        if (__STREXW(__new, &ticks) == 0) break;
+        if (__STREXW(__new, &ticks) == 0) {
+            break;
+        }
     } while (1);
 }

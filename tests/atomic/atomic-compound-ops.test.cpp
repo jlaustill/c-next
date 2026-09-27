@@ -37,21 +37,29 @@ int main(void) {
     do {
         uint32_t __old = __LDREXW(&value);
         uint32_t __new = cnx_clamp_add_u32(__old, 10U);
-        if (__STREXW(__new, &value) == 0) break;
+        if (__STREXW(__new, &value) == 0) {
+            break;
+        }
     } while (1);
     do {
         uint32_t __old = __LDREXW(&value);
         uint32_t __new = cnx_clamp_sub_u32(__old, 5U);
-        if (__STREXW(__new, &value) == 0) break;
+        if (__STREXW(__new, &value) == 0) {
+            break;
+        }
     } while (1);
     do {
         uint32_t __old = __LDREXW(&value);
         uint32_t __new = __old & 0xFFU;
-        if (__STREXW(__new, &value) == 0) break;
+        if (__STREXW(__new, &value) == 0) {
+            break;
+        }
     } while (1);
     do {
         uint32_t __old = __LDREXW(&value);
         uint32_t __new = __old | 0x100U;
-        if (__STREXW(__new, &value) == 0) break;
+        if (__STREXW(__new, &value) == 0) {
+            break;
+        }
     } while (1);
 }
