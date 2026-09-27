@@ -2,85 +2,39 @@
  * Division By Zero Analyzer
  * Detects division and modulo by zero at compile time (ADR-051)
  *
- * Implemented Phases:
- * ✓ Phase 1: Literal zero detection (10 / 0, 10 % 0)
- * ✓ Phase 3: Const zero detection (const u32 ZERO <- 0; x / ZERO)
+ * A literal zero (10 / 0, 10 % 0), or a const whose value is zero where the
+ * division is written (const u32 ZERO <- 0; x / ZERO).
  *
- * Future Enhancement (Phase 3+):
- * - Const expression evaluation (const u32 VALUE <- 5 - 5; x / VALUE)
- *
- * Issue #1220: the const-zero pass walks only THIS file's parse tree, so a
- * const arriving through an #include was invisible and the check silently
- * passed. Cross-file consts are resolved through CodeGenState, which reads the
- * one const-value derivation on SymbolTable.
+ * #1664 box 7: the const's value is the one visible at the division, as 1.4
+ * settled it -- a local, the enclosing scope's, a file-scope one, or one from
+ * an included file (#1220). This pass collected its own file-wide set of
+ * const zeros by bare name, so a local `const D <- 0` in one function made
+ * `x / D` in another an error when that `D` was a nonzero global. A const
+ * folded from an expression (`const u32 V <- 5 - 5`) is zero here too.
  */
 
-import { ParseTreeWalker } from "antlr4ng";
+import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IDivisionByZeroError from "./types/IDivisionByZeroError";
 import LiteralUtils from "../../utils/LiteralUtils";
-import ExpressionUtils from "../../utils/ExpressionUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import ConstantExpression from "./helpers/ConstantExpression";
+import BoundDeclaration from "./helpers/BoundDeclaration";
 
 /**
- * First pass: Collect const declarations that are zero
- */
-class ConstZeroCollector extends CNextListener {
-  private readonly constZeros: Set<string> = new Set();
-
-  public getConstZeros(): Set<string> {
-    return this.constZeros;
-  }
-
-  /**
-   * Track const declarations
-   * variableDeclaration: atomicModifier? volatileModifier? constModifier? ...
-   */
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    // Only process const declarations
-    if (!ctx.constModifier()) {
-      return;
-    }
-
-    const identifier = ctx.IDENTIFIER();
-    if (!identifier) {
-      return;
-    }
-
-    const name = identifier.getText();
-    const expr = ctx.expression();
-    if (!expr) {
-      return;
-    }
-
-    // Check if the expression is a literal zero
-    const literal = ExpressionUtils.extractLiteral(expr);
-    if (literal && LiteralUtils.isZero(literal)) {
-      this.constZeros.add(name);
-    }
-  };
-}
-
-/**
- * Second pass: Detect division by zero (including const identifiers)
+ * Detect division by zero (including const identifiers)
  */
 class DivisionByZeroListener extends CNextListener {
   private readonly analyzer: DivisionByZeroAnalyzer;
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly constZeros: Set<string>;
 
   constructor(
     analyzer: DivisionByZeroAnalyzer,
-    constZeros: Set<string>,
     private readonly context: IAnalysisContext,
   ) {
     super();
     this.analyzer = analyzer;
-    this.constZeros = constZeros;
   }
 
   /**
@@ -138,21 +92,38 @@ class DivisionByZeroListener extends CNextListener {
       return LiteralUtils.isZero(literal);
     }
 
-    // Check if it's a const identifier that evaluates to zero. The local pass
-    // covers consts declared in this file (including function-local ones, which
-    // never reach the symbol table); CodeGenState covers the rest.
-    //
-    // Issue #1220: without the second half, `10 / ZERO` with an imported ZERO
-    // passed silently and emitted a real runtime division by zero.
+    // A const that is zero where it is used
     const identifier = primaryExpr.IDENTIFIER();
     if (identifier) {
-      const name = identifier.getText();
-      return (
-        this.constZeros.has(name) || this.context.program.constValue(name) === 0
-      );
+      return this.isConstZero(identifier.getText(), ctx);
     }
 
     return false;
+  }
+
+  /**
+   * Whether `name` binds, where it is used, to a const that is zero: a zero
+   * literal of any kind (`0`, `0u32`, `0.0`), or an integer that folds to 0
+   * (`5 - 5`). Through the one binder, so a local shadows as it does
+   * everywhere else and a const from an included file is found (#1220).
+   */
+  private isConstZero(name: string, at: ParserRuleContext): boolean {
+    const declared = BoundDeclaration.of(
+      this.context.program.bindValue(
+        this.context.sourceFile,
+        null,
+        name,
+        ParserUtils.getPosition(at),
+      ),
+    );
+    if (declared === null || !declared.isConst) return false;
+    if (
+      declared.initialValue !== null &&
+      LiteralUtils.isZeroText(declared.initialValue)
+    ) {
+      return true;
+    }
+    return ConstantExpression.visibleAt(at, this.context).get(name) === 0;
   }
 }
 
@@ -166,21 +137,11 @@ class DivisionByZeroAnalyzer {
   private errors: IDivisionByZeroError[] = [];
 
   /**
-   * Analyze the parse tree for division by zero
-   * Two-pass analysis:
-   * 1. Collect const declarations that are zero
-   * 2. Detect division/modulo by literal zero or const zero
+   * Analyze the parse tree for division/modulo by a literal or const zero
    */
   public analyze(tree: Parser.ProgramContext): IDivisionByZeroError[] {
     this.errors = [];
-
-    // First pass: collect const zeros
-    const collector = new ConstZeroCollector();
-    ParseTreeWalker.DEFAULT.walk(collector, tree);
-    const constZeros = collector.getConstZeros();
-
-    // Second pass: detect division by zero
-    const listener = new DivisionByZeroListener(this, constZeros, this.context);
+    const listener = new DivisionByZeroListener(this, this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
 
     return this.errors;

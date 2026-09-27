@@ -41,7 +41,8 @@ import type IProgram from "../../transpiler/types/IProgram";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
 import type IParameterInfo from "../../transpiler/types/symbols/IParameterInfo";
 import DeferredTypes from "./DeferredTypes";
-import LiteralUtils from "../../utils/LiteralUtils";
+import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
+import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import OpaqueTypeResolution from "../../utils/OpaqueTypeResolution";
 import SMALL_PRIMITIVES from "../../transpiler/constants/SMALL_PRIMITIVES";
 import TypeResolver from "../../utils/TypeResolver";
@@ -137,7 +138,6 @@ class Program {
     const settledByFile = Program.settleEveryFile(files, isScopeType);
     const derivedConsts = Program.deriveConstValues(settledByFile);
     const scopedViews = new Map<string, ReadonlyMap<string, number>>();
-    const constValues = derivedConsts.flat;
     const symbolsByFile = Program.resolveDimensions(
       settledByFile,
       (scopePath: string) =>
@@ -198,10 +198,8 @@ class Program {
       knownEnums: (): ReadonlySet<string> => knownEnums,
       externalStructFields: (): ReadonlyMap<string, ReadonlySet<string>> =>
         externalStructFields,
-      constValue: (name: string): number | undefined => constValues.get(name),
       constValueOfSymbol: (symbol: IVariableSymbol): number | undefined =>
-        Program.constValueOf(symbol),
-      constValues: (): ReadonlyMap<string, number> => constValues,
+        Program.derivedValueOf(derivedConsts, symbol),
       constValuesIn: (scopePath: string): ReadonlyMap<string, number> =>
         Program.constValuesIn(derivedConsts, scopedViews, scopePath),
       conflicts: (): ReadonlyArray<IConflict> => conflicts,
@@ -534,40 +532,85 @@ class Program {
   }
 
   /**
-   * Tier 2: external const values.
+   * Every const's integer value, folded once for the whole program.
    *
-   * "What is this const worth" is a whole-program question the moment a const
-   * can arrive through an include (#1220), so it is authored once, here, from
-   * every file's symbols. Keyed by BARE name, which is the question callers
-   * ask: "what does SIZE mean?", not "which symbol is this?" -- and, for a
-   * const declared inside a scope, by its C name as well (`Board__STEP`),
-   * which is the question `this.STEP` asks. #1322: the pass-0 collector this
-   * derivation replaced recorded both keys; the artifact recorded only the
-   * bare one, so two scopes each declaring a `STEP` shared one slot and
-   * `this.STEP` could not be told from the other scope's.
+   * A const's initializer folds with `ArrayDimensionParser.parseText`, the one
+   * evaluator, against what is visible where it is declared: file-scope consts,
+   * and inside a scope that scope's own over them (ADR-057's order). The fold
+   * repeats until nothing new folds, so neither declaration order nor file
+   * order decides whether `const B <- A * 2` has a value (#1668, C11: 1.3 and
+   * 1.4 folded integer literals only, and render re-folded the rest itself).
+   *
+   * A scoped const is keyed by its scope and by its C name (`Board__STEP`,
+   * the question `this.STEP` asks), never by its bare name at file scope.
+   * #1538: two scopes each declaring `N` shared that bare slot and the last
+   * one derived won, which sized one scope's array by the other's `N`.
    */
   private static deriveConstValues(
     settledByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
   ): IDerivedConsts {
     const flat = new Map<string, number>();
     const byScope = new Map<string, Map<string, number>>();
-    for (const settled of settledByFile.values()) {
-      for (const symbol of settled) {
-        const value = Program.constValueOf(symbol);
-        if (value === undefined) continue;
-        flat.set(symbol.name, value);
-        if (symbol.scopePath === "") continue;
-        flat.set(symbol.fullyQualifiedCName, value);
-        // Recorded by SCOPE as well, so "what is SIZE worth inside Small?" has
-        // an answer that does not depend on which scope was derived last. The
-        // flat bare key keeps its meaning for a file-scope const and for the
-        // cross-file lookups #1220 added.
-        const own = byScope.get(symbol.scopePath) ?? new Map<string, number>();
-        own.set(symbol.name, value);
-        byScope.set(symbol.scopePath, own);
+    let pending = [...settledByFile.values()]
+      .flat()
+      .filter(
+        (symbol): symbol is IVariableSymbol =>
+          symbol.kind === "variable" &&
+          symbol.isConst &&
+          symbol.initialValue !== undefined,
+      );
+    let folded = true;
+    while (folded && pending.length > 0) {
+      folded = false;
+      const unresolved: IVariableSymbol[] = [];
+      for (const symbol of pending) {
+        const own = byScope.get(symbol.scopePath);
+        const env =
+          symbol.scopePath === "" || own === undefined
+            ? flat
+            : new Map([...flat, ...own]);
+        const value = ArrayDimensionParser.parseText(symbol.initialValue!, {
+          constValues: env,
+          typeWidths: TYPE_WIDTH,
+        });
+        if (value === undefined) {
+          unresolved.push(symbol);
+          continue;
+        }
+        folded = true;
+        Program.recordConst(flat, byScope, symbol, value);
       }
+      pending = unresolved;
     }
     return { flat, byScope };
+  }
+
+  /** A folded const, under the keys its declaration answers to */
+  private static recordConst(
+    flat: Map<string, number>,
+    byScope: Map<string, Map<string, number>>,
+    symbol: IVariableSymbol,
+    value: number,
+  ): void {
+    if (symbol.scopePath === "") {
+      flat.set(symbol.name, value);
+      return;
+    }
+    flat.set(symbol.fullyQualifiedCName, value);
+    const own = byScope.get(symbol.scopePath) ?? new Map<string, number>();
+    own.set(symbol.name, value);
+    byScope.set(symbol.scopePath, own);
+  }
+
+  /** A const symbol's folded value, from where its declaration recorded it */
+  private static derivedValueOf(
+    derived: IDerivedConsts,
+    symbol: IVariableSymbol,
+  ): number | undefined {
+    if (!symbol.isConst) return undefined;
+    return symbol.scopePath === ""
+      ? derived.flat.get(symbol.name)
+      : derived.byScope.get(symbol.scopePath)?.get(symbol.name);
   }
 
   /**
@@ -752,59 +795,87 @@ class Program {
   }
 
   /**
-   * Integer value of one symbol, if it is a const variable with a literal
-   * integer initializer.
-   *
-   * The single derivation of "what is this const worth" (#1220 found it written
-   * twice and collapsed them). It lives here now because the question is
-   * cross-file: a const reached through an include is worth the same as one
-   * declared beside the use, and only 1.4 sees both.
-   */
-  private static constValueOf(symbol: TSymbol): number | undefined {
-    if (symbol.kind !== "variable" || !symbol.isConst) return undefined;
-    if (symbol.initialValue === undefined) return undefined;
-    return LiteralUtils.parseIntegerLiteral(symbol.initialValue);
-  }
-
-  /**
-   * A variable whose array dimensions name consts replaced by their values.
+   * A variable, a function's parameters or a struct's fields, with array
+   * dimensions that name consts replaced by their values.
    *
    * A dimension that is still an identifier makes the generated type
    * variably-modified, which MISRA C:2012 Rule 18.8 forbids, so this has to
    * happen before anything renders the type -- and it cannot happen in 1.3,
-   * because the const may be declared in another file.
+   * because the const may be declared in another file. Each dimension folds
+   * with the one evaluator, so `N+1` and `sizeof(u32)` settle here as they do
+   * in the .c; one a C macro names stays its text for the C compiler.
    *
-   * REBUILT, not mutated. The previous implementation cast the `readonly` view
-   * away and assigned in place, documented as "controlled mutation ...
-   * cloning would require updating all maps". That is no longer true: the maps
-   * are built here, after this runs, so there is nothing to keep in step and
-   * no reason to defeat the type.
+   * REBUILT, not mutated. Identity is preserved when nothing moved, so the
+   * common case allocates nothing and a consumer comparing by reference still
+   * sees one object.
    */
   private static withResolvedDimensions(
     symbol: TSymbol,
     constValues: ReadonlyMap<string, number>,
   ): TSymbol {
     if (
-      symbol.kind !== "variable" ||
-      !symbol.isArray ||
-      !symbol.arrayDimensions
+      symbol.kind === "variable" &&
+      symbol.isArray &&
+      symbol.arrayDimensions
     ) {
-      return symbol;
+      const dimensions = Program.resolvedDimensions(
+        symbol.arrayDimensions,
+        constValues,
+      );
+      return dimensions === symbol.arrayDimensions
+        ? symbol
+        : { ...(symbol as IVariableSymbol), arrayDimensions: dimensions };
     }
+    if (symbol.kind === "function") {
+      let changed = false;
+      const parameters = symbol.parameters.map((parameter) => {
+        if (!parameter.arrayDimensions) return parameter;
+        const dimensions = Program.resolvedDimensions(
+          parameter.arrayDimensions,
+          constValues,
+        );
+        if (dimensions === parameter.arrayDimensions) return parameter;
+        changed = true;
+        return { ...parameter, arrayDimensions: dimensions };
+      });
+      return changed ? { ...symbol, parameters } : symbol;
+    }
+    if (symbol.kind === "struct") {
+      let changed = false;
+      const fields = new Map(
+        [...symbol.fields].map(([name, field]) => {
+          if (!field.dimensions) return [name, field];
+          const dimensions = Program.resolvedDimensions(
+            field.dimensions,
+            constValues,
+          );
+          if (dimensions === field.dimensions) return [name, field];
+          changed = true;
+          return [name, { ...field, dimensions }];
+        }),
+      );
+      return changed ? { ...symbol, fields } : symbol;
+    }
+    return symbol;
+  }
 
+  /** Dimensions folded where they can be, or the same array when none moved */
+  private static resolvedDimensions(
+    dimensions: ReadonlyArray<number | string>,
+    constValues: ReadonlyMap<string, number>,
+  ): ReadonlyArray<number | string> {
     let changed = false;
-    const dimensions = symbol.arrayDimensions.map((dimension) => {
+    const resolved = dimensions.map((dimension) => {
       if (typeof dimension === "number") return dimension;
-      const value = constValues.get(dimension);
+      const value = ArrayDimensionParser.parseText(dimension, {
+        constValues,
+        typeWidths: TYPE_WIDTH,
+      });
       if (value === undefined) return dimension;
       changed = true;
       return value;
     });
-
-    // Identity is preserved when nothing moved, so the common case allocates
-    // nothing and a consumer comparing by reference still sees one object.
-    if (!changed) return symbol;
-    return { ...(symbol as IVariableSymbol), arrayDimensions: dimensions };
+    return changed ? resolved : dimensions;
   }
 }
 

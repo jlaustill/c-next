@@ -38,7 +38,6 @@ class ScopeCollector {
    * @param ctx The scope declaration context
    * @param sourceFile Source file path
    * @param knownBitmaps Set of known bitmap type names for register resolution
-   * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
    * @param isScopeType ADR-057: predicate answering whether a *qualified* name
    *                    is a type declared in a scope. Supplied by CNextResolver
    *                    from a pre-pass so the answer is complete before any
@@ -50,7 +49,6 @@ class ScopeCollector {
     ctx: Parser.ScopeDeclarationContext,
     sourceFile: string,
     knownBitmaps: Set<string>,
-    constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IScopeCollectorResult {
     const scopeName = ctx.IDENTIFIER().getText();
@@ -149,7 +147,6 @@ class ScopeCollector {
           sourceFile,
           scopePath,
           visibility,
-          constValues,
           isScopeType,
         );
         memberSymbols.push(varSymbol);
@@ -218,7 +215,6 @@ class ScopeCollector {
           sourceFile,
           scopePath,
           visibility,
-          constValues,
           isScopeType,
         );
         memberSymbols.push(structSymbol);

@@ -44,7 +44,6 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
-import OperandTyper from "../../utils/OperandTyper";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import ChainRoot from "../../utils/ChainRoot";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
@@ -160,11 +159,7 @@ class RegisterAccessListener extends CNextListener {
     // #1322 review: the flat map again -- and this one decides whether a
     // register write clears a `wo` bit, so the wrong scope's const changed
     // which diagnostic fired. `isFalseConst` below was already scope-aware.
-    const value = ConstantExpression.valueIn(
-      expr,
-      OperandTyper.scopePathAt(node, this.context),
-      this.context.program,
-    );
+    const value = ConstantExpression.valueAt(expr, this.context);
     if (value !== null) return value === 0;
     return this.isFalseConst(text, node);
   }

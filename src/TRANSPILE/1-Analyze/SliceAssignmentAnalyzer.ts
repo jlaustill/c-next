@@ -26,12 +26,11 @@
  *
  * ## Compile-time constants in pass 2.1
  *
- * The offset and length must fold at compile time. `CodeGenState.constValues`
- * is the codegen-time map -- filled during generation and cleared by `reset()`,
- * so an analyzer reading it sees the PREVIOUS file's consts (#1399). The
- * order-independent source is `Program`, which 1.4 Resolve settles and which
- * `CodeGenState.getCNextConstValue` already exposes for exactly this;
- * `DivisionByZeroAnalyzer` reads it the same way.
+ * The offset and length must fold at compile time. They fold with the const
+ * values visible where they are written, which 1.4 Resolve settles before any
+ * pass reads them (`ConstantExpression.valueAt`). A codegen-time map filled
+ * during generation saw the PREVIOUS file's consts (#1399); render no longer
+ * keeps one (#1664 box 7).
  */
 
 import { ParseTreeWalker } from "antlr4ng";
@@ -320,24 +319,13 @@ class SliceAssignmentListener {
   /**
    * A compile-time constant, or undefined.
    *
-   * `ArrayDimensionParser` is pure and takes its lookups as options, so it is
-   * bound here to the ORDER-INDEPENDENT const source rather than to
-   * `CodeGenState.constValues`, which does not exist yet when this pass runs.
-   */
-  /**
    * #1322 review: this asked the flat const map, whose bare key every scope
    * declaring that name shares. A slice bound named by a scoped const was
    * measured against whichever scope was derived last. `ConstantExpression`
-   * is the one evaluator now, and it asks from the enclosing scope.
+   * is the one evaluator now, and it asks from where the bound is written.
    */
   private constantOf(expr: Parser.ExpressionContext): number | undefined {
-    return (
-      ConstantExpression.valueIn(
-        expr,
-        OperandTyper.scopePathAt(expr, this.context),
-        this.context.program,
-      ) ?? undefined
-    );
+    return ConstantExpression.valueAt(expr, this.context) ?? undefined;
   }
 
   private report(

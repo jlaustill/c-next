@@ -18,13 +18,27 @@
 
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import type TranspileState from "../TranspileState";
+import type ISourcePosition from "../../utils/types/ISourcePosition";
+
+const NO_CONST_VALUES: ReadonlyMap<string, number> = new Map();
 
 /**
- * Build the constant-folding options for an array dimension from current state.
+ * The constant-folding options for a dimension folded at `at`: the const
+ * values visible there, as 1.4 settled them (#1664 box 7), and the type
+ * widths `sizeof` needs.
+ *
+ * Render held one mutable map per file instead, seeded with every const under
+ * its bare name and written as the walk passed a local const, so a local `N`
+ * in one function sized another's `u8[N]`. Empty for a render with no
+ * program behind it (a unit test that builds codegen state alone).
  */
-function dimensionEvalOptions(state: TranspileState) {
+function dimensionEvalOptions(state: TranspileState, at: ISourcePosition) {
+  const typing = state.typingContext();
   return {
-    constValues: state.constValues,
+    constValues:
+      typing === null
+        ? NO_CONST_VALUES
+        : typing.program.constValuesAt(typing.sourceFile, at),
     typeWidths: TYPE_WIDTH,
   };
 }

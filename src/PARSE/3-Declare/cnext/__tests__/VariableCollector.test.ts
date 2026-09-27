@@ -158,64 +158,55 @@ describe("VariableCollector", () => {
       expect(symbol.arrayDimensions).toEqual([4, 4]);
     });
 
-    it("resolves constant references in array dimensions (issue #455)", () => {
+    it("keeps a const-named dimension as text, for 1.4 to fold (#455, #1664 box 7)", () => {
       const code = `
         bool flags[DEVICE_COUNT];
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const constValues = new Map<string, number>([["DEVICE_COUNT", 4]]);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
         "",
         "public",
-        constValues,
       );
 
       expect(symbol.isArray).toBe(true);
-      expect(symbol.arrayDimensions).toEqual([4]);
+      expect(symbol.arrayDimensions).toEqual(["DEVICE_COUNT"]);
     });
 
-    it("resolves mixed literal and constant dimensions (issue #455)", () => {
+    it("keeps a const-named dimension as text beside a literal (#455)", () => {
       const code = `
         i32 matrix[ROWS][8];
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const constValues = new Map<string, number>([["ROWS", 4]]);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
         "",
         "public",
-        constValues,
       );
 
       expect(symbol.isArray).toBe(true);
-      expect(symbol.arrayDimensions).toEqual([4, 8]);
+      expect(symbol.arrayDimensions).toEqual(["ROWS", 8]);
     });
 
-    it("resolves multiple constant dimensions (issue #455)", () => {
+    it("keeps several const-named dimensions as text (#455)", () => {
       const code = `
         u16 data[WIDTH][HEIGHT];
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const constValues = new Map<string, number>([
-        ["WIDTH", 10],
-        ["HEIGHT", 20],
-      ]);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
         "",
         "public",
-        constValues,
       );
 
       expect(symbol.isArray).toBe(true);
-      expect(symbol.arrayDimensions).toEqual([10, 20]);
+      expect(symbol.arrayDimensions).toEqual(["WIDTH", "HEIGHT"]);
     });
 
     it("collects C-Next style array with dimensions in type (u8[8] arr)", () => {
@@ -252,23 +243,21 @@ describe("VariableCollector", () => {
       expect(symbol.arrayDimensions).toEqual([4, 4]);
     });
 
-    it("collects C-Next style array with const reference dimension", () => {
+    it("keeps a const reference in a C-Next style array as text", () => {
       const code = `
         u8[SIZE] buffer;
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const constValues = new Map<string, number>([["SIZE", 16]]);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
         "",
         "public",
-        constValues,
       );
 
       expect(symbol.isArray).toBe(true);
-      expect(symbol.arrayDimensions).toEqual([16]);
+      expect(symbol.arrayDimensions).toEqual(["SIZE"]);
     });
 
     it("preserves unresolved macro as string in C-Next style array", () => {

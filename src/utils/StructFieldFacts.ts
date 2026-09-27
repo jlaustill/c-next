@@ -55,35 +55,6 @@ class StructFieldFacts {
       ? undefined
       : symbols?.structFields.get(key)?.get(fieldName);
   }
-
-  /**
-   * The declared dimensions of one field.
-   *
-   * THREE states, and the difference between the last two is a diagnostic:
-   *
-   * | result      | meaning                                            |
-   * | ----------- | -------------------------------------------------- |
-   * | `[...]`     | an array field -- a subscript is an element         |
-   * | `[]`        | a field that EXISTS and is scalar -- `[0]` is a BIT |
-   * | `undefined` | nothing known -- never reject on no evidence        |
-   *
-   * The empty array is not the absent answer. `CompoundAssignmentAnalyzer`
-   * rejects `b.flags[0] +<- 1` (E0857) on the strength of `[]` and stays
-   * silent on `undefined`, so collapsing the two silences the diagnostic --
-   * which `tests/compound-assign/struct-field-bit-index-compound` exists to
-   * catch, and did.
-   */
-  static dimensionsOf(
-    symbols: ICodeGenSymbols | null,
-    structName: string,
-    fieldName: string,
-  ): readonly (number | string)[] | undefined {
-    const key = StructFieldFacts.keyFor(symbols, structName);
-    if (key === undefined) return undefined;
-    const dimensions = symbols?.structFieldDimensions.get(key)?.get(fieldName);
-    if (dimensions !== undefined) return dimensions;
-    return symbols?.structFields.get(key)?.has(fieldName) ? [] : undefined;
-  }
 }
 
 export default StructFieldFacts;

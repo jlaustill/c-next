@@ -24,19 +24,6 @@ class TypeText {
     const open = typeText.indexOf("[");
     return open < 0 ? typeText : typeText.slice(0, open);
   }
-
-  /**
-   * The contents of the FIRST `[...]`, trimmed, or null when the text has no
-   * complete bracket pair. `u8[4]` -> `"4"`; `u8[]` -> `""`, which is a
-   * declared-but-unsized dimension and not the same as absent.
-   */
-  static firstDimension(typeText: string): string | null {
-    const open = typeText.indexOf("[");
-    if (open < 0) return null;
-    const close = typeText.indexOf("]", open);
-    if (close < 0) return null;
-    return typeText.slice(open + 1, close).trim();
-  }
 }
 
 export default TypeText;

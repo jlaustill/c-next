@@ -34,7 +34,7 @@ import BareIdentifier from "./BareIdentifier";
  */
 interface IConstantEvalOptions {
   /** Map of const variable names to their numeric values */
-  constValues?: Map<string, number>;
+  constValues?: ReadonlyMap<string, number>;
   /** Map of type names to their bit widths (for sizeof) */
   typeWidths?: Record<string, number>;
 }

@@ -24,8 +24,11 @@ class DimensionResolver {
   /**
    * Resolve one array dimension expression.
    *
+   * No const values: a dimension naming a const keeps its text, and 1.4
+   * folds it in its declaration's lexical environment, once, for every kind of
+   * declaration (#1664 box 7). A literal or `sizeof` folds here.
+   *
    * @param sizeExpr The dimension expression
-   * @param constValues Const name -> value, as known at collection time
    * @returns The folded size, or the expression's source text when it does not
    *          fold at compile time. Never undefined: dropping a dimension loses
    *          the field's array-ness and shifts every dimension after it.
@@ -37,12 +40,8 @@ class DimensionResolver {
    *          header fails to compile. That hole is #1175; the evaluator folds
    *          the arithmetic forms that were hitting it in practice.
    */
-  static resolve(
-    sizeExpr: Parser.ExpressionContext,
-    constValues?: Map<string, number>,
-  ): number | string {
+  static resolve(sizeExpr: Parser.ExpressionContext): number | string {
     const folded = ArrayDimensionParser.parseSingleDimension(sizeExpr, {
-      constValues,
       typeWidths: TYPE_WIDTH,
     });
     return folded ?? sizeExpr.getText();

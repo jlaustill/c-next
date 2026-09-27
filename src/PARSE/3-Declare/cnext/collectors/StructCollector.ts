@@ -48,7 +48,6 @@ interface IArrayTypeResult {
  */
 function processArrayTypeSyntax(
   arrayTypeCtx: Parser.ArrayTypeContext | null | undefined,
-  constValues?: Map<string, number>,
 ): IArrayTypeResult {
   if (!arrayTypeCtx) {
     return { isArray: false, dimensions: undefined };
@@ -72,7 +71,7 @@ function processArrayTypeSyntax(
     }
     // Always a number or the source text -- never undefined -- so every slot
     // is filled and positions are preserved.
-    dimensions.push(tryResolveExpressionDimension(sizeExpr, constValues));
+    dimensions.push(tryResolveExpressionDimension(sizeExpr));
   }
 
   return { isArray: true, dimensions };
@@ -85,7 +84,6 @@ function processStringField(
   stringCtx: Parser.StringTypeContext,
   arrayDims: Parser.ArrayDimensionContext[],
   dimensions: (number | string)[],
-  constValues?: Map<string, number>,
 ): boolean {
   const intLiteral = stringCtx.INTEGER_LITERAL();
   if (!intLiteral) {
@@ -96,7 +94,7 @@ function processStringField(
 
   // If there are array dimensions, they come BEFORE string capacity
   if (arrayDims.length > 0) {
-    parseArrayDimensions(arrayDims, dimensions, constValues);
+    parseArrayDimensions(arrayDims, dimensions);
   }
   // String capacity becomes final dimension (+1 for null terminator)
   dimensions.push(capacity + 1);
@@ -109,9 +107,8 @@ function processStringField(
  */
 function tryResolveExpressionDimension(
   sizeExpr: Parser.ExpressionContext,
-  constValues?: Map<string, number>,
 ): number | string {
-  return DimensionResolver.resolve(sizeExpr, constValues);
+  return DimensionResolver.resolve(sizeExpr);
 }
 
 /**
@@ -120,12 +117,11 @@ function tryResolveExpressionDimension(
 function parseArrayDimensions(
   arrayDims: Parser.ArrayDimensionContext[],
   dimensions: (number | string)[],
-  constValues?: Map<string, number>,
 ): void {
   for (const dim of arrayDims) {
     const sizeExpr = dim.expression();
     if (sizeExpr) {
-      dimensions.push(tryResolveExpressionDimension(sizeExpr, constValues));
+      dimensions.push(tryResolveExpressionDimension(sizeExpr));
     }
   }
 }
@@ -154,7 +150,6 @@ class StructCollector {
    * @param ctx The struct declaration context
    * @param sourceFile Source file path
    * @param scopePath The path of the scope this struct belongs to (dotted path, "" at file scope)
-   * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
    * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
    * @returns The struct symbol with TType-based types and scope reference
    */
@@ -163,7 +158,6 @@ class StructCollector {
     sourceFile: string,
     scopePath: string,
     visibility: TVisibility,
-    constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IStructSymbol {
     const name = ctx.IDENTIFIER().getText();
@@ -184,7 +178,6 @@ class StructCollector {
         fieldName,
         { scopedName: ownerScopedName, sourceFile, visibility, span },
         scopePath,
-        constValues,
         isScopeType,
       );
       fields.set(fieldName, fieldInfo);
@@ -220,7 +213,6 @@ class StructCollector {
     fieldName: string,
     owner: IFieldOwner,
     scopePath = "",
-    constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IStructFieldSymbol {
     const typeCtx = member.type();
@@ -235,10 +227,7 @@ class StructCollector {
     let isArray = false;
 
     // Check for C-Next style arrayType syntax: Item[3] items -> typeCtx.arrayType()
-    const arrayTypeResult = processArrayTypeSyntax(
-      typeCtx.arrayType(),
-      constValues,
-    );
+    const arrayTypeResult = processArrayTypeSyntax(typeCtx.arrayType());
     if (arrayTypeResult.isArray) {
       isArray = true;
       if (arrayTypeResult.dimensions !== undefined) {
@@ -255,7 +244,6 @@ class StructCollector {
         typeCtx.stringType()!,
         arrayDims,
         dimensions,
-        constValues,
       );
       if (stringHandled) {
         isArray = true;
@@ -263,7 +251,7 @@ class StructCollector {
     } else if (arrayDims.length > 0) {
       // Non-string array
       isArray = true;
-      parseArrayDimensions(arrayDims, dimensions, constValues);
+      parseArrayDimensions(arrayDims, dimensions);
     }
 
     return {

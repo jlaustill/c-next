@@ -280,6 +280,32 @@ describe("LiteralUtils", () => {
   // isFloatZero (Issue #1010)
   // ========================================================================
 
+  // #1664 box 7: zero by value, from text -- a const's initializer has no
+  // parse node when it is declared in another file
+  describe("isZeroText", () => {
+    it.each([
+      ["0", true],
+      ["00", true],
+      ["0x00", true],
+      ["0x00u8", true],
+      ["0b000i16", true],
+      ["0u32", true],
+      ["0.0", true],
+      ["0.0f32", true],
+      ["0e0", true],
+      ["-0", true],
+      ["0x10", false],
+      ["0x0Fu8", false],
+      ["10u8", false],
+      ["0.5f64", false],
+      ["false", false],
+      ["'\\0'", false],
+      ['"0"', false],
+    ])("isZeroText(%s) is %s", (text, expected) => {
+      expect(LiteralUtils.isZeroText(text)).toBe(expected);
+    });
+  });
+
   describe("isFloatZero - static method (Issue #1010)", () => {
     it("should return true for 0.0", () => {
       expect(LiteralUtils.isFloatZero("0.0")).toBe(true);

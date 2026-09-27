@@ -594,9 +594,6 @@ class TranspileState {
   // TYPE TRACKING
   // ===========================================================================
 
-  /** Bug #8: Compile-time const values for array size resolution */
-  constValues: Map<string, number> = new Map();
-
   // ===========================================================================
   // FUNCTION & CALLBACK TRACKING
   // ===========================================================================
@@ -1317,13 +1314,6 @@ class TranspileState {
   // ===========================================================================
 
   /**
-   * Register a const value.
-   */
-  registerConstValue(name: string, value: number): void {
-    this.constValues.set(name, value);
-  }
-
-  /**
    * Enter a scope by its DOTTED PATH.
    *
    * The parameter is a path (`Outer.Inner`), not a leaf, because that is what
@@ -1394,8 +1384,7 @@ class TranspileState {
    * Record that a shadowing local is emitted under a different C identifier.
    *
    * Keyed on the BARE name because that is what every reference in the source
-   * says and what every registry (`localVariables`,
-   * `constValues`) is keyed by. Only the emitted text moves.
+   * says and what `localVariables` is keyed by. Only the emitted text moves.
    */
   registerLocalRename(name: string, emittedName: string): void {
     this.localRenames.set(name, emittedName);
@@ -1554,7 +1543,6 @@ class TranspileState {
     // box 5); there is no `clear()` to call.
 
     // Type tracking
-    this.constValues = new Map();
 
     // Function & callback tracking
     this.knownFunctions = new Set();

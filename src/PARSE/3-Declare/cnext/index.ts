@@ -11,7 +11,6 @@ import ScopeUtils from "../../../utils/ScopeUtils";
 import TSymbol from "../../../transpiler/types/symbols/TSymbol";
 import IFileSymbols from "../../../transpiler/types/IFileSymbols";
 import SymbolRegistry from "../SymbolRegistry";
-import LiteralUtils from "../../../utils/LiteralUtils";
 import BitmapCollector from "./collectors/BitmapCollector";
 import EnumCollector from "./collectors/EnumCollector";
 import StructCollector from "./collectors/StructCollector";
@@ -19,7 +18,6 @@ import FunctionCollector from "./collectors/FunctionCollector";
 import VariableCollector from "./collectors/VariableCollector";
 import RegisterCollector from "./collectors/RegisterCollector";
 import ScopeCollector from "./collectors/ScopeCollector";
-import QualifiedCName from "../../../utils/QualifiedCName";
 import TYPE_FORMING_KINDS from "../TYPE_FORMING_KINDS";
 import TSymbolKindCNext from "../../../transpiler/types/symbol-kinds/TSymbolKindCNext";
 
@@ -56,10 +54,11 @@ class CNextResolver {
   ): IFileSymbols {
     const symbols: TSymbol[] = [];
     const knownBitmaps = new Set<string>();
-    const constValues = new Map<string, number>();
-
-    // Pass 0: Collect const values (needed for resolving array dimensions)
-    CNextResolver.collectConstValuesPass0(tree, constValues);
+    // There is no const pass. A dimension naming a const keeps its text here
+    // and 1.4 folds it, once, with the consts visible where it is declared:
+    // the scope's own over file scope's, and a block's locals over both
+    // (#1664 box 7). A fold here saw one file, one bare key for every scope
+    // (#1538), and no local at all.
 
     // Pass 0b: Collect the qualified names of every type declared inside a
     // scope (ADR-057). This must complete before any type is resolved, so that
@@ -100,7 +99,6 @@ class CNextResolver {
       sourceFile,
       symbols,
       knownBitmaps,
-      constValues,
       isScopeType,
     );
 
@@ -111,101 +109,18 @@ class CNextResolver {
       sourceFile,
       symbols,
       knownBitmaps,
-      constValues,
       isScopeType,
     );
 
-    // #1668: the lexical frames, over the same const values and ADR-057
-    // predicate the symbols were collected with.
+    // #1668: the lexical frames, over the same ADR-057 predicate the symbols
+    // were collected with.
     const lexicalScopes = LexicalScopeCollector.collect(
       tree,
       registry,
-      constValues,
       isScopeType,
     );
 
     return { sourceFile, symbols, declaredScopeTypes, lexicalScopes };
-  }
-
-  /**
-   * Pass 0: Collect const values for resolving array dimensions.
-   * Only collects simple integer literals - complex expressions are not supported.
-   */
-  private static collectConstValuesPass0(
-    tree: Parser.ProgramContext,
-    constValues: Map<string, number>,
-  ): void {
-    for (const decl of tree.declaration()) {
-      // Top-level const variables
-      if (decl.variableDeclaration()) {
-        CNextResolver._collectConstFromVar(
-          decl.variableDeclaration()!,
-          undefined,
-          constValues,
-        );
-      }
-
-      // Const variables inside scopes
-      if (decl.scopeDeclaration()) {
-        CNextResolver._collectConstFromScope(
-          decl.scopeDeclaration()!,
-          constValues,
-        );
-      }
-    }
-  }
-
-  /**
-   * Collect const value from a single variable declaration
-   */
-  private static _collectConstFromVar(
-    varCtx: Parser.VariableDeclarationContext,
-    scopeName: string | undefined,
-    constValues: Map<string, number>,
-  ): void {
-    if (!varCtx.constModifier()) return;
-
-    const exprCtx = varCtx.expression();
-    if (!exprCtx) return;
-
-    const value = LiteralUtils.parseIntegerLiteral(exprCtx.getText());
-    if (value === undefined) return;
-
-    const name = varCtx.IDENTIFIER().getText();
-    constValues.set(name, value);
-
-    // Store scoped name as well for scoped variables.
-    // #1295: this is NOT the defect the three scope collections had, although
-    // this comment used to claim kinship with them. They held an `IScopeSymbol`
-    // carrying the whole chain in `cnxScopedName` and threw it away by taking
-    // `.name` -- information present and discarded -- and are now keyed by that
-    // identity. Here the key is built from a parse-tree identifier, and
-    // `scopeMember` (grammar/CNext.g4:81-88) admits no `scopeDeclaration`, a
-    // prohibition ADR-016 states permanently (#1306). So `scopeDecl.IDENTIFIER()`
-    // IS the whole path: there is no richer path at this site, and the symbol
-    // model that makes depth two reachable for those collections never feeds it.
-    if (scopeName) {
-      constValues.set(QualifiedCName.fromParts([scopeName, name]), value);
-    }
-  }
-
-  /**
-   * Collect const values from all variables in a scope
-   */
-  private static _collectConstFromScope(
-    scopeDecl: Parser.ScopeDeclarationContext,
-    constValues: Map<string, number>,
-  ): void {
-    const scopeName = scopeDecl.IDENTIFIER().getText();
-    for (const member of scopeDecl.scopeMember()) {
-      if (member.variableDeclaration()) {
-        CNextResolver._collectConstFromVar(
-          member.variableDeclaration()!,
-          scopeName,
-          constValues,
-        );
-      }
-    }
   }
 
   /**
@@ -305,7 +220,6 @@ class CNextResolver {
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
-    constValues: Map<string, number>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
     // #1298: file scope is the empty path; the global scope object itself is
@@ -335,7 +249,6 @@ class CNextResolver {
           sourceFile,
           symbols,
           knownBitmaps,
-          constValues,
           isScopeType,
         );
       }
@@ -352,7 +265,6 @@ class CNextResolver {
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
-    constValues: Map<string, number>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
     const scopeName = scopeDecl.IDENTIFIER().getText();
@@ -388,7 +300,6 @@ class CNextResolver {
           sourceFile,
           scopePath,
           visibility,
-          constValues,
           isScopeType,
         );
         symbols.push(symbol);
@@ -406,7 +317,6 @@ class CNextResolver {
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
-    constValues: Map<string, number>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
     for (const decl of tree.declaration()) {
@@ -421,7 +331,6 @@ class CNextResolver {
         sourceFile,
         symbols,
         knownBitmaps,
-        constValues,
         isScopeType,
       );
     }
@@ -439,7 +348,6 @@ class CNextResolver {
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
-    constValues: Map<string, number>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
     // #1298: file scope is the empty path.
@@ -453,7 +361,6 @@ class CNextResolver {
         sourceFile,
         symbols,
         knownBitmaps,
-        constValues,
         isScopeType,
       );
       return;
@@ -466,7 +373,6 @@ class CNextResolver {
         sourceFile,
         globalScopePath,
         ScopeUtils.getTopLevelVisibility(),
-        constValues,
       );
       symbols.push(symbol);
       return;
@@ -522,7 +428,6 @@ class CNextResolver {
         sourceFile,
         globalScopePath,
         ScopeUtils.getTopLevelVisibility(),
-        constValues,
       );
       symbols.push(symbol);
     }
@@ -537,7 +442,6 @@ class CNextResolver {
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
-    constValues: Map<string, number>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
     const result = ScopeCollector.collect(
@@ -545,7 +449,6 @@ class CNextResolver {
       scopeCtx,
       sourceFile,
       knownBitmaps,
-      constValues,
       isScopeType,
     );
 

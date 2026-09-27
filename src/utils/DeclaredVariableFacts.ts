@@ -135,38 +135,7 @@ class DeclaredVariableFacts {
       stringCapacity,
     };
   }
-  /**
-   * Declared type text of a C-Next variable as the SymbolTable records it --
-   * the same spelling a declaration in THIS file puts in a scope frame
-   * ("u32", "f32", "u8[4]").
-   *
-   * Issue #1220: the essential-type analyzers resolve a name against the
-   * lexical scope frames first and fall back to here, so a declaration that
-   * arrives through an #include is as visible to them as a local one. Without
-   * it, E0800/E0802/E0804/E0805/E0807/E0810 all passed silently the moment
-   * their operand crossed a file boundary.
-   *
-   * Deliberately does NOT consult the per-file typeRegistry. That map is
-   * cleared by CodeGenerator.generate(), which runs AFTER the analyzers, so
-   * during analysis it still holds the PREVIOUS file's variables and would
-   * answer for a name the current file never imported.
-   */
-  static typeNameOf(symbolTable: SymbolTable, name: string): string | null {
-    const symbol = DeclaredVariableFacts.symbolOf(symbolTable, name);
-    // #1668: a C header variable answers through the same fallback as
-    // `typeInfoOf`, so 2.1 and 2.2 read one type for it.
-    if (!symbol) return ForeignTypeFacts.variableType(symbolTable, name);
-    // #1322: WITH its dimensions. `IDeclaredVar.typeText` records `u32[4]` for
-    // a lexical declaration, and every chain walk reads array-ness off the type
-    // text, so the run-wide fallback has to say the same thing or an imported
-    // array reads as a scalar -- which is how `sharedArray.element_count`
-    // across an include was rejected while the same line in-file was accepted.
-    // The join matches the lexical spelling on purpose: one encoding, read by
-    // one `elementType`, whichever source answered.
-    const base = TypeResolver.getTypeName(symbol.type);
-    const dimensions = symbol.arrayDimensions ?? [];
-    return base + dimensions.map((d) => `[${d}]`).join("");
-  }
+
   /**
    * What a variable's type is according to what the program DECLARES -- the
    * answer that does not depend on which file has been generated.

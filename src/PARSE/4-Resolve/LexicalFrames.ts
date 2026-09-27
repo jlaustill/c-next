@@ -11,6 +11,7 @@
  * parse, so a node's position is the same in every pass.
  */
 import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
+import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import DeferredTypes from "./DeferredTypes";
 import type ILexicalFrame from "../../transpiler/types/ILexicalFrame";
 import type ILocalDeclaration from "../../transpiler/types/ILocalDeclaration";
@@ -169,8 +170,10 @@ class LexicalFrames {
   ): ILocalDeclaration {
     const arrayDimensions = declaration.arrayDimensions.map((dimension) =>
       typeof dimension === "string" && dimension !== ""
-        ? (ArrayDimensionParser.parseText(dimension, { constValues: env }) ??
-          dimension)
+        ? (ArrayDimensionParser.parseText(dimension, {
+            constValues: env,
+            typeWidths: TYPE_WIDTH,
+          }) ?? dimension)
         : dimension,
     );
     const constValue =
@@ -179,6 +182,7 @@ class LexicalFrames {
       arrayDimensions.length === 0
         ? (ArrayDimensionParser.parseText(declaration.initialValue, {
             constValues: env,
+            typeWidths: TYPE_WIDTH,
           }) ?? null)
         : null;
     return Object.freeze({

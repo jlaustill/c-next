@@ -214,11 +214,6 @@ describe("TranspileState", () => {
   });
 
   describe("Type Registration Helpers", () => {
-    it("registerConstValue adds to constValues", () => {
-      state.registerConstValue("MY_CONST", 42);
-      expect(state.constValues.get("MY_CONST")).toBe(42);
-    });
-
     it("registerLocalVariable adds to localVariables", () => {
       state.registerLocalVariable("localVar");
       expect(state.localVariables.has("localVar")).toBe(true);

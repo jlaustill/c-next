@@ -1,0 +1,24 @@
+// test-execution
+// #1322 review / #1538: a scoped const sizes its own scope's array, so both
+// counted initializers are exact, whichever scope is declared first. The
+// emitted size came from the shared bare key: one table was `[8]` with two
+// initializers (MISRA C:2012 Rule 9.3) or `[2]` read at index 7.
+scope Large {
+    private const u8 SIZE <- 8;
+    public u8[SIZE] table <- [1, 2, 3, 4, 5, 6, 7, 8];
+}
+
+scope Small {
+    private const u8 SIZE <- 2;
+    public u8[SIZE] table <- [1, 2];
+}
+
+u32 main() {
+    u8 small <- Small.table[1];
+    if (small != 2) return 1;
+    u8 large <- Large.table[7];
+    if (large != 8) return 2;
+    u32 count <- Small.table.element_count;
+    if (count != 2) return 3;
+    return 0;
+}

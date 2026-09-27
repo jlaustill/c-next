@@ -393,14 +393,11 @@ class StringDeclarationListener extends CNextListener {
   /**
    * #1322 review: the flat const map answers "whichever scope declared this
    * name last". A string index or slice bound named by a scoped const was
-   * measured against the wrong one; `ConstantExpression` asks from here.
+   * measured against the wrong one; `ConstantExpression` asks from where the
+   * bound is written, locals included.
    */
   private constantOf(expr: Parser.ExpressionContext): number | null {
-    return ConstantExpression.valueIn(
-      expr,
-      OperandTyper.scopePathAt(expr, this.context),
-      this.context.program,
-    );
+    return ConstantExpression.valueAt(expr, this.context);
   }
 
   private report(

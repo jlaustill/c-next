@@ -3,6 +3,9 @@ import parse from "../../3-Declare/cnext/__tests__/testHelpers";
 import CNextResolver from "../../3-Declare/cnext/index";
 import Program from "../Program";
 import SymbolGuards from "../../../transpiler/types/symbols/SymbolGuards";
+import type IVariableSymbol from "../../../transpiler/types/symbols/IVariableSymbol";
+import type IStructSymbol from "../../../transpiler/types/symbols/IStructSymbol";
+import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
 import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 import TypeResolver from "../../../utils/TypeResolver";
 import type IFileSymbols from "../../../transpiler/types/IFileSymbols";
@@ -179,30 +182,33 @@ describe("Program", () => {
 
       const program = Program.build([lib, use]);
 
-      expect(program.constValue("SIZE")).toBe(4);
-      expect(program.constValues().get("SIZE")).toBe(4);
+      expect(program.constValuesIn("").get("SIZE")).toBe(4);
     });
 
-    it("keys a scope's const by its C name as well as its bare name (#1322)", () => {
+    it("keys a scope's const by its C name, and by its bare name only in its own scope (#1322, #1538)", () => {
       // `this.STEP` inside `Board` asks for `Board__STEP`; the bare `STEP` is
       // what a dimension written as `STEP` inside the scope asks for. Two
-      // scopes declaring the same bare name must not share one slot.
+      // scopes declaring the same bare name must not share one slot, and
+      // neither's bare name is a file-scope const.
       const lib = declare(
         `scope Board {\n    const u8 STEP <- 12;\n}\nscope Other {\n    const u8 STEP <- 3;\n}`,
         "lib.cnx",
       );
       const program = Program.build([lib]);
 
-      expect(program.constValue("Board__STEP")).toBe(12);
-      expect(program.constValue("Other__STEP")).toBe(3);
+      expect(program.constValuesIn("").get("Board__STEP")).toBe(12);
+      expect(program.constValuesIn("").get("Other__STEP")).toBe(3);
+      expect(program.constValuesIn("Board").get("STEP")).toBe(12);
+      expect(program.constValuesIn("Other").get("STEP")).toBe(3);
+      expect(program.constValuesIn("").has("STEP")).toBe(false);
     });
 
     it("is undefined for a non-const and for an unknown name", () => {
       const lib = declare(`u32 mutable <- 4;`, "lib.cnx");
       const program = Program.build([lib]);
 
-      expect(program.constValue("mutable")).toBeUndefined();
-      expect(program.constValue("nothingCalledThis")).toBeUndefined();
+      expect(program.constValuesIn("").has("mutable")).toBe(false);
+      expect(program.constValuesIn("").has("nothingCalledThis")).toBe(false);
     });
   });
 
@@ -235,6 +241,59 @@ describe("Program", () => {
         expect(rebuilt.arrayDimensions).toEqual(["SOME_MACRO"]);
       }
       expect(rebuilt).toBe(declared);
+    });
+
+    // #1664 box 7: 1.4 is the one place a const-named dimension folds, for
+    // every kind of declaration, with the consts visible where it is written
+    const dimensionsOf = (source: string, name: string) => {
+      const symbol = find(
+        Program.build([declare(source, "a.cnx")]).symbolsInFile("a.cnx"),
+        name,
+      );
+      expect(SymbolGuards.isVariable(symbol)).toBe(true);
+      return (symbol as IVariableSymbol).arrayDimensions;
+    };
+
+    it("folds a const derived from another const, in either order", () => {
+      expect(
+        dimensionsOf(`const u32 A <- 4;\nconst u32 B <- A;\nu8[B] g;`, "g"),
+      ).toEqual([4]);
+      expect(
+        dimensionsOf(`u8[B] g;\nconst u32 B <- A;\nconst u32 A <- 4;`, "g"),
+      ).toEqual([4]);
+    });
+
+    it("folds a scope member's dimension with its own scope's const (#1538)", () => {
+      const twoScopes = (first: string, second: string) =>
+        [first, second].join("\n");
+      const small = "scope Small {\nconst u8 N <- 2;\npublic u8[N] t;\n}";
+      const big = "scope Big {\nconst u8 N <- 10;\npublic u8[N] b;\n}";
+      for (const source of [twoScopes(small, big), twoScopes(big, small)]) {
+        expect(dimensionsOf(source, "t")).toEqual([2]);
+        expect(dimensionsOf(source, "b")).toEqual([10]);
+      }
+    });
+
+    it("folds a struct field's dimension", () => {
+      const program = Program.build([
+        declare(`const u32 A <- 4;\nstruct P {\n  u8[A] data;\n}`, "a.cnx"),
+      ]);
+      const struct = find(program.symbolsInFile("a.cnx"), "P");
+      expect(SymbolGuards.isStruct(struct)).toBe(true);
+      expect((struct as IStructSymbol).fields.get("data")?.dimensions).toEqual([
+        4,
+      ]);
+    });
+
+    it("folds a parameter's dimension", () => {
+      const program = Program.build([
+        declare(`const u32 A <- 4;\nvoid f(u8[A] buf) {\n}`, "a.cnx"),
+      ]);
+      const fn = find(program.symbolsInFile("a.cnx"), "f");
+      expect(SymbolGuards.isFunction(fn)).toBe(true);
+      expect((fn as IFunctionSymbol).parameters[0].arrayDimensions).toEqual([
+        4,
+      ]);
     });
   });
 
@@ -411,9 +470,7 @@ describe("Program", () => {
         "cnxIncludeRewrites",
         "codeGenSymbolsFor",
         "conflicts",
-        "constValue",
         "constValueOfSymbol",
-        "constValues",
         "constValuesAt",
         "constValuesIn",
         "externalStructFields",

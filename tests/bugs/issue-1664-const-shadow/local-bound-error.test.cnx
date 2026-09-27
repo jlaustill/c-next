@@ -1,0 +1,22 @@
+// test-error
+// #1664 box 7: ADR-036 bounds a subscript by the array's own size, folded
+// where it is declared. The analyzer asked the enclosing scope for `N`, never
+// the local `const N <- 2`, so `buf` was bounded by the global's 8 and
+// `buf[5]` passed against a two-element array.
+const u32 N <- 8;
+
+u32 f() {
+    const u32 N <- 2;
+    u8[N] buf;
+    // NEGATIVE CONTROL: in bounds of [2]
+    buf[1] <- 1;
+    // ASSERTION: out of bounds of [2], though in bounds of the global's [8]
+    buf[5] <- 1;
+    u32 v <- buf[1];
+    return v;
+}
+
+u32 main() {
+    u32 r <- f();
+    return r;
+}

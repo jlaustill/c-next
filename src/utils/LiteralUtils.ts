@@ -7,73 +7,43 @@
 
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 
+/** A float literal as the grammar spells one, with its optional suffix */
+const FLOAT_LITERAL =
+  /^(?:\d+\.\d+(?:[eE][+-]?\d+)?|\d+[eE][+-]?\d+)(?:[fF](?:32|64))?$/;
+
 /**
  * Static utility methods for literal analysis
  */
 class LiteralUtils {
   /**
-   * Check if a literal represents zero.
-   *
-   * Handles all C-Next literal formats:
-   * - Integer: 0
-   * - Hex: 0x0, 0X0
-   * - Binary: 0b0, 0B0
-   * - Suffixed decimal: 0u8, 0i32, etc.
-   * - Suffixed hex: 0x0u8, 0x0i32, etc.
-   * - Suffixed binary: 0b0u8, 0b0i32, etc.
+   * Check if a literal represents zero, in any C-Next literal format
+   * (decimal, hex, binary, float, each with or without a suffix).
    *
    * @param ctx - The literal context from the parse tree
    * @returns true if the literal is zero
    */
   static isZero(ctx: Parser.LiteralContext): boolean {
-    const text = ctx.getText();
+    return LiteralUtils.isZeroText(ctx.getText());
+  }
 
-    // Integer literal: exactly "0"
-    if (ctx.INTEGER_LITERAL()) {
-      return text === "0";
-    }
-
-    // Hex literal: 0x0 or 0X0
-    if (ctx.HEX_LITERAL()) {
-      return text === "0x0" || text === "0X0";
-    }
-
-    // Binary literal: 0b0 or 0B0
-    if (ctx.BINARY_LITERAL()) {
-      return text === "0b0" || text === "0B0";
-    }
-
-    // Suffixed decimal: 0u8, 0i32, etc.
-    if (ctx.SUFFIXED_DECIMAL()) {
-      return text.startsWith("0u") || text.startsWith("0i");
-    }
-
-    // Suffixed hex: 0x0u8, 0x0i32, etc.
-    if (ctx.SUFFIXED_HEX()) {
-      return (
-        text.startsWith("0x0u") ||
-        text.startsWith("0x0i") ||
-        text.startsWith("0X0u") ||
-        text.startsWith("0X0i")
-      );
-    }
-
-    // Suffixed binary: 0b0u8, 0b0i32, etc.
-    if (ctx.SUFFIXED_BINARY()) {
-      return (
-        text.startsWith("0b0u") ||
-        text.startsWith("0b0i") ||
-        text.startsWith("0B0u") ||
-        text.startsWith("0B0i")
-      );
-    }
-
-    // Issue #1010: Float literals (0.0, 0.0f, .0, etc.)
-    if (ctx.FLOAT_LITERAL()) {
-      return LiteralUtils.isFloatZero(text);
-    }
-
-    return false;
+  /**
+   * Whether a numeric literal's text is zero, by its VALUE rather than its
+   * spelling -- for a node's text, and for a const's initializer, which
+   * arrives as text from a declaration that may be in another file (#1664
+   * box 7). The spelling test this replaced missed `00`, `0x00`, `0x00u8`
+   * and every suffixed float (`0.0f32`). Anything that is not a numeric
+   * literal (a string, a char, `false`) is not zero.
+   */
+  static isZeroText(text: string): boolean {
+    const trimmed = text.trim();
+    const integer = LiteralUtils.parseIntegerLiteral(
+      trimmed.replace(/[uUiI](?:8|16|32|64)$/, ""),
+    );
+    if (integer !== undefined) return integer === 0;
+    return (
+      FLOAT_LITERAL.test(trimmed) &&
+      LiteralUtils.isFloatZero(trimmed.replace(/[fF](?:32|64)$/, ""))
+    );
   }
 
   /**

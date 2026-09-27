@@ -57,25 +57,14 @@ class VariableCollector {
    */
   private static resolveDimension(
     dim: Parser.ArrayDimensionContext,
-    constValues: Map<string, number> | undefined,
     initExpr: Parser.ExpressionContext | null,
   ): number | string | undefined {
     const sizeExpr = dim.expression();
 
+    // A literal folds here; a const or a C macro keeps its text (#455), and
+    // 1.4 folds a const where the declaration is written (#1664 box 7)
     if (sizeExpr) {
-      const dimText = sizeExpr.getText();
-      // Try parsing as literal number first
-      const literalSize = Number.parseInt(dimText, 10);
-      if (!Number.isNaN(literalSize)) {
-        return literalSize;
-      }
-      // Issue #455: Resolve constant reference to its value
-      if (constValues?.has(dimText)) {
-        return constValues.get(dimText)!;
-      }
-      // Issue #455: Store original text for unresolved dimensions
-      // This handles C macros from included headers (e.g., DEVICE_COUNT)
-      return dimText;
+      return DimensionResolver.resolve(sizeExpr);
     }
 
     // Issue #636: Empty dimension [] - infer size from array initializer
@@ -91,17 +80,12 @@ class VariableCollector {
    */
   private static collectArrayDimensions(
     arrayDims: Parser.ArrayDimensionContext[],
-    constValues: Map<string, number> | undefined,
     initExpr: Parser.ExpressionContext | null,
   ): (number | string)[] {
     const dimensions: (number | string)[] = [];
 
     for (const dim of arrayDims) {
-      const resolved = VariableCollector.resolveDimension(
-        dim,
-        constValues,
-        initExpr,
-      );
+      const resolved = VariableCollector.resolveDimension(dim, initExpr);
       if (resolved !== undefined) {
         dimensions.push(resolved);
       }
@@ -116,7 +100,6 @@ class VariableCollector {
    */
   private static collectArrayTypeDimensions(
     arrayTypeCtx: Parser.ArrayTypeContext,
-    constValues: Map<string, number> | undefined,
     initExpr: Parser.ExpressionContext | null,
   ): (number | string)[] {
     const dimensions: (number | string)[] = [];
@@ -140,7 +123,7 @@ class VariableCollector {
       // C-Next type name in generated C, which does not compile -- while the
       // .c correctly said [4]. Text that does not fold is still kept, for macro and
       // enum references.
-      dimensions.push(DimensionResolver.resolve(sizeExpr, constValues));
+      dimensions.push(DimensionResolver.resolve(sizeExpr));
     }
     return dimensions;
   }
@@ -157,7 +140,6 @@ class VariableCollector {
   static declaredFacts(
     ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
     scopePath: string,
-    constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
   ): {
     type: TType;
@@ -209,22 +191,14 @@ class VariableCollector {
     // Collect dimensions from arrayType syntax (u16[8] arr, u16[4][4] arr, u16[] arr)
     if (hasArrayTypeSyntax) {
       arrayDimensions.push(
-        ...VariableCollector.collectArrayTypeDimensions(
-          arrayTypeCtx,
-          constValues,
-          initExpr,
-        ),
+        ...VariableCollector.collectArrayTypeDimensions(arrayTypeCtx, initExpr),
       );
     }
 
     // Collect additional dimensions from arrayDimension syntax
     if (arrayDims.length > 0) {
       arrayDimensions.push(
-        ...VariableCollector.collectArrayDimensions(
-          arrayDims,
-          constValues,
-          initExpr,
-        ),
+        ...VariableCollector.collectArrayDimensions(arrayDims, initExpr),
       );
     }
 
@@ -286,7 +260,6 @@ class VariableCollector {
    * @param scopePath The path of the scope this variable belongs to (dotted path, "" at file scope)
    * @param visibility Required: #1161 -- a default here is a third source of
    *   truth for one fact, which is how #1300 happened to the type kinds
-   * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
    * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
    * @returns The variable symbol with TType-based types and scope reference
    */
@@ -295,17 +268,11 @@ class VariableCollector {
     sourceFile: string,
     scopePath: string,
     visibility: TVisibility,
-    constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IVariableSymbol {
     const name = ctx.IDENTIFIER().getText();
     const span = ParserUtils.getSpan(ctx);
-    const facts = VariableCollector.declaredFacts(
-      ctx,
-      scopePath,
-      constValues,
-      isScopeType,
-    );
+    const facts = VariableCollector.declaredFacts(ctx, scopePath, isScopeType);
 
     // Build base symbol
     const symbol: IVariableSymbol = {

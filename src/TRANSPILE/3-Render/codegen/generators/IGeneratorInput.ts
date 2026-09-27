@@ -26,9 +26,6 @@ interface IGeneratorInput {
   /** Set of known struct type names */
   readonly knownStructs: ReadonlySet<string>;
 
-  /** Compile-time constant values (for array sizes, etc.) */
-  readonly constValues: ReadonlyMap<string, number>;
-
   /** Callback/function-as-type definitions */
   readonly callbackTypes: ReadonlyMap<string, ICallbackTypeInfo>;
 

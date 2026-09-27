@@ -1450,7 +1450,7 @@ class CodeGenWalker {
     // hot path for exactly the divergences this work closes.
     return ArrayDimensionParser.parseSingleDimension(
       ctx,
-      dimensionEvalOptions(this.transpileState),
+      dimensionEvalOptions(this.transpileState, ParserUtils.getPosition(ctx)),
     );
   }
 
@@ -1775,14 +1775,11 @@ class CodeGenWalker {
     // afterwards and correctly overwrites on a name collision.
     this.registerIncludedCallbackTypes();
 
-    // Initialize symbol data and const values
+    // Initialize symbol data
     this.initializeSymbolData();
 
     // Initialize all helper objects
     this.initializeHelperObjects(tree);
-
-    // Second pass: register all variable types in the type registry
-    this.registerGlobalConstValues(tree);
 
     // Assemble and return the output
     return this.assembleGeneratedOutput(tree, options);
@@ -1844,17 +1841,9 @@ class CodeGenWalker {
       this.host.state.setScopeMembers(scopeName, new Set(members));
     }
 
-    // Issue #461: seed constValues for this file's generation.
-    // Issue #1220: one derivation of "what is this const worth", not a second
-    // walk here -- this loop and the symbol table's were two implementations of
-    // one rule, and only one was reachable from the analyzers.
-    // #1447: that derivation now lives on `Program`, because a const reached
-    // through an include is worth the same as one declared beside the use and
-    // only 1.4 sees both. Copied into a mutable map because generation adds
-    // file-local consts to it as it goes.
-    this.host.state.constValues = new Map(
-      this.host.state.program?.constValues(),
-    );
+    // #1664 box 7: const values are not seeded here. A dimension folds with
+    // `dimensionEvalOptions(state, position)`, what 1.4 settled as visible
+    // there.
   }
 
   /**
@@ -2424,29 +2413,6 @@ class CodeGenWalker {
   }
 
   /**
-   * Global consts, folded before any code is generated, so a dimension can
-   * use a const declared below it.
-   *
-   * #1668 (C8): this also filled a per-file type registry, which is gone --
-   * every read binds the declaration it means. The folds stay until 1.4
-   * folds global consts (C11).
-   */
-  private registerGlobalConstValues(tree: Parser.ProgramContext): void {
-    for (const decl of tree.declaration()) {
-      const varDecl = decl.variableDeclaration();
-      const expression = varDecl?.expression();
-      if (!varDecl?.constModifier() || !expression) continue;
-      const constValue = this.tryEvaluateConstant(expression);
-      if (constValue !== undefined) {
-        this.host.state.constValues.set(
-          varDecl.IDENTIFIER().getText(),
-          constValue,
-        );
-      }
-    }
-  }
-
-  /**
    * A parameter as the function CONTEXT needs it (#1445).
    *
    * Distinct from `planParameter`, which serves the signature adapter, and the
@@ -2505,7 +2471,10 @@ class CodeGenWalker {
     if (cStyleDimensions.length > 0) {
       return ArrayDimensionParser.parseDimensions(
         cStyleDimensions,
-        dimensionEvalOptions(this.transpileState),
+        dimensionEvalOptions(
+          this.transpileState,
+          ParserUtils.getPosition(cStyleDimensions[0]),
+        ),
       );
     }
 
@@ -2516,7 +2485,10 @@ class CodeGenWalker {
       if (!expression) return [];
       const size = ArrayDimensionParser.parseSingleDimension(
         expression,
-        dimensionEvalOptions(this.transpileState),
+        dimensionEvalOptions(
+          this.transpileState,
+          ParserUtils.getPosition(expression),
+        ),
       );
       return [size ?? UNRESOLVED_DIMENSION];
     });
@@ -2895,7 +2867,10 @@ class CodeGenWalker {
               }
               const folded = ArrayDimensionParser.parseSingleDimension(
                 expr,
-                dimensionEvalOptions(this.transpileState),
+                dimensionEvalOptions(
+                  this.transpileState,
+                  ParserUtils.getPosition(expr),
+                ),
               );
               return `[${folded ?? this.generateExpression(expr)}]`;
             })
@@ -4052,7 +4027,10 @@ class CodeGenWalker {
 
     const folded = ArrayDimensionParser.parseSingleDimension(
       expression,
-      dimensionEvalOptions(this.transpileState),
+      dimensionEvalOptions(
+        this.transpileState,
+        ParserUtils.getPosition(expression),
+      ),
     );
     return folded === undefined
       ? this.generateExpression(expression)
@@ -4162,7 +4140,7 @@ class CodeGenWalker {
     const type = this._inferVariableType(ctx, name);
 
     // Track local variable metadata
-    this._trackLocalVariable(ctx, name);
+    this._trackLocalVariable(name);
 
     // ADR-057: the identifier this declaration is EMITTED under. Computed once,
     // here, because the string and array forms below return before the plain
@@ -4378,7 +4356,10 @@ class CodeGenWalker {
     return (
       ArrayDimensionParser.parseSingleDimension(
         sizeExpr,
-        dimensionEvalOptions(this.transpileState),
+        dimensionEvalOptions(
+          this.transpileState,
+          ParserUtils.getPosition(sizeExpr),
+        ),
       ) ?? null
     );
   }
@@ -4518,7 +4499,10 @@ class CodeGenWalker {
         // initialized") and which CLAUDE.md rules out.
         const folded = ArrayDimensionParser.parseSingleDimension(
           sizeExpr,
-          dimensionEvalOptions(this.transpileState),
+          dimensionEvalOptions(
+            this.transpileState,
+            ParserUtils.getPosition(sizeExpr),
+          ),
         );
         dimensions += `[${folded ?? sizeExpr.getText()}]`;
       } else {
@@ -4578,25 +4562,15 @@ class CodeGenWalker {
   }
 
   /**
-   * Issue #696: Track a local variable's name and const value.
+   * Issue #696: Track a local variable's name. Its const value, if any, is
+   * 1.4's, read where a dimension is folded (#1664 box 7).
    */
-  private _trackLocalVariable(
-    ctx: Parser.VariableDeclarationContext,
-    name: string,
-  ): void {
+  private _trackLocalVariable(name: string): void {
     if (!this.host.state.inFunctionBody) {
       return;
     }
 
     this.host.state.registerLocalVariable(name);
-
-    // Bug #8: Track local const values for array size and bit index resolution
-    if (ctx.constModifier() && ctx.expression()) {
-      const constValue = this.tryEvaluateConstant(ctx.expression()!);
-      if (constValue !== undefined) {
-        this.host.state.constValues.set(name, constValue);
-      }
-    }
   }
 
   /**

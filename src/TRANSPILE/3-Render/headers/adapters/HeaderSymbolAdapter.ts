@@ -24,7 +24,7 @@ class HeaderSymbolAdapter {
   static fromTSymbol(symbol: TSymbol, state: TranspileState): IHeaderSymbol {
     switch (symbol.kind) {
       case "function":
-        return HeaderSymbolAdapter.convertFunction(symbol, state);
+        return HeaderSymbolAdapter.convertFunction(symbol);
       case "variable":
         return HeaderSymbolAdapter.convertVariable(symbol, state);
       case "struct":
@@ -56,7 +56,6 @@ class HeaderSymbolAdapter {
 
   private static convertFunction(
     func: import("../../../../transpiler/types/symbols/IFunctionSymbol").default,
-    state: TranspileState,
   ): IHeaderSymbol {
     // Convert TType return type to string
     const returnTypeStr = TypeResolver.getTypeName(func.returnType);
@@ -73,7 +72,7 @@ class HeaderSymbolAdapter {
         type: TypeResolver.getTypeName(p.type),
         isConst: p.isConst,
         isArray: p.isArray,
-        arrayDimensions: HeaderSymbolAdapter.headerArrayDimensions(p, state),
+        arrayDimensions: HeaderSymbolAdapter.headerArrayDimensions(p),
         isAutoConst: p.isAutoConst,
       };
     });
@@ -147,18 +146,13 @@ class HeaderSymbolAdapter {
    * not, so it declared `char arr[5]` against a `char arr[5][33]` definition
    * (#1164).
    */
-  private static headerArrayDimensions(
-    parameter: {
-      readonly type: TType;
-      readonly arrayDimensions?: ReadonlyArray<number | string>;
-    },
-    state: TranspileState,
-  ): string[] | undefined {
-    const dimensions = parameter.arrayDimensions?.map((d) =>
-      typeof d === "number"
-        ? String(d)
-        : HeaderSymbolAdapter.resolveConstDimension(d, state),
-    );
+  private static headerArrayDimensions(parameter: {
+    readonly type: TType;
+    readonly arrayDimensions?: ReadonlyArray<number | string>;
+  }): string[] | undefined {
+    // #1664 box 7: 1.4 folded each dimension it could, with the const values
+    // visible at the function; what is left (a C macro) is the C compiler's
+    const dimensions = parameter.arrayDimensions?.map((d) => String(d));
     if (!dimensions) {
       return undefined;
     }
@@ -177,25 +171,6 @@ class HeaderSymbolAdapter {
     // FunctionCollector.collectParameters records only the declared dimensions --
     // so it is always appended here.
     return [...dimensions, String(Number.parseInt(capacityMatch[1], 10) + 1)];
-  }
-
-  /**
-   * Resolve a parameter's array dimension that names a `const`.
-   *
-   * C-Next resolves const-sized arrays to their value rather than emitting a C
-   * VLA, so the implementation writes `uint8_t grid[6][4]`. The header kept the
-   * source text and wrote `grid[SIZE][4]`, which is a different declaration --
-   * and in C++ not a constant expression at all, since SIZE is an `extern
-   * const` there (#1164).
-   *
-   * Enum-qualified dimensions keep their own resolution path.
-   */
-  private static resolveConstDimension(
-    dimension: string,
-    state: TranspileState,
-  ): string {
-    const constValue = state.constValues.get(dimension);
-    return constValue === undefined ? dimension : String(constValue);
   }
 
   private static convertStruct(

@@ -133,7 +133,7 @@ describe("StructCollector", () => {
       expect(field?.dimensions).toEqual([4, 4]);
     });
 
-    it("resolves constant references in array dimensions", () => {
+    it("keeps a const-named dimension as text, for 1.4 to fold (#1664 box 7)", () => {
       const code = `
         struct Buffer {
           u8 data[BUFFER_SIZE];
@@ -141,21 +141,19 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const constValues = new Map<string, number>([["BUFFER_SIZE", 256]]);
       const symbol = StructCollector.collect(
         structCtx,
         "test.cnx",
         "",
         "public",
-        constValues,
       );
 
       const field = symbol.fields.get("data");
       expect(field?.isArray).toBe(true);
-      expect(field?.dimensions).toEqual([256]);
+      expect(field?.dimensions).toEqual(["BUFFER_SIZE"]);
     });
 
-    it("resolves multiple constant dimensions", () => {
+    it("keeps several const-named dimensions as text", () => {
       const code = `
         struct Matrix {
           i16 values[ROWS][COLS];
@@ -163,24 +161,19 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const constValues = new Map<string, number>([
-        ["ROWS", 4],
-        ["COLS", 3],
-      ]);
       const symbol = StructCollector.collect(
         structCtx,
         "test.cnx",
         "",
         "public",
-        constValues,
       );
 
       const field = symbol.fields.get("values");
       expect(field?.isArray).toBe(true);
-      expect(field?.dimensions).toEqual([4, 3]);
+      expect(field?.dimensions).toEqual(["ROWS", "COLS"]);
     });
 
-    it("resolves hex constant dimensions", () => {
+    it("keeps a const-named dimension as text, whatever its value", () => {
       const code = `
         struct Flags {
           bool bits[HEX_SIZE];
@@ -188,18 +181,16 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const constValues = new Map<string, number>([["HEX_SIZE", 16]]);
       const symbol = StructCollector.collect(
         structCtx,
         "test.cnx",
         "",
         "public",
-        constValues,
       );
 
       const field = symbol.fields.get("bits");
       expect(field?.isArray).toBe(true);
-      expect(field?.dimensions).toEqual([16]);
+      expect(field?.dimensions).toEqual(["HEX_SIZE"]);
     });
   });
 
@@ -256,19 +247,17 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const constValues = new Map<string, number>([["MAX_NAMES", 3]]);
       const symbol = StructCollector.collect(
         structCtx,
         "test.cnx",
         "",
         "public",
-        constValues,
       );
 
       const field = symbol.fields.get("items");
       expect(TypeResolver.getTypeName(field!.type)).toBe("string<16>");
       expect(field?.isArray).toBe(true);
-      expect(field?.dimensions).toEqual([3, 17]); // [3] from const, then 16+1 for string
+      expect(field?.dimensions).toEqual(["MAX_NAMES", 17]); // the const as text, then 16+1 for string
     });
   });
 

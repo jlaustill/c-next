@@ -17,13 +17,10 @@ describe("DimensionResolver", () => {
     );
   }
 
-  function resolve(
-    expressionSource: string,
-    constValues?: Map<string, number>,
-  ): number | string {
+  function resolve(expressionSource: string): number | string {
     const expr = getExpression(`u8 x <- ${expressionSource};`);
     expect(expr).not.toBeNull();
-    return DimensionResolver.resolve(expr!, constValues);
+    return DimensionResolver.resolve(expr!);
   }
 
   describe("resolve", () => {
@@ -31,20 +28,21 @@ describe("DimensionResolver", () => {
     // version of this and disagreed: one dropped what it could not fold, the
     // other folded literals only. Every row below must hold for both.
     it.each([
-      ["a decimal literal", "10", undefined, 10],
-      ["a hex literal", "0x10", undefined, 16],
-      ["a binary literal", "0b1010", undefined, 10],
-      ["addition of two literals", "8 + 1", undefined, 9],
-    ])("folds %s", (_label, source, constValues, expected) => {
-      expect(resolve(source, constValues)).toBe(expected);
+      ["a decimal literal", "10", 10],
+      ["a hex literal", "0x10", 16],
+      ["a binary literal", "0b1010", 10],
+      ["addition of two literals", "8 + 1", 9],
+    ])("folds %s", (_label, source, expected) => {
+      expect(resolve(source)).toBe(expected);
     });
 
-    it("folds a const reference from the supplied map", () => {
-      expect(resolve("SIZE", new Map([["SIZE", 6]]))).toBe(6);
-    });
-
-    it("folds a const combined with a literal", () => {
-      expect(resolve("SIZE + 2", new Map([["SIZE", 6]]))).toBe(8);
+    // #1664 box 7: a const is folded by 1.4, where the declaration is
+    // written, so a local `const SIZE` can shadow a global one; 1.3 keeps it
+    it.each([
+      ["a const reference", "SIZE", "SIZE"],
+      ["a const combined with a literal", "SIZE + 2", "SIZE+2"],
+    ])("keeps %s as text", (_label, source, expected) => {
+      expect(resolve(source)).toBe(expected);
     });
 
     it("folds sizeof through the shared TYPE_WIDTH table", () => {
@@ -61,7 +59,7 @@ describe("DimensionResolver", () => {
     });
 
     it("keeps an unknown identifier as source text", () => {
-      expect(resolve("BUF_SIZE", new Map([["SIZE", 6]]))).toBe("BUF_SIZE");
+      expect(resolve("BUF_SIZE")).toBe("BUF_SIZE");
     });
 
     it("never returns undefined", () => {

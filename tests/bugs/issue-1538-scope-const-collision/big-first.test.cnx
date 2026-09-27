@@ -1,0 +1,20 @@
+// test-execution
+// #1538: the same two scopes in the other order. The answer must not depend
+// on which scope is written last.
+scope Big {
+    public const u8 N <- 10;
+    public u8[N] b;
+}
+
+scope Small {
+    public const u8 N <- 2;
+    public u8[N] t;
+}
+
+u32 main() {
+    u32 small <- Small.t.element_count;
+    if (small != 2) return 1;
+    u32 big <- Big.b.element_count;
+    if (big != 10) return 2;
+    return 0;
+}

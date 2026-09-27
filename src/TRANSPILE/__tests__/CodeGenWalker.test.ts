@@ -280,7 +280,6 @@ describe("CodeGenWalker", () => {
         expect(input.functionSignatures).toBeInstanceOf(Map);
         expect(input.knownFunctions).toBeInstanceOf(Set);
         expect(input.knownStructs).toBeInstanceOf(Set);
-        expect(input.constValues).toBeInstanceOf(Map);
         expect(input.callbackTypes).toBeInstanceOf(Map);
         expect(input.callbackFieldTypes).toBeInstanceOf(Map);
         expect(typeof input.debugMode).toBe("boolean");

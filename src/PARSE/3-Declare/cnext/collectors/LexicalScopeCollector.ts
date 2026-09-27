@@ -44,7 +44,6 @@ class FrameListener extends CNextListener {
   constructor(
     root: IFrameBuilder,
     private readonly registry: SymbolRegistry,
-    private readonly constValues: Map<string, number>,
     private readonly isScopeType: (qualifiedName: string) => boolean,
   ) {
     super();
@@ -168,10 +167,11 @@ class FrameListener extends CNextListener {
     kind: ILocalDeclaration["kind"],
   ): void {
     const frame = this.top();
+    // #1664 box 7: a local's `u8[N]` keeps `N` as text, so 1.4 folds it where
+    // it is declared -- after a local `const N` that shadows a global one.
     const facts = VariableCollector.declaredFacts(
       ctx,
       frame.scopePath,
-      this.constValues,
       this.isScopeType,
     );
     frame.declarations.push({
@@ -195,15 +195,15 @@ class LexicalScopeCollector {
   /**
    * The file frame of `tree`, with every frame nested in it.
    *
-   * @param constValues the file's global const values (1.3 pass 0), for
-   *   array dimensions; a local const is folded by 1.4
+   * Array dimensions are left for 1.4 to fold in each declaration's lexical
+   * environment, except a literal or `sizeof`, which needs no const.
+   *
    * @param isScopeType ADR-057: is this QUALIFIED name a scope type this file
    *   declares? A bare type it cannot settle is deferred, as for symbols
    */
   static collect(
     tree: Parser.ProgramContext,
     registry: SymbolRegistry,
-    constValues: Map<string, number>,
     isScopeType: (qualifiedName: string) => boolean,
   ): ILexicalFrame {
     const root: IFrameBuilder = {
@@ -215,7 +215,7 @@ class LexicalScopeCollector {
       children: [],
     };
     ParseTreeWalker.DEFAULT.walk(
-      new FrameListener(root, registry, constValues, isScopeType),
+      new FrameListener(root, registry, isScopeType),
       tree,
     );
     return root;

@@ -10,11 +10,14 @@
  * sibling's, nor `global.x` from a local `x`, and a string global read as a C
  * buffer in its own file and as a scalar in the next. #1668 deleted it: every
  * read binds the declaration it means (`program.bindValue`) and projects it
- * (`DeclaredTypeInfo.of`). These three arms keep it deleted, each with a
+ * (`DeclaredTypeInfo.of`). These arms keep it deleted, each with a
  * population control, so none can pass by matching nothing.
  *
- * `constValues` is the registry's twin and is deleted by C11; its arms join
- * these then.
+ * `constValues` was the registry's twin (#1664 box 7): one mutable map per
+ * file, seeded with every const under its bare name and written as the walk
+ * passed a local const, so a local `N` in one function sized another's
+ * `u8[N]`. C11 deleted it; a dimension folds with the values 1.4 settled as
+ * visible where it is written. Arm D keeps it deleted.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -81,17 +84,27 @@ const REGISTRY = new Set([
   "TypeRegistrationUtils",
 ]);
 
+/** The deleted per-file const map and its writers, by name */
+const CONST_MAP = new Set([
+  "constValues",
+  "registerConstValue",
+  "registerGlobalConstValues",
+]);
+
 /**
- * Every IDENTIFIER in code that names the registry, as `file:line:name`.
+ * Every IDENTIFIER in code that names one of `names`, as `file:line:name`.
  * Identifiers, not text: a doc comment recording the registry's history is
  * not a use of it.
  */
-function registryReferences(paths: readonly string[]): string[] {
+function referencesTo(
+  paths: readonly string[],
+  names: ReadonlySet<string>,
+): string[] {
   const found: string[] = [];
   for (const path of paths) {
     const file = project.getSourceFileOrThrow(join(repoRoot, path));
     for (const id of file.getDescendantsOfKind(SyntaxKind.Identifier)) {
-      if (REGISTRY.has(id.getText())) {
+      if (names.has(id.getText())) {
         found.push(`${path}:${id.getStartLineNumber()}:${id.getText()}`);
       }
     }
@@ -144,7 +157,7 @@ describe("declared types are bound, not registered", () => {
       .getSourceFiles()
       .map((f) => relative(repoRoot, f.getFilePath()))
       .filter((path) => path.startsWith("src/") && !path.includes("__tests__"));
-    expect(registryReferences(paths)).toEqual([]);
+    expect(referencesTo(paths, REGISTRY)).toEqual([]);
   });
 
   it("arm C control: a call into the registry is found in code", () => {
@@ -157,9 +170,38 @@ describe("declared types are bound, not registered", () => {
       { overwrite: true },
     );
     try {
-      expect(registryReferences(["src/TRANSPILE/__planted_c__.ts"])).toEqual([
+      expect(
+        referencesTo(["src/TRANSPILE/__planted_c__.ts"], REGISTRY),
+      ).toEqual([
         "src/TRANSPILE/__planted_c__.ts:2:setVariableTypeInfo",
         "src/TRANSPILE/__planted_c__.ts:3:setVariableTypeInfo",
+      ]);
+    } finally {
+      project.removeSourceFile(planted);
+    }
+  });
+
+  it("arm D: nothing render-side names the per-file const map", () => {
+    // Render reads const values only through `dimensionEvalOptions` (2.2),
+    // which asks the program at a position; it holds and writes none
+    expect(referencesTo(renderSideFiles(), CONST_MAP)).toEqual([]);
+  });
+
+  it("arm D control: a write into the const map is found in code", () => {
+    const planted = project.createSourceFile(
+      join(repoRoot, "src/TRANSPILE/3-Render/__planted_d__.ts"),
+      `// constValues in a comment is history, not a use
+       export function f(state: { constValues: Map<string, number> }) {
+         state.constValues.set("N", 2);
+       }`,
+      { overwrite: true },
+    );
+    try {
+      expect(
+        referencesTo(["src/TRANSPILE/3-Render/__planted_d__.ts"], CONST_MAP),
+      ).toEqual([
+        "src/TRANSPILE/3-Render/__planted_d__.ts:2:constValues",
+        "src/TRANSPILE/3-Render/__planted_d__.ts:3:constValues",
       ]);
     } finally {
       project.removeSourceFile(planted);

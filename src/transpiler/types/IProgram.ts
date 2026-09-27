@@ -79,34 +79,25 @@ interface IProgram {
   externalStructFields(): ReadonlyMap<string, ReadonlySet<string>>;
 
   /**
-   * Integer value of a named const, or undefined when the name is not a const
-   * with a literal integer initializer.
-   *
-   * Cross-file by nature: #1220 is the case where an analyzer knew only the
-   * consts it had walked out of the current file, so `10 / ZERO` with an
-   * imported ZERO emitted a real division by zero that compiled clean.
-   */
-  constValue(name: string): number | undefined;
-
-  /**
    * #1668: what THIS const is worth, by identity rather than by name. The
    * name-keyed maps share a bare key across scopes (#1538), so a binding --
    * which already knows which declaration a spelling means -- asks here.
    */
   constValueOfSymbol(symbol: IVariableSymbol): number | undefined;
 
-  /** Every const name to its integer value, keyed by bare name. */
-  constValues(): ReadonlyMap<string, number>;
-
   /**
-   * The same, as seen from inside `scopePath`: that scope's own consts shadow
-   * file-scope ones of the same name, in ADR-057's candidate order.
+   * Every const's integer value as seen from inside `scopePath`: file-scope
+   * consts from every file (#1220: a const reached through an include is
+   * worth the same as one declared beside the use), a scoped const under its
+   * C name, and that scope's own consts by bare name over them, in ADR-057's
+   * candidate order. `""` is file scope.
    *
-   * #1322 review: asking `constValues()` from inside a scope is asking a
-   * question the flat map cannot answer. Two scopes each declaring `SIZE`
-   * share its bare key, so the answer is whichever was derived last -- which
-   * rejected a legal program and made ADR-036's bounds check order-dependent.
-   * A caller inside a scope asks with it.
+   * #1322 review, #1538: a flat map keyed by bare name let two scopes each
+   * declaring `SIZE` share one slot, so the answer was whichever was derived
+   * last -- which rejected a legal program, sized one scope's array by the
+   * other's const, and made ADR-036's bounds check order-dependent. There is
+   * no flat view any more: a caller asks from a scope, or from a position
+   * (`constValuesAt`), which adds the locals declared before it.
    */
   constValuesIn(scopePath: string): ReadonlyMap<string, number>;
 

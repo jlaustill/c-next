@@ -374,7 +374,6 @@ describe("ScopeCollector", () => {
         scopeCtx,
         "test.cnx",
         knownBitmaps,
-        undefined,
         isScopeType,
       );
 
@@ -408,7 +407,6 @@ describe("ScopeCollector", () => {
         scopeCtx,
         "test.cnx",
         knownBitmaps,
-        undefined,
         isScopeType,
       );
 
