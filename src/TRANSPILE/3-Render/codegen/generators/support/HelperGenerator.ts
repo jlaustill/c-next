@@ -155,9 +155,10 @@ const generateCastHelpers = (
   const cast = (type: string, expr: string): string =>
     CppModeHelper.castIn(cppMode, type, expr);
   const lines: string[] = [
-    "/* ADR-024 / #1668: a saturating float-to-integer cast whose operand has a side effect -- a",
-    "   call, or a volatile or atomic read -- calls one of these, so the operand is evaluated once.",
-    "   The inline bounded ternary reads its operand up to three times, repeating the side effect. */",
+    "/* ADR-024 / Issue #1668: a saturating float-to-integer cast whose operand has a side",
+    "   effect -- a call, or a volatile or atomic read -- calls one of these, so the operand is",
+    "   evaluated once. The inline bounded ternary reads its operand up to three times,",
+    "   repeating the side effect. */",
     "",
   ];
   for (const key of keys) {

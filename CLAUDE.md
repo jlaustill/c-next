@@ -840,6 +840,12 @@ buffer[0] = (uint8_t)(magic);
 - **Applies to** structural transformations and idiom substitutions: loop-idiom rewrites, compile-time unrolling, type-punning via unions, suppressions, etc. (Ubiquitous inline casts like a single narrowing `(uint8_t)` need not each carry a comment.)
 - **Existing examples to follow:** `ControlFlowGenerator` (`forever` → Rule 14.3) and `ArrayHandlers.handleArraySlice` (slice unroll → Rule 21.15). Use the `/* <Standard> Rule <N>: <what> (<why>). */` form for consistency.
 - **Format note:** use `/* … */` (house style for generated comments) and never nest `/*` inside the text (MISRA Rule 3.1).
+- **Cite a standard only when one of its rules directly applies** (owner ruling, 2026-09-27:
+  _"if no misra rules directly applies, then it should NOT be mentioned"_). A shape that C-Next's
+  own semantics dictate, such as a saturating clamp or evaluating an operand once, cites its ADR
+  in the `/* ADR-NNN / Issue #N: … */` form the ADR-044 helpers use. It never cites a
+  merely related rule: #1668's single-evaluation cast helper cites ADR-024, not MISRA
+  Directive 4.9, whose rationale is similar but whose subject is function-like macros.
 
 ### Essential Patterns
 

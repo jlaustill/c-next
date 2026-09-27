@@ -19,9 +19,10 @@
 #include <stdint.h>
 #include <limits.h>
 
-/* ADR-024 / #1668: a saturating float-to-integer cast whose operand has a side effect -- a
-   call, or a volatile or atomic read -- calls one of these, so the operand is evaluated once.
-   The inline bounded ternary reads its operand up to three times, repeating the side effect. */
+/* ADR-024 / Issue #1668: a saturating float-to-integer cast whose operand has a side
+   effect -- a call, or a volatile or atomic read -- calls one of these, so the operand is
+   evaluated once. The inline bounded ternary reads its operand up to three times,
+   repeating the side effect. */
 
 static inline uint8_t cnx_cast_sat_f32_u8(float value) {
     return ((value) > ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (value) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((value)));
