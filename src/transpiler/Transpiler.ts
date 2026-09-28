@@ -1933,7 +1933,8 @@ class Transpiler {
    * 1.4 settled it with the program; this only reports. An error with no
    * position is about the target option rather than a line of source, and is
    * placed on the entry file -- the last file in pipeline order, which lists
-   * dependencies first. Parse-only runs need no target, so it is not checked.
+   * dependencies first. A parse-only run needs no target, so only an absent
+   * one is excused there.
    *
    * @returns true when the run has a target
    */
@@ -1941,13 +1942,17 @@ class Transpiler {
     input: IPipelineInput,
     result: ITranspilerResult,
   ): boolean {
-    if (this.config.parseOnly) {
-      return true;
-    }
     invariant(this.program, "Stage 3 built the program");
     const target = this.program.target();
     if (target.kind === "resolved") {
       result.target = { name: target.name, source: target.source };
+      return true;
+    }
+    // ADR-049: a parse-only run needs no target, so an ABSENT one (E0515) is
+    // no error there -- but every name the program gives must still be a
+    // known target (#1760 second review: `--parse` accepted
+    // `#pragma target bogus`, an unknown pragma and two conflicting ones)
+    if (this.config.parseOnly && target.absent) {
       return true;
     }
     const entry = input.cnextFiles.at(-1)?.path;

@@ -86,7 +86,7 @@ class RunTarget {
     }
 
     if (errors.length > 0) {
-      return { kind: "rejected", errors };
+      return { kind: "rejected", errors, absent: false };
     }
     // The files agree by description (E0511 above), but a name and the
     // optional toolchain fields are one file's: the last to declare in
@@ -122,6 +122,7 @@ class RunTarget {
     }
     return {
       kind: "rejected",
+      absent: true,
       errors: [
         RunTarget.unplaced(
           "E0515",
@@ -160,7 +161,7 @@ class RunTarget {
     }
     errors.push(...RunTarget.disagreements(mapped));
     if (errors.length > 0) {
-      return { kind: "rejected", errors };
+      return { kind: "rejected", errors, absent: false };
     }
     const first = mapped[0];
     return {

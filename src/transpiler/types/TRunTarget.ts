@@ -19,6 +19,12 @@ type TRunTarget =
   | {
       readonly kind: "rejected";
       readonly errors: readonly ITranspileError[];
+      /**
+       * No rung named a target at all (E0515), as against a name that is
+       * unknown or contested. A parse-only run excuses this and only this
+       * (#1760 second review).
+       */
+      readonly absent: boolean;
     };
 
 export default TRunTarget;

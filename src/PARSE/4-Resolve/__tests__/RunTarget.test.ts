@@ -26,6 +26,7 @@ describe("RunTarget.resolve", () => {
   it("rejects a program nothing names a target for (E0515)", () => {
     expect(resolve([file("main.cnx")])).toEqual({
       kind: "rejected",
+      absent: true,
       errors: [
         expect.objectContaining({
           line: 1,
@@ -62,6 +63,7 @@ describe("RunTarget.resolve", () => {
   it("treats an empty option as absent", () => {
     expect(resolve([file("main.cnx")], "")).toEqual({
       kind: "rejected",
+      absent: true,
       errors: [
         expect.objectContaining({ message: expect.stringContaining("E0515") }),
       ],
@@ -99,6 +101,7 @@ describe("RunTarget.resolve", () => {
     ]);
     expect(target).toEqual({
       kind: "rejected",
+      absent: false,
       errors: [
         expect.objectContaining({
           sourcePath: "main.cnx",
@@ -115,6 +118,7 @@ describe("RunTarget.resolve", () => {
     const target = resolve([file("main.cnx", "bogus", 2)]);
     expect(target).toEqual({
       kind: "rejected",
+      absent: false,
       errors: [
         expect.objectContaining({
           sourcePath: "main.cnx",
@@ -134,6 +138,7 @@ describe("RunTarget.resolve", () => {
     const target = resolve([file("main.cnx", "teensy41")], "bogus");
     expect(target).toEqual({
       kind: "rejected",
+      absent: false,
       errors: [
         expect.objectContaining({
           message:
@@ -197,6 +202,7 @@ describe("RunTarget.resolve", () => {
       );
       expect(target).toEqual({
         kind: "rejected",
+        absent: false,
         errors: [
           expect.objectContaining({
             line: 1,
@@ -353,6 +359,7 @@ describe("RunTarget.resolve", () => {
       const target = build(project([nucleo]));
       expect(target).toEqual({
         kind: "rejected",
+        absent: false,
         errors: [
           expect.objectContaining({
             message:
@@ -376,6 +383,7 @@ describe("RunTarget.resolve", () => {
       const target = build(project([teensy, uno]));
       expect(target).toEqual({
         kind: "rejected",
+        absent: false,
         errors: [
           expect.objectContaining({
             message:
@@ -400,6 +408,7 @@ describe("RunTarget.resolve", () => {
     it("rejects a --pio-env the file does not define (E0510)", () => {
       expect(build(project([teensy]), { pioEnv: "missing" })).toEqual({
         kind: "rejected",
+        absent: false,
         errors: [
           expect.objectContaining({
             message:
@@ -412,6 +421,7 @@ describe("RunTarget.resolve", () => {
     it("says nothing when the file has no environments", () => {
       expect(build(project([]))).toEqual({
         kind: "rejected",
+        absent: true,
         errors: [
           expect.objectContaining({
             message: expect.stringContaining("E0515"),

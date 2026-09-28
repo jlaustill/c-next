@@ -397,6 +397,48 @@ describe("Transpiler coverage tests", () => {
       // In parse-only mode, no output files should be written
       expect(result.outputFiles).toHaveLength(0);
     });
+
+    // #1760 second review: ADR-049 excuses a parse-only run an ABSENT target
+    // only; every name the program gives must still be a known target
+    const parseOnly = async (source: string, target?: string) => {
+      mockFs.addFile("/project/src/main.cnx", source);
+      const transpiler = new Transpiler(
+        {
+          input: "/project/src/main.cnx",
+          outDir: "/project/build",
+          parseOnly: true,
+          noCache: true,
+          ...(target === undefined ? {} : { target }),
+        },
+        mockFs,
+      );
+      return transpiler.transpile({ kind: "files" });
+    };
+
+    it("needs no target", async () => {
+      expect((await parseOnly("void test() { }")).success).toBe(true);
+    });
+
+    it.each([
+      [
+        "an unknown pragma target",
+        "#pragma target bogus\n",
+        undefined,
+        "E0510",
+      ],
+      ["an unknown pragma", "#pragma frobnicate 3\n", undefined, "E0512"],
+      [
+        "two conflicting pragmas",
+        "#pragma target host\n#pragma target cortex-m7\n",
+        undefined,
+        "E0511",
+      ],
+      ["an unknown --target", "", "nope", "E0510"],
+    ])("still rejects %s", async (_label, pragmas, target, code) => {
+      const result = await parseOnly(`${pragmas}void test() { }`, target);
+      expect(result.success).toBe(false);
+      expect(result.errors.map((e) => e.message).join("\n")).toContain(code);
+    });
   });
 
   // ==========================================================================
