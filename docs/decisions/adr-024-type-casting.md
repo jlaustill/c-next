@@ -271,7 +271,7 @@ u32 w <- (s > 0) ? i : j;   // OK: both arms unsigned; s appears only in the con
 - a function result, including a member of that result (`get().v`) and the result of an ADR-029 callback (`s.fn()`);
 - a cast, whose category is the type it names;
 - the value arms of a ternary, but never its condition;
-- a variable, struct field or function declared in a C or C++ header. Its category comes from its C type, following typedefs such as `float32_t`: signed and unsigned integers, `float` and `double`, `_Bool`, plain `char`, and a named C enum. Its width comes from a fixed-width name (`uint16_t`, `int32_t`, …), or, for `short`, `int`, `long`, `long long`, `size_t`, `ptrdiff_t` and `intptr_t`, from the program's target description (ADR-049). `int_fastN_t` and `intmax_t` are integers of unknown width. A pointer is not an integer operand. _(Widened 2026-09-26, #1668, by owner ruling, from "when its type is floating".)_
+- a variable, struct field or function declared in a C or C++ header. Its category comes from its C type, following typedefs such as `float32_t`: signed and unsigned integers, `float` and `double`, `_Bool`, plain `char`, and a named C enum. Its width comes from a fixed-width name (`uint16_t`, `int32_t`, …), or, for `short`, `int`, `long`, `long long`, `size_t`, `ptrdiff_t` and `intptr_t`, from the program's target description (ADR-049). `int_fastN_t` and `intmax_t` are integers of unknown width. A pointer is not an integer operand. Three such operands are not typed yet; see below. _(Widened 2026-09-26, #1668, by owner ruling, from "when its type is floating".)_
 
 A subscript into a scalar is a bit index and has no declared type, so the bit-indexed reinterpretation `b[0, 32]` stays exempt. That includes a subscript of a C header scalar integer. An array or pointer keeps element access. Each of these used to contribute no category, so `u32 + p.offset` (a signed field) compiled, and `u8 x <- arr[0] * 2.5` was rejected only by accident, as a `u32` narrowing.
 
@@ -283,6 +283,14 @@ A subscript into a scalar is a bit index and has no declared type, so the bit-in
 - A call to a C++ overload set whose candidates return different categories is not classified, because which candidate C++ chooses is not decided here. It is never taken into integer saturating arithmetic either, so `u * choose(y)` is computed in the category of the candidate C++ picks.
 
 **A float macro has no type C-Next can read.** `u32 i * SCALE_F`, with `#define SCALE_F 2.5f` in a header, is not rejected. How such an operand is typed is open, and is tracked as #1688.
+
+**Three header operands are not typed yet.** Each has a declared C type, so each is an operand with a category under the ruling above. C-Next does not read that type yet, so an integer combined with one that is floating is not rejected:
+
+- an element of a C pointer: `u32 i * fp[0]`, with `extern float *fp;`;
+- a variable whose type is a typedef declared in a C++ header: `i * r`, with `typedef float real_t; extern real_t r;` in a `.hpp`. The same typedef in a C header is typed;
+- a static data member of a C++ class: `i * K.sf`. An instance member is typed.
+
+This narrows the header bullet above to what is enforced today. The three shapes are tracked as #1788, which the owner deferred in #1760's review.
 
 #### Compound assignment is the same operator
 
