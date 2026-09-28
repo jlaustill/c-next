@@ -135,6 +135,7 @@ class HeaderSymbolAdapter {
           { kind: "variable", symbol: variable },
           state.symbols,
           state.symbolTable,
+          state.targetDescription,
         )?.isPointer ?? false,
       arrayDimensions,
       parent: isGlobal ? undefined : variable.scopePath,

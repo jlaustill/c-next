@@ -14,7 +14,7 @@
 import CppNamespaceUtils from "../../utils/CppNamespaceUtils";
 import DeclaredPointer from "../../utils/DeclaredPointer";
 import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
-import DeclaredVariableFacts from "../../utils/DeclaredVariableFacts";
+import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import TypeResolver from "../../utils/TypeResolver";
 import TypeMapping from "../../utils/mapType";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
@@ -27,6 +27,7 @@ import type TType from "../../transpiler/types/TType";
 import type TValueBinding from "../../transpiler/types/TValueBinding";
 import type IChainTyping from "../../transpiler/types/IChainTyping";
 import type IChainBase from "./types/IChainBase";
+import type ITargetDescription from "../../transpiler/types/ITargetDescription";
 
 /** What a local declaration and a variable symbol both say */
 interface IDeclared {
@@ -41,10 +42,15 @@ interface IDeclared {
 }
 
 class DeclaredTypeInfo {
+  /**
+   * @param target the run's target, whose data model types a header
+   *   variable (a `double` is f32 on AVR)
+   */
   static of(
     binding: TValueBinding | null,
     symbols: ICodeGenSymbols | null,
     symbolTable: SymbolTable,
+    target: ITargetDescription | null,
   ): TTypeInfo | undefined {
     switch (binding?.kind) {
       case "local": {
@@ -68,10 +74,10 @@ class DeclaredTypeInfo {
         );
       }
       case "foreign":
-        return DeclaredVariableFacts.typeInfoOf(
-          symbols,
+        return ForeignTypeFacts.variableTypeInfo(
           symbolTable,
           binding.name,
+          target,
         );
       default:
         return undefined;
@@ -88,8 +94,14 @@ class DeclaredTypeInfo {
     chain: IChainTyping,
     symbols: ICodeGenSymbols | null,
     symbolTable: SymbolTable,
+    target: ITargetDescription | null,
   ): IChainBase {
-    const rootTypeInfo = DeclaredTypeInfo.of(chain.root, symbols, symbolTable);
+    const rootTypeInfo = DeclaredTypeInfo.of(
+      chain.root,
+      symbols,
+      symbolTable,
+      target,
+    );
     const last = chain.steps.at(-1);
     if (DeclaredTypeInfo.nameSteps(chain) === 0) {
       return { root: chain.root, rootTypeInfo, typeInfo: rootTypeInfo, last };
@@ -98,7 +110,7 @@ class DeclaredTypeInfo {
     return {
       root: chain.root,
       rootTypeInfo,
-      typeInfo: DeclaredTypeInfo.of(member, symbols, symbolTable),
+      typeInfo: DeclaredTypeInfo.of(member, symbols, symbolTable, target),
       last,
     };
   }

@@ -1,4 +1,6 @@
 import type SymbolTable from "../PARSE/3-Declare/SymbolTable";
+import type TTypeInfo from "../transpiler/types/TTypeInfo";
+import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
 import type TCSymbol from "../transpiler/types/symbols/c/TCSymbol";
 import type TCppSymbol from "../transpiler/types/symbols/cpp/TCppSymbol";
 import type IForeignSymbolLookup from "../transpiler/types/IForeignSymbolLookup";
@@ -39,11 +41,20 @@ class ForeignTypeFacts {
   private static readonly MAX_TYPEDEF_HOPS = 8;
 
   /**
-   * The type C-Next may use for a C header variable: its struct type, or its
-   * floating type. Null for anything else, including arrays and pointers of a
-   * floating type.
+   * The type C-Next may use for a C or C++ header variable: its struct type
+   * (through one pointer, #978), or its floating type. Null for anything
+   * else, including arrays and pointers of a floating type.
+   *
+   * #1760 review: the floating type is the operand typer's, from the
+   * target's data model -- a `double` is f32 on AVR. This read `float` and
+   * `double` by spelling, a second answer to one question, and the two
+   * disagreed wherever `double` is not 64 bits.
    */
-  static variableType(symbolTable: SymbolTable, name: string): string | null {
+  static variableType(
+    symbolTable: SymbolTable,
+    name: string,
+    target: ITargetDescription | null,
+  ): string | null {
     const symbol = ForeignTypeFacts.foreignSymbol(symbolTable, name);
     if (symbol?.kind !== "variable" || !symbol.type) return null;
 
@@ -52,7 +63,40 @@ class ForeignTypeFacts {
     // The struct question is asked once, above. A second helper used to ask
     // it again of the same type, an arm that could never answer.
     if (symbol.isArray || symbol.type.endsWith("*")) return null;
-    return ForeignTypeFacts.floatingType(symbolTable, symbol.type);
+    const operand = ForeignTypeFacts.operandType(
+      symbol.type,
+      symbolTable,
+      target,
+    );
+    return operand?.category === "floating" ? operand.typeName : null;
+  }
+
+  /**
+   * A header variable's declared type in the shape 2.2 and render read,
+   * where C-Next may use its type at all (#978, #1668): a struct global, or
+   * a floating scalar.
+   *
+   * #1760 review: asked of the headers alone. It came from a reader that
+   * tried a bare-name C-Next lookup first, so a scope member of the same
+   * name answered for the header's variable -- `speed +<- 300` on a header
+   * `uint32_t` was clamped at the member's u8 -- and that asked C only, so a
+   * C++ header's variable had no type.
+   */
+  static variableTypeInfo(
+    symbolTable: SymbolTable,
+    name: string,
+    target: ITargetDescription | null,
+  ): TTypeInfo | undefined {
+    const type = ForeignTypeFacts.variableType(symbolTable, name, target);
+    const symbol = ForeignTypeFacts.foreignSymbol(symbolTable, name);
+    if (type === null || symbol?.kind !== "variable") return undefined;
+    return {
+      baseType: type,
+      bitWidth: TYPE_WIDTH[type] ?? 0,
+      isArray: symbol.isArray || false,
+      isConst: symbol.isConst || false,
+      isPointer: symbol.type.endsWith("*"),
+    };
   }
 
   /**
@@ -86,26 +130,6 @@ class ForeignTypeFacts {
    */
   private static stripOnePointer(type: string): string {
     return type.endsWith("*") ? type.slice(0, -1).trim() : type;
-  }
-
-  /**
-   * `f32` for C `float`, `f64` for `double`, following typedefs
-   * (`float32_t`); null for a non-floating or pointer type.
-   */
-  private static floatingType(
-    symbolTable: SymbolTable,
-    cType: string,
-  ): "f32" | "f64" | null {
-    let type = ForeignTypeFacts.unqualified(cType);
-    for (let hop = 0; hop < ForeignTypeFacts.MAX_TYPEDEF_HOPS; hop += 1) {
-      if (type.includes("*")) return null;
-      if (type === "float") return "f32";
-      if (type === "double") return "f64";
-      const typedef = ForeignTypeFacts.foreignSymbol(symbolTable, type);
-      if (typedef?.kind !== "type" || !typedef.type) return null;
-      type = ForeignTypeFacts.unqualified(typedef.type);
-    }
-    return null;
   }
 
   /**

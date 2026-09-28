@@ -9,6 +9,7 @@ import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import DeclaredTypeInfo from "../DeclaredTypeInfo";
 import HeaderParser from "../../../PARSE/2-Parse/HeaderParser";
+import TargetCatalogFile from "../../../transpiler/data/TargetCatalogFile";
 import CResolver from "../../../PARSE/3-Declare/c/index";
 import OperandTyper from "../../../utils/OperandTyper";
 import testAnalysisContextFor from "../../1-Analyze/__tests__/testAnalysisContextFor";
@@ -31,7 +32,7 @@ function declaredAtR(source: string, name: string, root: "this" | null = null) {
   );
   expect(at).not.toBeNull();
   const binding = context.program.bindValue("test.cnx", root, name, at!);
-  return DeclaredTypeInfo.of(binding, context.symbols, new SymbolTable());
+  return DeclaredTypeInfo.of(binding, context.symbols, new SymbolTable(), null);
 }
 
 /** The target of the first assignment in `source` */
@@ -53,6 +54,7 @@ function targetOf(source: string) {
     OperandTyper.chainOf(target!, context),
     context.symbols,
     new SymbolTable(),
+    null,
   );
 }
 
@@ -162,7 +164,7 @@ extern int n;
       line: 2,
       column: 0,
     });
-    return DeclaredTypeInfo.of(binding, context.symbols, table);
+    return DeclaredTypeInfo.of(binding, context.symbols, table, null);
   }
 
   it("types a struct global as its struct (#978)", () => {
@@ -174,6 +176,49 @@ extern int n;
       baseType: "cfg_t",
       isPointer: true,
     });
+  });
+
+  // #1760 review: the foreign arm asked a bare-name C-Next lookup first, so a
+  // scope member of the same name answered for the header's variable
+  it("types a header global by the header, not a same-named scope member", () => {
+    const table = new SymbolTable();
+    const tree = HeaderParser.parseC("extern double level;").tree;
+    table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
+    const { context } = testAnalysisContextFor(
+      "scope Tank {\nu8 level <- 1;\n}\nvoid f() {\nu8 r <- 1;\n}",
+      { symbolTable: table },
+    );
+    const binding = context.program.bindValue("test.cnx", null, "level", {
+      line: 5,
+      column: 0,
+    });
+    expect(binding?.kind).toBe("foreign");
+    expect(
+      DeclaredTypeInfo.of(binding, context.symbols, table, null),
+    ).toMatchObject({ baseType: "f64" });
+  });
+
+  // #1760 review: a header `double` is typed by the target's data model, the
+  // operand typer's answer, where this read the spelling and said f64
+  it("types a header double by the target's data model", () => {
+    const table = new SymbolTable();
+    const tree = HeaderParser.parseC("extern double level;").tree;
+    table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
+    const { context } = testAnalysisContextFor("void f() {\nu8 r <- 1;\n}", {
+      symbolTable: table,
+    });
+    const binding = context.program.bindValue("test.cnx", null, "level", {
+      line: 2,
+      column: 0,
+    });
+    const avr = TargetCatalogFile.targets().get("atmega328p")!;
+    expect(
+      DeclaredTypeInfo.of(binding, context.symbols, table, avr),
+    ).toMatchObject({ baseType: "f32" });
+    const host = TargetCatalogFile.targets().get("host")!;
+    expect(
+      DeclaredTypeInfo.of(binding, context.symbols, table, host),
+    ).toMatchObject({ baseType: "f64" });
   });
 
   it("gives a primitive C global no type info", () => {
@@ -200,7 +245,7 @@ extern Dev cDevice;`;
       line: 3,
       column: 0,
     });
-    return DeclaredTypeInfo.of(binding, context.symbols, table);
+    return DeclaredTypeInfo.of(binding, context.symbols, table, null);
   }
 
   it("gives no answer for a C pointer to a pointer, which it cannot describe", () => {

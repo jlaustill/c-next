@@ -603,6 +603,7 @@ class CodeGenWalker {
         chain,
         typing.symbols,
         this.host.state.symbolTable,
+        this.host.state.targetDescription,
       ),
     };
   }
@@ -1201,6 +1202,7 @@ class CodeGenWalker {
       chain,
       typing.symbols,
       this.host.state.symbolTable,
+      this.host.state.targetDescription,
     ).typeInfo;
   }
 
@@ -1223,6 +1225,7 @@ class CodeGenWalker {
       chain,
       typing.symbols,
       this.host.state.symbolTable,
+      this.host.state.targetDescription,
     ).typeInfo;
     return (array?.isArray ?? false) && (array?.isPointer ?? false);
   }
@@ -4750,6 +4753,7 @@ class CodeGenWalker {
       OperandTyper.chainOf(target, typing),
       typing.symbols,
       this.host.state.symbolTable,
+      this.host.state.targetDescription,
     );
   }
 

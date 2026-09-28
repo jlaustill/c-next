@@ -7,6 +7,7 @@ import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../types/ESourceLanguage";
 import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
 import ForeignTypeFacts from "../ForeignTypeFacts";
+import TargetCatalogFile from "../../transpiler/data/TargetCatalogFile";
 
 const C_HEADER = {
   sourceFile: "api.h",
@@ -61,7 +62,7 @@ describe("ForeignTypeFacts", () => {
       ["a float pointer", "float*", false, null],
     ])("types %s as %s", (_label, type, isArray, expected) => {
       cVariable("probe", type as string, isArray as boolean);
-      expect(ForeignTypeFacts.variableType(symbolTable, "probe")).toBe(
+      expect(ForeignTypeFacts.variableType(symbolTable, "probe", null)).toBe(
         expected,
       );
     });
@@ -76,13 +77,56 @@ describe("ForeignTypeFacts", () => {
         name: "cppScale",
         type: "float",
       });
-      expect(ForeignTypeFacts.variableType(symbolTable, "cppScale")).toBe(
+      expect(ForeignTypeFacts.variableType(symbolTable, "cppScale", null)).toBe(
+        "f32",
+      );
+    });
+
+    // #1760 review: one answer for a header value's floating type, the typer's
+    it("types a double by the target's data model", () => {
+      cVariable("probe", "double");
+      const avr = TargetCatalogFile.targets().get("atmega328p")!;
+      expect(ForeignTypeFacts.variableType(symbolTable, "probe", avr)).toBe(
         "f32",
       );
     });
 
     it("answers null for a name no header declares", () => {
-      expect(ForeignTypeFacts.variableType(symbolTable, "nowhere")).toBeNull();
+      expect(
+        ForeignTypeFacts.variableType(symbolTable, "nowhere", null),
+      ).toBeNull();
+    });
+  });
+
+  describe("variableTypeInfo", () => {
+    it("types a C header's floating global", () => {
+      cVariable("probe", "float");
+      expect(
+        ForeignTypeFacts.variableTypeInfo(symbolTable, "probe", null),
+      ).toMatchObject({ baseType: "f32", isArray: false, isPointer: false });
+    });
+
+    // #1760 review: the reader this replaced asked C alone
+    it("types a C++ header's variable too", () => {
+      symbolTable.addCppSymbol({
+        sourceFile: "api.hpp",
+        span: TestSourceSpan.at(1),
+        sourceLanguage: ESourceLanguage.Cpp,
+        visibility: "public",
+        kind: "variable",
+        name: "cppLevel",
+        type: "double",
+      });
+      expect(
+        ForeignTypeFacts.variableTypeInfo(symbolTable, "cppLevel", null),
+      ).toMatchObject({ baseType: "f64" });
+    });
+
+    it("gives an integer global no type info", () => {
+      cVariable("probe", "uint32_t");
+      expect(
+        ForeignTypeFacts.variableTypeInfo(symbolTable, "probe", null),
+      ).toBeUndefined();
     });
   });
 });

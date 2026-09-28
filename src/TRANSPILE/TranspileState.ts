@@ -233,7 +233,12 @@ class TranspileState {
   ): TTypeInfo | undefined {
     const typing = this.typingContext();
     const binding = this.bindingAt(root, name, at);
-    return DeclaredTypeInfo.of(binding, typing.symbols, this.symbolTable);
+    return DeclaredTypeInfo.of(
+      binding,
+      typing.symbols,
+      this.symbolTable,
+      this.targetDescription,
+    );
   }
 
   /**
