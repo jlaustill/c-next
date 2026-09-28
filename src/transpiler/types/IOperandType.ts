@@ -54,6 +54,13 @@ interface IOperandType {
    * `int_fast16_t`, a mixed composite).
    */
   readonly typeName: string | null;
+  /**
+   * The C type a header spelled for the value, at its element: `double`,
+   * `int_fast16_t`. Null for a C-Next value. What a write casts back to when
+   * `typeName` cannot say it, an integer the target gives no width (#1760
+   * review).
+   */
+  readonly cType: string | null;
   /** Dimensions still to subscript, leading first; empty for a scalar */
   readonly dimensions: ReadonlyArray<number | string>;
   readonly category: TEssentialCategory;

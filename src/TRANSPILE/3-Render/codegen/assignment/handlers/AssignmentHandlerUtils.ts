@@ -13,6 +13,7 @@ import BitUtils from "../../../../../utils/BitUtils";
 import CompositeType from "../../../../../utils/CompositeType";
 import TYPE_MAP from "../../types/TYPE_MAP";
 import type IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
+import type IOperandType from "../../../../../transpiler/types/IOperandType";
 
 /**
  * Validate that compound assignment operators are not used with bit field access.
@@ -114,6 +115,13 @@ function buildRegisterNameWithScopeDetection(
  * 10.3 narrowing cast comes with it for every form, not only two.
  * `BitUtils` takes it as the C type the value is stored in, which is what a
  * bitmap, a register member and a float's bits give it too.
+ *
+ * #1760 review: the value's category decides the write, once, for every
+ * target. A float's bits go through a union, an element's and a field's too
+ * (they fell through to a plain subscript store, and a variable was the only
+ * float this reached). An integer the target gives no width, such as a
+ * header's `int_fast16_t`, is written in `uintmax_t` by its own type name
+ * (owner ruling), where a 32-bit mask cleared the upper half of a `long`.
  */
 function writeBits(ctx: IAssignmentContext): string {
   const last = ctx.postfixOps.at(-1);
@@ -124,11 +132,37 @@ function writeBits(ctx: IAssignmentContext): string {
   // Source order: the base's own subscripts, then the bit's
   const base = ctx.renderBitTarget();
   const [start, width] = last.renderIndexes();
-  const type = CompositeType.integerOf([ctx.target.last?.before ?? null]);
-  const storage = type === null ? undefined : TYPE_MAP[type];
+  const value = ctx.target.last?.before ?? null;
+  if (value?.category === "floating") {
+    invariant(value.typeName !== null, "the typer names a float's type");
+    return ctx.state
+      .requireGenerator()
+      .generateFloatBitWrite(
+        base,
+        value.typeName,
+        start,
+        width ?? null,
+        ctx.generatedValue,
+        ctx.postfixOps.length === 1,
+      );
+  }
+  const storage = storageOf(value);
   return width === undefined
     ? BitUtils.singleBitWrite(base, start, ctx.generatedValue, storage)
     : BitUtils.multiBitWrite(base, start, width, ctx.generatedValue, storage);
+}
+
+/**
+ * The C type an integer's bits are written in: a known width's fixed-width
+ * type, or, for an integer the target gives no width, the type its header
+ * spelled, which `BitUtils` works in `uintmax_t`
+ */
+function storageOf(value: IOperandType | null): string | undefined {
+  const type = CompositeType.integerOf([value]);
+  if (type !== null) return TYPE_MAP[type];
+  const isInteger =
+    value?.category === "signed" || value?.category === "unsigned";
+  return isInteger ? (value.cType ?? undefined) : undefined;
 }
 
 /**

@@ -100,6 +100,21 @@ class OperandTyper {
   }
 
   /**
+   * Whether a bit or bit-range subscript writes the value's bits (ADR-007):
+   * an integer's, of any width, or a float's, through a union. The classifier
+   * and the member-chain writer ask this one question (#1760 review), which
+   * each had answered for integers alone, so a float element or field bit
+   * write fell through to a plain subscript store that C rejects.
+   */
+  static hasWritableBits(t: IOperandType | null): boolean {
+    return (
+      t?.category === "signed" ||
+      t?.category === "unsigned" ||
+      t?.category === "floating"
+    );
+  }
+
+  /**
    * The value type of any expression-level node: it descends through
    * single-child levels, parentheses, unary operators, ternaries and
    * composites. Null when the operand has no type this can settle.
@@ -1306,8 +1321,16 @@ class OperandTyper {
   ): { isArray: boolean; isString: boolean } | null {
     if (t === null) return null;
     const isArray = t.dimensions.length > 0;
-    const isInteger = t.category === "signed" || t.category === "unsigned";
-    if (t.form.kind === "foreign" && !isArray && !isInteger) return null;
+    // A header scalar with bits -- an integer, or a float (#1760 review: a
+    // `double`'s subscript was read as an element) -- is bit-indexed as a
+    // C-Next one is (ADR-007); anything else there is untyped
+    if (
+      t.form.kind === "foreign" &&
+      !isArray &&
+      !OperandTyper.hasWritableBits(t)
+    ) {
+      return null;
+    }
     return { isArray, isString: OperandTyper.isString(t) };
   }
 
@@ -1519,6 +1542,7 @@ class OperandTyper {
   private static plain(typeName: string | null): IOperandType {
     return {
       typeName,
+      cType: null,
       dimensions: [],
       category: "none",
       bitWidth: null,

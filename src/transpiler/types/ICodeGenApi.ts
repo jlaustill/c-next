@@ -26,14 +26,15 @@ interface ICodeGenApi {
     clampOp: string | null,
   ): string;
 
-  /** Generate float bit write operation (returns null if not applicable) */
+  /** Generate a float bit write through a union (ADR-007) */
   generateFloatBitWrite(
-    name: string,
-    typeInfo: TTypeInfo,
+    target: string,
+    floatType: string,
     bitIndex: string,
     width: string | null,
     value: string,
-  ): string | null;
+    isVariable: boolean,
+  ): string;
 
   /** Get type info for struct member */
   getMemberTypeInfo(structType: string, fieldName: string): TTypeInfo | null;

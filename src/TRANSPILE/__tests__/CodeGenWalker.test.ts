@@ -9420,7 +9420,7 @@ describe("CodeGenWalker", () => {
 
         // Float bit access uses union-based type punning (MISRA 21.15 compliant)
         expect(code).toContain("union { float f; uint32_t u; }");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
     });
 
@@ -11705,7 +11705,7 @@ describe("CodeGenWalker", () => {
 
         // Float bit access uses union-based type punning (MISRA 21.15 compliant)
         expect(code).toContain("union { float f; uint32_t u; }");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
 
       it("should generate f64 bit range read with union", () => {
@@ -11731,7 +11731,7 @@ describe("CodeGenWalker", () => {
 
         // f64 uses double/uint64_t union
         expect(code).toContain("union { double f; uint64_t u; }");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
     });
 
@@ -13305,7 +13305,7 @@ describe("CodeGenWalker", () => {
 
         // Float bit access uses union-based type punning (MISRA 21.15 compliant)
         expect(code).toContain("union { float f; uint32_t u; }");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
     });
 
@@ -14017,7 +14017,7 @@ describe("CodeGenWalker", () => {
         // Should use union-based type punning (MISRA 21.15 compliant)
         expect(code).toContain("__bits_floatVal");
         expect(code).toContain("union { float f; uint32_t u; }");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
 
       it("should generate f64 bit range read with 64-bit union shadow", () => {
@@ -14044,7 +14044,7 @@ describe("CodeGenWalker", () => {
         // Should use 64-bit union for f64 (MISRA 21.15 compliant)
         expect(code).toContain("__bits_doubleVal");
         expect(code).toContain("union { double f; uint64_t u; }");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
 
       it("should reuse shadow variable for repeated float bit reads", () => {
@@ -14903,7 +14903,7 @@ describe("CodeGenWalker", () => {
         expect(code).toContain(">> 8");
         // Uses union, not memcpy (MISRA 21.15 compliant)
         expect(code).toContain("union { float f; uint32_t u; }");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
 
       it("should generate f32 bit range with start=0", () => {
@@ -16901,7 +16901,7 @@ describe("CodeGenWalker", () => {
         // Uses union, not memcpy (MISRA 21.15 compliant)
         expect(code).toContain("union { float f; uint32_t u; } __bits_fval;");
         expect(code).toContain("__bits_fval.u");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
 
       it("should generate f64 bit range access with uint64_t union shadow", () => {
@@ -16928,7 +16928,7 @@ describe("CodeGenWalker", () => {
         // Uses union, not memcpy (MISRA 21.15 compliant)
         expect(code).toContain("union { double f; uint64_t u; } __bits_dval;");
         expect(code).toContain("__bits_dval.u");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
     });
   });

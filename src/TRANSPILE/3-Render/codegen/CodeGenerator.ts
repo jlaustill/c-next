@@ -838,19 +838,21 @@ export default class CodeGenerator implements IOrchestrator {
    * @public
    */
   generateFloatBitWrite(
-    name: string,
-    typeInfo: TTypeInfo,
+    target: string,
+    floatType: string,
     bitIndex: string,
     width: string | null,
     value: string,
-  ): string | null {
+    isVariable: boolean,
+  ): string {
     // Issue #644: FloatBitHelper is now static, pass callbacks
     return FloatBitHelper.generateFloatBitWrite(
-      name,
-      typeInfo,
+      target,
+      floatType,
       bitIndex,
       width,
       value,
+      isVariable,
       {
         requireInclude: (header) => this.state.requireInclude(header),
       },

@@ -173,6 +173,7 @@ class ForeignTypeFacts {
       category: "none",
       bitWidth: null,
       ...element,
+      cType: walked?.spelling ?? null,
       dimensions: allDimensions,
       stringCapacity: null,
       enumTypeName: null,
@@ -363,6 +364,7 @@ class ForeignTypeFacts {
 
   private static readonly UNTYPED: IOperandType = {
     typeName: null,
+    cType: null,
     dimensions: [],
     category: "none",
     bitWidth: null,
@@ -387,6 +389,8 @@ class ForeignTypeFacts {
     element: TForeignElement | null;
     dimensions: Array<number | string>;
     volatile: boolean;
+    /** The spelling that named the element, typedefs followed to it */
+    spelling: string | null;
   } | null {
     const dimensions: Array<number | string> = [];
     // Read before `spellingOf` strips it: a `volatile` at any hop -- the
@@ -405,11 +409,11 @@ class ForeignTypeFacts {
       if (step === null) {
         // An array of something this cannot type is still an array
         return dimensions.length > 0
-          ? { element: null, dimensions, volatile }
+          ? { element: null, dimensions, volatile, spelling: null }
           : null;
       }
       if ("element" in step) {
-        return { element: step.element, dimensions, volatile };
+        return { element: step.element, dimensions, volatile, spelling: type };
       }
       dimensions.push(...step.dimensions);
       typedefName = type;

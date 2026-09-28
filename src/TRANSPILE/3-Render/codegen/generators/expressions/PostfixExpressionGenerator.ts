@@ -26,6 +26,7 @@ import generateFunctionCall from "./CallExprGenerator";
 import memberAccessChain from "../../memberAccessChain";
 import BitmapAccessHelper from "./BitmapAccessHelper";
 import BitRangeHelper from "../../helpers/BitRangeHelper";
+import FloatBitHelper from "../../helpers/FloatBitHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import BitUtils from "../../../../../utils/BitUtils";
 import TYPE_MAP from "../../types/TYPE_MAP";
@@ -1277,13 +1278,6 @@ interface IFloatBitRangeContext {
 }
 
 /**
- * Get the C float type name for a C-Next float type.
- */
-const getFloatTypeName = (baseType: string): string => {
-  return baseType === "f64" ? "double" : "float";
-};
-
-/**
  * Handle float bit range access with union-based type punning.
  * Uses union { float f; uint32_t u; } for MISRA C:2012 Rule 21.15 compliance.
  */
@@ -1303,18 +1297,15 @@ const handleFloatBitRange = (
 
   effects.push({ type: "include", header: "float_static_assert" });
 
-  const isF64 = ctx.baseType === "f64";
-  const floatType = getFloatTypeName(ctx.baseType);
-  const intType = isF64 ? "uint64_t" : "uint32_t";
+  const intType = FloatBitHelper.bitsTypeOf(ctx.baseType);
   const shadowName = BitRangeHelper.getShadowVarName(ctx.rootIdentifier);
   const mask = BitUtils.generateMask(ctx.maskWidth, intType);
 
   const needsDeclaration = !orchestrator.hasFloatBitShadow(shadowName);
   if (needsDeclaration) {
     orchestrator.registerFloatBitShadow(shadowName);
-    // Emit union declaration: union { float f; uint32_t u; } __bits_name;
     orchestrator.addPendingTempDeclaration(
-      `union { ${floatType} f; ${intType} u; } ${shadowName};`,
+      FloatBitHelper.unionDeclaration(ctx.baseType, shadowName),
     );
   }
 

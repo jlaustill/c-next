@@ -226,3 +226,28 @@ describe("BitUtils.writeOnlyMultiBit", () => {
     ).toBe("R = ((bits & (((uint32_t)1U << n) - 1U)) << start);");
   });
 });
+
+// #1760 review, owner ruling: an integer the target gives no width is
+// written in uintmax_t and cast back to the type its header spelled
+describe("BitUtils with storage of unfixed width", () => {
+  it("works a single bit in uintmax_t and casts back", () => {
+    expect(BitUtils.singleBitWrite("hf", 3, "true", "int_fast16_t")).toBe(
+      "hf = (int_fast16_t)((hf & ~((uintmax_t)1U << 3)) | ((uintmax_t)1U << 3));",
+    );
+  });
+
+  it("works a bit range in uintmax_t and casts back", () => {
+    expect(BitUtils.multiBitWrite("hf", 0, 4, "v", "int_fast16_t")).toBe(
+      "hf = (int_fast16_t)((hf & ~((uintmax_t)0xFU << 0)) | ((v & (uintmax_t)0xFU) << 0));",
+    );
+  });
+
+  it("leaves a fixed-width and an unknown storage as they were", () => {
+    expect(BitUtils.singleBitWrite("w", 3, "true", "uint32_t")).toBe(
+      "w = (w & ~((uint32_t)1U << 3)) | ((uint32_t)1U << 3);",
+    );
+    expect(BitUtils.singleBitWrite("w", 3, "true")).toBe(
+      "w = (w & ~(1U << 3)) | (1U << 3);",
+    );
+  });
+});

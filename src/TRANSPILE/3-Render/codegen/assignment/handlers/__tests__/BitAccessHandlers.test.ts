@@ -311,14 +311,84 @@ describe("BitAccessHandlers", () => {
 
       const result = getHandler()!(ctx);
 
+      // The typer's float type, and a variable: its shadow union
       expect(generateFloatBitWrite).toHaveBeenCalledWith(
         "f",
-        expect.anything(),
+        "f32",
         "0",
         "8",
         "true",
+        true,
       );
       expect(result).toBe("float_range_write_result");
+    });
+  });
+
+  // #1760 review: the written value's category decides, once, for every kind
+  describe("writeBits by the value it writes", () => {
+    const handlerOf = (kind: AssignmentKind) =>
+      bitAccessHandlers.find(([k]) => k === kind)?.[1];
+
+    it("writes a float element through a union of its own", () => {
+      HandlerTestUtils.declareTypes(state, [["fa", { baseType: "f32" }]]);
+      const generateFloatBitWrite = vi.fn().mockReturnValue("element_write");
+      HandlerTestUtils.setupMockGenerator(state, {
+        generateFloatBitWrite,
+        // The element's index renders first, with the base, then the bit's
+        generateExpression: vi
+          .fn()
+          .mockReturnValueOnce("1")
+          .mockReturnValueOnce("31"),
+      });
+      const ctx = createMockContext({
+        identifiers: ["fa"],
+        ...HandlerTestUtils.subscriptsOf([
+          { mockValue: "1" } as never,
+          { mockValue: "31" } as never,
+        ]),
+      });
+
+      const result = handlerOf(AssignmentKind.ARRAY_ELEMENT_BIT)!(ctx);
+
+      // Not a variable: the element has no name to key a shadow by
+      expect(generateFloatBitWrite).toHaveBeenCalledWith(
+        "fa[1]",
+        "f32",
+        "31",
+        null,
+        "true",
+        false,
+      );
+      expect(result).toBe("element_write");
+    });
+
+    it("writes an integer of unfixed width in uintmax_t, cast back to its header type", () => {
+      HandlerTestUtils.setupMockGenerator(state, {
+        generateExpression: vi.fn().mockReturnValue("3"),
+      });
+      const base = createMockContext({ identifiers: ["hf"] });
+      const ctx: IAssignmentContext = {
+        ...base,
+        target: {
+          ...base.target,
+          last: {
+            before: {
+              ...HandlerTestUtils.operandOf("i32", true, true),
+              typeName: null,
+              cType: "int_fast16_t",
+              bitWidth: null,
+            },
+            subscript: "bit_single",
+            after: null,
+          },
+        },
+      };
+
+      const result = handlerOf(AssignmentKind.INTEGER_BIT)!(ctx);
+
+      expect(result).toBe(
+        "hf = (int_fast16_t)((hf & ~((uintmax_t)1U << 3)) | ((uintmax_t)1U << 3));",
+      );
     });
   });
 

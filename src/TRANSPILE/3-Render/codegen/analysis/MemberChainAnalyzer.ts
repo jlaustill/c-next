@@ -25,11 +25,12 @@
 import IBitAccessAnalysis from "../../../../transpiler/types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../../../transpiler/types/TPlannedTargetOp";
 import type IChainStep from "../../../../transpiler/types/IChainStep";
+import OperandTyper from "../../../../utils/OperandTyper";
 
 class MemberChainAnalyzer {
   /**
    * Whether the chain's final subscript writes a bit, or a bit range, of an
-   * integer.
+   * integer or a float.
    *
    * @param lastStep - The typer's step for the final op, or undefined
    * @param ops - The chain's ops
@@ -48,10 +49,7 @@ class MemberChainAnalyzer {
     if (!isBits || indexed === null) {
       return { isBitAccess: false };
     }
-    // A bit of an integer whose width is known
-    const isInteger =
-      indexed.category === "signed" || indexed.category === "unsigned";
-    return { isBitAccess: isInteger && indexed.bitWidth !== null };
+    return { isBitAccess: OperandTyper.hasWritableBits(indexed) };
   }
 }
 

@@ -219,6 +219,7 @@ function operandOf(
   else if (typeName.startsWith("f")) category = "floating";
   return {
     typeName,
+    cType: null,
     dimensions: [],
     category,
     bitWidth: integer ? TYPE_WIDTH[typeName] : null,
@@ -298,6 +299,7 @@ function bitWriteOf(
 
 export default class HandlerTestUtils {
   static readonly bitWriteOf = bitWriteOf;
+  static readonly operandOf = operandOf;
   static readonly setupMockSymbols = setupMockSymbols;
   static readonly setupMockGenerator = setupMockGenerator;
   static readonly subscriptsOf = subscriptsOf;

@@ -239,6 +239,8 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
   ComplianceAnnotations: [
     "codegen/assignment/handlers/ArrayHandlers.ts",
     "codegen/generators/statements/ControlFlowGenerator.ts",
+    // #1760 review: the float bits union, which carried no citation
+    "codegen/helpers/FloatBitHelper.ts",
     "codegen/helpers/StructInitFunction.ts",
   ],
   CppMemberHelper: [

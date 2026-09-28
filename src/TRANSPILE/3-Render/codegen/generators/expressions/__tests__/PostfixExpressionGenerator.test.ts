@@ -242,6 +242,7 @@ function typed(
 ): IOperandType {
   return {
     typeName,
+    cType: null,
     dimensions: [],
     category: "none",
     bitWidth: null,

@@ -48,6 +48,20 @@ describe("ForeignTypeFacts", () => {
     symbolTable.addStructField("ApiSample", "samples", "float", [4]);
   });
 
+  // #1760 review: the spelling a write casts back to, where the typer has no
+  // C-Next name for the type
+  describe("operandType's cType", () => {
+    it.each([
+      ["an integer of unfixed width", "int_fast16_t", "int_fast16_t", null],
+      ["a typedef of a float, at its element", "scale_t", "float", "f32"],
+      ["a fixed-width integer", "uint32_t", "uint32_t", "u32"],
+    ])("spells %s", (_label, type, cType, typeName) => {
+      expect(
+        ForeignTypeFacts.operandType(type as string, symbolTable, null),
+      ).toMatchObject({ cType, typeName });
+    });
+  });
+
   describe("variableType", () => {
     it.each([
       ["a float", "float", false, "f32"],

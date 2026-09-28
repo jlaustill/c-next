@@ -12,7 +12,7 @@ import IAssignmentContext from "./types/IAssignmentContext";
 import invariant from "../../utils/invariant";
 import SubscriptDepthValidator from "./SubscriptDepthValidator";
 import TTypeInfo from "../../transpiler/types/TTypeInfo";
-import type IOperandType from "../../transpiler/types/IOperandType";
+import OperandTyper from "../../utils/OperandTyper";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
@@ -798,7 +798,7 @@ class AssignmentClassifier {
       case "bit_single":
         if (!indexesAnElement) return AssignmentKind.INTEGER_BIT;
         // e.g. matrix[i][j][bit] on an integer array's element
-        return AssignmentClassifier.isIntegerOperand(last?.before ?? null)
+        return OperandTyper.hasWritableBits(last?.before ?? null)
           ? AssignmentKind.ARRAY_ELEMENT_BIT
           : AssignmentKind.MULTI_DIM_ARRAY_ELEMENT;
 
@@ -826,11 +826,6 @@ class AssignmentClassifier {
       case "array_slice":
         return AssignmentKind.ARRAY_SLICE;
     }
-  }
-
-  /** An integer operand, by its category (a C header's `uint8_t` is one) */
-  private static isIntegerOperand(t: IOperandType | null): boolean {
-    return t?.category === "signed" || t?.category === "unsigned";
   }
 
   /**

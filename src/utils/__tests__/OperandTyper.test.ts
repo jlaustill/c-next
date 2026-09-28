@@ -816,7 +816,10 @@ extern pod_t pod;`);
       ],
       ["an unsized array is elements", "u8 r <- buf[3];", "array_element"],
       ["a pointer is elements", "u8 r <- ptr[1];", "array_element"],
-      ["a float is left to C", "u8 r <- cf[1];", "array_element"],
+      // #1760 review: a header float is a float (ADR-024), and a float's
+      // subscript is a bit (ADR-007). This row said "left to C", and C got
+      // `cf[1]`, a subscript of a float, which it rejects
+      ["a float is bits (ADR-007)", "bool r <- cf[1];", "bit_single"],
       ["a struct is left to C", "u8 r <- pod[1];", "array_element"],
     ])("%s", (_why, body, expected) => {
       expect(subscriptOf(body, c)).toBe(expected);
@@ -842,7 +845,6 @@ extern Frame frame;`,
         expect(postfix).not.toBeNull();
         return OperandTyper.chainOf(postfix!, ctx).steps.at(-1)?.after ?? null;
       }
-      expect(elementOf("u8 r <- cf[1];", c)).toBeNull();
       expect(elementOf("u8 r <- pod[1];", c)).toBeNull();
       const cpp = header(
         `#include <stdint.h>

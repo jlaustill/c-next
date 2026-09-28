@@ -93,6 +93,7 @@ function typedLast(
 ): IAssignmentContext {
   const before: IOperandType = {
     typeName,
+    cType: null,
     dimensions: [],
     category: typeName.startsWith("i") ? "signed" : "unsigned",
     bitWidth: Number.parseInt(typeName.slice(1), 10),

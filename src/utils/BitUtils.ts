@@ -22,6 +22,13 @@ const CONSTANT_WIDTH = /^(\d+)U?$/;
  *   fixed-width type is exact on every target, so the output is too;
  * - storage narrower than 32 bits takes the MISRA C:2012 Rule 10.3 cast
  *   back to its type, since the operators promote.
+ *
+ * Any other named storage is an integer whose width the target does not fix
+ * (`int_fast16_t`, which is `long` on a 64-bit host): the typer gives it no
+ * width, and only such a type is passed here by name. Its write is worked in
+ * `uintmax_t` and cast back to the storage type (owner ruling, #1760 review),
+ * which is correct at any width and the same on every target. A 32-bit `1U`
+ * mask there cleared the upper half of a 64-bit `long`.
  */
 class BitUtils {
   /**
@@ -171,6 +178,7 @@ class BitUtils {
 
   /** An operand shifted into `storage`, in the storage's width (see above) */
   private static widen(operand: string, storage: string | undefined): string {
+    if (BitUtils.isUnfixed(storage)) return `(uintmax_t)${operand}`;
     const bits = BitUtils.bitsOf(storage);
     return bits > 16 ? `(uint${bits}_t)${operand}` : operand;
   }
@@ -188,10 +196,19 @@ class BitUtils {
     return `${target} = ${cast}(${rhs});`;
   }
 
-  /** The Rule 10.3 cast storage narrower than 32 bits needs, or none */
+  /**
+   * The Rule 10.3 cast back to storage narrower than 32 bits, or to storage
+   * of unfixed width, which is worked in `uintmax_t`; none otherwise
+   */
   private static narrowCast(storage: string | undefined): string {
+    if (BitUtils.isUnfixed(storage)) return `(${storage})`;
     const bits = BitUtils.bitsOf(storage);
     return bits > 0 && bits < 32 ? `(${storage})` : "";
+  }
+
+  /** Storage named by a type whose width the target does not fix */
+  private static isUnfixed(storage: string | undefined): boolean {
+    return storage !== undefined && !FIXED_WIDTH.test(storage);
   }
 
   /** The storage's width in bits, or 0 when its type is not fixed-width */
