@@ -182,7 +182,10 @@ class BitUtils {
     storage: string | undefined,
   ): string {
     const cast = BitUtils.narrowCast(storage);
-    return `${target} = ${cast === "" ? rhs : `${cast}(${rhs})`};`;
+    if (cast === "") {
+      return `${target} = ${rhs};`;
+    }
+    return `${target} = ${cast}(${rhs});`;
   }
 
   /** The Rule 10.3 cast storage narrower than 32 bits needs, or none */
