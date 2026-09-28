@@ -32,9 +32,7 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IShiftError from "./types/IShiftError";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
-import CompositeType from "../../utils/CompositeType";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
-import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -96,8 +94,8 @@ class ShiftCheck {
   }
 
   /**
-   * The type of the value a shift shifts: a composite's integer type by
-   * `CompositeType`, the one composite rule, or the operand's own type.
+   * The type of the value a shift shifts: a composite's integer type, as the
+   * typer settled it, or the operand's own type.
    */
   private static shiftedType(
     left: ParserRuleContext,
@@ -105,15 +103,10 @@ class ShiftCheck {
   ): IOperandType | null {
     const t = OperandTyper.typeOf(left, context);
     if (t?.form.kind !== "composite") return t;
-    const name = CompositeType.integerOf(
-      OperandTyper.valueLeaves(left, context),
-    );
-    if (name === null) return null;
+    if (t.typeName === null || t.bitWidth === null) return null;
     return {
       ...t,
-      typeName: name,
-      category: TypeCheckUtils.isSigned(name) ? "signed" : "unsigned",
-      bitWidth: TYPE_WIDTH[name],
+      category: TypeCheckUtils.isSigned(t.typeName) ? "signed" : "unsigned",
     };
   }
 

@@ -885,14 +885,13 @@ class CodeGenWalker {
   }
 
   /**
-   * #1668 (C6b): a composite's integer type, by the one rule 2.1's E0869
-   * uses (`CompositeType.integerOf` over the typer's value leaves), so the
-   * clamp helper's width and the conversion check cannot count a different
-   * set of operands
+   * #1668 (C6b): a composite's integer type, as the typer settled it -- the
+   * answer 2.1's E0869 reads too -- so the clamp helper's width and the
+   * conversion check cannot count a different set of operands
    */
   private compositeClampType(ctx: ParserRuleContext): string | null {
-    const typing = this.host.state.typingContext();
-    return CompositeType.integerOf(OperandTyper.valueLeaves(ctx, typing));
+    const t = OperandTyper.typeOf(ctx, this.host.state.typingContext());
+    return t?.bitWidth === null ? null : (t?.typeName ?? null);
   }
 
   /** #1668 (C6b): ADR-044's behavior for a composite, PlanTyping's row */
@@ -1247,7 +1246,7 @@ class CodeGenWalker {
 
   /**
    * The integer type an expression converts from: its one type, or a
-   * composite's by CompositeType -- the rule 2.1's E0869 applies
+   * composite's integer type -- the answer 2.1's E0869 reads
    */
   private integerTypeOf(ctx: ParserRuleContext): string | null {
     return this.directTypeOf(ctx) ?? this.compositeClampType(ctx);

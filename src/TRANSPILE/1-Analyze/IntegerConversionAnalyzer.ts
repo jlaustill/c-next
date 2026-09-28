@@ -21,9 +21,10 @@
  * the escape hatch the rule tells the author to use. Typing it would make the
  * sanctioned form fail the very check it exists to satisfy; codegen's
  * declaration path declined for that reason, and this pass declines for all
- * three. A composite is typed by `CompositeType.integerOf` over the typer's
- * value leaves -- category from the first integer operand, width from the
- * widest -- the one rule 2.2 sizes its clamp helper by (#1668).
+ * three. A composite's integer type is the typer's, which settles it by
+ * `CompositeType.integerOf` over its value leaves -- category from the first
+ * integer operand, width from the widest -- the one rule 2.2 sizes its clamp
+ * helper by (#1668).
  *
  * ## Two holes codegen had, both closed
  *
@@ -251,9 +252,9 @@ class IntegerConversionListener extends CNextListener {
    *   `test-no-warnings` execution fixture asserts it is fine);
    * - a lone bit extraction, `large[0, 8]`: ADR-024's explicit reinterpret,
    *   the form this rule tells the author to use;
-   * - a composite, `a + b`: `CompositeType.integerOf` over its value leaves,
-   *   the one rule 2.2 sizes its clamp helper by -- unless `composites` is
-   *   false, as for a cast;
+   * - a composite, `a + b`: its integer type, as the typer settled it -- the
+   *   one rule 2.2 sizes its clamp helper by -- unless `composites` is false,
+   *   as for a cast;
    * - anything else: the typer's type, a C or C++ integer included, at its
    *   width on this target; a suffixed literal is its suffix's type.
    */
@@ -265,9 +266,7 @@ class IntegerConversionListener extends CNextListener {
     const t = OperandTyper.typeOf(expr, this.context);
     if (t === null) return null;
     if (t.form.kind === "composite") {
-      return composites
-        ? CompositeType.integerOf(OperandTyper.valueLeaves(expr, this.context))
-        : null;
+      return composites && t.bitWidth !== null ? t.typeName : null;
     }
     if (t.form.kind === "bitRange" || t.form.kind === "bitIndex") return null;
     return IntegerConversionListener.integerName(t);

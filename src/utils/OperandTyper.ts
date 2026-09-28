@@ -174,50 +174,52 @@ class OperandTyper {
         OperandTyper.valueLeaves(child, ctx),
       );
     }
-    if (inner instanceof Parser.ShiftExpressionContext) {
-      const left = inner.additiveExpression()[0];
-      return left ? OperandTyper.valueLeaves(left, ctx) : [];
-    }
     if (inner instanceof Parser.TernaryExpressionContext) {
       const arms = ParserUtils.ternaryValueArms(inner);
       if (arms !== null) {
         return arms.flatMap((arm) => OperandTyper.valueLeaves(arm, ctx));
       }
     }
-    if (inner instanceof Parser.UnaryExpressionContext) {
-      const leaves = OperandTyper.unaryLeaves(inner, ctx);
-      if (leaves !== null) return leaves;
+    if (
+      inner instanceof Parser.UnaryExpressionContext &&
+      inner.getChild(0)?.getText() === "&"
+    ) {
+      return [];
     }
-    if (inner instanceof Parser.PrimaryExpressionContext) {
-      const parenthesized = inner.expression();
-      if (parenthesized) {
-        return OperandTyper.valueLeaves(parenthesized, ctx);
-      }
-    }
-    return [OperandTyper.typeOf(inner, ctx)];
+    const operand = OperandTyper.wrappedOperand(inner);
+    return operand === null
+      ? [OperandTyper.typeOf(inner, ctx)]
+      : OperandTyper.valueLeaves(operand, ctx);
   }
 
   /**
-   * A unary level's value leaves: none under `&x`; `-` and `~` descend, except
-   * that a negated literal is one leaf. Null for any other unary, which is
-   * one leaf of its own.
+   * The one expression a wrapper's value is: a parenthesized expression, a
+   * shift's left operand (its count is not a value leaf), or the operand of
+   * a unary `-` or `~` -- except a negated literal, `-5`, which is one leaf.
+   * Null for anything else.
+   *
+   * The one descent `valueLeaves` and `compositeLevelOf` share (#1760 second
+   * review): the second stopped at a unary or a shift, so the category of
+   * `-(a + 'A')` was scanned from leaves that disagree, where `(a + 'A')`
+   * had its level's.
    */
-  private static unaryLeaves(
-    inner: Parser.UnaryExpressionContext,
-    ctx: ITypingContext,
-  ): Array<IOperandType | null> | null {
+  private static wrappedOperand(
+    inner: ParserRuleContext,
+  ): ParserRuleContext | null {
+    if (inner instanceof Parser.PrimaryExpressionContext) {
+      return inner.expression();
+    }
+    if (inner instanceof Parser.ShiftExpressionContext) {
+      return inner.additiveExpression()[0] ?? null;
+    }
+    if (!(inner instanceof Parser.UnaryExpressionContext)) return null;
     const operator = inner.getChild(0)?.getText();
     const operand = inner.unaryExpression();
-    if (operator === "&") return [];
     if ((operator !== "-" && operator !== "~") || !operand) return null;
-    // `-5` is one leaf, a negated literal; `-(5 + a)` negates no leaf
-    if (
+    const negatedLiteral =
       operator === "-" &&
-      OperandTyper.descend(operand) instanceof Parser.LiteralContext
-    ) {
-      return [OperandTyper.typeOf(inner, ctx)];
-    }
-    return OperandTyper.valueLeaves(operand, ctx);
+      OperandTyper.descend(operand) instanceof Parser.LiteralContext;
+    return negatedLiteral ? null : operand;
   }
 
   /**
@@ -432,18 +434,15 @@ class OperandTyper {
 
   /**
    * The composite operator level (`*`, `+`, `&`, `^`, `|`) an expression IS,
-   * through single-child chains and parentheses, or null. The same descent
-   * `valueLeaves` flattens, for a rule that needs the level itself -- Rule
-   * 10.4's category of an operand that is an operation (#1760 review).
+   * through single-child chains and `wrappedOperand`, or null. The same
+   * descent `valueLeaves` flattens, for a rule that needs the level itself --
+   * Rule 10.4's category of an operand that is an operation (#1760 review).
    */
   static compositeLevelOf(node: ParserRuleContext): ParserRuleContext | null {
     const inner = OperandTyper.descend(node);
     if (OperandTyper.isCompositeLevel(inner)) return inner;
-    if (inner instanceof Parser.PrimaryExpressionContext) {
-      const parenthesized = inner.expression();
-      if (parenthesized) return OperandTyper.compositeLevelOf(parenthesized);
-    }
-    return null;
+    const operand = OperandTyper.wrappedOperand(inner);
+    return operand === null ? null : OperandTyper.compositeLevelOf(operand);
   }
 
   private static isCompositeLevel(node: ParserRuleContext): boolean {
@@ -468,20 +467,25 @@ class OperandTyper {
     const names = new Set(typed.map((leaf) => leaf.typeName));
     const category =
       categories.size === 1 ? ([...categories][0] ?? "none") : "none";
+    // The integer type the composite computes in, settled here once (#1760
+    // second review): four consumers each re-derived it from the leaves
+    const integer = CompositeType.integerOf(leaves);
     return {
       ...OperandTyper.plain(
-        OperandTyper.compositeName(names, category, leaves),
+        integer ?? OperandTyper.compositeName(names, category, leaves),
       ),
       category,
+      bitWidth: integer === null ? null : OperandTyper.widthOf(integer),
       hasSideEffect: typed.some((leaf) => leaf.hasSideEffect),
       form: { kind: "composite", leaves },
     };
   }
 
   /**
-   * A composite's type name: its leaves' one name, or for floating leaves of
-   * different names C's usual arithmetic conversion (`CompositeType`) --
-   * integer composites are typed at their consumer, by `CompositeType`.
+   * A non-integer composite's type name: its leaves' one name, or for
+   * floating leaves of different names C's usual arithmetic conversion
+   * (`CompositeType`). An integer composite is typed by `CompositeType.
+   * integerOf`, with its width, and its `bitWidth` says it is one.
    */
   private static compositeName(
     names: ReadonlySet<string | null>,

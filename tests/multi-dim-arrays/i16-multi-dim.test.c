@@ -68,7 +68,7 @@ int main(void) {
     if (16 != 16) return 16U;
     for (uint32_t i = 0U; i < 4; i += 1) {
         for (uint32_t j = 0U; j < 8; j += 1) {
-            matrix2d[i][j] = (((cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100), j))) & 0xFFFFU);
+            matrix2d[i][j] = (int16_t)(((cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100), j))) & 0xFFFFU);
         }
     }
     if (matrix2d[0U][0U] != 0) return 17U;
@@ -79,7 +79,7 @@ int main(void) {
     for (uint32_t i = 0U; i < 2; i += 1) {
         for (uint32_t j = 0U; j < 3; j += 1) {
             for (uint32_t k = 0U; k < 4; k += 1) {
-                cube3d[i][j][k] = (((cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100), cnx_clamp_mul_u32(j, 10)), k))) & 0xFFFFU);
+                cube3d[i][j][k] = (int16_t)(((cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100), cnx_clamp_mul_u32(j, 10)), k))) & 0xFFFFU);
                 sum = cnx_clamp_add_i32(sum, cube3d[i][j][k]);
             }
         }

@@ -245,6 +245,8 @@ u8 d <- (u8)'0' + digit;   // OK
 u32 e <- a + 'A';          // OK: MISRA's + exception
 ```
 
+**An exempt character and integer pair is essentially character** (owner ruling, 2026-09-28, in the #1760 review; MISRA C:2012 Appendix D.7). The pair's result carries the character category into the rest of the expression. A later operand of either signedness is therefore exempt beside it, so `u32 a + 'A' + i32 s` is legal under Rule 10.4. Its value is the exact sum, converted into the destination once, under the destination's ADR-044 overflow behavior (owner ruling, 2026-09-28). With `a = 3` and `s = -100`, a `u32` destination under clamp holds 0. C-Next does not compute that yet: it saturates in the first operand's type. This is tracked as #1809.
+
 A comparison with an enum operand is ADR-017's question, and is reported once, as ADR-017's diagnostic.
 
 **A suffixed integer literal takes its suffix's category and width** (owner ruling, 2026-09-26, #1668). A suffix fixes the literal's type, so it is not contextually typed:

@@ -1,0 +1,14 @@
+// test-error
+// #1760 second review: an operator level wrapped in a unary `-` or `~`, or
+// taken as a shift's left operand, lost the level's category. The typer's
+// two traversals disagreed about what an operand is, so `-(a + 'A') * k` was
+// silent where `(a + 'A') * k` is E0810.
+u32 a <- 3;
+f32 k <- 2.5;
+
+void f() {
+    f32 r1 <- -(a + 'A') * k;
+    f32 r2 <- ((a + 'A') << 1) * k;
+    // Negative control: a cast names the category, so both are floating
+    f32 c1 <- (f32)(a + 'A') * k;
+}

@@ -180,7 +180,9 @@ class MixedCategoryCheck {
   /**
    * The category after `running operator right`: character for MISRA's
    * exempt character + integer (D.7), the running one when `right` has
-   * none, and `right`'s otherwise.
+   * none, and `right`'s otherwise. Owner ruling (2026-09-28, #1760 review):
+   * D.7 stands, so `u32 a + 'A' + i32 s` is legal here; computing its exact
+   * value into the destination is #1809.
    */
   private static fold(
     running: Category,

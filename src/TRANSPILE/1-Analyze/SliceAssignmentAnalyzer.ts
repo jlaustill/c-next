@@ -39,7 +39,6 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
-import CompositeType from "../../utils/CompositeType";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import ISliceAssignmentError from "./types/ISliceAssignmentError";
 import ConstantExpression from "./helpers/ConstantExpression";
@@ -264,11 +263,10 @@ class SliceAssignmentListener {
       return;
     }
 
-    const sourceType = SliceAssignmentListener.sourceType(
-      OperandTyper.typeOf(value, this.context),
-      value,
-      this.context,
-    );
+    // An integer composite's type is the typer's (`CompositeType`); null
+    // when it cannot name one (a mixed composite, an unknown-width C integer)
+    const sourceType =
+      OperandTyper.typeOf(value, this.context)?.typeName ?? null;
     if (sourceType === null) return;
 
     const bits = TYPE_WIDTH[sourceType];
@@ -294,26 +292,6 @@ class SliceAssignmentListener {
         "Copying more bytes than the source holds would shift past its width, which is undefined behavior.",
       );
     }
-  }
-
-  /**
-   * The source's type name: an integer composite's by `CompositeType`, the
-   * one composite rule, and otherwise the typer's name, or null when the
-   * typer cannot name one (a mixed composite, an unknown-width C integer).
-   */
-  private static sourceType(
-    t: IOperandType | null,
-    value: Parser.ExpressionContext,
-    context: IAnalysisContext,
-  ): string | null {
-    if (t === null) return null;
-    if (t.form.kind === "composite") {
-      return (
-        CompositeType.integerOf(OperandTyper.valueLeaves(value, context)) ??
-        t.typeName
-      );
-    }
-    return t.typeName;
   }
 
   /**

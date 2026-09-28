@@ -290,6 +290,30 @@ void main() {
     expect(t?.typeName).toBe("u8");
   });
 
+  // #1760 second review: an integer composite of mixed widths was untyped,
+  // so each consumer rebuilt its type from the leaves
+  it.each([
+    ["u32 + u16", "u32 a <- 1;\nu16 b <- 2;\nu32 r <- a + b;", "u32", 32],
+    ["i8 x i16", "i8 a <- 1;\ni16 b <- 2;\ni16 r <- a * b;", "i16", 16],
+    ["u8 + a literal", "u8 a <- 1;\nu8 r <- a + 5;", "u8", 8],
+    ["u32 + a character", "u32 a <- 1;\nu32 r <- a + 'A';", "u32", 32],
+  ])(
+    "types an integer composite, %s, with its width",
+    (_why, body, name, width) => {
+      expect(typeOf(inMain(body))).toMatchObject({
+        typeName: name,
+        bitWidth: width,
+      });
+    },
+  );
+
+  it("gives a non-integer composite no width", () => {
+    expect(typeOf(inMain("f32 k <- 2.0;\nf32 r <- k * k;"))).toMatchObject({
+      typeName: "f32",
+      bitWidth: null,
+    });
+  });
+
   it("types a parenthesized composite (ETR :759-763)", () => {
     const t = typeOf(inMain("u8 a <- 1;\nu8 r <- (a + a);"));
     expect(t?.form.kind).toBe("composite");
