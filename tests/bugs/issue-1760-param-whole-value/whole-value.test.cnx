@@ -1,0 +1,58 @@
+// test-execution
+// #1760 second review: a struct or bitmap parameter used as a whole value
+// was dereferenced only where it was read. Written, it was the bare pointer
+// (`p = (*q);` assigned a struct to a pointer), and a bitmap parameter's
+// field was read by shifting the pointer itself.
+bitmap8 Sm {
+    A,
+    B[3],
+    C[4]
+}
+
+struct Pair {
+    u8 x;
+    u8 y;
+}
+
+void copyPair(Pair p, Pair q) {
+    p <- q;
+}
+
+void copyFlags(Sm s, Sm o) {
+    s <- o;
+}
+
+// Forwarded to a pointer parameter, a parameter stays the pointer it is
+void forwardFlags(Sm s, Sm o) {
+    copyFlags(s, o);
+}
+
+u8 fieldOf(Sm s) {
+    return s.C;
+}
+
+u32 main() {
+    Pair a;
+    a.x <- 1;
+    a.y <- 2;
+    Pair b;
+    b.x <- 7;
+    b.y <- 9;
+    copyPair(a, b);
+    if (a.x != 7) return 1;
+    if (a.y != 9) return 2;
+
+    Sm f <- 0;
+    Sm g <- 0;
+    g.C <- 6;
+    copyFlags(f, g);
+    if (f.C != 6) return 3;
+
+    Sm h <- 0;
+    forwardFlags(h, g);
+    if (h.C != 6) return 4;
+
+    u8 read <- fieldOf(g);
+    if (read != 6) return 5;
+    return 0;
+}

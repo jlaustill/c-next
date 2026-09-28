@@ -316,7 +316,7 @@ describe("BitAccessHandlers", () => {
         target: "f",
         floatType: "f32",
         bitIndex: "0",
-        width: "8",
+        width: { text: "8", folded: undefined },
         value: "true",
         isVariable: true,
       });

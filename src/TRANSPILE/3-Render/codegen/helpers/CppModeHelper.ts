@@ -1,3 +1,4 @@
+import CExpression from "../../../../utils/CExpression";
 import type TranspileState from "../../../TranspileState";
 /**
  * CppModeHelper - Utilities for C/C++ mode-specific code generation
@@ -86,35 +87,7 @@ class CppModeHelper {
 
   /** A C cast of the whole of `expr`: parenthesized when it has an operator */
   private static cStyleCast(type: string, expr: string): string {
-    return CppModeHelper.hasOperator(expr)
-      ? `(${type})(${expr})`
-      : `(${type})${expr}`;
-  }
-
-  /**
-   * Whether generated C has an operator outside brackets and literals. The
-   * generator spaces every binary and ternary operator, and nothing else at
-   * that depth, so such a space is one.
-   */
-  private static hasOperator(expr: string): boolean {
-    let depth = 0;
-    let quote: string | null = null;
-    for (let i = 0; i < expr.length; i++) {
-      const ch = expr[i];
-      if (quote !== null) {
-        if (ch === "\\") i++;
-        else if (ch === quote) quote = null;
-      } else if (ch === '"' || ch === "'") {
-        quote = ch;
-      } else if ("([{".includes(ch)) {
-        depth++;
-      } else if (")]}".includes(ch)) {
-        depth--;
-      } else if (depth === 0 && /\s/.test(ch)) {
-        return true;
-      }
-    }
-    return false;
+    return `(${type})${CExpression.operand(expr)}`;
   }
 
   /**

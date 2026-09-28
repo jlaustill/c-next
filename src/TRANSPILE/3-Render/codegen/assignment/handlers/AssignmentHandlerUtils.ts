@@ -128,7 +128,13 @@ function writeBits(ctx: IAssignmentContext): string {
   );
   // Source order: the base's own subscripts, then the bit's
   const base = ctx.renderBitTarget();
-  const [start, width] = last.renderIndexes();
+  const [start, widthText] = last.renderIndexes();
+  // Every writer takes the width with its fold (#1096): the float branch
+  // passed it unfolded, and masked a runtime `1U << 32` at full width
+  const width =
+    widthText === undefined
+      ? undefined
+      : { text: widthText, folded: last.foldWidth() };
   const value = ctx.target.last?.before ?? null;
   if (value?.category === "floating") {
     invariant(value.typeName !== null, "the typer names a float's type");
@@ -144,13 +150,7 @@ function writeBits(ctx: IAssignmentContext): string {
   const storage = BitUtils.storageOf(value);
   return width === undefined
     ? BitUtils.singleBitWrite(base, start, ctx.generatedValue, storage)
-    : BitUtils.multiBitWrite(
-        base,
-        start,
-        BitUtils.widthText(width, last.foldWidth()),
-        ctx.generatedValue,
-        storage,
-      );
+    : BitUtils.multiBitWrite(base, start, width, ctx.generatedValue, storage);
 }
 
 /**

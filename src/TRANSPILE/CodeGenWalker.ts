@@ -4858,11 +4858,17 @@ class CodeGenWalker {
     return {
       getParameterInfo: (name: string) =>
         this.host.state.currentParameters.get(name),
+      // A target with no postfix op is the parameter's whole value, written
+      // as the read side reads it (#1760 second review: `p = (*q);`)
       resolveParameter: (name: string, paramInfo: TParameterInfo) =>
-        ParameterDereferenceResolver.resolve(
-          name,
+        memberAccessChain.wholeParamValue(
+          ParameterDereferenceResolver.resolve(
+            name,
+            paramInfo,
+            this._buildParameterDereferenceDeps(),
+          ),
           paramInfo,
-          this._buildParameterDereferenceDeps(),
+          this.host.state.cppMode,
         ),
       resolveBareIdentifier: (name: string, at: ISourcePosition) =>
         TypeValidator.resolveBareIdentifier(

@@ -63,13 +63,14 @@ function writeRegisterBitRange(
   const accessMod = ctx.state.symbols!.registerMemberAccess.get(memberName);
   const storage = ctx.state.symbols!.registerMemberCTypes.get(memberName);
   const start = ctx.renderSubscript(0);
-  const width = ctx.renderSubscript(1);
+  // With its fold (#1096): a register's `[0, W]` masked a runtime `1U << 32`
+  const width = { text: ctx.renderSubscript(1), folded: ctx.foldSubscript(1) };
 
   if (RegisterUtils.isWriteOnlyRegister(accessMod)) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
       ctx.generatedValue,
       memberName,
-      `${start}, ${width}`,
+      `${start}, ${width.text}`,
       false,
     );
 
@@ -77,7 +78,7 @@ function writeRegisterBitRange(
       memberName,
       regName,
       ctx.foldSubscript(0),
-      ctx.foldSubscript(1),
+      width.folded,
       ctx.generatedValue,
       ctx.state,
     );

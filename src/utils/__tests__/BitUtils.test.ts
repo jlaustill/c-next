@@ -116,9 +116,11 @@ describe("BitUtils.singleBitWrite", () => {
     );
   });
 
-  it("shifts a signed storage's bit in its unsigned width", () => {
+  // #1760 second review: the result is unsigned, so a signed target takes
+  // the Rule 10.3 cast back whatever its width
+  it("shifts a signed storage's bit in its unsigned width, cast back", () => {
     expect(BitUtils.singleBitWrite("w", 31, "isSet", "int32_t")).toBe(
-      "w = (w & ~((uint32_t)1U << 31)) | ((uint32_t)(isSet ? 1U : 0U) << 31);",
+      "w = (int32_t)((w & ~((uint32_t)1U << 31)) | ((uint32_t)(isSet ? 1U : 0U) << 31));",
     );
   });
 
@@ -164,9 +166,54 @@ describe("BitUtils.multiBitWrite", () => {
   });
 
   it("computes a run-time width's mask once, in the storage's width", () => {
-    expect(BitUtils.multiBitWrite("d", 0, "width", "bits", "uint32_t")).toBe(
+    expect(
+      BitUtils.multiBitWrite(
+        "d",
+        0,
+        { text: "width", folded: undefined },
+        "bits",
+        "uint32_t",
+      ),
+    ).toBe(
       "d = (d & ~((((uint32_t)1U << width) - 1U) << 0)) | ((bits & (((uint32_t)1U << width) - 1U)) << 0);",
     );
+  });
+
+  // #1760 second review: the width folds in the writer, so every caller's
+  // `[0, W]` masks a literal, not the undefined `1U << 32`
+  it("masks a folded width as a literal", () => {
+    expect(
+      BitUtils.multiBitWrite(
+        "fx",
+        0,
+        { text: "W", folded: 32 },
+        "v",
+        "uint32_t",
+      ),
+    ).toBe(
+      "fx = (fx & ~((uint32_t)0xFFFFFFFFU << 0)) | ((v & (uint32_t)0xFFFFFFFFU) << 0);",
+    );
+  });
+
+  // #1760 second review: `a | b & mask` wrote bits outside the range
+  it("masks a value with an operator as one operand", () => {
+    expect(BitUtils.multiBitWrite("x", 0, 8, "a | b", "uint8_t")).toBe(
+      "x = (uint8_t)((x & ~(0xFFU << 0)) | (((a | b) & 0xFFU) << 0));",
+    );
+  });
+
+  // #1760 second review: an `i32` or `i64` target took no cast back
+  it.each([
+    [
+      "int32_t",
+      "s = (int32_t)((s & ~((uint32_t)0xFU << 4)) | ((v & (uint32_t)0xFU) << 4));",
+    ],
+    [
+      "int64_t",
+      "s = (int64_t)((s & ~((uint64_t)0xFU << 4)) | ((v & (uint64_t)0xFU) << 4));",
+    ],
+  ])("casts %s storage back to its type", (storage, expected) => {
+    expect(BitUtils.multiBitWrite("s", 4, 4, "v", storage)).toBe(expected);
   });
 
   it("keeps a run-time offset as written", () => {
@@ -223,8 +270,20 @@ describe("BitUtils.writeOnlyMultiBit", () => {
 
   it("computes a run-time width's mask in the storage's width", () => {
     expect(
-      BitUtils.writeOnlyMultiBit("R", "start", "n", "bits", "uint32_t"),
+      BitUtils.writeOnlyMultiBit(
+        "R",
+        "start",
+        { text: "n", folded: undefined },
+        "bits",
+        "uint32_t",
+      ),
     ).toBe("R = ((bits & (((uint32_t)1U << n) - 1U)) << start);");
+  });
+
+  it("masks a value with an operator as one operand", () => {
+    expect(BitUtils.writeOnlyMultiBit("R", 0, 4, "c ^ b", "uint8_t")).toBe(
+      "R = (uint8_t)(((c ^ b) & 0xFU) << 0);",
+    );
   });
 });
 
@@ -298,7 +357,7 @@ describe("BitUtils.storageOf and widthText", () => {
   });
 
   it("writes a folded width as its value, and any other as its text", () => {
-    expect(BitUtils.widthText("WIDTH", 32)).toBe("32U");
-    expect(BitUtils.widthText("n", undefined)).toBe("n");
+    expect(BitUtils.widthText({ text: "WIDTH", folded: 32 })).toBe("32U");
+    expect(BitUtils.widthText({ text: "n", folded: undefined })).toBe("n");
   });
 });

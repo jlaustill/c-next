@@ -109,58 +109,25 @@ function writeRegisterMemberBitmapField(
 }
 
 /**
- * Handle simple bitmap field: flags.Running <- true
+ * A field of a bitmap value, however the value is named -- a variable, an
+ * element, a member, a parameter, through `this.` or `global.`: the target
+ * renders as every other bit write's does, and the typer names the bitmap.
+ * #1760 second review: rebuilt here from the source spelling, a shadowing
+ * local's write went to the global, and a C parameter's (a pointer) was not
+ * dereferenced.
  */
-function handleBitmapFieldSingleBit(ctx: IAssignmentContext): string {
-  const varName = ctx.identifiers[0];
-  const fieldName = ctx.identifiers[1];
-  const typeInfo = ctx.target.rootTypeInfo;
-  const bitmapType = typeInfo!.bitmapTypeName!;
-
-  return writeBitmapField(varName, bitmapType, fieldName, ctx, false);
-}
-
-/**
- * Handle multi-bit bitmap field: flags.Mode <- 3
- */
-function handleBitmapFieldMultiBit(ctx: IAssignmentContext): string {
-  // Same logic as single bit, writeBitmapField handles width
-  return handleBitmapFieldSingleBit(ctx);
-}
-
-/**
- * Handle bitmap array element field: bitmapArr[i].Field <- value
- */
-function handleBitmapArrayElementField(ctx: IAssignmentContext): string {
-  const arrayName = ctx.identifiers[0];
-  const fieldName = ctx.identifiers[1];
-  const typeInfo = ctx.target.rootTypeInfo;
-  const bitmapType = typeInfo!.bitmapTypeName!;
-
-  const index = ctx.renderSubscript(0);
-  const arrayElement = `${arrayName}[${index}]`;
-
-  return writeBitmapField(arrayElement, bitmapType, fieldName, ctx, false);
-}
-
-/**
- * Handle struct member bitmap field: device.flags.Active <- true
- */
-function handleStructMemberBitmapField(ctx: IAssignmentContext): string {
-  const structName = ctx.identifiers[0];
-  const memberName = ctx.identifiers[1];
-  const fieldName = ctx.identifiers[2];
-
-  const structTypeInfo = ctx.target.rootTypeInfo;
-  const memberInfo = ctx.state.getMemberTypeInfo(
-    structTypeInfo!.baseType,
-    memberName,
+function handleBitmapField(ctx: IAssignmentContext): string {
+  const bitmapType = ctx.target.last?.before?.bitmapTypeName;
+  invariant(bitmapType, "the classifier routes a field of a bitmap value here");
+  const fieldName = ctx.identifiers.at(-1);
+  invariant(fieldName, "a bitmap field write names its field");
+  return writeBitmapField(
+    ctx.renderBitTarget(),
+    bitmapType,
+    fieldName,
+    ctx,
+    false,
   );
-  const bitmapType = memberInfo!.baseType;
-
-  const memberPath = `${structName}.${memberName}`;
-
-  return writeBitmapField(memberPath, bitmapType, fieldName, ctx, false);
 }
 
 /**
@@ -245,10 +212,10 @@ function recordingAdr034(handler: TAssignmentHandler): TAssignmentHandler {
 const declaredBitmapHandlers: ReadonlyArray<
   [AssignmentKind, TAssignmentHandler]
 > = [
-  [AssignmentKind.BITMAP_FIELD_SINGLE_BIT, handleBitmapFieldSingleBit],
-  [AssignmentKind.BITMAP_FIELD_MULTI_BIT, handleBitmapFieldMultiBit],
-  [AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD, handleBitmapArrayElementField],
-  [AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD, handleStructMemberBitmapField],
+  [AssignmentKind.BITMAP_FIELD_SINGLE_BIT, handleBitmapField],
+  [AssignmentKind.BITMAP_FIELD_MULTI_BIT, handleBitmapField],
+  [AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD, handleBitmapField],
+  [AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD, handleBitmapField],
   [
     AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD,
     handleRegisterMemberBitmapField,

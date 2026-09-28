@@ -1,5 +1,7 @@
 import CompositeType from "./CompositeType";
+import CExpression from "./CExpression";
 import CNEXT_TO_C_TYPE_MAP from "./constants/TypeMappings";
+import type IBitWidth from "../transpiler/types/IBitWidth";
 import type IOperandType from "../transpiler/types/IOperandType";
 
 /**
@@ -24,8 +26,9 @@ const CONSTANT_WIDTH = /^(\d+)U?$/;
  *   `~(1U << 3)` is a 16-bit mask that clears bits 16-31 of the storage it
  *   is ANDed with -- a silent miscompile that compiles cleanly. A
  *   fixed-width type is exact on every target, so the output is too;
- * - storage narrower than 32 bits takes the MISRA C:2012 Rule 10.3 cast
- *   back to its type, since the operators promote.
+ * - storage narrower than 32 bits, or signed, takes the MISRA C:2012 Rule
+ *   10.3 cast back to its type: the operators promote, and the result is
+ *   unsigned (#1760 second review: an `i32` or `i64` target took none).
  *
  * Any other named storage is an integer whose width the target does not fix
  * (`int_fast16_t`, which is `long` on a 64-bit host): the typer gives it no
@@ -56,8 +59,8 @@ class BitUtils {
    * the mask is a literal (Issue #1094, #1096: `(1U << WIDTH) - 1U` is
    * undefined at full width); its rendered text otherwise
    */
-  static widthText(width: string, folded: number | undefined): string {
-    return folded === undefined ? width : `${folded}U`;
+  static widthText(width: IBitWidth): string {
+    return width.folded === undefined ? width.text : `${width.folded}U`;
   }
 
   /**
@@ -132,20 +135,23 @@ class BitUtils {
    *
    * @param target - The variable to modify
    * @param offset - Starting bit position (0-indexed)
-   * @param width - Number of bits to write
-   * @param value - Value to write
+   * @param width - Number of bits to write: a constant, or the C for it with
+   *   its fold, so every writer folds (#1096)
+   * @param value - Value to write, masked as one operand (#1760 second review:
+   *   `a | b & mask` wrote bits outside the range)
    * @param storage - The target's C type, when known
    * @returns C code string for the assignment
    */
   static multiBitWrite(
     target: string,
     offset: string | number,
-    width: string | number,
+    width: number | IBitWidth,
     value: string,
     storage?: string,
   ): string {
-    const mask = BitUtils.shiftedMask(width, storage);
-    const rhs = `(${target} & ~(${mask} << ${offset})) | ((${value} & ${mask}) << ${offset})`;
+    const mask = BitUtils.shiftedMask(BitUtils.widthOf(width), storage);
+    const masked = `(${CExpression.operand(value)} & ${mask})`;
+    const rhs = `(${target} & ~(${mask} << ${offset})) | (${masked} << ${offset})`;
     return BitUtils.assign(target, rhs, storage);
   }
 
@@ -177,21 +183,26 @@ class BitUtils {
    *
    * @param target - The register to write
    * @param offset - Starting bit position (0-indexed)
-   * @param width - Number of bits to write
-   * @param value - Value to write
+   * @param width - Number of bits to write (see `multiBitWrite`)
+   * @param value - Value to write, masked as one operand
    * @param storage - The target's C type, when known
    * @returns C code string for the assignment
    */
   static writeOnlyMultiBit(
     target: string,
     offset: string | number,
-    width: string | number,
+    width: number | IBitWidth,
     value: string,
     storage?: string,
   ): string {
-    const mask = BitUtils.shiftedMask(width, storage);
+    const mask = BitUtils.shiftedMask(BitUtils.widthOf(width), storage);
     const cast = BitUtils.narrowCast(storage);
-    return `${target} = ${cast}((${value} & ${mask}) << ${offset});`;
+    return `${target} = ${cast}((${CExpression.operand(value)} & ${mask}) << ${offset});`;
+  }
+
+  /** A writer's width as C: a constant as it is, a written one folded */
+  private static widthOf(width: number | IBitWidth): string | number {
+    return typeof width === "number" ? width : BitUtils.widthText(width);
   }
 
   /** A mask about to be shifted into `storage`: a computed one already is */
@@ -226,13 +237,15 @@ class BitUtils {
   }
 
   /**
-   * The Rule 10.3 cast back to storage narrower than 32 bits, or to storage
-   * of unfixed width, which is worked in `uintmax_t`; none otherwise
+   * The Rule 10.3 cast back to storage narrower than 32 bits, to signed
+   * storage, or to storage of unfixed width, which is worked in `uintmax_t`;
+   * none otherwise
    */
   private static narrowCast(storage: string | undefined): string {
     if (BitUtils.isUnfixed(storage)) return `(${storage})`;
     const bits = BitUtils.bitsOf(storage);
-    return bits > 0 && bits < 32 ? `(${storage})` : "";
+    const signed = storage?.startsWith("int") ?? false;
+    return bits > 0 && (bits < 32 || signed) ? `(${storage})` : "";
   }
 
   /** Storage named by a type whose width the target does not fix */

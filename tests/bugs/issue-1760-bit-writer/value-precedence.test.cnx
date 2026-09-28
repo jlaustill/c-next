@@ -1,0 +1,38 @@
+// test-execution
+// #1760 second review: a bit-range write masked its value without
+// parentheses, as `(value & mask)`. `&` binds tighter than `|`, `^` and `?:`,
+// so each value below wrote bits outside its range. The values are chosen so
+// the unparenthesized form gives a different result.
+bitmap8 Flags {
+    A,
+    B[3],
+    C[4]
+}
+
+u32 main() {
+    u32 a <- 0x100;
+    u32 b <- 0x1;
+    u32 c <- 0x13;
+    bool cond <- true;
+
+    u32 x <- 0;
+    x[0, 8] <- a | b;
+    if (x != 0x01) return 1;
+
+    u32 y <- 0;
+    y[4, 4] <- c ^ b;
+    if (y != 0x20) return 2;
+
+    u32 z <- 0;
+    z[0, 4] <- (cond = true) ? a : b;
+    if (z != 0) return 3;
+
+    // A bitmap field goes through the same writer
+    u8 low8 <- 0x10;
+    u8 one <- 0x1;
+    Flags f <- 0;
+    f.B <- low8 | one;
+    if (f.B != 1) return 4;
+    if (f.C != 0) return 5;
+    return 0;
+}

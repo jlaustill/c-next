@@ -10,7 +10,7 @@
 
 import memberAccessChain from "../memberAccessChain";
 
-const { getStructParamSeparator, wrapStructParamValue } = memberAccessChain;
+const { getStructParamSeparator, wholeParamValue } = memberAccessChain;
 
 /**
  * Both helpers read ONE decision -- is this struct parameter a pointer here, or
@@ -34,7 +34,14 @@ describe("getStructParamSeparator", () => {
   );
 });
 
-describe("wrapStructParamValue", () => {
+describe("wholeParamValue", () => {
+  const struct = {
+    isStruct: true,
+    isArray: false,
+    isOpaqueHandle: false,
+    forcePointerSemantics: false,
+  };
+
   it.each<[string, boolean, boolean, string]>([
     ["C", false, false, "(*config)"],
     ["C++", true, false, "config"],
@@ -44,24 +51,24 @@ describe("wrapStructParamValue", () => {
     "wraps a whole-value struct parameter in %s",
     (_label, cppMode, forcePointerSemantics, expected) => {
       expect(
-        wrapStructParamValue("config", { cppMode, forcePointerSemantics }),
+        wholeParamValue(
+          "config",
+          { ...struct, forcePointerSemantics },
+          cppMode,
+        ),
       ).toBe(expected);
     },
   );
 
-  it("should handle parameter names with underscores", () => {
-    expect(
-      wrapStructParamValue("my_config", {
-        cppMode: false,
-        forcePointerSemantics: false,
-      }),
-    ).toBe("(*my_config)");
-    expect(
-      wrapStructParamValue("my_config", {
-        cppMode: true,
-        forcePointerSemantics: false,
-      }),
-    ).toBe("my_config");
+  // ADR-030 / #1722: the handle's value IS the pointer; an array parameter
+  // is the pointer C passes; anything else resolved as it stands
+  it.each<[string, Parameters<typeof wholeParamValue>[1]]>([
+    ["an opaque handle", { ...struct, isOpaqueHandle: true }],
+    ["an array parameter", { ...struct, isArray: true }],
+    ["a scalar parameter", { ...struct, isStruct: false }],
+    ["no parameter", undefined],
+  ])("leaves %s unwrapped", (_label, paramInfo) => {
+    expect(wholeParamValue("p", paramInfo, false)).toBe("p");
   });
 });
 

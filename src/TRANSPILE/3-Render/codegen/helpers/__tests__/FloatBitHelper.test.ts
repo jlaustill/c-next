@@ -46,7 +46,14 @@ describe("FloatBitHelper", () => {
     isVariable = true,
   ): string =>
     FloatBitHelper.generateFloatBitWrite(
-      { target, floatType, bitIndex, width, value, isVariable },
+      {
+        target,
+        floatType,
+        bitIndex,
+        width: width === null ? null : { text: width, folded: undefined },
+        value,
+        isVariable,
+      },
       callbacks,
       state,
     );

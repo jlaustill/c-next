@@ -35,6 +35,7 @@
  * parse type at all.
  */
 
+import type TParameterInfo from "../../../transpiler/types/TParameterInfo";
 import type TTypeInfo from "../../../transpiler/types/TTypeInfo";
 import type IRootHolding from "./types/IRootHolding";
 
@@ -146,9 +147,40 @@ function wrapStructParamValue(
   return isPointer(options) ? `(*${paramName})` : paramName;
 }
 
+/**
+ * A parameter used as a whole value -- read, written, or the scalar a bitmap
+ * parameter's field is worked in: wrapped as above when it is a struct or
+ * bitmap parameter (#551 makes a bitmap struct-like), the name otherwise.
+ * Never an opaque handle, whose value IS the pointer (ADR-030, #1722), nor an
+ * array parameter, which is the pointer C passes an array as: `(*pts)` is its
+ * first element.
+ *
+ * The one rule for every whole-value use (#1760 second review): only the read
+ * side asked, so a written one was the bare pointer -- `p = (*q);` for a
+ * struct, and `s.A <- true` masked the pointer `s` itself.
+ */
+function wholeParamValue(
+  name: string,
+  paramInfo:
+    | Pick<
+        TParameterInfo,
+        "isStruct" | "isArray" | "isOpaqueHandle" | "forcePointerSemantics"
+      >
+    | undefined,
+  cppMode: boolean,
+): string {
+  if (!paramInfo?.isStruct || paramInfo.isOpaqueHandle || paramInfo.isArray) {
+    return name;
+  }
+  return wrapStructParamValue(name, {
+    cppMode,
+    forcePointerSemantics: paramInfo.forcePointerSemantics ?? false,
+  });
+}
+
 export default {
   getStructParamSeparator,
-  wrapStructParamValue,
+  wholeParamValue,
   rootHolding,
   rootMemberSeparator,
 };

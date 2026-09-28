@@ -184,8 +184,6 @@ const generatePostfixExpression = (
     rootIdentifier ? plan.base.rootTypeInfo : undefined,
     orchestrator,
   );
-  const { isStructParam, forcePointerSemantics } = holding;
-
   // Issue #1100: Subscripted parameters resolve through the normal primary
   // expression path (ParameterDereferenceResolver), same as any other
   // parameter reference. This is a no-op for array/struct/string params
@@ -281,38 +279,18 @@ const generatePostfixExpression = (
     }
   }
 
-  // ADR-006: If a struct parameter is used as a whole value (no postfix ops)
-  // This applies to both normal struct params AND callback-promoted struct params.
-  // When used as a value (assignments, etc.), we need to dereference to get the struct.
-  // Issue #937: For function arguments expecting pointers, CallExprGenerator handles
-  // using the identifier directly instead of the dereferenced form.
-  //
-  // ADR-030 / #1722: except an opaque handle, whose value IS the pointer.
-  // `(*p)` of an incomplete type is a C error, and it reached every
-  // whole-value use: a C-Next call argument (`aPoke((*d))`), an initializer,
-  // an assignment, a comparison. C++ never showed it only because the wrap is
-  // the bare name there, so the exclusion is the handle's own fact, not the
-  // mode.
-  //
-  // Issue #895: a callback-promoted parameter is a pointer in C++ too, so its
-  // whole value is `(*f)` there as well -- the helper decides from the
-  // parameter, the same answer its `->` member access reads.
-  //
-  // And never an ARRAY parameter: `CPoint pts[2]` is already the pointer C
-  // passes an array as, so its value is `pts`, and `(*pts)` is its first
-  // element. Passed whole to a C function that became `&(*pts)`, which is
-  // right only because the `&` undoes the `*`.
-  if (
-    isStructParam &&
-    !paramInfo?.isOpaqueHandle &&
-    !paramInfo?.isArray &&
-    ops.length === 0
-  ) {
+  // ADR-006: a struct or bitmap parameter used as a whole value is
+  // dereferenced where it is held through a pointer; `wholeParamValue` holds
+  // the rule and its exceptions (an opaque handle, an array parameter), for
+  // the write side too. Issue #937: an argument to a pointer parameter is
+  // taken from the identifier by CallExprGenerator instead.
+  if (ops.length === 0) {
     return {
-      code: memberAccessChain.wrapStructParamValue(result, {
-        cppMode: orchestrator.isCppMode(),
-        forcePointerSemantics,
-      }),
+      code: memberAccessChain.wholeParamValue(
+        result,
+        paramInfo ?? undefined,
+        orchestrator.isCppMode(),
+      ),
       effects,
     };
   }
@@ -823,9 +801,19 @@ const tryBitmapFieldAccess = (
     return null;
   }
 
+  // A bitmap parameter's field is worked in its whole value (#1760 second
+  // review: `s.C` shifted the pointer `s`)
+  const whole =
+    ctx.result === ctx.rootIdentifier
+      ? memberAccessChain.wholeParamValue(
+          ctx.result,
+          orchestrator.state.currentParameters.get(ctx.rootIdentifier),
+          orchestrator.isCppMode(),
+        )
+      : ctx.result;
   const output = initializeMemberOutput(ctx);
   const bitmapResult = BitmapAccessHelper.generate(
-    ctx.result,
+    whole,
     ctx.memberName,
     typeInfo.bitmapTypeName,
     input.symbols!.bitmapFields,
@@ -1164,7 +1152,10 @@ const handleBitRangeSubscript = (
   // ((1U << W) - 1) — which is UB at full width (1U << 32) and uses the wrong
   // base type for >32-bit widths. The "U" suffix matches the literal path, which
   // generates bit widths under a size_t expectedType.
-  const maskWidth = BitUtils.widthText(width, ctx.subscript.foldWidth());
+  const maskWidth = BitUtils.widthText({
+    text: width,
+    folded: ctx.subscript.foldWidth(),
+  });
 
   const isFloatType =
     ctx.primaryTypeInfo?.baseType === "f32" ||

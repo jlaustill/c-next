@@ -1,3 +1,5 @@
+import type IBitWidth from "./IBitWidth";
+
 /**
  * A float bit write (ADR-007): the float written, its type, and the bits
  * written into it. #1760: one argument, where it was six.
@@ -9,8 +11,8 @@ interface IFloatBitWrite {
   readonly floatType: string;
   /** Bit index expression (the start position of a range) */
   readonly bitIndex: string;
-  /** Bit width expression, or null for a single bit */
-  readonly width: string | null;
+  /** Bit width with its fold (#1096), or null for a single bit */
+  readonly width: IBitWidth | null;
   /** The value written */
   readonly value: string;
   /** Whether `target` names a variable, which has a shadow union */
