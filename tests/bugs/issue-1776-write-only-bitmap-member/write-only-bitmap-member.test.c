@@ -25,7 +25,7 @@ void Drive__start(void) {
 
 void go(void) {
     MOTOR__CTRL = (uint8_t)(1U << 0);
-    MOTOR__CTRL = (uint8_t)((5 & 0x7U) << 1);
+    MOTOR__CTRL = (uint8_t)((5U & 0x7U) << 1);
     MOTOR__FLAGS = (uint8_t)(1U << 0);
-    MOTOR__CONFIG = (uint8_t)((MOTOR__CONFIG & ~(0x7U << 1)) | ((5 & 0x7U) << 1));
+    MOTOR__CONFIG = (uint8_t)((MOTOR__CONFIG & ~(0x7U << 1)) | ((5U & 0x7U) << 1));
 }

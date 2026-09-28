@@ -14,13 +14,13 @@
 #include <stdbool.h>
 
 int main(void) {
-    gbuf[1] = 0;
+    gbuf[1] = 0U;
     gbuf[1] = (uint8_t)((gbuf[1] & ~(1U << 3)) | (1U << 3));
     if (gbuf[1U] != 8) return 1U;
-    gbuf[2] = 0;
-    gbuf[2] = (uint8_t)((gbuf[2] & ~(0xFU << 0)) | ((5 & 0xFU) << 0));
+    gbuf[2] = 0U;
+    gbuf[2] = (uint8_t)((gbuf[2] & ~(0xFU << 0)) | ((5U & 0xFU) << 0));
     if (gbuf[2U] != 5) return 2U;
-    gbuf[3] = 7;
+    gbuf[3] = 7U;
     if (gbuf[3U] != 7) return 3U;
     return 0U;
 }

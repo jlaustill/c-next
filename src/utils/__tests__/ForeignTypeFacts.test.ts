@@ -54,7 +54,9 @@ describe("ForeignTypeFacts", () => {
     it.each([
       ["an integer of unfixed width", "int_fast16_t", "int_fast16_t", null],
       ["a typedef of a float, at its element", "scale_t", "float", "f32"],
-      ["a fixed-width integer", "uint32_t", "uint32_t", "u32"],
+      // A fixed width is said by `typeName` the same way on every target
+      ["a fixed-width integer", "uint32_t", null, "u32"],
+      ["a target-sized integer, with no target", "size_t", "size_t", null],
     ])("spells %s", (_label, type, cType, typeName) => {
       expect(
         ForeignTypeFacts.operandType(type as string, symbolTable, null),

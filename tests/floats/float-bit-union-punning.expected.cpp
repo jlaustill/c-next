@@ -23,9 +23,9 @@ int main(void) {
     /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
     union { float f; uint32_t u; } __bits_result;
     __bits_result.f = result;
-    __bits_result.u = (__bits_result.u & ~((uint32_t)0xFFU << 24)) | ((0x3F & (uint32_t)0xFFU) << 24);
+    __bits_result.u = (__bits_result.u & ~((uint32_t)0xFFU << 24)) | ((0x3FU & (uint32_t)0xFFU) << 24);
     result = __bits_result.f;
-    __bits_result.u = (__bits_result.u & ~((uint32_t)0xFFU << 16)) | ((0x80 & (uint32_t)0xFFU) << 16);
+    __bits_result.u = (__bits_result.u & ~((uint32_t)0xFFU << 16)) | ((0x80U & (uint32_t)0xFFU) << 16);
     result = __bits_result.f;
     if (result != 1.0) return 2U;
     double testDouble = 1.0;

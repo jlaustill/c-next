@@ -214,7 +214,7 @@ int main(void) {
     if (Provider__valI32 != -999) return 13U;
     Consumer__writeProviderBool(false);
     if (Provider__valBool != false) return 14U;
-    Provider__valU8 = 100;
+    Provider__valU8 = 100U;
     Provider__valI32 = -500;
     Provider__valBool = true;
     uint8_t resultU8_2 = Consumer__callProviderGetU8();
@@ -243,7 +243,7 @@ int main(void) {
     uint8_t wrapResult2 = Consumer__readProviderWrap();
     if (wrapResult2 != 50) return 25U;
     if (Provider__valU8 != 100) return 26U;
-    Provider__valU16 = 12345;
+    Provider__valU16 = 12345U;
     if (Provider__valU16 != 12345) return 27U;
     Consumer__computeSum();
     if (Consumer__result != 4294967295) return 28U;

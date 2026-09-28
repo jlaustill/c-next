@@ -10,6 +10,9 @@ import type ITargetDescription from "../transpiler/types/ITargetDescription";
 /** What a C spelling says of an operand: its name, category and width */
 type TForeignElement = Pick<IOperandType, "typeName" | "category" | "bitWidth">;
 
+/** An integer whose width its spelling fixes: `uint8_t`, `int_least16_t` */
+const FIXED_INTEGER = /^(u?)int(?:_least)?(8|16|32|64)_t$/;
+
 /**
  * One hop of a typedef walk: the element a spelling names, or the typedef it
  * names, which the walk follows.
@@ -389,7 +392,10 @@ class ForeignTypeFacts {
     element: TForeignElement | null;
     dimensions: Array<number | string>;
     volatile: boolean;
-    /** The spelling that named the element, typedefs followed to it */
+    /**
+     * The spelling that named an integer or float element, typedefs followed
+     * to it, when C-Next does not fix its width (see IOperandType.cType)
+     */
     spelling: string | null;
   } | null {
     const dimensions: Array<number | string> = [];
@@ -413,7 +419,12 @@ class ForeignTypeFacts {
           : null;
       }
       if ("element" in step) {
-        return { element: step.element, dimensions, volatile, spelling: type };
+        const spelling =
+          ForeignTypeFacts.hasWidth(step.element) &&
+          !ForeignTypeFacts.fixesWidth(type)
+            ? type
+            : null;
+        return { element: step.element, dimensions, volatile, spelling };
       }
       dimensions.push(...step.dimensions);
       typedefName = type;
@@ -470,11 +481,29 @@ class ForeignTypeFacts {
    * spelling. A known name with no width on this target (no target, or the C
    * library's choice) keeps its category and gives a null width.
    */
+  /** An integer or a float: an element with a width, fixed or not */
+  private static hasWidth(element: TForeignElement): boolean {
+    return (
+      element.category === "signed" ||
+      element.category === "unsigned" ||
+      element.category === "floating"
+    );
+  }
+
+  /**
+   * Whether a spelling's width is the same on every target: `uint8_t`,
+   * `int_least16_t`, `char`. The rest are sized by the target's data model
+   * (`size_t`, `long`, `double`) or by none (`int_fast16_t`).
+   */
+  private static fixesWidth(type: string): boolean {
+    return FIXED_INTEGER.test(type) || type === "char";
+  }
+
   private static knownSpelling(
     type: string,
     target: ITargetDescription | null,
   ): TForeignElement | undefined {
-    const fixed = /^(u?)int(?:_least)?(8|16|32|64)_t$/.exec(type);
+    const fixed = FIXED_INTEGER.exec(type);
     if (fixed) {
       return ForeignTypeFacts.integer(fixed[1] === "u", Number(fixed[2]));
     }

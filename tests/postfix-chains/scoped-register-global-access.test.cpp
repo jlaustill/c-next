@@ -18,7 +18,7 @@
 
 void MotorController__start(void) {
     MotorController__MOTOR_REG__CTRL = (uint8_t)((MotorController__MOTOR_REG__CTRL & ~(1U << 0)) | (1U << 0));
-    MotorController__MOTOR_REG__CTRL = (uint8_t)((MotorController__MOTOR_REG__CTRL & ~(0x7U << 3)) | ((3 & 0x7U) << 3));
+    MotorController__MOTOR_REG__CTRL = (uint8_t)((MotorController__MOTOR_REG__CTRL & ~(0x7U << 3)) | ((3U & 0x7U) << 3));
     MotorController__MOTOR_REG__SPEED = 100;
 }
 
@@ -41,7 +41,7 @@ void Board__toggleLed(void) {
 int main(void) {
     MotorController__MOTOR_REG__CTRL = (uint8_t)((MotorController__MOTOR_REG__CTRL & ~(1U << 0)) | (1U << 0));
     MotorController__MOTOR_REG__CTRL = (uint8_t)((MotorController__MOTOR_REG__CTRL & ~(1U << 1)) | (0U << 1));
-    MotorController__MOTOR_REG__CTRL = (uint8_t)((MotorController__MOTOR_REG__CTRL & ~(0x7U << 3)) | ((5 & 0x7U) << 3));
+    MotorController__MOTOR_REG__CTRL = (uint8_t)((MotorController__MOTOR_REG__CTRL & ~(0x7U << 3)) | ((5U & 0x7U) << 3));
     bool running = ((((MotorController__MOTOR_REG__CTRL >> 0) & 1)) != 0U);
     uint8_t mode = static_cast<uint8_t>(((MotorController__MOTOR_REG__CTRL >> 3) & 0x7));
     Board__GPIO__DR = (Board__GPIO__DR & ~((uint32_t)1U << 0)) | ((uint32_t)1U << 0);
@@ -51,6 +51,6 @@ int main(void) {
     uint8_t currentMode = MotorController__getMode();
     Board__toggleLed();
     if (((MotorController__MOTOR_REG__CTRL >> 2) & 1) == true) {
-        MotorController__MOTOR_REG__CTRL = (uint8_t)((MotorController__MOTOR_REG__CTRL & ~(0x7U << 3)) | ((0 & 0x7U) << 3));
+        MotorController__MOTOR_REG__CTRL = (uint8_t)((MotorController__MOTOR_REG__CTRL & ~(0x7U << 3)) | ((0U & 0x7U) << 3));
     }
 }

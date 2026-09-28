@@ -14,8 +14,8 @@
 static uint32_t Motor__speed = 0U;
 
 void Motor__configure(void) {
-    GPIO__DR = 0x01;
-    GPIO__DIR = 0xFF;
+    GPIO__DR = 0x01U;
+    GPIO__DIR = 0xFFU;
 }
 
 int main(void) {

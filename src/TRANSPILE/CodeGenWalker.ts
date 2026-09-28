@@ -39,6 +39,7 @@ import EmissionPlan from "./2-Plan/EmissionPlan";
 import DeclarationPlan from "./2-Plan/DeclarationPlan";
 import CastRequirement from "./2-Plan/CastRequirement";
 import OperandTyper from "../utils/OperandTyper";
+import CppNamespaceUtils from "../utils/CppNamespaceUtils";
 import PlanTyping from "./2-Plan/PlanTyping";
 import CompositeType from "../utils/CompositeType";
 import type IOperandType from "../transpiler/types/IOperandType";
@@ -119,8 +120,6 @@ import MemberChainAnalyzer from "./3-Render/codegen/analysis/MemberChainAnalyzer
 import type IBitAccessAnalysis from "../transpiler/types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../transpiler/types/TPlannedTargetOp";
 import ArgumentGenerator from "./3-Render/codegen/helpers/ArgumentGenerator";
-import AssignmentExpectedTypeResolver from "./3-Render/codegen/helpers/AssignmentExpectedTypeResolver";
-import analyzePostfixOps from "../utils/PostfixAnalysisUtils";
 import CppMemberHelper from "./2-Plan/CppMemberHelper";
 import IPostfixOp from "../transpiler/types/IPostfixOp";
 import CppConstructorHelper from "../utils/CppConstructorHelper";
@@ -4757,37 +4756,42 @@ class CodeGenWalker {
     );
   }
 
+  /**
+   * The type an assignment's value is rendered against: what the target
+   * holds, as the typer types it -- its C-Next name, or, where C-Next does
+   * not fix the width (a header `size_t`), the header's spelling, so the
+   * output is the same on every target -- with `::` for a C++ namespace's
+   * type. #1760 review: three walkers derived it from the target's shape,
+   * and a header `uint8_t` field came back as that spelling, which the
+   * MISRA C:2012 Rule 10.3 cast does not read, while a scalar's bit range
+   * and a bitmap field had none at all. A slice's value is serialized at
+   * its own width, so it has none (#1085).
+   */
+  private assignedValueType(
+    targetCtx: Parser.AssignmentTargetContext,
+    target: IChainBase,
+  ): string | null {
+    if (target.last?.subscript === "array_slice") return null;
+    const written = OperandTyper.typeOfTarget(
+      targetCtx,
+      this.host.state.typingContext(),
+    );
+    const name = written?.cType ?? written?.typeName ?? null;
+    return name === null
+      ? null
+      : CppNamespaceUtils.convertToCppNamespace(
+          name,
+          this.host.state.symbolTable,
+        );
+  }
+
   private generateAssignment(ctx: Parser.AssignmentStatementContext): string {
     const targetCtx = ctx.assignmentTarget();
 
-    // Issue #644: Set expected type for inferred struct initializers
-    // Delegated to AssignmentExpectedTypeResolver helper
-    // Issue #644: AssignmentExpectedTypeResolver is now static
-    // #1445: the resolver takes the target's SHAPE -- a name, a chain of names
-    // and two booleans. The walk stays here, where the node is.
-    const postfixOps = targetCtx.postfixTargetOp();
-    const baseId = targetCtx.IDENTIFIER()?.getText();
     // #1668 (C7): what the target writes, bound once -- the expected type
     // below and every classifier rule and handler read this
     const target = this.targetDeclaration(targetCtx);
-    const chain =
-      baseId && postfixOps.length > 0
-        ? analyzePostfixOps(baseId, postfixOps)
-        : { identifiers: [] as string[], hasSubscript: false };
-    const expectedType = AssignmentExpectedTypeResolver.resolve(
-      {
-        baseId,
-        identifiers: chain.identifiers,
-        hasSubscript: chain.hasSubscript,
-        // the `[offset, length]` slice / bit-range form
-        hasRangeSubscript: postfixOps.some(
-          (op) => op.expression().length === 2,
-        ),
-        hasPostfixOps: postfixOps.length > 0,
-        rootTypeInfo: target.rootTypeInfo,
-      },
-      this.host.state,
-    );
+    const expectedType = this.assignedValueType(targetCtx, target);
     // withExpectedType restores expectedType however the render exits
     const value = this.host.state.withExpectedType(expectedType, () =>
       this.generateExpression(ctx.expression()),

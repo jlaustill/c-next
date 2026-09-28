@@ -19,7 +19,7 @@ void configureUART(void) {
     UART__CTRL = (uint8_t)((UART__CTRL & ~(1U << 0)) | (1U << 0));
     UART__CTRL = (uint8_t)((UART__CTRL & ~(1U << 1)) | (1U << 1));
     UART__CTRL = (uint8_t)((UART__CTRL & ~(1U << 2)) | (1U << 2));
-    UART__CTRL = (uint8_t)((UART__CTRL & ~(0x3U << 5)) | ((3 & 0x3U) << 5));
+    UART__CTRL = (uint8_t)((UART__CTRL & ~(0x3U << 5)) | ((3U & 0x3U) << 5));
 }
 
 bool isUARTReady(void) {
@@ -38,7 +38,7 @@ int main(void) {
     configureUART();
     bool uartReady = isUARTReady();
     if (uartReady == true) {
-        UART__DATA = 0x55;
+        UART__DATA = 0x55U;
     }
     configureTimer(100U);
     bool hasError = ((((UART__STATUS >> 4) & 1)) != 0U);

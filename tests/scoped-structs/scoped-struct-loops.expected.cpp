@@ -86,11 +86,11 @@ int main(void) {
     if (Sensor__buffer[0U].value != 0) return 11U;
     i = 0U;
     while (i < 2) {
-        Sensor__buffer[i].value = static_cast<uint16_t>((cnx_clamp_add_u8(200, i)));
+        Sensor__buffer[i].value = static_cast<uint16_t>((cnx_clamp_add_u8(200U, i)));
         Sensor__buffer[i].channel = i;
         i = cnx_clamp_add_u8(i, 1U);
     }
-    Sensor__count = 2;
+    Sensor__count = 2U;
     if (Sensor__buffer[0U].value != 200) return 12U;
     if (Sensor__buffer[1U].value != 201) return 13U;
     return 0U;

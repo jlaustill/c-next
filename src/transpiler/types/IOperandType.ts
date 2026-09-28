@@ -55,10 +55,13 @@ interface IOperandType {
    */
   readonly typeName: string | null;
   /**
-   * The C type a header spelled for the value, at its element: `double`,
-   * `int_fast16_t`. Null for a C-Next value. What a write casts back to when
-   * `typeName` cannot say it, an integer the target gives no width (#1760
-   * review).
+   * The C type a header spelled for an integer or float whose width C-Next
+   * does not fix: one the target's data model sizes (`size_t`, `long`,
+   * `double`) or none does (`int_fast16_t`). Null for a C-Next value and for
+   * a fixed-width spelling, which `typeName` says the same way on every
+   * target. It is how the value's type is named when output must not depend
+   * on the target (#1760 review): what an unfixed-width bit write casts back
+   * to, and what an assignment's value is rendered against.
    */
   readonly cType: string | null;
   /** Dimensions still to subscript, leading first; empty for a scalar */

@@ -60,7 +60,7 @@ int main(void) {
     if (explicitClampCounter != 255) {
         return 4;
     }
-    Counter__value = cnx_clamp_add_u8(Counter__value, 10);
+    Counter__value = cnx_clamp_add_u8(Counter__value, 10U);
     if (Counter__value != 255) {
         return 5;
     }
@@ -72,7 +72,7 @@ int main(void) {
     if (explicitWrapCounter != 4) {
         return 7;
     }
-    Counter__wrappingValue = Counter__wrappingValue + 10;
+    Counter__wrappingValue = Counter__wrappingValue + 10U;
     if (Counter__wrappingValue != 4) {
         return 8;
     }
@@ -80,11 +80,11 @@ int main(void) {
     if (Counter__viaThis != 255) {
         return 9;
     }
-    Counter__viaGlobal = cnx_clamp_add_u8(Counter__viaGlobal, 10);
+    Counter__viaGlobal = cnx_clamp_add_u8(Counter__viaGlobal, 10U);
     if (Counter__viaGlobal != 255) {
         return 10;
     }
-    Counter__wrappingViaGlobal = Counter__wrappingViaGlobal + 10;
+    Counter__wrappingViaGlobal = Counter__wrappingViaGlobal + 10U;
     if (Counter__wrappingViaGlobal != 4) {
         return 11;
     }

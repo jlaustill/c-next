@@ -10,9 +10,9 @@
 // ADR-004: Multiple registers in same file
 // Tests: defining and using multiple register blocks
 int main(void) {
-    GPIOA__GDIR = 0xFF;
-    GPIOA__DR = 0x01;
-    GPIOB__GDIR = 0x00;
+    GPIOA__GDIR = 0xFFU;
+    GPIOA__DR = 0x01U;
+    GPIOB__GDIR = 0x00U;
     uint32_t input = GPIOB__DR;
     uint32_t count = TIMER__CNT;
 }

@@ -350,7 +350,7 @@ int main(void) {
     if (Contexts__publicWrapValue != 9) return 39U;
     if (Contexts__publicFlag != true) return 40U;
     if (Contexts__publicOffset != -1100) return 41U;
-    Contexts__publicValue = 99;
+    Contexts__publicValue = 99U;
     uint8_t res42 = Contexts__getPublicValue();
     if (res42 != 99) return 42U;
     Contexts__publicFlag = false;

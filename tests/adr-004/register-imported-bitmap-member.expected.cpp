@@ -15,7 +15,7 @@
 #include <stdbool.h>
 
 int main(void) {
-    Chip__R__DIR = 0x01;
+    Chip__R__DIR = 0x01U;
     Chip__R__DR = (uint8_t)((Chip__R__DR & ~(1U << 0)) | (1U << 0));
     bool pressed = ((((Chip__R__DR >> 1) & 1)) != 0U);
     if (pressed == true) {

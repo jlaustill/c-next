@@ -19,12 +19,12 @@ uint16_t settings = 0U;
 uint32_t registers = 0U;
 
 int main(void) {
-    flags = (uint8_t)((flags & ~(0x7U << 0)) | ((7 & 0x7U) << 0));
-    flags = (uint8_t)((flags & ~(0x1FU << 3)) | ((31 & 0x1FU) << 3));
-    settings = (uint16_t)((settings & ~(0xFFU << 0)) | ((255 & 0xFFU) << 0));
-    settings = (uint16_t)((settings & ~(0xFFU << 8)) | ((128 & 0xFFU) << 8));
-    registers = (registers & ~((uint32_t)0xFFFFU << 0)) | ((0xFFFF & (uint32_t)0xFFFFU) << 0);
-    registers = (registers & ~((uint32_t)0xFFFFU << 16)) | ((0x1234 & (uint32_t)0xFFFFU) << 16);
+    flags = (uint8_t)((flags & ~(0x7U << 0)) | ((7U & 0x7U) << 0));
+    flags = (uint8_t)((flags & ~(0x1FU << 3)) | ((31U & 0x1FU) << 3));
+    settings = (uint16_t)((settings & ~(0xFFU << 0)) | ((255U & 0xFFU) << 0));
+    settings = (uint16_t)((settings & ~(0xFFU << 8)) | ((128U & 0xFFU) << 8));
+    registers = (registers & ~((uint32_t)0xFFFFU << 0)) | ((0xFFFFU & (uint32_t)0xFFFFU) << 0);
+    registers = (registers & ~((uint32_t)0xFFFFU << 16)) | ((0x1234U & (uint32_t)0xFFFFU) << 16);
     uint8_t lowBits = (uint8_t)((flags) & 0x7U);
     uint8_t highBits = (uint8_t)((flags >> 3U) & 0x1FU);
     uint16_t lowWord = (uint16_t)((registers) & 0xFFFFU);
@@ -48,12 +48,12 @@ int main(void) {
     uint32_t byte1 = ((devices[2U].config >> 8U) & 0xFFU);
     uint32_t byte2 = ((devices[2U].config >> 16U) & 0xFFU);
     uint32_t byte3 = ((devices[2U].config >> 24U) & 0xFFU);
-    flags = (uint8_t)((flags & ~(0x1U << 0)) | ((1 & 0x1U) << 0));
+    flags = (uint8_t)((flags & ~(0x1U << 0)) | ((1U & 0x1U) << 0));
     uint8_t singleBit = (uint8_t)((flags) & 0x1U);
     uint8_t test = 0U;
-    test = (uint8_t)((test & ~(0x3U << 0)) | ((3 & 0x3U) << 0));
-    test = (uint8_t)((test & ~(0x7U << 2)) | ((7 & 0x7U) << 2));
-    test = (uint8_t)((test & ~(0x7U << 5)) | ((6 & 0x7U) << 5));
+    test = (uint8_t)((test & ~(0x3U << 0)) | ((3U & 0x3U) << 0));
+    test = (uint8_t)((test & ~(0x7U << 2)) | ((7U & 0x7U) << 2));
+    test = (uint8_t)((test & ~(0x7U << 5)) | ((6U & 0x7U) << 5));
     uint8_t r1 = (uint8_t)((test) & 0x3U);
     uint8_t r2 = (uint8_t)((test >> 2U) & 0x7U);
     uint8_t r3 = (uint8_t)((test >> 5U) & 0x7U);

@@ -34,7 +34,7 @@ int main(void) {
     buf.len = 4U;
     for (uint32_t i = 0U; i < buf.len; i += 1) {
         uint32_t value = cnx_clamp_mul_u32(i, 10U);
-        buf.data[i] = ((value) & 0xFFU);
+        buf.data[i] = static_cast<uint8_t>(((value) & 0xFFU));
     }
     if (buf.data[0U] != 0) return 1U;
     if (buf.data[1U] != 10) return 2U;

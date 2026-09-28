@@ -92,7 +92,7 @@ int main(void) {
     if (result4 != 0) return 4U;
     uint8_t result5 = Visibility__getPublicCounter();
     if (result5 != 10) return 5U;
-    Visibility__publicCounter = 20;
+    Visibility__publicCounter = 20U;
     if (Visibility__publicCounter != 20) return 6U;
     Visibility__setPublicCounter(30U);
     uint8_t result7 = Visibility__getPublicCounter();

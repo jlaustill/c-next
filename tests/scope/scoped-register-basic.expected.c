@@ -13,5 +13,5 @@
 
 
 int main(void) {
-    Teensy4__GPIO7__DR_SET = 8;
+    Teensy4__GPIO7__DR_SET = 8U;
 }

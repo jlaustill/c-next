@@ -22,7 +22,7 @@ uint8_t Motor__get(void) {
 }
 
 int main(void) {
-    speed += 300;
+    speed += 300U;
     if (speed != 1300) return 1U;
     uint8_t m = Motor__get();
     if (m != 1) return 2U;

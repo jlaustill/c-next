@@ -42,7 +42,7 @@ int main(void) {
         /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
         union { float f; uint32_t u; } __bits;
         __bits.f = fa[0];
-        __bits.u = (__bits.u & ~((uint32_t)0x7FFFFFU << 0)) | ((0 & (uint32_t)0x7FFFFFU) << 0);
+        __bits.u = (__bits.u & ~((uint32_t)0x7FFFFFU << 0)) | ((0U & (uint32_t)0x7FFFFFU) << 0);
         fa[0] = __bits.f;
     }
     if (fa[0U] != 1.0) return 2U;
@@ -65,7 +65,7 @@ int main(void) {
     if (hfa[1U] != -5.0) return 4U;
     hf = (int_fast16_t)((hf & ~((uintmax_t)1U << 3)) | ((uintmax_t)1U << 3));
     if (hf != -8) return 5U;
-    hf = (int_fast16_t)((hf & ~((uintmax_t)0xFU << 0)) | ((0 & (uintmax_t)0xFU) << 0));
+    hf = (int_fast16_t)((hf & ~((uintmax_t)0xFU << 0)) | ((0U & (uintmax_t)0xFU) << 0));
     if (hf != -16) return 6U;
     gs.flags = (gs.flags & ~((uint32_t)1U << 31)) | ((uint32_t)1U << 31);
     if (gs.flags != 0x80000000) return 7U;

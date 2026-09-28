@@ -34,7 +34,7 @@ void Timer__init(void) {
     Timer__SysTick__CTRL = (uint8_t)((Timer__SysTick__CTRL & ~(1U << 0)) | (0U << 0));
     Timer__SysTick__CTRL = (uint8_t)((Timer__SysTick__CTRL & ~(1U << 1)) | (1U << 1));
     Timer__SysTick__CTRL = (uint8_t)((Timer__SysTick__CTRL & ~(1U << 2)) | (1U << 2));
-    Timer__SysTick__LOAD = 16000;
+    Timer__SysTick__LOAD = 16000U;
 }
 
 int main(void) {
