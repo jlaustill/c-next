@@ -5,7 +5,7 @@
  * where to place the .cnx cache directory.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
@@ -452,5 +452,40 @@ describe("Transpiler's PlatformIO rung", () => {
     });
     expect(result.errors).toEqual([]);
     expect(result.target).toEqual({ name: "teensy41", source: "platformio" });
+  });
+
+  // #1794: PlatformIO appends the build machine's PLATFORMIO_DEFAULT_ENVS to
+  // default_envs, so the run builds the environments it adds too
+  it("builds the environments PLATFORMIO_DEFAULT_ENVS adds", async () => {
+    writeFileSync(
+      join(projectDir, "platformio.ini"),
+      "[platformio]\ndefault_envs = teensy41\n\n" +
+        "[env:teensy41]\nplatform = teensy\nboard = teensy41\n\n" +
+        "[env:uno]\nplatform = atmelavr\nboard = uno\n",
+    );
+    const run = () =>
+      new Transpiler({ input: "" }).transpile({
+        kind: "source",
+        source: "u8 value <- 1;\n",
+        workingDir: projectDir,
+      });
+
+    // The control: the file alone builds teensy41
+    const fileAlone = await run();
+    expect(fileAlone.target).toEqual({
+      name: "teensy41",
+      source: "platformio",
+    });
+
+    vi.stubEnv("PLATFORMIO_DEFAULT_ENVS", "uno");
+    try {
+      // uno builds avr, teensy41 builds teensy41: one program, two targets
+      const withMachine = await run();
+      expect(withMachine.errors.map((error) => error.message)).toEqual([
+        expect.stringContaining("error[E0511]"),
+      ]);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

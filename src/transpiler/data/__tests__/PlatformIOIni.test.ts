@@ -19,6 +19,7 @@ framework = arduino
 platform = atmelavr
 board = uno
 `,
+      {},
     );
     expect(project.envs).toEqual([
       { name: "teensy41", board: "teensy41", platform: "teensy" },
@@ -31,7 +32,7 @@ board = uno
     // PlatformIO's parse_multi_values: a value of several lines is split by
     // line only, so `a, b` there is one (unknown) env name, as PlatformIO has it
     const defaultEnvs = (content: string) =>
-      PlatformIOIni.project("platformio.ini", content).defaultEnvs;
+      PlatformIOIni.project("platformio.ini", content, {}).defaultEnvs;
     expect(defaultEnvs("[platformio]\ndefault_envs = a, b\n")).toEqual([
       "a",
       "b",
@@ -54,6 +55,7 @@ board = teensy41
 [env:child]
 extends = base
 `,
+      {},
     );
     expect(project.envs).toEqual([
       { name: "child", board: "teensy41", platform: "native" },
@@ -68,6 +70,7 @@ extends = env:b
 [env:b]
 extends = env:a
 `,
+      {},
     );
     expect(project.envs).toEqual([{ name: "a" }, { name: "b" }]);
   });
@@ -90,7 +93,7 @@ board = uno
 // #1760 review: the file as PlatformIO reads it
 describe("PlatformIOIni.project, as PlatformIO reads the file", () => {
   const envsOf = (content: string) =>
-    PlatformIOIni.project("platformio.ini", content).envs;
+    PlatformIOIni.project("platformio.ini", content, {}).envs;
 
   it("reads a CRLF file", () => {
     expect(
@@ -170,7 +173,7 @@ platform = \${common.missing}
   // Each expectation below is what a transcription of PlatformIO's
   // config.py (walk_options, parse_multi_values) over configparser gives.
   const defaultEnvsOf = (content: string) =>
-    PlatformIOIni.project("platformio.ini", content).defaultEnvs;
+    PlatformIOIni.project("platformio.ini", content, {}).defaultEnvs;
 
   it("keeps a value open across a blank line and a commented-out line", () => {
     expect(
@@ -229,6 +232,52 @@ board = \${this.__env__}
 platform = teensy
 `),
     ).toEqual([{ name: "teensy41", board: "teensy41", platform: "teensy" }]);
+  });
+
+  // #1794, owner ruling 2026-09-28: "yes, if it exists". Each expectation is
+  // what a transcription of PlatformIO's option reader gives for a multiple option
+  // with an environment variable.
+  it.each([
+    [
+      "is appended to the file's",
+      "[platformio]\ndefault_envs = uno\n",
+      { PLATFORMIO_DEFAULT_ENVS: "teensy41" },
+      ["uno", "teensy41"],
+    ],
+    [
+      "is a list of its own when the file sets none",
+      "[env:x]\nboard = uno\n",
+      { PLATFORMIO_DEFAULT_ENVS: "a, b" },
+      ["a", "b"],
+    ],
+    [
+      "has an old name, read when it is unset",
+      "[env:x]\nboard = uno\n",
+      { PLATFORMIO_ENV_DEFAULT: "uno" },
+      ["uno"],
+    ],
+    [
+      "is read before its old name",
+      "[env:x]\nboard = uno\n",
+      { PLATFORMIO_DEFAULT_ENVS: "a", PLATFORMIO_ENV_DEFAULT: "b" },
+      ["a"],
+    ],
+    [
+      "says nothing when empty",
+      "[platformio]\ndefault_envs = uno\n",
+      { PLATFORMIO_DEFAULT_ENVS: "" },
+      ["uno"],
+    ],
+    [
+      "is one line of the result, split by line only",
+      "[platformio]\ndefault_envs = uno\n",
+      { PLATFORMIO_DEFAULT_ENVS: "a, b" },
+      ["uno", "a, b"],
+    ],
+  ])("PLATFORMIO_DEFAULT_ENVS %s", (_label, content, environment, expected) => {
+    expect(
+      PlatformIOIni.project("platformio.ini", content, environment).defaultEnvs,
+    ).toEqual(expected);
   });
 
   it("keeps quotes in a name, so a quoted extends names no section", () => {

@@ -1970,7 +1970,9 @@ class Transpiler {
    */
   private _platformIOProject(): IPlatformIOProject | null {
     const root = this.anchor.projectRoot;
-    return root ? PlatformIOIni.read(root, this.fs) : null;
+    // The build machine's environment too: PlatformIO appends its
+    // PLATFORMIO_DEFAULT_ENVS to default_envs (#1794)
+    return root ? PlatformIOIni.read(root, this.fs, process.env) : null;
   }
 
   /** The run's target; valid once Stage 3b has passed */

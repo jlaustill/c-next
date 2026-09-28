@@ -21,6 +21,9 @@ const REFERENCE = /\$\{([^.}]+)\.([^}]+)\}/g;
 /** `default_envs`, and the old name PlatformIO still reads it by */
 const DEFAULT_ENVS: readonly string[] = ["default_envs", "env_default"];
 
+/** The build machine's environment variables, as `process.env` holds them */
+type TEnvironment = Readonly<Record<string, string | undefined>>;
+
 class PlatformIOIni {
   /**
    * Section name -> key -> value, in file order, read as PlatformIO's
@@ -80,16 +83,27 @@ class PlatformIOIni {
     return values;
   }
 
-  /** The platformio.ini in `projectRoot`, or null when there is none */
-  static read(projectRoot: string, fs: IFileSystem): IPlatformIOProject | null {
+  /**
+   * The platformio.ini in `projectRoot`, or null when there is none, read with
+   * the build machine's `environment` as PlatformIO reads it
+   */
+  static read(
+    projectRoot: string,
+    fs: IFileSystem,
+    environment: TEnvironment,
+  ): IPlatformIOProject | null {
     const path = join(projectRoot, "platformio.ini");
     if (!fs.exists(path)) {
       return null;
     }
-    return PlatformIOIni.project(path, fs.readFile(path));
+    return PlatformIOIni.project(path, fs.readFile(path), environment);
   }
 
-  static project(path: string, content: string): IPlatformIOProject {
+  static project(
+    path: string,
+    content: string,
+    environment: TEnvironment,
+  ): IPlatformIOProject {
     const sections = PlatformIOIni.sections(content);
     const envs: IPlatformIOEnv[] = [];
     for (const name of sections.keys()) {
@@ -110,9 +124,36 @@ class PlatformIOIni {
       });
     }
     const defaultEnvs = PlatformIOIni.list(
-      PlatformIOIni.optionValue(sections, "platformio", DEFAULT_ENVS) ?? "",
+      PlatformIOIni.defaultEnvsValue(sections, environment) ?? "",
     );
     return { path, envs, defaultEnvs };
+  }
+
+  /**
+   * `default_envs` as PlatformIO reads it: the file's value, with the build
+   * machine's `PLATFORMIO_DEFAULT_ENVS` appended on a line of its own, or its
+   * old name `PLATFORMIO_ENV_DEFAULT` when that is unset. References expand
+   * after the append, as PlatformIO's do. #1794, owner ruling 2026-09-28:
+   * "yes, if it exists".
+   */
+  private static defaultEnvsValue(
+    sections: ReadonlyMap<string, ReadonlyMap<string, string>>,
+    environment: TEnvironment,
+  ): string | undefined {
+    const fromFile = PlatformIOIni.walkValue(
+      sections,
+      "platformio",
+      DEFAULT_ENVS,
+    );
+    const fromMachine =
+      environment.PLATFORMIO_DEFAULT_ENVS || environment.PLATFORMIO_ENV_DEFAULT;
+    let raw = fromFile;
+    if (fromMachine) {
+      raw = fromFile ? `${fromFile}\n${fromMachine}` : fromMachine;
+    }
+    return raw === undefined
+      ? undefined
+      : PlatformIOIni.expand(raw, sections, "platformio", 0);
   }
 
   /**

@@ -589,6 +589,7 @@
     "unqual",
     "unrepresentable",
     "unstartable",
+    "unstub",
     "unsuffixed",
     "unusedcode",
     "Unwrapper",
