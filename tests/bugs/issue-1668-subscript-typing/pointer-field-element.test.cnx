@@ -1,0 +1,10 @@
+// #1760 review: only a string's element is a character. A header value with
+// no dimensions -- here a `float*` struct field -- was typed `char` when
+// subscripted, so `fb.fp[1] * k` was a false E0810 "character and floating".
+#include "pointer_fields.h"
+
+f32 k <- 2.0;
+
+void scale() {
+    f32 v <- fb.fp[1] * k;
+}

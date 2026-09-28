@@ -1,0 +1,10 @@
+// test-cpp-only
+// #1760 review: a C++ `operator[]` result is not a character. `fv[1]` was
+// typed `char`, so `fv[1] * k` was a false E0810 "character and floating".
+#include "float_vec.hpp"
+
+f32 k <- 2.0;
+
+void scale() {
+    f32 v <- fv[1] * k;
+}

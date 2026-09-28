@@ -1268,7 +1268,12 @@ class OperandTyper {
             },
           };
         }
-        // A string's element is a character
+        // Only a string's element is a character (#1760 review). A header
+        // value with no dimensions -- a C++ `operator[]` result, a `T*`
+        // field -- is one the typer cannot see into, not a `char`
+        if (!OperandTyper.isString(t)) {
+          return { subscript, next: UNKNOWN };
+        }
         return {
           subscript,
           next: {

@@ -805,6 +805,31 @@ extern Frame frame;`,
       expect(subscriptOf("u8 r <- frame[2];", cpp)).toBe("array_element");
     });
 
+    // #1760 review: the rows above assert the subscript's KIND only, which is
+    // how an element with no dimensions came to be typed `char` unnoticed.
+    it("types no dimensionless header element as a character", () => {
+      /** The typer's answer for `r`'s initializer, after its last subscript */
+      function elementOf(body: string, table: SymbolTable) {
+        const { node, ctx } = initializerOf(inMain(body), "r", table);
+        const postfix = ExpressionUnwrapper.getPostfixExpression(node);
+        expect(postfix).not.toBeNull();
+        return OperandTyper.chainOf(postfix!, ctx).steps.at(-1)?.after ?? null;
+      }
+      expect(elementOf("u8 r <- cf[1];", c)).toBeNull();
+      expect(elementOf("u8 r <- pod[1];", c)).toBeNull();
+      const cpp = header(
+        `#include <stdint.h>
+struct Frame { uint8_t data[4]; uint8_t operator[](int i) const; };
+extern Frame frame;`,
+        true,
+      );
+      expect(elementOf("u8 r <- frame[2];", cpp)).toBeNull();
+      // Control: a string's element is a character
+      expect(
+        elementOf('string<4> s <- "ab";\nchar r <- s[0];', new SymbolTable()),
+      ).toMatchObject({ category: "character" });
+    });
+
     it("keeps a C-Next scalar's subscript a bit", () => {
       // The control: the header rule does not reach C-Next's own values
       expect(
