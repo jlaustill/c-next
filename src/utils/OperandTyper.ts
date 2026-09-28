@@ -736,6 +736,7 @@ class OperandTyper {
         return t ? { ...t, binding } : null;
       }
       case "scope":
+      case "function":
         return null;
     }
   }
@@ -920,7 +921,9 @@ class OperandTyper {
     if (binding?.kind === "foreign") {
       return OperandTyper.foreignStart(binding, name, ops, ctx);
     }
-    if (binding) {
+    // A function is typed by the call that follows it, as it was before the
+    // binder named it (#1760 review)
+    if (binding && binding.kind !== "function") {
       const t = OperandTyper.boundValue(binding, ctx);
       return {
         binding,
@@ -955,7 +958,7 @@ class OperandTyper {
         ops,
       };
     }
-    if (binding && binding.kind !== "foreign") {
+    if (binding && binding.kind !== "foreign" && binding.kind !== "function") {
       const t = OperandTyper.boundValue(binding, ctx);
       return {
         binding,

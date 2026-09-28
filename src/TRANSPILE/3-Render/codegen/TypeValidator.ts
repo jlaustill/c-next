@@ -105,8 +105,12 @@ class TypeValidator {
       return emitted;
     }
 
-    // A scope member, by the binder's middle tier
-    if (binding?.kind === "variable" && binding.symbol.scopePath !== "") {
+    // A scope member, by the binder's middle tier: a variable, or a function
+    // named as a value (#1760 review)
+    if (
+      (binding?.kind === "variable" || binding?.kind === "function") &&
+      binding.symbol.scopePath !== ""
+    ) {
       AdrProvenance.record("057", at.line);
       return binding.symbol.fullyQualifiedCName;
     }
@@ -126,7 +130,9 @@ class TypeValidator {
     }
 
     const isGlobalValue =
-      binding?.kind === "variable" || binding?.kind === "foreign";
+      binding?.kind === "variable" ||
+      binding?.kind === "function" ||
+      binding?.kind === "foreign";
     if (
       isGlobalValue ||
       TypeValidator._isKnownGlobalIdentifier(
@@ -148,19 +154,12 @@ class TypeValidator {
     state: TranspileState,
   ): string | null {
     // #1295: getScopeMembers is keyed by the scope's dotted source path.
+    // A member the binder gives no value binding: a type. Its variables and
+    // functions were answered above, from the binding (#1760 review).
     const scopeMembers = state.getScopeMembers(currentScopePath);
     if (scopeMembers?.has(identifier)) {
       return QualifiedNameGenerator.forMember(currentScopePath, identifier);
     }
-
-    const scopedFuncName = QualifiedNameGenerator.forMember(
-      currentScopePath,
-      identifier,
-    );
-    if (state.knownFunctions.has(scopedFuncName)) {
-      return scopedFuncName;
-    }
-
     return null;
   }
 

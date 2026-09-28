@@ -770,14 +770,12 @@ class Program {
     root: TChainRoot,
     name: string,
   ): TValueBinding | null {
-    const variable = (cName: string): TValueBinding | null => {
+    const declared = (cName: string): TValueBinding | null => {
       const symbol = facts.symbolsByCName.get(cName);
-      return symbol?.kind === "variable" ? { kind: "variable", symbol } : null;
+      if (symbol?.kind === "variable") return { kind: "variable", symbol };
+      if (symbol?.kind === "function") return { kind: "function", symbol };
+      return null;
     };
-    const member = (): TValueBinding | null =>
-      scopePath === ""
-        ? null
-        : variable(ScopeUtils.getTranspiledCName({ name, scopePath }));
     const scope = (): TValueBinding | null =>
       facts.registry?.getScope(name)
         ? { kind: "scope", scopePath: name }
@@ -785,15 +783,24 @@ class Program {
     const foreign = (): TValueBinding | null =>
       facts.foreignNames.has(name) ? { kind: "foreign", name } : null;
 
+    // #1760 review: ADR-057 puts a member the enclosing scope declares first,
+    // whatever its kind. A type binds no value, but it still hides a global
+    // of the name; the step used to accept variables alone, so a scope
+    // function let the global answer while emission wrote the function.
+    const memberCName = ScopeUtils.getTranspiledCName({ name, scopePath });
+    const isMember = scopePath !== "" && facts.symbolsByCName.has(memberCName);
     if (root === "this") {
-      return member();
+      return isMember ? declared(memberCName) : null;
     }
     if (root === "global") {
       // #1668 review: a header's name too. `global.` is how a scope reaches
       // one its own member shadows, and binding nothing left it untyped.
-      return variable(name) ?? scope() ?? foreign();
+      return declared(name) ?? scope() ?? foreign();
     }
-    return member() ?? variable(name) ?? scope() ?? foreign();
+    if (isMember) {
+      return declared(memberCName);
+    }
+    return declared(name) ?? scope() ?? foreign();
   }
 
   /**

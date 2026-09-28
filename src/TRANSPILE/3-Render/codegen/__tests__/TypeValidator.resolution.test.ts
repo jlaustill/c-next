@@ -41,11 +41,14 @@ void outside() {
  * The program's state, as 2.2 has it inside `scopePath`, and the position of
  * each assignment statement by line -- where a reference in it binds
  */
-function setUp(scopePath: string | null): {
+function setUp(
+  scopePath: string | null,
+  source = SOURCE,
+): {
   state: TranspileState;
   at: (line: number) => ISourcePosition;
 } {
-  const { tree, context } = testAnalysisContextFor(SOURCE);
+  const { tree, context } = testAnalysisContextFor(source);
   const state = new TranspileState();
   state.program = context.program;
   state.symbols = context.symbols;
@@ -113,6 +116,27 @@ describe("TypeValidator.resolveBareIdentifier", () => {
 
     it("returns null for an unknown identifier", () => {
       expect(resolve("unknownName", "Motor", 9)).toBeNull();
+    });
+
+    it("emits a scope function from its binding, before a same-named global (#1760 review)", () => {
+      // No member list and no function list: only the binder can say the
+      // name is the scope's function, where the global const would answer
+      const { state, at } = setUp(
+        "S",
+        `const u32 LIMIT <- 8;
+scope S {
+    u32 LIMIT() { return 2; }
+    public void f() {
+        u32 v <- 0;
+        v <- LIMIT;
+    }
+}`,
+      );
+      state.setScopeMembers("S", new Set());
+      state.knownFunctions = new Set();
+      expect(
+        TypeValidator.resolveBareIdentifier("LIMIT", at(6), () => false, state),
+      ).toBe("S__LIMIT");
     });
 
     it("binds a name past a block that shadowed it", () => {

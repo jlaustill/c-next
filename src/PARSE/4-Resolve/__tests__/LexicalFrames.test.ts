@@ -269,6 +269,60 @@ void f() {
     expect(program.bindValue("a.cnx", null, "nothing", use)).toBeNull();
   });
 
+  it("binds a scope function before a global of the same name (#1760 review)", () => {
+    // ADR-057 puts the scope's member first, whatever its kind. The member
+    // step accepted variables only, so the global answered for the fold, the
+    // typer and the binding, while emission wrote the function, S__LIMIT.
+    const source = `const u32 LIMIT <- 8;
+u32 total <- 1;
+scope S {
+    u32 LIMIT() { return 2; }
+    u8[LIMIT] buf;
+    public void f() {
+        u32 v <- LIMIT;
+    }
+}
+void g() {
+    u32 w <- LIMIT;
+}`;
+    const program = build({ "a.cnx": source });
+    const inScope = at(source, "LIMIT;");
+    expect(program.bindValue("a.cnx", null, "LIMIT", inScope)).toMatchObject({
+      kind: "function",
+      symbol: { fullyQualifiedCName: "S__LIMIT" },
+    });
+    expect(program.constantAt("a.cnx", "LIMIT", inScope)).toBeNull();
+    expect(program.symbolByCName("S__buf")).toMatchObject({
+      arrayDimensions: ["LIMIT"],
+    });
+    // Controls: outside the scope the global answers, and a scope that
+    // declares nothing of the name still reaches a global
+    const outside = at(source, "LIMIT;", 2);
+    expect(program.bindValue("a.cnx", null, "LIMIT", outside)).toMatchObject({
+      kind: "variable",
+      symbol: { fullyQualifiedCName: "LIMIT" },
+    });
+    expect(program.constantAt("a.cnx", "LIMIT", outside)?.value).toBe(8);
+    expect(program.bindValue("a.cnx", null, "total", inScope)).toMatchObject({
+      kind: "variable",
+      symbol: { fullyQualifiedCName: "total" },
+    });
+  });
+
+  it("stops at a scope type of the name, which binds no value (#1760 review)", () => {
+    const source = `u32 Mode <- 3;
+scope S {
+    enum Mode { A, B }
+    public void f() {
+        Mode m <- Mode.A;
+    }
+}`;
+    const program = build({ "a.cnx": source });
+    expect(
+      program.bindValue("a.cnx", null, "Mode", at(source, "Mode.A")),
+    ).toBeNull();
+  });
+
   it("binds a parameter", () => {
     const source = `void f(u16 p) {
     u16 q <- p;
