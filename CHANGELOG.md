@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A PlatformIO project's `default_envs` includes the build machine's
+  `PLATFORMIO_DEFAULT_ENVS`**, as PlatformIO appends it (ADR-049, Issue #1794).
+  A standalone `cnext` run read the file alone, so it could report a target for
+  fewer environments than `pio run` builds.
+
 - **A program that names no target is error E0515** (ADR-049, Issue #1668). This is a
   **breaking change** for every existing project. The migration is one line:
   `"target": "<name>"` in `cnext.config.json` covers every file. `#pragma target <name>`
@@ -73,6 +78,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stdlib function metadata moved to `StdlibFunctions`, shared by `FunctionCallAnalyzer` and `ReturnValueUseAnalyzer`.
 
 ### Fixed
+
+- **A struct initializer on a type that is not a struct is error E0358** (ADR-014,
+  Issue #1802). `u32 x <- { a: 1 }` and `Flags f <- { A: 1 }` were accepted
+  and emitted a designated initializer that C rejects. That held whether they
+  stood alone, as a struct's field, or as an array's element. A bitmap takes
+  its backing integer, standalone or as a struct's field (`Flags f <- 3`,
+  `Cfg c <- { word: 1, f: 3 }`), then its fields one by one (ADR-034).
 
 - `StdlibFunctions.header()` no longer resolves inherited `Object` members, so a callee named `constructor` or `toString` is no longer treated as a known stdlib function.
 - E0708 now covers a bare intra-scope call (ADR-057 house style), scope methods reached through a `.cnx` include, and non-void functions declared in an included `.hpp` — each was silently exempt through a name-resolution gap.

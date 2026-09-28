@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-440 fixture(s) assert a diagnostic; 425 carry a code.
+444 fixture(s) assert a diagnostic; 429 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -68,6 +68,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-013/const-u64-assign-error.test.cnx                                                    | E0877               |
 | tests/adr-013/const-u64-param-assign-error.test.cnx                                              | E0877               |
 | tests/adr-013/const-uncovered-arms-error.test.cnx                                                | E0877, E0878        |
+| tests/adr-014/struct-init-non-struct-direct-error.test.cnx                                       | E0358               |
+| tests/adr-014/struct-init-non-struct-transitive-error.test.cnx                                   | E0358               |
 | tests/adr-014/struct-no-type-error.test.cnx                                                      | E0357               |
 | tests/adr-014/struct-written-type-rejected-error.test.cnx                                        | (uncoded)           |
 | tests/adr-016/cross-scope-bare-error.test.cnx                                                    | E0436               |
@@ -379,6 +381,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1702-declaration-position/fl-fn-error.test.cnx                                  | E0810               |
 | tests/bugs/issue-1724-sibling-scope-type-not-included/frames-see-own-closure-error.test.cnx      | E0810               |
 | tests/bugs/issue-1724-sibling-scope-type-not-included/typer-sees-own-closure-error.test.cnx      | E0428               |
+| tests/bugs/issue-1802-struct-initializer-target/header-scalar.test.cnx                           | E0358               |
+| tests/bugs/issue-1802-struct-initializer-target/non-struct-targets.test.cnx                      | E0358               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/cross-file-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx                             | E0708               |

@@ -1,0 +1,10 @@
+bitmap8 Flags {
+    A,
+    B,
+    C[6]
+}
+
+struct Cfg {
+    u32 word;
+    Flags f;
+}

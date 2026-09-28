@@ -1,0 +1,30 @@
+// test-execution
+// #1802, owner ruling 2026-09-28: "a bitmap should be defined the exact same
+// way it is anywhere else, being inside a struct changes nothing". Its value is
+// its backing integer, then its fields are set one by one, standalone or as a
+// struct's field.
+bitmap8 Flags {
+    A,
+    B,
+    C[6]
+}
+
+struct Cfg {
+    u32 word;
+    Flags f;
+}
+
+u32 main() {
+    Flags standalone <- 3;
+    if (standalone.A != true) return 1;
+    if (standalone.B != true) return 2;
+
+    Cfg c <- { word: 7, f: 3 };
+    if (c.f.A != true) return 3;
+    if (c.f.B != true) return 4;
+    if (c.f.C != 0) return 5;
+    c.f.C <- 5;
+    if (c.f.C != 5) return 6;
+    if (c.word != 7) return 7;
+    return 0;
+}

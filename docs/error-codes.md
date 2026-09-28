@@ -14,14 +14,14 @@ codes that already have a fixture.
 | --------- | ----------------------- | ------- |
 | E00xx     | Reserved/Test           | 1       |
 | E02xx     | Identifier/Param Naming | 5       |
-| E03xx     | Struct Fields/Init      | 4       |
+| E03xx     | Struct Fields/Init      | 5       |
 | E04xx     | Symbol Resolution       | 16      |
 | E05xx     | Include/Preprocessor    | 15      |
 | E06xx     | Sizeof Expressions      | 2       |
 | E07xx     | Control Flow            | 12      |
 | E08xx     | Arithmetic/Array Safety | 50      |
 | E09xx     | NULL Safety             | 8       |
-| **Total** |                         | **113** |
+| **Total** |                         | **114** |
 
 ---
 
@@ -86,11 +86,12 @@ second header and the program ran with a wrong value.
 
 ## E03xx — Struct Fields and Initializers
 
-| Code  | Message                                                                     | Help                                                                                                                                                                                                             | Source                                         |
-| ----- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| E0355 | Struct field uses a reserved property name                                  | Reserved names (e.g., `.length`). Use 'len', 'size', or 'count'                                                                                                                                                  | `logic/analysis/StructFieldAnalyzer.ts`        |
-| E0356 | _(retired)_ — was: redundant type in a struct initializer                   | Removed with the grammar alternative it rejected (#1322): `Point { x: 1 }` was never valid C-Next, since every position that consumes a value already declares the type. It is a parse error now. Not reassigned | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
-| E0357 | A struct initializer with no written type, in a position that declares none | Move it where a type is declared: a variable, an assignment target, a field, an argument, or a return                                                                                                            | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
+| Code  | Message                                                                                                                            | Help                                                                                                                                                                                                             | Source                                         |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| E0355 | Struct field uses a reserved property name                                                                                         | Reserved names (e.g., `.length`). Use 'len', 'size', or 'count'                                                                                                                                                  | `logic/analysis/StructFieldAnalyzer.ts`        |
+| E0356 | _(retired)_ — was: redundant type in a struct initializer                                                                          | Removed with the grammar alternative it rejected (#1322): `Point { x: 1 }` was never valid C-Next, since every position that consumes a value already declares the type. It is a parse error now. Not reassigned | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
+| E0357 | A struct initializer with no written type, in a position that declares none                                                        | Move it where a type is declared: a variable, an assignment target, a field, an argument, or a return                                                                                                            | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
+| E0358 | A struct initializer gives a value to a type that is not a struct (a primitive, a string, a bitmap, an enum, or a header's scalar) | Give a value of the type itself; a bitmap's is its backing integer, set field by field after (ADR-034)                                                                                                           | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
 
 ---
 

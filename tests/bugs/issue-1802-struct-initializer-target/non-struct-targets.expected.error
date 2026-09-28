@@ -1,0 +1,8 @@
+19:24 error[E0358]: A struct initializer cannot be a value of 'Flags', which is not a struct
+       help: A bitmap's value is its backing integer, set field by field after: 'Flags v <- 0; v.<field> <- true;' (ADR-034).
+20:32 error[E0358]: A struct initializer cannot be a value of 'Flags', which is not a struct
+       help: A bitmap's value is its backing integer, set field by field after: 'Flags v <- 0; v.<field> <- true;' (ADR-034).
+21:18 error[E0358]: A struct initializer cannot be a value of 'u32', which is not a struct
+       help: Give a value of type 'u32'; only a struct takes '{ field: value }' (ADR-014).
+22:23 error[E0358]: A struct initializer cannot be a value of 'u8', which is not a struct
+       help: Give a value of type 'u8'; only a struct takes '{ field: value }' (ADR-014).

@@ -1602,7 +1602,8 @@ class OperandTyper {
   }
 
   /** The run's target, when 1.4 resolved one */
-  private static target(ctx: ITypingContext): ITargetDescription | null {
+  /** The run's target description, or null while it is unresolved */
+  static target(ctx: ITypingContext): ITargetDescription | null {
     const target = ctx.program.target();
     return target.kind === "resolved" ? target.description : null;
   }
