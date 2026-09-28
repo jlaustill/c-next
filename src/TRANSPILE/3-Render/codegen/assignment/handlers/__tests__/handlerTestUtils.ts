@@ -264,6 +264,7 @@ function bitWriteOf(
             kind: "subscript" as const,
             indexCount: 1,
             renderIndexes: () => [ctx.renderSubscript(index)],
+            foldWidth: () => undefined,
           })),
           {
             kind: "subscript" as const,
@@ -272,6 +273,7 @@ function bitWriteOf(
               Array.from({ length: lastIndexCount }, (_, i) =>
                 ctx.renderSubscript(leading + i),
               ),
+            foldWidth: () => undefined,
           },
         ];
   const baseType = declared?.baseType ?? null;

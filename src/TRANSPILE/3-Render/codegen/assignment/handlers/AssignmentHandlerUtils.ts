@@ -10,10 +10,7 @@ import QualifiedCName from "../../../../../utils/QualifiedCName";
 import invariant from "../../../../../utils/invariant";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 import BitUtils from "../../../../../utils/BitUtils";
-import CompositeType from "../../../../../utils/CompositeType";
-import TYPE_MAP from "../../types/TYPE_MAP";
 import type IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
-import type IOperandType from "../../../../../transpiler/types/IOperandType";
 
 /**
  * Validate that compound assignment operators are not used with bit field access.
@@ -146,23 +143,16 @@ function writeBits(ctx: IAssignmentContext): string {
         ctx.postfixOps.length === 1,
       );
   }
-  const storage = storageOf(value);
+  const storage = BitUtils.storageOf(value);
   return width === undefined
     ? BitUtils.singleBitWrite(base, start, ctx.generatedValue, storage)
-    : BitUtils.multiBitWrite(base, start, width, ctx.generatedValue, storage);
-}
-
-/**
- * The C type an integer's bits are written in: a known width's fixed-width
- * type, or, for an integer the target gives no width, the type its header
- * spelled, which `BitUtils` works in `uintmax_t`
- */
-function storageOf(value: IOperandType | null): string | undefined {
-  const type = CompositeType.integerOf([value]);
-  if (type !== null) return TYPE_MAP[type];
-  const isInteger =
-    value?.category === "signed" || value?.category === "unsigned";
-  return isInteger ? (value.cType ?? undefined) : undefined;
+    : BitUtils.multiBitWrite(
+        base,
+        start,
+        BitUtils.widthText(width, last.foldWidth()),
+        ctx.generatedValue,
+        storage,
+      );
 }
 
 /**

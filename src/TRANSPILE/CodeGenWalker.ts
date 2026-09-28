@@ -4740,6 +4740,8 @@ class CodeGenWalker {
       indexCount: indexes.length,
       renderIndexes: () =>
         indexes.map((index) => this.generateExpression(index)),
+      foldWidth: () =>
+        indexes.length === 2 ? this.tryEvaluateConstant(indexes[1]) : undefined,
     };
   }
 

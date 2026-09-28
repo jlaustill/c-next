@@ -32,13 +32,13 @@ int main(void) {
     devices[0].control = 0U;
     devices[0].control = (uint8_t)((devices[0].control & ~(0xFU << 0)) | ((15U & 0xFU) << 0));
     devices[0].control = (uint8_t)((devices[0].control & ~(0xFU << 4)) | ((8U & 0xFU) << 4));
-    uint8_t ctrlLow = ((devices[0U].control) & 0xFU);
-    uint8_t ctrlHigh = ((devices[0U].control >> 4U) & 0xFU);
+    uint8_t ctrlLow = (uint8_t)((devices[0U].control) & 0xFU);
+    uint8_t ctrlHigh = (uint8_t)((devices[0U].control >> 4U) & 0xFU);
     devices[1].status = 0U;
     devices[1].status = (uint16_t)((devices[1].status & ~(0xFFU << 0)) | ((0xAAU & 0xFFU) << 0));
     devices[1].status = (uint16_t)((devices[1].status & ~(0xFFU << 8)) | ((0x55U & 0xFFU) << 8));
-    uint16_t statusLow = ((devices[1U].status) & 0xFFU);
-    uint16_t statusHigh = ((devices[1U].status >> 8U) & 0xFFU);
+    uint16_t statusLow = (uint16_t)((devices[1U].status) & 0xFFU);
+    uint16_t statusHigh = (uint16_t)((devices[1U].status >> 8U) & 0xFFU);
     devices[2].config = 0U;
     devices[2].config = (devices[2].config & ~((uint32_t)0xFFU << 0)) | ((0x12U & (uint32_t)0xFFU) << 0);
     devices[2].config = (devices[2].config & ~((uint32_t)0xFFU << 8)) | ((0x34U & (uint32_t)0xFFU) << 8);

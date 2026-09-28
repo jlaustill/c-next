@@ -28,6 +28,8 @@ type TPlannedTargetOp =
       /** 1 for `[i]`, 2 for `[start, width]`. The grammar admits no other. */
       readonly indexCount: number;
       readonly renderIndexes: () => readonly string[];
+      /** A `[start, width]` width folded to a constant; undefined otherwise */
+      readonly foldWidth: () => number | undefined;
     };
 
 export default TPlannedTargetOp;

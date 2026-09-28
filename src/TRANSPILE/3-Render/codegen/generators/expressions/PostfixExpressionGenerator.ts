@@ -29,7 +29,6 @@ import BitRangeHelper from "../../helpers/BitRangeHelper";
 import FloatBitHelper from "../../helpers/FloatBitHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import BitUtils from "../../../../../utils/BitUtils";
-import TYPE_MAP from "../../types/TYPE_MAP";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
 import TYPE_WIDTH from "../../../../../transpiler/constants/TYPE_WIDTH";
@@ -1161,8 +1160,7 @@ const handleBitRangeSubscript = (
   // ((1U << W) - 1) — which is UB at full width (1U << 32) and uses the wrong
   // base type for >32-bit widths. The "U" suffix matches the literal path, which
   // generates bit widths under a size_t expectedType.
-  const widthConst = ctx.subscript.foldWidth();
-  const maskWidth = widthConst === undefined ? width : `${widthConst}U`;
+  const maskWidth = BitUtils.widthText(width, ctx.subscript.foldWidth());
 
   const isFloatType =
     ctx.primaryTypeInfo?.baseType === "f32" ||
@@ -1185,12 +1183,11 @@ const handleBitRangeSubscript = (
   } else {
     // Issue #1094, #1668: a width known only at run time computes its mask
     // in the operand's own width, so a 64-bit operand's does not shift past
-    // a 32-bit literal's, nor a 32-bit one's past a 16-bit int's
-    const baseType = ctx.primaryTypeInfo?.baseType;
-    const mask = BitUtils.generateMask(
-      maskWidth,
-      baseType === undefined ? undefined : TYPE_MAP[baseType],
-    );
+    // a 32-bit literal's, nor a 32-bit one's past a 16-bit int's. #1760
+    // review: the operand is the value ranged, as the typer types it and as
+    // a write reads it -- not the root, which a field or a `this.` root is not
+    const ranged = ctx.subscript.step?.before ?? null;
+    const mask = BitUtils.generateMask(maskWidth, BitUtils.storageOf(ranged));
     // Skip shift when start is 0 (either "0" or "0U" with MISRA suffix)
     let expr: string;
     if (start === "0" || start === "0U") {
@@ -1202,9 +1199,9 @@ const handleBitRangeSubscript = (
     // MISRA 10.3: Add narrowing cast if expected type is known
     // Bit operations promote to int, so wrap with cast when assigning to narrower types
     const targetType = orchestrator.state.expectedType;
-    if (targetType && ctx.primaryTypeInfo?.baseType) {
+    if (targetType && ranged?.typeName) {
       const promotedSourceType = NarrowingCastHelper.getPromotedType(
-        ctx.primaryTypeInfo.baseType,
+        ranged.typeName,
       );
       output.result = NarrowingCastHelper.wrap(
         expr,

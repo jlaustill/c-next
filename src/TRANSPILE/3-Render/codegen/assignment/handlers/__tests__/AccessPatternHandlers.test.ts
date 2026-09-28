@@ -308,6 +308,7 @@ describe("AccessPatternHandlers", () => {
       kind: "subscript",
       indexCount: 1,
       renderIndexes: () => [text],
+      foldWidth: () => undefined,
     });
 
     it("generates bit access when detected in member chain", () => {

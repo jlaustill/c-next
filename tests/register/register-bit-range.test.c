@@ -26,11 +26,11 @@ void configureOptions(uint16_t opts) {
 }
 
 uint8_t readTimerMode(void) {
-    return ((TIMER__CTRL) & 0xFU);
+    return (uint8_t)((TIMER__CTRL) & 0xFU);
 }
 
 uint8_t readTimerFlags(void) {
-    return ((TIMER__CTRL >> 4U) & 0xFU);
+    return (uint8_t)((TIMER__CTRL >> 4U) & 0xFU);
 }
 
 int main(void) {

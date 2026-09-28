@@ -191,6 +191,8 @@ function processPostfixOps(
         // these decides that from `CodeGenState` alone. Generating an index up
         // front would queue a pending temp for every chain it then rejects.
         renderIndexes: () => exprs.map((expr) => deps.generateExpression(expr)),
+        foldWidth: () =>
+          exprs.length === 2 ? deps.tryEvaluateConstant(exprs[1]) : undefined,
       });
     }
   }

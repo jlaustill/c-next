@@ -1,0 +1,51 @@
+// test-execution
+// #1760 review: a bit-range read sized its mask and its MISRA C:2012 Rule
+// 10.3 cast from the ROOT's declared type, where a write reads the typer's
+// type for the value ranged. So `this.`, `global.` and `Scope.` roots and a
+// u64 field (#1098) got a 32-bit `1U` mask for a width known at run time
+// (undefined past 31 bits), and a u32 field or u16 global read into a u8 got
+// no cast. A write's constant width was not folded either (#1096): a 32-bit
+// range shifted `(uint32_t)1U << 32`. The bare root is the control, which
+// was already right.
+const u32 WIDTH <- 32;
+
+struct Pair {
+    u32 w;
+    u64 big;
+}
+
+u64 g <- 0x123456789A;
+Pair gs;
+u16 h <- 0x1234;
+
+scope Sc {
+    public u64 v <- 0x123456789A;
+
+    public u64 low(u32 n) {
+        return this.v[0, n];
+    }
+}
+
+u32 main() {
+    u32 n <- 40;
+    gs.w <- 0x12345678;
+    gs.big <- 0x123456789A;
+    u64 a <- global.g[0, n];
+    u64 b <- Sc.v[0, n];
+    u64 c <- gs.big[0, n];
+    u64 d <- g[0, n];
+    u64 s <- Sc.low(n);
+    u8 e <- gs.w[0, 8];
+    u8 f <- global.h[0, 8];
+    u32 word <- 0;
+    word[0, WIDTH] <- 0xFFFFFFFF;
+    if (a != 0x123456789A) return 1;
+    if (b != 0x123456789A) return 2;
+    if (c != 0x123456789A) return 3;
+    if (d != 0x123456789A) return 4;
+    if (s != 0x123456789A) return 5;
+    if (e != 0x78) return 6;
+    if (f != 0x34) return 7;
+    if (word != 0xFFFFFFFF) return 8;
+    return 0;
+}

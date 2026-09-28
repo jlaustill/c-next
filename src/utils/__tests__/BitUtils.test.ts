@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import BitUtils from "../BitUtils";
+import type IOperandType from "../../transpiler/types/IOperandType";
 
 // ========================================================================
 // boolToInt
@@ -249,5 +250,55 @@ describe("BitUtils with storage of unfixed width", () => {
     expect(BitUtils.singleBitWrite("w", 3, "true")).toBe(
       "w = (w & ~(1U << 3)) | (1U << 3);",
     );
+  });
+});
+
+// #1760 review: one answer for a read and a write
+describe("BitUtils.storageOf and widthText", () => {
+  const operand = (
+    typeName: string | null,
+    category: IOperandType["category"],
+    cType: string | null = null,
+    bitWidth: number | null = null,
+  ): IOperandType => ({
+    typeName,
+    cType,
+    dimensions: [],
+    category,
+    bitWidth,
+    stringCapacity: null,
+    enumTypeName: null,
+    bitmapTypeName: null,
+    overflow: null,
+    hasSideEffect: false,
+    form: { kind: "declared" },
+    binding: null,
+  });
+
+  it("stores a known integer in its fixed-width type", () => {
+    expect(BitUtils.storageOf(operand("u64", "unsigned", null, 64))).toBe(
+      "uint64_t",
+    );
+    expect(BitUtils.storageOf(operand("i16", "signed", null, 16))).toBe(
+      "int16_t",
+    );
+  });
+
+  it("stores an integer of unfixed width in the type its header spelled", () => {
+    expect(BitUtils.storageOf(operand(null, "signed", "int_fast16_t"))).toBe(
+      "int_fast16_t",
+    );
+  });
+
+  it("stores nothing else", () => {
+    expect(BitUtils.storageOf(operand("f32", "floating", "float"))).toBe(
+      undefined,
+    );
+    expect(BitUtils.storageOf(null)).toBe(undefined);
+  });
+
+  it("writes a folded width as its value, and any other as its text", () => {
+    expect(BitUtils.widthText("WIDTH", 32)).toBe("32U");
+    expect(BitUtils.widthText("n", undefined)).toBe("n");
   });
 });

@@ -380,9 +380,16 @@ function operandOfDeclared(info: TTypeInfo): IOperandType {
       stringCapacity: info.stringCapacity ?? null,
     });
   }
+  // The category the typer gives a C-Next primitive (#1760 review: a bit
+  // range reads its width from it)
+  let category: IOperandType["category"] = "none";
+  if (/^u\d+$/.test(info.baseType)) category = "unsigned";
+  else if (/^i\d+$/.test(info.baseType)) category = "signed";
+  else if (/^f\d+$/.test(info.baseType)) category = "floating";
   return typed(info.baseType, {
     dimensions,
     bitWidth: info.bitWidth || null,
+    category,
   });
 }
 
@@ -416,13 +423,26 @@ function withPropertySteps(
       return op;
     }
     if (op.kind === "subscript") {
+      // The typer steps every subscript: what it applies to is the value
+      // the chain has reached (#1760 review: a bit range reads its width here)
+      const before = current;
       current =
         op.typedAs === "array_element" &&
         current !== null &&
         current.dimensions.length > 0
           ? { ...current, dimensions: current.dimensions.slice(1) }
           : null;
-      return op;
+      return op.step !== null
+        ? op
+        : {
+            ...op,
+            step: {
+              before,
+              subscript: op.typedAs,
+              after: current,
+              property: null,
+            },
+          };
     }
     current = null;
     return op;

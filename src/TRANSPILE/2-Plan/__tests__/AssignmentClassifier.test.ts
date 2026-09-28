@@ -992,6 +992,7 @@ describe("AssignmentClassifier - Scoped Register Bit Range", () => {
           kind: "subscript",
           indexCount: 2,
           renderIndexes: () => ["0", "1"],
+          foldWidth: () => undefined,
         } as IAssignmentContext["postfixOps"][0],
       ],
       isSimpleIdentifier: false,

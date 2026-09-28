@@ -1,3 +1,7 @@
+import CompositeType from "./CompositeType";
+import CNEXT_TO_C_TYPE_MAP from "./constants/TypeMappings";
+import type IOperandType from "../transpiler/types/IOperandType";
+
 /**
  * The storage's width, from its fixed-width C type: `uint32_t`, `int16_t`, ...
  * A type this does not name (`bool`, or none known) has no width here.
@@ -31,6 +35,31 @@ const CONSTANT_WIDTH = /^(\d+)U?$/;
  * mask there cleared the upper half of a 64-bit `long`.
  */
 class BitUtils {
+  /**
+   * The C type an integer's bits are read or written in: a known width's
+   * fixed-width type, or, for an integer the target gives no width, the type
+   * its header spelled, which is worked in `uintmax_t` (see above). Undefined
+   * for anything else. #1760 review: a read sized its mask from the ROOT's
+   * declared type while a write asked this of the value ranged, so
+   * `this.v[0, n]` on a u64 had a 32-bit mask.
+   */
+  static storageOf(value: IOperandType | null): string | undefined {
+    const type = CompositeType.integerOf([value]);
+    if (type !== null) return CNEXT_TO_C_TYPE_MAP[type];
+    const isInteger =
+      value?.category === "signed" || value?.category === "unsigned";
+    return isInteger ? (value.cType ?? undefined) : undefined;
+  }
+
+  /**
+   * A `[start, width]` width as C: its folded value, `NU`, when it folds, so
+   * the mask is a literal (Issue #1094, #1096: `(1U << WIDTH) - 1U` is
+   * undefined at full width); its rendered text otherwise
+   */
+  static widthText(width: string, folded: number | undefined): string {
+    return folded === undefined ? width : `${folded}U`;
+  }
+
   /**
    * Convert a boolean expression to an unsigned integer (0U or 1U).
    * Handles literal "true"/"false" and generates ternary for expressions.

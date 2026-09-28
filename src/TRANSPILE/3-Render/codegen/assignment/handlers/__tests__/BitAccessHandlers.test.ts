@@ -566,6 +566,7 @@ describe("BitAccessHandlers", () => {
             HandlerTestUtils.planner().generateExpression(null as never),
             HandlerTestUtils.planner().generateExpression(null as never),
           ],
+          foldWidth: () => undefined,
         },
       ];
 

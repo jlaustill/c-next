@@ -73,6 +73,7 @@ function analyze(statement: string): {
         rendered += 1;
         return indexes.map((index) => index.getText());
       },
+      foldWidth: () => undefined,
     };
   });
   const result = MemberChainAnalyzer.analyze(
