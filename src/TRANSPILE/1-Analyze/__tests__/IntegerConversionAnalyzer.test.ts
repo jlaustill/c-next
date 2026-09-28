@@ -200,5 +200,47 @@ describe("IntegerConversionAnalyzer", () => {
     ])("accepts %s", (_label, line) => {
       expect(codes(line)).toEqual([]);
     });
+
+    // #1760 second review, owner ruling "all positions now": every position
+    // a value lands in, not only a declaration or an assignment
+    const positioned = (body: string): string[] =>
+      errors(
+        [
+          "struct Pair {\n    u32 a;\n    f32 b;\n}",
+          "void take(u32 n) {\n}",
+          "void takeFloat(f32 x) {\n}",
+          "u32 give(f32 x) {\n" + body + "\n}",
+        ].join("\n"),
+      ).map((error) => error.code);
+
+    it.each([
+      ["an argument", "    take(x);\n    return 0;"],
+      ["a return value", "    return x;"],
+      ["a struct field", "    Pair p <- { a: x, b: x };\n    return 0;"],
+      ["an array element", "    u32[2] l <- [x, 1];\n    return 0;"],
+      ["an array fill", "    u32[2] l <- [x*];\n    return 0;"],
+      ["a nested element", "    u32[1][2] l <- [[x, 1]];\n    return 0;"],
+    ])("rejects a float as %s", (_label, body) => {
+      expect(positioned(body)).toEqual(["E0891"]);
+    });
+
+    it.each([
+      ["a cast argument", "    take((u32)x);\n    return 0;"],
+      ["a float parameter", "    takeFloat(x);\n    return 0;"],
+      ["a cast return", "    return (u32)x;"],
+      ["a cast field", "    Pair p <- { a: (u32)x, b: x };\n    return 0;"],
+      ["an integer element", "    u32[2] l <- [(u32)x, 1];\n    return 0;"],
+    ])("accepts %s", (_label, body) => {
+      expect(positioned(body)).toEqual([]);
+    });
+
+    // A `for` header's declaration is a declaration (#1760 second review)
+    it.each([
+      ["E0891", "    for (u32 i <- k; i < 10; i +<- 1) {\n    }"],
+      ["E0868", "    for (u8 j <- 300; j < 10; j +<- 1) {\n    }"],
+      ["E0869", "    for (u8 q <- wide; q < 10; q +<- 1) {\n    }"],
+    ])("reports %s in a for header", (code, line) => {
+      expect(codes(line)).toEqual([code]);
+    });
   });
 });

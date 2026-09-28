@@ -179,18 +179,39 @@ class StructInitializerType {
   }
 
   /**
-   * The one walk up from an initializer: the type its nearest establishing
+   * The type a value's position gives it, the way it gives one to an
+   * initializer: a declaration's (a `for` header's too), the field it
+   * initializes, the element of the array list it sits in, the assignment
+   * target's, the parameter it is passed to, or the enclosing function's
+   * return type. Null when no position types it, and for a whole-array
+   * position. #1760 second review: E0891 asks this of every value, so a
+   * float reaches an integer parameter, return, field or element only
+   * through a cast, as it reaches a declaration.
+   */
+  static valueType(
+    value: ParserRuleContext,
+    context: IAnalysisContext,
+  ): string | null {
+    const established = StructInitializerType.establish(value, context);
+    const typeText = established.typeText;
+    if (typeText === null) return null;
+    const element = TypeText.withoutDimensions(typeText);
+    return element !== typeText && !established.inList ? null : element;
+  }
+
+  /**
+   * The one walk up from a value: the type its nearest establishing
    * position gives, and whether an array's list stood between the two. An
    * element of `[{ a: 1 }, 2]` is typed by the element, not the array
    * (#1802).
    */
   private static establish(
-    init: Parser.StructInitializerContext,
+    value: ParserRuleContext,
     context: IAnalysisContext,
   ): { readonly typeText: string | null; readonly inList: boolean } {
     let inList = false;
-    let child: ParserRuleContext = init;
-    let cursor: ParserRuleContext | null = init.parent;
+    let child: ParserRuleContext = value;
+    let cursor: ParserRuleContext | null = value.parent;
     while (cursor) {
       const established = StructInitializerType.typeEstablishedBy(
         cursor,

@@ -359,10 +359,19 @@ u8 lowByte <- ((u32)temp)[0, 8];  // Truncates to 25, extracts low 8 bits → 25
 ```
 
 **A float reaches an integer only through that cast.** Without it the
-conversion is E0891, wherever this ADR's conversions are checked: a
-declaration's initializer and an assignment. `u32 b <- k;`, `u32 c <- k + 1.0;`
-and `d <- k;` are all errors, and so is a floating ternary or a call returning a
-float. The value is asked of every leaf, so a composite that is floating counts.
+conversion is E0891, at every position a value lands in an integer (owner
+ruling, 2026-09-28, #1760 review: _"all positions now"_):
+
+- a declaration's initializer, a `for` header's included;
+- an assignment;
+- an argument to an integer parameter;
+- a return value from a function returning an integer;
+- a struct field's initializer;
+- an array element, in a list or a fill.
+
+`u32 b <- k;`, `u32 c <- k + 1.0;`, `d <- k;`, `take(k)` and `return k;` are all
+errors, and so is a floating ternary or a call returning a float. The value is
+asked of every leaf, so a composite that is floating counts.
 Owner ruling, 2026-09-28 (#1800): _"this should be a compiler error with an
 explicit cast"_. Until then the implicit form was accepted, and it was emitted
 as C's own conversion, which is undefined for NaN and for a value past the

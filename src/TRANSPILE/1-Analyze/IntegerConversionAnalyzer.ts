@@ -66,6 +66,7 @@ import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import CompositeType from "../../utils/CompositeType";
 import AssignmentSiteListener from "./AssignmentSiteListener";
+import StructInitializerType from "./helpers/StructInitializerType";
 import IIntegerConversionError from "./types/IIntegerConversionError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IOperandType from "../../transpiler/types/IOperandType";
@@ -84,17 +85,70 @@ class IntegerConversionListener extends CNextListener {
     return this.found;
   }
 
-  // --- The three spellings that reach the one rule --------------------------
+  // --- The spellings that reach the one rule -------------------------------
 
   override enterVariableDeclaration = (
     ctx: Parser.VariableDeclarationContext,
   ): void => {
-    const value = ctx.expression();
-    if (!value) return;
-    const target = ctx.type().getText();
-    if (!TypeCheckUtils.isInteger(target)) return;
-    this.check(target, value, "assign", true);
+    this.checkDeclaration(ctx.type().getText(), ctx.expression());
   };
+
+  /**
+   * A `for` header's declaration is a declaration (#1760 second review:
+   * `for (u8 j <- 300; ...)` and `for (u32 i <- k; ...)` were accepted).
+   */
+  override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
+    this.checkDeclaration(ctx.type().getText(), ctx.expression());
+  };
+
+  private checkDeclaration(
+    target: string,
+    value: Parser.ExpressionContext | null,
+  ): void {
+    if (!value || !TypeCheckUtils.isInteger(target)) return;
+    this.check(target, value, "assign", true);
+  }
+
+  // --- E0891 at every other position a value lands in ------------------------
+  //
+  // #1760 second review, owner ruling "all positions now": a float reaches an
+  // integer argument, return, field or element only through a cast, as it
+  // reaches a declaration or an assignment. Narrowing and sign change at these
+  // positions are #1618's.
+
+  override enterArgumentList = (ctx: Parser.ArgumentListContext): void => {
+    for (const argument of ctx.expression()) this.checkFloatingAt(argument);
+  };
+
+  override enterReturnStatement = (
+    ctx: Parser.ReturnStatementContext,
+  ): void => {
+    this.checkFloatingAt(ctx.expression());
+  };
+
+  override enterFieldInitializer = (
+    ctx: Parser.FieldInitializerContext,
+  ): void => {
+    this.checkFloatingAt(ctx.expression());
+  };
+
+  override enterArrayInitializer = (
+    ctx: Parser.ArrayInitializerContext,
+  ): void => {
+    this.checkFloatingAt(ctx.expression());
+    for (const element of ctx.arrayInitializerElement()) {
+      this.checkFloatingAt(element.expression());
+    }
+  };
+
+  /** E0891 for a value, at the integer type its position gives it */
+  private checkFloatingAt(value: Parser.ExpressionContext | null): void {
+    if (!value) return;
+    const target = StructInitializerType.valueType(value, this.context);
+    if (target !== null && TypeCheckUtils.isInteger(target)) {
+      this.checkFloating(target, value);
+    }
+  }
 
   /** An assignment, in a statement or a `for` header (#1726) */
   public checkSite(site: TAssignmentSite): void {

@@ -1,0 +1,6 @@
+10:18 error[E0891]: Implicit conversion from floating f32 to integer u32
+       help: Write the conversion as a cast, which saturates: (u32)value (ADR-024)
+11:17 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+12:17 error[E0869]: Cannot assign u32 to u8 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 8]

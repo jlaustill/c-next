@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **An implicit float-to-integer conversion is error E0891** (ADR-024, Issue #1800).
   This is a **breaking change**. `u32 b <- k;` with `f32 k`, a floating composite
-  or ternary, a call returning a float, and the same in an assignment were
+  or ternary, a call returning a float, and the same in an assignment, a `for`
+  header, an argument, a return, a struct field or an array element were
   accepted. They were emitted as C's own conversion, which is undefined for NaN
   and for a value past the target's range. The migration is the explicit cast,
   `(u32)k`, which truncates and then clamps to the range (ADR-056).

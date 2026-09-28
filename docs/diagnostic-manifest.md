@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-448 fixture(s) assert a diagnostic; 433 carry a code.
+450 fixture(s) assert a diagnostic; 435 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -384,7 +384,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1702-declaration-position/fl-fn-error.test.cnx                                  | E0810               |
 | tests/bugs/issue-1724-sibling-scope-type-not-included/frames-see-own-closure-error.test.cnx      | E0810               |
 | tests/bugs/issue-1724-sibling-scope-type-not-included/typer-sees-own-closure-error.test.cnx      | E0428               |
+| tests/bugs/issue-1800-float-to-integer/for-header-rejected.test.cnx                              | E0868, E0869, E0891 |
 | tests/bugs/issue-1800-float-to-integer/implicit-rejected.test.cnx                                | E0891               |
+| tests/bugs/issue-1800-float-to-integer/positions-rejected.test.cnx                               | E0891               |
 | tests/bugs/issue-1802-struct-initializer-target/header-scalar.test.cnx                           | E0358               |
 | tests/bugs/issue-1802-struct-initializer-target/non-struct-targets.test.cnx                      | E0358               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |

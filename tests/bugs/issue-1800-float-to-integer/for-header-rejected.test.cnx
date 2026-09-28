@@ -1,0 +1,15 @@
+// test-error
+// #1760 second review: a `for` header's declaration is a declaration, and was
+// not checked like one. A float, a literal past the range, and a wider
+// integer each reached the loop variable at exit 0 (E0891, E0868, E0869).
+// The controls stay silent: a literal in range, and the explicit cast.
+f32 k <- 2.5;
+u32 big <- 70000;
+
+void loops() {
+    for (u32 i <- k; i < 10; i +<- 1) {}
+    for (u8 j <- 300; j < 10; j +<- 1) {}
+    for (u8 q <- big; q < 10; q +<- 1) {}
+    for (u32 ok <- 0; ok < 10; ok +<- 1) {}
+    for (u32 cast <- (u32)k; cast < 10; cast +<- 1) {}
+}
