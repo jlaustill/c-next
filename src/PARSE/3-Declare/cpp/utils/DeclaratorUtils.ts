@@ -63,7 +63,7 @@ class DeclaratorUtils {
       return DeclaratorUtils.extractNoPointerDeclaratorName(innerNoPtr);
     }
 
-    // A parenthesized pointer declarator, `(*getf)` in `float (*getf)()`: its
+    // A parenthesized pointer declarator, `(*readLevel)` in `float (*readLevel)()`: its
     // name is inside it (#1760 review: such a member had no name, so it was
     // dropped)
     const innerPtr = noPtr.pointerDeclarator?.();
@@ -214,7 +214,7 @@ class DeclaratorUtils {
    * declarator's indirection -- a pointer's depth, or a function pointer's
    * `T (*)(params)` -- the spellings the C side records (#1760 review: a
    * member recorded its specifiers alone, so `uint8_t *buf` was a `uint8_t`
-   * and `float (*getf)()` a `float`). A reference keeps its base type.
+   * and `float (*readLevel)()` a `float`). A reference keeps its base type.
    */
   static declaredType(baseType: string, declarator: DeclaratorContext): string {
     const pointer = declarator.pointerDeclarator();
@@ -230,7 +230,7 @@ class DeclaratorUtils {
   }
 
   /**
-   * Whether a declarator declares a pointer to a function, `(*getf)()`: its
+   * Whether a declarator declares a pointer to a function, `(*readLevel)()`: its
    * parameters apply to a parenthesized pointer declarator, where a
    * function's apply to its name. A class's member of this shape is a data
    * member (#1760 review: it was taken for a member function and dropped).

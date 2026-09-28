@@ -214,7 +214,7 @@ class DeclaratorUtils {
    * The type a declarator records: the base type with any indirection the
    * declarator carries -- a pointer's depth, or a function pointer's
    * `T (*)(params)`. The one rule for a typedef and a struct field (#1760
-   * review: a field recorded its specifiers alone, so `float (*getf)(void)`
+   * review: a field recorded its specifiers alone, so `float (*readLevel)(void)`
    * was a `float` and `uint8_t *buf` a `uint8_t`).
    *
    * Declaration specifiers give the base type; the `*` of a pointer typedef

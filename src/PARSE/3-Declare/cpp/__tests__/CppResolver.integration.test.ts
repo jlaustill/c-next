@@ -237,7 +237,7 @@ typedef struct opaque_t* handle_t;`;
   describe("data member declarators", () => {
     it("records pointer and function-pointer members, a reference as its base", () => {
       const tree = TestHelpers.parseCpp(`struct Ops {
-    float (*getf)();
+    float (*readLevel)();
     uint8_t *buf;
     int &r;
     uint8_t flags;
@@ -245,7 +245,7 @@ typedef struct opaque_t* handle_t;`;
       expect(tree).not.toBeNull();
       CppResolver.resolve(tree!, "ops.hpp", symbolTable);
       const fields = symbolTable.getStructFields("Ops");
-      expect(fields?.get("getf")?.type).toBe("float (*)()");
+      expect(fields?.get("readLevel")?.type).toBe("float (*)()");
       expect(fields?.get("buf")?.type).toBe("uint8_t*");
       expect(fields?.get("r")?.type).toBe("int");
       // Control: a plain member is its type

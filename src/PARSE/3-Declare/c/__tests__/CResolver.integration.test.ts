@@ -160,7 +160,7 @@ describe("CResolver - Variable Declarations", () => {
   // the typer knows a read of it has a side effect
   it("keeps volatile in a variable's and a typedef's spelling", () => {
     const tree = TestHelpers.parseC(`extern volatile float vf;
-typedef volatile float vfloat_t;
+typedef volatile float volatile_float_t;
 typedef volatile float vec3[3];
 extern float nf;`);
     const result = CResolver.resolve(tree!, "test.h");
@@ -169,7 +169,7 @@ extern float nf;`);
       return symbol && "type" in symbol ? symbol.type : undefined;
     };
     expect(typeOf("vf")).toBe("volatile float");
-    expect(typeOf("vfloat_t")).toBe("volatile float");
+    expect(typeOf("volatile_float_t")).toBe("volatile float");
     // An array typedef keeps its dimensions when it is volatile too
     const vec3 = result.symbols.find((s) => s.name === "vec3");
     expect(vec3).toMatchObject({
@@ -455,14 +455,14 @@ describe("CResolver - Struct field declarators", () => {
   it("records a pointer field and a function-pointer field as such", () => {
     const table = new SymbolTable();
     const tree = TestHelpers.parseC(`typedef struct {
-    float (*getf)(void);
+    float (*readLevel)(void);
     uint8_t *buf;
     uint8_t **grid;
     uint8_t arr[4];
 } Ops;`);
     CResolver.resolve(tree!, "ops.h", table);
     const fields = table.getStructFields("Ops");
-    expect(fields?.get("getf")?.type).toBe("float (*)(void)");
+    expect(fields?.get("readLevel")?.type).toBe("float (*)(void)");
     expect(fields?.get("buf")?.type).toBe("uint8_t*");
     expect(fields?.get("grid")?.type).toBe("uint8_t**");
     // Control: an array field keeps its element type and its dimensions

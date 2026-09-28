@@ -93,18 +93,18 @@ describe("ForeignTypeFacts.operandType (R4)", () => {
 describe("ForeignTypeFacts.operandType: volatile", () => {
   const table = new SymbolTable();
   table.addCSymbol({
-    sourceFile: "regs.h",
+    sourceFile: "registers.h",
     span: { line: 1, column: 0, endLine: 1, endColumn: 1 },
     sourceLanguage: ESourceLanguage.C,
     visibility: "public",
     kind: "type",
-    name: "vfloat_t",
+    name: "volatile_float_t",
     type: "volatile float",
   });
 
   it.each([
     ["a volatile spelling", "volatile float", true],
-    ["a typedef of a volatile type", "vfloat_t", true],
+    ["a typedef of a volatile type", "volatile_float_t", true],
     ["a plain spelling", "float", false],
   ])("gives %s a side effect: %s", (_why, spelling, expected) => {
     expect(

@@ -99,7 +99,7 @@ describe("BitAccessAnalyzer (E0890)", () => {
         "}",
         "u8[4] arr <- [0*];",
         "Mode[4] modes;",
-        "volatile u8 vidx <- 0;",
+        "volatile u8 volatileIndex <- 0;",
         "u32 word <- 0;",
         "u8 idx() {",
         "    return 1;",
@@ -115,7 +115,7 @@ describe("BitAccessAnalyzer (E0890)", () => {
     const found = e0890([
       "    arr[idx()][3] <- true;",
       "    word[idx()] <- true;",
-      "    arr[vidx][2, 4] <- 5;",
+      "    arr[volatileIndex][2, 4] <- 5;",
       "    modes[idx()].fast <- true;",
       "    GPIO.DR[idx()] <- true;",
     ]);
@@ -138,7 +138,7 @@ describe("BitAccessAnalyzer (E0890)", () => {
   });
 
   it("reports every subscript with a side effect", () => {
-    const found = e0890(["    arr[idx()][vidx] <- true;"]);
+    const found = e0890(["    arr[idx()][volatileIndex] <- true;"]);
     expect(found.map((e) => e.column)).toEqual([8, 15]);
   });
 });
