@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-435 fixture(s) assert a diagnostic; 420 carry a code.
+437 fixture(s) assert a diagnostic; 422 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -326,6 +326,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1668-foreign-operands/c-typedef-declaration-error.test.cnx                      | E0810               |
 | tests/bugs/issue-1668-foreign-operands/c-typedef-narrowing-error.test.cnx                        | E0869               |
 | tests/bugs/issue-1668-foreign-operands/cpp-members-error.test.cnx                                | E0810               |
+| tests/bugs/issue-1668-foreign-operands/declared-function-pointer-field-error.test.cnx            | E0810               |
+| tests/bugs/issue-1668-foreign-operands/declared-function-pointer-member-error.test.cnx           | E0810               |
 | tests/bugs/issue-1668-foreign-operands/function-pointer-field-error.test.cnx                     | E0810               |
 | tests/bugs/issue-1668-foreign-operands/global-header-name-error.test.cnx                         | E0810               |
 | tests/bugs/issue-1668-int-float-clamp/foreign-float-rejected-cpp.test.cnx                        | E0810               |

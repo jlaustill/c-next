@@ -259,8 +259,12 @@ class ClassCollector {
     const fieldName = DeclaratorUtils.extractDeclaratorName(declarator);
     if (!fieldName) return;
 
-    // Check if this is a member function
-    if (DeclaratorUtils.declaratorIsFunction(declarator)) {
+    // Check if this is a member function -- a pointer to one is a data
+    // member, as a C struct's function-pointer field is (#1760 review)
+    if (
+      DeclaratorUtils.declaratorIsFunction(declarator) &&
+      !DeclaratorUtils.isFunctionPointer(declarator)
+    ) {
       const symbol = FunctionCollector.collectMemberFunction(
         ctx.className,
         fieldName,
@@ -296,13 +300,15 @@ class ClassCollector {
 
     // Extract array dimensions if any
     const arrayDimensions = DeclaratorUtils.extractArrayDimensions(declarator);
+    // The declarator's indirection, recorded as the C side records it
+    const declaredType = DeclaratorUtils.declaredType(fieldType, declarator);
 
     // Add to SymbolTable if provided
     if (ctx.symbolTable) {
       ctx.symbolTable.addStructField(
         ctx.className,
         fieldName,
-        fieldType,
+        declaredType,
         arrayDimensions.length > 0 ? arrayDimensions : undefined,
       );
     }
@@ -311,7 +317,7 @@ class ClassCollector {
     if (ctx.fields) {
       const fieldInfo: ICppFieldInfo = {
         name: fieldName,
-        type: fieldType,
+        type: declaredType,
         arrayDimensions:
           arrayDimensions.length > 0 ? arrayDimensions : undefined,
       };

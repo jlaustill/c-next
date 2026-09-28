@@ -1,0 +1,12 @@
+// test-cpp-only
+// #1760 review: the C++ twin of declared-pointer-field-element. A member
+// declared as a pointer is one, so its subscript is an element, not a bit.
+#include "declared_ops_cpp.hpp"
+
+void read() {
+    u8 v <- cops.buf[2];
+    // Controls: an array member's subscript is an element, and a scalar
+    // member's is a bit
+    u8 e <- cops.arr[2];
+    bool b <- cops.flags[2];
+}

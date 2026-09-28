@@ -449,6 +449,30 @@ describe("CResolver - Struct Fields", () => {
   });
 });
 
+// #1760 review: a field records its declarator's indirection, by the rule a
+// typedef's type follows -- it recorded its specifiers alone
+describe("CResolver - Struct field declarators", () => {
+  it("records a pointer field and a function-pointer field as such", () => {
+    const table = new SymbolTable();
+    const tree = TestHelpers.parseC(`typedef struct {
+    float (*getf)(void);
+    uint8_t *buf;
+    uint8_t **grid;
+    uint8_t arr[4];
+} Ops;`);
+    CResolver.resolve(tree!, "ops.h", table);
+    const fields = table.getStructFields("Ops");
+    expect(fields?.get("getf")?.type).toBe("float (*)(void)");
+    expect(fields?.get("buf")?.type).toBe("uint8_t*");
+    expect(fields?.get("grid")?.type).toBe("uint8_t**");
+    // Control: an array field keeps its element type and its dimensions
+    expect(fields?.get("arr")).toMatchObject({
+      type: "uint8_t",
+      arrayDimensions: [4],
+    });
+  });
+});
+
 describe("CResolver - Enums", () => {
   it("collects named enum", () => {
     const tree = TestHelpers.parseC(`enum Color { RED, GREEN, BLUE };`);

@@ -10,7 +10,6 @@
 import type {
   CompilationUnitContext,
   DeclarationContext,
-  DeclaratorContext,
   DeclarationSpecifiersContext,
   DeclarationSpecifierContext,
 } from "../../2-Parse/c/grammar/CParser";
@@ -276,7 +275,7 @@ class CResolver {
 
       if (ctx.isTypedef) {
         const spelled = CResolver.qualified(baseType, ctx);
-        const typedefType = CResolver.buildTypedefType(spelled, declarator);
+        const typedefType = DeclaratorUtils.declaredType(spelled, declarator);
         // An array typedef (`typedef float vec3[3]`) keeps its dimensions;
         // a pointer or function-pointer typedef has none to keep
         const arrayDimensions =
@@ -428,74 +427,6 @@ class CResolver {
       }
     }
     return typeParts.join(" ") || "int";
-  }
-
-  /**
-   * Build the recorded type for a typedef, keeping any indirection the
-   * declarator carries.
-   *
-   * Declaration specifiers give the base type; the `*` of a pointer typedef
-   * lives in the *declarator* (`typedef struct Sample *SampleHandle`). Issue
-   * #1178: only function-pointer typedefs used to reconstruct their
-   * indirection, so a plain pointer typedef was recorded as though it were the
-   * struct itself -- and a consumer asking "can the callee write through this
-   * parameter?" was told no.
-   */
-  static buildTypedefType(
-    baseType: string,
-    declarator: DeclaratorContext,
-  ): string {
-    if (CResolver.isFunctionPointerDeclarator(declarator)) {
-      return `${baseType} (*)(${CResolver.extractParamText(declarator)})`;
-    }
-    // Keep the declarator's pointer depth, not merely its presence: the symbol
-    // model is shared, and a consumer that wants the pointer probably wants the
-    // right number of them (`typedef struct Sample **Grid`).
-    return DeclaratorUtils.pointerType(baseType, declarator);
-  }
-
-  /**
-   * Check if a declarator represents a function pointer.
-   * For `(*PointCallback)(Point p)`, the C grammar parses as:
-   *   declarator -> directDeclarator
-   *   directDeclarator -> directDeclarator '(' parameterTypeList ')'
-   *   inner directDeclarator -> '(' declarator ')'
-   *   inner declarator -> pointer directDeclarator -> * PointCallback
-   */
-  static isFunctionPointerDeclarator(declarator: any): boolean {
-    const directDecl = declarator.directDeclarator?.();
-    if (!directDecl) return false;
-
-    // The outer directDeclarator has: directDeclarator '(' params ')'
-    // Check for parameter list at the outer level
-    const hasParams =
-      directDecl.parameterTypeList?.() !== null ||
-      Boolean(directDecl.LeftParen?.());
-
-    if (!hasParams) return false;
-
-    // The inner directDeclarator should be '(' declarator ')' with a pointer
-    const innerDirectDecl = directDecl.directDeclarator?.();
-    if (!innerDirectDecl) return false;
-
-    const nestedDecl = innerDirectDecl.declarator?.();
-    if (!nestedDecl) return false;
-
-    return Boolean(nestedDecl.pointer?.());
-  }
-
-  /**
-   * Extract parameter text from a function pointer declarator.
-   * Returns the text of the parameters from a function pointer like "(*Callback)(Point p)".
-   */
-  static extractParamText(declarator: any): string {
-    const directDecl = declarator.directDeclarator?.();
-    if (!directDecl) return "";
-
-    const paramTypeList = directDecl.parameterTypeList?.();
-    if (!paramTypeList) return "";
-
-    return paramTypeList.getText();
   }
 }
 

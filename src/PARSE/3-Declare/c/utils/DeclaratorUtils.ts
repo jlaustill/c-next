@@ -211,6 +211,73 @@ class DeclaratorUtils {
    * Check if declaration specifiers contain a specific storage class.
    */
   /**
+   * The type a declarator records: the base type with any indirection the
+   * declarator carries -- a pointer's depth, or a function pointer's
+   * `T (*)(params)`. The one rule for a typedef and a struct field (#1760
+   * review: a field recorded its specifiers alone, so `float (*getf)(void)`
+   * was a `float` and `uint8_t *buf` a `uint8_t`).
+   *
+   * Declaration specifiers give the base type; the `*` of a pointer typedef
+   * lives in the *declarator* (`typedef struct Sample *SampleHandle`). Issue
+   * #1178: only function-pointer typedefs used to reconstruct their
+   * indirection, so a plain pointer typedef was recorded as though it were the
+   * struct itself -- and a consumer asking "can the callee write through this
+   * parameter?" was told no.
+   */
+  static declaredType(baseType: string, declarator: DeclaratorContext): string {
+    if (DeclaratorUtils.isFunctionPointerDeclarator(declarator)) {
+      return `${baseType} (*)(${DeclaratorUtils.extractParamText(declarator)})`;
+    }
+    // Keep the declarator's pointer depth, not merely its presence: the symbol
+    // model is shared, and a consumer that wants the pointer probably wants the
+    // right number of them (`typedef struct Sample **Grid`).
+    return DeclaratorUtils.pointerType(baseType, declarator);
+  }
+
+  /**
+   * Check if a declarator represents a function pointer.
+   * For `(*PointCallback)(Point p)`, the C grammar parses as:
+   *   declarator -> directDeclarator
+   *   directDeclarator -> directDeclarator '(' parameterTypeList ')'
+   *   inner directDeclarator -> '(' declarator ')'
+   *   inner declarator -> pointer directDeclarator -> * PointCallback
+   */
+  static isFunctionPointerDeclarator(declarator: any): boolean {
+    const directDecl = declarator.directDeclarator?.();
+    if (!directDecl) return false;
+
+    // The outer directDeclarator has: directDeclarator '(' params ')'
+    // Check for parameter list at the outer level
+    const hasParams =
+      directDecl.parameterTypeList?.() !== null ||
+      Boolean(directDecl.LeftParen?.());
+
+    if (!hasParams) return false;
+
+    // The inner directDeclarator should be '(' declarator ')' with a pointer
+    const innerDirectDecl = directDecl.directDeclarator?.();
+    if (!innerDirectDecl) return false;
+
+    const nestedDecl = innerDirectDecl.declarator?.();
+    if (!nestedDecl) return false;
+
+    return Boolean(nestedDecl.pointer?.());
+  }
+
+  /**
+   * Extract parameter text from a function pointer declarator.
+   * Returns the text of the parameters from a function pointer like "(*Callback)(Point p)".
+   */
+  static extractParamText(declarator: any): string {
+    const directDecl = declarator.directDeclarator?.();
+    if (!directDecl) return "";
+
+    const paramTypeList = directDecl.parameterTypeList?.();
+    if (!paramTypeList) return "";
+
+    return paramTypeList.getText();
+  }
+  /**
    * Whether a declaration is `volatile` (#1760 review). The specifier list is
    * read for its type specifiers alone, so a `volatile float` global was
    * recorded as `float`, and the typer could not know that reading it has a

@@ -1,0 +1,2 @@
+11:29 error[E0810]: Binary operator combines operands of different essential type categories (integer and floating)
+       help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. Convert the integer operand with an explicit cast, e.g. (f32)value (ADR-024).

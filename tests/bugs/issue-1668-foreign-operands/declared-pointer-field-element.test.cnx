@@ -1,0 +1,13 @@
+// #1760 review: a struct field declared as a pointer is one, so its subscript
+// is an element. `uint8_t *buf` was recorded as a `uint8_t` field, and
+// `dops.buf[2]` read bit 2 of the pointer: `(dops.buf >> 2U) & 1`, which gcc
+// rejects.
+#include "declared_ops.h"
+
+void read() {
+    u8 v <- dops.buf[2];
+    // Controls: an array field's subscript is an element, and a scalar
+    // field's is a bit
+    u8 e <- dops.arr[2];
+    bool b <- dops.flags[2];
+}

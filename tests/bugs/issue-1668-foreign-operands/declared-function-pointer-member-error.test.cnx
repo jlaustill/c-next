@@ -1,0 +1,13 @@
+// test-error
+// test-cpp-only
+// #1760 review: the C++ twin of declared-function-pointer-field-error. A
+// member declared as a function pointer is one; its declarator was dropped.
+#include "declared_ops_cpp.hpp"
+
+u32 a <- 3;
+
+void f() {
+    u32 out <- cops.getf() * a;
+    // Control: the call is a float, so a float operand beside it is fine
+    f32 ok <- cops.getf() * 2.0;
+}

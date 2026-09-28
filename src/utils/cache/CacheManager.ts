@@ -47,7 +47,9 @@ const defaultFs = NodeFileSystem.instance;
 // 14: #1760 review -- a C variable's and a typedef's spelling keeps
 // `volatile`, so an entry written before reads as non-volatile under an
 // unchanged shape: a saturating cast of it would read it three times.
-const CACHE_VERSION = 14;
+// 15: #1760 review -- a C struct field records its declarator's type
+// (`uint8_t*`, `float (*)(void)`), where it recorded its specifiers alone.
+const CACHE_VERSION = 15;
 
 const TRANSPILER_VERSION = packageJson.version;
 

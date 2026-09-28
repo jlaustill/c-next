@@ -1,0 +1,14 @@
+// test-error
+// #1760 review: a struct field DECLARED as a function pointer -- not through a
+// typedef -- is one. Its declarator was dropped, so `getf` was recorded as a
+// `float` field, its call untyped, and `dops.getf() * a` went into the integer
+// clamp: 2.5 x 3 gave 6.
+#include "declared_ops.h"
+
+u32 a <- 3;
+
+void f() {
+    u32 out <- dops.getf() * a;
+    // Control: the call is a float, so a float operand beside it is fine
+    f32 ok <- dops.getf() * 2.0;
+}

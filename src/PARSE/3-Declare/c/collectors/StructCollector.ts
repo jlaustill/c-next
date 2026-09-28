@@ -233,9 +233,13 @@ class StructCollector {
     }
 
     const arrayDimensions = DeclaratorUtils.extractArrayDimensions(declarator);
+    // The declarator's indirection, by the rule a typedef's type follows
+    // (#1760 review): `uint8_t *buf` is a pointer, `float (*get)(void)` a
+    // function pointer -- both were recorded as their specifiers alone
+    const declaredType = DeclaratorUtils.declaredType(fieldType, declarator);
     const fieldInfo: ICFieldInfo = {
       name: fieldName,
-      type: fieldType,
+      type: declaredType,
       arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
     };
 
@@ -245,7 +249,7 @@ class StructCollector {
       symbolTable.addStructField(
         structName,
         fieldName,
-        fieldType,
+        declaredType,
         arrayDimensions.length > 0 ? arrayDimensions : undefined,
       );
     }
