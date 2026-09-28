@@ -149,17 +149,28 @@ class RunTarget {
       return null;
     }
 
+    // #1760 second review: an environment only the build machine's variable
+    // named is that variable's, so a diagnostic about it says so -- unless
+    // --pio-env chose what is built, when the variable played no part
+    const machine = pioEnv ? null : project.machineDefaultEnvs;
+    const addedBy = (envName: string): string | null =>
+      machine?.names.includes(envName) ? machine.variable : null;
     const errors: ITranspileError[] = [];
     const mapped: IEnvTarget[] = [];
     for (const envName of names) {
-      const target = RunTarget.envTarget(project, envName, catalog);
+      const target = RunTarget.envTarget(
+        project,
+        envName,
+        catalog,
+        addedBy(envName),
+      );
       if ("error" in target) {
         errors.push(target.error);
       } else {
         mapped.push(target);
       }
     }
-    errors.push(...RunTarget.disagreements(mapped));
+    errors.push(...RunTarget.disagreements(mapped, addedBy));
     if (errors.length > 0) {
       return { kind: "rejected", errors, absent: false };
     }
@@ -186,11 +197,15 @@ class RunTarget {
     return project.envs.map((env) => env.name);
   }
 
-  /** The target one environment builds, or E0510 saying why it names none */
+  /**
+   * The target one environment builds, or E0510 saying why it names none.
+   * `addedBy` is the machine variable that alone named the environment.
+   */
   private static envTarget(
     project: IPlatformIOProject,
     envName: string,
     catalog: ReadonlyMap<string, ITargetDescription>,
+    addedBy: string | null,
   ): IEnvTarget | { error: ITranspileError } {
     const env = project.envs.find((candidate) => candidate.name === envName);
     const name = env ? RunTarget.boardTarget(env, catalog) : undefined;
@@ -198,20 +213,28 @@ class RunTarget {
     if (name && description) {
       return { env: envName, name, description };
     }
+    const missing =
+      addedBy === null
+        ? `platformio.ini has no environment '${envName}'`
+        : `${addedBy} names environment '${envName}', which platformio.ini does not declare`;
     return {
       error: RunTarget.unplaced(
         "E0510",
         env
           ? `platformio.ini environment '${envName}' builds board '${env.board ?? "(none)"}', which is not a known target`
-          : `platformio.ini has no environment '${envName}'`,
+          : missing,
         `Name the target with '#pragma target <name>' or --target <name>. A board maps to a target when the catalog names it, or when its platform is atmelavr (avr) or native (host). Known targets: ${[...catalog.keys()].join(", ")}.`,
       ),
     };
   }
 
-  /** E0511 for each environment that builds a different target from the first */
+  /**
+   * E0511 for each environment that builds a different target from the
+   * first, naming the machine variable that added either one
+   */
   private static disagreements(
     mapped: readonly IEnvTarget[],
+    addedBy: (envName: string) => string | null,
   ): ITranspileError[] {
     const first = mapped[0];
     return mapped
@@ -224,9 +247,28 @@ class RunTarget {
         RunTarget.unplaced(
           "E0511",
           `platformio.ini environments build different targets: '${first.name}' (env:${first.env}) and '${other.name}' (env:${other.env})`,
-          "A program has exactly one target (ADR-049). Build one environment (--pio-env), set default_envs, or name the target with '#pragma target <name>'.",
+          RunTarget.disagreementHelp(first.env, other.env, addedBy),
         ),
       );
+  }
+
+  /**
+   * E0511's help: the machine variable that added one of the two, when one
+   * did, since `set default_envs` is no remedy for a file that already sets it
+   */
+  private static disagreementHelp(
+    firstEnv: string,
+    otherEnv: string,
+    addedBy: (envName: string) => string | null,
+  ): string {
+    const rule = "A program has exactly one target (ADR-049).";
+    const pragma = "or name the target with '#pragma target <name>'.";
+    const added = addedBy(otherEnv) === null ? firstEnv : otherEnv;
+    const variable = addedBy(added);
+    if (variable === null) {
+      return `${rule} Build one environment (--pio-env), set default_envs, ${pragma}`;
+    }
+    return `${variable} adds '${added}' to the file's default_envs. ${rule} Build one environment (--pio-env), unset ${variable}, ${pragma}`;
   }
 
   /** The catalog name an environment's board or platform denotes */

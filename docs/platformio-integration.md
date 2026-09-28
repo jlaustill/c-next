@@ -57,7 +57,9 @@ usually need not name it: when no `#pragma target` and no `--target` (or config
   (`--pio-env $PIOENV`), so `pio run -e uno` builds for `uno`'s board.
 - Run by hand, `cnext` uses `default_envs`, else every environment, and those
   must agree (E0511 if they do not). As in PlatformIO, the build machine's
-  `PLATFORMIO_DEFAULT_ENVS`, when it is set, is appended to `default_envs`.
+  `PLATFORMIO_DEFAULT_ENVS`, when it is set, is appended to `default_envs`. A
+  diagnostic about an environment only that variable named says so, rather
+  than blaming `platformio.ini`.
 - A board names a target when the catalog has that name (`teensy41`), or when its
   platform is `atmelavr` (target `avr`) or `native` (target `host`). Any other
   board is E0510 — name the target with `#pragma target <name>` or `target` in

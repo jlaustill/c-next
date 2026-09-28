@@ -7,6 +7,7 @@ import RunTarget from "../RunTarget";
 import TargetCatalogFile from "../../../transpiler/data/TargetCatalogFile";
 import type ITargetDirective from "../../../transpiler/types/ITargetDirective";
 import type ITargetDescription from "../../../transpiler/types/ITargetDescription";
+import type IPlatformIOProject from "../../../transpiler/types/IPlatformIOProject";
 
 const catalog = TargetCatalogFile.targets();
 
@@ -318,8 +319,9 @@ describe("RunTarget.resolve", () => {
     function project(
       envs: { name: string; board?: string; platform?: string }[],
       defaultEnvs: string[] = [],
-    ) {
-      return { path: "platformio.ini", envs, defaultEnvs };
+      machineDefaultEnvs: IPlatformIOProject["machineDefaultEnvs"] = null,
+    ): IPlatformIOProject {
+      return { path: "platformio.ini", envs, defaultEnvs, machineDefaultEnvs };
     }
     const teensy = { name: "teensy41", board: "teensy41", platform: "teensy" };
     const uno = { name: "uno", board: "uno", platform: "atmelavr" };
@@ -428,6 +430,50 @@ describe("RunTarget.resolve", () => {
           }),
         ],
       });
+    });
+
+    // #1760 second review: a name only the machine's variable gave is the
+    // variable's, so the diagnostic says so rather than blaming the file
+    const byMachine = (names: string[]) => ({
+      variable: "PLATFORMIO_DEFAULT_ENVS",
+      names,
+    });
+
+    it("names the variable for an environment the file does not declare", () => {
+      const result = build(project([uno], ["nosuch"], byMachine(["nosuch"])));
+      expect(result.kind).toBe("rejected");
+      if (result.kind === "rejected") {
+        expect(result.errors[0].message).toContain(
+          "PLATFORMIO_DEFAULT_ENVS names environment 'nosuch', which platformio.ini does not declare",
+        );
+      }
+    });
+
+    it("names the variable that added a conflicting environment", () => {
+      const result = build(
+        project([teensy, uno], ["teensy41", "uno"], byMachine(["uno"])),
+      );
+      expect(result.kind).toBe("rejected");
+      if (result.kind === "rejected") {
+        expect(result.errors[0].helpText).toContain(
+          "PLATFORMIO_DEFAULT_ENVS adds 'uno' to the file's default_envs",
+        );
+        expect(result.errors[0].helpText).toContain(
+          "unset PLATFORMIO_DEFAULT_ENVS",
+        );
+      }
+    });
+
+    it("attributes nothing to the variable when --pio-env chose", () => {
+      const result = build(project([uno], ["nosuch"], byMachine(["nosuch"])), {
+        pioEnv: "nosuch",
+      });
+      expect(result.kind).toBe("rejected");
+      if (result.kind === "rejected") {
+        expect(result.errors[0].message).toContain(
+          "platformio.ini has no environment 'nosuch'",
+        );
+      }
     });
   });
 });

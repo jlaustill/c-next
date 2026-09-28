@@ -280,6 +280,35 @@ platform = teensy
     ).toEqual(expected);
   });
 
+  // #1760 second review: which names the machine's variable added, so a
+  // target diagnostic can name it instead of blaming the file
+  it.each([
+    [
+      "names the variable and only the names it alone gave",
+      "[platformio]\ndefault_envs = uno\n",
+      { PLATFORMIO_DEFAULT_ENVS: "uno\nteensy41" },
+      { variable: "PLATFORMIO_DEFAULT_ENVS", names: ["teensy41"] },
+    ],
+    [
+      "names the old variable when it is the one read",
+      "[env:x]\nboard = uno\n",
+      { PLATFORMIO_ENV_DEFAULT: "x" },
+      { variable: "PLATFORMIO_ENV_DEFAULT", names: ["x"] },
+    ],
+    ["is null with no variable set", "[env:x]\nboard = uno\n", {}, null],
+    [
+      "is null when the variable is empty",
+      "[env:x]\nboard = uno\n",
+      { PLATFORMIO_DEFAULT_ENVS: "" },
+      null,
+    ],
+  ])("machineDefaultEnvs %s", (_label, content, environment, expected) => {
+    expect(
+      PlatformIOIni.project("platformio.ini", content, environment)
+        .machineDefaultEnvs,
+    ).toEqual(expected);
+  });
+
   it("keeps quotes in a name, so a quoted extends names no section", () => {
     expect(
       envsOf(`[base]

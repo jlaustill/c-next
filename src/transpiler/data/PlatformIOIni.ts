@@ -21,6 +21,16 @@ const REFERENCE = /\$\{([^.}]+)\.([^}]+)\}/g;
 /** `default_envs`, and the old name PlatformIO still reads it by */
 const DEFAULT_ENVS: readonly string[] = ["default_envs", "env_default"];
 
+/**
+ * The build machine's variables that add to `default_envs`: the current
+ * name, then the old one PlatformIO reads when it is unset. An empty value
+ * counts as unset, as in its `_getraw`.
+ */
+const MACHINE_DEFAULT_ENVS: readonly string[] = [
+  "PLATFORMIO_DEFAULT_ENVS",
+  "PLATFORMIO_ENV_DEFAULT",
+];
+
 /** The build machine's environment variables, as `process.env` holds them */
 type TEnvironment = Readonly<Record<string, string | undefined>>;
 
@@ -126,7 +136,44 @@ class PlatformIOIni {
     const defaultEnvs = PlatformIOIni.list(
       PlatformIOIni.defaultEnvsValue(sections, environment) ?? "",
     );
-    return { path, envs, defaultEnvs };
+    return {
+      path,
+      envs,
+      defaultEnvs,
+      machineDefaultEnvs: PlatformIOIni.machineDefaultEnvs(
+        sections,
+        environment,
+        defaultEnvs,
+      ),
+    };
+  }
+
+  /**
+   * Which of `defaultEnvs` the build machine's variable added: the names the
+   * file's own `default_envs` does not list. The list itself is split once,
+   * from the joined value, as PlatformIO splits it; this only attributes it.
+   */
+  private static machineDefaultEnvs(
+    sections: ReadonlyMap<string, ReadonlyMap<string, string>>,
+    environment: TEnvironment,
+    defaultEnvs: readonly string[],
+  ): IPlatformIOProject["machineDefaultEnvs"] {
+    const variable = MACHINE_DEFAULT_ENVS.find((name) => environment[name]);
+    if (variable === undefined) return null;
+    const fromFile = PlatformIOIni.walkValue(
+      sections,
+      "platformio",
+      DEFAULT_ENVS,
+    );
+    const fileNames = PlatformIOIni.list(
+      fromFile === undefined
+        ? ""
+        : (PlatformIOIni.expand(fromFile, sections, "platformio", 0) ?? ""),
+    );
+    return {
+      variable,
+      names: defaultEnvs.filter((name) => !fileNames.includes(name)),
+    };
   }
 
   /**
@@ -145,8 +192,9 @@ class PlatformIOIni {
       "platformio",
       DEFAULT_ENVS,
     );
-    const fromMachine =
-      environment.PLATFORMIO_DEFAULT_ENVS || environment.PLATFORMIO_ENV_DEFAULT;
+    const fromMachine = MACHINE_DEFAULT_ENVS.map(
+      (name) => environment[name],
+    ).find((value) => value);
     let raw = fromFile;
     if (fromMachine) {
       raw = fromFile ? `${fromFile}\n${fromMachine}` : fromMachine;
