@@ -70,9 +70,6 @@ class FloatModuloListener extends CNextListener {
     }
   };
 
-  /**
-   * Check if a unary expression is a float type
-   */
   /** Floating by the one operand typer, whatever the operand's shape (#1668) */
   private isFloatOperand(ctx: Parser.UnaryExpressionContext): boolean {
     return OperandTyper.typeOf(ctx, this.context)?.category === "floating";
