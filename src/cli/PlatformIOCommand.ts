@@ -107,10 +107,13 @@ def transpile_cnext():
             capture_output=True,
             text=True
         )
+        # Warnings go to stderr, which a successful run would otherwise drop
+        if result.stderr:
+            print(result.stderr.rstrip())
         if result.stdout:
             lines = result.stdout.strip().split("\n")
             for line in lines:
-                if line.startswith(("Compiled", "Collected", "Generated")):
+                if line.startswith(("Compiled", "Target", "Collected", "Generated")):
                     print(f"  {line}")
         print("  ✓ Transpilation complete")
     except subprocess.CalledProcessError as e:
