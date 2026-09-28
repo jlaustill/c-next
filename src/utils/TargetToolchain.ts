@@ -25,8 +25,10 @@ const CORTEX_M_TRIPLE = /^thumbv\d+[a-z]*-none-eabi$/;
 class TargetToolchain {
   /**
    * The GCC toolchain for a target, or why there is none: the description
-   * names no toolchain (an `esp32` row, or an inline description written
-   * without one), or names an architecture no GCC driver here covers.
+   * names no toolchain (an `esp32` row), or names an architecture no GCC
+   * driver here covers. An inline description never names one (E0512); the
+   * target matrix compiles it with the toolchain of the catalog row that
+   * shares its platform facts.
    */
   static gccFor(description: ITargetDescription): IGccToolchain | string {
     if (description.name === HOST) {

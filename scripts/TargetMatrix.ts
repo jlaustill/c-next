@@ -27,6 +27,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import TargetResolver from "../src/utils/TargetResolver";
 import TargetToolchain from "../src/utils/TargetToolchain";
+import TargetCatalogFile from "../src/transpiler/data/TargetCatalogFile";
+import RunTarget from "../src/PARSE/4-Resolve/RunTarget";
+import TargetDescriptions from "../src/PARSE/4-Resolve/TargetDescriptions";
+import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
 import type IGccToolchain from "../src/transpiler/types/IGccToolchain";
 import type ITargetDescription from "../src/transpiler/types/ITargetDescription";
 import type IValidationResult from "./types/IValidationResult";
@@ -61,8 +65,8 @@ class TargetMatrix {
 
   /**
    * The GCC toolchain for a target the transpiler reported, or why there is
-   * none. `inline` (an inline description) is not a catalog name, so it has
-   * no toolchain here.
+   * none. `inline` (an inline description) is not a catalog name; see
+   * `toolchainForInline`.
    */
   static toolchainFor(target: string): IGccToolchain | string {
     const description = TargetResolver.byName(target);
@@ -70,6 +74,37 @@ class TargetMatrix {
       return `'${target}' is not a catalog target, so no toolchain is known for it`;
     }
     return TargetToolchain.gccFor(description);
+  }
+
+  /**
+   * The toolchain for a program described inline: the one the catalog row
+   * with the same platform facts names (owner ruling, 2026-09-28, #1760
+   * review: "Derive a toolchain"). An inline description cannot name a
+   * toolchain (E0512), so its cells had never compiled. The description is
+   * read by the transpiler's parser and settled by 1.4's resolver, over the
+   * helpers and the entry in pipeline order, never re-derived here. Why none
+   * is known, when no row with a toolchain shares its facts.
+   */
+  static toolchainForInline(
+    files: readonly { readonly sourcePath: string; readonly source: string }[],
+  ): IGccToolchain | string {
+    const catalog = TargetCatalogFile.targets();
+    const target = RunTarget.resolve({
+      catalog,
+      files: files.map((file) => ({
+        sourcePath: file.sourcePath,
+        directives: CNextSourceParser.parse(file.source).targetDirectives,
+      })),
+    });
+    if (target.kind !== "resolved") {
+      return "the program's inline description does not resolve";
+    }
+    for (const row of new Set(catalog.values())) {
+      if (!TargetDescriptions.equal(row, target.description)) continue;
+      const toolchain = TargetToolchain.gccFor(row);
+      if (typeof toolchain !== "string") return toolchain;
+    }
+    return "no catalog row with a toolchain has the inline description's platform facts";
   }
 
   /** The build machine's toolchain; the catalog's host row always has one */

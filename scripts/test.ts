@@ -162,7 +162,6 @@ function targetsNote(cells: readonly ITargetCell[] | undefined): string {
       named("compiled").filter((target) => !executed.includes(target)),
     ],
     ["xfail", named("xfail")],
-    ["not compiled", named("not-compiled")],
   ];
   const parts = groups
     .filter((group) => group[1].length > 0)

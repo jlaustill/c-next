@@ -717,7 +717,10 @@ foo.expected.error    # Expected error (if test-error)
   fixture whose program names a target (a pragma, a helper's pragma, an inline
   description, `platformio.ini`) runs for that target alone. The compilers are
   GCC's (`TargetToolchain`, from the catalog's `toolchain_triple`/`toolchain_cpu`;
-  other compilers are #1761). Every cell compiles with `-Werror`. Install the
+  other compilers are #1761). Every cell compiles with `-Werror`. An inline
+  description compiles with the toolchain of the catalog row sharing its platform
+  facts, and a cell nothing compiles fails unless the fixture is
+  `// test-transpile-only` (#1760). Install the
   cross toolchains with `xargs sudo apt-get install -y < scripts/cross-toolchain-packages.txt`;
   without them the run stops at its preflight, which also compiles a data-model
   probe for every catalog row, so a false fact in `targets/targets.cnx` fails

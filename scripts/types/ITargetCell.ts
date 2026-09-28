@@ -10,7 +10,7 @@ interface ITargetCell {
   readonly target: string;
   readonly mode: TTestMode;
   readonly outcome: TTargetCellOutcome;
-  /** Why it failed, was not compiled, or is an expected failure */
+  /** Why it failed, or is an expected failure */
   readonly detail?: string;
   /**
    * An expected-failure host cell whose program still linked and ran: the

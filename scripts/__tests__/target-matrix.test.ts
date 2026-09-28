@@ -32,6 +32,58 @@ describe("TargetMatrix.toolchainFor", () => {
   });
 });
 
+// #1760 review ruling, 2026-09-28: "Derive a toolchain" -- an inline
+// description compiles with the toolchain of the catalog row sharing its
+// platform facts, read by the transpiler's own resolver
+describe("TargetMatrix.toolchainForInline", () => {
+  const FACTS = [
+    "#pragma word_size 32",
+    "#pragma basepri false",
+    "#pragma char_bits 8",
+    "#pragma char_signed false",
+    "#pragma short_bits 16",
+    "#pragma int_bits 32",
+    "#pragma long_bits 32",
+    "#pragma long_long_bits 64",
+    "#pragma size_t_bits 32",
+    "#pragma pointer_bits 32",
+    "#pragma float_bits 32",
+    "#pragma double_bits 64",
+    "#pragma long_double_bits 64",
+    "#pragma big_endian false",
+    "#pragma external_identifier_chars 31",
+    "#pragma internal_identifier_chars 63",
+  ];
+  const described = (ldrex: boolean) => [
+    {
+      sourcePath: "main.cnx",
+      source: [...FACTS, `#pragma ldrex_strex ${ldrex}`, ""].join("\n"),
+    },
+  ];
+
+  it("takes the toolchain of the catalog row with the same facts", () => {
+    // An ARMv6-M description: the cortex-m0 rows
+    const toolchain = TargetMatrix.toolchainForInline(described(false));
+    expect(typeof toolchain).not.toBe("string");
+    expect((toolchain as IGccToolchain).driverPrefix).toBe("arm-none-eabi-");
+  });
+
+  it("names none when no catalog row shares the facts", () => {
+    // LDREX without BASEPRI: an ARMv8-M Baseline core, which no row describes
+    expect(TargetMatrix.toolchainForInline(described(true))).toBe(
+      "no catalog row with a toolchain has the inline description's platform facts",
+    );
+  });
+
+  it("names none when the description does not resolve", () => {
+    expect(
+      TargetMatrix.toolchainForInline([
+        { sourcePath: "main.cnx", source: "#pragma word_size 32\n" },
+      ]),
+    ).toBe("the program's inline description does not resolve");
+  });
+});
+
 describe("TargetMatrix.preflight", () => {
   it("probes each cross target's library in both modes, and every catalog row's model", () => {
     const libraries: string[] = [];

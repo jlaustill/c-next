@@ -30,9 +30,6 @@ import type TTargetFieldValue from "../../transpiler/types/TTargetFieldValue";
 import type IPlatformIOEnv from "../../transpiler/types/IPlatformIOEnv";
 import type IPlatformIOProject from "../../transpiler/types/IPlatformIOProject";
 
-/** The name a run reports for a target described inline */
-const INLINE_NAME = "inline";
-
 /** The description pragmas are the facts that define a platform */
 const DESCRIPTION_KEYS = TargetDescriptions.PLATFORM_FACTS;
 
@@ -61,6 +58,9 @@ interface IEnvTarget {
 }
 
 class RunTarget {
+  /** The name a run reports for a target described inline */
+  static readonly INLINE_NAME = "inline";
+
   static resolve(inputs: IRunTargetInputs): TRunTarget {
     const errors: ITranspileError[] = [];
     const declared: IDeclaredTarget[] = [];
@@ -420,7 +420,7 @@ class RunTarget {
       return;
     }
     const result = TargetDescriptions.check(
-      new Map([["name", INLINE_NAME], ...fields]),
+      new Map([["name", RunTarget.INLINE_NAME], ...fields]),
     );
     if ("errors" in result) {
       for (const error of result.errors) {
@@ -429,7 +429,7 @@ class RunTarget {
       return;
     }
     declared.push({
-      name: INLINE_NAME,
+      name: RunTarget.INLINE_NAME,
       inline: true,
       description: result.description,
       site,

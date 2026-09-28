@@ -75,3 +75,51 @@ describe("a host xfail waives the -Werror compile, not the execution", () => {
     );
   }, 60000);
 });
+
+// #1760 second review: a cell nothing compiles passed as "not compiled",
+// so a fixture could run with no compiler at all
+describe("a cell nothing compiles fails", () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "no-toolchain-"));
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("fails an inline description no catalog row shares", async () => {
+    const file = join(dir, "probe.test.cnx");
+    writeFileSync(
+      file,
+      [
+        "// test-c-only",
+        "#pragma word_size 32",
+        "#pragma ldrex_strex true",
+        "#pragma basepri false",
+        "#pragma char_bits 8",
+        "#pragma char_signed false",
+        "#pragma short_bits 16",
+        "#pragma int_bits 32",
+        "#pragma long_bits 32",
+        "#pragma long_long_bits 64",
+        "#pragma size_t_bits 32",
+        "#pragma pointer_bits 32",
+        "#pragma float_bits 32",
+        "#pragma double_bits 64",
+        "#pragma long_double_bits 64",
+        "#pragma big_endian false",
+        "#pragma external_identifier_chars 31",
+        "#pragma internal_identifier_chars 63",
+        "u32 main() {",
+        "    return 0;",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    const result = await TestUtils.runTest(file, true, TOOLS, rootDir, {});
+    expect(result.passed).toBe(false);
+    expect(result.message).toContain("nothing compiles for inline");
+  }, 60000);
+});

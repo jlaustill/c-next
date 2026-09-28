@@ -7,10 +7,13 @@
 
 #include "inline-ldrex.test.h"
 
+// test-transpile-only
 // #1668 / ADR-049: a program may describe its target inline instead of
 // naming it. Every field is given, and ldrex_strex true lowers the atomic
 // to an LDREX/STREX loop. The old grammar had no such pragma: a token
-// recognition error.
+// recognition error. Transpiled only: LDREX without BASEPRI is an ARMv8-M
+// Baseline core, which no catalog row describes, so no toolchain can be
+// derived to compile it (#1760 review ruling, 2026-09-28).
 
 #include <stdint.h>
 #include <cmsis_gcc.h>

@@ -33,6 +33,7 @@ import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
 import TargetResolver from "../src/utils/TargetResolver";
 import type IGccToolchain from "../src/transpiler/types/IGccToolchain";
 import TargetMatrix from "./TargetMatrix";
+import RunTarget from "../src/PARSE/4-Resolve/RunTarget";
 import type ITargetCell from "./types/ITargetCell";
 import type ITargetXfail from "./types/ITargetXfail";
 import type ITranspileCell from "./types/ITranspileCell";
@@ -1052,20 +1053,23 @@ class TestUtils {
     rootDir: string,
     strict: boolean,
     xfails: readonly ITargetXfail[],
+    toolchain: IGccToolchain | string,
   ): ITargetCell {
-    const toolchain = TargetMatrix.toolchainFor(target);
+    // #1760 second review: a cell nothing compiles is a failure. It passed
+    // as "not compiled", so a fixture could run with no compiler at all; a
+    // fixture that must not be compiled says so with `test-transpile-only`.
     if (typeof toolchain === "string") {
       const marked = xfails.some(
         (xfail) => xfail.target === TestUtils.catalogName(target),
       );
-      return marked
-        ? {
-            target,
-            mode,
-            outcome: "failed",
-            detail: `\`// test-target-xfail\` marks ${target}, which nothing compiles for (${toolchain}); remove the marker`,
-          }
-        : { target, mode, outcome: "not-compiled", detail: toolchain };
+      return {
+        target,
+        mode,
+        outcome: "failed",
+        detail: marked
+          ? `\`// test-target-xfail\` marks ${target}, which nothing compiles for (${toolchain}); remove the marker`
+          : `nothing compiles for ${target} (${toolchain}); mark the fixture \`// test-transpile-only\` if it is not to be compiled`,
+      };
     }
     const compiled = TestUtils.compileProgram(
       entryImpl,
@@ -1150,6 +1154,7 @@ class TestUtils {
       dirname(mirror),
       strict,
       xfails,
+      TargetMatrix.toolchainFor(target),
     );
   }
 
@@ -1926,6 +1931,17 @@ class TestUtils {
           rootDir,
           strict,
           xfails,
+          reported.name === RunTarget.INLINE_NAME
+            ? TargetMatrix.toolchainForInline([
+                ...TestUtils.findHelperCnxFiles(cnxFile, source).map(
+                  (helper) => ({
+                    sourcePath: helper,
+                    source: readFileSync(helper, "utf-8"),
+                  }),
+                ),
+                { sourcePath: cnxFile, source },
+              ])
+            : TargetMatrix.toolchainFor(reported.name),
         ),
       );
       if (execution) {
