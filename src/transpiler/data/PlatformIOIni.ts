@@ -24,7 +24,7 @@ const DEFAULT_ENVS: readonly string[] = ["default_envs", "env_default"];
 /**
  * The build machine's variables that add to `default_envs`: the current
  * name, then the old one PlatformIO reads when it is unset. An empty value
- * counts as unset, as in its `_getraw`.
+ * counts as unset, as PlatformIO's own option reader counts it.
  */
 const MACHINE_DEFAULT_ENVS: readonly string[] = [
   "PLATFORMIO_DEFAULT_ENVS",

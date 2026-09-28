@@ -426,7 +426,7 @@ describe("Transpiler coverage tests", () => {
         undefined,
         "E0510",
       ],
-      ["an unknown pragma", "#pragma frobnicate 3\n", undefined, "E0512"],
+      ["an unknown pragma", "#pragma frequency 3\n", undefined, "E0512"],
       [
         "two conflicting pragmas",
         "#pragma target host\n#pragma target cortex-m7\n",

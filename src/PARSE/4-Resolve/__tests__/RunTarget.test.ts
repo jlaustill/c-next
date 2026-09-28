@@ -440,11 +440,11 @@ describe("RunTarget.resolve", () => {
     });
 
     it("names the variable for an environment the file does not declare", () => {
-      const result = build(project([uno], ["nosuch"], byMachine(["nosuch"])));
+      const result = build(project([uno], ["missing"], byMachine(["missing"])));
       expect(result.kind).toBe("rejected");
       if (result.kind === "rejected") {
         expect(result.errors[0].message).toContain(
-          "PLATFORMIO_DEFAULT_ENVS names environment 'nosuch', which platformio.ini does not declare",
+          "PLATFORMIO_DEFAULT_ENVS names environment 'missing', which platformio.ini does not declare",
         );
       }
     });
@@ -465,13 +465,16 @@ describe("RunTarget.resolve", () => {
     });
 
     it("attributes nothing to the variable when --pio-env chose", () => {
-      const result = build(project([uno], ["nosuch"], byMachine(["nosuch"])), {
-        pioEnv: "nosuch",
-      });
+      const result = build(
+        project([uno], ["missing"], byMachine(["missing"])),
+        {
+          pioEnv: "missing",
+        },
+      );
       expect(result.kind).toBe("rejected");
       if (result.kind === "rejected") {
         expect(result.errors[0].message).toContain(
-          "platformio.ini has no environment 'nosuch'",
+          "platformio.ini has no environment 'missing'",
         );
       }
     });
