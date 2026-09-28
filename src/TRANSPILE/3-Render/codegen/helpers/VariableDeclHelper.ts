@@ -29,13 +29,11 @@
 
 import invariant from "../../../../utils/invariant";
 import ArrayInitHelper from "./ArrayInitHelper";
-import CppModeHelper from "./CppModeHelper";
 import NarrowingCastHelper from "./NarrowingCastHelper";
 import StringDeclHelper from "./StringDeclHelper";
 import IPlannedArrayDeclaration from "../types/IPlannedArrayDeclaration";
 import TPlannedVariableDecl from "../types/TPlannedVariableDecl";
 import TPlannedVariableInitializer from "../types/TPlannedVariableInitializer";
-import TYPE_MAP from "../types/TYPE_MAP";
 import type TranspileState from "../../../TranspileState";
 
 /**
@@ -205,17 +203,16 @@ class VariableDeclHelper {
             state,
           );
         }
-        // Float to int: add explicit cast for MISRA compliance
-        // Note: For safety, users should use explicit cast in C-Next source: (i32)float
-        // which generates a clamping expression. This implicit cast is just for
-        // MISRA 10.3 compliance when user omits explicit cast.
-        if (
-          NarrowingCastHelper.isFloatCategory(exprType) &&
-          NarrowingCastHelper.isIntegerCategory(typeName)
-        ) {
-          const cType = TYPE_MAP[typeName] ?? typeName;
-          exprCode = CppModeHelper.cast(cType, exprCode, state);
-        }
+        // Float to int is E0891 in pass 2.1 (#1800): the author writes the
+        // cast, which saturates. This emitted a raw C conversion instead,
+        // undefined for NaN and past the target's range.
+        invariant(
+          !(
+            NarrowingCastHelper.isFloatCategory(exprType) &&
+            NarrowingCastHelper.isIntegerCategory(typeName)
+          ),
+          "an implicit float-to-integer conversion is rejected in pass 2.1 (E0891)",
+        );
       }
 
       return `${decl} = ${exprCode}`;

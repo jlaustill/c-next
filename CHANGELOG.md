@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **An implicit float-to-integer conversion is error E0891** (ADR-024, Issue #1800).
+  This is a **breaking change**. `u32 b <- k;` with `f32 k`, a floating composite
+  or ternary, a call returning a float, and the same in an assignment were
+  accepted. They were emitted as C's own conversion, which is undefined for NaN
+  and for a value past the target's range. The migration is the explicit cast,
+  `(u32)k`, which truncates and then clamps to the range (ADR-056).
+
 - **A PlatformIO project's `default_envs` includes the build machine's
   `PLATFORMIO_DEFAULT_ENVS`**, as PlatformIO appends it (ADR-049, Issue #1794).
   A standalone `cnext` run read the file alone, so it could report a target for

@@ -1,5 +1,5 @@
 /**
- * ADR-024 integer conversions: E0868 and E0869.
+ * ADR-024 integer conversions: E0868, E0869 and E0891.
  *
  * #1322. Six rules across `TypeResolver` and `CodeGenerator`, reached through
  * three entry points -- a declaration's initializer, an assignment, a cast --
@@ -150,8 +150,33 @@ class IntegerConversionListener extends CNextListener {
       this.checkLiteral(target, text, value);
       return;
     }
+    if (this.checkFloating(target, value)) return;
     const source = this.conversionSource(value, typeComposites);
     if (source !== null) this.checkConversion(target, source, value, kind);
+  }
+
+  /**
+   * E0891: a floating value reaches an integer target only through a cast,
+   * which saturates. #1800, owner ruling 2026-09-28: "this should be a
+   * compiler error with an explicit cast". The implicit form had been
+   * accepted, and emitted as C's conversion, which is undefined for NaN and
+   * for a value past the target's range. Asked of every value leaf, so a
+   * floating composite or ternary counts. A cast, which is not this path,
+   * and a float's bit range (ADR-007), which the typer types as an integer,
+   * do not.
+   */
+  private checkFloating(target: string, value: ParserRuleContext): boolean {
+    const floating = CompositeType.floatingOf(
+      OperandTyper.valueLeaves(value, this.context),
+    );
+    if (floating === null) return false;
+    this.report(
+      value,
+      "E0891",
+      `Implicit conversion from floating ${floating} to integer ${target}`,
+      `Write the conversion as a cast, which saturates: (${target})value (ADR-024)`,
+    );
+    return true;
   }
 
   private checkLiteral(

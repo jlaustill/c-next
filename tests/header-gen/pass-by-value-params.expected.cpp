@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <limits.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -48,7 +49,7 @@ uint32_t Api__readValue(uint32_t value) {
 
 int main(void) {
     float sum = Api__addFloats(1.5, 2.5);
-    int32_t sumInt = static_cast<int32_t>(sum);
+    int32_t sumInt = ((sum) >= ((float)INT32_MAX) ? static_cast<int32_t>(INT32_MAX) : (sum) < ((float)INT32_MIN) ? static_cast<int32_t>(INT32_MIN) : static_cast<int32_t>((sum)));
     if (sumInt != 4) return 1U;
     bool okResult = Api__isOk(Status__Ok);
     if (okResult == false) return 2U;

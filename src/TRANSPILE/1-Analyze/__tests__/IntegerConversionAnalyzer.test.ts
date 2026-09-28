@@ -122,7 +122,11 @@ describe("IntegerConversionAnalyzer", () => {
       // an integer composite and is no integer narrowing. 2.1 reads the literal
       // the same way; skipping it read `wide * 2.5` as a u32 and reported a u32
       // narrowing. E0810 rejects the mix itself -- this is the passes agreeing.
-      expect(errors(inMain("    u8 x <- wide * 2.5;"))).toEqual([]);
+      // The composite is floating, so storing it in a u8 is E0891 (#1800):
+      // a float reaches an integer only through a cast.
+      expect(
+        errors(inMain("    u8 x <- wide * 2.5;")).map((error) => error.code),
+      ).toEqual(["E0891"]);
       // CONTROL: an integer literal is contextually typed and still narrows.
       expect(errors(inMain("    u8 x <- wide * 2;"))).toHaveLength(1);
     });
@@ -157,6 +161,44 @@ describe("IntegerConversionAnalyzer", () => {
       );
       expect(found).toHaveLength(1);
       expect(found[0].line).toBe(3);
+    });
+  });
+
+  // #1800, owner ruling 2026-09-28: "this should be a compiler error with an
+  // explicit cast". The implicit form was emitted as C's conversion, which is
+  // undefined for NaN and past the target's range; the cast saturates.
+  describe("E0891 -- a float reaches an integer only through a cast", () => {
+    const withFloat = (line: string): string =>
+      `f32 read() {\n    return 1.5;\n}\n${inMain(`    f32 k <- 2.5;\n    bool c <- true;\n${line}`)}`;
+    const codes = (line: string): string[] =>
+      errors(withFloat(line)).map((error) => error.code);
+
+    it.each([
+      ["a float variable", "    u32 b <- k;"],
+      ["a floating composite", "    u32 b <- k + 1.0;"],
+      ["a floating ternary", "    u32 b <- (c = true) ? k : 1.0;"],
+      ["a call returning a float", "    u32 b <- read();"],
+      ["a float literal", "    u32 b <- 3.5;"],
+      ["an assignment", "    u32 b <- 0;\n    b <- k;"],
+    ])("rejects %s", (_label, line) => {
+      expect(codes(line)).toEqual(["E0891"]);
+    });
+
+    it("names the floating type and the cast to write", () => {
+      const [found] = errors(withFloat("    i16 b <- k;"));
+      expect(found.message).toBe(
+        "Implicit conversion from floating f32 to integer i16",
+      );
+      expect(found.helpText).toContain("(i16)value");
+    });
+
+    it.each([
+      ["the explicit cast", "    u32 b <- (u32)k;"],
+      ["a float's bit range (ADR-007)", "    u32 b <- k[0, 32];"],
+      ["an integer", "    u32 b <- byte;"],
+      ["an integer into a float", "    f32 f <- byte;"],
+    ])("accepts %s", (_label, line) => {
+      expect(codes(line)).toEqual([]);
     });
   });
 });

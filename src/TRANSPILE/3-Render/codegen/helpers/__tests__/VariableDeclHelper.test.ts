@@ -284,27 +284,39 @@ describe("VariableDeclHelper", () => {
       expect(order).toEqual(["render", "resolve"]);
     });
 
-    it.each([
-      ["int to float", "u8", "f32", "(float)"],
-      ["float to int", "f32", "u8", "(uint8_t)"],
-    ])(
-      "adds the MISRA 10.3 cast for a %s conversion",
-      (_label, exprType, typeName, expected) => {
-        const result = VariableDeclHelper.renderVariableInitializer(
+    it("adds the MISRA 10.3 cast for an int to float conversion", () => {
+      const result = VariableDeclHelper.renderVariableInitializer(
+        {
+          kind: "expression",
+          renderTypeName: () => "f32",
+          renderExpression: () => "n",
+          resolveExpressionType: () => "u8",
+        },
+        "decl",
+        false,
+        state,
+      );
+
+      expect(result).toContain("(float)");
+    });
+
+    // #1800: a float reaches an integer only through a cast, so pass 2.1
+    // rejects the implicit form (E0891) and render never sees it
+    it("asserts it never renders a float to int conversion", () => {
+      expect(() =>
+        VariableDeclHelper.renderVariableInitializer(
           {
             kind: "expression",
-            renderTypeName: () => typeName,
+            renderTypeName: () => "u8",
             renderExpression: () => "n",
-            resolveExpressionType: () => exprType,
+            resolveExpressionType: () => "f32",
           },
           "decl",
           false,
           state,
-        );
-
-        expect(result).toContain(expected);
-      },
-    );
+        ),
+      ).toThrow(/E0891/);
+    });
 
     it("adds no cast when both sides are the same category", () => {
       expect(

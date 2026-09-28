@@ -32,7 +32,7 @@ u32 main() {
     // Test 1: Float addition
     f32 sum <- global.Api.addFloats(1.5, 2.5);
     // Use integer comparison to avoid float precision issues
-    i32 sumInt <- sum;
+    i32 sumInt <- (i32)sum;
     if (sumInt != 4) return 1;
 
     // Test 2: Enum check - Ok should be true

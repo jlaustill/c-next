@@ -356,6 +356,16 @@ f32 temp <- 25.7;
 u8 lowByte <- ((u32)temp)[0, 8];  // Truncates to 25, extracts low 8 bits → 25
 ```
 
+**A float reaches an integer only through that cast.** Without it the
+conversion is E0891, wherever this ADR's conversions are checked: a
+declaration's initializer and an assignment. `u32 b <- k;`, `u32 c <- k + 1.0;`
+and `d <- k;` are all errors, and so is a floating ternary or a call returning a
+float. The value is asked of every leaf, so a composite that is floating counts.
+Owner ruling, 2026-09-28 (#1800): _"this should be a compiler error with an
+explicit cast"_. Until then the implicit form was accepted, and it was emitted
+as C's own conversion, which is undefined for NaN and for a value past the
+target's range. The cast truncates and then clamps to the range (ADR-056).
+
 **Note:** This is truncation, NOT bit reinterpretation. For raw IEEE-754 byte access, use float bit indexing (ADR-007):
 
 ```cnx
@@ -382,6 +392,7 @@ CNX does not support:
 | i32 → u32 (sign change) | **Error** - use `val[0, 32]`             | Sign semantics change         |
 | u32 → i32 (sign change) | **Error** - use `val[0, 32]`             | Sign semantics change         |
 | f32 → u32 (truncate)    | Supported - `(u32)floatVal`              | Truncates fractional part     |
+| f32 → u32 (no cast)     | **Error** (E0891) - `(u32)floatVal`      | Only the cast is defined      |
 | u32 × f32 (mixed)       | **Error** - use `(f32)intVal * floatVal` | Rule 10.4 category mix        |
 | f32 → u32 (reinterpret) | Use float bit indexing `floatVal[0, 32]` | Raw IEEE-754 access (ADR-007) |
 | int → pointer           | **Not supported**                        | Use `register` (ADR-004)      |

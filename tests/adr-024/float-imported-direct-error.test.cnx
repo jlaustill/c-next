@@ -1,0 +1,28 @@
+// test-error
+// test-adr: 024
+// E0891 across ONE include hop -- matrix cells: imported direct, in all
+// four contexts. A float reaches an integer only through a cast (#1800), and
+// the float is declared elsewhere: a check reading only this file finds no
+// type for it, and untyped never rejects.
+#include "float-declarations.cnx"
+
+// NEGATIVE CONTROL -- the explicit cast, which saturates.
+u32 castAtFileScope <- (u32)floatShared;
+
+// ASSERTION -- global variable context.
+u32 atFileScope <- floatShared;
+
+void f() {
+    // ASSERTION -- top-level function context.
+    u32 local <- floatShared;
+}
+
+scope S {
+    // ASSERTION -- scope member context.
+    u32 member <- floatShared;
+
+    public void method() {
+        // ASSERTION -- scope method context.
+        u32 inside <- floatShared;
+    }
+}

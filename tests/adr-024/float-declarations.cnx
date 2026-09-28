@@ -1,0 +1,3 @@
+// Helper (not a test): the float source the cross-file E0891 fixtures convert
+// from. The rule asks the SOURCE's type, which lives here.
+f32 floatShared <- 2.5;

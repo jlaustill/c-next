@@ -289,7 +289,8 @@ WIDENING (implicit, safe):     u8 → u32, i8 → i32  (same sign only)
 NARROWING (FORBIDDEN):         u32 → u8   — use bit indexing: val[0, 8]
 SIGN CHANGE (FORBIDDEN):       i32 → u32  — use bit indexing: val[0, 32]
 CROSS-SIGN WIDEN (FORBIDDEN):  u16 → i32  — use bit indexing: val[0, 16]
-FLOAT→INT (allowed):           (u32)f — truncates fraction, THEN clamps to range
+FLOAT→INT (cast only):         (u32)f — truncates fraction, THEN clamps to range
+FLOAT→INT (no cast, FORBIDDEN): u32 x <- f — error E0891: write (u32)f
 POINTER CAST (NOT SUPPORTED):  use register keyword for MMIO
 ```
 

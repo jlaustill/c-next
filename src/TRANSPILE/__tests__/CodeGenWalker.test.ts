@@ -4621,7 +4621,7 @@ describe("CodeGenWalker", () => {
     it("should generate float to int cast with clamping", () => {
       const source = `
         f32 floatVal <- 100.5;
-        i32 intVal <- floatVal as i32;
+        i32 intVal <- (i32)floatVal;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4637,9 +4637,11 @@ describe("CodeGenWalker", () => {
         sourcePath: "test.cnx",
       });
 
-      // Float to int cast generates clamping code
-      expect(code).toContain("floatVal");
-      expect(code).toContain("int32_t");
+      // Float to int cast generates clamping code: saturating at both bounds
+      // (#1800: `floatVal as i32` here was a parse-recovered implicit
+      // conversion, which pass 2.1 now rejects as E0891)
+      expect(code).toContain("(int32_t)INT32_MAX");
+      expect(code).toContain("(int32_t)INT32_MIN");
     });
   });
 

@@ -289,6 +289,10 @@ f32 scale <- 2.5;
 // f32 total <- count * scale;  // ERROR: integer and floating categories
 f32 total <- (f32)count * scale; // OK: 7.5
 
+// Float to integer (FORBIDDEN without a cast - the cast clamps to the range)
+// u32 whole <- total;          // ERROR: implicit float-to-integer conversion
+u32 whole <- (u32)total;        // OK: 7 (the fraction is truncated)
+
 // =============================================================================
 // 8. OVERFLOW BEHAVIOR
 // =============================================================================
