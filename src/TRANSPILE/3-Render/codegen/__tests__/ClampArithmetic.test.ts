@@ -13,7 +13,7 @@ import MockFileSystem from "../../../../transpiler/__tests__/MockFileSystem";
 
 async function generate(source: string): Promise<string> {
   const transpiler = new Transpiler(
-    { input: "", noCache: true },
+    { input: "", noCache: true, target: "host" },
     new MockFileSystem(),
   );
   const result = await transpiler.transpile({ kind: "source", source });

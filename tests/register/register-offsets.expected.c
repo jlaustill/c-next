@@ -10,9 +10,9 @@
 // ADR-004: Register offset calculation test
 // Tests: correct offset values in generated C macros
 int main(void) {
-    UART__CR = 0x01;
-    UART__DR = 0x55;
-    UART__BRR = 9600;
-    UART__CR1 = 0x80;
+    UART__CR = 0x01U;
+    UART__DR = 0x55U;
+    UART__BRR = 9600U;
+    UART__CR1 = 0x80U;
     uint32_t status = UART__SR;
 }

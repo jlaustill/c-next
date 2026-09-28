@@ -355,7 +355,7 @@ what you move by hand — is documented once in
 
 ## Development Tips
 
-**Testing local changes**: Use `npx tsx src/index.ts <file.cnx>` instead of the global `cnext` binary to test uncommitted transpiler changes.
+**Testing local changes**: Use `npx tsx src/index.ts <file.cnx> --target host` instead of the global `cnext` binary to test uncommitted transpiler changes. Every program names its target (ADR-049), so drop `--target` only for a file with its own `#pragma target`.
 
 ## Dead Code Detection
 

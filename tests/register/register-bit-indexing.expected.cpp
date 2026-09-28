@@ -11,8 +11,8 @@
 // ADR-004 + ADR-007: Bit indexing on registers
 // Tests: single bit access on register members
 int main(void) {
-    GPIO__DR = (GPIO__DR & ~(1U << 0)) | (1U << 0);
-    GPIO__DR = (GPIO__DR & ~(1U << 7)) | (1U << 7);
+    GPIO__DR = (GPIO__DR & ~((uint32_t)1U << 0)) | ((uint32_t)1U << 0);
+    GPIO__DR = (GPIO__DR & ~((uint32_t)1U << 7)) | ((uint32_t)1U << 7);
     bool bit3 = ((((GPIO__DR >> 3U) & 1)) != 0U);
-    GPIO__DR_SET = (1U << 4);
+    GPIO__DR_SET = ((uint32_t)1U << 4);
 }

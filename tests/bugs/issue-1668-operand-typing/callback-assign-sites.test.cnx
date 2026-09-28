@@ -1,0 +1,31 @@
+// test-error
+// #1668: E0879 types an assignment target with the one operand typer and
+// reads every assignment site. Before, a callback assigned in a `for` header
+// was never checked (#1726), so a function of the wrong signature compiled.
+struct Point {
+    u32 x;
+}
+
+void onDown(const Point p) {}
+
+u32 wrongSignature(const Point p) {
+    return p.x;
+}
+
+struct Handler {
+    onDown down;
+}
+
+void main() {
+    Handler h <- { down: onDown };
+
+    // NEGATIVE CONTROL -- a function of the callback's own signature.
+    for (u32 i <- 0; i < 3; h.down <- onDown) {
+        i +<- 1;
+    }
+
+    // ASSERTION
+    for (u32 j <- 0; j < 3; h.down <- wrongSignature) {
+        j +<- 1;
+    }
+}

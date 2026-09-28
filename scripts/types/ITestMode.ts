@@ -4,6 +4,7 @@
 
 import TTestMode from "./TTestMode";
 import TExecSkipReason from "./TExecSkipReason";
+import type ITargetCell from "./ITargetCell";
 
 /**
  * Result of running a test in a single mode (C or C++)
@@ -23,6 +24,8 @@ interface IModeResult {
   actual?: string;
   /** Captured stdout from execution (for parity comparison) */
   stdout?: string;
+  /** #1668 box 15: every target this mode ran under, and how each ended */
+  cells?: ITargetCell[];
   /**
    * #1544: what this run wrote for each file it generated for a DEPENDENCY,
    * as `absolute path -> sha256`.

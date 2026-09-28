@@ -69,18 +69,13 @@ function createMockInput(withSymbols = false): IGeneratorInput {
 function createMockOrchestrator(options?: {
   callbackTypedef?: string | null;
   isOpaque?: boolean;
-  isTypedefStruct?: boolean;
 }): IOrchestrator {
   return strictStub<IOrchestrator>({
     state,
     setCurrentScope: vi.fn(),
     getCallbackTypedefName: vi.fn(() => options?.callbackTypedef ?? null),
-    isOpaqueType: vi.fn(() => options?.isOpaque ?? false),
-    // The one ADR-030 decision, as TranspileState composes it: #948 or #958.
-    isHeldThroughPointer: vi.fn(
-      () => (options?.isOpaque ?? false) || (options?.isTypedefStruct ?? false),
-    ),
-    markOpaqueScopeVariable: vi.fn(),
+    // The one ADR-030 decision: one handle mark, one rule (#1668)
+    isHeldThroughPointer: vi.fn(() => options?.isOpaque ?? false),
     enterFunctionContext: vi.fn(),
     updateFunctionParamsAutoConst: vi.fn(),
     exitFunctionContext: vi.fn(),
@@ -377,11 +372,10 @@ describe("ScopeGenerator", () => {
       );
     });
 
-    it.each([
-      ["an opaque type (Issue #948)", { isOpaque: true }],
-      ["an external typedef struct (Issue #958)", { isTypedefStruct: true }],
-    ])("emits %s as a NULL-initialized pointer", (_label, options) => {
-      const orchestrator = createMockOrchestrator(options);
+    // Issues #948 and #958 named one state twice: a typedef of a
+    // forward-declared struct, now one handle mark (#1668)
+    it("emits a handle as a NULL-initialized pointer", () => {
+      const orchestrator = createMockOrchestrator({ isOpaque: true });
 
       const result = generateScope(
         scope({
@@ -398,9 +392,6 @@ describe("ScopeGenerator", () => {
 
       expect(declarationsOf(result.code)).toContain(
         "Handle* Driver__counter = NULL;",
-      );
-      expect(orchestrator.markOpaqueScopeVariable).toHaveBeenCalledWith(
-        "Driver__counter",
       );
     });
 
@@ -454,7 +445,9 @@ describe("ScopeGenerator", () => {
       ).toEqual([42]);
     });
 
-    it("records no ADR-030 site for an external typedef struct", () => {
+    it("records no ADR-030 site for a complete type", () => {
+      // The control: a type with a body is not a handle, so it is declared as
+      // its value and the matrix is credited with nothing
       generateScope(
         scope({
           members: [
@@ -463,7 +456,7 @@ describe("ScopeGenerator", () => {
         }),
         createMockInput(),
         STATE,
-        createMockOrchestrator({ isTypedefStruct: true }),
+        createMockOrchestrator({ isOpaque: false }),
       );
 
       expect(

@@ -3,10 +3,8 @@
  * Contains all the context a generator needs to produce code.
  * Immutable - generators cannot modify this.
  */
-import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 import IFunctionSignature from "../../../../transpiler/types/IFunctionSignature";
 import ICallbackTypeInfo from "../../../../transpiler/types/ICallbackTypeInfo";
-import ITargetCapabilities from "../../../../transpiler/types/ITargetCapabilities";
 import SymbolTable from "../../../../PARSE/3-Declare/SymbolTable";
 import ICodeGenSymbols from "../../../../transpiler/types/ICodeGenSymbols";
 
@@ -18,7 +16,6 @@ interface IGeneratorInput {
   readonly symbols: ICodeGenSymbols | null;
 
   /** Variable type information indexed by scoped name */
-  readonly typeRegistry: ReadonlyMap<string, TTypeInfo>;
 
   /** Function signatures for parameter validation */
   readonly functionSignatures: ReadonlyMap<string, IFunctionSignature>;
@@ -29,17 +26,11 @@ interface IGeneratorInput {
   /** Set of known struct type names */
   readonly knownStructs: ReadonlySet<string>;
 
-  /** Compile-time constant values (for array sizes, etc.) */
-  readonly constValues: ReadonlyMap<string, number>;
-
   /** Callback/function-as-type definitions */
   readonly callbackTypes: ReadonlyMap<string, ICallbackTypeInfo>;
 
   /** Callback types used as struct field types: "StructName.fieldName" -> callback type name */
   readonly callbackFieldTypes: ReadonlyMap<string, string>;
-
-  /** Target platform capabilities (affects atomic operations, etc.) */
-  readonly targetCapabilities: ITargetCapabilities;
 
   /** Debug mode - affects overflow helper generation */
   readonly debugMode: boolean;

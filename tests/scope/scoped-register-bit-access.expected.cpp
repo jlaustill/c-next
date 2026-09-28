@@ -17,10 +17,10 @@
 
 
 void Board__toggleLed(void) {
-    Board__GPIO__DR_SET = (1U << 3);
+    Board__GPIO__DR_SET = ((uint32_t)1U << 3);
 }
 
 int main(void) {
     Board__toggleLed();
-    Board__GPIO__DR = (Board__GPIO__DR & ~(1U << 0)) | (1U << 0);
+    Board__GPIO__DR = (Board__GPIO__DR & ~((uint32_t)1U << 0)) | ((uint32_t)1U << 0);
 }

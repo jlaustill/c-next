@@ -33,6 +33,7 @@ describe("a failed transpile writes no .c to disk (#1233)", () => {
       input: join(dir, "entry.cnx"),
       outDir: dir,
       noCache: true,
+      target: "host",
     });
     const result = await transpiler.transpile({ kind: "files" });
     return result.success;

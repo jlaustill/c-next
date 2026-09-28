@@ -26,29 +26,25 @@
  *
  * ## Compile-time constants in pass 2.1
  *
- * The offset and length must fold at compile time. `CodeGenState.constValues`
- * is the codegen-time map -- filled during generation and cleared by `reset()`,
- * so an analyzer reading it sees the PREVIOUS file's consts (#1399). The
- * order-independent source is `Program`, which 1.4 Resolve settles and which
- * `CodeGenState.getCNextConstValue` already exposes for exactly this;
- * `DivisionByZeroAnalyzer` reads it the same way.
+ * The offset and length must fold at compile time. They fold with the const
+ * values visible where they are written, which 1.4 Resolve settles before any
+ * pass reads them (`ConstantExpression.valueAt`). A codegen-time map filled
+ * during generation saw the PREVIOUS file's consts (#1399); render no longer
+ * keeps one (#1664 box 7).
  */
 
 import { ParseTreeWalker } from "antlr4ng";
 
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import IDeclaredVar from "./types/IDeclaredVar";
-import IScopeFrame from "./types/IScopeFrame";
+import OperandTyper from "../../utils/OperandTyper";
+import AssignmentSiteListener from "./AssignmentSiteListener";
 import ISliceAssignmentError from "./types/ISliceAssignmentError";
-import OperandTypeResolver from "./OperandTypeResolver";
-import ScopeFrameResolver from "./ScopeFrameResolver";
 import ConstantExpression from "./helpers/ConstantExpression";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import DeclaredVariableFacts from "../../utils/DeclaredVariableFacts";
+import type IOperandType from "../../transpiler/types/IOperandType";
+import type TAssignmentSite from "./types/TAssignmentSite";
 
 /** `string<N>` holds N characters plus the terminator. */
 const STRING_TERMINATOR_BYTES = 1;
@@ -59,89 +55,50 @@ interface IDestination {
   readonly capacity: number;
 }
 
-class SliceAssignmentListener extends CNextListener {
+class SliceAssignmentListener {
   private readonly found: ISliceAssignmentError[] = [];
-  private readonly types: OperandTypeResolver;
 
-  public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    private readonly context: IAnalysisContext,
-  ) {
-    super();
-    this.types = new OperandTypeResolver(scopes, context);
-  }
+  public constructor(private readonly context: IAnalysisContext) {}
 
   public errors(): ISliceAssignmentError[] {
     return this.found;
   }
 
-  override enterAssignmentStatement = (
-    ctx: Parser.AssignmentStatementContext,
-  ): void => {
+  /** `buf[offset, length] <- value`, in a statement or a `for` header */
+  public checkSite(site: TAssignmentSite): void {
     // A compound operator on any two-subscript target is E0857's, reported
     // before this step runs. Checking the slice as well would give one mistake
     // two diagnostics.
-    if (!ctx.assignmentOperator().ASSIGN()) return;
+    if (!site.assignmentOperator().ASSIGN()) return;
 
-    const target = ctx.assignmentTarget();
+    const target = site.assignmentTarget();
     const ops = target.postfixTargetOp();
     if (ops.length !== 1) return;
 
     const subscripts = ops[0].expression();
     if (subscripts.length !== 2) return;
 
-    const frame = this.scopes.frameFor(ctx);
-    const name = target.IDENTIFIER().getText();
-    const declared = this.declarationOf(name, frame);
+    const name = target.IDENTIFIER()?.getText();
+    // The buffer as its declaration states it, bound by the one binder --
+    // this file's locals first, then scope members, globals and includes
+    // (#1668), so a buffer declared in an included file is found
+    const declared = OperandTyper.chainOf(target, this.context).steps[0]
+      ?.before;
     // Not established, or a SCALAR base -- on a scalar, two subscripts are a
     // bit RANGE (ADR-007), which is a different construct with its own rules.
-    if (declared === null) return;
+    if (name === undefined || !declared) return;
     if (declared.dimensions.length === 0 && declared.stringCapacity === null) {
       return;
     }
 
-    this.check(ctx, name, declared, subscripts, frame);
-  };
-
-  /**
-   * What a name's declaration says, from this file's frames or, failing that,
-   * from the run-wide view.
-   *
-   * The lexical frames hold only THIS file, so a buffer declared in an included
-   * file resolved to nothing and the slice was passed over -- and with the
-   * codegen checks now assertions, that surfaced as an internal error naming
-   * the guarantee rather than as a diagnostic. Probed, not reasoned about.
-   *
-   * The two-source shape is `ScopeFrameResolver.typeOfName`'s, for its reason:
-   * lexical FIRST, so a local declaration still shadows an imported one, with
-   * the run-wide view answering only what the frames cannot. This is a question
-   * about a buffer's SHAPE rather than about visibility, which is the case
-   * #1220 established the run-wide fallback is right for.
-   */
-  private declarationOf(name: string, frame: IScopeFrame): IDeclaredVar | null {
-    const lexical = this.scopes.declarationOfNameLexical(name, frame);
-    if (lexical !== null) return lexical;
-
-    const info = DeclaredVariableFacts.typeInfoOf(
-      this.context.symbols,
-      this.context.symbolTable,
-      name,
-    );
-    if (info === undefined) return null;
-    return {
-      typeText: info.baseType,
-      dimensions: info.arrayDimensions ?? [],
-      stringCapacity: info.isString ? (info.stringCapacity ?? null) : null,
-      isConst: info.isConst,
-    };
+    this.check(site, name, declared, subscripts);
   }
 
   private check(
-    ctx: Parser.AssignmentStatementContext,
+    site: TAssignmentSite,
     name: string,
-    declared: IDeclaredVar,
+    declared: IOperandType,
     subscripts: readonly Parser.ExpressionContext[],
-    frame: IScopeFrame,
   ): void {
     const destination = this.destinationOf(name, declared, subscripts[0]);
     if (destination === null) return;
@@ -209,13 +166,13 @@ class SliceAssignmentListener extends CNextListener {
       return;
     }
 
-    this.checkSource(ctx, name, length, frame);
+    this.checkSource(site, name, length);
   }
 
   /** The destination's element stride and capacity, or null if unestablished. */
   private destinationOf(
     name: string,
-    declared: IDeclaredVar,
+    declared: IOperandType,
     at: Parser.ExpressionContext,
   ): IDestination | null {
     if (declared.stringCapacity !== null) {
@@ -236,7 +193,7 @@ class SliceAssignmentListener extends CNextListener {
       return null;
     }
 
-    const element = SliceAssignmentListener.elementTypeOf(declared.typeText);
+    const element = declared.typeName;
     const bits = element === null ? undefined : TYPE_WIDTH[element];
     if (element === null || bits === undefined || element.startsWith("f")) {
       // A float or a type this pass cannot size cannot be written as integer
@@ -246,7 +203,7 @@ class SliceAssignmentListener extends CNextListener {
       this.report(
         at,
         "E0858",
-        `Slice assignment is not supported for element type '${element ?? declared.typeText}' of '${name}'`,
+        `Slice assignment is not supported for element type '${element ?? "unknown"}' of '${name}'`,
         "Only integer and string buffers can be sliced; a float or bool element would need type punning.",
       );
       return null;
@@ -279,13 +236,11 @@ class SliceAssignmentListener extends CNextListener {
 
   /** The source value has to fit the slice it is written into. */
   private checkSource(
-    ctx: Parser.AssignmentStatementContext,
+    site: TAssignmentSite,
     name: string,
     length: number,
-    frame: IScopeFrame,
   ): void {
-    const value = ctx.expression();
-    if (!value) return;
+    const value = site.expression();
 
     const literal = this.constantOf(value);
     if (literal !== undefined) {
@@ -308,7 +263,10 @@ class SliceAssignmentListener extends CNextListener {
       return;
     }
 
-    const sourceType = this.types.typeOfOperand(value, frame);
+    // An integer composite's type is the typer's (`CompositeType`); null
+    // when it cannot name one (a mixed composite, an unknown-width C integer)
+    const sourceType =
+      OperandTyper.typeOf(value, this.context)?.typeName ?? null;
     if (sourceType === null) return;
 
     const bits = TYPE_WIDTH[sourceType];
@@ -337,36 +295,15 @@ class SliceAssignmentListener extends CNextListener {
   }
 
   /**
-   * The element type of a declared array type text: `u8[32]` -> `u8`.
-   * Null when the text names no element type this pass can read.
-   */
-  private static elementTypeOf(typeText: string): string | null {
-    const open = typeText.indexOf("[");
-    const base = (open === -1 ? typeText : typeText.slice(0, open)).trim();
-    return base.length > 0 ? base : null;
-  }
-
-  /**
    * A compile-time constant, or undefined.
    *
-   * `ArrayDimensionParser` is pure and takes its lookups as options, so it is
-   * bound here to the ORDER-INDEPENDENT const source rather than to
-   * `CodeGenState.constValues`, which does not exist yet when this pass runs.
-   */
-  /**
    * #1322 review: this asked the flat const map, whose bare key every scope
    * declaring that name shares. A slice bound named by a scoped const was
    * measured against whichever scope was derived last. `ConstantExpression`
-   * is the one evaluator now, and it asks from the enclosing scope.
+   * is the one evaluator now, and it asks from where the bound is written.
    */
   private constantOf(expr: Parser.ExpressionContext): number | undefined {
-    return (
-      ConstantExpression.valueIn(
-        expr,
-        this.scopes.frameFor(expr).scopePath,
-        this.context.program,
-      ) ?? undefined
-    );
+    return ConstantExpression.valueAt(expr, this.context) ?? undefined;
   }
 
   private report(
@@ -385,14 +322,11 @@ class SliceAssignmentAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): ISliceAssignmentError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    const listener = new SliceAssignmentListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-      this.context,
+    const listener = new SliceAssignmentListener(this.context);
+    ParseTreeWalker.DEFAULT.walk(
+      new AssignmentSiteListener((site) => listener.checkSite(site)),
+      tree,
     );
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }
 }

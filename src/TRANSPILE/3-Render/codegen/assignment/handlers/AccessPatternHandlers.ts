@@ -9,7 +9,7 @@
  */
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
-import BitUtils from "../../../../../utils/BitUtils";
+import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 
 /**
@@ -27,6 +27,12 @@ import TAssignmentHandler from "./TAssignmentHandler";
  * shared by being one function rather than by two that happen to agree.
  */
 function handleQualifiedAccess(ctx: IAssignmentContext): string {
+  // #1668 review: a qualified chain can end in bits too, `global.gp.bits[3]`;
+  // this emitted `gp.bits[3] = true;`, which C rejects. The same decision and
+  // the same write as any member chain.
+  if (ctx.analyzeTargetForBitAccess().isBitAccess) {
+    return AssignmentHandlerUtils.writeBits(ctx);
+  }
   const target = ctx.renderTarget();
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
 }
@@ -46,12 +52,7 @@ function handleMemberChain(ctx: IAssignmentContext): string {
 
   if (bitAnalysis.isBitAccess) {
     // #1322: compound assignment on this target is E0857 in pass 2.1.
-
-    const { baseTarget, bitIndex, baseType } = bitAnalysis;
-    const one = BitUtils.oneForType(baseType!);
-    const intValue = BitUtils.boolToInt(ctx.generatedValue.trim());
-
-    return `${baseTarget} = (${baseTarget} & ~(${one} << ${bitIndex})) | (${intValue} << ${bitIndex});`;
+    return AssignmentHandlerUtils.writeBits(ctx);
   }
 
   // Normal member chain assignment

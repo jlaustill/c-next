@@ -4,17 +4,9 @@
  *
  * Extracted from AccessPatternHandlers.ts and RegisterHandlers.ts to reduce duplication.
  */
-import BitUtils from "../../../../../utils/BitUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
 import type TranspileState from "../../../../TranspileState";
-
-/** Result from extracting bit range expressions */
-interface IBitRangeParams {
-  start: string;
-  width: string;
-  mask: string;
-}
 
 /** Result from MMIO optimization attempt */
 interface IOptimizationResult {
@@ -26,14 +18,6 @@ interface IOptimizationResult {
  * Utilities for register access patterns
  */
 class RegisterUtils {
-  /**
-   * Extract start, width, and mask from bit range subscripts.
-   * Consolidates the common pattern of getting expressions and generating mask.
-   */
-  static extractBitRangeParams(start: string, width: string): IBitRangeParams {
-    return { start, width, mask: BitUtils.generateMask(width) };
-  }
-
   /**
    * Try to generate MMIO-optimized memory access for byte-aligned writes.
    * Returns success: true with statement if optimization applicable, false otherwise.
@@ -82,32 +66,6 @@ class RegisterUtils {
    */
   static isWriteOnlyRegister(accessMod: string | undefined): boolean {
     return RegisterAccessMode.isWriteOne(accessMod);
-  }
-
-  /**
-   * Generate write-only bit range assignment statement.
-   * Pattern: regName = ((value & mask) << start)
-   */
-  static generateWriteOnlyBitRange(
-    regName: string,
-    value: string,
-    mask: string,
-    start: string,
-  ): string {
-    return `${regName} = ((${value} & ${mask}) << ${start});`;
-  }
-
-  /**
-   * Generate read-modify-write bit range assignment statement.
-   * Pattern: regName = (regName & ~(mask << start)) | ((value & mask) << start)
-   */
-  static generateRmwBitRange(
-    regName: string,
-    value: string,
-    mask: string,
-    start: string,
-  ): string {
-    return `${regName} = (${regName} & ~(${mask} << ${start})) | ((${value} & ${mask}) << ${start});`;
   }
 }
 

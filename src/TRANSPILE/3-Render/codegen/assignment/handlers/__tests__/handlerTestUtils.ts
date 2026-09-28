@@ -10,6 +10,13 @@ import SymbolTable from "../../../../../../PARSE/3-Declare/SymbolTable";
 import type ICodeGenApi from "../../../../../../transpiler/types/ICodeGenApi";
 import type ICodeGenSymbols from "../../../../../../transpiler/types/ICodeGenSymbols";
 import type TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
+import type IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
+import type IChainBase from "../../../../../2-Plan/types/IChainBase";
+import type IChainStep from "../../../../../../transpiler/types/IChainStep";
+import type IOperandType from "../../../../../../transpiler/types/IOperandType";
+import ScopeUtils from "../../../../../../utils/ScopeUtils";
+import QualifiedCName from "../../../../../../utils/QualifiedCName";
+import TYPE_WIDTH from "../../../../../../transpiler/constants/TYPE_WIDTH";
 
 /**
  * Set up mock symbols on state.
@@ -131,22 +138,6 @@ function subscriptsOf(nodes: readonly unknown[]): {
   };
 }
 
-/** Common type bit widths for test mocks */
-const TYPE_BIT_WIDTHS: Record<string, number> = {
-  u8: 8,
-  i8: 8,
-  u16: 16,
-  i16: 16,
-  u32: 32,
-  i32: 32,
-  u64: 64,
-  i64: 64,
-  f32: 32,
-  f64: 64,
-  bool: 1,
-  string: 0,
-};
-
 /**
  * Create a TTypeInfo with sensible defaults.
  * Only override the fields you care about in tests.
@@ -155,7 +146,7 @@ function createTypeInfo(overrides: Partial<TTypeInfo> = {}): TTypeInfo {
   const baseType = overrides.baseType ?? "u32";
   return {
     baseType,
-    bitWidth: overrides.bitWidth ?? TYPE_BIT_WIDTHS[baseType] ?? 32,
+    bitWidth: overrides.bitWidth ?? TYPE_WIDTH[baseType] ?? 32,
     isArray: overrides.isArray ?? false,
     isConst: overrides.isConst ?? false,
     ...overrides,
@@ -167,19 +158,155 @@ function createTypeInfo(overrides: Partial<TTypeInfo> = {}): TTypeInfo {
  * Entries only need to specify the fields relevant to the test.
  * Uses setVariableTypeInfo to properly populate the registry.
  */
-function setupMockTypeRegistry(
+/**
+ * #1668 (C7): what each case declares, by the name a target spells it with.
+ *
+ * Handlers and the classifier read the target's binding (`ctx.target`), not
+ * a registry, so `targetOf` builds that binding the way the binder does.
+ * Keyed by the state, so a case's fresh state starts with nothing declared.
+ */
+const declarations = new WeakMap<TranspileState, Map<string, TTypeInfo>>();
+
+function declareTypes(
   state: TranspileState,
   entries: Array<[string, Partial<TTypeInfo>]>,
 ): void {
+  const declared = declarations.get(state) ?? new Map<string, TTypeInfo>();
+  declarations.set(state, declared);
   for (const [name, partial] of entries) {
-    state.setVariableTypeInfo(name, createTypeInfo(partial));
+    declared.set(name, createTypeInfo(partial));
   }
 }
 
+/**
+ * The binding a target's spelling gets: `this.` names the scope member,
+ * `global.` the bare name, and a bare name the member, then the global. A root
+ * with no type is a scope name, whose `Scope.member` writes the member.
+ */
+function targetOf(
+  state: TranspileState,
+  ctx: Pick<
+    IAssignmentContext,
+    "identifiers" | "resolvedBaseIdentifier" | "hasThis" | "hasGlobal"
+  >,
+): IChainBase {
+  const declared = declarations.get(state) ?? new Map<string, TTypeInfo>();
+  const ids = ctx.identifiers;
+  const member = declared.get(
+    ScopeUtils.qualifyInScope(ids[0], state.currentScopePath),
+  );
+  let rootTypeInfo: TTypeInfo | undefined;
+  if (ctx.hasThis) rootTypeInfo = member;
+  else if (ctx.hasGlobal) rootTypeInfo = declared.get(ids[0]);
+  else rootTypeInfo = member ?? declared.get(ids[0]);
+  const typeInfo =
+    rootTypeInfo ??
+    declared.get(QualifiedCName.fromParts(ids.slice(0, 2))) ??
+    declared.get(ctx.resolvedBaseIdentifier);
+  // #1668 (C12): no typer ran, so no step; a case that classifies a
+  // subscript passes the typer's answer as `target.last` itself
+  return { root: null, rootTypeInfo, typeInfo, last: undefined };
+}
+
+/** A declared scalar's operand type, as the typer gives it */
+function operandOf(
+  typeName: string,
+  integer: boolean,
+  signed: boolean,
+): IOperandType {
+  let category: IOperandType["category"] = "none";
+  if (integer) category = signed ? "signed" : "unsigned";
+  else if (typeName.startsWith("f")) category = "floating";
+  return {
+    typeName,
+    cType: null,
+    dimensions: [],
+    category,
+    bitWidth: integer ? TYPE_WIDTH[typeName] : null,
+    stringCapacity: null,
+    enumTypeName: null,
+    bitmapTypeName: null,
+    overflow: null,
+    hasSideEffect: false,
+    form: { kind: "declared" },
+    binding: null,
+  };
+}
+
+/**
+ * #1668 review: what a bit write reads off its context, built from a case's
+ * flattened subscripts -- the last `lastIndexCount` of them are the bit's --
+ * or from the ops a case gives itself. The final op, the target without it
+ * (the value whose bits are written), and the typer's step for that value,
+ * typed from what the case declared.
+ */
+function bitWriteOf(
+  ctx: Pick<
+    IAssignmentContext,
+    | "subscriptCount"
+    | "renderSubscript"
+    | "resolvedBaseIdentifier"
+    | "postfixOps"
+  >,
+  lastIndexCount: 1 | 2,
+  declared: TTypeInfo | undefined,
+): {
+  postfixOps: IAssignmentContext["postfixOps"];
+  renderBitTarget: () => string;
+  last: IChainStep;
+} {
+  const leading = ctx.subscriptCount - lastIndexCount;
+  const ops: IAssignmentContext["postfixOps"] =
+    ctx.postfixOps.length > 0
+      ? ctx.postfixOps
+      : [
+          ...Array.from({ length: leading }, (_, index) => ({
+            kind: "subscript" as const,
+            indexCount: 1,
+            renderIndexes: () => [ctx.renderSubscript(index)],
+            foldWidth: () => undefined,
+          })),
+          {
+            kind: "subscript" as const,
+            indexCount: lastIndexCount,
+            renderIndexes: () =>
+              Array.from({ length: lastIndexCount }, (_, i) =>
+                ctx.renderSubscript(leading + i),
+              ),
+            foldWidth: () => undefined,
+          },
+        ];
+  const baseType = declared?.baseType ?? null;
+  const signed = baseType !== null && /^i\d/.test(baseType);
+  const integer = baseType !== null && /^[ui]\d+$/.test(baseType);
+  return {
+    postfixOps: ops,
+    renderBitTarget: () =>
+      ctx.resolvedBaseIdentifier +
+      ops
+        .slice(0, -1)
+        .map((op) =>
+          op.kind === "member"
+            ? `.${op.name}`
+            : `[${op.renderIndexes().join("][")}]`,
+        )
+        .join(""),
+    last: {
+      before: baseType === null ? null : operandOf(baseType, integer, signed),
+      subscript: lastIndexCount === 2 ? "bit_range" : "bit_single",
+      after: null,
+      property: null,
+    },
+  };
+}
+
 export default class HandlerTestUtils {
+  static readonly bitWriteOf = bitWriteOf;
+  static readonly operandOf = operandOf;
   static readonly setupMockSymbols = setupMockSymbols;
   static readonly setupMockGenerator = setupMockGenerator;
   static readonly subscriptsOf = subscriptsOf;
   static readonly planner = planner;
-  static readonly setupMockTypeRegistry = setupMockTypeRegistry;
+  static readonly declareTypes = declareTypes;
+  static readonly targetOf = targetOf;
 }

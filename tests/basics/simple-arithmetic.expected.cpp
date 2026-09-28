@@ -58,7 +58,7 @@ int main(void) {
     if (quotient != 2) return 4U;
     uint32_t remainder = 17U % 5U;
     if (remainder != 2) return 5U;
-    uint32_t result = (cnx_clamp_add_u32(a, b)) * 2U;
+    uint32_t result = cnx_clamp_mul_u32((cnx_clamp_add_u32(a, b)), 2U);
     if (result != 60) return 6U;
     result = cnx_clamp_add_u32(a, cnx_clamp_mul_u32(b, 2U));
     if (result != 50) return 7U;

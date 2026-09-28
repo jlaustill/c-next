@@ -1,0 +1,11 @@
+// #1668 / ADR-049: stm32f4 is a Cortex-M4 (ARMv7E-M), so an atomic
+// read-modify-write lowers to an LDREX/STREX retry loop. Before the catalog
+// named stm32f4, the name was silently unknown and the atomic fell back to
+// PRIMASK masking.
+#pragma target stm32f4
+
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- 1;
+}

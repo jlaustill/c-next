@@ -13,6 +13,8 @@
  * imitating is tested in VariableDeclHelper.test.ts where it now lives.
  */
 
+import StringOperationsHelper from "../StringOperationsHelper";
+import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import StringDeclHelper from "../StringDeclHelper";
 import TranspileState from "../../../../TranspileState";
@@ -33,14 +35,23 @@ const NO_MODS: IRenderedModifiers = {
  * about substrings cannot accidentally take that branch.
  */
 function init(overrides: Partial<IPlannedStringInit> = {}): IPlannedStringInit {
+  const text = overrides.text ?? '""';
   return {
     concat: null,
     renderSubstring: () => null,
-    text: '""',
+    text,
     render: () => '""',
+    // As the walker plans it (#1668): a literal's length, or a declared
+    // string's capacity
+    sourceCapacity: StringOperationsHelper.getStringExprCapacity(text, (name) =>
+      sourcesDeclared.get(name),
+    ),
     ...overrides,
   };
 }
+
+/** The strings each case declares as initializer sources, by name */
+const sourcesDeclared = new Map<string, TTypeInfo>();
 
 function bounded(
   capacity: number,
@@ -61,6 +72,7 @@ let state = new TranspileState();
 
 describe("StringDeclHelper", () => {
   beforeEach(() => {
+    sourcesDeclared.clear();
     state = new TranspileState();
     state.inFunctionBody = true;
     vi.clearAllMocks();
@@ -160,7 +172,7 @@ describe("StringDeclHelper", () => {
     });
 
     it("carries them on the copy arm", () => {
-      state.setVariableTypeInfo("src", {
+      sourcesDeclared.set("src", {
         baseType: "char",
         bitWidth: 8,
         isArray: true,
@@ -303,7 +315,7 @@ describe("StringDeclHelper", () => {
 
   describe("string variable assignment validation", () => {
     function declareSource(name: string, capacity: number): void {
-      state.setVariableTypeInfo(name, {
+      sourcesDeclared.set(name, {
         baseType: "char",
         bitWidth: 8,
         isArray: true,
@@ -607,18 +619,6 @@ describe("StringDeclHelper", () => {
       ).toThrow(/unsized string is const/);
     });
 
-    it("registers the inferred capacity in the type registry", () => {
-      StringDeclHelper.generateStringDecl(
-        { kind: "unsized", initText: '"abc"' },
-        "msg",
-        { ...NO_MODS, const: "const " },
-        true,
-        state,
-      );
-
-      expect(state.getVariableTypeInfo("msg")?.stringCapacity).toBe(3);
-    });
-
     it("asserts the invariant for non-const unsized string", () => {
       expect(() =>
         StringDeclHelper.generateStringDecl(
@@ -814,18 +814,6 @@ describe("StringDeclHelper", () => {
       );
 
       expect(code).toContain('{""}');
-    });
-
-    it("tracks local arrays in localArrays set", () => {
-      StringDeclHelper.generateStringDecl(
-        array({ elementCapacity: 20, dimensions: "[3]", declaredSize: 3 }),
-        "tracked",
-        NO_MODS,
-        false,
-        state,
-      );
-
-      expect(state.localArrays.has("tracked")).toBe(true);
     });
 
     it("generates string array with modifiers", () => {

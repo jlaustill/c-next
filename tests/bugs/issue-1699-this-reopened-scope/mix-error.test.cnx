@@ -1,0 +1,11 @@
+// test-error
+// test-adr: 024
+// #1699: and categorized. `this.x * fl` mixes the u32 member with an f32
+// (E0810); it passed, and emitted `Lib__x * fl`.
+#include "lib.cnx"
+
+scope Lib {
+    public f32 scale(f32 fl) {
+        return this.x * fl;
+    }
+}

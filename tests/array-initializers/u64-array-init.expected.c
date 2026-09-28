@@ -20,6 +20,11 @@ static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
     return (uint64_t)(a + (uint64_t)b);
 }
 
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
+}
+
 // test-execution
 // Tests: u64 array initialization, access, and modification
 // Validates array operations with u64 element type
@@ -71,7 +76,7 @@ int main(void) {
     if (large_vals[2U] != 7000000000000000000) return 22U;
     uint64_t sequence[10] = {0};
     for (uint32_t i = 0U; i < 10; i += 1) {
-        sequence[i] = i * 1000000ULL;
+        sequence[i] = cnx_clamp_mul_u32(i, 1000000ULL);
     }
     if (sequence[0U] != 0) return 23U;
     if (sequence[5U] != 5000000) return 24U;

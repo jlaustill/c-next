@@ -12,7 +12,7 @@
 // Tests: Write-1-to-Set register access modifier
 // Writing 1 to a bit sets it, writing 0 has no effect
 void setGpioBit(uint8_t pin) {
-    GPIO__DR_SET = (1U << pin);
+    GPIO__DR_SET = ((uint32_t)1U << pin);
 }
 
 void setGpioMask(uint32_t mask) {
@@ -20,7 +20,7 @@ void setGpioMask(uint32_t mask) {
 }
 
 void enableFeature(uint8_t feature) {
-    CTRL__ENABLE = (1U << feature);
+    CTRL__ENABLE = ((uint32_t)1U << feature);
 }
 
 void setFlags(uint32_t flagMask) {

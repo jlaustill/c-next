@@ -1,0 +1,2 @@
+1:0 error[E0511]: platformio.ini environments build different targets: 'teensy41' (env:teensy41) and 'avr' (env:uno)
+       help: A program has exactly one target (ADR-049). Build one environment (--pio-env), set default_envs, or name the target with '#pragma target <name>'.

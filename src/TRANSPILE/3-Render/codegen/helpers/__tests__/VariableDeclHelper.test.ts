@@ -129,17 +129,19 @@ describe("VariableDeclHelper", () => {
       expect(result.decl).toBe("uint8_t arr[10][2]");
     });
 
-    // ADR-057: registries key on the SOURCE name, which is what references in
-    // the source say -- only the emitted text moves.
-    it("tracks the array under its source name", () => {
-      VariableDeclHelper.renderArrayDeclaration(
+    // ADR-057: a local that shadows a file-scope name is emitted under a
+    // distinct name. The declaration carries the EMITTED name it was handed;
+    // the source name is for diagnostics only. The test above cannot tell the
+    // two apart, because it passes the same name for both.
+    it("declares the array under its emitted name, not its source name", () => {
+      const result = VariableDeclHelper.renderArrayDeclaration(
         arrayPlan({ isArray: true, arrayTypeDimensions: "[4]" }),
         "arr",
         "uint8_t main__arr",
         state,
       );
 
-      expect(state.localArrays.has("arr")).toBe(true);
+      expect(result.decl).toBe("uint8_t main__arr[4]");
     });
 
     it("completes the declaration itself when the initializer is processed", () => {
@@ -282,27 +284,39 @@ describe("VariableDeclHelper", () => {
       expect(order).toEqual(["render", "resolve"]);
     });
 
-    it.each([
-      ["int to float", "u8", "f32", "(float)"],
-      ["float to int", "f32", "u8", "(uint8_t)"],
-    ])(
-      "adds the MISRA 10.3 cast for a %s conversion",
-      (_label, exprType, typeName, expected) => {
-        const result = VariableDeclHelper.renderVariableInitializer(
+    it("adds the MISRA 10.3 cast for an int to float conversion", () => {
+      const result = VariableDeclHelper.renderVariableInitializer(
+        {
+          kind: "expression",
+          renderTypeName: () => "f32",
+          renderExpression: () => "n",
+          resolveExpressionType: () => "u8",
+        },
+        "decl",
+        false,
+        state,
+      );
+
+      expect(result).toContain("(float)");
+    });
+
+    // #1800: a float reaches an integer only through a cast, so pass 2.1
+    // rejects the implicit form (E0891) and render never sees it
+    it("asserts it never renders a float to int conversion", () => {
+      expect(() =>
+        VariableDeclHelper.renderVariableInitializer(
           {
             kind: "expression",
-            renderTypeName: () => typeName,
+            renderTypeName: () => "u8",
             renderExpression: () => "n",
-            resolveExpressionType: () => exprType,
+            resolveExpressionType: () => "f32",
           },
           "decl",
           false,
           state,
-        );
-
-        expect(result).toContain(expected);
-      },
-    );
+        ),
+      ).toThrow(/E0891/);
+    });
 
     it("adds no cast when both sides are the same category", () => {
       expect(

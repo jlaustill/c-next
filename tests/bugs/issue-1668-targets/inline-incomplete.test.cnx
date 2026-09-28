@@ -1,0 +1,12 @@
+// test-error
+// #1668 / ADR-049: an inline description must be complete, like a catalog
+// row, or the program's target has facts nobody stated. E0514 lists what is
+// missing.
+#pragma word_size 32
+#pragma ldrex_strex true
+
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- 1;
+}

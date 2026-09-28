@@ -56,6 +56,12 @@ interface IPlannedStringInit {
   readonly text: string;
 
   /**
+   * #1668 (C7): the initializer's string capacity -- a literal's length, or
+   * a string variable's declared capacity -- or null when it is neither
+   */
+  readonly sourceCapacity: number | null;
+
+  /**
    * The initializer as generated C.
    *
    * Asked LAST, on the literal and copy arms only.

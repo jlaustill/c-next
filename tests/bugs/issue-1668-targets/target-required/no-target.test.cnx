@@ -1,0 +1,11 @@
+// test-error
+// test-no-target
+// #1668 / ADR-049: every program names exactly one target. This one names
+// none -- no pragma, no option, no config, no platformio.ini -- so its
+// atomic has no defined lowering and a C header's `int` no width. It used to
+// compile for a default platform; now it is E0515.
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- 1;
+}

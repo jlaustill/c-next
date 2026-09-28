@@ -1,0 +1,15 @@
+u8 probe(bool c) {
+    u8 v <- 200;
+    u8 k <- 3;
+    u8 w <- 0;
+    if (c = true) {
+        i8 v <- 1;
+        w <- v + k;
+    }
+    return w;
+}
+
+// test-error
+// #1702 NEGATIVE CONTROL: a use AFTER the inner declaration reads the inner
+// `i8 v`, so `v + k` mixes signed and unsigned (E0810). This was right before
+// the fix; a check that ignored the inner `v` altogether would pass it.

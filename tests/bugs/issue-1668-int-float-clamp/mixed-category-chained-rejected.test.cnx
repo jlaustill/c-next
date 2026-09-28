@@ -1,0 +1,26 @@
+// test-error
+// #1760 review: E0810 folds a running category across an operator level. It
+// compared only ADJACENT operands, so one category-less literal between two
+// operands broke the chain: `a * 2 * k` and `a + 5 + n` passed. And an
+// operand whose own leaves disagreed had no category, so MISRA's exempt
+// character + integer (whose result is character, D.7) hid the mix around it.
+u32 a <- 3;
+u32 m <- 4;
+i32 n <- -5;
+f32 k <- 2.5;
+f32 y <- 1.0;
+
+void f() {
+    f32 r1 <- a * 2 * k;
+    u32 r2 <- a + 5 + n;
+    f32 r3 <- (a + 'A') * k;
+    y +<- 'A' + m;
+    // Reported once, at the inner pair: the product has no category after it
+    u32 r4 <- (a * 'A') * m;
+    // Negative controls: a literal between operands of ONE category, and
+    // MISRA's character + integer exemption, stay silent
+    u32 c1 <- a * 2 * m;
+    u32 c2 <- a + 'A' + m;
+    f32 c3 <- k * 2.0 * k;
+    m +<- 'A' + a;
+}

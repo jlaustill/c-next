@@ -1,0 +1,34 @@
+// #1776: a bitmap field of a write-only register member is written without
+// reading the member, however the member is spelled. The unscoped spelling
+// emitted a read-modify-write: a read of a `wo` member, which ADR-004 forbids
+// (E0870), and on a `w1c` status register a write-back of every pending flag
+// it read. The scoped spelling already wrote plainly.
+bitmap8 CtrlBits {
+    Enable,
+    Mode[3],
+    Reserved[4],
+}
+
+register MOTOR @ 0x40000000 {
+    CTRL: CtrlBits wo @ 0x00,
+    FLAGS: CtrlBits w1c @ 0x04,
+    CONFIG: CtrlBits rw @ 0x08,
+}
+
+scope Drive {
+    register PWM @ 0x40001000 {
+        CTRL: CtrlBits wo @ 0x00,
+    }
+
+    public void start() {
+        this.PWM.CTRL.Enable <- true;
+    }
+}
+
+void go() {
+    MOTOR.CTRL.Enable <- true;
+    MOTOR.CTRL.Mode <- 5;
+    MOTOR.FLAGS.Enable <- true;
+    // Control: a readable member keeps its read-modify-write
+    MOTOR.CONFIG.Mode <- 5;
+}

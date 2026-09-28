@@ -2,6 +2,7 @@ import type { CommonTokenStream } from "antlr4ng";
 
 import type * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import type IComment from "./IComment";
+import type ITargetDirective from "./ITargetDirective";
 import type ITranspileError from "../../lib/types/ITranspileError";
 
 /**
@@ -69,6 +70,12 @@ interface IParsedFile {
    * pass that can see it for free, not because a consumer was waiting.
    */
   readonly comments: readonly IComment[];
+
+  /**
+   * The file's `#pragma` lines as plain data (ADR-049), for 1.4 to settle the
+   * program's one target without holding this tree.
+   */
+  readonly targetDirectives: readonly ITargetDirective[];
 
   /**
    * Syntax errors from the lexer and parser, in the order reported.

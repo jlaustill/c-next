@@ -20,18 +20,19 @@
  * out of the population for real rather than by spelling.
  */
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import type IChainStep from "../../transpiler/types/IChainStep";
 import IAssignmentContext from "./types/IAssignmentContext";
 import IBitAccessAnalysis from "../../transpiler/types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../transpiler/types/TPlannedTargetOp";
-import TTypeInfo from "../../transpiler/types/TTypeInfo";
+import type IChainBase from "./types/IChainBase";
 import type TranspileState from "../TranspileState";
 
 /**
  * Dependencies for building context.
  */
 interface IContextBuilderDeps {
-  /** Type registry: variable name -> type info */
-  readonly typeRegistry: ReadonlyMap<string, TTypeInfo>;
+  /** #1668: what the target writes, bound where it was typed */
+  readonly target: IChainBase;
 
   /**
    * 2.3 Render's per-file working state (#1452 box 4), carried onto the built
@@ -49,12 +50,19 @@ interface IContextBuilderDeps {
    */
   generatedValue(): string;
 
-  /** Generate fully-resolved assignment target with scope prefixes */
-  generateAssignmentTarget(ctx: Parser.AssignmentTargetContext): string;
+  /**
+   * Generate the fully-resolved assignment target with scope prefixes, or
+   * its first `opCount` postfix operations
+   */
+  generateAssignmentTarget(
+    ctx: Parser.AssignmentTargetContext,
+    opCount?: number,
+  ): string;
 
   /** ADR-034: analyze the target's member chain for bit access */
   analyzeMemberChainForBitAccess(
     ctx: Parser.AssignmentTargetContext,
+    lastStep: IChainStep | undefined,
   ): IBitAccessAnalysis;
 
   /** Generate a subscript expression */
@@ -68,6 +76,9 @@ interface IContextBuilderDeps {
 
   /** The value expression's integer type */
   integerExpressionType(ctx: Parser.ExpressionContext): string | null;
+
+  /** #1668: whether any operand of the value expression is floating */
+  hasFloatingOperand(ctx: Parser.ExpressionContext): boolean;
 
   /**
    * ADR-001's assignment operator mapping, injected rather than imported.
@@ -180,6 +191,8 @@ function processPostfixOps(
         // these decides that from `CodeGenState` alone. Generating an index up
         // front would queue a pending temp for every chain it then rejects.
         renderIndexes: () => exprs.map((expr) => deps.generateExpression(expr)),
+        foldWidth: () =>
+          exprs.length === 2 ? deps.tryEvaluateConstant(exprs[1]) : undefined,
       });
     }
   }
@@ -229,10 +242,6 @@ function buildAssignmentContext(
     lastSubscriptExprCount,
   } = extraction;
 
-  // Get first identifier type info
-  const firstId = identifiers[0] ?? "";
-  const firstIdTypeInfo = deps.typeRegistry.get(firstId) ?? null;
-
   // Compute derived properties
   const memberAccessDepth = identifiers.length - 1;
   const subscriptDepth = subscripts.length;
@@ -251,12 +260,16 @@ function buildAssignmentContext(
   return {
     state: deps.state,
     renderTarget: () => deps.generateAssignmentTarget(targetCtx),
+    renderBitTarget: () =>
+      deps.generateAssignmentTarget(targetCtx, postfixOps.length - 1),
     analyzeTargetForBitAccess: () =>
-      deps.analyzeMemberChainForBitAccess(targetCtx),
+      deps.analyzeMemberChainForBitAccess(targetCtx, deps.target.last),
     targetLine: targetCtx.start?.line,
     hasValue: valueCtx !== null,
     valueExpressionType: () => deps.expressionType(valueCtx),
     valueIntegerType: () => deps.integerExpressionType(valueCtx),
+    valueHasFloatingOperand: () =>
+      valueCtx !== null && deps.hasFloatingOperand(valueCtx),
     foldValue: () => deps.tryEvaluateConstant(valueCtx),
     identifiers,
     subscriptCount: subscripts.length,
@@ -274,7 +287,7 @@ function buildAssignmentContext(
     generatedValue,
     resolvedTarget,
     resolvedBaseIdentifier,
-    firstIdTypeInfo,
+    target: deps.target,
     memberAccessDepth,
     subscriptDepth,
     lastSubscriptExprCount,

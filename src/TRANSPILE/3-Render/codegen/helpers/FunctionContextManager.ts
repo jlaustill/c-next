@@ -19,8 +19,6 @@
  * fourth walk here.
  */
 
-import DeclaredTypeFacts from "../../../../utils/DeclaredTypeFacts";
-import TYPE_WIDTH from "../../../../transpiler/constants/TYPE_WIDTH";
 import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks";
 // Issue #895: Parse typedef signatures to determine pointer vs value params
 import TypedefParamParser from "./TypedefParamParser";
@@ -185,16 +183,6 @@ class FunctionContextManager {
       isOpaqueHandle,
     };
     state.currentParameters.set(name, paramInfo);
-
-    // Register in typeRegistry. Its `isPointer` is what an argument asks to
-    // skip the `&` -- the same decision the signature spells `T*` from, so the
-    // two cannot disagree (#958 used `isTypedefStruct` here, a second reading).
-    FunctionContextManager.registerParameterType(
-      typeInfo,
-      param,
-      state,
-      isOpaqueHandle,
-    );
   }
 
   /**
@@ -255,58 +243,11 @@ class FunctionContextManager {
 
     return {
       typeName,
-      isStruct: callbacks.isStructType(typeName),
+      isStruct: callbacks.isKnownStruct(typeName),
       isCallback: state.callbackTypes.has(typeName),
       isString: false,
     };
   }
-
-  /**
-   * Register a parameter in the type registry.
-   */
-  static registerParameterType(
-    typeInfo: IParameterTypeInfo,
-    param: IPlannedFunctionParameter,
-    state: TranspileState,
-    isOpaqueHandle = false,
-  ): void {
-    const { typeName, isString } = typeInfo;
-    const { name, isArray, isConst } = param;
-
-    const declared = DeclaredTypeFacts.of(
-      typeName,
-      state.symbols,
-      TYPE_WIDTH[typeName] || 0,
-    );
-
-    const arrayDimensions = [...param.arrayDimensions];
-
-    // The null terminator is decided HERE, not by the planner: a capacity is a
-    // language fact where a dimension is a C one. The planner sets
-    // `stringCapacity` only for a string type, so the `isString` the old form
-    // also tested is implied -- it is re-asked from `typeInfo` anyway, because
-    // that is the `isString` the registered entry records.
-    const stringCapacity = isString ? param.stringCapacity : undefined;
-    if (isArray && stringCapacity !== undefined) {
-      arrayDimensions.push(stringCapacity + 1);
-    }
-
-    const registeredType = {
-      baseType: typeName,
-      isArray,
-      arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
-      isConst,
-      ...declared,
-      isString,
-      stringCapacity,
-      isParameter: true,
-      // Issue #958 / ADR-030: an opaque handle is already a pointer -- and for an
-      // array, each element is (#996) -- so a call site takes no `&` of it.
-      ...(isOpaqueHandle && { isPointer: true }),
-    };
-    state.setVariableTypeInfo(name, registeredType);
-  }
-
   /**
    * #1545: the C typedef dictating the current function's parameter shape, or
    * undefined when nothing does.
@@ -392,12 +333,7 @@ class FunctionContextManager {
    * Clear parameter tracking when leaving a function.
    */
   static clearParameters(state: TranspileState): void {
-    // ADR-025: Remove parameter types from typeRegistry
-    for (const name of state.currentParameters.keys()) {
-      state.deleteVariableTypeInfo(name);
-    }
     state.currentParameters.clear();
-    state.localArrays.clear();
   }
 
   /**

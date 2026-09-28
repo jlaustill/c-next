@@ -7,9 +7,6 @@
 
 #include "auto-detect.test.h"
 
-// Note: platformio.ini is present for CLI auto-detection testing
-// Test script uses pragma since it calls transpile() directly
-
 #include <stdint.h>
 #include <cmsis_gcc.h>
 
@@ -26,12 +23,18 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+// test-no-target
+// ADR-049's build-system rung: no pragma and no --target, so the
+// platformio.ini beside this file names the target -- board teensy41, whose
+// atomic read-modify-write lowers to LDREX/STREX.
 volatile uint32_t counter = 0U;
 
 void increment(void) {
     do {
         uint32_t __old = __LDREXW(&counter);
         uint32_t __new = cnx_clamp_add_u32(__old, 1U);
-        if (__STREXW(__new, &counter) == 0) break;
+        if (__STREXW(__new, &counter) == 0) {
+            break;
+        }
     } while (1);
 }

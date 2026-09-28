@@ -1,0 +1,11 @@
+// test-error
+// #1668 / ADR-049: a pragma is one of ADR-049's keys; any other is an error
+// rather than a directive silently dropped. `once` is C's include guard,
+// which C-Next does not need.
+#pragma once
+
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- 1;
+}

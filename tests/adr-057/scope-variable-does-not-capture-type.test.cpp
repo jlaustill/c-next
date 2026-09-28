@@ -42,7 +42,7 @@ static uint32_t Motor__Config = 0;
 uint32_t Motor__run(void) {
     Config settings = {};
     settings.speed = 7U;
-    Motor__Config = 2;
+    Motor__Config = 2U;
     return cnx_clamp_add_u32(settings.speed, Motor__Config);
 }
 

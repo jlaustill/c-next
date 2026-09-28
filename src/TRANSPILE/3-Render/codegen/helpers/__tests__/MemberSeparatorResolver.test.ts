@@ -8,6 +8,16 @@ import { describe, it, expect, vi } from "vitest";
 import MemberSeparatorResolver from "../MemberSeparatorResolver";
 import type IMemberSeparatorDeps from "../../types/IMemberSeparatorDeps";
 import type ISeparatorContext from "../../types/ISeparatorContext";
+import type IRootHolding from "../../types/IRootHolding";
+
+// How a root is held, as `memberAccessChain.rootHolding` answers it
+const NOT_HELD: IRootHolding = {
+  isStructParam: false,
+  forcePointerSemantics: false,
+  isPointerLocal: false,
+};
+const STRUCT_PARAM: IRootHolding = { ...NOT_HELD, isStructParam: true };
+const POINTER_LOCAL: IRootHolding = { ...NOT_HELD, isPointerLocal: true };
 
 describe("MemberSeparatorResolver", () => {
   // Helper to create mock dependencies
@@ -17,7 +27,7 @@ describe("MemberSeparatorResolver", () => {
     return {
       isKnownScope: vi.fn(() => false),
       isKnownRegister: vi.fn(() => false),
-      getStructParamSeparator: vi.fn(() => "->"),
+      rootMemberSeparator: vi.fn(() => "->"),
       ...overrides,
     };
   }
@@ -28,7 +38,7 @@ describe("MemberSeparatorResolver", () => {
   ): ISeparatorContext {
     return {
       isCrossScope: false,
-      isStructParam: false,
+      holding: NOT_HELD,
       isCppAccess: false,
       scopedRegName: null,
       isScopedRegister: false,
@@ -48,7 +58,7 @@ describe("MemberSeparatorResolver", () => {
           hasGlobal: true,
           hasThis: false,
           currentScopePath: "",
-          isStructParam: false,
+          holding: NOT_HELD,
           isCppAccess: false,
         },
         deps,
@@ -68,7 +78,7 @@ describe("MemberSeparatorResolver", () => {
           hasGlobal: true,
           hasThis: false,
           currentScopePath: "",
-          isStructParam: false,
+          holding: NOT_HELD,
           isCppAccess: false,
         },
         deps,
@@ -88,7 +98,7 @@ describe("MemberSeparatorResolver", () => {
           hasGlobal: false,
           hasThis: true,
           currentScopePath: "Motor",
-          isStructParam: false,
+          holding: NOT_HELD,
           isCppAccess: false,
         },
         deps,
@@ -107,7 +117,7 @@ describe("MemberSeparatorResolver", () => {
           hasGlobal: false,
           hasThis: false,
           currentScopePath: "Motor",
-          isStructParam: false,
+          holding: NOT_HELD,
           isCppAccess: false,
         },
         deps,
@@ -117,7 +127,7 @@ describe("MemberSeparatorResolver", () => {
       expect(ctx.isScopedRegister).toBe(false);
     });
 
-    it("should preserve isStructParam flag", () => {
+    it("should preserve the holding", () => {
       const deps = createMockDeps();
 
       const ctx = MemberSeparatorResolver.buildContext(
@@ -126,13 +136,13 @@ describe("MemberSeparatorResolver", () => {
           hasGlobal: false,
           hasThis: false,
           currentScopePath: "",
-          isStructParam: true,
+          holding: STRUCT_PARAM,
           isCppAccess: false,
         },
         deps,
       );
 
-      expect(ctx.isStructParam).toBe(true);
+      expect(ctx.holding).toBe(STRUCT_PARAM);
     });
 
     it("should preserve isCppAccess flag", () => {
@@ -144,7 +154,7 @@ describe("MemberSeparatorResolver", () => {
           hasGlobal: true,
           hasThis: false,
           currentScopePath: "",
-          isStructParam: false,
+          holding: NOT_HELD,
           isCppAccess: true,
         },
         deps,
@@ -170,9 +180,9 @@ describe("MemberSeparatorResolver", () => {
 
     it("should return -> for struct param in C mode", () => {
       const deps = createMockDeps({
-        getStructParamSeparator: vi.fn(() => "->"),
+        rootMemberSeparator: vi.fn(() => "->"),
       });
-      const ctx = createContext({ isStructParam: true });
+      const ctx = createContext({ holding: STRUCT_PARAM });
 
       const sep = MemberSeparatorResolver.getFirstSeparator(
         ["point"],
@@ -185,9 +195,9 @@ describe("MemberSeparatorResolver", () => {
 
     it("should return . for struct param in C++ mode", () => {
       const deps = createMockDeps({
-        getStructParamSeparator: vi.fn(() => "."),
+        rootMemberSeparator: vi.fn(() => "."),
       });
-      const ctx = createContext({ isStructParam: true });
+      const ctx = createContext({ holding: STRUCT_PARAM });
 
       const sep = MemberSeparatorResolver.getFirstSeparator(
         ["point"],
@@ -199,26 +209,30 @@ describe("MemberSeparatorResolver", () => {
     });
 
     // Issue #895: whether a callback-promoted parameter is a pointer in C++ is
-    // the struct-parameter helper's decision -- the one its whole-value wrap
-    // reads -- so it is handed over, not overridden here.
-    it.each<[boolean | undefined, boolean]>([
-      [true, true],
-      [false, false],
-      [undefined, false],
-    ])(
-      "hands forcePointerSemantics=%s to the struct-param helper",
-      (forcePointerSemantics, expected) => {
-        const deps = createMockDeps();
-        const ctx = createContext({
-          isStructParam: true,
-          forcePointerSemantics,
-        });
+    // the root-holding helper's decision -- the one the read path reads too --
+    // so the holding is handed over, not overridden here. #1760 review: a
+    // local #895 made a pointer is held too, and took `.` on the pointer.
+    it.each<[string, IRootHolding]>([
+      ["a struct parameter", STRUCT_PARAM],
+      [
+        "a callback-promoted parameter",
+        { ...STRUCT_PARAM, forcePointerSemantics: true },
+      ],
+      ["a local #895 made a pointer", POINTER_LOCAL],
+    ])("hands %s's holding to the separator helper", (_label, holding) => {
+      const deps = createMockDeps();
+      const ctx = createContext({ holding });
 
-        MemberSeparatorResolver.getFirstSeparator(["f"], ctx, deps);
+      MemberSeparatorResolver.getFirstSeparator(["f"], ctx, deps);
 
-        expect(deps.getStructParamSeparator).toHaveBeenCalledWith(expected);
-      },
-    );
+      expect(deps.rootMemberSeparator).toHaveBeenCalledWith(holding);
+    });
+
+    it("asks no helper for a root that is not held", () => {
+      const deps = createMockDeps();
+      MemberSeparatorResolver.getFirstSeparator(["p"], createContext(), deps);
+      expect(deps.rootMemberSeparator).not.toHaveBeenCalled();
+    });
 
     it("should return _ for cross-scope access", () => {
       const deps = createMockDeps();
@@ -387,25 +401,25 @@ describe("MemberSeparatorResolver", () => {
   describe("priority ordering", () => {
     it("should prioritize C++ access over struct param", () => {
       const deps = createMockDeps({
-        getStructParamSeparator: vi.fn(() => "->"),
+        rootMemberSeparator: vi.fn(() => "->"),
       });
       const ctx = createContext({
         isCppAccess: true,
-        isStructParam: true,
+        holding: STRUCT_PARAM,
       });
 
       const sep = MemberSeparatorResolver.getFirstSeparator(["obj"], ctx, deps);
 
       expect(sep).toBe("::");
-      expect(deps.getStructParamSeparator).not.toHaveBeenCalled();
+      expect(deps.rootMemberSeparator).not.toHaveBeenCalled();
     });
 
     it("should prioritize struct param over cross-scope", () => {
       const deps = createMockDeps({
-        getStructParamSeparator: vi.fn(() => "->"),
+        rootMemberSeparator: vi.fn(() => "->"),
       });
       const ctx = createContext({
-        isStructParam: true,
+        holding: STRUCT_PARAM,
         isCrossScope: true,
       });
 

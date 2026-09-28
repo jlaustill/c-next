@@ -12,8 +12,11 @@ u32 main() {
     buf.len <- 4;
 
     // Write to array elements
+    // A header's uint8_t element is a typed target (ADR-024, #1668), so the
+    // u32 product is narrowed explicitly, as the rule asks
     for (u32 i <- 0; i < buf.len; i +<- 1) {
-        buf.data[i] <- i * 10;
+        u32 value <- i * 10;
+        buf.data[i] <- value[0, 8];
     }
 
     // Verify array contents

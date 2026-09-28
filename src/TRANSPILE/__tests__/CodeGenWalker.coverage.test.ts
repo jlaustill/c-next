@@ -12,9 +12,8 @@
  * wrong before the diff shifted `CodeGenWalker.ts`, and nothing could ever
  * have reported that.
  */
+import ProgramGeneration from "./ProgramGeneration";
 import { describe, it, expect, beforeEach } from "vitest";
-import Program from "../../PARSE/4-Resolve/Program";
-import ModificationFacts from "../../transpiler/ModificationFacts";
 import CodeGenWalker from "../CodeGenWalker";
 import CodeGenerator from "../3-Render/codegen/CodeGenerator";
 import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
@@ -24,7 +23,6 @@ import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import TSymbolInfoAdapter from "../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import CallbackTypedefFormatter from "../3-Render/codegen/helpers/CallbackTypedefFormatter";
-import TranspileState from "../TranspileState";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
 import enterScope from "../../transpiler/__tests__/enterScope";
@@ -71,47 +69,14 @@ function setupGenerator(
   return { tree, generator, host, code };
 }
 
-/**
- * Install the artifact these tests now depend on.
- *
- * #1511: pass-by-value eligibility is a whole-program fact — is this parameter
- * modified anywhere down the call chain? — so a generator with no `Program`
- * behind it answers "not eligible" for everything and emits pointers where the
- * real run emits values. Built from the real resolver output and through the
- * same `ModificationFacts.derive` production uses, so a single-file test agrees
- * with a real run rather than approximating one.
- */
-function installProgramFor(
-  state: TranspileState,
-  tree: Parser.ProgramContext,
-  sourcePath = "test.cnx",
-): void {
-  const declared = CNextResolver.resolve(tree, sourcePath, registry);
-  const modifications = ModificationFacts.derive(
-    [{ parsed: { tree } as never, fileSymbols: declared }],
-    registry,
-    state.symbolTable,
-  );
-  state.program = Program.build([declared], {
-    modifications,
-    registry,
-  });
-}
-
-/** Generate with the whole-program artifact in place — see #1511. */
-function generateWithProgram(
+/** This file's registry, bound once -- the setup is `ProgramGeneration`'s. */
+const generateWithProgram = (
   generator: CodeGenWalker,
   tree: Parser.ProgramContext,
   tokenStream: Parameters<CodeGenWalker["generate"]>[1],
   options: Parameters<CodeGenWalker["generate"]>[2],
-): ReturnType<CodeGenWalker["generate"]> {
-  installProgramFor(
-    generator.transpileState,
-    tree,
-    options?.sourcePath ?? "test.cnx",
-  );
-  return generator.generate(tree, tokenStream, options);
-}
+): ReturnType<CodeGenWalker["generate"]> =>
+  ProgramGeneration.generate(generator, tree, tokenStream, options, registry);
 
 let registry = new SymbolRegistry();
 
@@ -1105,7 +1070,8 @@ describe("CodeGenWalker Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("return a + b");
+      // #1681: arithmetic on parameters clamps (ADR-044)
+      expect(code).toContain("return cnx_clamp_add_u32(a, b)");
     });
   });
 
@@ -1178,7 +1144,7 @@ describe("CodeGenWalker Coverage Tests", () => {
         const { tree, tokenStream } = CNextSourceParser.parse(source);
         const symbolTable = new SymbolTable();
         // As a header's `typedef struct Dev Dev;` with no body registers it.
-        symbolTable.markTypedefStructType("Dev", "dev.h");
+        symbolTable.markOpaqueType("Dev");
         const tSymbols = CNextResolver.resolve(
           tree,
           "test.cnx",

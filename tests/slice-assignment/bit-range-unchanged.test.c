@@ -12,35 +12,35 @@
 // Bit operations on scalar integers use bit manipulation, not slice serialization
 int main(void) {
     uint32_t flags = 0U;
-    flags = (flags & ~(1U << 0)) | (1U << 0);
+    flags = (flags & ~((uint32_t)1U << 0)) | ((uint32_t)1U << 0);
     if (flags != 0x00000001) return 1U;
-    flags = (flags & ~(1U << 7)) | (1U << 7);
+    flags = (flags & ~((uint32_t)1U << 7)) | ((uint32_t)1U << 7);
     if (flags != 0x00000081) return 2U;
-    flags = (flags & ~(1U << 0)) | (0U << 0);
+    flags = (flags & ~((uint32_t)1U << 0)) | ((uint32_t)0U << 0);
     if (flags != 0x00000080) return 3U;
-    flags = (flags & ~(1U << 15)) | (1U << 15);
+    flags = (flags & ~((uint32_t)1U << 15)) | ((uint32_t)1U << 15);
     if (flags != 0x00008080) return 4U;
     uint32_t value = 0U;
-    value = (value & ~(((1U << 3) - 1) << 0)) | ((5 & ((1U << 3) - 1)) << 0);
+    value = (value & ~((uint32_t)0x7U << 0)) | ((5U & (uint32_t)0x7U) << 0);
     if (value != 0x00000005) return 5U;
-    value = (value & ~(((1U << 4) - 1) << 4)) | ((10 & ((1U << 4) - 1)) << 4);
+    value = (value & ~((uint32_t)0xFU << 4)) | ((10U & (uint32_t)0xFU) << 4);
     if (value != 0x000000A5) return 6U;
-    value = (value & ~(0xFFU << 8)) | ((255 & 0xFFU) << 8);
+    value = (value & ~((uint32_t)0xFFU << 8)) | ((255U & (uint32_t)0xFFU) << 8);
     if (value != 0x0000FFA5) return 7U;
     uint32_t bits = 0xFFFFFFFFU;
-    bits = (bits & ~(((1U << 4) - 1) << 0)) | ((0 & ((1U << 4) - 1)) << 0);
+    bits = (bits & ~((uint32_t)0xFU << 0)) | ((0U & (uint32_t)0xFU) << 0);
     if (bits != 0xFFFFFFF0) return 8U;
-    bits = (bits & ~(((1U << 4) - 1) << 4)) | ((5 & ((1U << 4) - 1)) << 4);
+    bits = (bits & ~((uint32_t)0xFU << 4)) | ((5U & (uint32_t)0xFU) << 4);
     if (bits != 0xFFFFFF50) return 9U;
     uint8_t smallFlags = 0U;
-    smallFlags = (uint8_t)((smallFlags & ~(((1U << 4) - 1) << 0)) | ((15 & ((1U << 4) - 1)) << 0));
+    smallFlags = (uint8_t)((smallFlags & ~(0xFU << 0)) | ((15U & 0xFU) << 0));
     if (smallFlags != 0x0F) return 10U;
     smallFlags = (uint8_t)((smallFlags & ~(1U << 7)) | (1U << 7));
     if (smallFlags != 0x8F) return 11U;
     uint16_t mediumFlags = 0U;
-    mediumFlags = (uint16_t)((mediumFlags & ~(0xFFU << 0)) | ((0xFF & 0xFFU) << 0));
+    mediumFlags = (uint16_t)((mediumFlags & ~(0xFFU << 0)) | ((0xFFU & 0xFFU) << 0));
     if (mediumFlags != 0x00FF) return 12U;
-    mediumFlags = (uint16_t)((mediumFlags & ~(((1U << 4) - 1) << 8)) | ((0x0A & ((1U << 4) - 1)) << 8));
+    mediumFlags = (uint16_t)((mediumFlags & ~(0xFU << 8)) | ((0x0AU & 0xFU) << 8));
     if (mediumFlags != 0x0AFF) return 13U;
     return 0U;
 }

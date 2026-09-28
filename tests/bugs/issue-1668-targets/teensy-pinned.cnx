@@ -1,0 +1,4 @@
+// Helper for helper-pragma and alias-agree: names the program's target.
+#pragma target teensy41
+
+u32 pinnedValue <- 3;

@@ -28,7 +28,7 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 // Tests: Variable initialization inside loops
 int main(void) {
     uint32_t sum = 0U;
-    for (uint32_t i = 0U; i < 5; i = i + 1) {
+    for (uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1)) {
         sum = cnx_clamp_add_u32(sum, i);
     }
     if (sum != 10) return 1U;
@@ -40,15 +40,15 @@ int main(void) {
     }
     if (sum != 16) return 2U;
     uint32_t product = 1U;
-    for (uint32_t i = 1U; i <= 3; i = i + 1) {
-        for (uint32_t j = 1U; j <= 2; j = j + 1) {
-            uint32_t factor = i * j;
+    for (uint32_t i = 1U; i <= 3; i = cnx_clamp_add_u32(i, 1)) {
+        for (uint32_t j = 1U; j <= 2; j = cnx_clamp_add_u32(j, 1)) {
+            uint32_t factor = cnx_clamp_mul_u32(i, j);
             product = cnx_clamp_mul_u32(product, factor);
         }
     }
     if (product != 288) return 3U;
-    for (uint32_t i = 0U; i < 3; i = i + 1) {
-        uint32_t value = i * 10U;
+    for (uint32_t i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1)) {
+        uint32_t value = cnx_clamp_mul_u32(i, 10U);
         sum = cnx_clamp_add_u32(sum, value);
     }
     if (sum != 46) return 4U;

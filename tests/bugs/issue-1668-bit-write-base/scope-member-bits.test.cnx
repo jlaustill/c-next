@@ -1,0 +1,59 @@
+// test-execution
+// #1668 review: a bit write names its target as every other write does --
+// a scope member by its C name, a member reached through `this.` with each
+// member in the chain, a struct parameter through its pointer. The write
+// spelled the target as written: `pv.arr[1]` for `Sc__pv.arr[1]`, `S.cfg`,
+// `p.arr` on a pointer, and `this.pv.ws[1][0, 4]` dropped `.ws` altogether.
+struct P {
+    u8 bits;
+    u8[2] arr;
+    u16[2] ws;
+}
+
+scope Sc {
+    P pv;
+
+    public void viaThis() {
+        this.pv.ws[1][2] <- true;
+        this.pv.ws[0][0, 4] <- 9;
+    }
+
+    public void viaBareMember() {
+        pv.arr[1][2] <- true;
+    }
+
+    public u16 ws(u32 i) {
+        return this.pv.ws[i];
+    }
+
+    public u8 arr(u32 i) {
+        return this.pv.arr[i];
+    }
+}
+
+scope Cfg {
+    public P cfg;
+}
+
+void viaParameter(P p) {
+    p.arr[0][1] <- true;
+}
+
+u32 main() {
+    Sc.viaThis();
+    u16 w1 <- Sc.ws(1);
+    if (w1 != 4) return 1;
+    u16 w0 <- Sc.ws(0);
+    if (w0 != 9) return 2;
+    Sc.viaBareMember();
+    u8 a1 <- Sc.arr(1);
+    if (a1 != 4) return 3;
+    Cfg.cfg.bits[3] <- true;
+    if (Cfg.cfg.bits != 8) return 4;
+    Cfg.cfg.arr[1][0] <- true;
+    if (Cfg.cfg.arr[1] != 1) return 5;
+    P local;
+    viaParameter(local);
+    if (local.arr[0] != 2) return 6;
+    return 0;
+}

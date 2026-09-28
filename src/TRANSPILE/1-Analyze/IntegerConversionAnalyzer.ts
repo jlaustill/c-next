@@ -1,5 +1,5 @@
 /**
- * ADR-024 integer conversions: E0868 and E0869.
+ * ADR-024 integer conversions: E0868, E0869 and E0891.
  *
  * #1322. Six rules across `TypeResolver` and `CodeGenerator`, reached through
  * three entry points -- a declaration's initializer, an assignment, a cast --
@@ -21,8 +21,10 @@
  * the escape hatch the rule tells the author to use. Typing it would make the
  * sanctioned form fail the very check it exists to satisfy; codegen's
  * declaration path declined for that reason, and this pass declines for all
- * three. A composite is typed the way codegen typed it: category from the first
- * integer operand, width from the widest.
+ * three. A composite's integer type is the typer's, which settles it by
+ * `CompositeType.integerOf` over its value leaves -- category from the first
+ * integer operand, width from the widest -- the one rule 2.2 sizes its clamp
+ * helper by (#1668).
  *
  * ## Two holes codegen had, both closed
  *
@@ -31,9 +33,9 @@
  * than the type the value actually lands in. The second is the sharper one:
  * `c.col <- wide` emitted `c.col = wide;`, a u32 truncated into a u8 field with
  * no diagnostic, because the lookup found `c` -- a struct -- and skipped.
- * Reading the chain to the field is what `typeOfAssignmentTarget` already did
- * for ADR-036's bounds rule, so both holes closed by asking the question that
- * was already being asked next door.
+ * Reading the chain to the field is what ADR-036's bounds rule already did,
+ * so both holes closed by asking the question that was already being asked
+ * next door -- now the one operand typer's `typeOfTarget` (#1668).
  *
  * ## A third hole this closes
  *
@@ -42,6 +44,15 @@
  * the `this.` spelling, so the source read as untyped and untyped never
  * rejects. The lexical frames resolve it, so the rule now holds in the scope
  * contexts too. Measured against the corpus before relying on it.
+ *
+ * ## Typed by the one operand typer (#1668)
+ *
+ * Source and target come from `OperandTyper`, so a suffixed literal is its
+ * suffix's type (`u8 x <- 300u16` narrows), `-w` is `w`'s type, a cast inside
+ * a composite counts at the type it names, a bit range's const width folds,
+ * and a C or C++ header's integer -- a source, or the field a value lands in
+ * -- has its width on this target. Every assignment site is read, `for`
+ * headers included (#1726).
  */
 
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
@@ -49,81 +60,123 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
+import invariant from "../../utils/invariant";
 import ParserUtils from "../../utils/ParserUtils";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import TypeText from "./helpers/TypeText";
+import OperandTyper from "../../utils/OperandTyper";
+import CompositeType from "../../utils/CompositeType";
+import AssignmentSiteListener from "./AssignmentSiteListener";
+import StructInitializerType from "./helpers/StructInitializerType";
 import IIntegerConversionError from "./types/IIntegerConversionError";
-import IScopeFrame from "./types/IScopeFrame";
-import OperandTypeResolver from "./OperandTypeResolver";
-import ScopeFrameResolver from "./ScopeFrameResolver";
-import PrimitiveKindUtils from "../../utils/PrimitiveKindUtils";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import type IOperandType from "../../transpiler/types/IOperandType";
+import type TAssignmentSite from "./types/TAssignmentSite";
 
 const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
 
 class IntegerConversionListener extends CNextListener {
   private readonly found: IIntegerConversionError[] = [];
-  private readonly types: OperandTypeResolver;
 
-  public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    context: IAnalysisContext,
-  ) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
-    this.types = new OperandTypeResolver(scopes, context);
   }
 
   public errors(): IIntegerConversionError[] {
     return this.found;
   }
 
-  // --- The three spellings that reach the one rule --------------------------
+  // --- The spellings that reach the one rule -------------------------------
 
   override enterVariableDeclaration = (
     ctx: Parser.VariableDeclarationContext,
   ): void => {
-    const value = ctx.expression();
-    if (!value) return;
-    const target = ctx.type().getText();
-    if (!TypeCheckUtils.isInteger(target)) return;
-    this.check(target, value, "assign", this.scopes.frameFor(ctx), true);
+    this.checkDeclaration(ctx.type().getText(), ctx.expression());
   };
 
-  override enterAssignmentStatement = (
-    ctx: Parser.AssignmentStatementContext,
+  /**
+   * A `for` header's declaration is a declaration (#1760 second review:
+   * `for (u8 j <- 300; ...)` and `for (u32 i <- k; ...)` were accepted).
+   */
+  override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
+    this.checkDeclaration(ctx.type().getText(), ctx.expression());
+  };
+
+  private checkDeclaration(
+    target: string,
+    value: Parser.ExpressionContext | null,
+  ): void {
+    if (!value || !TypeCheckUtils.isInteger(target)) return;
+    this.check(target, value, "assign", true);
+  }
+
+  // --- E0891 at every other position a value lands in ------------------------
+  //
+  // #1760 second review, owner ruling "all positions now": a float reaches an
+  // integer argument, return, field or element only through a cast, as it
+  // reaches a declaration or an assignment. Narrowing and sign change at these
+  // positions are #1618's.
+
+  override enterArgumentList = (ctx: Parser.ArgumentListContext): void => {
+    for (const argument of ctx.expression()) this.checkFloatingAt(argument);
+  };
+
+  override enterReturnStatement = (
+    ctx: Parser.ReturnStatementContext,
   ): void => {
+    this.checkFloatingAt(ctx.expression());
+  };
+
+  override enterFieldInitializer = (
+    ctx: Parser.FieldInitializerContext,
+  ): void => {
+    this.checkFloatingAt(ctx.expression());
+  };
+
+  override enterArrayInitializer = (
+    ctx: Parser.ArrayInitializerContext,
+  ): void => {
+    this.checkFloatingAt(ctx.expression());
+    for (const element of ctx.arrayInitializerElement()) {
+      this.checkFloatingAt(element.expression());
+    }
+  };
+
+  /** E0891 for a value, at the integer type its position gives it */
+  private checkFloatingAt(value: Parser.ExpressionContext | null): void {
+    if (!value) return;
+    const target = StructInitializerType.valueType(value, this.context);
+    if (target !== null && TypeCheckUtils.isInteger(target)) {
+      this.checkFloating(target, value);
+    }
+  }
+
+  /** An assignment, in a statement or a `for` header (#1726) */
+  public checkSite(site: TAssignmentSite): void {
     // A compound operator is arithmetic at the operands' width, which ADR-044
     // governs; only a plain `<-` is a conversion.
-    if (!ctx.assignmentOperator().ASSIGN()) return;
-    const value = ctx.expression();
-    if (!value) return;
-    const target = ctx.assignmentTarget();
+    if (!site.assignmentOperator().ASSIGN()) return;
+    const value = site.expression();
+    const target = site.assignmentTarget();
     // A two-expression subscript is a slice or a bit range (ADR-007): a SPAN of
     // the buffer, not an element, with rules of its own.
     if (target.postfixTargetOp().some((op) => op.expression().length === 2)) {
       return;
     }
-    const frame = this.scopes.frameFor(ctx);
     // The type the value actually lands in -- following the chain to the
     // field or element, not the root variable's own type. See the class
     // comment for what reading the root instead let through.
-    const targetType = TypeText.withoutDimensions(
-      this.types.typeOfAssignmentTarget(ctx.assignmentTarget(), frame) ?? "",
-    );
+    const targetType =
+      OperandTyper.typeOfTarget(target, this.context)?.typeName ?? "";
     if (!TypeCheckUtils.isInteger(targetType)) return;
-    this.check(targetType, value, "assign", frame, true);
-  };
+    this.check(targetType, value, "assign", true);
+  }
 
   override enterCastExpression = (ctx: Parser.CastExpressionContext): void => {
     const target = ctx.type().getText();
     if (!TypeCheckUtils.isInteger(target)) return;
-    const frame = this.scopes.frameFor(ctx);
-    // Composites are not typed for a cast either: codegen asked only the
-
-    // direct type, and `(u8)(a + b)` is the author saying which width they mean.
-
-    const source = this.sourceTypeOf(ctx.unaryExpression(), frame, false);
+    // Composites are not typed for a cast: `(u8)(a + b)` is the author saying
+    // which width they mean.
+    const source = this.conversionSource(ctx.unaryExpression(), false);
     if (source !== null) this.checkConversion(target, source, ctx, "cast");
   };
 
@@ -145,7 +198,6 @@ class IntegerConversionListener extends CNextListener {
     target: string,
     value: Parser.ExpressionContext,
     kind: "assign" | "cast",
-    frame: IScopeFrame,
     typeComposites: boolean,
   ): void {
     const text = value.getText().trim();
@@ -153,8 +205,33 @@ class IntegerConversionListener extends CNextListener {
       this.checkLiteral(target, text, value);
       return;
     }
-    const source = this.sourceTypeOf(value, frame, typeComposites);
+    if (this.checkFloating(target, value)) return;
+    const source = this.conversionSource(value, typeComposites);
     if (source !== null) this.checkConversion(target, source, value, kind);
+  }
+
+  /**
+   * E0891: a floating value reaches an integer target only through a cast,
+   * which saturates. #1800, owner ruling 2026-09-28: "this should be a
+   * compiler error with an explicit cast". The implicit form had been
+   * accepted, and emitted as C's conversion, which is undefined for NaN and
+   * for a value past the target's range. Asked of every value leaf, so a
+   * floating composite or ternary counts. A cast, which is not this path,
+   * and a float's bit range (ADR-007), which the typer types as an integer,
+   * do not.
+   */
+  private checkFloating(target: string, value: ParserRuleContext): boolean {
+    const floating = CompositeType.floatingOf(
+      OperandTyper.valueLeaves(value, this.context),
+    );
+    if (floating === null) return false;
+    this.report(
+      value,
+      "E0891",
+      `Implicit conversion from floating ${floating} to integer ${target}`,
+      `Write the conversion as a cast, which saturates: (${target})value (ADR-024)`,
+    );
+    return true;
   }
 
   private checkLiteral(
@@ -165,7 +242,6 @@ class IntegerConversionListener extends CNextListener {
     // BigInt, not parseInt: a u64 bound is past 2^53, where a double stops
     // being exact and `0xFFFFFFFFFFFFFFFF` would round into range.
     const value = text.startsWith("-") ? -BigInt(text.slice(1)) : BigInt(text);
-    const width = BigInt(TYPE_WIDTH[target]);
 
     if (TypeCheckUtils.isUnsigned(target) && value < 0n) {
       this.report(
@@ -176,9 +252,9 @@ class IntegerConversionListener extends CNextListener {
       );
       return;
     }
-    const [min, max] = TypeCheckUtils.isUnsigned(target)
-      ? [0n, (1n << width) - 1n]
-      : [-(1n << (width - 1n)), (1n << (width - 1n)) - 1n];
+    const range = TypeCheckUtils.integerRange(target);
+    invariant(range, `every caller checks that ${target} is an integer`);
+    const [min, max] = range;
     if (value < min || value > max) {
       this.report(
         at,
@@ -222,61 +298,40 @@ class IntegerConversionListener extends CNextListener {
   // --- What type a source is ------------------------------------------------
 
   /**
-   * The integer type of a source expression, or null.
+   * The integer type a source converts from, as a C-Next integer name, or
+   * null when the rule does not judge it (#1668, the design's §5 row):
    *
-   * A directly resolvable operand answers by declaration. A composite answers
-   * the way codegen answered: category from the first integer operand, width
-   * from the widest. A lone bit extraction answers nothing, on purpose.
+   * - a top-level ternary: its branches are what matter, and
+   *   `(val > 0) ? 1 : -1` has literal branches with no declared type (a
+   *   `test-no-warnings` execution fixture asserts it is fine);
+   * - a lone bit extraction, `large[0, 8]`: ADR-024's explicit reinterpret,
+   *   the form this rule tells the author to use;
+   * - a composite, `a + b`: its integer type, as the typer settled it -- the
+   *   one rule 2.2 sizes its clamp helper by -- unless `composites` is false,
+   *   as for a cast;
+   * - anything else: the typer's type, a C or C++ integer included, at its
+   *   width on this target; a suffixed literal is its suffix's type.
    */
-  private sourceTypeOf(
+  private conversionSource(
     expr: ParserRuleContext,
-    frame: IScopeFrame,
-    typeComposites: boolean,
+    composites: boolean,
   ): string | null {
-    // A ternary is untyped here. `typeOfOperand` types one for the Boolean
-    // rule, where a ternary of bools IS a bool; for a conversion the branches
-    // are what matter, and `(val > 0) ? 1 : -1` has literal branches with no
-    // declared type at all. Codegen did not type it, and a `test-no-warnings`
-    // execution fixture asserts that `i32 sign <- (val > 0) ? 1 : -1` is fine.
     if (IntegerConversionListener.isTernary(expr)) return null;
-    const direct = this.types.typeOfOperand(expr, frame);
-    if (direct !== null)
-      return TypeCheckUtils.isInteger(direct) ? direct : null;
-    if (!typeComposites) return null;
-
-    const leaves = IntegerConversionListener.postfixLeaves(expr);
-    if (leaves.length < 2) return null; // a lone operand codegen declined to type
-
-    return PrimitiveKindUtils.widestIntegerOf(
-      leaves.map((leaf) => this.leafType(leaf, frame)),
-    );
+    const t = OperandTyper.typeOf(expr, this.context);
+    if (t === null) return null;
+    if (t.form.kind === "composite") {
+      return composites && t.bitWidth !== null ? t.typeName : null;
+    }
+    if (t.form.kind === "bitRange" || t.form.kind === "bitIndex") return null;
+    return IntegerConversionListener.integerName(t);
   }
 
-  /** A composite's operand: a bit extraction is the unsigned type of its width. */
-  private leafType(
-    leaf: Parser.PostfixExpressionContext,
-    frame: IScopeFrame,
-  ): string | null {
-    const ops = leaf.postfixOp();
-    // A bit-RANGE (`v[start, width]`) types by its width; anything else does
-    // not. Written out rather than as `last?.LBRACKET() !== null`, which was
-    // TRUE for an empty chain -- `undefined !== null` -- and reached the right
-    // answer only because the next optional call also produced `undefined`.
-    const last = ops.at(-1);
-    const widthExpr =
-      last !== undefined && last.LBRACKET() !== null
-        ? last.expression(1)
-        : null;
-    if (widthExpr) {
-      const width = IntegerConversionListener.literalValue(widthExpr);
-      if (width !== null) {
-        for (const candidate of [8, 16, 32, 64]) {
-          if (width <= candidate) return `u${candidate}`;
-        }
-      }
-      return null;
-    }
-    return this.types.typeOfOperand(leaf, frame);
+  /** `u8`/`i32`... for an integer of known width, else null */
+  private static integerName(t: IOperandType): string | null {
+    if (t.dimensions.length > 0 || t.bitWidth === null) return null;
+    if (t.category === "signed") return `i${t.bitWidth}`;
+    if (t.category === "unsigned") return `u${t.bitWidth}`;
+    return null;
   }
 
   /** Whether the expression, past its single-child levels, is a real ternary. */
@@ -290,26 +345,6 @@ class IntegerConversionListener extends CNextListener {
     return (
       node instanceof Parser.TernaryExpressionContext && node.COLON() !== null
     );
-  }
-
-  private static literalValue(expr: Parser.ExpressionContext): number | null {
-    const text = expr.getText().trim();
-    return /^\d+$/.test(text) ? Number.parseInt(text, 10) : null;
-  }
-
-  /** Every postfix expression under a node, in source order. */
-  private static postfixLeaves(
-    node: ParserRuleContext,
-  ): Parser.PostfixExpressionContext[] {
-    if (node instanceof Parser.PostfixExpressionContext) return [node];
-    const found: Parser.PostfixExpressionContext[] = [];
-    for (let i = 0; i < node.getChildCount(); i += 1) {
-      const child = node.getChild(i);
-      if (child instanceof ParserRuleContext) {
-        found.push(...IntegerConversionListener.postfixLeaves(child));
-      }
-    }
-    return found;
   }
 
   private report(
@@ -328,15 +363,16 @@ class IntegerConversionAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): IIntegerConversionError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    const listener = new IntegerConversionListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-      this.context,
-    );
+    const listener = new IntegerConversionListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+    ParseTreeWalker.DEFAULT.walk(
+      new AssignmentSiteListener((site) => listener.checkSite(site)),
+      tree,
+    );
+    // Reported in source order, as the one walk these replace did
+    return listener
+      .errors()
+      .sort((a, b) => a.line - b.line || a.column - b.column);
   }
 }
 

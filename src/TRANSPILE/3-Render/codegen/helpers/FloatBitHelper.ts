@@ -16,29 +16,21 @@
  * Migrated to use CodeGenState instead of constructor DI.
  */
 
-import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 import TIncludeHeader from "../../../../transpiler/types/TIncludeHeader";
 import BitRangeHelper from "./BitRangeHelper";
+import SaturatingCast from "./SaturatingCast";
+import BitUtils from "../../../../utils/BitUtils";
+import ComplianceAnnotations from "../../../2-Plan/ComplianceAnnotations";
 import type TranspileState from "../../../TranspileState";
+import type IFloatBitWrite from "../../../../transpiler/types/IFloatBitWrite";
 
 /**
  * Callback types for code generation operations.
  */
 interface IFloatBitCallbacks {
-  /** Generate a bit mask expression */
-  generateBitMask: (width: string, is64Bit?: boolean) => string;
-  /** Fold boolean expressions to 0/1 integer */
-  foldBooleanToInt: (expr: string) => string;
   /** Request an include header */
   requireInclude: (header: TIncludeHeader) => void;
 }
-
-/**
- * Get the C float type name for a C-Next float type.
- */
-const getFloatTypeName = (baseType: string): string => {
-  return baseType === "f64" ? "double" : "float";
-};
 
 /**
  * Generates float bit write operations using union-based type punning.
@@ -47,78 +39,94 @@ const getFloatTypeName = (baseType: string): string => {
  * For bit range: width is provided, uses bitIndex as start position
  */
 class FloatBitHelper {
+  /** The unsigned integer a float's bits are held in, at its width */
+  static bitsTypeOf(floatType: string): string {
+    return floatType === "f64" ? "uint64_t" : "uint32_t";
+  }
+
   /**
-   * Generate float bit write using union-based type punning.
-   * Returns null if typeInfo is not a float type.
+   * The union a float's bits are read and written through, declared as
+   * `name`, with the annotation that says why it is a union. The one
+   * spelling the read and the write paths share (#1760 review: each built
+   * it).
+   */
+  static unionDeclaration(floatType: string, name: string): string {
+    const floatCType = SaturatingCast.floatCType(floatType);
+    const bitsCType = FloatBitHelper.bitsTypeOf(floatType);
+    return [
+      ComplianceAnnotations.render(
+        ComplianceAnnotations.floatBitsUnion(floatCType, bitsCType),
+      ),
+      `union { ${floatCType} f; ${bitsCType} u; } ${name};`,
+    ].join("\n");
+  }
+
+  /**
+   * Generate a float bit write using union-based type punning (ADR-007).
    *
-   * Uses union { float f; uint32_t u; } for MISRA 21.15 compliance instead of memcpy.
+   * A variable is written through its shadow union, `__bits_<name>`, which
+   * the read path shares. Any other target -- an element, a field, a header
+   * float reached through a chain -- has no name to key a shadow by, so it
+   * is written through a union of its own, in a block (#1760 review: it was
+   * written as a plain subscript store that C rejects).
    *
-   * @param name - Variable name being written
-   * @param typeInfo - Type information for the variable
-   * @param bitIndex - Bit index expression (start position)
-   * @param width - Bit width expression (null for single bit)
-   * @param value - Value to write
+   * @param bitWrite - The float written, its type, and the bits written
    * @param callbacks - Code generation callbacks
-   * @returns Generated C code, or null if not a float type
    */
   static generateFloatBitWrite(
-    name: string,
-    typeInfo: TTypeInfo,
-    bitIndex: string,
-    width: string | null,
-    value: string,
+    bitWrite: IFloatBitWrite,
     callbacks: IFloatBitCallbacks,
     state: TranspileState,
-  ): string | null {
-    const isFloatType =
-      typeInfo.baseType === "f32" || typeInfo.baseType === "f64";
-    if (!isFloatType) {
-      return null;
-    }
-
+  ): string {
     callbacks.requireInclude("float_static_assert"); // For size verification
 
-    const isF64 = typeInfo.baseType === "f64";
-    const floatType = getFloatTypeName(typeInfo.baseType);
-    const intType = isF64 ? "uint64_t" : "uint32_t";
-    const shadowName = BitRangeHelper.getShadowVarName(name);
-    const maskSuffix = isF64 ? "ULL" : "U";
+    const target = bitWrite.target;
+    const intType = FloatBitHelper.bitsTypeOf(bitWrite.floatType);
+    // The integer member is written like any other integer (#1668): a bit
+    // or a bit range of a uint32_t or a uint64_t
+    const write = (bits: string): string =>
+      bitWrite.width === null
+        ? BitUtils.singleBitWrite(
+            bits,
+            bitWrite.bitIndex,
+            bitWrite.value,
+            intType,
+          )
+        : BitUtils.multiBitWrite(
+            bits,
+            bitWrite.bitIndex,
+            bitWrite.width,
+            bitWrite.value,
+            intType,
+          );
 
+    if (!bitWrite.isVariable) {
+      const body = [
+        FloatBitHelper.unionDeclaration(bitWrite.floatType, "__bits"),
+        `__bits.f = ${target};`,
+        write("__bits.u"),
+        `${target} = __bits.f;`,
+      ].join("\n");
+      const indented = body.replaceAll(/^/gm, "    ");
+      return `{\n${indented}\n}`;
+    }
+
+    const shadowName = BitRangeHelper.getShadowVarName(target);
     // Check if shadow variable needs declaration
     const needsDeclaration = !state.floatBitShadows.has(shadowName);
     if (needsDeclaration) {
       state.floatBitShadows.add(shadowName);
     }
-
     // Check if shadow already has current value (skip redundant read)
     const shadowIsCurrent = state.floatShadowCurrent.has(shadowName);
-
-    // Union declaration: union { float f; uint32_t u; } __bits_name;
     const decl = needsDeclaration
-      ? `union { ${floatType} f; ${intType} u; } ${shadowName};\n`
+      ? `${FloatBitHelper.unionDeclaration(bitWrite.floatType, shadowName)}\n`
       : "";
-    // Read from float into union: __bits_name.f = floatVar;
-    const readUnion = shadowIsCurrent ? "" : `${shadowName}.f = ${name};\n`;
-
+    const readUnion = shadowIsCurrent ? "" : `${shadowName}.f = ${target};\n`;
     // Mark shadow as current after this write
     state.floatShadowCurrent.add(shadowName);
-
-    if (width === null) {
-      // Single bit assignment: floatVar[3] <- true
-      return (
-        `${decl}${readUnion}` +
-        `${shadowName}.u = (${shadowName}.u & ~(1${maskSuffix} << ${bitIndex})) | ((${intType})${callbacks.foldBooleanToInt(value)} << ${bitIndex});\n` +
-        `${name} = ${shadowName}.f;`
-      );
-    } else {
-      // Bit range assignment: floatVar[0, 8] <- b0
-      const mask = callbacks.generateBitMask(width, isF64);
-      return (
-        `${decl}${readUnion}` +
-        `${shadowName}.u = (${shadowName}.u & ~(${mask} << ${bitIndex})) | (((${intType})${value} & ${mask}) << ${bitIndex});\n` +
-        `${name} = ${shadowName}.f;`
-      );
-    }
+    const bits = write(`${shadowName}.u`);
+    return `${decl}${readUnion}${bits}\n${target} = ${shadowName}.f;`;
   }
 }
 

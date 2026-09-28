@@ -231,6 +231,28 @@ typedef struct opaque_t* handle_t;`;
     });
   });
 
+  // #1760 review: a data member records its declarator's indirection as the
+  // C side does, and a function-pointer member is a data member -- it had no
+  // name, so it was dropped
+  describe("data member declarators", () => {
+    it("records pointer and function-pointer members, a reference as its base", () => {
+      const tree = TestHelpers.parseCpp(`struct Ops {
+    float (*readLevel)();
+    uint8_t *buf;
+    int &r;
+    uint8_t flags;
+};`);
+      expect(tree).not.toBeNull();
+      CppResolver.resolve(tree!, "ops.hpp", symbolTable);
+      const fields = symbolTable.getStructFields("Ops");
+      expect(fields?.get("readLevel")?.type).toBe("float (*)()");
+      expect(fields?.get("buf")?.type).toBe("uint8_t*");
+      expect(fields?.get("r")?.type).toBe("int");
+      // Control: a plain member is its type
+      expect(fields?.get("flags")?.type).toBe("uint8_t");
+    });
+  });
+
   describe("variable collection", () => {
     it("collects a global variable", () => {
       const source = `int globalVar;`;
@@ -243,6 +265,18 @@ typedef struct opaque_t* handle_t;`;
         kind: "variable",
         name: "globalVar",
         type: "int",
+      });
+    });
+
+    // #1760 review: a C++ variable's spelling keeps `volatile` too
+    it("keeps volatile in a variable's spelling", () => {
+      const tree = TestHelpers.parseCpp(`extern volatile float cvf;`);
+      expect(tree).not.toBeNull();
+      const result = CppResolver.resolve(tree!, "test.hpp", symbolTable);
+      expect(result.symbols[0]).toMatchObject({
+        kind: "variable",
+        name: "cvf",
+        type: "volatile float",
       });
     });
 

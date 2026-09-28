@@ -1,0 +1,25 @@
+// test-execution
+// #1698 NEGATIVE CONTROL: inside the scope, the scope's `u8 get()` shadows the
+// global `u32 get()` (ADR-057), so `u8 n <- get()` is not a narrowing. The
+// typers read the global's type and reported a false E0869.
+u32 get() {
+    return 300;
+}
+
+scope Gauge {
+    u8 get() {
+        return 3;
+    }
+    public u8 narrow() {
+        u8 n <- get();
+        return n;
+    }
+}
+
+u32 main() {
+    u8 v <- Gauge.narrow();
+    if (v != 3) return 1;
+    u32 g <- get();
+    if (g != 300) return 2;
+    return 0;
+}

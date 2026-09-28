@@ -183,20 +183,20 @@ When in doubt: **ASK.** Syntax changes require ADR discussion and user approval.
 
 ## Quick Reference
 
-| Task                   | Command                                 |
-| ---------------------- | --------------------------------------- |
-| Build transpiler       | `npm run build`                         |
-| Integration tests      | `npm test` or `npm run test:q` (quiet)  |
-| Single test            | `npm test -- tests/dir/file.test.cnx`   |
-| Unit tests             | `npm run unit`                          |
-| Coverage               | `npm run unit:coverage`                 |
-| C static analysis      | `npm run validate:c`                    |
-| All tests + checks     | `npm run test:all`                      |
-| **Everything CI runs** | **`npm run test:gate`**                 |
-| Local transpiler       | `npx tsx src/index.ts <file.cnx>`       |
-| C++ mode               | `npx tsx src/index.ts <file.cnx> --cpp` |
-| Generate snapshots     | `npm test -- <path> --update`           |
-| ANTLR regenerate       | `npm run antlr`                         |
+| Task                   | Command                                               |
+| ---------------------- | ----------------------------------------------------- |
+| Build transpiler       | `npm run build`                                       |
+| Integration tests      | `npm test` or `npm run test:q` (quiet)                |
+| Single test            | `npm test -- tests/dir/file.test.cnx`                 |
+| Unit tests             | `npm run unit`                                        |
+| Coverage               | `npm run unit:coverage`                               |
+| C static analysis      | `npm run validate:c`                                  |
+| All tests + checks     | `npm run test:all`                                    |
+| **Everything CI runs** | **`npm run test:gate`**                               |
+| Local transpiler       | `npx tsx src/index.ts <file.cnx> --target host`       |
+| C++ mode               | `npx tsx src/index.ts <file.cnx> --cpp --target host` |
+| Generate snapshots     | `npm test -- <path> --update`                         |
+| ANTLR regenerate       | `npm run antlr`                                       |
 
 **GitHub CLI**: `gh issue view` may fail — use `gh api repos/jlaustill/c-next/issues/<number>` instead. `gh pr edit` fails here on a Projects-classic GraphQL deprecation — use `gh api -X PATCH repos/jlaustill/c-next/pulls/<n> -F body=@<file>`, then re-read the body to confirm; it errors on stderr, so an `&&` chain hides it and the body silently keeps its old text. The project board (`/issue-check`
 Phase 1d) needs `gh auth refresh -s read:project`; **writing** a board field needs
@@ -585,21 +585,29 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 
 ### Enum `expectedType` Contexts
 
-| Works (bare members)                     | Requires qualified (`EnumType.MEMBER`)         |
-| ---------------------------------------- | ---------------------------------------------- |
-| Variable declarations: `EColor c <- RED` | Comparisons: `cfg.pType != EPressureType.PSIA` |
-| Same-file struct field assignments       | Function arguments                             |
-| Return statements (enum return type)     | Array dimensions: `u8[EColor.COUNT]`           |
-| Struct field inits: `{color: RED}`       | Cross-file struct assignments                  |
-| Switch cases, ternary arms               |                                                |
+| Works (bare members)                              | Requires qualified (`EnumType.MEMBER`)                |
+| ------------------------------------------------- | ----------------------------------------------------- |
+| Variable declarations: `EColor c <- RED`          | Comparisons: `cfg.pType != EPressureType.PSIA`        |
+| Assignments, a struct field's in any file         | Function arguments                                    |
+| Return statements (enum return type)              | Array dimensions and subscripts: `u8[EColor.COUNT]`   |
+| Struct field inits `{color: RED}`, array elements | A `for` header's declaration or update (#1537: a bug) |
+| Switch cases, ternary arms                        |                                                       |
+
+The table is `BareEnumMemberAnalyzer`'s (2.1), which walks up from the identifier to
+the nearest node that establishes a type. It used to list "cross-file struct
+assignments" as requiring qualification, which was false on `main` too: with the
+struct and the variable in an included file, `shared.color <- GREEN` transpiles to
+`shared.color = EColor__GREEN;`.
 
 ### Enum Error Locations (E0424 "not defined; did you mean")
 
-| Location                                               | Context                                     |
-| ------------------------------------------------------ | ------------------------------------------- |
-| `ControlFlowGenerator.rejectUnqualifiedEnumInReturn()` | Return statements with non-enum return type |
-| `SwitchGenerator.rejectUnqualifiedEnumMember()`        | Switch cases with non-enum switch type      |
-| `CodeGenerator._resolveUnqualifiedEnumMember()`        | All other contexts (comparisons, args)      |
+E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees the case.
+
+| Location                                        | Context                                                                                         |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `BareEnumMemberAnalyzer`                        | Every position in the table above, returns included                                             |
+| `SwitchStatementAnalyzer`                       | Case labels: a bare member when the switch is not on an enum, or one its enum does not declare  |
+| `CodeGenWalker._resolveUnqualifiedEnumMember()` | Render: qualifies an accepted bare member, and an `invariant` that a rejected one never arrives |
 
 ### Key Patterns
 
@@ -623,7 +631,7 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 - **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` — numbers for resolved constants, strings for C macros
 - **What an analyzer may read is `IAnalysisContext`, and nothing else.** #1456
   made it a parameter: `symbols` (this file's view), `program` (1.4's artifact),
-  `symbolTable`, and `reachesForeignHeader`. `Transpiler._analyzeFile` builds it
+  `symbolTable`, `reachesForeignHeader`, and `sourceFile`. `Transpiler._analyzeFile` builds it
   from artifacts settled before 2.1 begins, and
   `analyzers-cannot-reach-codegen-state` (`error`, `reachable: true`) makes an
   analyzer that reaches `TranspileState` fail the **`lint`** job — through a
@@ -635,23 +643,28 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
   struct fields are derived by 1.4 Resolve and read as
   `context.program.externalStructFields()`. Use
   `context.symbols.functionReturnTypes` for the ADR-029 function-as-type fact
-- **Analyzer test isolation**: build the context, not the state —
-  `testAnalysisContext(state, overrides)` in
-  `src/TRANSPILE/1-Analyze/__tests__/`. It reads the facts off a
-  `TranspileState` the test already set up, which is why that helper lives under
-  `__tests__` and is the one place allowed to
-- **The timing hazard this list used to describe is gone.** It said `typeRegistry`
-  is private and "three analyzers call it in production today", so an analyzer
-  could read a stale per-file local ahead of the correct cross-file answer. At
-  HEAD **zero** analyzers call `getVariableTypeInfo` (`grep` finds two mentions,
-  both in comments), because none of them can reach the state at all. Kept as a
-  sentence rather than deleted: the paragraph survived the boundary it described
-  by being renamed `CodeGenState` → `TranspileState`, which is how a hazard note
-  outlives its hazard
-- **Analyzer type tracking**: Use `trackType(typeCtx, identifier)` helper pattern (see `FloatModuloAnalyzer.trackIfFloat()`, `ArrayIndexTypeAnalyzer.trackType()`) to avoid jscpd duplication across `enterVariableDeclaration`/`enterParameter`/`enterForVarDecl`
+- **Analyzer test isolation**: build the context, not the state. Both helpers live in
+  `src/TRANSPILE/1-Analyze/__tests__/`, the one place allowed to read a
+  `TranspileState` into a context. `testAnalysisContextFor(source)` runs the real
+  1.3 and 1.4 on the source and returns a context with a settled `program`; use it
+  for anything that types an operand or binds a name. `testAnalysisContext(state)`
+  reads the facts a test set on a `TranspileState` and stands an
+  **empty** `Program` in for one the test never built, so a typing test built on it
+  passes by asserting silence
+- **The timing hazard this list used to describe is gone, and so is the registry.**
+  It said three analyzers read the private per-file `typeRegistry`, so one could see
+  a stale per-file local ahead of the cross-file answer. #1456 put the state out of
+  analyzers' reach, and #1668 deleted the registry and `getVariableTypeInfo` with
+  it; what `grep` still finds is comments recounting that history
+- **Analyzer operand types**: ask `OperandTyper` (`typeOf`, `valueLeaves`,
+  `chainOf`) with the analysis context, and `program.bindValue` for what a name binds
+  to. Do not record declarations in an analyzer's own `enterVariableDeclaration` /
+  `enterParameter` / `enterForVarDecl`: that is a second binding decision. #1220
+  removed `trackIfFloat` and `SignedShiftAnalyzer`'s `trackType`, and #1668 the
+  last, `ArrayIndexTypeAnalyzer.trackType` -- the helpers this entry used to recommend
 - **Ternary grammar**: `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0 — and address them via `orExpression()`, **never `getChild(i)`**: the condition is parenthesized, so `getChild(0)` is `(` and an index-based skip silently does nothing
 - **Callback header params**: a callback-compatible function's parameters take pointer and const from its typedef, found by `TranspileState.callbackTypedefTypeFor` and read by `TypedefParamParser.isParamPointer`/`isParamConst` — one rule for both files. The `.h` path (`Transpiler.convertToHeaderSymbols()`) stores it on `IParameterSymbol.isCallbackPointer`/`isCallbackConst`; the `.c` path asks the parser through `FunctionContextManager.getCallbackTypedefParamInfo`. The two paths are two call chains to one rule, the shape #1639 tracks
-- **Scope type predicate**: `TranspileState.isScopeType(qualifiedName)` checks whether a qualified name is a scope type — an enum, struct, bitmap or ADR-029 function-as-type — that the file being generated can see: declared by it or by a file in its include closure (`IProgram.isScopeTypeVisibleFrom`, #1724). Codegen sites bind it through `TranspileState.typeBindingDeps()`, which pairs `TranspileState.scopeTypePredicate` with the caller's `resolveQualifiedType` — don't re-pair the predicate with `currentScopePath` at each site, and don't inline `knownEnums || knownStructs || knownBitmaps`. This used to name `CodeGenState.qualifyScopeType(bareName)`; that method had **no production caller** and is deleted (#1452), because a rule naming a helper nothing uses teaches the next reader a pattern the codebase does not have.
+- **Scope type predicate**: `TranspileState.isScopeType(qualifiedName)` checks whether a qualified name is a scope type — an enum, struct, bitmap or ADR-029 function-as-type (the kinds are `TYPE_FORMING_KINDS`) — that the file being generated can see: declared by it or by a file in its include closure (`IProgram.isScopeTypeVisibleFrom`, #1724). Codegen sites bind it through `TranspileState.typeBindingDeps()`, which pairs `TranspileState.scopeTypePredicate` with the caller's `resolveQualifiedType` — don't re-pair the predicate with `currentScopePath` at each site, and don't inline `knownEnums || knownStructs || knownBitmaps`. This used to name `CodeGenState.qualifyScopeType(bareName)`; that method had **no production caller** and is deleted (#1452), because a rule naming a helper nothing uses teaches the next reader a pattern the codebase does not have.
 
 ---
 
@@ -659,15 +672,17 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 
 ### Test Types
 
-| Marker                   | Behavior                                                |
-| ------------------------ | ------------------------------------------------------- |
-| _(none)_                 | Run in BOTH C and C++ modes                             |
-| `// test-c-only`         | C mode only                                             |
-| `// test-cpp-only`       | C++ mode only                                           |
-| `// test-execution`      | Execute and validate (MUST use `if (x != y) return N;`) |
-| `// test-error`          | Expect compile error (create `.expected.error`)         |
-| `// test-transpile-only` | Skip compilation entirely                               |
-| `// test-no-warnings`    | Compile `-O3 -Wall -Wextra -Werror` (every TU)          |
+| Marker                                                         | Behavior                                                                                                                          |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| _(none)_                                                       | Run in BOTH C and C++ modes                                                                                                       |
+| `// test-c-only`                                               | C mode only                                                                                                                       |
+| `// test-cpp-only`                                             | C++ mode only                                                                                                                     |
+| `// test-execution`                                            | Execute and validate (MUST use `if (x != y) return N;`)                                                                           |
+| `// test-error`                                                | Expect compile error (create `.expected.error`)                                                                                   |
+| `// test-transpile-only`                                       | Skip compilation entirely                                                                                                         |
+| `// test-no-warnings`                                          | Compile `-O3 -Wall -Wextra -Werror` (every TU)                                                                                    |
+| `// test-no-target`                                            | Pass no `--target`; the fixture is about where one comes from                                                                     |
+| `// test-target-xfail: <target>... [c\|cpp] #<issue> "<text>"` | Those targets' cells must fail until the issue is fixed (every mode, or the one named), with a failure containing the quoted text |
 
 **Execution tests MUST validate every result** with unique return codes (1, 2, 3...). Return 0 only if ALL pass.
 
@@ -695,6 +710,29 @@ foo.expected.error    # Expected error (if test-error)
 
 ### Gotchas
 
+- **The target matrix (#1668)**: every fixture whose program names no target is
+  transpiled and compiled for the host (and executed there), and also for
+  `cortex-m7` and `atmega328p`, each against its real library: newlib and its C++
+  headers, avr-libc, and the vendored CMSIS-Core in `vendor/cmsis-core/`. A
+  fixture whose program names a target (a pragma, a helper's pragma, an inline
+  description, `platformio.ini`) runs for that target alone. The compilers are
+  GCC's (`TargetToolchain`, from the catalog's `toolchain_triple`/`toolchain_cpu`;
+  other compilers are #1761). Every cell compiles with `-Werror`. An inline
+  description compiles with the toolchain of the catalog row sharing its platform
+  facts, and a cell nothing compiles fails unless the fixture is
+  `// test-transpile-only` (#1760). Install the
+  cross toolchains with `xargs sudo apt-get install -y < scripts/cross-toolchain-packages.txt`;
+  without them the run stops at its preflight, which also compiles a data-model
+  probe for every catalog row, so a false fact in `targets/targets.cnx` fails
+  before any fixture. **A cross target must produce the host's output byte for
+  byte** (and a `test-error` fixture the host's diagnostics). One that differs
+  legitimately, such as a C header integer's width, is pinned with
+  `#pragma target host`. A cell that fails for a known bug carries
+  `// test-target-xfail` naming its issue and quoting its failure, and must keep
+  failing that way: a marked cell that passes, fails with other text, or is named
+  but never runs fails the fixture. A marked host cell waives only the `-Werror`
+  compile: a `test-execution` program still links and runs, and must pass, unless
+  the marker covers that failure too (#1760 second review)
 - **Cross-file testing**: Always test with symbols in included files, not just same-file
 - **Scope-context matrix (#1219)**: a check that works in one context routinely fails in
   another, and the corpus does not notice — 35 of 37 error codes have **zero** cross-file
@@ -831,15 +869,23 @@ buffer[0] = (uint8_t)(magic);
 - **Applies to** structural transformations and idiom substitutions: loop-idiom rewrites, compile-time unrolling, type-punning via unions, suppressions, etc. (Ubiquitous inline casts like a single narrowing `(uint8_t)` need not each carry a comment.)
 - **Existing examples to follow:** `ControlFlowGenerator` (`forever` → Rule 14.3) and `ArrayHandlers.handleArraySlice` (slice unroll → Rule 21.15). Use the `/* <Standard> Rule <N>: <what> (<why>). */` form for consistency.
 - **Format note:** use `/* … */` (house style for generated comments) and never nest `/*` inside the text (MISRA Rule 3.1).
+- **Cite a standard only when one of its rules directly applies** (owner ruling, 2026-09-27:
+  _"if no misra rules directly applies, then it should NOT be mentioned"_). A shape that C-Next's
+  own semantics dictate, such as a saturating clamp or evaluating an operand once, cites its ADR
+  in the `/* ADR-NNN / Issue #N: … */` form the ADR-044 helpers use. It never cites a
+  merely related rule: #1668's single-evaluation cast helper cites ADR-024, not MISRA
+  Directive 4.9, whose rationale is similar but whose subject is function-like macros.
 
 ### Essential Patterns
 
-- **expectedType**: Use `this.context.expectedType` to disambiguate (e.g., enum members)
+- **expectedType**: render reads `state.expectedType` to qualify a bare enum member
+  that 2.1 has already accepted; whether one is allowed is 2.1's decision (see
+  "Enum `expectedType` Contexts")
 - **Struct access**: Track `currentStructType` through member chains
 - **C++ mode**: Parameter signatures are rendered by `ParameterSignatureBuilder.build()` for both `.c` and `.h` generation — shared from the builder inwards; what reaches it is still derived once per path (#1639). Use `CppModeHelper` for mode-specific logic
 - **Handler state**: reach it through the context you were handed —
   `IAssignmentContext.state` in a handler, `IOrchestrator.state` in a generator,
-  `this.host.state` in the walk (234 sites); `CodeGenWalker.transpileState` is
+  `this.host.state` in the walk; `CodeGenWalker.transpileState` is
   the accessor the ORCHESTRATOR reads, not the walk's own route. Never import
   `TranspileState` to
   construct one
@@ -866,7 +912,7 @@ Update: `src/index.ts` (parse + pass), `src/transpiler/types/ITranspilerConfig.t
 2. Add the `needs<Effect>` field to **`TranspileState`** (reset in its `reset()`)
 3. Handle it in **`CodeGenerator.applyEffects()`**, which delegates to the one sink,
    `TranspileState.requireInclude()` — never set a `needs*` field directly
-4. Emit it in **`CodeGenerator.assembleGeneratedOutput()`** (via `addAutoIncludes()` for
+4. Emit it in **`CodeGenWalker.assembleGeneratedOutput()`** (via `addAutoIncludes()` for
    a real `#include`, or `addGeneratedHelpers()` for the three deferred code-emission
    members)
 
@@ -880,7 +926,7 @@ name in prose; only a reader can.
 
 ### Struct Param Access Helpers
 
-Use `memberAccessChain.ts` helpers rather than inlining the pointer-or-reference check: `getStructParamSeparator()` for `->` vs `.`, and `wrapStructParamValue()` for `(*param)` vs `param`. Both read one decision — a pointer in C, and a pointer in C++ too for a callback-promoted parameter (`forcePointerSemantics`) — so a member access and a whole-value use of one parameter cannot disagree. Never inline these. A whole-value use of an opaque handle (`TParameterInfo.isOpaqueHandle`, ADR-030) or of an array parameter is not wrapped at all: the pointer is the value.
+Use `memberAccessChain.ts` helpers rather than inlining the pointer-or-reference check: `getStructParamSeparator()` for `->` vs `.`, and `wholeParamValue()` for `(*param)` vs `param` wherever a parameter is used as a whole value — read, written, or the scalar a bitmap parameter's field is worked in. Both read one decision — a pointer in C, and a pointer in C++ too for a callback-promoted parameter (`forcePointerSemantics`) — so a member access and a whole-value use of one parameter cannot disagree. Never inline these. `wholeParamValue()` also holds the exceptions: a whole-value use of an opaque handle (`TParameterInfo.isOpaqueHandle`, ADR-030) or of an array parameter is not wrapped at all, because the pointer is the value. Until #1760 only the read side asked, so a written struct parameter was the bare pointer (`p = (*q);`) and a bitmap parameter's field was worked on the pointer itself.
 
 This used to name a third, `buildStructParamMemberAccess()`, "for chains". It had **no production caller** — chains are built incrementally by `MemberSeparatorResolver` and the postfix generator, never in one call — and knip could not report it, because its six test callers count as usage (#1418). Deleted under #1450. A rule naming a helper nothing uses teaches the next reader a pattern the codebase does not have.
 
@@ -917,10 +963,11 @@ This used to name a third, `buildStructParamMemberAccess()`, "for chains". It ha
 
 ### Const Inference
 
-`walkStatementForModifications()` uses two helpers:
+`PassByValueAnalyzer.walkStatementForModifications()` (2.2 Plan) uses two collectors
+in `src/utils/ast/`:
 
-- `collectExpressionsFromStatement()` — returns all expressions from any statement type
-- `getChildStatementsAndBlocks()` — returns child statements/blocks for recursion
+- `StatementExpressionCollector.collectAll()` — returns all expressions from any statement type
+- `ChildStatementCollector.collectAll()` — returns child statements/blocks for recursion
 
 Update both when adding new statement types.
 
@@ -936,8 +983,8 @@ Update both when adding new statement types.
 - **Two resolution points, one decision.** Type names are resolved twice, in different layers, and both must qualify:
   - **Symbols layer** — `TypeUtils.resolveType()`, fed an `isScopeType` predicate threaded from `CNextResolver.resolve()`. (`dispatchTypeResolution` was named here and was removed by #1285.) It answers with a settled name OR a `TDeferredType` when 1.3 cannot settle a bare name, and 1.4 Resolve settles those against the scope types that file can see — its own and its include closure's (`IProgram.isScopeTypeVisibleFrom`, #1724). Everything downstream (`TSymbol`, `HeaderSymbolAdapter`, the `.h`) inherits the name from here and must NOT re-qualify.
   - **Codegen layer** — `CodeGenWalker.getTypeName()` and friends (the method is the walker's; `CodeGenerator` has none), via the deps `TranspileState.typeBindingDeps()` hands to `TypeBinding`. The decision is still made here; it is reached by resolving a whole `TypeContext` rather than by qualifying a bare name at the call site. Its predicate is the symbols layer's: `TranspileState.isScopeType` asks `IProgram.isScopeTypeVisibleFrom` about the file being generated, so the `.h` and the `.c` qualify from one answer (#1724).
-- **`CNextResolver` Pass 0b** collects the qualified names of scope-declared enums/structs/bitmaps _before_ any type is resolved, so qualification does not depend on whether a type is declared above or below its use. Do not swap this for `scope.members`: that list is kind-agnostic (a function named `B` would capture global type `B`) and is still being built while collectors read it.
-- **`ScopeUtils.qualifyScopeType()`**: Shared utility in `src/utils/ScopeUtils.ts`. Takes `typeName`, the enclosing `scopePath`, and an `isKnownType(qualifiedName)` predicate. Its production callers are the symbols layer — `3-Declare/TypeBinding.ts` and `4-Resolve/DeferredTypes.ts`. Codegen reaches the same decision through `TranspileState.typeBindingDeps()`; `TypeGenerationHelper` injects the predicate through `ITypeGenerationDeps` instead, to stay unit-testable.
+- **`CNextResolver` Pass 0b** collects the qualified names of scope-declared types (`TYPE_FORMING_KINDS`: enums, structs, bitmaps, and functions, which ADR-029 makes callback types) _before_ any type is resolved, so qualification does not depend on whether a type is declared above or below its use. Do not swap this for `scope.members`: that list is kind-agnostic (a scope variable named `B` would capture global type `B`) and is still being built while collectors read it.
+- **`ScopeUtils.qualifyScopeType()`**: Shared utility in `src/utils/ScopeUtils.ts`. Takes `typeName`, the enclosing `scopePath`, and an `isKnownType(qualifiedName)` predicate. Its production callers are the symbols layer — `3-Declare/TypeBinding.ts` and `4-Resolve/DeferredTypes.ts` — and `OperandTyper`, with `program.isScopeTypeVisibleFrom` for the file being typed, when an operand names an enum type. Codegen reaches the same decision through `TranspileState.typeBindingDeps()`; `TypeGenerationHelper` injects the predicate through `ITypeGenerationDeps` instead, to stay unit-testable.
 - **`ParameterInputAdapter.fromAST` struct detection**: `isKnownStruct` must check both the bare name AND the qualified name (`ScopeUtils.qualifyInScope(typeName, currentScopePath)` -- the whole PATH, not a scope's leaf name) for scope-local struct types. Without this, scope struct params get classified as pass-by-value while `mappedType` comes back qualified, causing `.c` body to use `->` on a non-pointer.
 
 ---

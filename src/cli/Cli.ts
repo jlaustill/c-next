@@ -129,6 +129,7 @@ class Cli {
       parseOnly: args.parseOnly,
       headerOutDir: args.headerOutDir ?? fileConfig.headerOut,
       target: args.target ?? fileConfig.target,
+      pioEnv: args.pioEnv,
       debugMode: args.debugMode || fileConfig.debugMode,
     };
 

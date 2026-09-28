@@ -1,0 +1,2 @@
+1:0 error[E0510]: platformio.ini environment 'nucleo_f446re' builds board 'nucleo_f446re', which is not a known target
+       help: Name the target with '#pragma target <name>' or --target <name>. A board maps to a target when the catalog names it, or when its platform is atmelavr (avr) or native (host). Known targets: cortex-m7, cortex-m4, cortex-m3, cortex-m0+, cortex-m0, atmega328p, esp32, host, teensy41, teensy40, stm32f4, avr, arduino-uno.

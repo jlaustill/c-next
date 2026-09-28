@@ -1,0 +1,25 @@
+// test-error
+// test-adr: 024
+// Issue #1668: E0810's floating category across TWO include hops. Matrix
+// cells: imported transitive, in the global-variable and top-level-function
+// contexts.
+//
+// The rule asks each operand's category, and the floating one is declared two
+// files away. A check reading only this file finds no type for it, and an
+// unknown category never rejects, so the rule would go quiet across an
+// include rather than fail.
+
+#include "float-relay.cnx"
+
+// NEGATIVE CONTROL -- the imported float with a floating operand.
+f32 okFloatOnly <- sharedScale * 2.0;
+
+// ASSERTION -- global variable context.
+f32 mixedGlobal <- sharedCount * sharedScale;
+
+f32 scaled() {
+    u32 local <- 4;
+    // ASSERTION -- top-level function context.
+    f32 mixed <- local * sharedScale;
+    return mixed;
+}

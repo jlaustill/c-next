@@ -10,8 +10,8 @@
 // ADR-004: Register access modifiers test
 // Tests: rw (read-write), ro (read-only), wo (write-only) modifiers
 int main(void) {
-    PERIPH__CTRL = 0x01;
+    PERIPH__CTRL = 0x01U;
     uint32_t ctrl = PERIPH__CTRL;
     uint32_t status = PERIPH__STATUS;
-    PERIPH__CMD = 0xAB;
+    PERIPH__CMD = 0xABU;
 }

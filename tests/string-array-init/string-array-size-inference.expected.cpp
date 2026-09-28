@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <string.h>
 
+// test-execution
 // Issue #380: String array initializers with size inference
 // Tests: array size inferred from initializer count
 // Size inferred from initializer count (3 elements)
@@ -20,7 +21,7 @@ uint32_t test(void) {
     // cppcheck-suppress misra-c2012-9.3
     // cppcheck-suppress misra-c2012-9.4
     char items[][9] = {"A", "B", "C", "D"};
-    uint8_t count = 9;
+    uint8_t count = 4;
     if (count != 4) return 1U;
     if (strlen(items[0U]) != 1) return 2U;
     if (strlen(items[3U]) != 1) return 3U;
@@ -28,7 +29,7 @@ uint32_t test(void) {
 }
 
 int main(void) {
-    if (17 != 3) return 1U;
+    if (3 != 3) return 1U;
     if (strlen(DAYS[0U]) != 6) return 2U;
     if (strlen(DAYS[1U]) != 7) return 3U;
     if (strlen(DAYS[2U]) != 9) return 4U;

@@ -1,0 +1,19 @@
+// test-execution
+// #1700: a u32 local that shadows an f32 scope member is integer arithmetic,
+// so `x + x` saturates at u32's maximum. Typed as the float member, the clamp
+// was dropped and 6000000000 wrapped to 1705032704.
+scope S {
+    f32 x <- 0.0;
+
+    public u32 f() {
+        u32 x <- 3000000000;
+        u32 y <- x + x;
+        return y;
+    }
+}
+
+u32 main() {
+    u32 r <- S.f();
+    if (r != 4294967295) return 1;
+    return 0;
+}

@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-380 fixture(s) assert a diagnostic; 365 carry a code.
+454 fixture(s) assert a diagnostic; 439 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -23,6 +23,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-004/register-wo-set-false-error.test.cnx                                               | E0872               |
 | tests/adr-004/register-write-ro-error.test.cnx                                                   | E0871               |
 | tests/adr-007/float-bit-range-global-scope-error.test.cnx                                        | E0888               |
+| tests/adr-007/rmw-side-effect-error.test.cnx                                                     | E0890               |
+| tests/adr-007/rmw-side-effect-imported-error.test.cnx                                            | E0890               |
 | tests/adr-007/slice-bounds-violation.test.cnx                                                    | E0860               |
 | tests/adr-007/slice-imported-direct-error.test.cnx                                               | E0860               |
 | tests/adr-007/slice-imported-transitive-error.test.cnx                                           | E0860               |
@@ -66,8 +68,12 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-013/const-u64-assign-error.test.cnx                                                    | E0877               |
 | tests/adr-013/const-u64-param-assign-error.test.cnx                                              | E0877               |
 | tests/adr-013/const-uncovered-arms-error.test.cnx                                                | E0877, E0878        |
+| tests/adr-014/struct-init-non-struct-direct-error.test.cnx                                       | E0358               |
+| tests/adr-014/struct-init-non-struct-transitive-error.test.cnx                                   | E0358               |
 | tests/adr-014/struct-no-type-error.test.cnx                                                      | E0357               |
 | tests/adr-014/struct-written-type-rejected-error.test.cnx                                        | (uncoded)           |
+| tests/adr-014/whole-array-field-direct-error.test.cnx                                            | E0866               |
+| tests/adr-014/whole-array-field-transitive-error.test.cnx                                        | E0866               |
 | tests/adr-016/cross-scope-bare-error.test.cnx                                                    | E0436               |
 | tests/adr-016/cross-scope-register-bare-error.test.cnx                                           | E0437               |
 | tests/adr-016/mixed-access-ultimate-error.test.cnx                                               | E0435, E0436        |
@@ -123,6 +129,11 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-024/conversion-imported-direct-error.test.cnx                                          | E0869               |
 | tests/adr-024/conversion-imported-transitive-error.test.cnx                                      | E0869               |
 | tests/adr-024/conversion-in-scope-error.test.cnx                                                 | E0869               |
+| tests/adr-024/conversion-other-scope-error.test.cnx                                              | E0869               |
+| tests/adr-024/conversion-scope-imported-direct-error.test.cnx                                    | E0869               |
+| tests/adr-024/conversion-scope-imported-transitive-error.test.cnx                                | E0869               |
+| tests/adr-024/float-imported-direct-error.test.cnx                                               | E0891               |
+| tests/adr-024/float-imported-transitive-error.test.cnx                                           | E0891               |
 | tests/adr-024/literal-binary-overflow-error.test.cnx                                             | E0868               |
 | tests/adr-024/literal-hex-overflow-error.test.cnx                                                | E0868               |
 | tests/adr-024/literal-negative-unsigned-error.test.cnx                                           | E0868               |
@@ -319,6 +330,69 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-consumer-first.test.cnx   | E0427               |
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-source-first.test.cnx     | E0427               |
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-target.test.cnx                   | E0427               |
+| tests/bugs/issue-1664-const-shadow/local-bound-error.test.cnx                                    | E0854               |
+| tests/bugs/issue-1668-foreign-operands/c-typedef-declaration-error.test.cnx                      | E0810               |
+| tests/bugs/issue-1668-foreign-operands/c-typedef-narrowing-error.test.cnx                        | E0869               |
+| tests/bugs/issue-1668-foreign-operands/cpp-members-error.test.cnx                                | E0810               |
+| tests/bugs/issue-1668-foreign-operands/declared-function-pointer-field-error.test.cnx            | E0810               |
+| tests/bugs/issue-1668-foreign-operands/declared-function-pointer-member-error.test.cnx           | E0810               |
+| tests/bugs/issue-1668-foreign-operands/function-pointer-field-error.test.cnx                     | E0810               |
+| tests/bugs/issue-1668-foreign-operands/global-header-name-error.test.cnx                         | E0810               |
+| tests/bugs/issue-1668-int-float-clamp/foreign-float-rejected-cpp.test.cnx                        | E0810               |
+| tests/bugs/issue-1668-int-float-clamp/foreign-float-rejected.test.cnx                            | E0810               |
+| tests/bugs/issue-1668-int-float-clamp/mixed-category-chained-rejected.test.cnx                   | E0810               |
+| tests/bugs/issue-1668-int-float-clamp/mixed-category-compound-rejected.test.cnx                  | E0810               |
+| tests/bugs/issue-1668-int-float-clamp/mixed-category-wrapped-level.test.cnx                      | E0810               |
+| tests/bugs/issue-1668-int-float-clamp/mixed-int-float-imported-direct.test.cnx                   | E0810               |
+| tests/bugs/issue-1668-int-float-clamp/mixed-int-float-imported-transitive.test.cnx               | E0810               |
+| tests/bugs/issue-1668-int-float-clamp/mixed-int-float-rejected.test.cnx                          | E0810               |
+| tests/bugs/issue-1668-int-float-clamp/postfix-operands-rejected.test.cnx                         | E0810               |
+| tests/bugs/issue-1668-operand-typing/bit-subscript-sites.test.cnx                                | E0856               |
+| tests/bugs/issue-1668-operand-typing/bitmap-field-sites.test.cnx                                 | E0881               |
+| tests/bugs/issue-1668-operand-typing/bool-for-header-compound.test.cnx                           | E0806, E0807        |
+| tests/bugs/issue-1668-operand-typing/c-integer-categories.test.cnx                               | E0810               |
+| tests/bugs/issue-1668-operand-typing/callback-assign-sites.test.cnx                              | E0879               |
+| tests/bugs/issue-1668-operand-typing/compound-assign-sites.test.cnx                              | E0857               |
+| tests/bugs/issue-1668-operand-typing/enum-assign-sites.test.cnx                                  | E0428               |
+| tests/bugs/issue-1668-operand-typing/float-modulo-shapes.test.cnx                                | E0804               |
+| tests/bugs/issue-1668-operand-typing/integer-conversion-sources.test.cnx                         | E0869               |
+| tests/bugs/issue-1668-operand-typing/register-write-sites.test.cnx                               | E0871               |
+| tests/bugs/issue-1668-operand-typing/rule-10-4-categories.test.cnx                               | E0810               |
+| tests/bugs/issue-1668-operand-typing/shift-operand-shapes.test.cnx                               | E0805, E0873        |
+| tests/bugs/issue-1668-operand-typing/slice-assign-sites.test.cnx                                 | E0860, E0861        |
+| tests/bugs/issue-1668-param-dimension/hex-param-bounds.test.cnx                                  | E0854               |
+| tests/bugs/issue-1668-subscript-typing/string-element-float-error.test.cnx                       | E0810               |
+| tests/bugs/issue-1668-targets/conflicting-pragmas.test.cnx                                       | E0511               |
+| tests/bugs/issue-1668-targets/inline-bad-values.test.cnx                                         | E0513               |
+| tests/bugs/issue-1668-targets/inline-incomplete.test.cnx                                         | E0514               |
+| tests/bugs/issue-1668-targets/pio-ambiguous/pio-ambiguous.test.cnx                               | E0511               |
+| tests/bugs/issue-1668-targets/pio-unknown-board/pio-unknown-board.test.cnx                       | E0510               |
+| tests/bugs/issue-1668-targets/pragma-bad-value.test.cnx                                          | E0513               |
+| tests/bugs/issue-1668-targets/pragma-unknown-key.test.cnx                                        | E0512               |
+| tests/bugs/issue-1668-targets/target-and-inline.test.cnx                                         | E0511               |
+| tests/bugs/issue-1668-targets/target-required/no-target.test.cnx                                 | E0515               |
+| tests/bugs/issue-1668-targets/unknown-pragma.test.cnx                                            | E0510               |
+| tests/bugs/issue-1668-ternary-arms/arms.test.cnx                                                 | E0810               |
+| tests/bugs/issue-1668-ternary-arms/transitive/transitive.test.cnx                                | E0810               |
+| tests/bugs/issue-1694-e0850-scoped-name/signed-then-loop.test.cnx                                | E0850               |
+| tests/bugs/issue-1698-bare-scope-call/mix-error.test.cnx                                         | E0810               |
+| tests/bugs/issue-1698-bare-scope-call/narrow-error.test.cnx                                      | E0869               |
+| tests/bugs/issue-1698-bare-scope-call/scope-wins-error.test.cnx                                  | E0869               |
+| tests/bugs/issue-1699-this-reopened-scope/bounds-error.test.cnx                                  | E0854               |
+| tests/bugs/issue-1699-this-reopened-scope/mix-error.test.cnx                                     | E0810               |
+| tests/bugs/issue-1699-this-reopened-scope/narrow-error.test.cnx                                  | E0869               |
+| tests/bugs/issue-1702-declaration-position/after-inner-error.test.cnx                            | E0810               |
+| tests/bugs/issue-1702-declaration-position/cv-fn-error.test.cnx                                  | E0869               |
+| tests/bugs/issue-1702-declaration-position/fl-fn-error.test.cnx                                  | E0810               |
+| tests/bugs/issue-1724-sibling-scope-type-not-included/frames-see-own-closure-error.test.cnx      | E0810               |
+| tests/bugs/issue-1724-sibling-scope-type-not-included/typer-sees-own-closure-error.test.cnx      | E0428               |
+| tests/bugs/issue-1800-float-to-integer/for-header-rejected.test.cnx                              | E0868, E0869, E0891 |
+| tests/bugs/issue-1800-float-to-integer/implicit-rejected.test.cnx                                | E0891               |
+| tests/bugs/issue-1800-float-to-integer/positions-rejected.test.cnx                               | E0891               |
+| tests/bugs/issue-1802-struct-initializer-target/header-scalar.test.cnx                           | E0358               |
+| tests/bugs/issue-1802-struct-initializer-target/non-struct-targets.test.cnx                      | E0358               |
+| tests/bugs/issue-1802-struct-initializer-target/pointer-and-function-types.test.cnx              | E0358               |
+| tests/bugs/issue-1802-struct-initializer-target/whole-array-positions.test.cnx                   | E0866               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/cross-file-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx                             | E0708               |

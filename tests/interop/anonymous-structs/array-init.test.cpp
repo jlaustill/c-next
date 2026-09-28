@@ -7,6 +7,7 @@
 
 // test-cpp-only
 // test-execution
+// test-target-xfail: atmega328p #1767 "non-trivial designated initializers not supported"
 // Test: Array of structs with anonymous members
 #include "anon_types.h"
 

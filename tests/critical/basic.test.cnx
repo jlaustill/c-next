@@ -1,4 +1,5 @@
 // test-c-only
+// test-target-xfail: host #1147 "implicit declaration of function"
 u8[64] buffer;
 
 u32 writeIdx <- 0;

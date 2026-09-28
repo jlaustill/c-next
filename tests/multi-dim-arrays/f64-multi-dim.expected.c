@@ -43,7 +43,7 @@ int main(void) {
     if (64 != 64) return 16U;
     for (uint32_t i = 0U; i < 4; i += 1) {
         for (uint32_t j = 0U; j < 8; j += 1) {
-            matrix2d[i][j] = i * 2.5 + j * 0.5;
+            matrix2d[i][j] = (double)i * 2.5 + (double)j * 0.5;
         }
     }
     if (matrix2d[0U][0U] != 0.0) return 17U;
@@ -54,7 +54,7 @@ int main(void) {
     for (uint32_t i = 0U; i < 2; i += 1) {
         for (uint32_t j = 0U; j < 3; j += 1) {
             for (uint32_t k = 0U; k < 4; k += 1) {
-                cube3d[i][j][k] = i * 10.5 + j * 2.25 + k * 0.5;
+                cube3d[i][j][k] = (double)i * 10.5 + (double)j * 2.25 + (double)k * 0.5;
                 sum += cube3d[i][j][k];
             }
         }

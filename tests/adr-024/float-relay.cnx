@@ -1,0 +1,2 @@
+// Helper (not a test): a second include hop to the float source.
+#include "float-declarations.cnx"

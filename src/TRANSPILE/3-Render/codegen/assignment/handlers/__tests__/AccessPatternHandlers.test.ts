@@ -6,6 +6,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import accessPatternHandlers from "../AccessPatternHandlers";
 import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
+import type TPlannedTargetOp from "../../../../../../transpiler/types/TPlannedTargetOp";
 import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
 import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
@@ -43,6 +44,7 @@ function createMockContext(
     hasValue: true,
     valueExpressionType: () => null,
     valueIntegerType: () => null,
+    valueHasFloatingOperand: () => false,
     foldValue: () =>
       HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     postfixOps: [],
@@ -263,46 +265,78 @@ describe("AccessPatternHandlers", () => {
       expect(result).toBe("device.config.value = 5;");
     });
 
-    it("generates bit access when detected in member chain", () => {
+    /**
+     * #1668 review: a member chain's bit write is `writeBits`, the one every
+     * bit handler uses -- the target without its final subscript, and the
+     * typer's type for the value it indexes. Given here as the chain's ops.
+     */
+    const bitWriteContext = (
+      root: string,
+      ops: readonly TPlannedTargetOp[],
+      baseType: string,
+      generatedValue: string,
+    ): IAssignmentContext => {
       HandlerTestUtils.setupMockGenerator(state, {
-        analyzeMemberChainForBitAccess: vi.fn().mockReturnValue({
-          isBitAccess: true,
-          baseTarget: "grid[2][3].flags",
-          bitIndex: "0",
-          baseType: "u32",
-        }),
+        analyzeMemberChainForBitAccess: vi
+          .fn()
+          .mockReturnValue({ isBitAccess: true }),
       });
       const ctx = createMockContext({
-        identifiers: ["grid", "flags"],
-        ...HandlerTestUtils.subscriptsOf([{ mockValue: "0" } as never]),
-        generatedValue: "true",
+        identifiers: [root],
+        resolvedBaseIdentifier: root,
+        postfixOps: ops,
+        generatedValue,
       });
-
-      const result = getHandler()!(ctx);
-
-      expect(result).toContain("grid[2][3].flags =");
-      expect(result).toContain("& ~(1U << 0)");
-      expect(result).toContain("1U << 0");
+      const bits = HandlerTestUtils.bitWriteOf(ctx, 1, {
+        baseType,
+        bitWidth: 0,
+        isArray: false,
+        isConst: false,
+      });
+      return {
+        ...ctx,
+        renderBitTarget: bits.renderBitTarget,
+        target: {
+          root: null,
+          rootTypeInfo: undefined,
+          typeInfo: undefined,
+          last: bits.last,
+        },
+      };
+    };
+    const index = (text: string): TPlannedTargetOp => ({
+      kind: "subscript",
+      indexCount: 1,
+      renderIndexes: () => [text],
+      foldWidth: () => undefined,
     });
 
-    it("uses 1ULL for 64-bit bit access", () => {
-      HandlerTestUtils.setupMockGenerator(state, {
-        analyzeMemberChainForBitAccess: vi.fn().mockReturnValue({
-          isBitAccess: true,
-          baseTarget: "data.flags",
-          bitIndex: "bit",
-          baseType: "u64",
-        }),
-      });
-      const ctx = createMockContext({
-        identifiers: ["data", "flags"],
-        ...HandlerTestUtils.subscriptsOf([{ mockValue: "bit" } as never]),
-        generatedValue: "false",
-      });
+    it("generates bit access when detected in member chain", () => {
+      const ctx = bitWriteContext(
+        "grid",
+        [index("2"), index("3"), { kind: "member", name: "flags" }, index("0")],
+        "u32",
+        "true",
+      );
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("1ULL << bit");
+      expect(result).toBe(
+        "grid[2][3].flags = (grid[2][3].flags & ~((uint32_t)1U << 0)) | ((uint32_t)1U << 0);",
+      );
+    });
+
+    it("shifts a 64-bit member's bit in 64 bits", () => {
+      const ctx = bitWriteContext(
+        "data",
+        [{ kind: "member", name: "flags" }, index("bit")],
+        "u64",
+        "false",
+      );
+
+      const result = getHandler()!(ctx);
+
+      expect(result).toContain("~((uint64_t)1U << bit)");
     });
 
     // #1322: compound assignment on a bit index, bit range, slice, bitmap field

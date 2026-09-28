@@ -1,0 +1,6 @@
+13:16 error[E0358]: A struct initializer cannot be a value of 'Handle', which is not a struct
+       help: Give a value of type 'Handle'; only a struct takes '{ field: value }' (ADR-014).
+14:15 error[E0358]: A struct initializer cannot be a value of 'cb_t', which is not a struct
+       help: Give a value of type 'cb_t'; only a struct takes '{ field: value }' (ADR-014).
+15:18 error[E0358]: A struct initializer cannot be a value of 'handler', which is not a struct
+       help: Give a value of type 'handler'; only a struct takes '{ field: value }' (ADR-014).

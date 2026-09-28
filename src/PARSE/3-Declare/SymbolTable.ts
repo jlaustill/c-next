@@ -24,7 +24,7 @@ import IStructSymbol from "../../transpiler/types/symbols/IStructSymbol";
 import IEnumSymbol from "../../transpiler/types/symbols/IEnumSymbol";
 import IFunctionSymbol from "../../transpiler/types/symbols/IFunctionSymbol";
 import TypeResolver from "../../utils/TypeResolver";
-import type ITargetCapabilities from "../../transpiler/types/ITargetCapabilities";
+import type ITargetDescription from "../../transpiler/types/ITargetDescription";
 
 // Enable immer support for Map and Set (must be called once at module scope)
 enableMapSet();
@@ -33,7 +33,6 @@ enableMapSet();
 function createInitialStructState(): IStructSymbolState {
   return {
     opaqueTypes: new Set(),
-    typedefStructTypes: new Map(),
     structTagAliases: new Map(),
     typedefToTag: new Map(),
     structTagsWithBodies: new Set(),
@@ -122,7 +121,7 @@ class SymbolTable {
 
   /**
    * Issue #958: Immutable struct symbol state — additive only, query-time resolution.
-   * Replaces separate opaqueTypes, typedefStructTypes, structTagAliases fields.
+   * Replaces separate opaqueTypes and structTagAliases fields.
    */
   private structState: IStructSymbolState = createInitialStructState();
 
@@ -579,14 +578,11 @@ class SymbolTable {
    * - Two identifiers that are equal outright are `detectConflict`'s job
    *   (ADR-063, #1117), not this one.
    *
-   * @param targetCapabilities The target's identifier significance limits
+   * @param target The target, whose identifier significance limits apply
    * @returns One conflict per group of identifiers sharing a truncated prefix
    */
-  detectMISRA51Conflicts(targetCapabilities: ITargetCapabilities): IConflict[] {
-    const limit = targetCapabilities?.significantExternalIdentifierChars;
-    if (limit === undefined) {
-      return [];
-    }
+  detectMISRA51Conflicts(target: ITargetDescription): IConflict[] {
+    const limit = target.external_identifier_chars;
 
     const byPrefix = SymbolTable.groupExternalCNextSymbolsByPrefix(
       this.getAllSymbols(),
@@ -884,7 +880,6 @@ class SymbolTable {
   serializeStructState(): TJsonSafe<Required<IStructSymbolState>> {
     return {
       opaqueTypes: Array.from(this.structState.opaqueTypes),
-      typedefStructTypes: Array.from(this.structState.typedefStructTypes),
       structTagAliases: Array.from(this.structState.structTagAliases),
       typedefToTag: Array.from(this.structState.typedefToTag),
       structTagsWithBodies: Array.from(this.structState.structTagsWithBodies),
@@ -917,7 +912,6 @@ class SymbolTable {
   restoreStructState(state: TJsonSafe<Required<IStructSymbolState>>): void {
     const revived: Required<IStructSymbolState> = {
       opaqueTypes: new Set(state.opaqueTypes),
-      typedefStructTypes: new Map(state.typedefStructTypes),
       structTagAliases: new Map(state.structTagAliases),
       typedefToTag: new Map(state.typedefToTag),
       structTagsWithBodies: new Set(state.structTagsWithBodies),
@@ -1006,9 +1000,13 @@ class SymbolTable {
    */
   isOpaqueType(typeName: string): boolean {
     // #1511: the rule is shared with 1.4 Resolve, which authors this as a fact
-    // of the whole program. This instance method stays for the one caller that
-    // asks it of a DIFFERENT table -- #985 phantom-body recovery re-parses each
-    // header cleanly and consults that throwaway table's verdict.
+    // of the whole program; 1.4's parameter stamp (#1722) reads that. This is
+    // the same rule over the same marks, for the readers that hold a table:
+    // #985 phantom-body recovery (a throwaway table), `ForeignTypeFacts`'
+    // struct checks, and `DeclaredPointer.isHandleType` (ADR-030). There used
+    // to be a second mark, `typedefStructTypes`, set under the identical
+    // condition and resolved by a copy of this rule; one mark and one rule
+    // mean a handle parameter's signature and call site cannot disagree.
     return OpaqueTypeResolution.isOpaque(
       typeName,
       this.structState.opaqueTypes,
@@ -1111,53 +1109,6 @@ class SymbolTable {
   // ========================================================================
   // Issue #958: Typedef Struct Type Tracking
   // ========================================================================
-
-  /**
-   * Issue #958: Mark a typedef as aliasing a struct type.
-   * Records the source file. Additive only — never removed.
-   * @param typedefName The typedef name (e.g., "widget_t")
-   * @param sourceFile The file where the typedef was declared
-   */
-  markTypedefStructType(typedefName: string, sourceFile: string): void {
-    this.structState = produce(this.structState, (draft) => {
-      draft.typedefStructTypes.set(typedefName, sourceFile);
-    });
-  }
-
-  /**
-   * Issue #958: Check if a typedef aliases a struct type.
-   * Used for scope variables, function parameters, and local variables
-   * which should be pointers for C-header struct types.
-   *
-   * Issue #948: Performs query-time resolution - if the underlying struct
-   * tag has a full body definition, this is NOT an external typedef struct
-   * (it's a complete type that can use value semantics).
-   *
-   * @param typeName The type name to check
-   * @returns true if this is a typedef'd struct type from C headers
-   */
-  isTypedefStructType(typeName: string): boolean {
-    if (!this.structState.typedefStructTypes.has(typeName)) {
-      return false;
-    }
-    // Issue #948: Query-time resolution - if the underlying struct tag
-    // has a body definition, this typedef is NOT an external struct type.
-    // Example: `typedef struct _point_t point_t;` followed by `struct _point_t { ... };`
-    // The second declaration provides the body, so point_t is a complete type.
-    const tag = this.structState.typedefToTag.get(typeName);
-    if (tag && this.structState.structTagsWithBodies.has(tag)) {
-      return false;
-    }
-    return true;
-  }
-
-  /**
-   * Issue #958: Get all typedef struct types for cache serialization.
-   * @returns Map entries as [typeName, sourceFile] pairs
-   */
-  getAllTypedefStructTypes(): Array<[string, string]> {
-    return Array.from(this.structState.typedefStructTypes.entries());
-  }
 
   // ========================================================================
   // Enum Bit Width Tracking

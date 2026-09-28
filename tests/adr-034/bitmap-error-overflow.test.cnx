@@ -9,6 +9,10 @@ bitmap8 Flags {
 }
 
 Flags f <- 0;
+// #1760 second review: a const is its value, folded by the one binder. The
+// field write read the literal text, so `f.Mode <- BIG` stored 4 silently.
+const u8 FITS <- 7;
+const u8 BIG <- 20;
 
 void main() {
     // NEGATIVE CONTROLS -- declared before the assertions. The widest value
@@ -19,6 +23,7 @@ void main() {
     f.Mode <- 0b111;
     f.Enable <- 1;
     f.Reserved <- 15;
+    f.Mode <- FITS;
 
     // ASSERTIONS -- one over the maximum, in each base.
     f.Mode <- 8;
@@ -26,4 +31,6 @@ void main() {
     f.Mode <- 0b1000;
     f.Enable <- 2;
     f.Reserved <- 16;
+    f.Mode <- BIG;
+    f.Mode <- FITS + 1;
 }

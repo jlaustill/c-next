@@ -68,7 +68,9 @@ void adjustBrightness(uint8_t delta) {
     do {
         uint8_t __old = __LDREXB(&brightness);
         uint8_t __new = cnx_clamp_add_u8(__old, delta);
-        if (__STREXB(__new, &brightness) == 0) break;
+        if (__STREXB(__new, &brightness) == 0) {
+            break;
+        }
     } while (1);
 }
 
@@ -76,7 +78,9 @@ void decreaseBrightness(uint8_t delta) {
     do {
         uint8_t __old = __LDREXB(&brightness);
         uint8_t __new = cnx_clamp_sub_u8(__old, delta);
-        if (__STREXB(__new, &brightness) == 0) break;
+        if (__STREXB(__new, &brightness) == 0) {
+            break;
+        }
     } while (1);
 }
 
@@ -84,7 +88,9 @@ void updateVolume(uint16_t delta) {
     do {
         uint16_t __old = __LDREXH(&volume);
         uint16_t __new = cnx_clamp_add_u16(__old, delta);
-        if (__STREXH(__new, &volume) == 0) break;
+        if (__STREXH(__new, &volume) == 0) {
+            break;
+        }
     } while (1);
 }
 
@@ -92,7 +98,9 @@ void incrementCounter(void) {
     do {
         uint32_t __old = __LDREXW(&counter);
         uint32_t __new = cnx_clamp_add_u32(__old, 1U);
-        if (__STREXW(__new, &counter) == 0) break;
+        if (__STREXW(__new, &counter) == 0) {
+            break;
+        }
     } while (1);
 }
 
@@ -100,7 +108,9 @@ void adjustTemperature(int8_t delta) {
     do {
         int8_t __old = __LDREXB(&temperature);
         int8_t __new = cnx_clamp_add_i8(__old, delta);
-        if (__STREXB(__new, &temperature) == 0) break;
+        if (__STREXB(__new, &temperature) == 0) {
+            break;
+        }
     } while (1);
 }
 

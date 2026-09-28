@@ -22,7 +22,6 @@ interface IGeneratorState {
   readonly localVariables: ReadonlySet<string>;
 
   /** Local arrays in the current function (no & needed for pass-by-ref) */
-  readonly localArrays: ReadonlySet<string>;
 
   /** Expected type for inferred struct initializers */
   readonly expectedType: string | null;

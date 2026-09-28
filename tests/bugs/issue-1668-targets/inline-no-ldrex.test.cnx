@@ -1,0 +1,26 @@
+// #1668 / ADR-049: the negative control for inline-ldrex -- the same
+// description with ldrex_strex false lowers the atomic to PRIMASK masking,
+// so the pragma, not the presence of a description, decides.
+#pragma word_size 32
+#pragma ldrex_strex false
+#pragma basepri false
+#pragma char_bits 8
+#pragma char_signed false
+#pragma short_bits 16
+#pragma int_bits 32
+#pragma long_bits 32
+#pragma long_long_bits 64
+#pragma size_t_bits 32
+#pragma pointer_bits 32
+#pragma float_bits 32
+#pragma double_bits 64
+#pragma long_double_bits 64
+#pragma big_endian false
+#pragma external_identifier_chars 31
+#pragma internal_identifier_chars 63
+
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- 1;
+}

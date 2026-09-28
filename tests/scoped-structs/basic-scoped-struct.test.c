@@ -53,9 +53,9 @@ int main(void) {
     Motor__disable();
     enabled = Motor__isEnabled();
     if (enabled != false) return 8U;
-    Motor__current.speed = 50;
+    Motor__current.speed = 50U;
     if (Motor__current.speed != 50) return 9U;
-    Motor__current.direction = 2;
+    Motor__current.direction = 2U;
     if (Motor__current.direction != 2) return 10U;
     Motor__current.enabled = true;
     if (Motor__current.enabled != true) return 11U;

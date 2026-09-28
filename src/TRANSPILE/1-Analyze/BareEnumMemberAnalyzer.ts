@@ -45,38 +45,26 @@
  * predicate is E0427's, shared rather than restated.
  */
 
+import StructInitializerType from "./helpers/StructInitializerType";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import OperandTyper from "../../utils/OperandTyper";
 import EnumMemberSuggestion from "./helpers/EnumMemberSuggestion";
-import EnumValueResolver from "./EnumValueResolver";
 import IBareEnumMemberError from "./types/IBareEnumMemberError";
-import IScopeFrame from "./types/IScopeFrame";
-import OperandTypeResolver from "./OperandTypeResolver";
-import ScopeFrameResolver from "./ScopeFrameResolver";
 import UndeclaredValueAnalyzer from "./UndeclaredValueAnalyzer";
-import TypeText from "./helpers/TypeText";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import StructFieldFacts from "../../utils/StructFieldFacts";
 
 /** A type name as written at the position that establishes it, or null. */
 type TExpected = string | null;
 
 class BareEnumMemberListener extends CNextListener {
   private readonly found: IBareEnumMemberError[] = [];
-  private readonly types: OperandTypeResolver;
-  private readonly values: EnumValueResolver;
 
-  public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    private readonly context: IAnalysisContext,
-  ) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
-    this.types = new OperandTypeResolver(scopes, context);
-    this.values = new EnumValueResolver(scopes, context);
   }
 
   public errors(): IBareEnumMemberError[] {
@@ -97,21 +85,19 @@ class BareEnumMemberListener extends CNextListener {
     const declaring = EnumMemberSuggestion.enumsDeclaring(name, symbols);
     if (declaring.length === 0) return;
 
-    const frame = this.scopes.frameFor(ctx);
+    const scopePath = OperandTyper.scopePathAt(ctx, this.context);
     if (
       UndeclaredValueAnalyzer.isDeclaredValue(
         name,
-        frame,
-        frame.scopePath,
-        this.scopes,
-        this.context.symbolTable,
+        ctx,
+        scopePath,
         this.context,
       )
     ) {
       return;
     }
 
-    const expected = this.expectedEnum(ctx, frame);
+    const expected = this.expectedEnum(ctx, scopePath);
     if (expected !== null && symbols.enumMembers.get(expected)?.has(name)) {
       return;
     }
@@ -131,23 +117,10 @@ class BareEnumMemberListener extends CNextListener {
    * position names none. Walks up to the nearest establishing node, stopping
    * early at the nodes that clear or suppress the expected type.
    */
-  private expectedEnum(node: ParserRuleContext, frame: IScopeFrame): TExpected {
-    const text = this.expectedTypeText(node, frame);
-    return text === null ? null : this.values.enumTypeNameFor(text, frame);
-  }
-
-  /**
-   * The declared type text the position at `node` is generated under -- the
-   * codegen `expectedType` -- or null. Type texts are as WRITTEN (`Color`,
-   * `this.Mode`, `Lib.State`); the caller resolves them.
-   */
-  private expectedTypeText(
-    node: ParserRuleContext,
-    frame: IScopeFrame,
-  ): TExpected {
+  private expectedEnum(node: ParserRuleContext, scopePath: string): TExpected {
     let cursor: ParserRuleContext | null = node.parent;
     while (cursor) {
-      const answer = this.establishedBy(cursor, frame);
+      const answer = this.establishedBy(cursor, scopePath);
       if (answer !== undefined) return answer;
       cursor = cursor.parent;
     }
@@ -168,120 +141,108 @@ class BareEnumMemberListener extends CNextListener {
    */
   private establishedBy(
     cursor: ParserRuleContext,
-    frame: IScopeFrame,
+    scopePath: string,
   ): TExpected | undefined {
-    // --- clears and suppressions ------------------------------------------
-    // A postfix operation: a subscript index (`size_t`) or a call's argument
-    // list (suppressed, #872). One test covers both -- an argument list is
-    // always inside the `(...)` op, so a separate check for it never ran.
-    if (cursor instanceof Parser.PostfixOpContext) return null;
-    if (
-      cursor instanceof Parser.ArrayDimensionContext ||
-      cursor instanceof Parser.ArrayTypeDimensionContext
-    ) {
-      return null;
-    }
-    if (
-      (cursor instanceof Parser.EqualityExpressionContext &&
-        cursor.relationalExpression().length > 1) ||
-      (cursor instanceof Parser.RelationalExpressionContext &&
-        cursor.bitwiseOrExpression().length > 1)
-    ) {
-      return null;
-    }
-    if (
-      cursor instanceof Parser.ForVarDeclContext ||
-      cursor instanceof Parser.ForAssignmentContext ||
-      cursor instanceof Parser.ForUpdateContext
-    ) {
-      return null;
-    }
+    if (BareEnumMemberListener.clearsExpected(cursor)) return null;
 
     // --- establishing nodes -----------------------------------------------------
+    // #1668 review: each answers with the enum the typer gives the position's
+    // type. The positions used to answer with the type as WRITTEN, qualified
+    // here by hand -- `this.`, `global.`, then the enclosing scope -- beside
+    // the typer's `TypeBinding`, which every other rule reads for the same
+    // spelling.
     if (cursor instanceof Parser.VariableDeclarationContext) {
-      return BareEnumMemberListener.declaredTypeText(cursor.type());
+      return this.enumOfWritten(cursor.type(), cursor);
     }
     if (cursor instanceof Parser.AssignmentStatementContext) {
-      return this.assignmentTargetType(cursor.assignmentTarget(), frame);
+      return this.assignmentTargetEnum(cursor.assignmentTarget());
     }
     if (cursor instanceof Parser.ReturnStatementContext) {
-      return BareEnumMemberListener.enclosingFunctionType(cursor);
+      const fn = BareEnumMemberListener.enclosingFunction(cursor);
+      return fn === null ? null : this.enumOfWritten(fn.type(), fn);
     }
     if (cursor instanceof Parser.FieldInitializerContext) {
-      return this.fieldType(cursor, frame);
+      // #1668: the one field typing struct initializers share; a field's
+      // type is recorded by its C name
+      const field = StructInitializerType.fieldType(cursor, this.context);
+      return field !== null && this.context.symbols.knownEnums.has(field)
+        ? field
+        : null;
     }
     if (cursor instanceof Parser.ArrayInitializerContext) {
-      // An element is generated under the array's ELEMENT type, which is the
-      // declared type with its dimensions removed -- what the walk above this
-      // node answers, since `declaredTypeText` strips them.
-      return this.expectedTypeText(cursor, frame);
+      // An element is generated under the array's ELEMENT type: the enum the
+      // walk above this node answers, which an array of it names too.
+      return this.expectedEnum(cursor, scopePath);
     }
     if (cursor instanceof Parser.StructInitializerContext) {
       // Reached from a field: the struct's type, explicit or inherited.
-      return this.structTypeOf(cursor, frame);
+      return this.structTypeOf(cursor, scopePath);
     }
-    if (
+    return undefined;
+  }
+
+  /**
+   * Whether `cursor` clears the expected type of everything under it. Every
+   * context class extends the rule context directly, so none of these is also
+   * an establishing node, and which is tested first cannot matter.
+   */
+  private static clearsExpected(cursor: ParserRuleContext): boolean {
+    return (
+      // A postfix operation: a subscript index (`size_t`) or a call's
+      // argument list (suppressed, #872). One test covers both -- an argument
+      // list is always inside the `(...)` op, so a separate check never ran.
+      cursor instanceof Parser.PostfixOpContext ||
+      cursor instanceof Parser.ArrayDimensionContext ||
+      cursor instanceof Parser.ArrayTypeDimensionContext ||
+      BareEnumMemberListener.isComparison(cursor) ||
+      cursor instanceof Parser.ForVarDeclContext ||
+      cursor instanceof Parser.ForAssignmentContext ||
+      cursor instanceof Parser.ForUpdateContext ||
+      // A boundary no expected type crosses
       cursor instanceof Parser.StatementContext ||
       cursor instanceof Parser.BlockContext ||
       cursor instanceof Parser.FunctionDeclarationContext ||
       cursor instanceof Parser.ScopeDeclarationContext ||
       cursor instanceof Parser.ProgramContext
-    ) {
-      return null;
-    }
-    return undefined;
+    );
   }
 
-  /** The type of an assignment's target, spelled as declared, or null. */
-  private assignmentTargetType(
+  /** An equality or relational level that compares, rather than passes one through */
+  private static isComparison(cursor: ParserRuleContext): boolean {
+    return (
+      (cursor instanceof Parser.EqualityExpressionContext &&
+        cursor.relationalExpression().length > 1) ||
+      (cursor instanceof Parser.RelationalExpressionContext &&
+        cursor.bitwiseOrExpression().length > 1)
+    );
+  }
+
+  /** The enum an assignment's target holds, or null. */
+  private assignmentTargetEnum(
     target: Parser.AssignmentTargetContext,
-    frame: IScopeFrame,
   ): TExpected {
     // A slice or bit-range write (`arr[off, len] <- v`) has no element
     // expected type; codegen's resolver answered null for it.
     if (target.postfixTargetOp().some((op) => op.expression().length === 2)) {
       return null;
     }
-    return this.types.typeOfAssignmentTarget(target, frame);
+    return (
+      OperandTyper.typeOfTarget(target, this.context)?.enumTypeName ?? null
+    );
   }
 
-  /** The type of the field a `name: value` initializer sets, or null. */
-  private fieldType(
-    field: Parser.FieldInitializerContext,
-    frame: IScopeFrame,
+  /** The enum a written type names, as the typer binds it where it is written */
+  private enumOfWritten(
+    type: Parser.TypeContext,
+    at: ParserRuleContext,
   ): TExpected {
-    const initializer = field.parent?.parent;
-    if (!(initializer instanceof Parser.StructInitializerContext)) return null;
-    const structText = this.structTypeOf(initializer, frame);
-    if (structText === null) return null;
-    const fieldName = field.IDENTIFIER().getText();
-    for (const spelling of BareEnumMemberListener.structSpellings(
-      structText,
-      frame,
-    )) {
-      const type = StructFieldFacts.typeOf(
-        this.context.symbols,
-        spelling,
-        fieldName,
-      );
-      if (type !== undefined) return type;
-    }
-    return null;
-  }
-
-  /**
-   * The spellings a struct type text is looked up under: `this.X` is the
-   * enclosing scope's `X`, `global.X` is file scope, a bare `X` inside a scope
-   * is tried as the scope's before file scope (ADR-057's order).
-   */
-  private static structSpellings(text: string, frame: IScopeFrame): string[] {
-    const here = frame.scopePath;
-    if (text.startsWith("this.")) {
-      return here === "" ? [] : [`${here}.${text.slice(5)}`];
-    }
-    if (text.startsWith("global.")) return [text.slice(7)];
-    if (here !== "" && !text.includes(".")) return [`${here}.${text}`, text];
-    return [text];
+    return (
+      OperandTyper.typeOfWritten(
+        type,
+        this.context,
+        ParserUtils.getPosition(at),
+      )?.enumTypeName ?? null
+    );
   }
 
   /**
@@ -291,22 +252,17 @@ class BareEnumMemberListener extends CNextListener {
    */
   private structTypeOf(
     initializer: Parser.StructInitializerContext,
-    frame: IScopeFrame,
+    scopePath: string,
   ): TExpected {
-    return this.expectedTypeText(initializer, frame);
+    return this.expectedEnum(initializer, scopePath);
   }
 
-  /** A declaration's type as written, without its array dimensions. */
-  private static declaredTypeText(type: Parser.TypeContext): string {
-    return TypeText.withoutDimensions(type.getText());
-  }
-
-  private static enclosingFunctionType(node: ParserRuleContext): TExpected {
+  private static enclosingFunction(
+    node: ParserRuleContext,
+  ): Parser.FunctionDeclarationContext | null {
     let cursor: ParserRuleContext | null = node.parent;
     while (cursor) {
-      if (cursor instanceof Parser.FunctionDeclarationContext) {
-        return cursor.type().getText();
-      }
+      if (cursor instanceof Parser.FunctionDeclarationContext) return cursor;
       cursor = cursor.parent;
     }
     return null;
@@ -318,13 +274,7 @@ class BareEnumMemberAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): IBareEnumMemberError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    const listener = new BareEnumMemberListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-      this.context,
-    );
+    const listener = new BareEnumMemberListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

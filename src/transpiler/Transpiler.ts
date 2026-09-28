@@ -9,6 +9,9 @@
  * ONE pipeline for all transpilation.
  */
 
+import PlatformIOIni from "./data/PlatformIOIni";
+import type IPlatformIOProject from "./types/IPlatformIOProject";
+import type TRunTarget from "./types/TRunTarget";
 import { join, basename, dirname, resolve, relative, sep } from "node:path";
 import type IConflict from "./types/IConflict";
 
@@ -96,7 +99,7 @@ import TypedefParamParser from "../TRANSPILE/3-Render/codegen/helpers/TypedefPar
 import type IRecordedRequirement from "./types/IRecordedRequirement";
 import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../utils/RequirementAggregator";
-import TargetResolver from "../utils/TargetResolver";
+import TargetCatalogFile from "./data/TargetCatalogFile";
 
 /**
  * Unified transpiler
@@ -145,14 +148,6 @@ class Transpiler {
    */
   private anyHeaderPreprocessFailed = false;
 
-  /**
-   * ADR-049: `#pragma target` names declared by this run's C-Next files.
-   *
-   * Collected in Stage 3 so the whole-program Rule 5.1 check can resolve one
-   * budget for the build. Cleared per run by `_initializeRun()` — a stale entry
-   * here would reintroduce exactly the cross-run leak it exists to fix.
-   */
-  private pragmaTargets: string[] = [];
   /** Issue #587: Encapsulated state for accumulated Maps/Sets */
   /**
    * The run's own accumulations (#1452 box 1).
@@ -212,8 +207,7 @@ class Transpiler {
    * (`IHeaderSymbol`/`IHeaderOptions`/`IHeaderTypeInput`), and `state/` may
    * never reach `output/`, even transitively (#1297) -- `Transpiler.ts` sits
    * above the 4-layer structure and coordinates all of them, so it alone may
-   * hold both. Cleared per run by `_initializeRun()`, matching `pragmaTargets`
-   * just above.
+   * hold both. Cleared per run by `_initializeRun()`.
    */
   private readonly headerEmissionFactsByPath = new Map<
     string,
@@ -347,6 +341,7 @@ class Transpiler {
       parseOnly: config.parseOnly ?? false,
       debugMode: config.debugMode ?? false,
       target: config.target ?? "",
+      pioEnv: config.pioEnv ?? "",
       collectGrammarCoverage: config.collectGrammarCoverage ?? false,
       noCache: config.noCache ?? false,
     };
@@ -621,24 +616,7 @@ class Transpiler {
     // symbols, recover their declared names via translation-unit preprocessing.
     await this._collectExternalDeclarations(input);
 
-    // Stage 3: Collect symbols from C-Next files -- 1.3 Declare for every file,
-    // then 1.4 Resolve once over all of them.
-    if (!this._collectAllCNextSymbolsFromPipeline(input.cnextFiles, result)) {
-      return;
-    }
-
-    // Stage 4: Check for symbol conflicts
-    if (!this._checkSymbolConflicts(result)) {
-      return;
-    }
-
-    // Stage 4b: Check for include guard collisions (ADR-063, issue #1133)
-    if (!this._checkIncludeGuardCollisions(input.cnextFiles, result)) {
-      return;
-    }
-
-    // Stage 4c: Check external identifier significance (MISRA 5.1, issue #1307)
-    if (!this._checkExternalIdentifierSignificance(result)) {
+    if (!this._passesProgramChecks(input, result)) {
       return;
     }
 
@@ -695,20 +673,43 @@ class Transpiler {
     // file" rather than an error, so this is a silent no-op for it, not a bug.
     const renderedFiles = this._renderHeaders(result);
 
+    // One gate for both halves of the output: a .c is written only when its
+    // header is (#1233)
     if (result.success && input.writeOutputToDisk) {
       for (const write of pendingWrites) {
         this.fs.writeFile(write.path, write.content);
       }
-    }
-
-    // Stage 6: Write the Stage 5.5 headers (only to disk in files mode)
-    if (result.success && input.writeOutputToDisk) {
+      // Stage 6: Write the Stage 5.5 headers (only to disk in files mode)
       this._generateAllHeadersFromPipeline(
         input.cnextFiles,
         result,
         renderedFiles,
       );
     }
+  }
+
+  /**
+   * Stages 3 to 4c: the whole-program checks every file waits on. Each records
+   * its own errors; the first to fail ends the run, in this order.
+   */
+  private _passesProgramChecks(
+    input: IPipelineInput,
+    result: ITranspilerResult,
+  ): boolean {
+    return (
+      // Stage 3: 1.3 Declare for every C-Next file, then 1.4 Resolve once
+      // over all of them
+      this._collectAllCNextSymbolsFromPipeline(input.cnextFiles, result) &&
+      // Stage 3b: the program's one target (ADR-049), settled by 1.4. Nothing
+      // below may run for a program whose target is unknown or contested.
+      this._checkRunTarget(input, result) &&
+      // Stage 4: symbol conflicts
+      this._checkSymbolConflicts(result) &&
+      // Stage 4b: include guard collisions (ADR-063, issue #1133)
+      this._checkIncludeGuardCollisions(input.cnextFiles, result) &&
+      // Stage 4c: external identifier significance (MISRA 5.1, issue #1307)
+      this._checkExternalIdentifierSignificance(result)
+    );
   }
 
   /**
@@ -913,6 +914,16 @@ class Transpiler {
             quotedIncludeDirectories: this.discoveredQuotedIncludeDirectories,
           },
           registry: this.symbolRegistry,
+          target: {
+            option: this.config.target,
+            platformio: this._platformIOProject(),
+            pioEnv: this.config.pioEnv || undefined,
+            catalog: TargetCatalogFile.targets(),
+            files: declared.map((entry) => ({
+              sourcePath: entry.file.path,
+              directives: entry.parsed.targetDirectives,
+            })),
+          },
         },
       );
       // Passes after 1.4 read cross-file facts from the artifact rather than
@@ -974,13 +985,6 @@ class Transpiler {
           sourcePath: file.path,
         })),
       };
-    }
-
-    // ADR-049: record the file's declared target while its tree is in hand, so
-    // Stage 4c can resolve a run-level budget without re-parsing or re-deriving.
-    const pragmaTarget = TargetResolver.fromPragma(parsed.tree);
-    if (pragmaTarget) {
-      this.pragmaTargets.push(pragmaTarget);
     }
 
     try {
@@ -1127,6 +1131,7 @@ class Transpiler {
           program: this.program,
           symbolTable: this.codeGenerator.transpileState.symbolTable,
           reachesForeignHeader: file.reachesForeignHeader ?? true,
+          sourceFile: sourcePath,
         },
         includes: {
           quotedIncludeDirectory:
@@ -1308,7 +1313,7 @@ class Transpiler {
         this.anchor.pathResolver.getSourceRelativePath(sourcePath);
       const code = this.codeGenerator.generate(tree, tokenStream, {
         debugMode: this.config.debugMode,
-        target: this.config.target,
+        targetDescription: this._runTarget().description,
         sourcePath,
         cppMode: this.cppMode,
         symbolInfo,
@@ -1533,8 +1538,6 @@ class Transpiler {
     this.discoveredCnxIncludeRewrites.clear();
     this.discoveredIncludeSearchPaths.clear();
     this.discoveredQuotedIncludeDirectories.clear();
-    // ADR-049: the previous run's targets must not decide this run's budget
-    this.pragmaTargets = [];
     // #1662: both are run-scoped and both were initialized ONCE, in the
     // constructor, so neither was ever cleared. `warnings` is pushed to per run
     // and copied onto every result, which made three runs of one source on one
@@ -1925,6 +1928,69 @@ class Transpiler {
   }
 
   /**
+   * Stage 3b: report the run's target, or why it has none (ADR-049).
+   *
+   * 1.4 settled it with the program; this only reports. An error with no
+   * position is about the target option rather than a line of source, and is
+   * placed on the entry file -- the last file in pipeline order, which lists
+   * dependencies first. A parse-only run needs no target, so only an absent
+   * one is excused there.
+   *
+   * @returns true when the run has a target
+   */
+  private _checkRunTarget(
+    input: IPipelineInput,
+    result: ITranspilerResult,
+  ): boolean {
+    invariant(this.program, "Stage 3 built the program");
+    const target = this.program.target();
+    if (target.kind === "resolved") {
+      result.target = { name: target.name, source: target.source };
+      return true;
+    }
+    // ADR-049: a parse-only run needs no target, so an ABSENT one (E0515) is
+    // no error there -- but every name the program gives must still be a
+    // known target (#1760 second review: `--parse` accepted
+    // `#pragma target bogus`, an unknown pragma and two conflicting ones)
+    if (this.config.parseOnly && target.absent) {
+      return true;
+    }
+    const entry = input.cnextFiles.at(-1)?.path;
+    for (const error of target.errors) {
+      result.errors.push(
+        error.sourcePath === undefined && entry !== undefined
+          ? { ...error, sourcePath: entry }
+          : error,
+      );
+    }
+    result.success = false;
+    return false;
+  }
+
+  /**
+   * ADR-049's build-system rung: the platformio.ini of the project the run is
+   * anchored in. #1760 review: this found the root again from the entry's
+   * path, and a source run with no path resolved "<string>" against the
+   * process's cwd, so it read another project's file, or none.
+   */
+  private _platformIOProject(): IPlatformIOProject | null {
+    const root = this.anchor.projectRoot;
+    // The build machine's environment too: PlatformIO appends its
+    // PLATFORMIO_DEFAULT_ENVS to default_envs (#1794)
+    return root ? PlatformIOIni.read(root, this.fs, process.env) : null;
+  }
+
+  /** The run's target; valid once Stage 3b has passed */
+  private _runTarget(): Extract<TRunTarget, { kind: "resolved" }> {
+    const target = this.program?.target();
+    invariant(
+      target?.kind === "resolved",
+      "Stage 3b halts a run whose target did not resolve",
+    );
+    return target;
+  }
+
+  /**
    * Stage 4c: Reject external identifiers that are not distinct within the
    * target's significant-character limit (MISRA C:2012 Rule 5.1, issue #1307).
    *
@@ -1940,13 +2006,19 @@ class Transpiler {
   private _checkExternalIdentifierSignificance(
     result: ITranspilerResult,
   ): boolean {
-    // NOT TranspileState.targetCapabilities: codegen assigns that in Stage 5, one
-    // stage after this runs, so it holds the module default on a fresh process
-    // and the previous file's target in a long-lived one (#1307 review). The
-    // budget a whole-program check reports against has to be the build's.
+    // ADR-049: a parse-only run needs no target, and without one there is no
+    // budget to check against. Every other run reaches here with one (3b).
+    if (this.config.parseOnly && this.program?.target().kind !== "resolved") {
+      return true;
+    }
+    // NOT TranspileState.targetDescription: codegen assigns that in Stage 5, one
+    // stage after this runs, so it holds nothing on a fresh process and the
+    // previous file's target in a long-lived one (#1307 review). The budget a
+    // whole-program check reports against has to be the build's, which 1.4
+    // settled once.
     const collisions =
       this.codeGenerator.transpileState.symbolTable.detectMISRA51Conflicts(
-        TargetResolver.forRun(this.config.target, this.pragmaTargets),
+        this._runTarget().description,
       );
 
     for (const collision of collisions) {
@@ -3535,36 +3607,8 @@ class Transpiler {
       startDir = dirname(resolvedInput);
     }
 
-    // Project root indicators (in priority order)
-    const projectMarkers = [
-      "cnext.config.json", // C-Next config file
-      "platformio.ini", // PlatformIO project
-      ".git", // Git repository root
-      "package.json", // Node.js project
-    ];
-
-    // Walk up looking for project markers
-    let dir = startDir;
-    while (true) {
-      // Check each project marker
-      for (const marker of projectMarkers) {
-        const markerPath = join(dir, marker);
-        if (this.fs.exists(markerPath)) {
-          return dir;
-        }
-      }
-
-      // Move to parent directory
-      const parent = dirname(dir);
-      if (parent === dir) {
-        // Reached filesystem root without finding project markers
-        break;
-      }
-      dir = parent;
-    }
-
-    // No project root found - return undefined to disable caching
-    return undefined;
+    // No project root disables caching, so no .cnx directory is left behind
+    return IncludeDiscovery.findProjectRoot(startDir, this.fs) ?? undefined;
   }
 }
 

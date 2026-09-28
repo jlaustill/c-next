@@ -6,97 +6,32 @@
  * undefined behavior from negative indexes. This analyzer catches type violations
  * at compile time with clear error messages.
  *
- * Two-pass analysis:
- * 1. Collect variable declarations with their types
- * 2. Validate subscript expressions use unsigned integer types
- *
- * Uses CodeGenState for state-based type resolution (struct fields, function
- * return types, enum detection) to handle complex expressions like arr[x + 1].
+ * #1668 (C4e): each value leaf of an index is typed by the one operand typer,
+ * which binds a name where it is used. This kept one map of type TEXT per
+ * bare name for the whole file, filled by a walk before the check, so the
+ * last declaration of a name in the file typed every use of it: a `u32` loop
+ * index was rejected for another function's `i32 i`, and a real `i32` index
+ * accepted (#1694). A prefix operator (`-i`) was not typed at all.
  */
 
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IArrayIndexTypeError from "./types/IArrayIndexTypeError";
-import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
-import TypeConstants from "../../utils/constants/TypeConstants";
-import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
-import StructFieldFacts from "../../utils/StructFieldFacts";
+import OperandTyper from "../../utils/OperandTyper";
+import type IOperandType from "../../transpiler/types/IOperandType";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import DeclaredVariableFacts from "../../utils/DeclaredVariableFacts";
 
 /**
- * First pass: Collect variable declarations with their types
- */
-class VariableTypeCollector extends CNextListener {
-  private readonly varTypes: Map<string, string> = new Map();
-
-  public getVarTypes(): Map<string, string> {
-    return this.varTypes;
-  }
-
-  private trackType(
-    typeCtx: Parser.TypeContext | null,
-    identifier: { getText(): string } | null,
-  ): void {
-    if (!typeCtx || !identifier) return;
-    this.varTypes.set(identifier.getText(), typeCtx.getText());
-  }
-
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    this.trackType(ctx.type(), ctx.IDENTIFIER());
-  };
-
-  override enterParameter = (ctx: Parser.ParameterContext): void => {
-    this.trackType(ctx.type(), ctx.IDENTIFIER());
-  };
-
-  override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
-    this.trackType(ctx.type(), ctx.IDENTIFIER());
-  };
-}
-
-/**
- * Drop a trailing `[...]` group, exactly as /\[[^\]]*\]$/ did.
- *
- * Returns the input unchanged when there is no such group -- including when
- * the brackets nest ("u8[a[b]]"), which the regex also declines to match
- * because its character class cannot cross the inner ']'.
- */
-function stripFinalBracketGroup(text: string): string {
-  if (!text.endsWith("]")) {
-    return text;
-  }
-  const open = text.lastIndexOf("[");
-  if (open === -1) {
-    return text;
-  }
-  if (text.slice(open + 1, -1).includes("]")) {
-    return text;
-  }
-  return text.slice(0, open);
-}
-
-/**
- * Second pass: Validate subscript index expressions use unsigned integer types
+ * Validate subscript index expressions use unsigned integer types
  */
 class IndexTypeListener extends CNextListener {
-  private readonly analyzer: ArrayIndexTypeAnalyzer;
-
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly varTypes: Map<string, string>;
-
   constructor(
-    analyzer: ArrayIndexTypeAnalyzer,
-    varTypes: Map<string, string>,
+    private readonly analyzer: ArrayIndexTypeAnalyzer,
     private readonly context: IAnalysisContext,
   ) {
     super();
-    this.analyzer = analyzer;
-    this.varTypes = varTypes;
   }
 
   /**
@@ -104,9 +39,7 @@ class IndexTypeListener extends CNextListener {
    */
   override enterPostfixOp = (ctx: Parser.PostfixOpContext): void => {
     if (!ctx.LBRACKET()) return;
-
-    const expressions = ctx.expression();
-    for (const expr of expressions) {
+    for (const expr of ctx.expression()) {
       this.validateIndexExpression(expr);
     }
   };
@@ -118,231 +51,65 @@ class IndexTypeListener extends CNextListener {
     ctx: Parser.PostfixTargetOpContext,
   ): void => {
     if (!ctx.LBRACKET()) return;
-
-    const expressions = ctx.expression();
-    for (const expr of expressions) {
+    for (const expr of ctx.expression()) {
       this.validateIndexExpression(expr);
     }
   };
 
   /**
-   * Validate that a subscript index expression uses an unsigned integer type.
-   * Collects all leaf operands from the expression and checks each one.
+   * Validate that a subscript index uses an unsigned integer type: each value
+   * leaf of it, reported once, at the index.
    */
   private validateIndexExpression(ctx: Parser.ExpressionContext): void {
-    const operands = this.collectOperands(ctx);
-
-    for (const operand of operands) {
-      const resolvedType = this.resolveOperandType(operand);
-      if (!resolvedType) continue;
-
-      if (TypeConstants.SIGNED_TYPES.includes(resolvedType)) {
-        const { line, column } = ParserUtils.getPosition(ctx);
-        this.analyzer.addError(line, column, "E0850", resolvedType);
-        return;
-      }
-
-      if (
-        resolvedType === "float literal" ||
-        TypeConstants.FLOAT_TYPES.includes(resolvedType)
-      ) {
-        const { line, column } = ParserUtils.getPosition(ctx);
-        this.analyzer.addError(line, column, "E0851", resolvedType);
-        return;
-      }
-
-      if (TypeConstants.UNSIGNED_INDEX_TYPES.includes(resolvedType)) {
-        continue;
-      }
-
-      // Enum types are valid indices (ADR-054: transpile to unsigned constants)
-      if (DeclaredTypeFacts.isEnum(this.context.symbols, resolvedType)) {
-        continue;
-      }
-
-      // Other non-integer types (e.g., string, struct) - E0852
+    for (const leaf of OperandTyper.valueLeaves(ctx, this.context)) {
+      const verdict = IndexTypeListener.verdictOf(leaf);
+      if (verdict === null) continue;
       const { line, column } = ParserUtils.getPosition(ctx);
-      this.analyzer.addError(line, column, "E0852", resolvedType);
+      this.analyzer.addError(line, column, verdict.code, verdict.actualType);
       return;
     }
   }
 
   /**
-   * Collect all leaf unary expression operands from an expression tree.
-   * Handles binary operators at any level by flatMapping through the grammar hierarchy.
+   * What a leaf's type makes it as an index: null when it is valid or
+   * cannot be typed (another diagnostic's to report), else the code.
    */
-  private collectOperands(
-    ctx: Parser.ExpressionContext,
-  ): Parser.UnaryExpressionContext[] {
-    const ternary = ctx.ternaryExpression();
-    if (!ternary) return [];
-
-    const orExpressions = ternary.orExpression();
-    if (orExpressions.length === 0) return [];
-
-    // For ternary (cond ? true : false), skip the condition (index 0)
-    // and only check the value branches (indices 1 and 2)
-    const valueExpressions =
-      orExpressions.length === 3 ? orExpressions.slice(1) : orExpressions;
-
-    return valueExpressions
-      .flatMap((o) => o.andExpression())
-      .flatMap((a) => a.equalityExpression())
-      .flatMap((e) => e.relationalExpression())
-      .flatMap((r) => r.bitwiseOrExpression())
-      .flatMap((bo) => bo.bitwiseXorExpression())
-      .flatMap((bx) => bx.bitwiseAndExpression())
-      .flatMap((ba) => ba.shiftExpression())
-      .flatMap((s) => s.additiveExpression())
-      .flatMap((a) => a.multiplicativeExpression())
-      .flatMap((m) => m.unaryExpression());
-  }
-
-  /**
-   * Resolve the type of a unary expression operand.
-   * Uses local varTypes first, then falls back to CodeGenState for
-   * struct fields, function return types, and enum detection.
-   *
-   * Returns null if the type cannot be resolved (pass-through).
-   */
-  private resolveOperandType(
-    operand: Parser.UnaryExpressionContext,
-  ): string | null {
-    const postfixExpr = operand.postfixExpression();
-    if (!postfixExpr) return null;
-
-    const primaryExpr = postfixExpr.primaryExpression();
-    if (!primaryExpr) return null;
-
-    // Resolve base type from primaryExpression
-    let currentType = this.resolveBaseType(primaryExpr);
-
-    // Walk postfix operators to transform the type
-    const postfixOps = postfixExpr.postfixOp();
-
-    // If base type is null but there are postfix ops, use identifier name
-    // for function call / member access resolution (e.g., getIndex())
-    if (!currentType && postfixOps.length > 0) {
-      const identifier = primaryExpr.IDENTIFIER();
-      if (identifier) {
-        currentType = identifier.getText();
-      }
+  private static verdictOf(
+    leaf: IOperandType | null,
+  ): { code: string; actualType: string } | null {
+    if (leaf === null) return null;
+    if (leaf.form.kind === "literal") {
+      // An integer or character literal is a valid index
+      return leaf.category === "floating"
+        ? { code: "E0851", actualType: "float literal" }
+        : null;
     }
-
-    for (const op of postfixOps) {
-      if (!currentType) return null;
-      currentType = this.resolvePostfixOpType(currentType, op);
-    }
-
-    return currentType;
-  }
-
-  /**
-   * Resolve the base type of a primary expression.
-   */
-  private resolveBaseType(
-    primaryExpr: Parser.PrimaryExpressionContext,
-  ): string | null {
-    // Check for literal
-    const literal = primaryExpr.literal();
-    if (literal) {
-      if (LiteralUtils.isFloat(literal)) return "float literal";
-      // Integer literals are always valid
-      return null;
-    }
-
-    // Check for parenthesized expression — recurse
-    const parenExpr = primaryExpr.expression();
-    if (parenExpr) {
-      const innerOperands = this.collectOperands(parenExpr);
-      for (const innerOp of innerOperands) {
-        const innerType = this.resolveOperandType(innerOp);
-        if (innerType) return innerType;
-      }
-      return null;
-    }
-
-    // Check for identifier
-    const identifier = primaryExpr.IDENTIFIER();
-    if (!identifier) return null;
-
-    const varName = identifier.getText();
-
-    // Local variables first (params, for-loop vars, function body vars)
-    const localType = this.varTypes.get(varName);
-    if (localType) return localType;
-
-    // Fall back to CodeGenState for cross-file variables
-    const typeInfo = DeclaredVariableFacts.typeInfoOf(
-      this.context.symbols,
-      this.context.symbolTable,
-      varName,
-    );
-    if (typeInfo) return typeInfo.baseType;
-
-    return null;
-  }
-
-  /**
-   * Resolve the resulting type after applying a postfix operator.
-   */
-  private resolvePostfixOpType(
-    currentType: string,
-    op: Parser.PostfixOpContext,
-  ): string | null {
-    // Dot access (e.g., config.value, EColor.RED)
-    if (op.DOT()) {
-      const fieldId = op.IDENTIFIER();
-      if (!fieldId) return null;
-      const fieldName = fieldId.getText();
-
-      // Check if it's an enum access — always valid
-      if (DeclaredTypeFacts.isEnum(this.context.symbols, currentType))
+    const spelling = IndexTypeListener.spelling(leaf);
+    if (leaf.dimensions.length > 0)
+      return { code: "E0852", actualType: spelling };
+    switch (leaf.category) {
+      case "signed":
+        return { code: "E0850", actualType: spelling };
+      case "floating":
+        return { code: "E0851", actualType: spelling };
+      case "unsigned":
+      case "boolean":
+      case "enum":
+        // ADR-054: an enum transpiles to an unsigned constant
         return null;
-
-      // Check struct field type
-      const fieldType = StructFieldFacts.typeOf(
-        this.context.symbols,
-        currentType,
-        fieldName,
-      );
-      return fieldType ?? null;
+      default:
+        // A struct, a string: E0852. A type the typer cannot name is passed
+        // over, as before
+        return leaf.typeName === null
+          ? null
+          : { code: "E0852", actualType: spelling };
     }
+  }
 
-    // Array/bit subscript (e.g., lookup[idx])
-    if (op.LBRACKET()) {
-      // If current type is an array, result is the element type
-      // If current type is an integer, result is "bool" (bit access)
-      if (TypeConstants.UNSIGNED_INDEX_TYPES.includes(currentType)) {
-        return "bool";
-      }
-      if (TypeConstants.SIGNED_TYPES.includes(currentType)) {
-        return "bool";
-      }
-      // Array element type — strip rightmost array dimension
-      // e.g., "u8[8]" → "u8", "u8[8][4]" → "u8[8]", "u8[CONST]" → "u8"
-      // Scanned rather than /\[[^\]]*\]$/: that pattern restarts its scan at every '['
-      // when the string does not end in ']' (S8786).
-      //
-      // The containment check is load-bearing: [^\]]* cannot span a ']', so
-      // "u8[a[b]]" does not match the regex at all. Dropping it made the scan
-      // return "u8[a" where the regex returns the string unchanged.
-      const strippedType = stripFinalBracketGroup(currentType);
-      if (strippedType !== currentType) {
-        return strippedType;
-      }
-      // Not an array type (e.g., struct), return as-is
-      return currentType;
-    }
-
-    // Function call (e.g., getIndex())
-    if (op.LPAREN()) {
-      const returnType =
-        this.context.symbols.functionReturnTypes.get(currentType);
-      return returnType ?? null;
-    }
-
-    return null;
+  /** A type as the message names it: `i32`, `u8[4]` */
+  private static spelling(leaf: IOperandType): string {
+    const dimensions = leaf.dimensions.map((d) => `[${d}]`).join("");
+    return `${leaf.typeName ?? leaf.category}${dimensions}`;
   }
 }
 
@@ -360,15 +127,10 @@ class ArrayIndexTypeAnalyzer {
    */
   public analyze(tree: Parser.ProgramContext): IArrayIndexTypeError[] {
     this.errors = [];
-
-    // First pass: collect variable types
-    const collector = new VariableTypeCollector();
-    ParseTreeWalker.DEFAULT.walk(collector, tree);
-    const varTypes = collector.getVarTypes();
-
-    // Second pass: validate subscript index expressions
-    const listener = new IndexTypeListener(this, varTypes, this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
+    ParseTreeWalker.DEFAULT.walk(
+      new IndexTypeListener(this, this.context),
+      tree,
+    );
 
     return this.errors;
   }

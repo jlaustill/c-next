@@ -14,10 +14,12 @@ import TypeUtils from "../utils/TypeUtils";
 import StringUtils from "../../../../utils/StringUtils";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import type TType from "../../../../transpiler/types/TType";
+import type TOverflowBehavior from "../../../../transpiler/types/TOverflowBehavior";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../transpiler/types/TVisibility";
 import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
 import ParserUtils from "../../../../utils/ParserUtils";
+import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 
 class VariableCollector {
   /**
@@ -34,7 +36,7 @@ class VariableCollector {
    */
   private static resolveDeclaredType(
     typeStr: string,
-    ctx: Parser.VariableDeclarationContext,
+    ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
     resolved: TType,
   ): TType {
     if (typeStr !== "string") {
@@ -55,25 +57,14 @@ class VariableCollector {
    */
   private static resolveDimension(
     dim: Parser.ArrayDimensionContext,
-    constValues: Map<string, number> | undefined,
     initExpr: Parser.ExpressionContext | null,
   ): number | string | undefined {
     const sizeExpr = dim.expression();
 
+    // A literal folds here; a const or a C macro keeps its text (#455), and
+    // 1.4 folds a const where the declaration is written (#1664 box 7)
     if (sizeExpr) {
-      const dimText = sizeExpr.getText();
-      // Try parsing as literal number first
-      const literalSize = Number.parseInt(dimText, 10);
-      if (!Number.isNaN(literalSize)) {
-        return literalSize;
-      }
-      // Issue #455: Resolve constant reference to its value
-      if (constValues?.has(dimText)) {
-        return constValues.get(dimText)!;
-      }
-      // Issue #455: Store original text for unresolved dimensions
-      // This handles C macros from included headers (e.g., DEVICE_COUNT)
-      return dimText;
+      return DimensionResolver.resolve(sizeExpr);
     }
 
     // Issue #636: Empty dimension [] - infer size from array initializer
@@ -89,17 +80,12 @@ class VariableCollector {
    */
   private static collectArrayDimensions(
     arrayDims: Parser.ArrayDimensionContext[],
-    constValues: Map<string, number> | undefined,
     initExpr: Parser.ExpressionContext | null,
   ): (number | string)[] {
     const dimensions: (number | string)[] = [];
 
     for (const dim of arrayDims) {
-      const resolved = VariableCollector.resolveDimension(
-        dim,
-        constValues,
-        initExpr,
-      );
+      const resolved = VariableCollector.resolveDimension(dim, initExpr);
       if (resolved !== undefined) {
         dimensions.push(resolved);
       }
@@ -114,7 +100,6 @@ class VariableCollector {
    */
   private static collectArrayTypeDimensions(
     arrayTypeCtx: Parser.ArrayTypeContext,
-    constValues: Map<string, number> | undefined,
     initExpr: Parser.ExpressionContext | null,
   ): (number | string)[] {
     const dimensions: (number | string)[] = [];
@@ -138,36 +123,37 @@ class VariableCollector {
       // C-Next type name in generated C, which does not compile -- while the
       // .c correctly said [4]. Text that does not fold is still kept, for macro and
       // enum references.
-      dimensions.push(DimensionResolver.resolve(sizeExpr, constValues));
+      dimensions.push(DimensionResolver.resolve(sizeExpr));
     }
     return dimensions;
   }
 
   /**
-   * Collect a variable declaration and return an IVariableSymbol.
+   * What a declaration SAYS: its type, modifiers, dimensions and initializer.
    *
-   * @param ctx The variable declaration context
-   * @param sourceFile Source file path
-   * @param scopePath The path of the scope this variable belongs to (dotted path, "" at file scope)
-   * @param visibility Required: #1161 -- a default here is a third source of
-   *   truth for one fact, which is how #1300 happened to the type kinds
-   * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
-   * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
-   * @returns The variable symbol with TType-based types and scope reference
+   * #1668: shared by a global or scope member (`collect`, below) and a local
+   * or `for` variable (`LexicalScopeCollector`), so a declaration means the
+   * same thing wherever it is written. No const folds here: a literal or
+   * `sizeof` dimension folds, and every name stays its text for 1.4 Resolve
+   * to fold in the declaration's lexical environment (#1664 box 7).
    */
-  static collect(
-    ctx: Parser.VariableDeclarationContext,
-    sourceFile: string,
+  static declaredFacts(
+    ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
     scopePath: string,
-    visibility: TVisibility,
-    constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
-  ): IVariableSymbol {
-    const name = ctx.IDENTIFIER().getText();
-    const span = ParserUtils.getSpan(ctx);
-
+  ): {
+    type: TType;
+    isConst: boolean;
+    isAtomic: boolean;
+    isVolatile: boolean;
+    overflowBehavior: TOverflowBehavior;
+    isArray: boolean;
+    arrayDimensions: (number | string)[];
+    initialValue: string | undefined;
+    initializerCallee: string | null;
+  } {
     // Get type string and convert to TType
-    const typeCtx = ctx.type();
+    const typeCtx = ctx.type()!;
     // #1298: members carry the scope's PATH, not the scope object. The path
     // holds every outer component, so nothing downstream can flatten it to a
     // leaf -- which is what the reference threaded here used to protect against.
@@ -178,8 +164,10 @@ class VariableCollector {
       TypeUtils.resolveType(typeCtx, scopePath, isScopeType),
     );
 
-    // Check for const modifier
-    const isConst = ctx.constModifier() !== null;
+    // Check for const modifier (a `for` variable has none)
+    const isConst =
+      ctx instanceof Parser.VariableDeclarationContext &&
+      ctx.constModifier() !== null;
 
     // Issue #468: Check for atomic modifier
     const isAtomic = ctx.atomicModifier() !== null;
@@ -203,27 +191,89 @@ class VariableCollector {
     // Collect dimensions from arrayType syntax (u16[8] arr, u16[4][4] arr, u16[] arr)
     if (hasArrayTypeSyntax) {
       arrayDimensions.push(
-        ...VariableCollector.collectArrayTypeDimensions(
-          arrayTypeCtx,
-          constValues,
-          initExpr,
-        ),
+        ...VariableCollector.collectArrayTypeDimensions(arrayTypeCtx, initExpr),
       );
     }
 
     // Collect additional dimensions from arrayDimension syntax
     if (arrayDims.length > 0) {
       arrayDimensions.push(
-        ...VariableCollector.collectArrayDimensions(
-          arrayDims,
-          constValues,
-          initExpr,
-        ),
+        ...VariableCollector.collectArrayDimensions(arrayDims, initExpr),
       );
     }
 
     // Issue #282: Capture initial value for const inlining
     const initialValue = initExpr?.getText();
+
+    return {
+      type,
+      isConst,
+      isAtomic,
+      isVolatile,
+      overflowBehavior,
+      isArray,
+      arrayDimensions,
+      initialValue,
+      // #895: what the initializer calls, for `DeclaredPointer.of`
+      initializerCallee: VariableCollector.calleeOf(initExpr),
+    };
+  }
+
+  /**
+   * The function an initializer calls, when it is shaped `f(...)` or
+   * `global.f(...)` -- source text, recorded on the declaration. Whether it
+   * names a C function is `DeclaredPointer.of`'s question, asked of the
+   * headers once they are known. The call is the chain's LAST operation
+   * (#1760 review): `f()[2]` is an element of what `f` returns, not it.
+   */
+  private static calleeOf(
+    expr: Parser.ExpressionContext | null,
+  ): string | null {
+    const postfix = expr
+      ? ExpressionUnwrapper.getPostfixExpression(expr)
+      : null;
+    if (!postfix) return null;
+    const primary = postfix.primaryExpression();
+    const ops = postfix.postfixOp();
+    if (primary.GLOBAL()) {
+      const member = ops[0]?.IDENTIFIER();
+      return member && ops.length === 2 && VariableCollector.isCall(ops[1])
+        ? member.getText()
+        : null;
+    }
+    const identifier = primary.IDENTIFIER();
+    return identifier && ops.length === 1 && VariableCollector.isCall(ops[0])
+      ? identifier.getText()
+      : null;
+  }
+
+  private static isCall(op: Parser.PostfixOpContext | undefined): boolean {
+    return (
+      op !== undefined &&
+      Boolean(op.argumentList() || op.getText().startsWith("("))
+    );
+  }
+
+  /**
+   * A global or scope member: its identity, and what its declaration says.
+   * @param ctx The variable declaration context
+   * @param sourceFile Source file path
+   * @param scopePath The path of the scope this variable belongs to (dotted path, "" at file scope)
+   * @param visibility Required: #1161 -- a default here is a third source of
+   *   truth for one fact, which is how #1300 happened to the type kinds
+   * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
+   * @returns The variable symbol with TType-based types and scope reference
+   */
+  static collect(
+    ctx: Parser.VariableDeclarationContext,
+    sourceFile: string,
+    scopePath: string,
+    visibility: TVisibility,
+    isScopeType?: (qualifiedName: string) => boolean,
+  ): IVariableSymbol {
+    const name = ctx.IDENTIFIER().getText();
+    const span = ParserUtils.getSpan(ctx);
+    const facts = VariableCollector.declaredFacts(ctx, scopePath, isScopeType);
 
     // Build base symbol
     const symbol: IVariableSymbol = {
@@ -237,14 +287,16 @@ class VariableCollector {
       span,
       sourceLanguage: ESourceLanguage.CNext,
       visibility,
-      type,
-      isConst,
-      isAtomic,
-      isVolatile,
-      overflowBehavior,
-      isArray,
-      arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
-      initialValue,
+      type: facts.type,
+      isConst: facts.isConst,
+      isAtomic: facts.isAtomic,
+      isVolatile: facts.isVolatile,
+      overflowBehavior: facts.overflowBehavior,
+      isArray: facts.isArray,
+      arrayDimensions:
+        facts.arrayDimensions.length > 0 ? facts.arrayDimensions : undefined,
+      initialValue: facts.initialValue,
+      initializerCallee: facts.initializerCallee,
     };
 
     return symbol;

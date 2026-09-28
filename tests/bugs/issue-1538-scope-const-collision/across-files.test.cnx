@@ -1,0 +1,16 @@
+// test-execution
+// test-no-warnings
+// #1538 repro 2: `Small` is declared in lib.cnx and a second scope's `N`
+// here. lib.c and lib.h must agree on Small__t's size; they disagreed, and
+// C rejected lib.c against its own header (`conflicting types`).
+#include "lib.cnx"
+
+scope Big {
+    public const u8 N <- 10;
+}
+
+u32 main() {
+    u32 small <- Small.t.element_count;
+    if (small != 2) return 1;
+    return 0;
+}

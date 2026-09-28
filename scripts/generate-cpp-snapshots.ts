@@ -23,6 +23,7 @@ import { statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Transpiler from "../src/transpiler/Transpiler";
+import TestUtils from "./test-utils";
 import IncludeDiscovery from "../src/transpiler/data/IncludeDiscovery";
 import FileScanner from "./utils/FileScanner";
 import TestMarkers from "./TestMarkers";
@@ -130,6 +131,7 @@ async function transpileAndWriteCppSnapshot(
       includeDirs,
       noCache: true,
       cppRequired: true,
+      target: TestUtils.harnessTarget(source),
     });
 
     // `transpile()` is the single entry point; `{ kind: "source" }` is its API

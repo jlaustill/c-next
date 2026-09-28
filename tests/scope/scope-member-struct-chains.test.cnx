@@ -1,0 +1,74 @@
+// test-execution
+// #1668 (C7): a struct member of a scope, read through `this.` inside the
+// scope and `Scope.` outside it -- an element of a field array, a bit of a
+// field integer, a string field's length and a bitmap field. The member's
+// struct type is what makes each the right access, and no fixture read one
+// through either spelling: without it, `.char_count` on the string field
+// failed in codegen though 2.1 had accepted it.
+bitmap8 Flags {
+    A,
+    B,
+    C[6]
+}
+
+struct Cfg {
+    u8[4] arr;
+    u32 word;
+    string<16> name;
+    Flags f;
+}
+
+scope S {
+    public Cfg cfg;
+
+    public void init() {
+        // The string field and the flag are set on a local and assigned
+        // whole: writing them through `this.cfg` is #1731 part (2) and
+        // #1801. The array and the word are then written through
+        // `this.cfg`, where a subscripted field was #1731 part (1).
+        Cfg c;
+        c.arr[0] <- 0;
+        c.word <- 0;
+        c.name <- "abc";
+        c.f.A <- true;
+        this.cfg <- c;
+        this.cfg.arr[1] <- 7;
+        this.cfg.word <- 8;
+    }
+
+    public u32 inside() {
+        u8 a <- this.cfg.arr[1];
+        if (a != 7) return 1;
+        bool b <- this.cfg.word[3];
+        if (b != true) return 2;
+        u32 n <- this.cfg.name.char_count;
+        if (n != 3) return 3;
+        bool fa <- this.cfg.f.A;
+        if (fa != true) return 4;
+        // NEGATIVE CONTROL: a clear bit and a clear flag read as false
+        bool z <- this.cfg.word[2];
+        if (z != false) return 5;
+        return 0;
+    }
+}
+
+u32 main() {
+    S.init();
+    // 10 + the failing check, so the exit code says which one
+    u32 inside <- S.inside();
+    if (inside != 0) return 10 + inside;
+
+    u8 a <- S.cfg.arr[1];
+    if (a != 7) return 2;
+    bool b <- S.cfg.word[3];
+    if (b != true) return 3;
+    u32 n <- S.cfg.name.char_count;
+    if (n != 3) return 4;
+    bool fa <- S.cfg.f.A;
+    if (fa != true) return 5;
+    // NEGATIVE CONTROL
+    bool fb <- S.cfg.f.B;
+    if (fb != false) return 6;
+
+    return 0;
+}

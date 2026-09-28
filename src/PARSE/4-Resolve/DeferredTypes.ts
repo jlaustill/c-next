@@ -192,7 +192,7 @@ class DeferredTypes {
    * WRITTEN identifier and the scope it appeared in -- never from the resolved
    * name, which no longer distinguishes a bare reference from a `global.` one.
    */
-  private static settleType(
+  static settleType(
     type: TType,
     isScopeType: (qualifiedName: string) => boolean,
   ): TType {

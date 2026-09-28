@@ -1,0 +1,17 @@
+// test-error
+// #1668: E0856 reads the subscripted declaration from the one operand typer
+// and every assignment site. Before, a write in a `for` header was never
+// checked (#1726), so two subscripts on a scalar compiled there.
+void main() {
+    u8 x <- 0;
+
+    // NEGATIVE CONTROL -- one bit index on a scalar
+    for (u32 i <- 0; i < 3; x[1] <- true) {
+        i +<- 1;
+    }
+
+    // ASSERTION
+    for (u32 j <- 0; j < 3; x[1][2] <- true) {
+        j +<- 1;
+    }
+}

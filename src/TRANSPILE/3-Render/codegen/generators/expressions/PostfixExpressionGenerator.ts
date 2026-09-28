@@ -11,6 +11,9 @@
  * This generator was extracted from CodeGenerator._generatePostfixExpr
  * to reduce the size and complexity of CodeGenerator.ts.
  */
+import type IChainBase from "../../../../2-Plan/types/IChainBase";
+import type IChainStep from "../../../../../transpiler/types/IChainStep";
+import type IOperandType from "../../../../../transpiler/types/IOperandType";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IPlannedPostfix from "../../types/IPlannedPostfix";
 import TPlannedPostfixOp from "../../types/TPlannedPostfixOp";
@@ -21,17 +24,18 @@ import IOrchestrator from "../IOrchestrator";
 import accessGenerators from "./AccessExprGenerator";
 import generateFunctionCall from "./CallExprGenerator";
 import memberAccessChain from "../../memberAccessChain";
+import type IRootHolding from "../../types/IRootHolding";
 import BitmapAccessHelper from "./BitmapAccessHelper";
 import BitRangeHelper from "../../helpers/BitRangeHelper";
+import FloatBitHelper from "../../helpers/FloatBitHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
+import BitUtils from "../../../../../utils/BitUtils";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
-import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
-import SubscriptClassifier from "../../../../2-Plan/SubscriptClassifier";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
 import TYPE_WIDTH from "../../../../../transpiler/constants/TYPE_WIDTH";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
-import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
+import OperandTyper from "../../../../../utils/OperandTyper";
 import invariant from "../../../../../utils/invariant";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
@@ -43,14 +47,21 @@ import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator"
  * Mutable tracking state threaded through the postfix op loop.
  */
 interface ITrackingState {
+  /**
+   * #1668 (C7): what the chain's leading names bind, planned once -- the
+   * root, and the variable the leading part reaches. Every declared-type read
+   * below is this, not a registry keyed by a name the walk re-derived.
+   */
+  readonly base: IChainBase;
   result: string;
   isRegisterChain: boolean;
-  currentMemberIsArray: boolean;
-  currentStructType: string | undefined;
-  previousStructType: string | undefined;
-  previousMemberName: string | undefined;
+  /**
+   * Whether a member has been read since the root. `.char_count`'s length
+   * cache is keyed by a variable's name, so it serves only a property taken
+   * of the variable itself.
+   */
+  afterMember: boolean;
   resolvedIdentifier: string | undefined;
-  remainingArrayDims: number;
   subscriptDepth: number;
   isGlobalAccess: boolean;
   isCppAccessChain: boolean;
@@ -93,33 +104,15 @@ const singleBitRead = (
  * Initialize tracking state from the primary expression.
  */
 const initializeTrackingState = (
+  base: IChainBase,
   rootIdentifier: string | undefined,
   result: string,
-  primaryTypeInfo:
-    | { baseType: string; arrayDimensions?: (number | string)[] }
-    | undefined,
   input: IGeneratorInput,
-  state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): ITrackingState => {
   const isRegisterChain = rootIdentifier
     ? input.symbols!.knownRegisters.has(rootIdentifier)
     : false;
-
-  const primaryBaseType = rootIdentifier
-    ? orchestrator.state.getVariableTypeInfo(rootIdentifier)?.baseType
-    : undefined;
-  const currentStructType =
-    primaryBaseType && orchestrator.isKnownStruct(primaryBaseType)
-      ? primaryBaseType
-      : undefined;
-
-  const primaryParamInfo = rootIdentifier
-    ? state.currentParameters.get(rootIdentifier)
-    : undefined;
-  const remainingArrayDims =
-    primaryTypeInfo?.arrayDimensions?.length ??
-    (primaryParamInfo?.isArray ? 1 : 0);
 
   let isCppAccessChain = false;
   if (rootIdentifier && orchestrator.isCppScopeSymbol(rootIdentifier)) {
@@ -127,14 +120,11 @@ const initializeTrackingState = (
   }
 
   return {
+    base,
     result,
     isRegisterChain,
-    currentMemberIsArray: false,
-    currentStructType,
-    previousStructType: undefined,
-    previousMemberName: undefined,
+    afterMember: false,
     resolvedIdentifier: rootIdentifier,
-    remainingArrayDims,
     subscriptDepth: 0,
     isGlobalAccess: false,
     isCppAccessChain,
@@ -148,9 +138,8 @@ const initializeTrackingState = (
  */
 interface IPostfixContext {
   rootIdentifier: string | undefined;
-  isStructParam: boolean;
-  /** Issue #895: Force pointer semantics for callback-compatible params */
-  forcePointerSemantics: boolean;
+  /** How the root is held (`memberAccessChain.rootHolding`) */
+  holding: IRootHolding;
   input: IGeneratorInput;
   state: IGeneratorState;
   orchestrator: IOrchestrator;
@@ -168,7 +157,7 @@ interface IPostfixContext {
  * zero or more postfix operations (member access, subscripts, function calls).
  *
  * @param ctx - The postfix expression context
- * @param input - Generator input (type registry, symbols, etc.)
+ * @param input - Generator input (symbols, symbol table, etc.)
  * @param state - Generator state (current scope, parameters, etc.)
  * @param orchestrator - Orchestrator for callbacks into CodeGenerator
  * @returns Generated code and effects
@@ -183,15 +172,18 @@ const generatePostfixExpression = (
 
   const ops = plan.ops;
 
-  // Check if this is a struct parameter - we may need to handle -> access
+  // How the root is held -- a struct parameter, or a local #895 made a
+  // pointer -- and so whether its members take `->` (the one answer the
+  // write path reads too)
   const rootIdentifier = plan.rootIdentifier;
   const paramInfo = rootIdentifier
     ? state.currentParameters.get(rootIdentifier)
     : null;
-  const isStructParam = paramInfo?.isStruct ?? false;
-  // Issue #895: Callback-compatible params need pointer semantics even in C++ mode
-  const forcePointerSemantics = paramInfo?.forcePointerSemantics ?? false;
-
+  const holding = memberAccessChain.rootHolding(
+    paramInfo ?? undefined,
+    rootIdentifier ? plan.base.rootTypeInfo : undefined,
+    orchestrator,
+  );
   // Issue #1100: Subscripted parameters resolve through the normal primary
   // expression path (ParameterDereferenceResolver), same as any other
   // parameter reference. This is a no-op for array/struct/string params
@@ -201,9 +193,7 @@ const generatePostfixExpression = (
   // through the pointer instead of pointer-indexing past it.
   const result: string = plan.renderPrimary();
 
-  const primaryTypeInfo = rootIdentifier
-    ? orchestrator.state.getVariableTypeInfo(rootIdentifier)
-    : undefined;
+  const primaryTypeInfo = rootIdentifier ? plan.base.rootTypeInfo : undefined;
 
   // Issue #1106: reject over-indexing the base variable (e.g. flags[4][3] on a
   // scalar u8, which would otherwise chain bit-indexes into always-zero code:
@@ -215,25 +205,23 @@ const generatePostfixExpression = (
   // are resolved first, then the shared validator does the counting.
   if (plan.subscriptBase) {
     SubscriptDepthValidator.validate(
-      orchestrator.state.getVariableTypeInfo(plan.subscriptBase.name),
+      plan.base.typeInfo,
       plan.leadingSubscriptCount,
       plan.subscriptBase.displayName,
     );
   }
 
   const tracking = initializeTrackingState(
+    plan.base,
     rootIdentifier,
     result,
-    primaryTypeInfo,
     input,
-    state,
     orchestrator,
   );
 
   const postfixCtx: IPostfixContext = {
     rootIdentifier,
-    isStructParam,
-    forcePointerSemantics,
+    holding,
     input,
     state,
     orchestrator,
@@ -242,18 +230,16 @@ const generatePostfixExpression = (
 
   for (const op of ops) {
     if (op.kind === "member") {
-      handleMemberOp(op.name, tracking, postfixCtx);
+      handleMemberOp(op.name, op.step, tracking, postfixCtx);
     } else if (op.kind === "subscript") {
       const subscriptResult = generateSubscriptAccess(
         {
+          base: tracking.base,
           result: tracking.result,
           subscript: op,
           rootIdentifier,
           primaryTypeInfo,
           resolvedIdentifier: tracking.resolvedIdentifier,
-          currentStructType: tracking.currentStructType,
-          currentMemberIsArray: tracking.currentMemberIsArray,
-          remainingArrayDims: tracking.remainingArrayDims,
           subscriptDepth: tracking.subscriptDepth,
           isRegisterChain: tracking.isRegisterChain,
         },
@@ -264,11 +250,6 @@ const generatePostfixExpression = (
       );
 
       tracking.result = subscriptResult.result;
-      tracking.currentStructType = subscriptResult.currentStructType;
-      tracking.currentMemberIsArray =
-        subscriptResult.currentMemberIsArray ?? false;
-      tracking.remainingArrayDims =
-        subscriptResult.remainingArrayDims ?? tracking.remainingArrayDims;
       tracking.subscriptDepth =
         subscriptResult.subscriptDepth ?? tracking.subscriptDepth;
     } else {
@@ -298,38 +279,18 @@ const generatePostfixExpression = (
     }
   }
 
-  // ADR-006: If a struct parameter is used as a whole value (no postfix ops)
-  // This applies to both normal struct params AND callback-promoted struct params.
-  // When used as a value (assignments, etc.), we need to dereference to get the struct.
-  // Issue #937: For function arguments expecting pointers, CallExprGenerator handles
-  // using the identifier directly instead of the dereferenced form.
-  //
-  // ADR-030 / #1722: except an opaque handle, whose value IS the pointer.
-  // `(*p)` of an incomplete type is a C error, and it reached every
-  // whole-value use: a C-Next call argument (`aPoke((*d))`), an initializer,
-  // an assignment, a comparison. C++ never showed it only because the wrap is
-  // the bare name there, so the exclusion is the handle's own fact, not the
-  // mode.
-  //
-  // Issue #895: a callback-promoted parameter is a pointer in C++ too, so its
-  // whole value is `(*f)` there as well -- the helper decides from the
-  // parameter, the same answer its `->` member access reads.
-  //
-  // And never an ARRAY parameter: `CPoint pts[2]` is already the pointer C
-  // passes an array as, so its value is `pts`, and `(*pts)` is its first
-  // element. Passed whole to a C function that became `&(*pts)`, which is
-  // right only because the `&` undoes the `*`.
-  if (
-    isStructParam &&
-    !paramInfo?.isOpaqueHandle &&
-    !paramInfo?.isArray &&
-    ops.length === 0
-  ) {
+  // ADR-006: a struct or bitmap parameter used as a whole value is
+  // dereferenced where it is held through a pointer; `wholeParamValue` holds
+  // the rule and its exceptions (an opaque handle, an array parameter), for
+  // the write side too. Issue #937: an argument to a pointer parameter is
+  // taken from the identifier by CallExprGenerator instead.
+  if (ops.length === 0) {
     return {
-      code: memberAccessChain.wrapStructParamValue(result, {
-        cppMode: orchestrator.isCppMode(),
-        forcePointerSemantics,
-      }),
+      code: memberAccessChain.wholeParamValue(
+        result,
+        paramInfo ?? undefined,
+        orchestrator.isCppMode(),
+      ),
       effects,
     };
   }
@@ -347,6 +308,7 @@ const generatePostfixExpression = (
  */
 const handleMemberOp = (
   memberName: string,
+  step: IChainStep | null,
   tracking: ITrackingState,
   ctx: IPostfixContext,
 ): void => {
@@ -355,28 +317,20 @@ const handleMemberOp = (
     return;
   }
 
-  // Issue #212: Check if 'length' is a scope variable before treating as property
+  // Property access (.bit_length, .capacity, ...). #1760 review: whether the
+  // name reads the property or a field named like it is the typer's, on the
+  // step -- so `this.length` naming a scope member (#212) and a struct's
+  // `length` field are members, with no special case for either
+  const property = step?.property ?? null;
   if (
-    handleThisScopeLength(
-      memberName,
-      tracking,
-      ctx.input,
-      ctx.state,
-      ctx.orchestrator,
-    )
-  ) {
-    return;
-  }
-
-  // Handle property access (.length, .capacity, .size)
-  if (
+    property !== null &&
     tryPropertyAccess(
-      memberName,
+      property,
+      step?.before ?? null,
       tracking,
       ctx.rootIdentifier,
       ctx.input,
       ctx.state,
-      ctx.orchestrator,
       ctx.effects,
     )
   ) {
@@ -386,17 +340,15 @@ const handleMemberOp = (
   // Handle bitmap field access, scope member access, enum member access, etc.
   const memberResult = generateMemberAccess(
     {
+      base: tracking.base,
       result: tracking.result,
       memberName,
       rootIdentifier: ctx.rootIdentifier,
-      isStructParam: ctx.isStructParam,
-      forcePointerSemantics: ctx.forcePointerSemantics,
+      holding: ctx.holding,
       isGlobalAccess: tracking.isGlobalAccess,
       isCppAccessChain: tracking.isCppAccessChain,
-      currentStructType: tracking.currentStructType,
+      typed: step?.before ?? null,
       resolvedIdentifier: tracking.resolvedIdentifier,
-      previousStructType: tracking.previousStructType,
-      previousMemberName: tracking.previousMemberName,
       isRegisterChain: tracking.isRegisterChain,
     },
     ctx.input,
@@ -414,15 +366,11 @@ const handleMemberOp = (
   // opinion", not an undefined.
   tracking.resolvedIdentifier =
     memberResult.resolvedIdentifier ?? tracking.resolvedIdentifier;
-  tracking.currentStructType = memberResult.currentStructType;
-  tracking.currentMemberIsArray =
-    memberResult.currentMemberIsArray ?? tracking.currentMemberIsArray;
   tracking.isRegisterChain =
     memberResult.isRegisterChain ?? tracking.isRegisterChain;
   tracking.isCppAccessChain =
     memberResult.isCppAccessChain ?? tracking.isCppAccessChain;
-  tracking.previousStructType = memberResult.previousStructType;
-  tracking.previousMemberName = memberResult.previousMemberName;
+  tracking.afterMember = true;
 };
 
 /**
@@ -452,178 +400,40 @@ const handleGlobalPrefix = (
     tracking.isRegisterChain = true;
   }
 
-  // Issue #612: Set currentStructType for global struct variables
-  const globalTypeInfo = ctx.orchestrator.state.getVariableTypeInfo(memberName);
-  if (
-    globalTypeInfo &&
-    ctx.orchestrator.isKnownStruct(globalTypeInfo.baseType)
-  ) {
-    tracking.currentStructType = globalTypeInfo.baseType;
-  }
-
   return true;
 };
 
 /**
- * Handle `this.length` when length is a scope member variable.
- * Returns true if handled (caller should skip).
+ * A string's capacity as the typer gives it, or null for anything else --
+ * what `.capacity` and `.size` read (ADR-045).
  */
-const handleThisScopeLength = (
-  memberName: string,
-  tracking: ITrackingState,
-  _input: IGeneratorInput,
-  state: IGeneratorState,
-  orchestrator: IOrchestrator,
-): boolean => {
-  if (tracking.result !== "__THIS_SCOPE__" || memberName !== "length") {
-    return false;
-  }
-  // #1322: `this` outside a scope is E0431 in 2.1.
-  const members = state.scopeMembers.get(state.currentScopePath);
-  if (!members?.has("length")) {
-    return false;
-  }
-
-  tracking.result = QualifiedNameGenerator.forMember(
-    state.currentScopePath,
-    memberName,
-  );
-  tracking.resolvedIdentifier = tracking.result;
-  const resolvedTypeInfo = orchestrator.state.getVariableTypeInfo(
-    tracking.result,
-  );
-  if (
-    resolvedTypeInfo &&
-    orchestrator.isKnownStruct(resolvedTypeInfo.baseType)
-  ) {
-    tracking.currentStructType = resolvedTypeInfo.baseType;
-  }
-  return true;
-};
+const stringCapacityOf = (measured: IOperandType | null): number | null =>
+  measured !== null && OperandTyper.isString(measured)
+    ? measured.stringCapacity
+    : null;
 
 /**
- * Resolve the TTypeInfo for .capacity/.size on the current expression.
+ * Try handling property access (.capacity, .size, .bit_length, .byte_length,
+ * .element_count, .char_count). Returns true if handled.
  *
- * Tries in order:
- * 1. resolvedIdentifier (tracks the resolved identifier through member chains)
- * 2. rootIdentifier (the leftmost identifier)
- * 3. Struct field lookup via previousStructType/previousMemberName
- *    (handles alice.name.capacity where resolvedIdentifier is undefined)
- */
-const resolveStringTypeInfo = (
-  tracking: ITrackingState,
-  rootIdentifier: string | undefined,
-  orchestrator: IOrchestrator,
-): TTypeInfo | undefined => {
-  const identifier = tracking.resolvedIdentifier ?? rootIdentifier;
-  const typeInfo = identifier
-    ? orchestrator.state.getVariableTypeInfo(identifier)
-    : undefined;
-  if (typeInfo?.isString) {
-    return typeInfo;
-  }
-
-  // Struct member path: look up the field type to build a synthetic TTypeInfo
-  if (tracking.previousStructType && tracking.previousMemberName) {
-    const fieldInfo = orchestrator.getStructFieldInfo(
-      tracking.previousStructType,
-      tracking.previousMemberName,
-    );
-    if (fieldInfo && TypeCheckUtils.isString(fieldInfo.type)) {
-      const capacityMatch = /^string<(\d+)>$/.exec(fieldInfo.type);
-      const capacity = capacityMatch ? Number(capacityMatch[1]) : undefined;
-      return {
-        baseType: "char",
-        bitWidth: 8,
-        isArray: false,
-        isConst: false,
-        isString: true,
-        stringCapacity: capacity,
-      } as TTypeInfo;
-    }
-  }
-
-  return typeInfo;
-};
-
-/**
- * Create context object for explicit length property generators.
- */
-const createExplicitLengthContext = (
-  tracking: ITrackingState,
-  rootIdentifier: string | undefined,
-): IExplicitLengthContext => ({
-  result: tracking.result,
-  rootIdentifier,
-  resolvedIdentifier: tracking.resolvedIdentifier,
-  previousStructType: tracking.previousStructType,
-  previousMemberName: tracking.previousMemberName,
-  subscriptDepth: tracking.subscriptDepth,
-});
-
-/**
- * Apply property result to tracking state.
- */
-const applyPropertyResult = (
-  tracking: ITrackingState,
-  result: string,
-): void => {
-  tracking.result = result;
-  tracking.previousStructType = undefined;
-  tracking.previousMemberName = undefined;
-};
-
-/**
- * Try handling explicit length property (ADR-058).
- * Returns true if handled.
- */
-const tryExplicitLengthProperty = (
-  memberName: string,
-  tracking: ITrackingState,
-  rootIdentifier: string | undefined,
-  input: IGeneratorInput,
-  state: IGeneratorState,
-  orchestrator: IOrchestrator,
-  effects: TGeneratorEffect[],
-): boolean => {
-  const ctx = createExplicitLengthContext(tracking, rootIdentifier);
-
-  let result: string | null = null;
-  switch (memberName) {
-    case "bit_length":
-      result = generateBitLengthProperty(ctx, input, state, orchestrator);
-      break;
-    case "byte_length":
-      result = generateByteLengthProperty(ctx, input, state, orchestrator);
-      break;
-    case "element_count":
-      result = generateElementCountProperty(ctx, input, state, orchestrator);
-      break;
-    case "char_count":
-      result = generateCharCountProperty(ctx, state, orchestrator, effects);
-      break;
-  }
-
-  if (result !== null) {
-    applyPropertyResult(tracking, result);
-    return true;
-  }
-  return false;
-};
-
-/**
- * Try handling property access (.capacity, .size, .bit_length, .byte_length, .element_count, .char_count).
- * Returns true if handled.
+ * #1668 review: what a property measures is the typer's type for the value
+ * it is taken of -- the property step's `before` -- for a root and a member
+ * alike, which is what 2.1's E0867/E0887 decide from too. Render read a
+ * root's declared type info and a member's typed step: two answers, so a
+ * header `double`'s `.bit_length` was 64 as a variable and 32 as a field on
+ * a target whose `double` is 32 bits, a header `long` root was an internal
+ * error, and a member reached through a subscripted array of structs was
+ * measured at the wrong depth.
  *
  * Note: .length was removed in favor of explicit properties (ADR-058).
  */
 const tryPropertyAccess = (
   memberName: string,
+  measured: IOperandType | null,
   tracking: ITrackingState,
   rootIdentifier: string | undefined,
   input: IGeneratorInput,
   state: IGeneratorState,
-  orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): boolean => {
   // #1322: ADR-058's deprecation of `.length` is E0886 in pass 2.1, which
@@ -634,50 +444,45 @@ const tryPropertyAccess = (
     "`.length` is deprecated -- E0886 rejects this in pass 2.1, before this runs",
   );
 
-  // ADR-058: Explicit length properties
-  const explicitProps = new Set([
-    "bit_length",
-    "byte_length",
-    "element_count",
-    "char_count",
-  ]);
-  if (explicitProps.has(memberName)) {
-    return tryExplicitLengthProperty(
-      memberName,
-      tracking,
-      rootIdentifier,
-      input,
-      state,
-      orchestrator,
-      effects,
-    );
+  const ctx: IPropertyContext = {
+    measured,
+    result: tracking.result,
+    rootIdentifier,
+    resolvedIdentifier: tracking.resolvedIdentifier,
+    cacheable: tracking.subscriptDepth === 0 && !tracking.afterMember,
+  };
+  let result: string;
+  switch (memberName) {
+    // ADR-058: explicit length properties
+    case "bit_length":
+      result = generateBitLengthProperty(ctx, input, state);
+      break;
+    case "byte_length":
+      result = generateByteLengthProperty(ctx, input, state);
+      break;
+    case "element_count":
+      result = generateElementCountProperty(ctx, state);
+      break;
+    case "char_count":
+      result = generateCharCountProperty(ctx, state, effects);
+      break;
+    // ADR-045: string storage
+    case "capacity":
+    case "size": {
+      const capacity = stringCapacityOf(measured);
+      const output =
+        memberName === "capacity"
+          ? accessGenerators.generateCapacityProperty(capacity)
+          : accessGenerators.generateSizeProperty(capacity);
+      applyAccessEffects(output.effects, effects);
+      result = output.code;
+      break;
+    }
+    default:
+      return false;
   }
-
-  if (memberName === "capacity") {
-    const typeInfo = resolveStringTypeInfo(
-      tracking,
-      rootIdentifier,
-      orchestrator,
-    );
-    const capResult = accessGenerators.generateCapacityProperty(typeInfo);
-    applyAccessEffects(capResult.effects, effects);
-    tracking.result = capResult.code;
-    return true;
-  }
-
-  if (memberName === "size") {
-    const typeInfo = resolveStringTypeInfo(
-      tracking,
-      rootIdentifier,
-      orchestrator,
-    );
-    const sizeResult = accessGenerators.generateSizeProperty(typeInfo);
-    applyAccessEffects(sizeResult.effects, effects);
-    tracking.result = sizeResult.code;
-    return true;
-  }
-
-  return false;
+  tracking.result = result;
+  return true;
 };
 
 // ========================================================================
@@ -685,24 +490,22 @@ const tryPropertyAccess = (
 // ========================================================================
 
 /**
- * Context for explicit length property generation.
+ * What a property generator reads: the value measured, and the expression
+ * rendered so far.
  */
-interface IExplicitLengthContext {
+interface IPropertyContext {
+  /** The typer's type for the value the property is taken of */
+  measured: IOperandType | null;
   result: string;
   rootIdentifier: string | undefined;
   resolvedIdentifier: string | undefined;
-  previousStructType: string | undefined;
-  previousMemberName: string | undefined;
-  subscriptDepth: number;
+  /** A property of the variable itself: `.char_count`'s cache may serve it */
+  cacheable: boolean;
 }
 
 /**
  * Get the numeric bit width for a type (internal helper for ADR-058).
  * Returns 0 if type is unknown.
- *
- * Note: This differs from getTypeBitWidth() which returns a string and is
- * used for the legacy .length property. This function returns a number for
- * use in calculations (e.g., array total bits = elements * element width).
  */
 const getNumericBitWidth = (
   typeName: string,
@@ -725,273 +528,77 @@ const getNumericBitWidth = (
   return bitWidth;
 };
 
+/** The bits one element of the measured value holds; 0 if not known */
+const elementBitWidth = (
+  measured: IOperandType,
+  input: IGeneratorInput,
+): number => {
+  if (OperandTyper.isString(measured)) {
+    // ADR-058: a string's buffer, `.size x 8`
+    invariant(
+      measured.stringCapacity !== null,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for string with unknown capacity.`,
+    );
+    return (measured.stringCapacity + 1) * 8;
+  }
+  if (measured.bitWidth !== null) return measured.bitWidth;
+  return measured.typeName === null
+    ? 0
+    : getNumericBitWidth(measured.typeName, input);
+};
+
+/**
+ * The measured value's length in units of `unitBits` -- 1 for `.bit_length`,
+ * 8 for `.byte_length`: every element's bits, together. A dimension that
+ * does not fold (a C macro) leaves the product for the C compiler to fold,
+ * as `.element_count` leaves the macro (#1760 review: this emitted a
+ * literal 0 behind a comment naming the dimension). The product is taken in
+ * `uint32_t`, as a folded one is read: in `unsigned int` it would wrap past
+ * 65535 where that is 16 bits (AVR).
+ */
+const measuredLength = (
+  ctx: IPropertyContext,
+  input: IGeneratorInput,
+  unitBits: 1 | 8,
+): string => {
+  const measured = ctx.measured;
+  invariant(
+    measured !== null,
+    `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for '${ctx.result}'.`,
+  );
+  const element = elementBitWidth(measured, input);
+  invariant(
+    element > 0,
+    `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for unsupported type '${measured.typeName ?? "unknown"}'.`,
+  );
+  const perElement = element / unitBits;
+  const dimensions = measured.dimensions;
+  if (dimensions.every((dim) => typeof dim === "number")) {
+    const product = dimensions.reduce<number>((all, dim) => all * dim, 1);
+    return String(product * perElement);
+  }
+  const factors = dimensions.map((dim) =>
+    typeof dim === "number" ? `${dim}U` : `(${dim})`,
+  );
+  const unit = `${perElement}U`;
+  return `((uint32_t)${[...factors, unit].join(" * ")})`;
+};
+
 /**
  * Generate .bit_length property access (ADR-058).
  * Returns the bit width of any type.
  */
 const generateBitLengthProperty = (
-  ctx: IExplicitLengthContext,
+  ctx: IPropertyContext,
   input: IGeneratorInput,
   state: IGeneratorState,
-  orchestrator: IOrchestrator,
-): string | null => {
+): string => {
   // Special case: main function's args.bit_length -> not supported
-  if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
-    invariant(
-      false,
-      `E0867 rejects this in pass 2.1 -- .bit_length is not supported on 'args' parameter. Use .element_count for argc.`,
-    );
-  }
-
-  // Check struct member access
-  if (ctx.previousStructType && ctx.previousMemberName) {
-    const fieldInfo = orchestrator.getStructFieldInfo(
-      ctx.previousStructType,
-      ctx.previousMemberName,
-    );
-    if (fieldInfo) {
-      return generateStructFieldBitLength(fieldInfo, ctx.subscriptDepth, input);
-    }
-  }
-
-  // Get type info for the resolved identifier
-  const typeInfo = ctx.resolvedIdentifier
-    ? orchestrator.state.getVariableTypeInfo(ctx.resolvedIdentifier)
-    : undefined;
-
-  if (!typeInfo) {
-    invariant(
-      false,
-      `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for '${ctx.result}' - type not found in registry.`,
-    );
-  }
-
-  return generateTypeInfoBitLength(typeInfo, ctx.subscriptDepth, input);
-};
-
-/**
- * Calculate product of remaining array dimensions from subscript depth.
- * Returns null if a dynamic dimension (C macro) is encountered.
- */
-const calculateRemainingDimensionsProduct = (
-  dimensions: (number | string)[],
-  subscriptDepth: number,
-): { product: number } | { dynamicDim: string } => {
-  let product = 1;
-  for (let i = subscriptDepth; i < dimensions.length; i++) {
-    const dim = dimensions[i];
-    if (typeof dim !== "number") {
-      return { dynamicDim: dim };
-    }
-    product *= dim;
-  }
-  return { product };
-};
-
-/**
- * Generate bit length for string type from type name.
- */
-const generateStringBitLengthFromTypeName = (
-  typeName: string,
-): string | null => {
-  if (!typeName.startsWith("string<")) {
-    return null;
-  }
-  const capacityMatch = /^string<(\d+)>$/.exec(typeName);
-  if (capacityMatch) {
-    const capacity = Number(capacityMatch[1]);
-    return String((capacity + 1) * 8);
-  }
-  return null;
-};
-
-/**
- * Generate .bit_length for a struct field.
- */
-const generateStructFieldBitLength = (
-  fieldInfo: { type: string; dimensions?: (number | string)[] },
-  subscriptDepth: number,
-  input: IGeneratorInput,
-): string => {
-  const memberType = fieldInfo.type;
-  const dimensions = fieldInfo.dimensions;
-
-  // String field: bit_length = (capacity + 1) * 8
-  const stringBitLength = generateStringBitLengthFromTypeName(memberType);
-  if (stringBitLength !== null) {
-    return stringBitLength;
-  }
-
-  // Array field: total bits = product of dimensions * element bit width
-  if (dimensions && dimensions.length > subscriptDepth) {
-    const elementBitWidth = getNumericBitWidth(memberType, input);
-    if (elementBitWidth > 0) {
-      const dimResult = calculateRemainingDimensionsProduct(
-        dimensions,
-        subscriptDepth,
-      );
-      if ("dynamicDim" in dimResult) {
-        return `/* .bit_length: dynamic dimension ${dimResult.dynamicDim} */0`;
-      }
-      return String(dimResult.product * elementBitWidth);
-    }
-  }
-
-  // Scalar or fully subscripted: return element bit width
-  const bitWidth = getNumericBitWidth(memberType, input);
-  if (bitWidth > 0) {
-    return String(bitWidth);
-  }
-
   invariant(
-    false,
-    `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for unsupported type '${memberType}'.`,
+    !(state.mainArgsName && ctx.rootIdentifier === state.mainArgsName),
+    `E0867 rejects this in pass 2.1 -- .bit_length is not supported on 'args' parameter. Use .element_count for argc.`,
   );
-};
-
-/**
- * Generate bit length for a scalar (non-array) type.
- */
-const generateScalarBitLength = (
-  typeInfo: {
-    isEnum?: boolean;
-    baseType: string;
-    bitWidth?: number;
-  },
-  input: IGeneratorInput,
-): string => {
-  // Enum type: always 32 bits
-  if (typeInfo.isEnum) {
-    return "32";
-  }
-
-  if (typeInfo.bitWidth) {
-    return String(typeInfo.bitWidth);
-  }
-
-  // Try lookup by base type
-  const bitWidth = getNumericBitWidth(typeInfo.baseType, input);
-  if (bitWidth > 0) {
-    return String(bitWidth);
-  }
-  invariant(
-    false,
-    `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for unsupported type '${typeInfo.baseType}'.`,
-  );
-};
-
-/**
- * Get element bit width for array type.
- */
-const getArrayElementBitWidth = (
-  typeInfo: {
-    isEnum?: boolean;
-    baseType: string;
-    bitWidth?: number;
-  },
-  input: IGeneratorInput,
-): number => {
-  let elementBitWidth = typeInfo.bitWidth || 0;
-  if (elementBitWidth === 0) {
-    elementBitWidth = getNumericBitWidth(typeInfo.baseType, input);
-  }
-  if (elementBitWidth === 0 && typeInfo.isEnum) {
-    elementBitWidth = 32;
-  }
-  return elementBitWidth;
-};
-
-/**
- * Generate bit length for an array type.
- */
-const generateArrayBitLength = (
-  typeInfo: {
-    isEnum?: boolean;
-    arrayDimensions?: (number | string)[];
-    baseType: string;
-    bitWidth?: number;
-  },
-  subscriptDepth: number,
-  input: IGeneratorInput,
-): string => {
-  const dims = typeInfo.arrayDimensions;
-  if (!dims || dims.length === 0) {
-    invariant(
-      false,
-      `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for array with unknown dimensions.`,
-    );
-  }
-
-  const elementBitWidth = getArrayElementBitWidth(typeInfo, input);
-  if (elementBitWidth === 0) {
-    invariant(
-      false,
-      `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for array with unsupported element type '${typeInfo.baseType}'.`,
-    );
-  }
-
-  const dimResult = calculateRemainingDimensionsProduct(dims, subscriptDepth);
-  if ("dynamicDim" in dimResult) {
-    return `/* .bit_length: dynamic dimension ${dimResult.dynamicDim} */0`;
-  }
-
-  return String(dimResult.product * elementBitWidth);
-};
-
-/**
- * Generate .bit_length from type info.
- */
-const generateTypeInfoBitLength = (
-  typeInfo: {
-    isString?: boolean;
-    isArray?: boolean;
-    isEnum?: boolean;
-    arrayDimensions?: (number | string)[];
-    baseType: string;
-    bitWidth?: number;
-    isBitmap?: boolean;
-    bitmapTypeName?: string;
-    stringCapacity?: number;
-  },
-  subscriptDepth: number,
-  input: IGeneratorInput,
-): string => {
-  // String type: bit_length = (capacity + 1) * 8 (buffer size in bits)
-  if (typeInfo.isString) {
-    if (typeInfo.stringCapacity !== undefined) {
-      return String((typeInfo.stringCapacity + 1) * 8);
-    }
-    invariant(
-      false,
-      `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for string with unknown capacity.`,
-    );
-  }
-
-  // Non-array scalar: return bit width
-  if (!typeInfo.isArray) {
-    return generateScalarBitLength(typeInfo, input);
-  }
-
-  // Array: calculate total bits
-  return generateArrayBitLength(typeInfo, subscriptDepth, input);
-};
-
-/**
- * The `.byte_length` for a thing whose `.bit_length` has already been rendered.
- *
- * "Bits to bytes" has two representations and one decision behind them: a bit
- * length that folded to a literal divides by eight, and one that stayed an
- * expression renames the property it reads. `generateByteLengthProperty`
- * derived both, twice -- once from a struct field's bit length and once from a
- * type-info bit length -- so a change to either representation needed two
- * edits that nothing held together.
- */
-const bytesFromBitLength = (bitLength: string): string => {
-  const bitValue = Number.parseInt(bitLength, 10);
-  if (!Number.isNaN(bitValue)) {
-    return String(bitValue / 8);
-  }
-  return bitLength.replace(".bit_length", ".byte_length");
+  return measuredLength(ctx, input, 1);
 };
 
 /**
@@ -999,167 +606,36 @@ const bytesFromBitLength = (bitLength: string): string => {
  * Returns the byte size of any type (bit_length / 8).
  */
 const generateByteLengthProperty = (
-  ctx: IExplicitLengthContext,
+  ctx: IPropertyContext,
   input: IGeneratorInput,
   state: IGeneratorState,
-  orchestrator: IOrchestrator,
-): string | null => {
+): string => {
   // Special case: main function's args
-  if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
-    invariant(
-      false,
-      `E0867 rejects this in pass 2.1 -- .byte_length is not supported on 'args' parameter. Use .element_count for argc.`,
-    );
-  }
-
-  // Check struct member access
-  if (ctx.previousStructType && ctx.previousMemberName) {
-    const fieldInfo = orchestrator.getStructFieldInfo(
-      ctx.previousStructType,
-      ctx.previousMemberName,
-    );
-    if (fieldInfo) {
-      const bitLength = generateStructFieldBitLength(
-        fieldInfo,
-        ctx.subscriptDepth,
-        input,
-      );
-      return bytesFromBitLength(bitLength);
-    }
-  }
-
-  // Get type info for the resolved identifier
-  const typeInfo = ctx.resolvedIdentifier
-    ? orchestrator.state.getVariableTypeInfo(ctx.resolvedIdentifier)
-    : undefined;
-
-  if (!typeInfo) {
-    invariant(
-      false,
-      `E0867 rejects this in pass 2.1 -- Cannot determine .byte_length for '${ctx.result}' - type not found in registry.`,
-    );
-  }
-
-  const bitLength = generateTypeInfoBitLength(
-    typeInfo,
-    ctx.subscriptDepth,
-    input,
-  );
-  return bytesFromBitLength(bitLength);
-};
-
-/**
- * Get dimension value at subscript depth as string.
- */
-const getDimensionAtDepth = (
-  dimensions: (number | string)[],
-  subscriptDepth: number,
-): string => {
-  const dim = dimensions[subscriptDepth];
-  return typeof dim === "number" ? String(dim) : dim;
-};
-
-/**
- * Generate element_count for struct field.
- */
-const generateStructFieldElementCount = (
-  ctx: IExplicitLengthContext,
-  orchestrator: IOrchestrator,
-): string | null => {
-  if (!ctx.previousStructType || !ctx.previousMemberName) {
-    return null;
-  }
-
-  const fieldInfo = orchestrator.getStructFieldInfo(
-    ctx.previousStructType,
-    ctx.previousMemberName,
-  );
-
-  if (
-    fieldInfo?.dimensions &&
-    fieldInfo.dimensions.length > ctx.subscriptDepth
-  ) {
-    return getDimensionAtDepth(fieldInfo.dimensions, ctx.subscriptDepth);
-  }
-
-  // Non-array field - element_count not applicable
   invariant(
-    false,
-    `E0867 rejects this in pass 2.1 -- .element_count is only available on arrays, not on '${fieldInfo?.type || ctx.previousMemberName}'.`,
+    !(state.mainArgsName && ctx.rootIdentifier === state.mainArgsName),
+    `E0867 rejects this in pass 2.1 -- .byte_length is not supported on 'args' parameter. Use .element_count for argc.`,
   );
-};
-
-/**
- * Generate element_count from type info.
- */
-const generateTypeInfoElementCount = (
-  ctx: IExplicitLengthContext,
-  _input: IGeneratorInput,
-  orchestrator: IOrchestrator,
-): string => {
-  const typeInfo = ctx.resolvedIdentifier
-    ? orchestrator.state.getVariableTypeInfo(ctx.resolvedIdentifier)
-    : undefined;
-
-  if (!typeInfo) {
-    invariant(
-      false,
-      `E0867 rejects this in pass 2.1 -- Cannot determine .element_count for '${ctx.result}' - type not found in registry.`,
-    );
-  }
-
-  if (!typeInfo.isArray) {
-    invariant(
-      false,
-      `E0867 rejects this in pass 2.1 -- .element_count is only available on arrays, not on '${typeInfo.baseType}'.`,
-    );
-  }
-
-  const dims = typeInfo.arrayDimensions;
-  if (!dims || dims.length === 0) {
-    invariant(
-      false,
-      `E0867 rejects this in pass 2.1 -- Cannot determine .element_count for array with unknown dimensions.`,
-    );
-  }
-
-  if (ctx.subscriptDepth < dims.length) {
-    return getDimensionAtDepth(dims, ctx.subscriptDepth);
-  }
-
-  invariant(
-    false,
-    `E0867 rejects this in pass 2.1 -- .element_count is not available on array elements. Array is fully subscripted.`,
-  );
+  return measuredLength(ctx, input, 8);
 };
 
 /**
  * Generate .element_count property access (ADR-058).
- * Returns element count for arrays or argc for args.
+ * Returns the first dimension no subscript has taken, or argc for args.
  */
 const generateElementCountProperty = (
-  ctx: IExplicitLengthContext,
-  input: IGeneratorInput,
+  ctx: IPropertyContext,
   state: IGeneratorState,
-  orchestrator: IOrchestrator,
-): string | null => {
+): string => {
   // Special case: main function's args.element_count -> argc
   if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
     return "argc";
   }
-
-  // Check struct member access for array fields
-  const structResult = generateStructFieldElementCount(ctx, orchestrator);
-  if (structResult !== null) {
-    return structResult;
-  }
-  if (ctx.previousStructType) {
-    // generateStructFieldElementCount threw or returned null but struct context existed
-    return null;
-  }
-
-  // Get type info for variable
-  return generateTypeInfoElementCount(ctx, input, orchestrator);
+  const first = ctx.measured?.dimensions[0];
+  invariant(
+    first !== undefined,
+    `E0867 rejects this in pass 2.1 -- .element_count is only available on arrays, not on '${ctx.result}'.`,
+  );
+  return String(first);
 };
 
 /**
@@ -1167,61 +643,25 @@ const generateElementCountProperty = (
  * Returns strlen() for strings.
  */
 const generateCharCountProperty = (
-  ctx: IExplicitLengthContext,
+  ctx: IPropertyContext,
   state: IGeneratorState,
-  orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
-): string | null => {
+): string => {
   // Special case: main function's args
-  if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
-    invariant(
-      false,
-      `E0867 rejects this in pass 2.1 -- .char_count is only available on strings, not on 'args'. Use .element_count for argc.`,
-    );
-  }
-
-  // Check struct member access for string fields
-  if (ctx.previousStructType && ctx.previousMemberName) {
-    const fieldInfo = orchestrator.getStructFieldInfo(
-      ctx.previousStructType,
-      ctx.previousMemberName,
-    );
-    if (fieldInfo?.type.startsWith("string<")) {
-      effects.push({ type: "include", header: "string" });
-      return `strlen(${ctx.result})`;
-    }
-    // Non-string field
-    invariant(
-      false,
-      `E0867 rejects this in pass 2.1 -- .char_count is only available on strings, not on '${fieldInfo?.type || ctx.previousMemberName}'.`,
-    );
-  }
-
-  // Get type info
-  const typeInfo = ctx.resolvedIdentifier
-    ? orchestrator.state.getVariableTypeInfo(ctx.resolvedIdentifier)
-    : undefined;
-
-  if (!typeInfo) {
-    invariant(
-      false,
-      `E0867 rejects this in pass 2.1 -- Cannot determine .char_count for '${ctx.result}' - type not found in registry.`,
-    );
-  }
-
-  // Must be a string type
-  if (!typeInfo.isString) {
-    invariant(
-      false,
-      `E0867 rejects this in pass 2.1 -- .char_count is only available on strings, not on '${typeInfo.baseType}'.`,
-    );
-  }
+  invariant(
+    !(state.mainArgsName && ctx.rootIdentifier === state.mainArgsName),
+    `E0867 rejects this in pass 2.1 -- .char_count is only available on strings, not on 'args'. Use .element_count for argc.`,
+  );
+  invariant(
+    ctx.measured !== null && OperandTyper.isString(ctx.measured),
+    `E0867 rejects this in pass 2.1 -- .char_count is only available on strings, not on '${ctx.result}'.`,
+  );
 
   effects.push({ type: "include", header: "string" });
 
-  // Check length cache first (only for simple variable access, not indexed)
+  // Check length cache first (only for the variable itself, not indexed)
   if (
-    ctx.subscriptDepth === 0 &&
+    ctx.cacheable &&
     ctx.resolvedIdentifier &&
     state.lengthCache?.has(ctx.resolvedIdentifier)
   ) {
@@ -1243,30 +683,28 @@ const generateCharCountProperty = (
 interface MemberAccessResult {
   result: string;
   resolvedIdentifier?: string;
-  currentStructType?: string;
-  currentMemberIsArray?: boolean;
   isRegisterChain?: boolean;
   isCppAccessChain?: boolean;
-  previousStructType?: string;
-  previousMemberName?: string;
 }
 
 /**
  * Context for member access generation.
  */
 interface IMemberAccessContext {
+  base: IChainBase;
   result: string;
   memberName: string;
   rootIdentifier: string | undefined;
-  isStructParam: boolean;
-  /** Issue #895: Force pointer semantics for callback-compatible params */
-  forcePointerSemantics: boolean;
+  /** How the root is held (`memberAccessChain.rootHolding`) */
+  holding: IRootHolding;
   isGlobalAccess: boolean;
   isCppAccessChain: boolean;
-  currentStructType: string | undefined;
+  /**
+   * #1668 (C12): the value this member is read from, as the one operand
+   * typer typed it; null where its root consumed the op or nothing typed it
+   */
+  typed: IOperandType | null;
   resolvedIdentifier: string | undefined;
-  previousStructType: string | undefined;
-  previousMemberName: string | undefined;
   isRegisterChain: boolean;
 }
 
@@ -1278,12 +716,8 @@ const initializeMemberOutput = (
 ): MemberAccessResult => ({
   result: ctx.result,
   resolvedIdentifier: ctx.resolvedIdentifier,
-  currentStructType: ctx.currentStructType,
-  currentMemberIsArray: false,
   isRegisterChain: ctx.isRegisterChain,
   isCppAccessChain: ctx.isCppAccessChain,
-  previousStructType: ctx.currentStructType,
-  previousMemberName: ctx.memberName,
 });
 
 /**
@@ -1295,10 +729,7 @@ const initializeMemberOutput = (
  * change to how member access advances the chain -- what `currentStructType`
  * becomes, whether `currentMemberIsArray` is set from the member or the parent
  * -- needed two edits with nothing holding them together.
- *
- * `previousStructType` and `previousMemberName` are NOT re-assigned here.
- * `initializeMemberOutput` already sets both to exactly these values; both
- * callers set them again immediately after calling it.
+
  *
  * ## The difference between the two paths was not one
  *
@@ -1318,21 +749,10 @@ const initializeMemberOutput = (
  */
 const advanceMemberAccess = (
   ctx: IMemberAccessContext,
-  orchestrator: IOrchestrator,
   separator: string,
 ): MemberAccessResult => {
   const output = initializeMemberOutput(ctx);
   output.result = `${ctx.result}${separator}${ctx.memberName}`;
-  if (ctx.currentStructType) {
-    const memberTypeInfo = orchestrator.getMemberTypeInfo(
-      ctx.currentStructType,
-      ctx.memberName,
-    );
-    if (memberTypeInfo) {
-      output.currentMemberIsArray = memberTypeInfo.isArray;
-      output.currentStructType = memberTypeInfo.baseType;
-    }
-  }
   return output;
 };
 
@@ -1349,14 +769,14 @@ const generateMemberAccess = (
 ): MemberAccessResult => {
   return (
     tryBitmapFieldAccess(ctx, input, effects, orchestrator) ??
-    tryScopeMemberAccess(ctx, input, state, orchestrator) ??
+    tryScopeMemberAccess(ctx, input, state) ??
     tryKnownScopeAccess(ctx, orchestrator) ??
     tryEnumMemberAccess(ctx, input, orchestrator) ??
     tryRegisterMemberAccess(ctx, input) ??
     tryStructParamAccess(ctx, orchestrator) ??
     tryRegisterBitmapAccess(ctx, input, effects, orchestrator) ??
     tryStructBitmapAccess(ctx, input, effects, orchestrator) ??
-    generateDefaultAccess(ctx, orchestrator)
+    generateDefaultAccess(ctx)
   );
 };
 
@@ -1376,14 +796,24 @@ const tryBitmapFieldAccess = (
   if (!ctx.rootIdentifier) {
     return null;
   }
-  const typeInfo = orchestrator.state.getVariableTypeInfo(ctx.rootIdentifier);
+  const typeInfo = ctx.base.rootTypeInfo;
   if (!typeInfo?.isBitmap || !typeInfo.bitmapTypeName) {
     return null;
   }
 
+  // A bitmap parameter's field is worked in its whole value (#1760 second
+  // review: `s.C` shifted the pointer `s`)
+  const whole =
+    ctx.result === ctx.rootIdentifier
+      ? memberAccessChain.wholeParamValue(
+          ctx.result,
+          orchestrator.state.currentParameters.get(ctx.rootIdentifier),
+          orchestrator.isCppMode(),
+        )
+      : ctx.result;
   const output = initializeMemberOutput(ctx);
   const bitmapResult = BitmapAccessHelper.generate(
-    ctx.result,
+    whole,
     ctx.memberName,
     typeInfo.bitmapTypeName,
     input.symbols!.bitmapFields,
@@ -1402,7 +832,6 @@ const tryScopeMemberAccess = (
   ctx: IMemberAccessContext,
   input: IGeneratorInput,
   state: IGeneratorState,
-  orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
   if (ctx.result !== "__THIS_SCOPE__") {
     return null;
@@ -1417,15 +846,6 @@ const tryScopeMemberAccess = (
   if (constValue === undefined) {
     output.result = fullName;
     output.resolvedIdentifier = fullName;
-    if (!input.symbols!.knownEnums.has(fullName)) {
-      const resolvedTypeInfo = orchestrator.state.getVariableTypeInfo(fullName);
-      if (
-        resolvedTypeInfo &&
-        orchestrator.isKnownStruct(resolvedTypeInfo.baseType)
-      ) {
-        output.currentStructType = resolvedTypeInfo.baseType;
-      }
-    }
   } else {
     output.result = constValue;
     output.resolvedIdentifier = fullName;
@@ -1450,15 +870,6 @@ const tryKnownScopeAccess = (
   const output = initializeMemberOutput(ctx);
   output.result = `${ctx.result}${orchestrator.getScopeSeparator(ctx.isCppAccessChain)}${ctx.memberName}`;
   output.resolvedIdentifier = output.result;
-  const resolvedTypeInfo = orchestrator.state.getVariableTypeInfo(
-    output.result,
-  );
-  if (
-    resolvedTypeInfo &&
-    orchestrator.isKnownStruct(resolvedTypeInfo.baseType)
-  ) {
-    output.currentStructType = resolvedTypeInfo.baseType;
-  }
   return output;
 };
 
@@ -1504,18 +915,19 @@ const tryStructParamAccess = (
   ctx: IMemberAccessContext,
   orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
-  if (!ctx.isStructParam || ctx.result !== ctx.rootIdentifier) {
+  const held = ctx.holding.isStructParam || ctx.holding.isPointerLocal;
+  if (!held || ctx.result !== ctx.rootIdentifier) {
     return null;
   }
 
-  // Issue #895: a callback-compatible param is a pointer even in C++ mode, so
-  // it takes -> there too -- decided by the helper, from the parameter.
-  const structParamSep = memberAccessChain.getStructParamSeparator({
-    cppMode: orchestrator.isCppMode(),
-    forcePointerSemantics: ctx.forcePointerSemantics,
-  });
+  // Issue #895: a callback-compatible param, and a local held through a
+  // pointer, take -> in C++ too -- decided by the helper, from the holding
+  const structParamSep = memberAccessChain.rootMemberSeparator(
+    ctx.holding,
+    orchestrator.isCppMode(),
+  );
 
-  return advanceMemberAccess(ctx, orchestrator, structParamSep);
+  return advanceMemberAccess(ctx, structParamSep);
 };
 
 /**
@@ -1555,10 +967,9 @@ const tryStructBitmapAccess = (
   effects: TGeneratorEffect[],
   orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
-  if (
-    !ctx.currentStructType ||
-    !input.symbols!.bitmapFields.has(ctx.currentStructType)
-  ) {
+  // #1668 (C12): the bitmap type is the typer's, for the value read from
+  const bitmapType = ctx.typed?.bitmapTypeName ?? null;
+  if (bitmapType === null || !input.symbols!.bitmapFields.has(bitmapType)) {
     return null;
   }
 
@@ -1566,9 +977,9 @@ const tryStructBitmapAccess = (
   const bitmapResult = BitmapAccessHelper.generate(
     ctx.result,
     ctx.memberName,
-    ctx.currentStructType,
+    bitmapType,
     input.symbols!.bitmapFields,
-    `struct member '${ctx.result}' (bitmap type '${ctx.currentStructType}')`,
+    `struct member '${ctx.result}' (bitmap type '${bitmapType}')`,
     orchestrator.state,
   );
   applyAccessEffects(bitmapResult.effects, effects);
@@ -1581,10 +992,9 @@ const tryStructBitmapAccess = (
  */
 const generateDefaultAccess = (
   ctx: IMemberAccessContext,
-  orchestrator: IOrchestrator,
 ): MemberAccessResult => {
   const separator = ctx.isCppAccessChain ? "::" : ".";
-  return advanceMemberAccess(ctx, orchestrator, separator);
+  return advanceMemberAccess(ctx, separator);
 };
 
 // ========================================================================
@@ -1596,9 +1006,6 @@ const generateDefaultAccess = (
  */
 interface SubscriptAccessResult {
   result: string;
-  currentStructType?: string;
-  currentMemberIsArray?: boolean;
-  remainingArrayDims?: number;
   subscriptDepth?: number;
 }
 
@@ -1606,6 +1013,7 @@ interface SubscriptAccessResult {
  * Context for subscript access generation.
  */
 interface ISubscriptAccessContext {
+  base: IChainBase;
   result: string;
   subscript: Extract<TPlannedPostfixOp, { kind: "subscript" }>;
   rootIdentifier: string | undefined;
@@ -1613,9 +1021,6 @@ interface ISubscriptAccessContext {
     | { baseType: string; arrayDimensions?: (number | string)[] }
     | undefined;
   resolvedIdentifier: string | undefined;
-  currentStructType: string | undefined;
-  currentMemberIsArray: boolean;
-  remainingArrayDims: number;
   subscriptDepth: number;
   isRegisterChain: boolean;
 }
@@ -1633,9 +1038,6 @@ const generateSubscriptAccess = (
 ): SubscriptAccessResult => {
   const output: SubscriptAccessResult = {
     result: ctx.result,
-    currentStructType: ctx.currentStructType,
-    currentMemberIsArray: false,
-    remainingArrayDims: ctx.remainingArrayDims,
     subscriptDepth: ctx.subscriptDepth,
   };
 
@@ -1671,6 +1073,13 @@ const generateSubscriptAccess = (
 
 /**
  * Handle single-index subscript (arr[i] or value[bit]).
+ *
+ * #1668 (C12): an element access or a bit read, as the one operand typer
+ * typed the subscript (`typedAs`) -- the answer 2.1's bit rules read. This
+ * walked the chain itself: whether the current member was an array, how many
+ * of the root's dimensions remained, whether the member's type was an
+ * integer, and only then fell back to the typer. Every branch emitted one of
+ * the same two texts.
  */
 const handleSingleSubscript = (
   ctx: ISubscriptAccessContext,
@@ -1682,59 +1091,18 @@ const handleSingleSubscript = (
   // Check if result is a register member with bitmap type (throws)
   validateNotBitmapMember(ctx, input);
 
-  const isRegisterAccess = checkRegisterAccess(ctx, input);
-  const identifierTypeInfo = getIdentifierTypeInfo(ctx, input, orchestrator);
-
-  // Register access: bit extraction
-  if (isRegisterAccess) {
-    output.result = singleBitRead(ctx.result, index, orchestrator);
-    return output;
-  }
-
   // #1322: constant index bounds (ADR-036, E0854) are checked in pass 2.1,
   // in value position and in a target alike.
-
-  // Member array access
-  if (ctx.currentMemberIsArray) {
-    output.result = `${ctx.result}[${index}]`;
-    output.currentMemberIsArray = false;
-    output.subscriptDepth = ctx.subscriptDepth + 1;
-    return output;
-  }
-
-  // Multi-dimensional array access
-  if (ctx.remainingArrayDims > 0) {
-    return handleRemainingArrayDims(ctx, index, output);
-  }
-
-  // Primitive int member: bit access
-  const isPrimitiveIntMember =
-    ctx.currentStructType && TypeCheckUtils.isInteger(ctx.currentStructType);
-  if (isPrimitiveIntMember) {
+  if (
+    checkRegisterAccess(ctx, input) ||
+    ctx.subscript.typedAs === "bit_single"
+  ) {
     output.result = singleBitRead(ctx.result, index, orchestrator);
-    output.currentStructType = undefined;
     return output;
   }
-
-  // Primary array access
-  if (identifierTypeInfo?.isArray) {
-    return handlePrimaryArraySubscript(
-      ctx,
-      index,
-      identifierTypeInfo,
-      orchestrator,
-      output,
-    );
-  }
-
-  // Default: classify subscript type
-  return handleDefaultSubscript(
-    ctx,
-    index,
-    identifierTypeInfo,
-    output,
-    orchestrator,
-  );
+  output.result = `${ctx.result}[${index}]`;
+  output.subscriptDepth = ctx.subscriptDepth + 1;
+  return output;
 };
 
 /**
@@ -1767,86 +1135,6 @@ const checkRegisterAccess = (
 };
 
 /**
- * Get type info for the identifier being subscripted.
- */
-const getIdentifierTypeInfo = (
-  ctx: ISubscriptAccessContext,
-  _input: IGeneratorInput,
-  orchestrator: IOrchestrator,
-): TTypeInfo | undefined => {
-  const identifierToCheck = ctx.resolvedIdentifier || ctx.rootIdentifier;
-  return identifierToCheck
-    ? orchestrator.state.getVariableTypeInfo(identifierToCheck)
-    : undefined;
-};
-
-/**
- * Handle subscript on array with remaining dimensions.
- */
-const handleRemainingArrayDims = (
-  ctx: ISubscriptAccessContext,
-  index: string,
-  output: SubscriptAccessResult,
-): SubscriptAccessResult => {
-  output.result = `${ctx.result}[${index}]`;
-  output.remainingArrayDims = ctx.remainingArrayDims - 1;
-  output.subscriptDepth = ctx.subscriptDepth + 1;
-
-  if (output.remainingArrayDims === 0 && ctx.primaryTypeInfo) {
-    output.currentStructType = ctx.primaryTypeInfo.baseType;
-  }
-  return output;
-};
-
-/**
- * Handle subscript on a primary array.
- */
-const handlePrimaryArraySubscript = (
-  ctx: ISubscriptAccessContext,
-  index: string,
-  typeInfo: TTypeInfo,
-  orchestrator: IOrchestrator,
-  output: SubscriptAccessResult,
-): SubscriptAccessResult => {
-  output.result = `${ctx.result}[${index}]`;
-  output.subscriptDepth = ctx.subscriptDepth + 1;
-
-  // Update struct type if element is a known struct
-  if (!ctx.currentStructType) {
-    const elementType = typeInfo.baseType;
-    if (orchestrator.isKnownStruct(elementType)) {
-      output.currentStructType = elementType;
-    }
-  }
-  return output;
-};
-
-/**
- * Handle default subscript (classify and apply).
- */
-const handleDefaultSubscript = (
-  ctx: ISubscriptAccessContext,
-  index: string,
-  typeInfo: TTypeInfo | undefined,
-  output: SubscriptAccessResult,
-  orchestrator: IOrchestrator,
-): SubscriptAccessResult => {
-  const subscriptKind = SubscriptClassifier.classify({
-    typeInfo: typeInfo ?? null,
-    subscriptCount: 1,
-    isRegisterAccess: false,
-  });
-
-  if (subscriptKind === "bit_single") {
-    output.result = singleBitRead(ctx.result, index, orchestrator);
-  } else {
-    output.result = `${ctx.result}[${index}]`;
-  }
-
-  return output;
-};
-
-/**
  * Handle dual-index subscript (value[start, width] — bit range).
  */
 const handleBitRangeSubscript = (
@@ -1864,8 +1152,10 @@ const handleBitRangeSubscript = (
   // ((1U << W) - 1) — which is UB at full width (1U << 32) and uses the wrong
   // base type for >32-bit widths. The "U" suffix matches the literal path, which
   // generates bit widths under a size_t expectedType.
-  const widthConst = ctx.subscript.foldWidth();
-  const maskWidth = widthConst === undefined ? width : `${widthConst}U`;
+  const maskWidth = BitUtils.widthText({
+    text: width,
+    folded: ctx.subscript.foldWidth(),
+  });
 
   const isFloatType =
     ctx.primaryTypeInfo?.baseType === "f32" ||
@@ -1886,12 +1176,13 @@ const handleBitRangeSubscript = (
       effects,
     );
   } else {
-    // Issue #1094: 64-bit operands need a 64-bit mask base (1ULL / wide hex) so
-    // widths > 32 don't shift past a 32-bit literal's width.
-    const is64BitOperand =
-      ctx.primaryTypeInfo?.baseType === "u64" ||
-      ctx.primaryTypeInfo?.baseType === "i64";
-    const mask = orchestrator.generateBitMask(maskWidth, is64BitOperand);
+    // Issue #1094, #1668: a width known only at run time computes its mask
+    // in the operand's own width, so a 64-bit operand's does not shift past
+    // a 32-bit literal's, nor a 32-bit one's past a 16-bit int's. #1760
+    // review: the operand is the value ranged, as the typer types it and as
+    // a write reads it -- not the root, which a field or a `this.` root is not
+    const ranged = ctx.subscript.step?.before ?? null;
+    const mask = BitUtils.generateMask(maskWidth, BitUtils.storageOf(ranged));
     // Skip shift when start is 0 (either "0" or "0U" with MISRA suffix)
     let expr: string;
     if (start === "0" || start === "0U") {
@@ -1903,9 +1194,9 @@ const handleBitRangeSubscript = (
     // MISRA 10.3: Add narrowing cast if expected type is known
     // Bit operations promote to int, so wrap with cast when assigning to narrower types
     const targetType = orchestrator.state.expectedType;
-    if (targetType && ctx.primaryTypeInfo?.baseType) {
+    if (targetType && ranged?.typeName) {
       const promotedSourceType = NarrowingCastHelper.getPromotedType(
-        ctx.primaryTypeInfo.baseType,
+        ranged.typeName,
       );
       output.result = NarrowingCastHelper.wrap(
         expr,
@@ -1935,13 +1226,6 @@ interface IFloatBitRangeContext {
 }
 
 /**
- * Get the C float type name for a C-Next float type.
- */
-const getFloatTypeName = (baseType: string): string => {
-  return baseType === "f64" ? "double" : "float";
-};
-
-/**
  * Handle float bit range access with union-based type punning.
  * Uses union { float f; uint32_t u; } for MISRA C:2012 Rule 21.15 compliance.
  */
@@ -1961,18 +1245,15 @@ const handleFloatBitRange = (
 
   effects.push({ type: "include", header: "float_static_assert" });
 
-  const isF64 = ctx.baseType === "f64";
-  const floatType = getFloatTypeName(ctx.baseType);
-  const intType = isF64 ? "uint64_t" : "uint32_t";
+  const intType = FloatBitHelper.bitsTypeOf(ctx.baseType);
   const shadowName = BitRangeHelper.getShadowVarName(ctx.rootIdentifier);
-  const mask = orchestrator.generateBitMask(ctx.maskWidth, isF64);
+  const mask = BitUtils.generateMask(ctx.maskWidth, intType);
 
   const needsDeclaration = !orchestrator.hasFloatBitShadow(shadowName);
   if (needsDeclaration) {
     orchestrator.registerFloatBitShadow(shadowName);
-    // Emit union declaration: union { float f; uint32_t u; } __bits_name;
     orchestrator.addPendingTempDeclaration(
-      `union { ${floatType} f; ${intType} u; } ${shadowName};`,
+      FloatBitHelper.unionDeclaration(ctx.baseType, shadowName),
     );
   }
 

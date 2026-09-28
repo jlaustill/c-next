@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import CNextResolver from "../index";
+import Program from "../../../4-Resolve/Program";
 import DeferredTypes from "../../../4-Resolve/DeferredTypes";
 import SymbolGuards from "../../../../transpiler/types/symbols/SymbolGuards";
 import SymbolRegistry from "../../SymbolRegistry";
@@ -382,13 +383,20 @@ describe("CNextResolver Integration", () => {
   });
 
   describe("const value collection (Issue #455)", () => {
+    // #1664 box 7: 1.3 keeps a const-named dimension as text; 1.4 folds it
+    // where the declaration is written, which these read back
+    const settled = (tree: ReturnType<typeof parse>) =>
+      Program.build([
+        CNextResolver.resolve(tree, "test.cnx", registry),
+      ]).symbolsInFile("test.cnx");
+
     it("resolves array dimensions from top-level const", () => {
       const code = `
         const u8 SIZE <- 4;
         bool arr[SIZE];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
+      const symbols = settled(tree);
 
       expect(symbols).toHaveLength(2);
 
@@ -408,7 +416,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
+      const symbols = settled(tree);
 
       // Find buffer by bare name with scope reference
       const bufferSymbol = symbols.find(
@@ -427,7 +435,7 @@ describe("CNextResolver Integration", () => {
         bool hex_arr[HEX_SIZE];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
+      const symbols = settled(tree);
 
       const arrSymbol = symbols.find((s) => s.name === "hex_arr");
       expect(arrSymbol).toBeDefined();
@@ -442,7 +450,7 @@ describe("CNextResolver Integration", () => {
         i16 bin_arr[BIN_SIZE];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
+      const symbols = settled(tree);
 
       const arrSymbol = symbols.find((s) => s.name === "bin_arr");
       expect(arrSymbol).toBeDefined();

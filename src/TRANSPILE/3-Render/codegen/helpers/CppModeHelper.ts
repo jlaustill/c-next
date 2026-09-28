@@ -1,3 +1,4 @@
+import CExpression from "../../../../utils/CExpression";
 import type TranspileState from "../../../TranspileState";
 /**
  * CppModeHelper - Utilities for C/C++ mode-specific code generation
@@ -62,15 +63,31 @@ class CppModeHelper {
 
   /**
    * Generate a cast expression for the current mode.
-   * C mode: `(type)expr`
+   * C mode: `(type)expr`, or `(type)(expr)` when expr has an operator
    * C++ mode: `static_cast<type>(expr)`
    *
    * @param type - The target type
    * @param expr - The expression to cast
    * @returns The cast expression
    */
-  static cast(type: string, expr: string, state: TranspileState): string {
-    return state.cppMode ? `static_cast<${type}>(${expr})` : `(${type})${expr}`;
+  static cast(
+    type: string,
+    expr: string,
+    mode: Pick<TranspileState, "cppMode">,
+  ): string {
+    // The two modes cast the whole expression. A C cast binds tighter than
+    // any binary operator, so `(float)x << 1` shifted a float, which C
+    // rejects, where C++ shifted and then converted (#1760 review). A caller
+    // that holds the mode rather than the state -- a helper emitted once per
+    // file (#1668) -- passes `{ cppMode }`.
+    return mode.cppMode
+      ? `static_cast<${type}>(${expr})`
+      : CppModeHelper.cStyleCast(type, expr);
+  }
+
+  /** A C cast of the whole of `expr`: parenthesized when it has an operator */
+  private static cStyleCast(type: string, expr: string): string {
+    return `(${type})${CExpression.operand(expr)}`;
   }
 
   /**
@@ -89,7 +106,7 @@ class CppModeHelper {
   ): string {
     return state.cppMode
       ? `reinterpret_cast<${type}>(${expr})`
-      : `(${type})${expr}`;
+      : CppModeHelper.cStyleCast(type, expr);
   }
 }
 

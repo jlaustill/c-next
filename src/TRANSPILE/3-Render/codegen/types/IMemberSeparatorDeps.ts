@@ -1,3 +1,5 @@
+import type IRootHolding from "./IRootHolding";
+
 /**
  * Dependencies needed for separator resolution
  */
@@ -9,10 +11,10 @@ interface IMemberSeparatorDeps {
   isKnownRegister(name: string): boolean;
 
   /**
-   * Get struct param separator from the C/C++ mode and whether the parameter
-   * takes a callback typedef's pointer shape (Issue #895)
+   * The separator a held root's first member takes, from the C/C++ mode and
+   * how the root is held (`memberAccessChain.rootMemberSeparator`)
    */
-  getStructParamSeparator(forcePointerSemantics: boolean): string;
+  rootMemberSeparator(holding: IRootHolding): string;
 }
 
 export default IMemberSeparatorDeps;

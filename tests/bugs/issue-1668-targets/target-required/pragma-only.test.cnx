@@ -1,0 +1,10 @@
+// test-no-target
+// #1668 / ADR-049: the negative control for no-target -- with no option
+// either, the file's own pragma is enough.
+#pragma target cortex-m4
+
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- 1;
+}

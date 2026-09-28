@@ -1,0 +1,10 @@
+14:22 error[E0810]: Binary operator combines operands of different essential type categories (integer and floating)
+       help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. Convert the integer operand with an explicit cast, e.g. (f32)value (ADR-024).
+15:22 error[E0810]: Binary operator combines operands of different essential type categories (signed and unsigned)
+       help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. Reinterpret one operand's bits to match the other with bit indexing, e.g. value[0, 32] (ADR-007/ADR-024).
+16:26 error[E0810]: Binary operator combines operands of different essential type categories (character and floating)
+       help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. Convert one operand explicitly, e.g. with a cast (ADR-024).
+17:10 error[E0810]: Compound assignment combines a target and a value of different essential type categories (floating and character)
+       help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. Convert one operand explicitly, e.g. with a cast (ADR-024).
+19:19 error[E0810]: Binary operator combines operands of different essential type categories (unsigned and character)
+       help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. Convert one operand explicitly, e.g. with a cast (ADR-024).

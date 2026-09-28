@@ -8,6 +8,11 @@
  */
 interface ITestOptions {
   transpileOnly?: boolean;
+  /**
+   * #1668 box 15: each cross target's mirrored `tests/` tree, which its
+   * transpiles write into. Created once per run by the parent.
+   */
+  targetMirrors?: Record<string, string>;
 }
 
 export default ITestOptions;

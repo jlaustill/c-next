@@ -819,6 +819,58 @@ const MOVES: readonly IMove[] = [
       "holds with no exception rather than with one recorded in a commit " +
       "message.",
   },
+  {
+    from: "src/TRANSPILE/1-Analyze/types/TChainRoot.ts",
+    to: "src/transpiler/types/TChainRoot.ts",
+    because:
+      "#1668 (unified operand typing, C2). `IProgram.bindValue` takes a chain " +
+      "root, so the shared contract names this type -- and " +
+      "`shared-contracts-cannot-import-a-pass` forbids `transpiler/types/` " +
+      "reaching `1-Analyze/`. It is a leaf union with no imports, named by 2.1 " +
+      "today and by the one operand typer in `utils/` next, so it is exactly " +
+      "the kind of type this directory holds.",
+  },
+  {
+    from: "src/TRANSPILE/2-Plan/TSubscriptKind.ts",
+    to: "src/transpiler/types/TSubscriptKind.ts",
+    because:
+      "#1668 (unified operand typing, C3). `IChainStep` is a shared contract " +
+      "and names the subscript kind, and `shared-contracts-cannot-import-a-pass` " +
+      "forbids `transpiler/types/` reaching `2-Plan/`. A leaf union.",
+  },
+  {
+    from: "src/TRANSPILE/2-Plan/SubscriptClassifier.ts",
+    to: "src/utils/SubscriptClassifier.ts",
+    because:
+      "#1668 (C3). The one element-or-bit decision, now asked by the one " +
+      "operand typer in `utils/` for 2.1 and 2.2 alike; `analyze-cannot-" +
+      "import-plan` forbids 2.1 reaching it in `2-Plan/`. It imports only " +
+      "`TSubscriptKind` and `TTypeInfo`, both shared contracts.",
+  },
+  {
+    from: "src/TRANSPILE/1-Analyze/helpers/ChainRoot.ts",
+    to: "src/utils/ChainRoot.ts",
+    because:
+      "#1668 (C3). Reading a chain's root off a node is what the operand " +
+      "typer does first, for 2.1 and 2.2 alike, and `render-cannot-import-" +
+      "analyzers` forbids 2.2/2.3 reaching `1-Analyze/`.",
+  },
+  {
+    from: "src/TRANSPILE/2-Plan/__tests__/SubscriptClassifier.test.ts",
+    to: "src/utils/__tests__/SubscriptClassifier.test.ts",
+    because:
+      "#1668 (C3). Follows its module, so the test sits in the `__tests__` " +
+      "beside what it tests.",
+  },
+  {
+    from: "src/TRANSPILE/1-Analyze/helpers/PROPERTY_NAMES.ts",
+    to: "src/utils/constants/PROPERTY_NAMES.ts",
+    because:
+      "#1668 (C4). Which member names are ADR-058/ADR-045 properties is one " +
+      "fact, and the operand typer had its own copy that lacked " +
+      "`char_count`; the typer lives in `utils/`, which may not reach " +
+      "`1-Analyze/`.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */
@@ -945,6 +997,10 @@ function reportStaleImporters(): void {
     // The manifest records every old path on purpose, and so do the guards
     // whose subject IS a path string.
     if (file === "scripts/move-modules.ts") continue;
+    // `git ls-files` lists the index, which still holds every file this run
+    // just moved until the move is staged -- reading one threw ENOENT and
+    // crashed the report after a successful apply (#1668, moving TChainRoot).
+    if (!existsSync(join(rootDir, file))) continue;
 
     const source = readFileSync(join(rootDir, file), "utf8");
     // Only real module specifiers. Matching any OCCURRENCE reports every test

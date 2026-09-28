@@ -5,6 +5,7 @@
  * CHeaderGenerator and CppHeaderGenerator.
  */
 
+import DeclaredPointer from "../../../utils/DeclaredPointer";
 import IHeaderSymbol from "./types/IHeaderSymbol";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
@@ -625,13 +626,14 @@ class HeaderGeneratorUtils {
 
     const lines: string[] = ["/* External variables */"];
     for (const sym of variables) {
-      const mappedType = mapType(sym.type || "int");
       // Build normalized input for the unified formatter
       const input: IVariableFormatInput = {
         name: sym.name,
         cnextType: sym.type || "int",
-        // ADR-030: a handle is declared as the pointer its definition is.
-        mappedType: sym.isOpaqueHandle ? `${mappedType}*` : mappedType,
+        mappedType: DeclaredPointer.spell(
+          mapType(sym.type || "int"),
+          sym.isPointer ?? false,
+        ),
         modifiers: {
           isConst: sym.isConst ?? false,
           isAtomic: sym.isAtomic ?? false,

@@ -11,25 +11,24 @@
  * type, so the two modules imported each other. A member that no caller needs
  * is not a channel; it is a second way to ask, which is what this card removes.
  */
+import type IFloatBitWrite from "./IFloatBitWrite";
 import type TTypeInfo from "./TTypeInfo";
 
 interface ICodeGenApi {
-  /** Generate atomic read-modify-write operation */
+  /**
+   * Generate atomic read-modify-write operation. `clampOp` is the ADR-044
+   * helper the inner operation saturates with, or null for plain arithmetic.
+   */
   generateAtomicRMW(
     target: string,
     op: string,
     value: string,
     typeInfo: TTypeInfo,
+    clampOp: string | null,
   ): string;
 
-  /** Generate float bit write operation (returns null if not applicable) */
-  generateFloatBitWrite(
-    name: string,
-    typeInfo: TTypeInfo,
-    bitIndex: string,
-    width: string | null,
-    value: string,
-  ): string | null;
+  /** Generate a float bit write through a union (ADR-007) */
+  generateFloatBitWrite(bitWrite: IFloatBitWrite): string;
 
   /** Get type info for struct member */
   getMemberTypeInfo(structType: string, fieldName: string): TTypeInfo | null;

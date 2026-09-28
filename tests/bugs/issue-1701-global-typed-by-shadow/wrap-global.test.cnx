@@ -1,0 +1,17 @@
+// test-execution
+// #1701: a `wrap` global keeps its own overflow behavior behind a shadowing
+// `u8` local. It was clamped as a u8 and stayed at 4294967295.
+wrap u32 x <- 4294967295;
+
+u8 f() {
+    u8 x <- 1;
+    global.x +<- 1;
+    return x;
+}
+
+u32 main() {
+    u8 local <- f();
+    if (local != 1) return 2;
+    if (global.x != 0) return 1;
+    return 0;
+}

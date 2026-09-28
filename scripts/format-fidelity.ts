@@ -42,6 +42,7 @@ import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
 import Transpiler from "../src/transpiler/Transpiler";
 
 import FileScanner from "./utils/FileScanner";
+import TestUtils from "./test-utils";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const pluginPath = join(rootDir, "prettier-plugin/dist/index.js");
@@ -135,6 +136,7 @@ async function transpile(
   const transpiler = new Transpiler({
     input: sourcePath,
     includeDirs: [includeDir, dirname(sourcePath)],
+    target: TestUtils.harnessTarget(source),
   });
   const result = await transpiler.transpile({
     kind: "source",

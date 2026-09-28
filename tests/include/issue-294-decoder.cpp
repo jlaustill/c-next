@@ -20,6 +20,11 @@ static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
     return (uint16_t)(a + (uint16_t)b);
 }
 
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
 // Issue #294: Helper scope for cross-file scope resolution test
 // This file defines a scope that will be included by another file
 /* Scope: decoder */
@@ -35,5 +40,5 @@ uint8_t decoder__getByte(const uint8_t data[8], uint8_t index) {
 }
 
 uint8_t decoder__internalHelper(uint8_t val) {
-    return val + 1U;
+    return cnx_clamp_add_u8(val, 1U);
 }

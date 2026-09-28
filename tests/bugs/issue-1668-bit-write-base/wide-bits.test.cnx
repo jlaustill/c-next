@@ -1,0 +1,35 @@
+// test-execution
+// #1668 review: a bit write takes its mask's width from the value it
+// writes, whatever that value's type is spelled. The width came from the
+// type NAME, which matched only `u64`/`i64`: a header's `uint64_t`, and a
+// `u64` struct field or element, got `1U << 40` -- undefined behavior, which
+// gcc only warns about, and the bit was never set.
+#include "wide.h"
+
+struct Wide {
+    u64 big;
+    u64[2] bigs;
+}
+
+Wide w;
+
+u32 main() {
+    gbig <- 0;
+    gbig[40] <- true;
+    if (gbig != 0x10000000000) return 1;
+    gbig[40, 4] <- 3;
+    if (gbig != 0x30000000000) return 2;
+    gws.big[40] <- true;
+    if (gws.big != 0x10000000000) return 3;
+    w.big[40] <- true;
+    if (w.big != 0x10000000000) return 4;
+    w.bigs[1][63] <- true;
+    if (w.bigs[1] != 0x8000000000000000) return 5;
+    w.big[44, 4] <- 5;
+    if (w.big != 0x510000000000) return 6;
+    // NEGATIVE CONTROL: a 32-bit value keeps its 32-bit mask
+    u32 narrow <- 0;
+    narrow[31] <- true;
+    if (narrow != 0x80000000) return 7;
+    return 0;
+}

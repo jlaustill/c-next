@@ -90,10 +90,10 @@ cell is declared by the ADR that owns it.
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
-| global variable    | ok        | -      | -          | n/a         | n/a        |
-| top-level function | ok        | -      | -          | n/a         | n/a        |
-| scope member       | ok        | -      | -          | n/a         | n/a        |
-| scope method       | ok        | -      | -          | n/a         | n/a        |
+| global variable    | ok        | ok     | ok         | n/a         | n/a        |
+| top-level function | ok        | ok     | ok         | n/a         | n/a        |
+| scope member       | ok        | ok     | ok         | n/a         | n/a        |
+| scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
 4 linked fixtures with no derivable context:
 
@@ -150,8 +150,16 @@ cell is declared by the ADR that owns it.
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
 | global variable    | ok        | ok     | ok         | n/a         | n/a        |
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
-| scope member       | ok        | -      | -          | n/a         | n/a        |
-| scope method       | ok        | -      | -          | n/a         | n/a        |
+| scope member       | ok        | ok     | ok         | n/a         | n/a        |
+| scope method       | ok        | ok     | ok         | n/a         | n/a        |
+
+5 linked fixtures with no derivable context:
+
+- `bugs/issue-1668-c-integers/subscript-cpp.test.cnx`
+- `bugs/issue-1668-c-integers/subscript.test.cnx`
+- `bugs/issue-1668-c-integers/unknown-width.test.cnx`
+- `bugs/issue-1668-c-integers/width.test.cnx`
+- `bugs/issue-1668-suffixed-literals/width.test.cnx`
 
 ## ADR-025
 
@@ -321,15 +329,17 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-7 linked fixtures with no derivable context:
+9 linked fixtures with no derivable context:
 
 - `adr-057/local-shadows-scope.test.cnx`
 - `adr-057/scope-variable-does-not-capture-type.test.cnx`
 - `adr-057/shadowing-all-levels.test.cnx`
 - `bugs/issue-1472-global-qualifier-register-capture/global-vs-scoped-bitmap.test.cnx`
+- `bugs/issue-1724-sibling-scope-type-not-included/frames-see-own-closure-error.test.cnx`
 - `bugs/issue-1724-sibling-scope-type-not-included/motor-uses-ext-alone.test.cnx`
 - `bugs/issue-1724-sibling-scope-type-not-included/sibling-declared-first.test.cnx`
 - `bugs/issue-1724-sibling-scope-type-not-included/sibling-declared-second.test.cnx`
+- `bugs/issue-1724-sibling-scope-type-not-included/typer-sees-own-closure-error.test.cnx`
 
 ## ADR-058
 

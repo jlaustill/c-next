@@ -1,3 +1,4 @@
+import type ISourcePosition from "../../../../utils/types/ISourcePosition";
 /**
  * Dependencies needed for simple identifier resolution
  */
@@ -11,15 +12,11 @@ interface ISimpleIdentifierDeps {
   /** Resolve parameter to its output form */
   resolveParameter(name: string, paramInfo: TParameterInfo): string;
 
-  /** Check if identifier is a local variable */
-  isLocalVariable(name: string): boolean;
-
-  /** Resolve bare identifier (local -> scope -> global priority) */
-  resolveBareIdentifier(
-    name: string,
-    isLocal: boolean,
-    line?: number,
-  ): string | null;
+  /**
+   * Resolve bare identifier (local -> scope -> global priority), bound at the
+   * reference's position (#1668)
+   */
+  resolveBareIdentifier(name: string, at: ISourcePosition): string | null;
 }
 
 export default ISimpleIdentifierDeps;

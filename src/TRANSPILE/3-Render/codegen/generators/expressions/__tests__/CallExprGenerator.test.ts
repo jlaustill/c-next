@@ -43,29 +43,41 @@ function planArguments(
 ): readonly IPlannedCallArgument[] {
   return expressions.map((expression) => ({
     simpleIdentifier: orchestrator.getSimpleIdentifier(expression),
+    declared: declaredTypes.get(expression.getText()),
     expressionType: () => orchestrator.getExpressionType(expression),
     isArray: () => orchestrator.isArrayExpression(expression),
+    // The planner decides this from the array's declaration; the stub reads
+    // the case's declared array the way `declared` reads a name
+    isHandleArrayElement: () => {
+      const text = expression.getText();
+      const bracket = text.indexOf("[");
+      const array =
+        bracket > 0 ? declaredTypes.get(text.slice(0, bracket)) : undefined;
+      return (array?.isArray ?? false) && (array?.isPointer ?? false);
+    },
     render: () => orchestrator.generateExpression(expression),
     renderByReference: (targetParamBaseType: string | undefined) =>
       orchestrator.generateFunctionArg(expression, targetParamBaseType),
   }));
 }
 
+/** What each case declares, by name -- see `createMockInput` */
+let declaredTypes: ReadonlyMap<string, TTypeInfo> = new Map();
+
 function createMockInput(
-  overrides: Partial<IGeneratorInput> = {},
+  overrides: Partial<IGeneratorInput> & {
+    /** #1668: each case's declared variables, which the plan carries */
+    typeRegistry?: Map<string, TTypeInfo>;
+  } = {},
 ): IGeneratorInput {
-  // Also populate TranspileState with the type registry entries
-  // This is needed because CallExprGenerator now uses TranspileState directly
-  const typeRegistry =
-    (overrides.typeRegistry as Map<string, TTypeInfo>) ?? new Map();
-  for (const [name, info] of typeRegistry) {
-    sharedState.setVariableTypeInfo(name, info);
-  }
+  // #1668 (C7): an argument carries its declared type on its plan, which
+  // `planArguments` reads from these
+  const { typeRegistry = new Map<string, TTypeInfo>(), ...input } = overrides;
+  declaredTypes = typeRegistry;
 
   return {
     symbols: null,
     symbolTable: null,
-    typeRegistry,
     functionSignatures: new Map(),
     knownFunctions: new Set(),
     knownStructs: new Set(),
@@ -73,9 +85,8 @@ function createMockInput(
     constValues: new Map(),
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
-    targetCapabilities: { hasAtomicSupport: false },
     debugMode: false,
-    ...overrides,
+    ...input,
   } as unknown as IGeneratorInput;
 }
 
@@ -126,7 +137,7 @@ function createMockOrchestrator(
     isCNextFunction: vi.fn(() => false),
     isFloatType: vi.fn(() => false),
     isIntegerType: vi.fn(() => false),
-    isStructType: vi.fn(() => false),
+    isKnownStruct: vi.fn(() => false),
     isCppMode: vi.fn(() => false),
     isCppEnumClass: vi.fn(() => false),
     getExpressionType: vi.fn(() => null),
@@ -215,7 +226,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         getExpressionType: vi.fn(() => "MyStruct"),
-        isStructType: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
       });
 
       const result = generateFunctionCall(
@@ -253,7 +264,7 @@ describe("CallExprGenerator", () => {
         isCNextFunction: vi.fn(() => false),
         generateExpression: vi.fn(() => "&myStruct"),
         getExpressionType: vi.fn(() => "MyStruct"),
-        isStructType: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
       });
 
       const result = generateFunctionCall(
@@ -285,7 +296,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         getExpressionType: vi.fn(() => "u8"),
-        isStructType: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
       });
 
       const result = generateFunctionCall(
@@ -322,7 +333,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         getExpressionType: vi.fn(() => "MyStruct*"),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
       });
 
       const result = generateFunctionCall(
@@ -367,7 +378,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         getExpressionType: vi.fn(() => null),
-        isStructType: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
       });
 
       const result = generateFunctionCall(
@@ -459,7 +470,7 @@ describe("CallExprGenerator", () => {
         // generateExpression would return (*buf) if called, but we bypass it
         generateExpression: vi.fn(() => "(*buf)"),
         getExpressionType: vi.fn(() => "u8"),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
       });
 
       const result = generateFunctionCall(
@@ -803,7 +814,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
         isParameterPassByValue: vi.fn(() => false),
       });
 
@@ -876,7 +887,7 @@ describe("CallExprGenerator", () => {
         isCNextFunction: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
         isParameterPassByValue: vi.fn(() => false),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
       });
 
       const result = generateFunctionCall(
@@ -915,7 +926,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
         isParameterPassByValue: vi.fn(() => false),
       });
 
@@ -944,7 +955,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
         isParameterPassByValue: vi.fn(() => false),
       });
 
@@ -1202,7 +1213,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
         isParameterPassByValue: vi.fn(() => false),
       });
 
@@ -1370,8 +1381,8 @@ describe("CallExprGenerator", () => {
   /**
    * ADR-030 / #996: an array of opaque handles is an array of pointers, so its
    * element is already the handle -- `dev_poke(&arr[0U])` passed a `Dev**`.
-   * Asked of the array's registration, as `isOpaqueScopeVariableAccess` asks
-   * it of a scope member. The complete-struct array is the control: its
+   * Asked of the array's declaration, however the array is named (a scope
+   * member's too). The complete-struct array is the control: its
    * element is a value and keeps its `&`.
    */
   describe("element of an array that holds pointers (ADR-030 / #996)", () => {
@@ -1425,7 +1436,7 @@ describe("CallExprGenerator", () => {
         });
         const orchestrator = createMockOrchestrator({
           getExpressionType: vi.fn(() => elementType),
-          isStructType: vi.fn(() => isStruct),
+          isKnownStruct: vi.fn(() => isStruct),
         });
 
         const result = generateFunctionCall(
@@ -1465,7 +1476,7 @@ describe("CallExprGenerator", () => {
     ])("%s", (_label, isArray, expected) => {
       const orchestrator = createMockOrchestrator({
         getExpressionType: vi.fn(() => "CPoint"),
-        isStructType: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
         isArrayExpression: vi.fn(() => isArray),
       });
 
@@ -1511,16 +1522,19 @@ describe("CallExprGenerator", () => {
       ]);
       const orchestrator = createMockOrchestrator({
         getExpressionType: vi.fn(() => argType),
-        isStructType: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
+      });
+      // The input first: it records the case's declared variables, and a
+      // planned argument reads its declared type when it is planned (#1668)
+      const input = createMockInput({
+        functionSignatures: takeSignature(paramType),
+        typeRegistry,
       });
 
       const result = generateFunctionCall(
         "take",
         planArguments(orchestrator, [createMockExpressionContext("d")]),
-        createMockInput({
-          functionSignatures: takeSignature(paramType),
-          typeRegistry,
-        }),
+        input,
         createMockState(),
         orchestrator,
       );
@@ -1562,7 +1576,7 @@ describe("CallExprGenerator", () => {
       ]);
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn((name: string) => name === "peek"),
-        isStructType: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
       });
 
       const result = generateFunctionCall(
@@ -1609,7 +1623,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         getExpressionType: vi.fn(() => "handle_t"),
-        isStructType: vi.fn(() => false), // typedef pointer is not a struct
+        isKnownStruct: vi.fn(() => false), // typedef pointer is not a struct
         isIntegerType: vi.fn(() => false),
         isFloatType: vi.fn(() => false),
       });
@@ -1655,7 +1669,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         getExpressionType: vi.fn(() => "uint8_t"),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
         isIntegerType: vi.fn(() => false), // uint8_t is C type, not in INTEGER_TYPES
         isFloatType: vi.fn(() => false),
       });
@@ -1702,7 +1716,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
         getExpressionType: vi.fn(() => "handle_t"),
-        isStructType: vi.fn(() => false),
+        isKnownStruct: vi.fn(() => false),
         isIntegerType: vi.fn(() => false),
         isFloatType: vi.fn(() => false),
       });

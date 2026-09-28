@@ -32,6 +32,7 @@ describe("Dual Code Paths (Issue #634)", () => {
       includeDirs: [tempDir],
       outDir: tempDir,
       headerOutDir: tempDir,
+      target: "host",
     };
     return new Transpiler(config);
   }
@@ -432,6 +433,115 @@ void main() {
       expect(result2.success).toBe(true);
       expect(result2.code).toContain("Storage__value = 42");
       expect(result2.code).not.toContain("Storage.value = 42");
+    });
+  });
+
+  describe("Target resolution parity (ADR-049, #1668)", () => {
+    const atomicMain = `#include "helper.cnx"
+
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- 1;
+}
+`;
+
+    /** The same program through files mode and source mode */
+    async function bothModes(helperSource: string, option?: string) {
+      writeFileSync(join(tempDir, "helper.cnx"), helperSource);
+      const mainPath = join(tempDir, "main.cnx");
+      writeFileSync(mainPath, atomicMain);
+      const configure = (input: string) =>
+        new Transpiler({
+          input,
+          includeDirs: [tempDir],
+          outDir: tempDir,
+          headerOutDir: tempDir,
+          target: "host",
+          ...(option ? { target: option } : {}),
+        });
+      const files = await configure(mainPath).transpile({ kind: "files" });
+      const source = await configure("").transpile({
+        kind: "source",
+        source: atomicMain,
+        workingDir: tempDir,
+        sourcePath: mainPath,
+      });
+      return { files, source, mainPath };
+    }
+
+    it("gives a helper's pragma to the entry in both modes", async () => {
+      const { files, source, mainPath } = await bothModes(
+        "#pragma target teensy41\nu32 helperValue <- 1;\n",
+      );
+      for (const result of [files, source]) {
+        expect(result.success).toBe(true);
+        expect(result.target).toEqual({ name: "teensy41", source: "pragma" });
+        const main = result.files.find((f) => f.sourcePath === mainPath);
+        expect(main?.code).toContain("__LDREXW");
+      }
+    });
+
+    it("reports disagreeing pragmas as E0511 in both modes", async () => {
+      writeFileSync(
+        join(tempDir, "other.cnx"),
+        "#pragma target cortex-m0\nu32 otherValue <- 2;\n",
+      );
+      const { files, source } = await bothModes(
+        '#include "other.cnx"\n#pragma target teensy41\nu32 helperValue <- 1;\n',
+      );
+      for (const result of [files, source]) {
+        expect(result.success).toBe(false);
+        expect(result.errors.map((e) => e.message.slice(0, 16))).toEqual([
+          "error[E0511]: th",
+        ]);
+      }
+    });
+
+    it("reports a program that names no target as E0515 in both modes", async () => {
+      writeFileSync(join(tempDir, "helper.cnx"), "u32 helperValue <- 1;\n");
+      const mainPath = join(tempDir, "main.cnx");
+      writeFileSync(mainPath, atomicMain);
+      const withoutTarget = (input: string) =>
+        new Transpiler({
+          input,
+          includeDirs: [tempDir],
+          outDir: tempDir,
+          headerOutDir: tempDir,
+        });
+      const files = await withoutTarget(mainPath).transpile({ kind: "files" });
+      const source = await withoutTarget("").transpile({
+        kind: "source",
+        source: atomicMain,
+        workingDir: tempDir,
+        sourcePath: mainPath,
+      });
+      for (const result of [files, source]) {
+        expect(result.success).toBe(false);
+        expect(result.errors).toEqual([
+          expect.objectContaining({
+            sourcePath: mainPath,
+            line: 1,
+            message: "error[E0515]: the program names no target",
+          }),
+        ]);
+      }
+    });
+
+    it("places an unknown option on the entry file in both modes", async () => {
+      const { files, source, mainPath } = await bothModes(
+        "u32 helperValue <- 1;\n",
+        "bogus",
+      );
+      for (const result of [files, source]) {
+        expect(result.errors).toEqual([
+          expect.objectContaining({
+            sourcePath: mainPath,
+            line: 1,
+            message: expect.stringContaining("error[E0510]"),
+          }),
+        ]);
+      }
     });
   });
 

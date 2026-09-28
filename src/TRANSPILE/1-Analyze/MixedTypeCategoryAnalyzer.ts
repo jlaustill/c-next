@@ -1,30 +1,41 @@
 /**
  * Mixed Type Category Analyzer
  *
- * Detects binary operators whose two operands have different essential type
- * categories (signed vs unsigned) at compile time.
+ * Detects operators whose two operands have different essential type
+ * categories at compile time: signed, unsigned, floating, and -- per MISRA
+ * C:2012 Rule 10.4, for C-Next and header types alike (#1668, ruling 2) --
+ * character, Boolean, and each named enum as a category of its own.
  *
  * MISRA C:2012 Rule 10.4: "Both operands of an operator in which the usual
  * arithmetic conversions are performed shall have the same essential type
  * category." Combining a signed and an unsigned value (e.g. `u32 + i32`) relies
  * on C's usual arithmetic conversions, whose result can be surprising (ADR-024).
  *
- * To combine values of different categories, the developer reinterprets one
+ * To combine a signed and an unsigned value, the developer reinterprets one
  * operand's bits to the other's category with bit indexing (ADR-007), e.g.
- * `a + b[0, 32]`, making the conversion explicit.
+ * `a + b[0, 32]`, making the conversion explicit. To combine an integer and a
+ * floating value, the developer casts the integer, e.g. `(f32)i * k` (#1668).
  *
- * Integer literals are exempt: a bare literal has no fixed essential category —
- * it is contextually typed to the other operand (ADR-052), so `a + 5` is fine.
- * The rule fires only when BOTH operands resolve to concrete, fixed-width
- * integer types of different category.
+ * UNSUFFIXED integer literals are exempt: such a literal has no fixed
+ * essential category — it is contextually typed to the other operand
+ * (ADR-052), so `a + 5` and `k * 3` are fine. A suffixed literal has its
+ * suffix's category (#1668, R2): `a + 5i32` is signed against unsigned. A
+ * float literal is NOT exempt: no integer operand can adopt it, so `i * 2.5`
+ * is floating against unsigned. MISRA's one exception is kept: `+` and `+<-`
+ * may combine a character with a signed or unsigned operand. The rule fires
+ * only when BOTH operands resolve to a category, and the two differ.
  *
- * Two-pass analysis:
- * 1. Collect declarations into per-scope frames (function, named scope, block,
- *    and for-loop header), so a name is resolved against ITS scope — a same-named
- *    variable of a different category in another function OR a nested block never
- *    poisons the lookup (Issue #1085 review).
- * 2. Walk each binary-operator level and compare adjacent operand categories,
- *    resolving each operand within its enclosing scope frame.
+ * Compound assignments (`+<-`, `*<-`, ...) are the same operators, so the
+ * target and the value are compared the same way (#1668). `y *<- 2.5` is
+ * `y <- y * 2.5`; checking only the binary form rejected the second spelling
+ * and accepted the first.
+ *
+ * Each operand is typed by the one operand typer (#1668), which binds a name
+ * through Program's lexical frames -- so a same-named variable of a different
+ * category in another function or a nested block never poisons the lookup
+ * (Issue #1085 review) -- and types every shape of operand: fields, elements,
+ * calls, casts, C and C++ operands. This analyzer applies Rule 10.4's policy
+ * to the facts (`rule104Category`); the typer decides no policy.
  *
  * Note: shift operators (<< / >>) are intentionally NOT checked here — MISRA
  * Rule 10.4 only governs operators subject to the usual arithmetic conversions,
@@ -36,131 +47,86 @@ import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IMixedTypeCategoryError from "./types/IMixedTypeCategoryError";
-import IScopeFrame from "./types/IScopeFrame";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import ScopeFrameResolver from "./ScopeFrameResolver";
 import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
+import AssignmentSiteListener from "./AssignmentSiteListener";
+import BooleanOperandAnalyzer from "./BooleanOperandAnalyzer";
+import EnumValueResolver from "./EnumValueResolver";
 import ParserUtils from "../../utils/ParserUtils";
-import TypeConstants from "../../utils/constants/TypeConstants";
+import OperandTyper from "../../utils/OperandTyper";
 import type IAnalysisContext from "./types/IAnalysisContext";
-
-/** Essential type category of an operand, or null when it cannot be resolved. */
-type Category = "signed" | "unsigned" | null;
+import type TBinaryOperatorLevel from "./types/TBinaryOperatorLevel";
+import type TAssignmentSite from "./types/TAssignmentSite";
+import type IOperandType from "../../transpiler/types/IOperandType";
 
 /**
- * Second pass: detect binary operators combining mixed essential categories.
+ * A Rule 10.4 category: `signed`, `unsigned`, `floating`, `character`,
+ * `boolean`, or `enum:<C name>` -- each named enum its own -- or null for an
+ * operand with none (an unsuffixed literal, a bit, a struct, an unknown).
  */
-class MixedCategoryListener extends CNextListener {
-  private readonly analyzer: MixedTypeCategoryAnalyzer;
+type Category = string | null;
 
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly scopes: ScopeFrameResolver;
+/** Assignments that are not arithmetic, so not Rule 10.4 operands */
+const NOT_RULE_10_4_ASSIGNMENTS: ReadonlySet<string> = new Set([
+  "<-",
+  "<<<-",
+  ">><-",
+]);
 
-  constructor(analyzer: MixedTypeCategoryAnalyzer, scopes: ScopeFrameResolver) {
-    super();
-    this.analyzer = analyzer;
-    this.scopes = scopes;
-  }
+/** The operators MISRA lets combine a character with an integer */
+const CHARACTER_ARITHMETIC: ReadonlySet<string> = new Set(["+", "+<-"]);
 
-  /** Map a known variable name to its essential type category within a scope. */
-  private categoryOfName(name: string, frame: IScopeFrame): Category {
-    const typeName = this.scopes.typeOfName(name, frame);
-    if (!typeName) return null;
-    if (TypeConstants.SIGNED_TYPES.includes(typeName)) return "signed";
-    if (TypeConstants.UNSIGNED_INT_TYPES.includes(typeName)) return "unsigned";
-    return null;
+class MixedCategoryCheck {
+  private readonly enums: EnumValueResolver;
+
+  /**
+   * Each checked level's own category, for the level that contains it: the
+   * running category it folded to, or null when a pair in it differed --
+   * already reported there, once. Levels are checked innermost first.
+   */
+  private readonly levelCategories = new Map<ParserRuleContext, Category>();
+
+  constructor(
+    private readonly analyzer: MixedTypeCategoryAnalyzer,
+    private readonly context: IAnalysisContext,
+  ) {
+    this.enums = new EnumValueResolver(context);
   }
 
   /**
-   * Collect the essential category of every classifiable VALUE leaf under one
-   * binary-operator operand, descending through nested operator levels and
-   * parentheses but never into a postfix suffix (an array index, bit-range
-   * argument, or call argument is not a value operand of THIS operator).
-   *
-   * A unary expression is a grammar leaf of the operator levels:
-   *  - prefix `-`/`~` preserve the operand's category, so descend through them;
-   *  - prefix `!` (essentially-Boolean result) and `&` (address-of, ADR-006)
-   *    carry no signed/unsigned category — contribute null, so a mix like
-   *    `!a = !b` is not falsely rejected (Issue #1085 review);
-   *  - a postfix WITH a suffix (member/call/indexing/bit-extraction) cannot be
-   *    positively classified — contribute null, which exempts the sanctioned
-   *    cross-category form `x[0, 32]`;
-   *  - a parenthesized expression contributes ALL of its own leaves (not merely
-   *    the leftmost), so a compound operand is judged by its whole content.
+   * An operand's Rule 10.4 category, or null when it has none. The policy
+   * over the typer's facts, decided here and only here.
    */
-  private collectOperandCategories(
-    ctx: ParserRuleContext,
-    frame: IScopeFrame,
-    out: Category[],
-  ): void {
-    if (ctx instanceof Parser.UnaryExpressionContext) {
-      const inner = ctx.unaryExpression();
-      if (inner) {
-        const op = ctx.getChild(0)?.getText();
-        if (op === "!" || op === "&") {
-          out.push(null);
-          return;
-        }
-        this.collectOperandCategories(inner, frame, out);
-        return;
-      }
-
-      const postfix = ctx.postfixExpression();
-      if (!postfix || postfix.getChildCount() > 1) {
-        out.push(null);
-        return;
-      }
-
-      const primary = postfix.primaryExpression();
-      const parenthesized = primary?.expression();
-      if (parenthesized) {
-        this.collectOperandCategories(parenthesized, frame, out);
-        return;
-      }
-
-      const identifier = primary?.IDENTIFIER();
-      out.push(
-        identifier ? this.categoryOfName(identifier.getText(), frame) : null,
-      );
-      return;
-    }
-
-    for (let i = 0; i < ctx.getChildCount(); i += 1) {
-      const child = ctx.getChild(i);
-      if (child instanceof ParserRuleContext) {
-        this.collectOperandCategories(child, frame, out);
-      }
-    }
+  static rule104Category(t: IOperandType | null): Category {
+    if (t === null) return null;
+    // An array is not an arithmetic operand of any category (#1191)
+    if (t.dimensions.length > 0) return null;
+    // A subscript into a scalar is a bit index or range, not arithmetic
+    // on the scalar's category (ADR-024)
+    if (t.form.kind === "bitIndex" || t.form.kind === "bitRange") return null;
+    // Which overload a call selects is C++'s decision, not ours (C03)
+    if (t.form.kind === "foreign" && t.form.indeterminate) return null;
+    if (t.category === "enum") return `enum:${t.enumTypeName ?? t.typeName}`;
+    return t.category === "none" ? null : t.category;
   }
 
   /**
-   * The essential category of one operand of a binary-operator level: the single
-   * category shared by all its classifiable value leaves, or null when it has
-   * none OR when its own leaves are themselves mixed.
-   *
-   * Returning null for an internally-mixed operand prevents a CASCADE of
-   * duplicate errors: `a * b + c` (with `i32 a`, `u32 b`, `u32 c`) is reported
-   * once — at the `a * b` level — instead of again at the `+ c` level, where the
-   * product's category is genuinely ambiguous rather than `a`'s leftmost
-   * (Issue #1085 review). An internally-mixed operand is always reported at its
-   * own level, so nothing is missed. Because a resolved (non-null) category
-   * means every classifiable leaf agrees, comparing two resolved-but-differing
-   * operands always reflects a real signed/unsigned combination — no false
-   * positive on uniform code.
+   * One category for an operand. An operand that is itself an operator level
+   * has the category that level folded to; any other has the category its
+   * value leaves share, or null when they have none -- or disagree, which is
+   * reported at the inner operator, once.
    */
-  private operandCategory(
-    ctx: ParserRuleContext,
-    frame: IScopeFrame,
-  ): Category {
-    const leaves: Category[] = [];
-    this.collectOperandCategories(ctx, frame, leaves);
-
+  private operandCategory(ctx: ParserRuleContext): Category {
+    const level = OperandTyper.compositeLevelOf(ctx);
+    if (level !== null && this.levelCategories.has(level)) {
+      return this.levelCategories.get(level) ?? null;
+    }
     let resolved: Category = null;
-    for (const leaf of leaves) {
-      if (leaf === null) continue;
+    for (const leaf of OperandTyper.valueLeaves(ctx, this.context)) {
+      const category = MixedCategoryCheck.rule104Category(leaf);
+      if (category === null) continue;
       if (resolved === null) {
-        resolved = leaf;
-      } else if (resolved !== leaf) {
+        resolved = category;
+      } else if (resolved !== category) {
         return null;
       }
     }
@@ -168,73 +134,255 @@ class MixedCategoryListener extends CNextListener {
   }
 
   /**
-   * Compare adjacent operands at one binary-operator level and report any pair
-   * whose categories are both resolved and differ.
+   * Checks one level, folding a running category left to right (#1760
+   * review). Only adjacent operands were compared, so a category-less
+   * literal between two operands broke the chain: `a * 2 * k` passed. A
+   * category-less operand now adopts the running category; an exempt
+   * character + integer gives character (MISRA C:2012 D.7); after a pair
+   * that differs -- reported there -- the right operand's category runs on.
    */
-  public checkLevel(operands: ParserRuleContext[]): void {
-    const frame = this.scopes.frameFor(operands[0]);
-    for (let i = 0; i < operands.length - 1; i += 1) {
-      const left = this.operandCategory(operands[i], frame);
-      const right = this.operandCategory(operands[i + 1], frame);
-      if (left && right && left !== right) {
-        const { line, column } = ParserUtils.getPosition(operands[i + 1]);
-        this.analyzer.addError(line, column);
+  public checkLevel(
+    operands: ParserRuleContext[],
+    level: TBinaryOperatorLevel,
+  ): void {
+    const parent = operands[0]?.parent;
+    let running = this.operandCategory(operands[0]);
+    let mixed = false;
+    for (let i = 1; i < operands.length; i += 1) {
+      const right = this.operandCategory(operands[i]);
+      const operator = parent?.getChild(i * 2 - 1)?.getText() ?? "";
+      if (this.reportsPair(operands[i - 1], operands[i], level)) {
+        if (MixedCategoryCheck.differ(running, right, operator)) {
+          const { line, column } = ParserUtils.getPosition(operands[i]);
+          this.analyzer.addError(line, column, running!, right!);
+          mixed = true;
+        }
       }
+      running = MixedCategoryCheck.fold(running, right, operator);
+    }
+    if (parent) this.levelCategories.set(parent, mixed ? null : running);
+  }
+
+  /** Whether this rule, not another, reports a mix between two operands */
+  private reportsPair(
+    left: ParserRuleContext,
+    right: ParserRuleContext,
+    level: TBinaryOperatorLevel,
+  ): boolean {
+    if (this.enumComparison(left, right, level)) return false;
+    return !MixedCategoryCheck.ownedElsewhere(
+      this.operandCategory(left),
+      this.operandCategory(right),
+      level,
+    );
+  }
+
+  /**
+   * The category after `running operator right`: character for MISRA's
+   * exempt character + integer (D.7), the running one when `right` has
+   * none, and `right`'s otherwise. Owner ruling (2026-09-28, #1760 review):
+   * D.7 stands, so `u32 a + 'A' + i32 s` is legal here; computing its exact
+   * value into the destination is #1809.
+   */
+  private static fold(
+    running: Category,
+    right: Category,
+    operator: string,
+  ): Category {
+    if (right === null) return running;
+    if (running === null) return right;
+    if (
+      running !== right &&
+      !MixedCategoryCheck.differ(running, right, operator)
+    ) {
+      return "character";
+    }
+    return right;
+  }
+
+  /**
+   * Whether ADR-017 reports this pair (E0434, with its own message), so that
+   * one defect has one code. Asked of E0434's own reading, so the two cannot
+   * disagree about what is a C-Next enum: a header's enum is not one there,
+   * and its comparison with an integer is this rule's mix.
+   */
+  private enumComparison(
+    left: ParserRuleContext,
+    right: ParserRuleContext,
+    level: TBinaryOperatorLevel,
+  ): boolean {
+    if (level !== "equality" && level !== "relational") return false;
+    return (
+      this.enums.classify(left).kind === "enum" ||
+      this.enums.classify(right).kind === "enum"
+    );
+  }
+
+  /**
+   * Whether Rule 10.1 reports this pair: a Boolean operand anywhere it admits
+   * none (E0806/E0807), so that one defect has one code.
+   */
+  private static ownedElsewhere(
+    left: Category,
+    right: Category,
+    level: TBinaryOperatorLevel | "compound",
+  ): boolean {
+    return (
+      !BooleanOperandAnalyzer.admitsBoolean(level) &&
+      (left === "boolean" || right === "boolean")
+    );
+  }
+
+  /**
+   * A conditional's two value arms are Rule 10.4 operands of each other
+   * (ruling R3); its condition is not an operand. An arm whose own leaves
+   * are mixed has no category, so that defect is reported once, at its own
+   * operator, and never again here.
+   */
+  public checkTernary(ctx: Parser.TernaryExpressionContext): void {
+    const arms = ParserUtils.ternaryValueArms(ctx);
+    if (arms === null) return;
+    const left = this.operandCategory(arms[0]);
+    const right = this.operandCategory(arms[1]);
+    if (left === null || right === null || left === right) return;
+    const { line, column } = ParserUtils.getPosition(arms[1]);
+    this.analyzer.addError(line, column, left, right, "conditional");
+  }
+
+  /** Whether two categories may not be combined by `operator` */
+  private static differ(
+    left: Category,
+    right: Category,
+    operator: string,
+  ): boolean {
+    if (left === null || right === null || left === right) return false;
+    const integer = (c: string) => c === "signed" || c === "unsigned";
+    const characterExempt =
+      CHARACTER_ARITHMETIC.has(operator) &&
+      ((left === "character" && integer(right)) ||
+        (right === "character" && integer(left)));
+    return !characterExempt;
+  }
+
+  public checkCompound(site: TAssignmentSite): void {
+    const text = site.assignmentOperator().getText();
+    if (NOT_RULE_10_4_ASSIGNMENTS.has(text)) return;
+
+    const value = site.expression();
+    const left = MixedCategoryCheck.rule104Category(
+      OperandTyper.typeOfTarget(site.assignmentTarget(), this.context),
+    );
+    const right = this.operandCategory(value);
+    if (MixedCategoryCheck.ownedElsewhere(left, right, "compound")) return;
+    if (MixedCategoryCheck.differ(left, right, text)) {
+      const { line, column } = ParserUtils.getPosition(value);
+      this.analyzer.addError(line, column, left!, right!, "compound");
     }
   }
 }
 
-/**
- * Analyzer that detects binary operations mixing essential type categories.
- */
+/** Hands each conditional expression to the check */
+class TernaryListener extends CNextListener {
+  constructor(private readonly check: MixedCategoryCheck) {
+    super();
+  }
+
+  override enterTernaryExpression = (
+    ctx: Parser.TernaryExpressionContext,
+  ): void => {
+    this.check.checkTernary(ctx);
+  };
+}
+
 class MixedTypeCategoryAnalyzer {
-  /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
   private errors: IMixedTypeCategoryError[] = [];
 
-  /**
-   * Analyze the parse tree for mixed-category binary operations.
-   */
   public analyze(tree: Parser.ProgramContext): IMixedTypeCategoryError[] {
     this.errors = [];
+    const check = new MixedCategoryCheck(this, this.context);
 
-    const collector = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(collector, tree);
-
-    const listener = new MixedCategoryListener(
-      this,
-      new ScopeFrameResolver(collector, this.context.symbolTable),
-    );
-
-    // Every binary level EXCEPT shift: Rule 10.4 governs only operators subject
-    // to the usual arithmetic conversions, and a shift count is promoted
-    // independently. A signed shift count is Rule 10.1 (E0805), handled
-    // elsewhere (Issue #1085 review).
+    // Levels are met outermost first; checked innermost first, so a level
+    // that is an operand of another has its category when that one asks
+    const levels: Array<[ParserRuleContext[], TBinaryOperatorLevel]> = [];
     ParseTreeWalker.DEFAULT.walk(
       new BinaryOperatorLevelListener((operands, level) => {
         if (level === "shift") return;
-        listener.checkLevel(operands);
+        levels.push([operands, level]);
       }),
       tree,
     );
+    levels.reverse();
+    for (const [operands, level] of levels) {
+      check.checkLevel(operands, level);
+    }
 
-    return this.errors;
+    ParseTreeWalker.DEFAULT.walk(
+      new AssignmentSiteListener((site) => check.checkCompound(site)),
+      tree,
+    );
+    ParseTreeWalker.DEFAULT.walk(new TernaryListener(check), tree);
+
+    // Three walks; reported in source order
+    return this.errors.sort((a, b) => a.line - b.line || a.column - b.column);
   }
 
-  /**
-   * Add a mixed-category error.
-   */
-  public addError(line: number, column: number): void {
+  /** The diagnostic's text for each place two categories meet */
+  private static message(
+    what: "binary" | "conditional" | "compound",
+    pair: string,
+  ): string {
+    if (what === "conditional") {
+      return `Conditional operator's value arms have different essential type categories (${pair})`;
+    }
+    if (what === "compound") {
+      return `Compound assignment combines a target and a value of different essential type categories (${pair})`;
+    }
+    return `Binary operator combines operands of different essential type categories (${pair})`;
+  }
+
+  /** How a category reads in a message */
+  private static label(category: string): string {
+    if (category.startsWith("enum:")) return `enum ${category.slice(5)}`;
+    return category === "boolean" ? "Boolean" : category;
+  }
+
+  public addError(
+    line: number,
+    column: number,
+    left: string,
+    right: string,
+    what: "binary" | "conditional" | "compound" = "binary",
+  ): void {
+    const integer = (c: string) => c === "signed" || c === "unsigned";
+    const floating =
+      (left === "floating" && integer(right)) ||
+      (right === "floating" && integer(left));
+    const signedness = integer(left) && integer(right);
+    let pair = `${MixedTypeCategoryAnalyzer.label(left)} and ${MixedTypeCategoryAnalyzer.label(right)}`;
+    if (floating) pair = "integer and floating";
+    if (signedness) pair = "signed and unsigned";
+    const rule =
+      "MISRA C:2012 Rule 10.4: both operands must share an essential type category. ";
+    let helpText = `${rule}Convert one operand explicitly, e.g. with a cast (ADR-024).`;
+    if (floating) {
+      // A compound assignment's target is its left operand, and a target
+      // cannot be cast (#1760 review)
+      helpText =
+        what === "compound" && integer(left)
+          ? `${rule}The target cannot be converted: write the assignment out with explicit conversions, e.g. x <- (u32)((f32)x * k) (ADR-024).`
+          : `${rule}Convert the integer operand with an explicit cast, e.g. (f32)value (ADR-024).`;
+    }
+    if (signedness) {
+      helpText = `${rule}Reinterpret one operand's bits to match the other with bit indexing, e.g. value[0, 32] (ADR-007/ADR-024).`;
+    }
     this.errors.push({
       code: "E0810",
       line,
       column,
-      message:
-        "Binary operator combines operands of different essential type categories (signed and unsigned)",
-      helpText:
-        "MISRA C:2012 Rule 10.4: both operands must share an essential type category. " +
-        "Reinterpret one operand's bits to match the other with bit indexing, e.g. value[0, 32] (ADR-007/ADR-024).",
+      message: MixedTypeCategoryAnalyzer.message(what, pair),
+      helpText,
     });
   }
 }

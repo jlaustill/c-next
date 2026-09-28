@@ -1,0 +1,20 @@
+// #1760 second review: the register writers are the bit writer every other
+// write uses, and had its two defects. A register's bit range took its width
+// unfolded, so `[0, W]` at W == 32 masked with a run-time `1U << 32`, which
+// is undefined; every writer folds the width now (#1096). And a value with an
+// operator was masked without parentheses, so `v | 1` wrote `v | (1 & mask)`.
+const u8 W <- 32;
+const u8 H <- 16;
+
+register PERIPH @ 0x40000000 {
+    CTRL: u32 rw @ 0x00,
+    SET: u32 wo @ 0x04,
+}
+
+void configure(u32 v) {
+    PERIPH.CTRL[0, W] <- v;
+    PERIPH.SET[0, W] <- v;
+    // Not byte-aligned, so no MMIO shortcut: the write-only writer masks
+    PERIPH.SET[4, H] <- v;
+    PERIPH.SET[4, H] <- v | 1;
+}

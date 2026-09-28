@@ -1,0 +1,244 @@
+// The C-Next target catalog (ADR-049, "Named targets").
+//
+// Every named target is one `const TargetDescription` here, and every other
+// name for the same platform is one `const TargetAlias`. This file is a C-Next
+// program, and it is the only list of targets: the compiler reads it, so adding
+// a target means adding one initializer below.
+//
+// Rules a compiler enforces when it reads this file:
+//   - TARGET_SCHEMA_VERSION names the schema; an unknown version is rejected.
+//   - TargetDescription's members are exactly the schema's fields.
+//   - Every value is a literal: an unsigned decimal integer, true or false, or
+//     a string. No expression and no reference to another constant.
+//   - Every field is given, except toolchain_triple and toolchain_cpu, which
+//     only select a compiler to check generated code against.
+//   - Names are unique, and an alias names a description, never another alias.
+//   - Names match exactly, with no case folding.
+
+const u8 TARGET_SCHEMA_VERSION <- 1;
+
+struct TargetDescription {
+    string<24> name;
+    u8 word_size;
+    bool ldrex_strex;
+    bool basepri;
+    u8 char_bits;
+    bool char_signed;
+    u8 short_bits;
+    u8 int_bits;
+    u8 long_bits;
+    u8 long_long_bits;
+    u8 size_t_bits;
+    u8 pointer_bits;
+    u8 float_bits;
+    u8 double_bits;
+    u8 long_double_bits;
+    bool big_endian;
+    u16 external_identifier_chars;
+    u16 internal_identifier_chars;
+    string<32> toolchain_triple;
+    string<16> toolchain_cpu;
+}
+
+struct TargetAlias {
+    string<24> name;
+    string<24> target;
+}
+
+// ARMv7E-M
+const TargetDescription CORTEX_M7 <- {
+    name: "cortex-m7",
+    word_size: 32,
+    ldrex_strex: true,
+    basepri: true,
+    char_bits: 8,
+    char_signed: false,
+    short_bits: 16,
+    int_bits: 32,
+    long_bits: 32,
+    long_long_bits: 64,
+    size_t_bits: 32,
+    pointer_bits: 32,
+    float_bits: 32,
+    double_bits: 64,
+    long_double_bits: 64,
+    big_endian: false,
+    external_identifier_chars: 31,
+    internal_identifier_chars: 63,
+    toolchain_triple: "thumbv7em-none-eabi",
+    toolchain_cpu: "cortex-m7"
+};
+
+const TargetAlias TEENSY41 <- { name: "teensy41", target: "cortex-m7" };
+const TargetAlias TEENSY40 <- { name: "teensy40", target: "cortex-m7" };
+
+// ARMv7E-M
+const TargetDescription CORTEX_M4 <- {
+    name: "cortex-m4",
+    word_size: 32,
+    ldrex_strex: true,
+    basepri: true,
+    char_bits: 8,
+    char_signed: false,
+    short_bits: 16,
+    int_bits: 32,
+    long_bits: 32,
+    long_long_bits: 64,
+    size_t_bits: 32,
+    pointer_bits: 32,
+    float_bits: 32,
+    double_bits: 64,
+    long_double_bits: 64,
+    big_endian: false,
+    external_identifier_chars: 31,
+    internal_identifier_chars: 63,
+    toolchain_triple: "thumbv7em-none-eabi",
+    toolchain_cpu: "cortex-m4"
+};
+
+const TargetAlias STM32F4 <- { name: "stm32f4", target: "cortex-m4" };
+
+// ARMv7-M
+const TargetDescription CORTEX_M3 <- {
+    name: "cortex-m3",
+    word_size: 32,
+    ldrex_strex: true,
+    basepri: true,
+    char_bits: 8,
+    char_signed: false,
+    short_bits: 16,
+    int_bits: 32,
+    long_bits: 32,
+    long_long_bits: 64,
+    size_t_bits: 32,
+    pointer_bits: 32,
+    float_bits: 32,
+    double_bits: 64,
+    long_double_bits: 64,
+    big_endian: false,
+    external_identifier_chars: 31,
+    internal_identifier_chars: 63,
+    toolchain_triple: "thumbv7m-none-eabi",
+    toolchain_cpu: "cortex-m3"
+};
+
+// ARMv6-M: no exclusive monitor, so no LDREX/STREX, and no BASEPRI
+const TargetDescription CORTEX_M0_PLUS <- {
+    name: "cortex-m0+",
+    word_size: 32,
+    ldrex_strex: false,
+    basepri: false,
+    char_bits: 8,
+    char_signed: false,
+    short_bits: 16,
+    int_bits: 32,
+    long_bits: 32,
+    long_long_bits: 64,
+    size_t_bits: 32,
+    pointer_bits: 32,
+    float_bits: 32,
+    double_bits: 64,
+    long_double_bits: 64,
+    big_endian: false,
+    external_identifier_chars: 31,
+    internal_identifier_chars: 63,
+    toolchain_triple: "thumbv6m-none-eabi",
+    toolchain_cpu: "cortex-m0plus"
+};
+
+// ARMv6-M
+const TargetDescription CORTEX_M0 <- {
+    name: "cortex-m0",
+    word_size: 32,
+    ldrex_strex: false,
+    basepri: false,
+    char_bits: 8,
+    char_signed: false,
+    short_bits: 16,
+    int_bits: 32,
+    long_bits: 32,
+    long_long_bits: 64,
+    size_t_bits: 32,
+    pointer_bits: 32,
+    float_bits: 32,
+    double_bits: 64,
+    long_double_bits: 64,
+    big_endian: false,
+    external_identifier_chars: 31,
+    internal_identifier_chars: 63,
+    toolchain_triple: "thumbv6m-none-eabi",
+    toolchain_cpu: "cortex-m0"
+};
+
+// 8-bit AVR: 16-bit int, 32-bit double
+const TargetDescription ATMEGA328P <- {
+    name: "atmega328p",
+    word_size: 8,
+    ldrex_strex: false,
+    basepri: false,
+    char_bits: 8,
+    char_signed: true,
+    short_bits: 16,
+    int_bits: 16,
+    long_bits: 32,
+    long_long_bits: 64,
+    size_t_bits: 16,
+    pointer_bits: 16,
+    float_bits: 32,
+    double_bits: 32,
+    long_double_bits: 32,
+    big_endian: false,
+    external_identifier_chars: 31,
+    internal_identifier_chars: 63,
+    toolchain_triple: "avr",
+    toolchain_cpu: "atmega328p"
+};
+
+const TargetAlias AVR <- { name: "avr", target: "atmega328p" };
+const TargetAlias ARDUINO_UNO <- { name: "arduino-uno", target: "atmega328p" };
+
+// Xtensa LX6, ILP32. From GCC's xtensa.h and LLVM's Xtensa target; no
+// compiler in the test matrix checks it, so it names no toolchain.
+const TargetDescription ESP32 <- {
+    name: "esp32",
+    word_size: 32,
+    ldrex_strex: false,
+    basepri: false,
+    char_bits: 8,
+    char_signed: false,
+    short_bits: 16,
+    int_bits: 32,
+    long_bits: 32,
+    long_long_bits: 64,
+    size_t_bits: 32,
+    pointer_bits: 32,
+    float_bits: 32,
+    double_bits: 64,
+    long_double_bits: 64,
+    big_endian: false,
+    external_identifier_chars: 31,
+    internal_identifier_chars: 63
+};
+
+// The build machine: x86-64 Linux, LP64
+const TargetDescription HOST <- {
+    name: "host",
+    word_size: 64,
+    ldrex_strex: false,
+    basepri: false,
+    char_bits: 8,
+    char_signed: true,
+    short_bits: 16,
+    int_bits: 32,
+    long_bits: 64,
+    long_long_bits: 64,
+    size_t_bits: 64,
+    pointer_bits: 64,
+    float_bits: 32,
+    double_bits: 64,
+    long_double_bits: 128,
+    big_endian: false,
+    external_identifier_chars: 31,
+    internal_identifier_chars: 63,
+    toolchain_triple: "x86_64-pc-linux-gnu"
+};

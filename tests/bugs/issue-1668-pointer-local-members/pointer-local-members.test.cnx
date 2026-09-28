@@ -1,0 +1,22 @@
+// test-execution
+// #1760 review: a local initialized from a C function returning `widget_t*`,
+// for a declared `widget_t`, is emitted as a pointer (#895), but its members
+// were written with `.`, which C rejects: `widget_t* w; w.v += 10U;`. Its
+// member access now reads the decision the declaration does. The struct held
+// by value is the control.
+#include "widget.h"
+
+u32 main() {
+    widget_t w <- widget_get();
+    w.v +<- 10;
+    w.v <- w.v + 1;
+    w.flags[3] <- true;
+    u32 got <- w.v;
+    widget_t plain;
+    plain.v <- 3;
+    if (got != 16) return 1;
+    if (the_widget.v != 16) return 2;
+    if (the_widget.flags != 8) return 3;
+    if (plain.v != 3) return 4;
+    return 0;
+}

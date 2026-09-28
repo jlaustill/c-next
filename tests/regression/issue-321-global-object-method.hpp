@@ -1,6 +1,6 @@
 #pragma once
-#include <cstdint>
-#include <cstddef>
+#include <stdint.h>
+#include <stddef.h>
 
 /**
  * Issue #321: Test header for differentiating object instances vs classes
@@ -29,7 +29,7 @@ public:
 };
 
 // Serial is an OBJECT INSTANCE (like in real Arduino)
-inline HardwareSerial Serial;
+static HardwareSerial Serial;
 
 // ============================================================================
 // A CLASS with static methods - should use :: syntax
@@ -59,4 +59,4 @@ public:
 };
 
 // Wire is an OBJECT INSTANCE (like Serial)
-inline TwoWire Wire;
+static TwoWire Wire;

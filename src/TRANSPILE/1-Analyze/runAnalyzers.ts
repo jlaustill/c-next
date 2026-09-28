@@ -415,8 +415,8 @@ function runAnalyzers(
       run: () => new CallbackAssignmentAnalyzer(context).analyze(tree),
     },
     {
-      label: "struct initializers (ADR-014, E0356/E0357)",
-      run: () => new StructLiteralAnalyzer().analyze(tree),
+      label: "struct initializers (ADR-014, E0357/E0358)",
+      run: () => new StructLiteralAnalyzer(context).analyze(tree),
     },
     {
       label: "bitmap access (ADR-034, E0881-E0883)",

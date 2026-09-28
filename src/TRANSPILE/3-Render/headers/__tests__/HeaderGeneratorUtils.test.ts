@@ -830,7 +830,7 @@ describe("HeaderGeneratorUtils", () => {
           type: "Dev",
           isArray,
           arrayDimensions: dims,
-          isOpaqueHandle: true,
+          isPointer: true,
         }),
       ];
 

@@ -1,0 +1,24 @@
+// test-error
+// #1668: a compound assignment in a for header applies its operator exactly
+// as a statement does, but MISRA C:2012 Rule 10.1's check (E0806/E0807) read
+// only the statement form, so `i +<- flag` in a for update compiled.
+void main() {
+    bool flag <- true;
+    u32 n <- 0;
+
+    // NEGATIVE CONTROL -- an integer step, and a plain assignment of a bool.
+    for (u32 i <- 0; i < 3; i +<- 1) {
+        flag <- false;
+    }
+
+    // ASSERTIONS
+    for (u32 j <- 0; j < 3; j +<- flag) {
+        n +<- 1;
+    }
+    for (n +<- flag; n < 3; n +<- 1) {
+        n +<- 1;
+    }
+    for (u32 k <- 0; k < 3; flag +<- 1) {
+        n +<- 1;
+    }
+}

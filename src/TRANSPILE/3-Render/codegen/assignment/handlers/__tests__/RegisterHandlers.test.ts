@@ -43,6 +43,7 @@ function createMockContext(
     hasValue: true,
     valueExpressionType: () => null,
     valueIntegerType: () => null,
+    valueHasFloatingOperand: () => false,
     foldValue: () =>
       HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     postfixOps: [],
@@ -251,10 +252,9 @@ describe("RegisterHandlers", () => {
           .fn()
           .mockReturnValueOnce("0")
           .mockReturnValueOnce("8"),
-        tryEvaluateConstant: vi
-          .fn()
-          .mockReturnValueOnce(0)
-          .mockReturnValueOnce(8),
+        tryEvaluateConstant: vi.fn((node: { mockValue: string }) =>
+          Number(node.mockValue),
+        ),
       });
       HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
@@ -282,10 +282,9 @@ describe("RegisterHandlers", () => {
           .fn()
           .mockReturnValueOnce("8")
           .mockReturnValueOnce("16"),
-        tryEvaluateConstant: vi
-          .fn()
-          .mockReturnValueOnce(8)
-          .mockReturnValueOnce(16),
+        tryEvaluateConstant: vi.fn((node: { mockValue: string }) =>
+          Number(node.mockValue),
+        ),
       });
       HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
@@ -436,10 +435,9 @@ describe("RegisterHandlers", () => {
           .fn()
           .mockReturnValueOnce("0")
           .mockReturnValueOnce("32"),
-        tryEvaluateConstant: vi
-          .fn()
-          .mockReturnValueOnce(0)
-          .mockReturnValueOnce(32),
+        tryEvaluateConstant: vi.fn((node: { mockValue: string }) =>
+          Number(node.mockValue),
+        ),
       });
       HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["Motor__GPIO7__ICR1", "wo"]]),

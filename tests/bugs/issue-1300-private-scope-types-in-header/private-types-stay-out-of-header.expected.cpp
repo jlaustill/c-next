@@ -39,7 +39,7 @@ uint32_t Internal__useHidden(void) {
     Internal__Hidden h = { .a = 1U };
     Internal__HiddenMode m = Internal__HiddenMode__ON;
     Internal__HiddenFlags f = 0;
-    f = (f & ~(1U << 0)) | (1U << 0);
+    f = (uint8_t)((f & ~(1U << 0)) | (1U << 0));
     if (m == Internal__HiddenMode__ON) {
         return h.a;
     }

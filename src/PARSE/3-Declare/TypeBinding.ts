@@ -85,7 +85,7 @@ class TypeBinding {
    * This is the allow-list a caller wants when it handles `arrayType` and
    * `stringType` itself because it needs a bit width or a capacity alongside
    * the name, which is what TypeRegistrationEngine's variable-registration path
-   * does. Asking `resolveNamedType` there dropped every primitive on the floor:
+   * did (deleted with the registry, #1668 C8). Asking `resolveNamedType` there dropped every primitive on the floor:
    * its caller treats a falsy base type as "not registerable" and returns, so
    * `u32 counter` registered no type info at all and the ADR-044 overflow
    * helpers stopped being emitted across 478 fixtures. Naming the pair the

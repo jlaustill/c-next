@@ -98,6 +98,7 @@ describe("#1452: discovery's include facts are released at end of run", () => {
       includeDirs: [tempDir],
       outDir: tempDir,
       headerOutDir: tempDir,
+      target: "host",
     };
     return new Transpiler(config);
   }

@@ -1,0 +1,27 @@
+// test-cpp-only
+// test-error
+// test-adr: 024
+// Issue #1668: a C++ header's floating operand is floating to E0810 too, in
+// --cpp mode, where a .hpp's symbols are C++ symbols rather than C ones.
+// `u32 i * apiScaleCpp` compiled and was routed into cnx_clamp_mul_u32.
+// The last function is a negative control and must stay silent.
+
+#include "float_api.hpp"
+
+f32 globalFloat() {
+    u32 i <- 3;
+    f32 x <- i * apiScaleCpp;
+    return x;
+}
+
+f32 floatFunction() {
+    u32 i <- 3;
+    f32 x <- i * apiHalfCpp();
+    return x;
+}
+
+f32 castInteger() {
+    u32 i <- 3;
+    f32 x <- (f32)i * apiScaleCpp;
+    return x;
+}

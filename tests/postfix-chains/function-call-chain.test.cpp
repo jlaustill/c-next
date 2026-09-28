@@ -10,6 +10,19 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // Postfix Chain Test: Function Calls in Chains
 // Tests: Function calls with complex chained parameters
 // HIGH RISK: Float parameters in postfix chains (line 6260 in CodeGenerator.ts)
@@ -19,7 +32,7 @@ FuncCallChain__Transform transforms[4] = {};
 
 // Functions with various parameter types
 uint32_t addU32(uint32_t a, uint32_t b) {
-    return a + b;
+    return cnx_clamp_add_u32(a, b);
 }
 
 float addF32(float a, float b) {

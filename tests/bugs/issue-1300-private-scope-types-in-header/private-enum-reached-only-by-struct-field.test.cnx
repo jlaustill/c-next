@@ -1,3 +1,4 @@
+// test-target-xfail: atmega328p cpp #1767 "non-trivial designated initializers not supported"
 // Issue #1300 review: a public struct field's array dimension is the ONLY path
 // from the header to this private enum.
 //

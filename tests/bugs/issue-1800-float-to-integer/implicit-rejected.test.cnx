@@ -1,0 +1,25 @@
+// test-error
+// #1800, owner ruling 2026-09-28: "this should be a compiler error with an
+// explicit cast". Each implicit float-to-integer conversion below was accepted
+// and emitted as C's conversion, undefined for NaN and past the target's range.
+// The controls stay silent: the explicit cast (which saturates), a float's bit
+// range (ADR-007's reinterpret), and an integer into a float.
+f32 read() {
+    return 1.5;
+}
+
+u32 main() {
+    f32 k <- 2.5;
+    bool c <- true;
+    u32 fromVariable <- k;
+    u32 fromComposite <- k + 1.0;
+    u32 fromTernary <- (c = true) ? k : 1.0;
+    u32 fromCall <- read();
+    u32 assigned <- 0;
+    assigned <- k;
+
+    u32 cast <- (u32)k;
+    u32 bits <- k[0, 32];
+    f32 widened <- cast;
+    return cast + bits + fromVariable + fromComposite + fromTernary + fromCall + assigned;
+}

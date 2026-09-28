@@ -48,7 +48,7 @@ class TestMarkers {
    *
    * Arg-bearing markers capture their argument list in group 1.
    *
-   * Case-SENSITIVE, all eight, deliberately. Seven rows carried `i` and
+   * Case-SENSITIVE, every row, deliberately. Seven rows carried `i` and
    * `test-execution` did not, so `// TEST-ERROR` was a valid marker while
    * `// TEST-EXECUTION` was a hard error -- a second spelling policy inside a
    * table whose whole promise is "one spelling each", which the next reader
@@ -71,8 +71,13 @@ class TestMarkers {
     ["test-cpp-only", /^[ \t]*\/\/[ \t]*test-cpp-only[ \t]*$/m],
     ["test-transpile-only", /^[ \t]*\/\/[ \t]*test-transpile-only[ \t]*$/m],
     ["test-no-warnings", /^[ \t]*\/\/[ \t]*test-no-warnings[ \t]*$/m],
+    ["test-no-target", /^[ \t]*\/\/[ \t]*test-no-target[ \t]*$/m],
     ["test-adr", /^[ \t]*\/\/[ \t]*test-adr:[ \t]*(.+)$/m],
     ["test-link", /^[ \t]*\/\/[ \t]*test-link:[ \t]*(.+)$/m],
+    // #1668 box 12: `// test-target-xfail: <target> #<issue> "<text>"` --
+    // that target's cell must fail, showing the text, until the issue is
+    // fixed
+    ["test-target-xfail", /^[ \t]*\/\/[ \t]*test-target-xfail:[ \t]*(.+)$/m],
   ]);
 
   /**

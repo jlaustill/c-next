@@ -41,6 +41,10 @@
  * same conservatism `CompoundAssignmentAnalyzer` needed, and for the same
  * reason: the alternative is a diagnostic that fires on valid code whenever the
  * resolver has a gap.
+ *
+ * Every type -- a value's, a target's, a declaration's written type -- comes
+ * from the one operand typer (#1668), and every assignment site is read, `for`
+ * headers included (#1726).
  */
 
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
@@ -48,14 +52,14 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import OperandTyper from "../../utils/OperandTyper";
 import EnumValueResolver from "./EnumValueResolver";
+import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
+import AssignmentSiteListener from "./AssignmentSiteListener";
 import IEnumTypeSafetyError from "./types/IEnumTypeSafetyError";
-import IScopeFrame from "./types/IScopeFrame";
-import OperandTypeResolver from "./OperandTypeResolver";
-import ScopeFrameResolver from "./ScopeFrameResolver";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
+import type IOperandType from "../../transpiler/types/IOperandType";
+import type TAssignmentSite from "./types/TAssignmentSite";
 
 const ASSIGN_HELP =
   "ADR-017: an enum is its own type, not an integer. Assign one of its members, or convert explicitly with a cast.";
@@ -66,7 +70,6 @@ class EnumTypeSafetyListener extends CNextListener {
   private readonly found: IEnumTypeSafetyError[] = [];
 
   public constructor(
-    private readonly scopes: ScopeFrameResolver,
     private readonly values: EnumValueResolver,
     private readonly context: IAnalysisContext,
   ) {
@@ -83,51 +86,27 @@ class EnumTypeSafetyListener extends CNextListener {
   ): void => {
     const expression = ctx.expression();
     if (!expression) return;
-
-    const frame = this.scopes.frameFor(ctx);
-    // The declared type is normalized by the same resolver the VALUE side uses,
-    // so `this.EMode` and a bare `EMode` cannot arrive as two different names.
-    const written = ctx.type().getText();
     this.checkAssignment(
-      this.values.enumTypeNameFor(written, frame) ?? written,
+      OperandTyper.typeOfWritten(
+        ctx.type(),
+        this.context,
+        ParserUtils.getPosition(ctx),
+      ),
       expression,
-      frame,
     );
   };
 
-  /** `s <- value;` -- the target's declared type has to be resolved. */
-  override enterAssignmentStatement = (
-    ctx: Parser.AssignmentStatementContext,
-  ): void => {
+  /** `s <- value;`, in a statement or a `for` header */
+  public checkSite(site: TAssignmentSite): void {
     // Only a plain `<-` assigns a whole value. A compound operator on an enum
     // is E0857's business, and reporting both would be two diagnostics for one
     // mistake.
-    if (!ctx.assignmentOperator().ASSIGN()) return;
-
-    const expression = ctx.expression();
-    if (!expression) return;
-
-    const frame = this.scopes.frameFor(ctx);
-    const target = new OperandTypeResolver(
-      this.scopes,
-      this.context,
-    ).typeOfAssignmentTarget(ctx.assignmentTarget(), frame);
-    if (target === null) return;
-    this.checkAssignment(target, expression, frame);
-  };
-
-  /** `a = b`, `a != b` and the relational operators. */
-  override enterEqualityExpression = (
-    ctx: Parser.EqualityExpressionContext,
-  ): void => {
-    this.checkComparison(ctx, ctx.relationalExpression());
-  };
-
-  override enterRelationalExpression = (
-    ctx: Parser.RelationalExpressionContext,
-  ): void => {
-    this.checkComparison(ctx, ctx.bitwiseOrExpression());
-  };
+    if (!site.assignmentOperator().ASSIGN()) return;
+    this.checkAssignment(
+      OperandTyper.typeOfTarget(site.assignmentTarget(), this.context),
+      site.expression(),
+    );
+  }
 
   /**
    * How a classified operand is named in a message.
@@ -145,13 +124,14 @@ class EnumTypeSafetyListener extends CNextListener {
   }
 
   private checkAssignment(
-    targetType: string,
+    target: IOperandType | null,
     expression: Parser.ExpressionContext,
-    frame: IScopeFrame,
   ): void {
-    if (!DeclaredTypeFacts.isEnum(this.context.symbols, targetType)) return;
+    const targetKind = EnumValueResolver.kindOf(target);
+    if (targetKind.kind !== "enum") return;
+    const targetType = targetKind.typeName;
 
-    const verdict = this.values.classify(expression, frame);
+    const verdict = this.values.classify(expression);
     if (
       verdict.kind === "unresolved" &&
       !this.values.isPureMemberPath(expression)
@@ -172,15 +152,12 @@ class EnumTypeSafetyListener extends CNextListener {
     });
   }
 
-  private checkComparison(
-    ctx: ParserRuleContext,
-    operands: readonly ParserRuleContext[],
-  ): void {
+  /** `a = b`, `a != b` and the relational operators */
+  public checkComparison(operands: readonly ParserRuleContext[]): void {
     if (operands.length < 2) return;
 
-    const frame = this.scopes.frameFor(ctx);
-    const left = this.values.classify(operands[0], frame);
-    const right = this.values.classify(operands[1], frame);
+    const left = this.values.classify(operands[0]);
+    const right = this.values.classify(operands[1]);
     if (left.kind === "unresolved" || right.kind === "unresolved") return;
     if (left.kind !== "enum" && right.kind !== "enum") return;
     if (
@@ -207,20 +184,28 @@ class EnumTypeSafetyAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): IEnumTypeSafetyError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    const scopes = new ScopeFrameResolver(
-      declarations,
-      this.context.symbolTable,
-    );
     const listener = new EnumTypeSafetyListener(
-      scopes,
-      new EnumValueResolver(scopes, this.context),
+      new EnumValueResolver(this.context),
       this.context,
     );
+    // One walk for declarations, one per shared listener; reported in source
+    // order, as the one walk these replace did
     ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+    ParseTreeWalker.DEFAULT.walk(
+      new BinaryOperatorLevelListener((operands, level) => {
+        if (level === "equality" || level === "relational") {
+          listener.checkComparison(operands);
+        }
+      }),
+      tree,
+    );
+    ParseTreeWalker.DEFAULT.walk(
+      new AssignmentSiteListener((site) => listener.checkSite(site)),
+      tree,
+    );
+    return listener
+      .errors()
+      .sort((a, b) => a.line - b.line || a.column - b.column);
   }
 }
 

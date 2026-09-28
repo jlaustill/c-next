@@ -67,6 +67,9 @@ interface IEmissionPlan {
 
   /** ADR-051 safe-division helper keys (`"div_u32"`), in emission order. */
   readonly safeDivOps: readonly string[];
+
+  /** #1668: single-evaluation saturating cast keys (`"f32_u8"`), in emission order. */
+  readonly castHelpers: readonly string[];
 }
 
 export default IEmissionPlan;

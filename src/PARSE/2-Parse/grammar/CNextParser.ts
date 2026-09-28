@@ -21,7 +21,7 @@ export class CNextParser extends antlr.Parser {
     public static readonly IFNDEF_DIRECTIVE = 7;
     public static readonly ELSE_DIRECTIVE = 8;
     public static readonly ENDIF_DIRECTIVE = 9;
-    public static readonly PRAGMA_TARGET = 10;
+    public static readonly PRAGMA_DIRECTIVE = 10;
     public static readonly SCOPE = 11;
     public static readonly STRUCT = 12;
     public static readonly ENUM = 13;
@@ -240,8 +240,8 @@ export class CNextParser extends antlr.Parser {
     public static readonly symbolicNames = [
         null, null, "INCLUDE_DIRECTIVE", "DEFINE_FUNCTION", "DEFINE_WITH_VALUE", 
         "DEFINE_FLAG", "IFDEF_DIRECTIVE", "IFNDEF_DIRECTIVE", "ELSE_DIRECTIVE", 
-        "ENDIF_DIRECTIVE", "PRAGMA_TARGET", "SCOPE", "STRUCT", "ENUM", "THIS", 
-        "GLOBAL", "REGISTER", "PRIVATE", "PUBLIC", "CONST", "VOLATILE", 
+        "ENDIF_DIRECTIVE", "PRAGMA_DIRECTIVE", "SCOPE", "STRUCT", "ENUM", 
+        "THIS", "GLOBAL", "REGISTER", "PRIVATE", "PUBLIC", "CONST", "VOLATILE", 
         "VOID", "IF", "ELSE", "WHILE", "DO", "FOR", "FOREVER", "SWITCH", 
         "CASE", "DEFAULT", "RETURN", "TRUE", "FALSE", "C_NULL", "STRING", 
         "SIZEOF", "BITMAP8", "BITMAP16", "BITMAP24", "BITMAP32", "RW", "RO", 
@@ -326,7 +326,7 @@ export class CNextParser extends antlr.Parser {
                 case CNextParser.IFNDEF_DIRECTIVE:
                 case CNextParser.ELSE_DIRECTIVE:
                 case CNextParser.ENDIF_DIRECTIVE:
-                case CNextParser.PRAGMA_TARGET:
+                case CNextParser.PRAGMA_DIRECTIVE:
                     {
                     this.state = 179;
                     this.preprocessorDirective();
@@ -420,7 +420,7 @@ export class CNextParser extends antlr.Parser {
                 this.conditionalDirective();
                 }
                 break;
-            case CNextParser.PRAGMA_TARGET:
+            case CNextParser.PRAGMA_DIRECTIVE:
                 this.enterOuterAlt(localContext, 3);
                 {
                 this.state = 197;
@@ -513,7 +513,7 @@ export class CNextParser extends antlr.Parser {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 204;
-            this.match(CNextParser.PRAGMA_TARGET);
+            this.match(CNextParser.PRAGMA_DIRECTIVE);
             }
         }
         catch (re) {
@@ -5031,8 +5031,8 @@ export class PragmaDirectiveContext extends antlr.ParserRuleContext {
     public constructor(parent: antlr.ParserRuleContext | null, invokingState: number) {
         super(parent, invokingState);
     }
-    public PRAGMA_TARGET(): antlr.TerminalNode {
-        return this.getToken(CNextParser.PRAGMA_TARGET, 0)!;
+    public PRAGMA_DIRECTIVE(): antlr.TerminalNode {
+        return this.getToken(CNextParser.PRAGMA_DIRECTIVE, 0)!;
     }
     public override get ruleIndex(): number {
         return CNextParser.RULE_pragmaDirective;

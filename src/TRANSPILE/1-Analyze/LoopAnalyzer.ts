@@ -183,13 +183,7 @@ class LoopListener extends CNextListener {
   private static literalValue(text: string): number | null {
     if (text === "true") return 1;
     if (text === "false") return 0;
-    if (text.includes(".")) return null;
-    // `0777` is octal to C; a decimal parse would disagree with the emitted
-    // value, so it is left alone (#1076).
-    if (/^0\d/.test(text)) return null;
-    const match = /^(0[xX][\da-fA-F]+|0[bB][01]+|\d+)([uUiI]\d+)?$/.exec(text);
-    if (match === null) return null;
-    return LiteralUtils.parseIntegerLiteral(match[1]) ?? null;
+    return LiteralUtils.integerValue(text);
   }
 
   private static isAlwaysTrue(comparison: ILiteralComparison): boolean {

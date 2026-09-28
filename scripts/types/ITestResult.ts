@@ -1,4 +1,5 @@
 import type IModeResult from "./ITestMode";
+import type ITargetCell from "./ITargetCell";
 import type TExecSkipReason from "./TExecSkipReason";
 
 /**
@@ -17,6 +18,8 @@ interface ITestResult {
   /** Why execution was skipped (Issue #1397), from the first skipped mode. */
   skipReason?: TExecSkipReason;
   noSnapshot?: boolean;
+  /** #1668 box 15: every target cell of every mode, for the report line */
+  cells?: ITargetCell[];
   execError?: string;
   warningError?: string;
   /**

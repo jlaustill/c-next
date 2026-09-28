@@ -1,0 +1,17 @@
+// test-error
+// #1698: the reverse pair. The scope's `u32 get()` shadows the global
+// `u8 get()`, so `u8 n <- get()` narrows (E0869). It read the global's u8 and
+// passed, and returned 300 truncated to 44.
+u8 get() {
+    return 3;
+}
+
+scope Gauge {
+    u32 get() {
+        return 300;
+    }
+    public u8 narrow() {
+        u8 n <- get();
+        return n;
+    }
+}

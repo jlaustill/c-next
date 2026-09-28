@@ -8,13 +8,33 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
+static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a - b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 // test-execution
 // test-adr: 029
 // Tests: Callbacks with different return types
 // Validates: u32, u8, bool, and i32 return types work correctly
 // Callback returning u32
 uint32_t getU32Value(uint32_t input) {
-    return input + 1000U;
+    return cnx_clamp_add_u32(input, 1000U);
 }
 
 // Callback returning u8
@@ -30,9 +50,12 @@ bool checkThreshold(uint32_t value) {
     return false;
 }
 
-// Callback returning i32 (signed)
-int32_t getSignedValue(uint32_t input) {
-    return 0 - input;
+// Callback returning i32 (signed). #1681: its parameter was `u32`, and
+// `0 - input` gave -10 only because arithmetic on parameters wrapped and a
+// u32 return into an i32 is not yet checked (#1618). As u32 arithmetic it
+// saturates at 0; a signed input is what a negative result needs.
+int32_t getSignedValue(int32_t input) {
+    return cnx_clamp_sub_i32(0, input);
 }
 
 // Structs to hold callbacks
@@ -83,9 +106,9 @@ int main(void) {
     if (boolResult != true) return 7U;
     I32Returner i32r = {};
     i32r.handler = getSignedValue;
-    int32_t signedResult = i32r.handler(10U);
+    int32_t signedResult = i32r.handler(10);
     if (signedResult != -10) return 8U;
-    signedResult = i32r.handler(1000U);
+    signedResult = i32r.handler(1000);
     if (signedResult != -1000) return 9U;
     return 0U;
 }

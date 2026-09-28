@@ -16,6 +16,7 @@ import type {
   StructDeclarationContext,
   StructDeclaratorContext,
   InitDeclaratorListContext,
+  TypeSpecifierContext,
 } from "../../../2-Parse/c/grammar/CParser";
 import SymbolUtils from "../../SymbolUtils";
 import IExtractedParameter from "../../shared/IExtractedParameter";
@@ -170,11 +171,107 @@ class DeclaratorUtils {
     for (const spec of declSpecs.declarationSpecifier()) {
       const typeSpec = spec.typeSpecifier();
       if (typeSpec) {
-        parts.push(typeSpec.getText());
+        parts.push(DeclaratorUtils.typeSpecifierText(typeSpec));
       }
     }
 
     return parts.join(" ") || "int";
+  }
+
+  /**
+   * How one type specifier is spelled in a recorded C type -- the one
+   * decision for declarations, typedefs and struct fields (#1668).
+   *
+   * `getText()` concatenates tokens, so `struct foo` and `enum tag_e` were
+   * recorded with the keyword and the tag run together, which no lookup
+   * matches.
+   * A struct or union is spelled by its tag, the name its fields are keyed
+   * by (an anonymous one is reconstructed); an enum as `enum tag`, or
+   * `enum {...}` when anonymous, so its kind is still readable.
+   */
+  static typeSpecifierText(typeSpec: TypeSpecifierContext): string {
+    const structSpec = typeSpec.structOrUnionSpecifier();
+    if (structSpec) {
+      const identifier = structSpec.Identifier();
+      return identifier
+        ? identifier.getText()
+        : DeclaratorUtils.reconstructAnonymousStruct(structSpec);
+    }
+    const enumSpec = typeSpec.enumSpecifier();
+    if (enumSpec) {
+      const identifier = enumSpec.Identifier();
+      return identifier
+        ? `enum ${identifier.getText()}`
+        : `enum ${enumSpec.getText().replace(/^enum/, "")}`;
+    }
+    return typeSpec.getText();
+  }
+
+  /**
+   * The type a declarator records: the base type with any indirection the
+   * declarator carries -- a pointer's depth, or a function pointer's
+   * `T (*)(params)`. The one rule for a typedef and a struct field (#1760
+   * review: a field recorded its specifiers alone, so `float (*readLevel)(void)`
+   * was a `float` and `uint8_t *buf` a `uint8_t`).
+   *
+   * Declaration specifiers give the base type; the `*` of a pointer typedef
+   * lives in the *declarator* (`typedef struct Sample *SampleHandle`). Issue
+   * #1178: only function-pointer typedefs used to reconstruct their
+   * indirection, so a plain pointer typedef was recorded as though it were the
+   * struct itself -- and a consumer asking "can the callee write through this
+   * parameter?" was told no.
+   */
+  static declaredType(baseType: string, declarator: DeclaratorContext): string {
+    if (DeclaratorUtils.isFunctionPointerDeclarator(declarator)) {
+      return `${baseType} (*)(${DeclaratorUtils.extractParamText(declarator)})`;
+    }
+    // Keep the declarator's pointer depth, not merely its presence: the symbol
+    // model is shared, and a consumer that wants the pointer probably wants the
+    // right number of them (`typedef struct Sample **Grid`).
+    return DeclaratorUtils.pointerType(baseType, declarator);
+  }
+
+  /**
+   * Check if a declarator represents a function pointer.
+   * For `(*PointCallback)(Point p)`, the C grammar parses as:
+   *   declarator -> directDeclarator
+   *   directDeclarator -> directDeclarator '(' parameterTypeList ')'
+   *   inner directDeclarator -> '(' declarator ')'
+   *   inner declarator -> pointer directDeclarator -> * PointCallback
+   */
+  private static isFunctionPointerDeclarator(
+    declarator: DeclaratorContext,
+  ): boolean {
+    const directDecl = declarator.directDeclarator();
+    // The outer directDeclarator has: directDeclarator '(' params ')'
+    const hasParams =
+      directDecl.parameterTypeList() !== null ||
+      directDecl.LeftParen() !== null;
+    if (!hasParams) return false;
+
+    // The inner directDeclarator should be '(' declarator ')' with a pointer
+    const nestedDecl = directDecl.directDeclarator()?.declarator();
+    return (nestedDecl?.pointer() ?? null) !== null;
+  }
+
+  /**
+   * Extract parameter text from a function pointer declarator.
+   * Returns the text of the parameters from a function pointer like "(*Callback)(Point p)".
+   */
+  private static extractParamText(declarator: DeclaratorContext): string {
+    return declarator.directDeclarator().parameterTypeList()?.getText() ?? "";
+  }
+
+  /**
+   * Whether a declaration is `volatile` (#1760 review). The specifier list is
+   * read for its type specifiers alone, so a `volatile float` global was
+   * recorded as `float`, and the typer could not know that reading it has a
+   * side effect. A struct field's spelling keeps its qualifiers already.
+   */
+  static isVolatile(declSpecs: DeclarationSpecifiersContext): boolean {
+    return declSpecs
+      .declarationSpecifier()
+      .some((spec) => spec.typeQualifier()?.getText() === "volatile");
   }
 
   /**
@@ -242,20 +339,7 @@ class DeclaratorUtils {
     while (current) {
       const typeSpec = current.typeSpecifier?.();
       if (typeSpec) {
-        // Check for struct/union specifier - need to extract just the identifier
-        const structSpec = typeSpec.structOrUnionSpecifier?.();
-        if (structSpec) {
-          const identifier = structSpec.Identifier?.();
-          if (identifier) {
-            // Use just the struct/union name, not "structName" concatenated
-            parts.push(identifier.getText());
-          } else {
-            // Anonymous struct - reconstruct with proper spacing
-            parts.push(DeclaratorUtils.reconstructAnonymousStruct(structSpec));
-          }
-        } else {
-          parts.push(typeSpec.getText());
-        }
+        parts.push(DeclaratorUtils.typeSpecifierText(typeSpec));
       }
 
       const typeQual = current.typeQualifier?.();

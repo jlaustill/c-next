@@ -20,6 +20,11 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
+}
+
 // test-execution
 // Tests: Basic function declaration, calls, and return values
 // Demonstrates: void functions, return values, parameters
@@ -30,12 +35,12 @@ uint32_t getFortyTwo(void) {
 
 // Function with parameters
 uint32_t add(uint32_t a, uint32_t b) {
-    return a + b;
+    return cnx_clamp_add_u32(a, b);
 }
 
 // Function with multiple parameters
 uint32_t multiply(uint32_t x, uint32_t y) {
-    return x * y;
+    return cnx_clamp_mul_u32(x, y);
 }
 
 // Void function that modifies state

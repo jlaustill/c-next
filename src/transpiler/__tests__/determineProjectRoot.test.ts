@@ -5,7 +5,7 @@
  * where to place the .cnx cache directory.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
@@ -422,5 +422,70 @@ describe("Transpiler.determineProjectRoot", () => {
       // No cache directory should be created
       expect(existsSync(join(projectDir, ".cnx"))).toBe(false);
     });
+  });
+});
+
+// #1760 review: ADR-049's build-system rung reads the platformio.ini of the
+// project the run is anchored in, not one found again from a path
+describe("Transpiler's PlatformIO rung", () => {
+  const projectDir = join(process.cwd(), "test-pio-anchor-tmp");
+
+  beforeEach(() => {
+    mkdirSync(projectDir, { recursive: true });
+    writeFileSync(
+      join(projectDir, "platformio.ini"),
+      "[env:teensy41]\nplatform = teensy\nboard = teensy41\n",
+    );
+  });
+
+  afterEach(() => {
+    rmSync(projectDir, { recursive: true, force: true });
+  });
+
+  it("reads the anchored project's file for source with no path", async () => {
+    // The process's cwd is this repository, which has no platformio.ini: a
+    // second root finder, resolving "<string>" against it, found none (E0515)
+    const result = await new Transpiler({ input: "" }).transpile({
+      kind: "source",
+      source: "u8 value <- 1;\n",
+      workingDir: projectDir,
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.target).toEqual({ name: "teensy41", source: "platformio" });
+  });
+
+  // #1794: PlatformIO appends the build machine's PLATFORMIO_DEFAULT_ENVS to
+  // default_envs, so the run builds the environments it adds too
+  it("builds the environments PLATFORMIO_DEFAULT_ENVS adds", async () => {
+    writeFileSync(
+      join(projectDir, "platformio.ini"),
+      "[platformio]\ndefault_envs = teensy41\n\n" +
+        "[env:teensy41]\nplatform = teensy\nboard = teensy41\n\n" +
+        "[env:uno]\nplatform = atmelavr\nboard = uno\n",
+    );
+    const run = () =>
+      new Transpiler({ input: "" }).transpile({
+        kind: "source",
+        source: "u8 value <- 1;\n",
+        workingDir: projectDir,
+      });
+
+    // The control: the file alone builds teensy41
+    const fileAlone = await run();
+    expect(fileAlone.target).toEqual({
+      name: "teensy41",
+      source: "platformio",
+    });
+
+    vi.stubEnv("PLATFORMIO_DEFAULT_ENVS", "uno");
+    try {
+      // uno builds avr, teensy41 builds teensy41: one program, two targets
+      const withMachine = await run();
+      expect(withMachine.errors.map((error) => error.message)).toEqual([
+        expect.stringContaining("error[E0511]"),
+      ]);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

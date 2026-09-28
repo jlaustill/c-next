@@ -26,6 +26,14 @@ interface IPlannedCast {
    * float" to `CastRequirement` and the cast renders plainly.
    */
   readonly operandType: string | null;
+
+  /**
+   * #1668: how ADR-024's float-to-integer saturation is written, or null when
+   * the cast does not saturate. `"helper"` when the operand has a side effect
+   * -- a call, or a volatile or atomic read -- so it is evaluated once;
+   * `"inline"` for a pure operand, the bounded ternary.
+   */
+  readonly clampForm: "inline" | "helper" | null;
 }
 
 export default IPlannedCast;

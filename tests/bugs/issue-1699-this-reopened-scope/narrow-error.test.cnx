@@ -1,0 +1,13 @@
+// test-error
+// test-adr: 024
+// #1699: `this.x` in a scope reopened in another file is the member it names.
+// It was untyped there, so `u8 n <- this.x` passed and returned 300 truncated
+// to 44. The message names u32, the member, not the file-scope f32 `x`.
+#include "lib.cnx"
+
+scope Lib {
+    public u8 narrow() {
+        u8 n <- this.x;
+        return n;
+    }
+}

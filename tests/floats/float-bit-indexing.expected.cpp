@@ -11,19 +11,21 @@ static_assert(sizeof(float) == 4, "Float bit indexing requires 32-bit float");
 static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double");
 
 // test-execution
+// test-target-xfail: atmega328p #1709 "Float bit indexing requires 64-bit double"
 // Tests: f32/f64 bit indexing read/write operations
 // Helper to build f32 from LE bytes (like the user's use case)
 float fromBytesLE(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) {
     float result = 0.0;
+    /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
     union { float f; uint32_t u; } __bits_result;
     __bits_result.f = result;
-    __bits_result.u = (__bits_result.u & ~(0xFFU << 0)) | (((uint32_t)b0 & 0xFFU) << 0);
+    __bits_result.u = (__bits_result.u & ~((uint32_t)0xFFU << 0)) | ((b0 & (uint32_t)0xFFU) << 0);
     result = __bits_result.f;
-    __bits_result.u = (__bits_result.u & ~(0xFFU << 8)) | (((uint32_t)b1 & 0xFFU) << 8);
+    __bits_result.u = (__bits_result.u & ~((uint32_t)0xFFU << 8)) | ((b1 & (uint32_t)0xFFU) << 8);
     result = __bits_result.f;
-    __bits_result.u = (__bits_result.u & ~(0xFFU << 16)) | (((uint32_t)b2 & 0xFFU) << 16);
+    __bits_result.u = (__bits_result.u & ~((uint32_t)0xFFU << 16)) | ((b2 & (uint32_t)0xFFU) << 16);
     result = __bits_result.f;
-    __bits_result.u = (__bits_result.u & ~(0xFFU << 24)) | (((uint32_t)b3 & 0xFFU) << 24);
+    __bits_result.u = (__bits_result.u & ~((uint32_t)0xFFU << 24)) | ((b3 & (uint32_t)0xFFU) << 24);
     result = __bits_result.f;
     return result;
 }
@@ -36,6 +38,7 @@ int main(void) {
     float two = fromBytesLE(0x00U, 0x00U, 0x00U, 0x40U);
     if (two != 2.0) return 3U;
     float testVal = 1.0;
+    /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
     union { float f; uint32_t u; } __bits_testVal;
     __bits_testVal.f = testVal;
     uint8_t byte3 = ((__bits_testVal.u >> 24U) & 0xFFU);
@@ -47,11 +50,12 @@ int main(void) {
     uint8_t byte0 = (__bits_testVal.u & 0xFFU);
     if (byte0 != 0x00) return 7U;
     float val = 0.0;
+    /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
     union { float f; uint32_t u; } __bits_val;
     __bits_val.f = val;
-    __bits_val.u = (__bits_val.u & ~(0xFFU << 24)) | (((uint32_t)0x3F & 0xFFU) << 24);
+    __bits_val.u = (__bits_val.u & ~((uint32_t)0xFFU << 24)) | ((0x3FU & (uint32_t)0xFFU) << 24);
     val = __bits_val.f;
-    __bits_val.u = (__bits_val.u & ~(0xFFU << 16)) | (((uint32_t)0x80 & 0xFFU) << 16);
+    __bits_val.u = (__bits_val.u & ~((uint32_t)0xFFU << 16)) | ((0x80U & (uint32_t)0xFFU) << 16);
     val = __bits_val.f;
     if (val != 1.0) return 8U;
     return 0U;

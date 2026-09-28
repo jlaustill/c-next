@@ -28,11 +28,9 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import OperandTyper from "../../utils/OperandTyper";
 import EnumValueResolver from "./EnumValueResolver";
 import ISwitchStatementError from "./types/ISwitchStatementError";
-import OperandTypeResolver from "./OperandTypeResolver";
-import ScopeFrameResolver from "./ScopeFrameResolver";
 import EnumMemberSuggestion from "./helpers/EnumMemberSuggestion";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
@@ -41,16 +39,11 @@ const MINIMUM_CLAUSES = 2;
 
 class SwitchStatementListener extends CNextListener {
   private readonly found: ISwitchStatementError[] = [];
-  private readonly types: OperandTypeResolver;
   private readonly values: EnumValueResolver;
 
-  public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    private readonly context: IAnalysisContext,
-  ) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
-    this.types = new OperandTypeResolver(scopes, context);
-    this.values = new EnumValueResolver(scopes, context);
+    this.values = new EnumValueResolver(context);
   }
 
   public errors(): ISwitchStatementError[] {
@@ -63,9 +56,8 @@ class SwitchStatementListener extends CNextListener {
     const switchExpr = ctx.expression();
     const cases = ctx.switchCase();
     const defaultCase = ctx.defaultCase();
-    const frame = this.scopes.frameFor(ctx);
 
-    if (this.types.typeOfOperand(switchExpr, frame) === "bool") {
+    if (OperandTyper.isBoolean(OperandTyper.typeOf(switchExpr, this.context))) {
       this.report(
         switchExpr,
         "E0711",
@@ -87,7 +79,7 @@ class SwitchStatementListener extends CNextListener {
 
     if (this.reportDuplicateCase(cases)) return;
 
-    const verdict = this.values.classify(switchExpr, frame);
+    const verdict = this.values.classify(switchExpr);
     const switchEnum = verdict.kind === "enum" ? verdict.typeName : null;
     if (this.reportBareMemberLabels(cases, switchEnum)) return;
     if (switchEnum !== null) {
@@ -267,13 +259,7 @@ class SwitchStatementAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): ISwitchStatementError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    const listener = new SwitchStatementListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-      this.context,
-    );
+    const listener = new SwitchStatementListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

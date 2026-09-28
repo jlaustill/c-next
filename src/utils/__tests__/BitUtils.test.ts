@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import BitUtils from "../BitUtils";
+import type IOperandType from "../../transpiler/types/IOperandType";
 
 // ========================================================================
 // boolToInt
@@ -34,111 +35,22 @@ describe("BitUtils.boolToInt", () => {
 // maskHex
 // ========================================================================
 describe("BitUtils.maskHex", () => {
-  it("returns 0xFFU for width 8", () => {
-    expect(BitUtils.maskHex(8)).toBe("0xFFU");
-  });
-
-  it("returns 0xFFFFU for width 16", () => {
-    expect(BitUtils.maskHex(16)).toBe("0xFFFFU");
-  });
-
-  it("returns 0xFFFFFFFFU for width 32", () => {
-    expect(BitUtils.maskHex(32)).toBe("0xFFFFFFFFU");
-  });
-
-  it("returns 0xFFFFFFFFFFFFFFFFULL for width 64", () => {
-    expect(BitUtils.maskHex(64)).toBe("0xFFFFFFFFFFFFFFFFULL");
-  });
-
-  it("returns null for width 1", () => {
-    expect(BitUtils.maskHex(1)).toBeNull();
-  });
-
-  it("returns null for width 4", () => {
-    expect(BitUtils.maskHex(4)).toBeNull();
-  });
-
-  it("returns null for width 24", () => {
-    expect(BitUtils.maskHex(24)).toBeNull();
-  });
-
-  it("returns null for width 0", () => {
-    expect(BitUtils.maskHex(0)).toBeNull();
-  });
-
-  // 64-bit target tests (is64Bit parameter)
-  it("returns 0xFFULL for width 8 with is64Bit=true", () => {
-    expect(BitUtils.maskHex(8, true)).toBe("0xFFULL");
-  });
-
-  it("returns 0xFFFFULL for width 16 with is64Bit=true", () => {
-    expect(BitUtils.maskHex(16, true)).toBe("0xFFFFULL");
-  });
-
-  it("returns 0xFFFFFFFFULL for width 32 with is64Bit=true", () => {
-    expect(BitUtils.maskHex(32, true)).toBe("0xFFFFFFFFULL");
-  });
-
-  it("returns 0xFFFFFFFFFFFFFFFFULL for width 64 with is64Bit=true", () => {
-    expect(BitUtils.maskHex(64, true)).toBe("0xFFFFFFFFFFFFFFFFULL");
-  });
-});
-
-// ========================================================================
-// oneForType
-// ========================================================================
-describe("BitUtils.oneForType", () => {
-  it("returns 1ULL for u64", () => {
-    expect(BitUtils.oneForType("u64")).toBe("1ULL");
-  });
-
-  it("returns 1ULL for i64", () => {
-    expect(BitUtils.oneForType("i64")).toBe("1ULL");
-  });
-
-  it("returns 1U for u32 (MISRA 10.1 compliance)", () => {
-    expect(BitUtils.oneForType("u32")).toBe("1U");
-  });
-
-  it("returns 1U for i32 (MISRA 10.1 compliance)", () => {
-    expect(BitUtils.oneForType("i32")).toBe("1U");
-  });
-
-  it("returns 1U for u8 (MISRA 10.1 compliance)", () => {
-    expect(BitUtils.oneForType("u8")).toBe("1U");
-  });
-
-  it("returns 1U for unknown types (MISRA 10.1 compliance)", () => {
-    expect(BitUtils.oneForType("custom")).toBe("1U");
-  });
-});
-
-// ========================================================================
-// formatHex
-// ========================================================================
-describe("BitUtils.formatHex", () => {
-  it("formats 255 as 0xFFU (MISRA 10.1 - unsigned)", () => {
-    expect(BitUtils.formatHex(255)).toBe("0xFFU");
-  });
-
-  it("formats 31 as 0x1FU (MISRA 10.1 - unsigned)", () => {
-    expect(BitUtils.formatHex(31)).toBe("0x1FU");
-  });
-
-  it("formats 0 as 0x0U (MISRA 10.1 - unsigned)", () => {
-    expect(BitUtils.formatHex(0)).toBe("0x0U");
-  });
-
-  it("formats 65535 as 0xFFFFU (MISRA 10.1 - unsigned)", () => {
-    expect(BitUtils.formatHex(65535)).toBe("0xFFFFU");
-  });
-
-  it("formats single digit as 0xNU (MISRA 10.1 - unsigned)", () => {
-    expect(BitUtils.formatHex(10)).toBe("0xAU");
-  });
-
-  it("formats large values correctly with U suffix", () => {
-    expect(BitUtils.formatHex(0xdeadbeef)).toBe("0xDEADBEEFU");
+  // A constant width is written as its value, so no mask is ever computed by
+  // a shift that could overflow the type it is done in
+  it.each([
+    [0, "0x0U"],
+    [1, "0x1U"],
+    [4, "0xFU"],
+    [8, "0xFFU"],
+    [12, "0xFFFU"],
+    [16, "0xFFFFU"],
+    [24, "0xFFFFFFU"],
+    [31, "0x7FFFFFFFU"],
+    [32, "0xFFFFFFFFU"],
+    [40, "0xFFFFFFFFFFU"],
+    [64, "0xFFFFFFFFFFFFFFFFU"],
+  ])("writes width %i as %s", (width, hex) => {
+    expect(BitUtils.maskHex(width)).toBe(hex);
   });
 });
 
@@ -146,138 +58,30 @@ describe("BitUtils.formatHex", () => {
 // generateMask
 // ========================================================================
 describe("BitUtils.generateMask", () => {
-  it("uses hex mask for width 8 (number)", () => {
-    expect(BitUtils.generateMask(8)).toBe("0xFFU");
+  it.each([
+    [8, undefined, "0xFFU"],
+    ["8", undefined, "0xFFU"],
+    // A width folded from a const carries MISRA's suffix
+    ["24U", undefined, "0xFFFFFFU"],
+    ["4U", "uint64_t", "0xFU"],
+  ])("writes constant width %s as a literal", (width, storage, mask) => {
+    expect(BitUtils.generateMask(width, storage)).toBe(mask);
   });
 
-  it("uses hex mask for width 8 (string)", () => {
-    expect(BitUtils.generateMask("8")).toBe("0xFFU");
+  it.each([
+    [undefined, "((1U << width) - 1U)"],
+    // `unsigned int` holds a 16-bit storage's widths on every target
+    ["uint16_t", "((1U << width) - 1U)"],
+    ["uint32_t", "(((uint32_t)1U << width) - 1U)"],
+    ["int32_t", "(((uint32_t)1U << width) - 1U)"],
+    ["uint64_t", "(((uint64_t)1U << width) - 1U)"],
+  ])("computes a run-time width in %s's width", (storage, mask) => {
+    expect(BitUtils.generateMask("width", storage)).toBe(mask);
   });
 
-  it("uses hex mask for width 16", () => {
-    expect(BitUtils.generateMask(16)).toBe("0xFFFFU");
-  });
-
-  it("uses hex mask for width 32", () => {
-    expect(BitUtils.generateMask(32)).toBe("0xFFFFFFFFU");
-  });
-
-  it("uses hex mask for width 64", () => {
-    expect(BitUtils.generateMask(64)).toBe("0xFFFFFFFFFFFFFFFFULL");
-  });
-
-  it("generates shift expression for width 4", () => {
-    expect(BitUtils.generateMask(4)).toBe("((1U << 4) - 1)");
-  });
-
-  it("generates shift expression for width 3 (string)", () => {
-    expect(BitUtils.generateMask("3")).toBe("((1U << 3) - 1)");
-  });
-
-  it("generates shift expression for dynamic width", () => {
-    expect(BitUtils.generateMask("n")).toBe("((1U << n) - 1)");
-  });
-
-  it("handles expression-based width", () => {
-    expect(BitUtils.generateMask("width + 1")).toBe("((1U << width + 1) - 1)");
-  });
-
-  // 64-bit target tests (targetType parameter)
-  it("uses ULL hex mask for width 8 with u64 target", () => {
-    expect(BitUtils.generateMask(8, "u64")).toBe("0xFFULL");
-  });
-
-  it("uses ULL hex mask for width 16 with u64 target", () => {
-    expect(BitUtils.generateMask(16, "u64")).toBe("0xFFFFULL");
-  });
-
-  it("uses ULL hex mask for width 32 with u64 target", () => {
-    expect(BitUtils.generateMask(32, "u64")).toBe("0xFFFFFFFFULL");
-  });
-
-  it("uses ULL hex mask for width 16 with i64 target", () => {
-    expect(BitUtils.generateMask(16, "i64")).toBe("0xFFFFULL");
-  });
-
-  it("generates ULL shift expression for width 4 with u64 target", () => {
-    expect(BitUtils.generateMask(4, "u64")).toBe("((1ULL << 4) - 1)");
-  });
-
-  it("generates ULL shift expression for dynamic width with u64 target", () => {
-    expect(BitUtils.generateMask("n", "u64")).toBe("((1ULL << n) - 1)");
-  });
-});
-
-// ========================================================================
-// singleBitRead
-// ========================================================================
-describe("BitUtils.singleBitRead", () => {
-  it("generates bit read at offset 0 (number)", () => {
-    expect(BitUtils.singleBitRead("flags", 0)).toBe("((flags) & 1)");
-  });
-
-  it("generates bit read at offset 0 (string)", () => {
-    expect(BitUtils.singleBitRead("flags", "0")).toBe("((flags) & 1)");
-  });
-
-  it("generates bit read at offset 3", () => {
-    expect(BitUtils.singleBitRead("flags", 3)).toBe("((flags >> 3) & 1)");
-  });
-
-  it("generates bit read with dynamic offset", () => {
-    expect(BitUtils.singleBitRead("value", "n")).toBe("((value >> n) & 1)");
-  });
-
-  it("generates bit read with expression target", () => {
-    expect(BitUtils.singleBitRead("reg.STATUS", 7)).toBe(
-      "((reg.STATUS >> 7) & 1)",
-    );
-  });
-
-  it("generates bit read with complex offset expression", () => {
-    expect(BitUtils.singleBitRead("data", "i + 1")).toBe(
-      "((data >> i + 1) & 1)",
-    );
-  });
-});
-
-// ========================================================================
-// bitRangeRead
-// ========================================================================
-describe("BitUtils.bitRangeRead", () => {
-  it("generates range read at offset 0", () => {
-    expect(BitUtils.bitRangeRead("value", 0, 4)).toBe(
-      "((value) & ((1U << 4) - 1))",
-    );
-  });
-
-  it("generates range read at offset 0 (string)", () => {
-    expect(BitUtils.bitRangeRead("value", "0", 8)).toBe("((value) & 0xFFU)");
-  });
-
-  it("generates range read at offset 4 with width 4", () => {
-    expect(BitUtils.bitRangeRead("byte", 4, 4)).toBe(
-      "((byte >> 4) & ((1U << 4) - 1))",
-    );
-  });
-
-  it("generates range read with width 8", () => {
-    expect(BitUtils.bitRangeRead("word", 8, 8)).toBe("((word >> 8) & 0xFFU)");
-  });
-
-  it("generates range read with width 16", () => {
-    expect(BitUtils.bitRangeRead("dword", 0, 16)).toBe("((dword) & 0xFFFFU)");
-  });
-
-  it("generates range read with dynamic offset", () => {
-    expect(BitUtils.bitRangeRead("data", "start", 8)).toBe(
-      "((data >> start) & 0xFFU)",
-    );
-  });
-
-  it("generates range read with dynamic width", () => {
-    expect(BitUtils.bitRangeRead("data", 0, "width")).toBe(
-      "((data) & ((1U << width) - 1))",
+  it("computes a width that only starts with digits, rather than reading its prefix", () => {
+    expect(BitUtils.generateMask("4 + n", "uint32_t")).toBe(
+      "(((uint32_t)1U << 4 + n) - 1U)",
     );
   });
 });
@@ -286,58 +90,49 @@ describe("BitUtils.bitRangeRead", () => {
 // singleBitWrite
 // ========================================================================
 describe("BitUtils.singleBitWrite", () => {
-  it("generates RMW for literal true (MISRA 10.1 - uses 1U)", () => {
-    expect(BitUtils.singleBitWrite("flags", 0, "true")).toBe(
-      "flags = (flags & ~(1U << 0)) | (1U << 0);",
+  it.each([
+    ["true", "flags = (flags & ~(1U << 0)) | (1U << 0);"],
+    ["false", "flags = (flags & ~(1U << 0)) | (0U << 0);"],
+    ["x > 5", "flags = (flags & ~(1U << 0)) | ((x > 5 ? 1U : 0U) << 0);"],
+  ])("writes %s into storage of unknown type", (value, code) => {
+    expect(BitUtils.singleBitWrite("flags", 0, value)).toBe(code);
+  });
+
+  it.each([
+    ["uint8_t", "b = (uint8_t)((b & ~(1U << 7)) | (1U << 7));"],
+    ["int16_t", "b = (int16_t)((b & ~(1U << 7)) | (1U << 7));"],
+  ])(
+    "casts %s storage back to its type (MISRA C:2012 Rule 10.3)",
+    (storage, code) => {
+      expect(BitUtils.singleBitWrite("b", 7, "true", storage)).toBe(code);
+    },
+  );
+
+  it("shifts in the storage's width even at a low offset (#1668)", () => {
+    // Where `unsigned int` is 16 bits, `~(1U << 3)` is 0xFFF7: the AND
+    // would clear bits 16-31 of the storage, with nothing to warn about
+    expect(BitUtils.singleBitWrite("w", 3, "true", "uint32_t")).toBe(
+      "w = (w & ~((uint32_t)1U << 3)) | ((uint32_t)1U << 3);",
     );
   });
 
-  it("generates RMW for literal false (MISRA 10.1 - uses 1U)", () => {
-    expect(BitUtils.singleBitWrite("flags", 3, "false")).toBe(
-      "flags = (flags & ~(1U << 3)) | (0U << 3);",
+  // #1760 second review: the result is unsigned, so a signed target takes
+  // the Rule 10.3 cast back whatever its width
+  it("shifts a signed storage's bit in its unsigned width, cast back", () => {
+    expect(BitUtils.singleBitWrite("w", 31, "isSet", "int32_t")).toBe(
+      "w = (int32_t)((w & ~((uint32_t)1U << 31)) | ((uint32_t)(isSet ? 1U : 0U) << 31));",
     );
   });
 
-  it("generates RMW with ternary for expression value (MISRA 10.1)", () => {
-    expect(BitUtils.singleBitWrite("reg", 7, "isEnabled")).toBe(
-      "reg = (reg & ~(1U << 7)) | ((isEnabled ? 1U : 0U) << 7);",
+  it("shifts a 64-bit storage's bit in 64 bits", () => {
+    expect(BitUtils.singleBitWrite("q", 48, "false", "uint64_t")).toBe(
+      "q = (q & ~((uint64_t)1U << 48)) | ((uint64_t)0U << 48);",
     );
   });
 
-  it("generates RMW with dynamic offset (MISRA 10.1 - uses 1U)", () => {
+  it("keeps a run-time offset as written", () => {
     expect(BitUtils.singleBitWrite("byte", "n", "true")).toBe(
       "byte = (byte & ~(1U << n)) | (1U << n);",
-    );
-  });
-
-  it("handles comparison expression as value (MISRA 10.1)", () => {
-    expect(BitUtils.singleBitWrite("status", 0, "x > 5")).toBe(
-      "status = (status & ~(1U << 0)) | ((x > 5 ? 1U : 0U) << 0);",
-    );
-  });
-
-  // 64-bit target tests (targetType parameter)
-  it("generates 64-bit RMW for u64 target at high position", () => {
-    expect(BitUtils.singleBitWrite("val64", 32, "true", "u64")).toBe(
-      "val64 = (val64 & ~(1ULL << 32)) | ((uint64_t)1U << 32);",
-    );
-  });
-
-  it("generates 64-bit RMW for u64 target at position 63", () => {
-    expect(BitUtils.singleBitWrite("val64", 63, "true", "u64")).toBe(
-      "val64 = (val64 & ~(1ULL << 63)) | ((uint64_t)1U << 63);",
-    );
-  });
-
-  it("generates 64-bit RMW with expression value for u64", () => {
-    expect(BitUtils.singleBitWrite("flags", 48, "isSet", "u64")).toBe(
-      "flags = (flags & ~(1ULL << 48)) | ((uint64_t)(isSet ? 1U : 0U) << 48);",
-    );
-  });
-
-  it("generates 64-bit RMW for i64 target", () => {
-    expect(BitUtils.singleBitWrite("val64", 40, "false", "i64")).toBe(
-      "val64 = (val64 & ~(1ULL << 40)) | ((uint64_t)0U << 40);",
     );
   });
 });
@@ -346,58 +141,84 @@ describe("BitUtils.singleBitWrite", () => {
 // multiBitWrite
 // ========================================================================
 describe("BitUtils.multiBitWrite", () => {
-  it("generates RMW with width 4", () => {
+  it("writes a constant width's mask as a literal", () => {
     expect(BitUtils.multiBitWrite("reg", 0, 4, "0x0F")).toBe(
-      "reg = (reg & ~(((1U << 4) - 1) << 0)) | ((0x0F & ((1U << 4) - 1)) << 0);",
+      "reg = (reg & ~(0xFU << 0)) | ((0x0F & 0xFU) << 0);",
     );
   });
 
-  it("generates RMW with width 8 at offset 8", () => {
-    expect(BitUtils.multiBitWrite("word", 8, 8, "value")).toBe(
-      "word = (word & ~(0xFFU << 8)) | ((value & 0xFFU) << 8);",
+  it("casts 16-bit storage back to its type", () => {
+    expect(BitUtils.multiBitWrite("s", 12, 4, "n", "uint16_t")).toBe(
+      "s = (uint16_t)((s & ~(0xFU << 12)) | ((n & 0xFU) << 12));",
     );
   });
 
-  it("generates RMW with width 16", () => {
-    expect(BitUtils.multiBitWrite("dword", 0, 16, "data")).toBe(
-      "dword = (dword & ~(0xFFFFU << 0)) | ((data & 0xFFFFU) << 0);",
+  it("widens the mask for 32-bit storage, which widens the value it masks (#1668)", () => {
+    expect(BitUtils.multiBitWrite("word", 8, 8, "value", "uint32_t")).toBe(
+      "word = (word & ~((uint32_t)0xFFU << 8)) | ((value & (uint32_t)0xFFU) << 8);",
     );
   });
 
-  it("handles dynamic offset", () => {
+  it("widens the mask for 64-bit storage", () => {
+    expect(BitUtils.multiBitWrite("q", 32, 16, "0xABCD", "uint64_t")).toBe(
+      "q = (q & ~((uint64_t)0xFFFFU << 32)) | ((0xABCD & (uint64_t)0xFFFFU) << 32);",
+    );
+  });
+
+  it("computes a run-time width's mask once, in the storage's width", () => {
+    expect(
+      BitUtils.multiBitWrite(
+        "d",
+        0,
+        { text: "width", folded: undefined },
+        "bits",
+        "uint32_t",
+      ),
+    ).toBe(
+      "d = (d & ~((((uint32_t)1U << width) - 1U) << 0)) | ((bits & (((uint32_t)1U << width) - 1U)) << 0);",
+    );
+  });
+
+  // #1760 second review: the width folds in the writer, so every caller's
+  // `[0, W]` masks a literal, not the undefined `1U << 32`
+  it("masks a folded width as a literal", () => {
+    expect(
+      BitUtils.multiBitWrite(
+        "fx",
+        0,
+        { text: "W", folded: 32 },
+        "v",
+        "uint32_t",
+      ),
+    ).toBe(
+      "fx = (fx & ~((uint32_t)0xFFFFFFFFU << 0)) | ((v & (uint32_t)0xFFFFFFFFU) << 0);",
+    );
+  });
+
+  // #1760 second review: `a | b & mask` wrote bits outside the range
+  it("masks a value with an operator as one operand", () => {
+    expect(BitUtils.multiBitWrite("x", 0, 8, "a | b", "uint8_t")).toBe(
+      "x = (uint8_t)((x & ~(0xFFU << 0)) | (((a | b) & 0xFFU) << 0));",
+    );
+  });
+
+  // #1760 second review: an `i32` or `i64` target took no cast back
+  it.each([
+    [
+      "int32_t",
+      "s = (int32_t)((s & ~((uint32_t)0xFU << 4)) | ((v & (uint32_t)0xFU) << 4));",
+    ],
+    [
+      "int64_t",
+      "s = (int64_t)((s & ~((uint64_t)0xFU << 4)) | ((v & (uint64_t)0xFU) << 4));",
+    ],
+  ])("casts %s storage back to its type", (storage, expected) => {
+    expect(BitUtils.multiBitWrite("s", 4, 4, "v", storage)).toBe(expected);
+  });
+
+  it("keeps a run-time offset as written", () => {
     expect(BitUtils.multiBitWrite("reg", "start", 8, "val")).toBe(
       "reg = (reg & ~(0xFFU << start)) | ((val & 0xFFU) << start);",
-    );
-  });
-
-  it("handles dynamic width", () => {
-    expect(BitUtils.multiBitWrite("data", 0, "width", "bits")).toBe(
-      "data = (data & ~(((1U << width) - 1) << 0)) | ((bits & ((1U << width) - 1)) << 0);",
-    );
-  });
-
-  // 64-bit target tests (targetType parameter)
-  it("generates 64-bit RMW for u64 target with 16-bit width at position 32", () => {
-    expect(BitUtils.multiBitWrite("val64", 32, 16, "0xABCD", "u64")).toBe(
-      "val64 = (val64 & ~(0xFFFFULL << 32)) | ((0xABCD & 0xFFFFULL) << 32);",
-    );
-  });
-
-  it("generates 64-bit RMW for u64 target with 8-bit width at position 48", () => {
-    expect(BitUtils.multiBitWrite("val64", 48, 8, "0xFF", "u64")).toBe(
-      "val64 = (val64 & ~(0xFFULL << 48)) | ((0xFF & 0xFFULL) << 48);",
-    );
-  });
-
-  it("generates 64-bit RMW for i64 target", () => {
-    expect(BitUtils.multiBitWrite("val64", 40, 16, "data", "i64")).toBe(
-      "val64 = (val64 & ~(0xFFFFULL << 40)) | ((data & 0xFFFFULL) << 40);",
-    );
-  });
-
-  it("generates 64-bit RMW with dynamic width for u64 target", () => {
-    expect(BitUtils.multiBitWrite("val64", 32, "width", "bits", "u64")).toBe(
-      "val64 = (val64 & ~(((1ULL << width) - 1) << 32)) | ((bits & ((1ULL << width) - 1)) << 32);",
     );
   });
 });
@@ -406,33 +227,21 @@ describe("BitUtils.multiBitWrite", () => {
 // writeOnlySingleBit
 // ========================================================================
 describe("BitUtils.writeOnlySingleBit", () => {
-  it("generates write-only for literal true (MISRA 10.1 - uses 1U)", () => {
-    expect(BitUtils.writeOnlySingleBit("SET_REG", 0, "true")).toBe(
-      "SET_REG = (1U << 0);",
+  it("writes a one without reading the target", () => {
+    expect(BitUtils.writeOnlySingleBit("SET", 0, "true")).toBe(
+      "SET = (1U << 0);",
     );
   });
 
-  it("generates write-only for literal false (MISRA 10.1 - uses 0U)", () => {
-    expect(BitUtils.writeOnlySingleBit("CLR_REG", 3, "false")).toBe(
-      "CLR_REG = (0U << 3);",
+  it("writes the value it is given, not a one (#1775)", () => {
+    expect(BitUtils.writeOnlySingleBit("SET", 5, "on", "uint32_t")).toBe(
+      "SET = ((uint32_t)(on ? 1U : 0U) << 5);",
     );
   });
 
-  it("generates write-only with ternary for expression (MISRA 10.1)", () => {
-    expect(BitUtils.writeOnlySingleBit("CTRL", 7, "isActive")).toBe(
-      "CTRL = ((isActive ? 1U : 0U) << 7);",
-    );
-  });
-
-  it("handles dynamic offset (MISRA 10.1 - uses 1U)", () => {
-    expect(BitUtils.writeOnlySingleBit("PORT", "bit", "true")).toBe(
-      "PORT = (1U << bit);",
-    );
-  });
-
-  it("handles expression offset (MISRA 10.1 - uses 0U)", () => {
-    expect(BitUtils.writeOnlySingleBit("REG", "i + 1", "false")).toBe(
-      "REG = (0U << i + 1);",
+  it("casts 8-bit storage back to its type, in the parentheses that group it", () => {
+    expect(BitUtils.writeOnlySingleBit("CMD", 1, "go", "uint8_t")).toBe(
+      "CMD = (uint8_t)((go ? 1U : 0U) << 1);",
     );
   });
 });
@@ -441,39 +250,114 @@ describe("BitUtils.writeOnlySingleBit", () => {
 // writeOnlyMultiBit
 // ========================================================================
 describe("BitUtils.writeOnlyMultiBit", () => {
-  it("generates write-only with width 4", () => {
-    expect(BitUtils.writeOnlyMultiBit("DATA_REG", 0, 4, "value")).toBe(
-      "DATA_REG = ((value & ((1U << 4) - 1)) << 0);",
+  it("writes the masked value without reading the target", () => {
+    expect(BitUtils.writeOnlyMultiBit("DATA", 0, 4, "value")).toBe(
+      "DATA = ((value & 0xFU) << 0);",
     );
   });
 
-  it("generates write-only with width 8 at offset 8", () => {
-    expect(BitUtils.writeOnlyMultiBit("WORD_REG", 8, 8, "byte")).toBe(
-      "WORD_REG = ((byte & 0xFFU) << 8);",
+  it("widens the mask for 32-bit storage", () => {
+    expect(BitUtils.writeOnlyMultiBit("WORD", 8, 8, "byte", "uint32_t")).toBe(
+      "WORD = ((byte & (uint32_t)0xFFU) << 8);",
     );
   });
 
-  it("generates write-only with width 16", () => {
-    expect(BitUtils.writeOnlyMultiBit("OUT_REG", 0, 16, "data")).toBe(
-      "OUT_REG = ((data & 0xFFFFU) << 0);",
+  it("casts 8-bit storage back to its type", () => {
+    expect(BitUtils.writeOnlyMultiBit("R", 1, 3, "v", "uint8_t")).toBe(
+      "R = (uint8_t)((v & 0x7U) << 1);",
     );
   });
 
-  it("handles dynamic offset", () => {
-    expect(BitUtils.writeOnlyMultiBit("REG", "offset", 8, "val")).toBe(
-      "REG = ((val & 0xFFU) << offset);",
+  it("computes a run-time width's mask in the storage's width", () => {
+    expect(
+      BitUtils.writeOnlyMultiBit(
+        "R",
+        "start",
+        { text: "n", folded: undefined },
+        "bits",
+        "uint32_t",
+      ),
+    ).toBe("R = ((bits & (((uint32_t)1U << n) - 1U)) << start);");
+  });
+
+  it("masks a value with an operator as one operand", () => {
+    expect(BitUtils.writeOnlyMultiBit("R", 0, 4, "c ^ b", "uint8_t")).toBe(
+      "R = (uint8_t)(((c ^ b) & 0xFU) << 0);",
+    );
+  });
+});
+
+// #1760 review, owner ruling: an integer the target gives no width is
+// written in uintmax_t and cast back to the type its header spelled
+describe("BitUtils with storage of unfixed width", () => {
+  it("works a single bit in uintmax_t and casts back", () => {
+    expect(BitUtils.singleBitWrite("hf", 3, "true", "int_fast16_t")).toBe(
+      "hf = (int_fast16_t)((hf & ~((uintmax_t)1U << 3)) | ((uintmax_t)1U << 3));",
     );
   });
 
-  it("handles dynamic width", () => {
-    expect(BitUtils.writeOnlyMultiBit("PORT", 0, "n", "bits")).toBe(
-      "PORT = ((bits & ((1U << n) - 1)) << 0);",
+  it("works a bit range in uintmax_t and casts back", () => {
+    expect(BitUtils.multiBitWrite("hf", 0, 4, "v", "int_fast16_t")).toBe(
+      "hf = (int_fast16_t)((hf & ~((uintmax_t)0xFU << 0)) | ((v & (uintmax_t)0xFU) << 0));",
     );
   });
 
-  it("handles both dynamic offset and width", () => {
-    expect(BitUtils.writeOnlyMultiBit("REG", "start", "width", "data")).toBe(
-      "REG = ((data & ((1U << width) - 1)) << start);",
+  it("leaves a fixed-width and an unknown storage as they were", () => {
+    expect(BitUtils.singleBitWrite("w", 3, "true", "uint32_t")).toBe(
+      "w = (w & ~((uint32_t)1U << 3)) | ((uint32_t)1U << 3);",
     );
+    expect(BitUtils.singleBitWrite("w", 3, "true")).toBe(
+      "w = (w & ~(1U << 3)) | (1U << 3);",
+    );
+  });
+});
+
+// #1760 review: one answer for a read and a write
+describe("BitUtils.storageOf and widthText", () => {
+  const operand = (
+    typeName: string | null,
+    category: IOperandType["category"],
+    cType: string | null = null,
+    bitWidth: number | null = null,
+  ): IOperandType => ({
+    typeName,
+    cType,
+    dimensions: [],
+    category,
+    bitWidth,
+    stringCapacity: null,
+    enumTypeName: null,
+    bitmapTypeName: null,
+    overflow: null,
+    hasSideEffect: false,
+    form: { kind: "declared" },
+    binding: null,
+  });
+
+  it("stores a known integer in its fixed-width type", () => {
+    expect(BitUtils.storageOf(operand("u64", "unsigned", null, 64))).toBe(
+      "uint64_t",
+    );
+    expect(BitUtils.storageOf(operand("i16", "signed", null, 16))).toBe(
+      "int16_t",
+    );
+  });
+
+  it("stores an integer of unfixed width in the type its header spelled", () => {
+    expect(BitUtils.storageOf(operand(null, "signed", "int_fast16_t"))).toBe(
+      "int_fast16_t",
+    );
+  });
+
+  it("stores nothing else", () => {
+    expect(
+      BitUtils.storageOf(operand("f32", "floating", "float")),
+    ).toBeUndefined();
+    expect(BitUtils.storageOf(null)).toBeUndefined();
+  });
+
+  it("writes a folded width as its value, and any other as its text", () => {
+    expect(BitUtils.widthText({ text: "WIDTH", folded: 32 })).toBe("32U");
+    expect(BitUtils.widthText({ text: "n", folded: undefined })).toBe("n");
   });
 });

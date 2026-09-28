@@ -20,6 +20,7 @@ class TypedefCollector {
     baseType: string,
     sourceFile: string,
     span: ISourceSpan,
+    arrayDimensions: ReadonlyArray<number | string> = [],
   ): ICTypedefSymbol {
     return {
       kind: "type",
@@ -29,6 +30,7 @@ class TypedefCollector {
       sourceLanguage: ESourceLanguage.C,
       visibility: "public",
       type: baseType,
+      ...(arrayDimensions.length > 0 ? { arrayDimensions } : {}),
     };
   }
 }

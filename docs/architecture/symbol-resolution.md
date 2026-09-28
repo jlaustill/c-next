@@ -744,6 +744,27 @@ describe("Regression: symbol resolution matches legacy collectors", () => {
 });
 ```
 
+## Operand typing
+
+"What type is this operand?" has one answer in every pass (#1668). The operand
+typer binds a name through the program's lexical frames — the frame a node sits
+in, not a flat per-file table — and types every operand shape: a field, an
+element, a call, a cast, a C or C++ header's value. 2.1's diagnostics read it
+through their own policy rows, 2.2 through `PlanTyping` and `CompositeType`.
+
+This retires a premise the render-side enum resolver was built on: that 2.1 and
+2.2 ask from different symbol views, so a disagreement between them is not
+detectable. Both passes read `program.codeGenSymbolsFor(file)` and one lexical
+artifact through one typer, so the passes cannot disagree about an operand's
+type — they read the same answer. The resolver, and the 2.2 expression-type
+resolver beside it, are deleted rather than re-homed
+(`module-destinations.md`).
+
+Render reads the same answer rather than a second one: a postfix chain's plan
+carries the typer's step for each op, so render tracks no member type of its
+own, and an array dimension folds with the consts 1.4 settled as visible where
+it is written, not with a map the render walk fills.
+
 ## Related Issues
 
 ### Active (Remaining Phases)

@@ -80,44 +80,45 @@ tree-move does not rediscover them:
 
 ### 1.3 Declare — `src/PARSE/3-Declare/`
 
-| module                                 | why                                                                                                                                                                                       |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `cnext/index.ts`                       | `CNextResolver`: collects what ONE C-Next file declares                                                                                                                                   |
-| `cnext/collectors/**`                  | each takes a single parse tree                                                                                                                                                            |
-| `cnext/utils/**`                       | type and expression helpers used while collecting one file                                                                                                                                |
-| `cnext/types/**`                       | the collectors' own result shape                                                                                                                                                          |
-| `cnext/adapters/TSymbolInfoAdapter.ts` | **resolved** — `convert()` stays in 1.3; `mergeOpaqueTypes` deleted (the fact is `Program`'s, so there was nothing to merge); the visibility composition moved to 1.4 as `VisibleSymbols` | Was blocked on `ICodeGenSymbols` no longer being the per-file view codegen reads. It is not one now: 1.4 composes each file's VISIBLE view once, at build, and codegen reads that. The composition used to run per file while rendering, over a map the publish loop was still filling — #1301 is that bug (#1511) |
-| `c/**`, `cpp/**`                       | collect what one C or C++ header declares                                                                                                                                                 |
-| `shared/**`                            | parameter extraction shared by the C and C++ collectors                                                                                                                                   |
-| `TypeBinding.ts`                       | the one ladder from a type context to a name; reads the tree and an injected predicate                                                                                                    |
-| `TYPE_FORMING_KINDS.ts`                | which kinds introduce a type name — a constant                                                                                                                                            |
-| `SymbolUtils.ts`                       | helpers for the C and C++ collectors, per declaration                                                                                                                                     |
-| `NameExistence.ts`                     | asks the PER-FILE view whether a name exists; its own header states that split                                                                                                            |
+| module                                      | why                                                                                                                                                                                                                |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `cnext/index.ts`                            | `CNextResolver`: collects what ONE C-Next file declares                                                                                                                                                            |
+| `cnext/collectors/**`                       | each takes a single parse tree                                                                                                                                                                                     |
+| `cnext/utils/**`                            | type and expression helpers used while collecting one file                                                                                                                                                         |
+| `cnext/types/**`                            | the collectors' own result shape                                                                                                                                                                                   |
+| `cnext/adapters/TSymbolInfoAdapter.ts`      | **resolved** — `convert()` stays in 1.3; `mergeOpaqueTypes` deleted (the fact is `Program`'s, so there was nothing to merge); the visibility composition moved to 1.4 as `VisibleSymbols`                          | Was blocked on `ICodeGenSymbols` no longer being the per-file view codegen reads. It is not one now: 1.4 composes each file's VISIBLE view once, at build, and codegen reads that. The composition used to run per file while rendering, over a map the publish loop was still filling — #1301 is that bug (#1511) |
+| `c/**`, `cpp/**`                            | collect what one C or C++ header declares                                                                                                                                                                          |
+| `shared/**`                                 | parameter extraction shared by the C and C++ collectors                                                                                                                                                            |
+| `TypeBinding.ts`                            | the one ladder from a type context to a name; reads the tree and an injected predicate                                                                                                                             |
+| `TYPE_FORMING_KINDS.ts`                     | which kinds introduce a type name — a constant                                                                                                                                                                     |
+| `SymbolUtils.ts`                            | helpers for the C and C++ collectors, per declaration                                                                                                                                                              |
+| `NameExistence.ts`                          | asks the PER-FILE view whether a name exists; its own header states that split                                                                                                                                     |
+| `cnext/collectors/LexicalScopeCollector.ts` | #1668: one file's lexical frames -- each function, block and `for` header, with the locals and parameters declared in it and where. A dimension naming a const is left as text for 1.4 to fold where it is written |
 
 ### 1.4 Resolve — `src/PARSE/4-Resolve/`
 
-| module                       | why                                                               |
-| ---------------------------- | ----------------------------------------------------------------- |
-| `Program.ts`                 | the artifact 1.4 emits                                            |
-| `DeferredTypes.ts`           | settles bare names against the scope types each file can see      |
-| `TransitiveEnumCollector.ts` | walks the include graph, so it needs the graph rather than a file |
+| module                       | why                                                                                                                                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Program.ts`                 | the artifact 1.4 emits                                                                                                                                                                                                   |
+| `DeferredTypes.ts`           | settles bare names against the scope types each file can see                                                                                                                                                             |
+| `TransitiveEnumCollector.ts` | walks the include graph, so it needs the graph rather than a file                                                                                                                                                        |
+| `LexicalFrames.ts`           | #1668: settles each file's frames against the scope types that file can see and the program's consts, and answers what a name binds at a position (`declarationAt`) and which consts are visible there (`constValuesAt`) |
 
 ## TRANSPILE
 
 ### 2.2 Plan — `src/TRANSPILE/2-Plan/`
 
-| module                        | why                                                                                                                                                                         |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `EmissionPlan.ts`             | decides what C should exist for one file — the artifact 2.2 emits                                                                                                           |
-| `ComplianceAnnotations.ts`    | which safety-standard rule shaped a construct, and the one rendering of the house form                                                                                      |
-| `HeaderTypeNames.ts`          | every type name a file's public header will name — one enumeration, where two derivations each stopped at functions and variables (#1520)                                   |
-| `PublicInterface.ts`          | which symbols form a file's public C interface — `isExported` minus ADR-030's `main` exemption minus "a scope is a container", which §2 assigns to `EmissionPlan`           |
-| `StringLengthCounter.ts`      | which `.char_count` reads are worth hoisting into a cached `strlen` temp — a choice about what C exists, not how it reads (#1445 box 3)                                     |
-| `ExpressionTypeResolver.ts`   | the essential type of an expression — returns type names, never C text, and originates no diagnostic (#1445 box 3)                                                          |
-| `AssignmentContextBuilder.ts` | turns an assignment statement into the `IAssignmentContext` that `AssignmentClassifier` decides the kind from — the input half of a decision 2.2 already owns (#1445 box 3) |
-| `TypeRegistrationEngine.ts`   | walks declarations and writes the type facts every later decision reads — returns no text, so it fails the render admission test (#1445 box 3)                              |
-| `TypeRegistrationUtils.ts`    | the engine's write half; registers an enum- or bitmap-typed variable from the one `DeclaredTypeFacts` derivation (#1651)                                                    |
-| `dimensionEvalOptions.ts`     | the const-evaluation options both array-dimension paths must share, so the two cannot diverge on what folds                                                                 |
+| module                        | why                                                                                                                                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EmissionPlan.ts`             | decides what C should exist for one file — the artifact 2.2 emits                                                                                                                                       |
+| `ComplianceAnnotations.ts`    | which safety-standard rule shaped a construct, and the one rendering of the house form                                                                                                                  |
+| `HeaderTypeNames.ts`          | every type name a file's public header will name — one enumeration, where two derivations each stopped at functions and variables (#1520)                                                               |
+| `PublicInterface.ts`          | which symbols form a file's public C interface — `isExported` minus ADR-030's `main` exemption minus "a scope is a container", which §2 assigns to `EmissionPlan`                                       |
+| `StringLengthCounter.ts`      | which `.char_count` reads are worth hoisting into a cached `strlen` temp — a choice about what C exists, not how it reads (#1445 box 3)                                                                 |
+| `DeclaredTypeInfo.ts`         | a binding's declared type in the `TTypeInfo` shape 2.2 and render read -- local, parameter, global and cross-file global alike -- and what an assignment target writes (#1668)                          |
+| `PlanTyping.ts`               | the rows 2.2 reads over the one operand typer's facts — the direct type, a cast's source type, a composite's ADR-044 behavior — so each 2.2 site asks one named rule rather than re-deriving it (#1668) |
+| `AssignmentContextBuilder.ts` | turns an assignment statement into the `IAssignmentContext` that `AssignmentClassifier` decides the kind from — the input half of a decision 2.2 already owns (#1445 box 3)                             |
+| `dimensionEvalOptions.ts`     | the const-evaluation options both array-dimension paths must share, so the two cannot diverge on what folds                                                                                             |
 
 `EmissionPlan`, `ComplianceAnnotations` and `HeaderTypeNames` were created here
 rather than moved: 2.2 Plan did not exist as a module anywhere, so for those
@@ -126,7 +127,7 @@ no longer does — `scripts/move-modules.ts` has since relocated ten modules int
 `2-Plan/`, `PublicInterface` and `StringLengthCounter` among them.
 
 **This table is incomplete, and deliberately says so rather than reading as
-complete.** It documents 10 of the 22 modules under `2-Plan/`; eight modules the
+complete.** It documents 9 of the 19 modules under `2-Plan/`; five modules the
 manifest moved in have no row. Tracked as #1653 — each needs its own researched
 _why_, which is not something to bulk-generate from the manifest's `because`
 strings, since those argue the move and this column states the responsibility.
@@ -165,6 +166,11 @@ recorded — three had moved there with no row anywhere.
 | `QualifiedNameGenerator.ts`        | builds a qualified C name from a scope path; imports only `SymbolRegistry` and `ScopeUtils`, and `2-Plan/` needs it too, which `plan-cannot-import-render` forbade while it sat in render (#1445 box 3) |
 | `ast/AssignmentTargetExtractor.ts` | a generic parse-tree walker two passes reach (#1322)                                                                                                                                                    |
 | `ast/ChildStatementCollector.ts`   | answers _what statements are inside this one?_ — a question about the tree, not about legality (#1322)                                                                                                  |
+| `OperandTyper.ts`                  | #1668: the one operand typer. It types every operand shape for 2.1 and 2.2 alike, over the program's bindings, so the rules and the emitted C read one answer                                           |
+| `CompositeType.ts`                 | #1668: a composite's type and its floating veto, from the typer's leaves; the rule E0810 and 2.2's clamp routing both read                                                                              |
+| `DeclaredPointer.ts`               | #1668: whether a declaration is emitted as a pointer (a `*` type, an opaque typedef struct, a C call returning one, ADR-046's `c_` rule), for the `.c` and the `.h` alike                               |
+| `SubscriptClassifier.ts`           | an element, a slice, a bit or a bit range, from what is subscripted; the typer asks it for each step                                                                                                    |
+| `ChainRoot.ts`                     | a postfix chain's `this`/`global`/bare root, as the source spells it                                                                                                                                    |
 
 A module arrives here when more than one pass reaches it and it decides nothing
 about the program — the admission test §1 states, answered "neither pass owns
@@ -251,6 +257,20 @@ Recording this here because #1511's row was right to demand maintainer approval
 for changing a decided destination, and the owner's direction on #1452 is that
 `src/transpiler/state/` goes away — which retires the destination rather than
 the reasoning behind it.
+
+## Deleted rather than re-homed (#1668)
+
+#1668 gives every pass one operand typer, which binds a name through the
+program's lexical frames and types every operand shape. These modules each
+answered part of that question with a derivation of their own, so the typer
+replaces them rather than receiving them.
+
+| module                                                                                                                                                                               | outcome                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `2-Plan/ExpressionTypeResolver.ts`                                                                                                                                                   | **Deleted.** 2.2's type for an expression. Its direct type is `PlanTyping.directTypeName`, its composite type and floating veto are `CompositeType`'s — the rule 2.1's diagnostics read — and its four type predicates were copies of `TypeCheckUtils`'s over the same lists, and of `DeclaredTypeFacts.isStruct`. It could not type a call, which the typer can; measured at deletion, that changed two fixtures and nothing else.                                    |
+| `3-Render/codegen/resolution/EnumTypeResolver.ts`                                                                                                                                    | **Deleted.** "Which enum type is this expression", answered by splitting source text. The typer's `enumTypeName` answers it for 2.2 and for ADR-017's 2.1 rules alike. Its premise — that the passes ask from different symbol views, so nothing detects a disagreement — no longer holds: both read one symbol view through one typer.                                                                                                                                |
+| `2-Plan/TypeRegistrationEngine.ts`, `2-Plan/TypeRegistrationUtils.ts`                                                                                                                | **Deleted**, with the per-file type registry they wrote. Every read binds the declaration it means and projects it (`DeclaredTypeInfo`), so nothing is registered. A registry keyed by name could not tell an inner block's `x` from its sibling's, nor `global.x` from a local `x`. Their other two jobs moved: the `<string.h>` a sized string needs is raised on its declaration's plan, and global const folding moved to 1.4, which folds every const once (C11). |
+| `1-Analyze/OperandTypeResolver.ts`, `1-Analyze/ScopeFrameResolver.ts`, `1-Analyze/DeclarationScopeCollector.ts`, `1-Analyze/types/IScopeFrame.ts`, `1-Analyze/types/IDeclaredVar.ts` | **Deleted** (C11). 2.1's own lexical frames and operand typing: a frame per scope recorded each declaration by name with no position, so a use saw a declaration below it (#1702), and a flat set of bare names answered across functions (#1694). The binder (`LexicalFrames`, `Program.bindValue`) and the typer replace them. `ArrayIndexBoundsAnalyzer` was the last user.                                                                                         |
 
 ## Placed, but with no rows here
 

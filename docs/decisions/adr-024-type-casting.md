@@ -202,9 +202,111 @@ To combine values of different categories, reinterpret one operand's bits to the
 u32 c <- a + b[0, 32];   // OK: b reinterpreted as 32 unsigned bits, then added
 ```
 
-**Integer literals are exempt.** A bare integer literal has no fixed essential category; it is contextually typed to the other operand (ADR-052), so `a + 5` generates `a + 5U` (the literal adopts `a`'s category) and never trips Rule 10.4. The rule fires only when **both** operands resolve to concrete, fixed-width types of different category (variable + variable, struct field, array element, function-call result, …).
+**Unsuffixed integer literals are exempt.** A bare integer literal has no fixed essential category; it is contextually typed to the other operand (ADR-052), so `a + 5` generates `a + 5U` (the literal adopts `a`'s category) and never trips Rule 10.4. _(2026-09-26, #1668: "integer literals" narrowed to **unsuffixed** ones, by owner ruling; see the suffixed-literal paragraph below.)_ The rule fires only when **both** operands resolve to concrete, fixed-width types of different category (variable + variable, struct field, array element, function-call result, …).
 
 **Same-category widening stays implicit** — `u8 + u32` combines two unsigned values and needs no cast (only the width widens, the category is unchanged).
+
+**Integer and floating are different categories** (owner ruling, 2026-09-26, #1668). Rule 10.4's categories are signed, unsigned and floating, so combining an integer with a floating value is the same compile error as a signed/unsigned mix, in arithmetic and in a comparison alike:
+
+```cnx
+u32 i <- 3;
+f32 k <- 2.5;
+f32 x <- i * k;       // ERROR: mixed essential type category (u32 * f32)
+f32 y <- i * 2.5;     // ERROR: a float literal is floating
+bool b <- (i < 2.5);  // ERROR: in a comparison too
+```
+
+To combine them, convert the integer with an explicit cast. The conversion is then written where it happens, and the arithmetic is floating:
+
+```cnx
+f32 x <- (f32)i * k;     // OK
+f32 y <- (f32)i * 2.5;   // OK: 7.5
+```
+
+**A float literal is not exempt.** The exemption above rests on an integer literal adopting the other operand's category, and no integer operand can adopt a float literal, so `i * 2.5` mixes unsigned with floating. An integer literal beside a floating operand stays exempt: `k * 3` is floating arithmetic.
+
+Until this ruling the mix was accepted, and it computed the wrong value. The integer operand selected integer saturating arithmetic (ADR-044), which converted the float operand to the integer type before multiplying, so `u32` 3 × 2.5 evaluated to 6.0.
+
+**The categories are MISRA C:2012 Rule 10.4's essential type categories** (owner ruling, 2026-09-26, #1668: "follow misra 10.4"): signed, unsigned, floating, Boolean, character, and **each named enum type as a category of its own**. They apply to C-Next types and to C and C++ header types alike. MISRA's exception is kept: `+` and `+<-` may combine a character operand with a signed or unsigned one.
+
+```cnx
+u32 a <- 1;
+EColor c <- EColor.RED;
+u32 x <- a + c;        // ERROR: unsigned and enum EColor
+```
+
+**A character literal is essentially character** (owner ruling, 2026-09-26, #1668: strict MISRA). Unlike an unsuffixed integer literal it is not contextually typed, so comparing it with an integer, or combining the two with any operator but `+`, is the mix. Cast the literal to say which is meant:
+
+```cnx
+// with u8 ch, u8 digit, u32 a
+bool x <- ch = 'A';        // ERROR: unsigned and character
+bool y <- ch = (u8)'A';    // OK: both unsigned
+u8 d <- (u8)'0' + digit;   // OK
+u32 e <- a + 'A';          // OK: MISRA's + exception
+```
+
+**An exempt character and integer pair is essentially character** (owner ruling, 2026-09-28, in the #1760 review; MISRA C:2012 Appendix D.7). The pair's result carries the character category into the rest of the expression. A later operand of either signedness is therefore exempt beside it, so `u32 a + 'A' + i32 s` is legal under Rule 10.4. Its value is the exact sum, converted into the destination once, under the destination's ADR-044 overflow behavior (owner ruling, 2026-09-28). With `a = 3` and `s = -100`, a `u32` destination under clamp holds 0. C-Next does not compute that yet: it saturates in the first operand's type. This is tracked as #1809.
+
+A comparison with an enum operand is ADR-017's question, and is reported once, as ADR-017's diagnostic.
+
+**A suffixed integer literal takes its suffix's category and width** (owner ruling, 2026-09-26, #1668). A suffix fixes the literal's type, so it is not contextually typed:
+
+```cnx
+u32 a <- 1;
+i32 s <- 1;
+u32 x <- a + 5i32;     // ERROR: unsigned and signed, in either operand order
+i32 y <- s + 5i32;     // OK: both signed
+```
+
+**A conditional's two value operands are compared with each other** (owner ruling, 2026-09-26, #1668). Rule 10.4 covers the second and third operands of `?:`. The condition is not an operand, so a signed value in the condition alone does not trip the rule:
+
+```cnx
+// with u32 i, u32 j, f32 k, i32 s
+f32 z <- (s > 0) ? i : k;   // ERROR: u32 and f32 arms
+u32 w <- (s > 0) ? i : j;   // OK: both arms unsigned; s appears only in the condition
+```
+
+**An operand's category is its declared type, however the operand is reached** (owner ruling, 2026-09-26, #1668, which folds in #1092's first item). That covers:
+
+- a variable and a scope member;
+- a struct field and an array element;
+- a function result, including a member of that result (`get().v`) and the result of an ADR-029 callback (`s.fn()`);
+- a cast, whose category is the type it names;
+- the value arms of a ternary, but never its condition;
+- a variable, struct field or function declared in a C or C++ header. Its category comes from its C type, following typedefs such as `float32_t`: signed and unsigned integers, `float` and `double`, `_Bool`, plain `char`, and a named C enum. Its width comes from a fixed-width name (`uint16_t`, `int32_t`, …), or, for `short`, `int`, `long`, `long long`, `size_t`, `ptrdiff_t` and `intptr_t`, from the program's target description (ADR-049). `int_fastN_t` and `intmax_t` are integers of unknown width. A pointer is not an integer operand. Three such operands are not typed yet; see below. _(Widened 2026-09-26, #1668, by owner ruling, from "when its type is floating".)_
+
+A subscript into a scalar is a bit index and has no declared type, so the bit-indexed reinterpretation `b[0, 32]` stays exempt. That includes a subscript of a C header scalar integer. An array or pointer keeps element access. Each of these used to contribute no category, so `u32 + p.offset` (a signed field) compiled, and `u8 x <- arr[0] * 2.5` was rejected only by accident, as a `u32` narrowing.
+
+**What is an operand of the operator, for this rule** (consequences of the rulings above, #1668; none is a new decision):
+
+- A comparison or a `!` is one Boolean operand, whatever it compares. Its own operands are not operands of the enclosing operator, so with `u32 a, b` and `i32 c, d`, `(a < b) = (c < d)` compares two Booleans and is not a signed/unsigned mix.
+- A shift's count is not an operand of the shift. `a << s` has `a`'s category whatever `s`'s is, because Rule 10.4 does not govern a shift (the count is promoted on its own).
+- A register member has its declared category, as a variable does. A bitmap field wider than one bit is unsigned, and a one-bit field is Boolean.
+- A call to a C++ overload set whose candidates return different categories is not classified, because which candidate C++ chooses is not decided here. It is never taken into integer saturating arithmetic either, so `u * choose(y)` is computed in the category of the candidate C++ picks.
+
+**A float macro has no type C-Next can read.** `u32 i * SCALE_F`, with `#define SCALE_F 2.5f` in a header, is not rejected. How such an operand is typed is open, and is tracked as #1688.
+
+**Three header operands are not typed yet.** Each has a declared C type, so each is an operand with a category under the ruling above. C-Next does not read that type yet, so an integer combined with one that is floating is not rejected:
+
+- an element of a C pointer: `u32 i * fp[0]`, with `extern float *fp;`;
+- a variable whose type is a typedef declared in a C++ header: `i * r`, with `typedef float real_t; extern real_t r;` in a `.hpp`. The same typedef in a C header is typed;
+- a static data member of a C++ class: `i * K.sf`. An instance member is typed.
+
+This narrows the header bullet above to what is enforced today. The three shapes are tracked as #1788, which the owner deferred in #1760's review.
+
+#### Compound assignment is the same operator
+
+Owner ruling, 2026-09-26 (#1668). The section above spoke of binary operators and was silent on compound assignment, which compiled a signed/unsigned mix too. A compound assignment (`+<-`, `-<-`, `*<-`, `/<-`, `%<-`, `&<-`, `|<-`, `^<-`) combines its target and its value with the operator it names, so Rule 10.4 compares the target's category with the value's. `y *<- 2.5` is `y <- y * 2.5`, and `y +<- b` is `y <- y + b`:
+
+```cnx
+u32 y <- 3;
+i32 b <- 2;
+y *<- 2.5;   // ERROR: unsigned target, floating value
+y +<- b;     // ERROR: unsigned target, signed value
+y +<- 1;     // OK: an integer literal is exempt
+```
+
+The shift compounds (`<<<-`, `>><-`) are not covered, because Rule 10.4 does not govern a shift: its count is promoted independently of the value shifted. A plain assignment (`<-`) combines nothing. What it may convert is Rule 10.3's question, under _Where a conversion is checked_ below.
 
 ### Boolean Extraction (Use Bit Indexing)
 
@@ -256,6 +358,25 @@ f32 temp <- 25.7;
 u8 lowByte <- ((u32)temp)[0, 8];  // Truncates to 25, extracts low 8 bits → 25
 ```
 
+**A float reaches an integer only through that cast.** Without it the
+conversion is E0891, at every position a value lands in an integer (owner
+ruling, 2026-09-28, #1760 review: _"all positions now"_):
+
+- a declaration's initializer, a `for` header's included;
+- an assignment;
+- an argument to an integer parameter;
+- a return value from a function returning an integer;
+- a struct field's initializer;
+- an array element, in a list or a fill.
+
+`u32 b <- k;`, `u32 c <- k + 1.0;`, `d <- k;`, `take(k)` and `return k;` are all
+errors, and so is a floating ternary or a call returning a float. The value is
+asked of every leaf, so a composite that is floating counts.
+Owner ruling, 2026-09-28 (#1800): _"this should be a compiler error with an
+explicit cast"_. Until then the implicit form was accepted, and it was emitted
+as C's own conversion, which is undefined for NaN and for a value past the
+target's range. The cast truncates and then clamps to the range (ADR-056).
+
 **Note:** This is truncation, NOT bit reinterpretation. For raw IEEE-754 byte access, use float bit indexing (ADR-007):
 
 ```cnx
@@ -282,6 +403,8 @@ CNX does not support:
 | i32 → u32 (sign change) | **Error** - use `val[0, 32]`             | Sign semantics change         |
 | u32 → i32 (sign change) | **Error** - use `val[0, 32]`             | Sign semantics change         |
 | f32 → u32 (truncate)    | Supported - `(u32)floatVal`              | Truncates fractional part     |
+| f32 → u32 (no cast)     | **Error** (E0891) - `(u32)floatVal`      | Only the cast is defined      |
+| u32 × f32 (mixed)       | **Error** - use `(f32)intVal * floatVal` | Rule 10.4 category mix        |
 | f32 → u32 (reinterpret) | Use float bit indexing `floatVal[0, 32]` | Raw IEEE-754 access (ADR-007) |
 | int → pointer           | **Not supported**                        | Use `register` (ADR-004)      |
 
@@ -292,9 +415,22 @@ actually lands in — not the variable its name starts with. A declaration's
 initializer, an assignment statement, an element of an array, a field reached
 through a chain, and a cast are all conversions and all checked the same way.
 
+**Every program names a target (ADR-049)**, and every platform-dependent width in this ADR is read from it. A suffixed literal is typed by its suffix, so `u8 x <- 300u16` is a narrowing. A header integer of unknown width never selects saturating arithmetic (ADR-044).
+
 **A composite source (`a + b`) is typed** — category from the first integer
 operand, width from the widest — in every position except a cast, where writing
 `(u8)(a + b)` is the author stating the width they mean.
+
+**The source is typed as an operand is** (#1668). A call's result, an
+ADR-029 callback's result, and `-x` or `~x` (the type of `x`) are checked like
+a variable: with a `u32 get()` and a `u32 w`, `u8 n <- get();` and
+`u8 m <- ~w;` both narrow.
+
+**A composite with a floating operand is not an integer composite** (#1668). It
+is floating arithmetic, so integer saturation (ADR-044) never applies to it, and
+it has no integer width to check. Rule 10.4 above rejects the mix wherever the
+float's type is known, so what this sentence still decides is an operand the
+program states no type for, such as a header's float macro (#1688).
 
 Two exceptions to that were live until #1322 and are recorded because the code
 they permitted is the code this decision exists to reject:
@@ -392,13 +528,13 @@ target through a declaration, an assignment, or a cast.
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
 | top-level function | imported direct     | error    |
-| scope method       | imported direct     | off      |
+| scope method       | imported direct     | error    |
 | global variable    | imported direct     | error    |
-| scope member       | imported direct     | off      |
+| scope member       | imported direct     | error    |
 | top-level function | imported transitive | error    |
-| scope method       | imported transitive | off      |
+| scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
-| scope member       | imported transitive | off      |
+| scope member       | imported transitive | error    |
 
 A conversion happens wherever a value meets a typed target, so it reaches an
 initializer as well as a function body -- all four same-file contexts. The two
@@ -406,19 +542,23 @@ scope contexts are where the rule had been SILENT: `u8 narrow <- this.wide;`
 inside a scope was accepted while the identical line at top level was not, and
 no fixture depended on that, so it is closed rather than reproduced.
 
+The scope contexts reach an included file too (#1668). A scope member or
+method narrowing a value declared in another file is the same conversion as
+at file scope, whichever way the scope names the value: a file-scope source, a
+member of another scope written `Other.wide`, or `this.x` in a scope reopened
+in another file. All four cells are `error`, and each is occupied by a fixture
+that asserts it and keeps a wide-enough target beside it as a control.
+
 The imported columns matter because the rule asks the SOURCE's type, and the
 source may be declared in another file. A check reading only the file in front
 of it finds no type for it, and untyped never rejects -- the rule would go
-quiet across an include rather than fail. The scope contexts are `off` in those
-columns as a stated obligation, not a claim they cannot exist.
+quiet across an include rather than fail.
 
-**Two divergences preserved on purpose, both raised rather than decided.** The
-transpiler typed a composite source (`a + b`) on a declaration's initializer and
-never on an assignment statement, and it checked an assignment against the root
-variable's declared type -- so a u32 into a u8 FIELD reached through a chain was
-never checked at all. Twelve fixtures assert the lax paths. This ADR does not
-say how a composite is typed, and closing either gap is a behavior change on
-code the corpus treats as valid.
+**Two divergences this section once recorded are closed.** A composite source
+is checked on an assignment statement as it is on a declaration's initializer,
+and an assignment is checked against the declared type of the variable or
+field it writes, not its root's: with `u32 a, b`, `u8 g` and a `u8` field `f`,
+both `g <- a + b` and `p.f <- a` are E0869 (narrowing).
 
 ## References
 

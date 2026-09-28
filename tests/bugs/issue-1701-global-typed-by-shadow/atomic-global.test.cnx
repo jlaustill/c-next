@@ -1,0 +1,12 @@
+// #1701: an `atomic` global keeps its critical section behind a shadowing
+// `u8` local. It was emitted `x = cnx_clamp_add_u8(x, 1U);` with no PRIMASK
+// section, so the read-modify-write was not atomic and nothing said so.
+#pragma target cortex-m0
+
+atomic u32 x <- 0;
+
+u8 f() {
+    u8 x <- 1;
+    global.x +<- 1;
+    return x;
+}

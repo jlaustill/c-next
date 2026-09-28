@@ -1,9 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import TranspileState from "../../TranspileState";
 import LengthPropertyAnalyzer from "../LengthPropertyAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. ADR-058's length properties, E0867, replacing eighteen throws in
@@ -12,22 +10,16 @@ import testAnalysisContext from "./testAnalysisContext";
  *
  * The rule asks a question of the chain WITHOUT the property step, so a walk
  * that included it would ask about `.element_count`'s own type. The tests that
- * exercise struct fields set the symbol view directly; `reset()` runs after
- * each (CLAUDE.md, analyzer test isolation).
+ * exercise structs, enums and bitmaps declare them in their source, so the
+ * symbol view is the one 1.3 and 1.4 build in production.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new LengthPropertyAnalyzer(testAnalysisContext(state)).analyze(tree);
+  const { tree, context } = testAnalysisContextFor(source);
+  return new LengthPropertyAnalyzer(context).analyze(tree);
 };
 
 const inMain = (decls: string, expr: string): string =>
   `${decls}\nu32 main() {\n    u32 n <- ${expr};\n    return n;\n}`;
-
-afterEach(() => {
-  state = new TranspileState();
-});
-
-let state = new TranspileState();
 
 describe("LengthPropertyAnalyzer", () => {
   it("rejects .element_count on a scalar, with a real position", () => {
@@ -48,15 +40,6 @@ describe("LengthPropertyAnalyzer", () => {
     // it. The relocation keeps that behavior identical rather than closing the
     // divergence, because closing it means choosing a padding model the ADR
     // does not name. See the analyzer's header.
-    state.symbols = {
-      knownEnums: new Set<string>(),
-      knownBitmaps: new Set<string>(),
-      knownStructs: new Set(["S"]),
-      knownScopes: new Set<string>(),
-      structFields: new Map(),
-      structFieldDimensions: new Map(),
-      functionReturnTypes: new Map(),
-    } as unknown as typeof state.symbols;
     expect(
       errors(inMain("struct S { u32 a; }\nS s;", "s.bit_length")),
     ).toHaveLength(1);
@@ -79,22 +62,13 @@ describe("LengthPropertyAnalyzer", () => {
   });
 
   it("accepts .bit_length on an enum and a bitmap, which have widths", () => {
-    state.symbols = {
-      knownEnums: new Set(["Color"]),
-      knownBitmaps: new Set(["Flags"]),
-      knownStructs: new Set<string>(),
-      knownScopes: new Set<string>(),
-      structFields: new Map(),
-      structFieldDimensions: new Map(),
-      functionReturnTypes: new Map(),
-    } as unknown as typeof state.symbols;
     expect(
       errors(
         inMain("enum Color { RED }\nColor c <- Color.RED;", "c.bit_length"),
       ),
     ).toEqual([]);
     expect(
-      errors(inMain("bitmap8 Flags { A }\nFlags f;", "f.byte_length")),
+      errors(inMain("bitmap8 Flags { A, Rest[7] }\nFlags f;", "f.byte_length")),
     ).toEqual([]);
   });
 
@@ -102,15 +76,6 @@ describe("LengthPropertyAnalyzer", () => {
     // `structFields` stores the element type; the shape lives in a second map.
     // Reading only the first made `Sample[10] samples` look scalar, and this
     // rejected `.element_count` on it.
-    state.symbols = {
-      knownEnums: new Set<string>(),
-      knownBitmaps: new Set<string>(),
-      knownStructs: new Set(["Batch", "Sample"]),
-      knownScopes: new Set<string>(),
-      structFields: new Map([["Batch", new Map([["samples", "Sample"]])]]),
-      structFieldDimensions: new Map([["Batch", new Map([["samples", [10]]])]]),
-      functionReturnTypes: new Map(),
-    } as unknown as typeof state.symbols;
     expect(
       errors(
         inMain(
@@ -137,5 +102,25 @@ describe("LengthPropertyAnalyzer", () => {
     // An undeclared name is E0427's, reported in this same pass before this
     // step. Guessing here would be a second diagnostic for one mistake.
     expect(errors(inMain("", "undeclared.element_count"))).toEqual([]);
+  });
+
+  // #1760 review: ADR-058 -- a field named like a property is a field
+  it("reads a struct's field named like a property as the field", () => {
+    const decls =
+      "struct Buf {\n    u32 length;\n    u32 size;\n    u32 capacity;\n    u32 bit_length;\n}\nBuf b;";
+    for (const field of ["length", "size", "capacity", "bit_length"]) {
+      expect(errors(inMain(decls, `b.${field}`))).toEqual([]);
+    }
+  });
+
+  it("still reads a property a struct declares no field of", () => {
+    // The control: the same struct without the field is asked the property
+    const decls = "struct Buf {\n    u32 count;\n}\nBuf b;";
+    expect(errors(inMain(decls, "b.size")).map((e) => e.code)).toEqual([
+      "E0887",
+    ]);
+    expect(errors(inMain(decls, "b.length")).map((e) => e.code)).toEqual([
+      "E0886",
+    ]);
   });
 });

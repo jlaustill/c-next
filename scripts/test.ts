@@ -43,6 +43,8 @@ import TExecSkipReason from "./types/TExecSkipReason";
 
 // Import shared test utilities
 import TestUtils from "./test-utils";
+import TargetMatrix from "./TargetMatrix";
+import type ITargetCell from "./types/ITargetCell";
 import FixtureScheduler from "./utils/FixtureScheduler";
 import FileScanner from "./utils/FileScanner";
 import TestOutcome from "./utils/TestOutcome";
@@ -125,9 +127,85 @@ function execSkipNote(reason: TExecSkipReason | null): string {
   if (reason === null) {
     return "";
   }
-  const label = reason === "arm" ? "exec skipped: ARM" : "exec skipped";
-  const detail = reason === "transpile-only" ? ": transpile-only" : "";
+  const details: Record<TExecSkipReason, string> = {
+    target: ": not the host",
+    xfail: ": host cell is an expected failure",
+    "transpile-only": ": transpile-only",
+    unspecified: "",
+  };
+  const label = "exec skipped";
+  const detail = details[reason];
   return ` ${chalk.dim(`(${label}${detail})`)}`;
+}
+
+/**
+ * #1668 box 15: which targets ran the fixture and how -- executed on the
+ * host, compiled for the others, and each expected failure or target nothing
+ * could compile for, by name.
+ */
+function targetsNote(cells: readonly ITargetCell[] | undefined): string {
+  if (cells === undefined || cells.length === 0) {
+    return "";
+  }
+  const named = (outcome: ITargetCell["outcome"]): string[] => [
+    ...new Set(
+      cells
+        .filter((cell) => cell.outcome === outcome)
+        .map((cell) => cell.target),
+    ),
+  ];
+  const executed = named("executed");
+  const groups: Array<[string, string[]]> = [
+    ["executed", executed],
+    [
+      "compiled",
+      named("compiled").filter((target) => !executed.includes(target)),
+    ],
+    ["xfail", named("xfail")],
+  ];
+  const parts = groups
+    .filter((group) => group[1].length > 0)
+    .map((group) => `${group[0]}: ${group[1].join(", ")}`);
+  return parts.length === 0 ? "" : ` ${chalk.dim(`(${parts.join("; ")})`)}`;
+}
+
+/**
+ * #1668 box 15: every target cell the run produced, by target and outcome,
+ * and how many fixtures ran for one target alone rather than the matrix.
+ */
+const targetTotals = new Map<string, Map<string, number>>();
+let pinnedFixtures = 0;
+
+function recordTargets(result: ITestResult): void {
+  const cells = result.cells ?? [];
+  if (cells.length === 0) {
+    return;
+  }
+  for (const cell of cells) {
+    const outcomes = targetTotals.get(cell.target) ?? new Map<string, number>();
+    outcomes.set(cell.outcome, (outcomes.get(cell.outcome) ?? 0) + 1);
+    targetTotals.set(cell.target, outcomes);
+  }
+  const matrix = TargetMatrix.CROSS.every((target) =>
+    cells.some((cell) => cell.target === target),
+  );
+  if (!matrix) {
+    pinnedFixtures += 1;
+  }
+}
+
+/** The per-target totals, in quiet mode too (#1668's addendum, A6.5) */
+function printTargetTotals(): void {
+  if (targetTotals.size === 0) {
+    return;
+  }
+  const targets = [...targetTotals.entries()].map(
+    ([target, outcomes]) =>
+      `${target} ${[...outcomes.entries()].map(([outcome, count]) => `${count} ${outcome}`).join(", ")}`,
+  );
+  console.log(
+    `${chalk.cyan("Target cells:")} ${targets.join("; ")}; ${pinnedFixtures} fixtures pinned to one target`,
+  );
 }
 
 /**
@@ -151,7 +229,7 @@ function printResult(
   if (outcome.kind === "passed") {
     if (!quietMode) {
       console.log(
-        `${chalk.green("PASS")}    ${relativePath}${modeIndicator}${execSkipNote(outcome.execSkip)}`,
+        `${chalk.green("PASS")}    ${relativePath}${modeIndicator}${execSkipNote(outcome.execSkip)}${targetsNote(result.cells)}`,
       );
     }
     return;
@@ -165,7 +243,9 @@ function printResult(
     throw new Error(`unhandled test outcome: ${JSON.stringify(unhandled)}`);
   }
 
-  console.log(`${chalk.red("FAIL")}    ${relativePath}${modeIndicator}`);
+  console.log(
+    `${chalk.red("FAIL")}    ${relativePath}${modeIndicator}${targetsNote(result.cells)}`,
+  );
 
   // Issue #1397: a missing snapshot fails the build, so it prints as a failure
   // rather than as SKIP. There is nothing to diff against, so the line carries
@@ -178,6 +258,16 @@ function printResult(
   }
 
   console.log(`        ${chalk.dim(result.message ?? "")}`);
+  // #1668 box 15: every other target cell that failed, so one run shows the
+  // whole matrix rather than the first failing cell
+  for (const cell of result.cells ?? []) {
+    if (cell.outcome === "failed" && cell.detail !== result.message) {
+      const firstLine = (cell.detail ?? "").split("\n")[0];
+      console.log(
+        `        ${chalk.dim(`${cell.target} ${cell.mode}: ${firstLine}`)}`,
+      );
+    }
+  }
   if (result.expected && result.actual) {
     console.log(`        ${chalk.dim("Expected:")}`);
     console.log(
@@ -322,6 +412,7 @@ async function runTestsParallel(
         const relativePath = cnxFile.replace(rootDir + "/", "");
 
         printResult(relativePath, result, quietMode);
+        recordTargets(result);
 
         const updates = getCounterUpdates(result);
         passed += updates.passed;
@@ -529,6 +620,7 @@ async function runTestsSequential(
     const result = await runTest(cnxFile, updateMode, tools, options);
 
     printResult(relativePath, result, quietMode);
+    recordTargets(result);
 
     const updates = getCounterUpdates(result);
     passed += updates.passed;
@@ -631,6 +723,33 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // #1668 box 13: every cross target's compiler and real library, checked
+  // once before any fixture runs. A missing one fails here, loudly.
+  if (!transpileOnly) {
+    const problems = TargetMatrix.preflight((unit, mode, toolchain) =>
+      TestUtils.compileTranslationUnit(
+        unit,
+        dirname(unit),
+        rootDir,
+        mode,
+        toolchain,
+        false,
+      ),
+    );
+    if (problems.length > 0) {
+      console.error(
+        chalk.red("Error: the target matrix cannot compile for every target:"),
+      );
+      for (const problem of problems) {
+        console.error(chalk.red(`  ${problem}`));
+      }
+      console.error(
+        `Install the cross toolchains: ${TargetMatrix.installCommand(rootDir)}`,
+      );
+      process.exit(1);
+    }
+  }
+
   if (!quietMode) {
     console.log(chalk.cyan("C-Next Integration Tests"));
     console.log(
@@ -672,23 +791,33 @@ async function main(): Promise<void> {
   // Run tests (parallel or sequential)
   let results: ITestTotals;
 
-  if (numJobs > 1 && cnxFiles.length > 1) {
-    results = await runTestsParallel(
-      cnxFiles,
-      updateMode,
-      quietMode,
-      tools,
-      numJobs,
-      testOptions,
-    );
-  } else {
-    results = await runTestsSequential(
-      cnxFiles,
-      updateMode,
-      quietMode,
-      tools,
-      testOptions,
-    );
+  // #1668 box 15: each cross target transpiles into its own copy of tests/
+  if (!transpileOnly) {
+    testOptions.targetMirrors = TargetMatrix.createMirrors(rootDir);
+  }
+  try {
+    if (numJobs > 1 && cnxFiles.length > 1) {
+      results = await runTestsParallel(
+        cnxFiles,
+        updateMode,
+        quietMode,
+        tools,
+        numJobs,
+        testOptions,
+      );
+    } else {
+      results = await runTestsSequential(
+        cnxFiles,
+        updateMode,
+        quietMode,
+        tools,
+        testOptions,
+      );
+    }
+  } finally {
+    if (testOptions.targetMirrors !== undefined) {
+      TargetMatrix.removeMirrors(testOptions.targetMirrors);
+    }
   }
 
   const { passed, failed, updated, noSnapshot } = results;
@@ -720,6 +849,7 @@ async function main(): Promise<void> {
       console.log(`  ${chalk.yellow("Updated:")} ${updated}`);
     }
   }
+  printTargetTotals();
 
   process.exit(failed > 0 ? 1 : 0);
 }

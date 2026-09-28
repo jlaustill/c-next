@@ -22,11 +22,11 @@ function tryHandleCompoundNarrowingCast(
   ctx: IAssignmentContext,
   target: string,
 ): string | null {
-  if (!ctx.isCompound || !ctx.firstIdTypeInfo) {
+  if (!ctx.isCompound || !ctx.target.typeInfo) {
     return null;
   }
 
-  const baseType = ctx.firstIdTypeInfo.baseType;
+  const baseType = ctx.target.typeInfo.baseType;
   const promotedType = NarrowingCastHelper.getPromotedType(baseType);
 
   if (promotedType !== "int" || baseType === "int") {
@@ -52,11 +52,11 @@ function tryHandleIntToFloatConversion(
   ctx: IAssignmentContext,
   target: string,
 ): string | null {
-  if (ctx.isCompound || !ctx.firstIdTypeInfo || !ctx.hasValue) {
+  if (ctx.isCompound || !ctx.target.typeInfo || !ctx.hasValue) {
     return null;
   }
 
-  const targetType = ctx.firstIdTypeInfo.baseType;
+  const targetType = ctx.target.typeInfo.baseType;
   const valueType = ctx.valueExpressionType();
 
   if (!valueType) {

@@ -1,0 +1,22 @@
+// test-execution
+// #1666 NEGATIVE CONTROL: sibling blocks each declaring `v` report their own
+// width. This was right before the fix, and a per-function key breaks it.
+u32 probe(bool c) {
+    u32 w <- 0;
+    if (c = true) {
+        u8 v <- 1;
+        w <- v.bit_length;
+    } else {
+        u32 v <- 1;
+        w <- v.bit_length;
+    }
+    return w;
+}
+
+u32 main() {
+    u32 a <- probe(true);
+    if (a != 8) return 1;
+    u32 b <- probe(false);
+    if (b != 32) return 2;
+    return 0;
+}

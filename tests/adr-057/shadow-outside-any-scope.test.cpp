@@ -35,7 +35,7 @@ uint32_t counter = 100U;
 uint32_t limit = 7U;
 
 uint32_t doubled(uint32_t v) {
-    return v + v;
+    return cnx_clamp_add_u32(v, v);
 }
 
 int main(void) {

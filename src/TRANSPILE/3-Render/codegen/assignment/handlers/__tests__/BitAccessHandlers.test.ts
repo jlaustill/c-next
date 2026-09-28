@@ -22,7 +22,7 @@ function createMockContext(
   const resolvedBaseIdentifier =
     overrides.resolvedBaseIdentifier ?? identifiers[0];
 
-  return {
+  const ctx = {
     identifiers,
     ...HandlerTestUtils.subscriptsOf([{ mockValue: "3" } as never]),
     isCompound: false,
@@ -41,6 +41,7 @@ function createMockContext(
     hasValue: true,
     valueExpressionType: () => null,
     valueIntegerType: () => null,
+    valueHasFloatingOperand: () => false,
     foldValue: () =>
       HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     postfixOps: [],
@@ -62,6 +63,20 @@ function createMockContext(
     state,
     ...overrides,
   } as IAssignmentContext;
+  // #1668 (C7): what the target writes, as the binder would bind it
+  const target = overrides.target ?? HandlerTestUtils.targetOf(state, ctx);
+  // #1668 review: the final op, the target without it and the typer's step
+  const bits = HandlerTestUtils.bitWriteOf(
+    ctx,
+    ctx.lastSubscriptExprCount === 2 ? 2 : 1,
+    target.typeInfo,
+  );
+  return {
+    ...ctx,
+    postfixOps: bits.postfixOps,
+    renderBitTarget: overrides.renderBitTarget ?? bits.renderBitTarget,
+    target: { ...target, last: target.last ?? bits.last },
+  };
 }
 
 let state = new TranspileState();
@@ -80,13 +95,15 @@ describe("BitAccessHandlers", () => {
       expect(kinds).toContain(AssignmentKind.INTEGER_BIT);
       expect(kinds).toContain(AssignmentKind.INTEGER_BIT_RANGE);
       expect(kinds).toContain(AssignmentKind.ARRAY_ELEMENT_BIT);
+      expect(kinds).toContain(AssignmentKind.ARRAY_ELEMENT_BIT_RANGE);
       expect(kinds).toContain(AssignmentKind.STRUCT_CHAIN_BIT_RANGE);
     });
 
     it("exports exactly 5 handlers", () => {
       // Issue #1115: THIS_BIT / THIS_BIT_RANGE retired -- `this.` bit access now
       // classifies as INTEGER_BIT / INTEGER_BIT_RANGE, which these handlers serve.
-      expect(bitAccessHandlers).toHaveLength(4);
+      // #1668 (C12): ARRAY_ELEMENT_BIT_RANGE is the fifth.
+      expect(bitAccessHandlers).toHaveLength(5);
     });
   });
 
@@ -97,9 +114,7 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates single bit read-modify-write", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { baseType: "u32" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["flags", { baseType: "u32" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("3"),
       });
@@ -107,15 +122,14 @@ describe("BitAccessHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("flags =");
-      expect(result).toContain("& ~(1U << 3)");
-      expect(result).toContain("1U << 3");
+      // #1668: a u32 shifts in 32 bits, since `unsigned int` may be 16
+      expect(result).toBe(
+        "flags = (flags & ~((uint32_t)1U << 3)) | ((uint32_t)1U << 3);",
+      );
     });
 
-    it("uses 1ULL for 64-bit types", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { baseType: "u64" }],
-      ]);
+    it("shifts in 64 bits for 64-bit types", () => {
+      HandlerTestUtils.declareTypes(state, [["flags", { baseType: "u64" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("32"),
       });
@@ -125,13 +139,11 @@ describe("BitAccessHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("1ULL << 32");
+      expect(result).toContain("~((uint64_t)1U << 32)");
     });
 
-    it("uses 1ULL for signed 64-bit types", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { baseType: "i64" }],
-      ]);
+    it("shifts in unsigned 64 bits for signed 64-bit types", () => {
+      HandlerTestUtils.declareTypes(state, [["flags", { baseType: "i64" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("bit"),
       });
@@ -139,14 +151,11 @@ describe("BitAccessHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      // i64 uses 1ULL for the mask and cast for the value
-      expect(result).toContain("1ULL << bit");
+      expect(result).toContain("~((uint64_t)1U << bit)");
     });
 
     it("converts true to 1", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { baseType: "u8" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["flags", { baseType: "u8" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("0"),
       });
@@ -160,9 +169,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("converts false to 0", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { baseType: "u8" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["flags", { baseType: "u8" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("0"),
       });
@@ -176,9 +183,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("delegates to float bit write for float types", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["f", { baseType: "f32" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["f", { baseType: "f32" }]]);
       const generateFloatBitWrite = vi
         .fn()
         .mockReturnValue("float_bit_write_result");
@@ -211,9 +216,7 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates bit range read-modify-write", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { baseType: "u32" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["flags", { baseType: "u32" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
@@ -221,6 +224,7 @@ describe("BitAccessHandlers", () => {
           .mockReturnValueOnce("4"),
       });
       const ctx = createMockContext({
+        lastSubscriptExprCount: 2,
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0" } as never,
           { mockValue: "4" } as never,
@@ -236,9 +240,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses correct mask for bit range", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["data", { baseType: "u16" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["data", { baseType: "u16" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
@@ -246,6 +248,7 @@ describe("BitAccessHandlers", () => {
           .mockReturnValueOnce("8"),
       });
       const ctx = createMockContext({
+        lastSubscriptExprCount: 2,
         identifiers: ["data"],
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "4" } as never,
@@ -261,10 +264,8 @@ describe("BitAccessHandlers", () => {
       expect(result).toContain("<< 4");
     });
 
-    it("uses ULL suffix for 64-bit bit range mask", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { baseType: "u64" }],
-      ]);
+    it("shifts a 64-bit bit range's mask in 64 bits", () => {
+      HandlerTestUtils.declareTypes(state, [["flags", { baseType: "u64" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
@@ -272,6 +273,7 @@ describe("BitAccessHandlers", () => {
           .mockReturnValueOnce("16"),
       });
       const ctx = createMockContext({
+        lastSubscriptExprCount: 2,
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "32" } as never,
           { mockValue: "16" } as never,
@@ -281,14 +283,13 @@ describe("BitAccessHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      // 64-bit type uses ULL suffix on the hex mask
-      expect(result).toContain("0xFFFFULL");
+      expect(result).toBe(
+        "flags = (flags & ~((uint64_t)0xFFFFU << 32)) | ((value & (uint64_t)0xFFFFU) << 32);",
+      );
     });
 
     it("delegates to float bit write for float types", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["f", { baseType: "f32" }],
-      ]);
+      HandlerTestUtils.declareTypes(state, [["f", { baseType: "f32" }]]);
       const generateFloatBitWrite = vi
         .fn()
         .mockReturnValue("float_range_write_result");
@@ -300,6 +301,7 @@ describe("BitAccessHandlers", () => {
           .mockReturnValueOnce("8"),
       });
       const ctx = createMockContext({
+        lastSubscriptExprCount: 2,
         identifiers: ["f"],
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0" } as never,
@@ -309,14 +311,119 @@ describe("BitAccessHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(generateFloatBitWrite).toHaveBeenCalledWith(
-        "f",
-        expect.anything(),
-        "0",
-        "8",
-        "true",
-      );
+      // The typer's float type, and a variable: its shadow union
+      expect(generateFloatBitWrite).toHaveBeenCalledWith({
+        target: "f",
+        floatType: "f32",
+        bitIndex: "0",
+        width: { text: "8", folded: undefined },
+        value: "true",
+        isVariable: true,
+      });
       expect(result).toBe("float_range_write_result");
+    });
+  });
+
+  // #1760 review: the written value's category decides, once, for every kind
+  describe("writeBits by the value it writes", () => {
+    const handlerOf = (kind: AssignmentKind) =>
+      bitAccessHandlers.find(([k]) => k === kind)?.[1];
+
+    it("writes a float element through a union of its own", () => {
+      HandlerTestUtils.declareTypes(state, [["fa", { baseType: "f32" }]]);
+      const generateFloatBitWrite = vi.fn().mockReturnValue("element_write");
+      HandlerTestUtils.setupMockGenerator(state, {
+        generateFloatBitWrite,
+        // The element's index renders first, with the base, then the bit's
+        generateExpression: vi
+          .fn()
+          .mockReturnValueOnce("1")
+          .mockReturnValueOnce("31"),
+      });
+      const ctx = createMockContext({
+        identifiers: ["fa"],
+        ...HandlerTestUtils.subscriptsOf([
+          { mockValue: "1" } as never,
+          { mockValue: "31" } as never,
+        ]),
+      });
+
+      const result = handlerOf(AssignmentKind.ARRAY_ELEMENT_BIT)!(ctx);
+
+      // Not a variable: the element has no name to key a shadow by
+      expect(generateFloatBitWrite).toHaveBeenCalledWith({
+        target: "fa[1]",
+        floatType: "f32",
+        bitIndex: "31",
+        width: null,
+        value: "true",
+        isVariable: false,
+      });
+      expect(result).toBe("element_write");
+    });
+
+    it("writes an integer of unfixed width in uintmax_t, cast back to its header type", () => {
+      HandlerTestUtils.setupMockGenerator(state, {
+        generateExpression: vi.fn().mockReturnValue("3"),
+      });
+      const base = createMockContext({ identifiers: ["hf"] });
+      const ctx: IAssignmentContext = {
+        ...base,
+        target: {
+          ...base.target,
+          last: {
+            before: {
+              ...HandlerTestUtils.operandOf("i32", true, true),
+              typeName: null,
+              cType: "int_fast16_t",
+              bitWidth: null,
+            },
+            subscript: "bit_single",
+            after: null,
+            property: null,
+          },
+        },
+      };
+
+      const result = handlerOf(AssignmentKind.INTEGER_BIT)!(ctx);
+
+      expect(result).toBe(
+        "hf = (int_fast16_t)((hf & ~((uintmax_t)1U << 3)) | ((uintmax_t)1U << 3));",
+      );
+    });
+  });
+
+  describe("handleArrayElementBitRange (ARRAY_ELEMENT_BIT_RANGE)", () => {
+    // #1668 (C12): the subscripts are flattened -- the element's indices,
+    // then the range's start and width
+    const getHandler = () =>
+      bitAccessHandlers.find(
+        ([kind]) => kind === AssignmentKind.ARRAY_ELEMENT_BIT_RANGE,
+      )?.[1];
+
+    it.each([
+      ["a 1-D array's element", ["i"], "row[i]"],
+      ["a 2-D array's element", ["i", "j"], "row[i][j]"],
+    ])("writes the range into %s", (_label, indices, element) => {
+      HandlerTestUtils.setupMockGenerator(state, {
+        generateExpression: vi
+          .fn()
+          .mockImplementation((e: { mockValue: string }) => e.mockValue),
+      });
+      const ctx = createMockContext({
+        lastSubscriptExprCount: 2,
+        identifiers: ["row"],
+        generatedValue: "6",
+        ...HandlerTestUtils.subscriptsOf(
+          [...indices, "0", "4"].map((mockValue) => ({ mockValue }) as never),
+        ),
+      });
+
+      const result = getHandler()!(ctx);
+
+      expect(result).toContain(`${element} = `);
+      expect(result).toContain(`(${element} & ~(`);
+      expect(result).toContain("<< 0");
     });
   });
 
@@ -327,7 +434,7 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates array element bit assignment for 1D array", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["arr", { baseType: "u32", arrayDimensions: [10] }],
       ]);
       HandlerTestUtils.setupMockGenerator(state, {
@@ -347,11 +454,11 @@ describe("BitAccessHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("arr[i] =");
-      expect(result).toContain("& ~(1U << BIT)");
+      expect(result).toContain("& ~((uint32_t)1U << BIT)");
     });
 
     it("generates array element bit assignment for 2D array", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+      HandlerTestUtils.declareTypes(state, [
         ["matrix", { baseType: "u16", arrayDimensions: [10, 10] }],
       ]);
       HandlerTestUtils.setupMockGenerator(state, {
@@ -376,8 +483,8 @@ describe("BitAccessHandlers", () => {
       expect(result).toContain("& ~(1U << FIELD_BIT)");
     });
 
-    it("uses 1ULL for 64-bit array element", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
+    it("shifts a 64-bit array element's bit in 64 bits", () => {
+      HandlerTestUtils.declareTypes(state, [
         ["arr", { baseType: "u64", arrayDimensions: [5] }],
       ]);
       HandlerTestUtils.setupMockGenerator(state, {
@@ -396,20 +503,31 @@ describe("BitAccessHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("1ULL << 40");
+      expect(result).toContain("~((uint64_t)1U << 40)");
     });
 
-    it("throws when variable is not an array", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["notArray", { baseType: "u32" }],
-      ]);
+    it("writes the element's bit when no C-Next declaration gives the array's dimensions", () => {
+      // #1668 review: a C header's array (`extern uint8_t bytes[4]`) has none.
+      // The handler asserted the root's C-Next dimensions and was an
+      // internal error on `bytes[1][3] <- true`.
+      HandlerTestUtils.setupMockGenerator(state, {
+        generateExpression: vi
+          .fn()
+          .mockReturnValueOnce("1")
+          .mockReturnValueOnce("3"),
+      });
       const ctx = createMockContext({
-        identifiers: ["notArray"],
+        identifiers: ["bytes"],
+        ...HandlerTestUtils.subscriptsOf([
+          { mockValue: "1" } as never,
+          { mockValue: "3" } as never,
+        ]),
       });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "agree on a variable's array-ness",
-      );
+      const result = getHandler()!(ctx);
+
+      expect(result).toContain("bytes[1] =");
+      expect(result).toContain("& ~(1U << 3)");
     });
   });
 
@@ -448,6 +566,7 @@ describe("BitAccessHandlers", () => {
             HandlerTestUtils.planner().generateExpression(null as never),
             HandlerTestUtils.planner().generateExpression(null as never),
           ],
+          foldWidth: () => undefined,
         },
       ];
 

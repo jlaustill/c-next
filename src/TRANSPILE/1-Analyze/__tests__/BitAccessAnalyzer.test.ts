@@ -1,28 +1,21 @@
-import { describe, expect, it, beforeEach } from "vitest";
-import TranspileState from "../../TranspileState";
+import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import BitAccessAnalyzer from "../BitAccessAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. ADR-007's bit access: E0856 (deeper than the base's shape allows) and
  * E0888 (a float bit range read at file scope).
  *
- * Both read the lexical frames only, so they are testable without a `Program`.
+ * Both read the lexical frames, run against the program 1.4 built for the
+ * source.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new BitAccessAnalyzer(testAnalysisContext(state)).analyze(tree);
+  const { tree, context } = testAnalysisContextFor(source);
+  return new BitAccessAnalyzer(context).analyze(tree);
 };
 
-let state = new TranspileState();
-
 describe("BitAccessAnalyzer (E0856)", () => {
-  beforeEach(() => {
-    state = new TranspileState();
-  });
-
   it("rejects a second subscript on a scalar, as a read AND as a write", () => {
     // A target is an `assignmentTarget`, not a postfix expression -- a
     // different node type. Reading only expressions caught neither fixture.
@@ -88,5 +81,64 @@ describe("BitAccessAnalyzer (E0888)", () => {
         ].join("\n"),
       ),
     ).toEqual([]);
+  });
+});
+
+describe("BitAccessAnalyzer (E0890)", () => {
+  const e0890 = (body: string[]) =>
+    errors(
+      [
+        "bitmap8 Mode {",
+        "    fast,",
+        "    slow,",
+        "    level[6]",
+        "}",
+        "register GPIO @ 0x40000000 {",
+        "    DR: u32 rw @ 0x00,",
+        "    DR_SET: u32 wo @ 0x04,",
+        "}",
+        "u8[4] arr <- [0*];",
+        "Mode[4] modes;",
+        "volatile u8 volatileIndex <- 0;",
+        "u32 word <- 0;",
+        "u8 idx() {",
+        "    return 1;",
+        "}",
+        "void f() {",
+        "    u8 i <- 2;",
+        ...body,
+        "}",
+      ].join("\n"),
+    ).filter((e) => e.code === "E0890");
+
+  it("rejects a side effect in a read-modify-write target", () => {
+    const found = e0890([
+      "    arr[idx()][3] <- true;",
+      "    word[idx()] <- true;",
+      "    arr[volatileIndex][2, 4] <- 5;",
+      "    modes[idx()].fast <- true;",
+      "    GPIO.DR[idx()] <- true;",
+    ]);
+    expect(found.map((e) => e.line)).toEqual([19, 20, 21, 22, 23]);
+    expect(found[0].message).toBe(
+      "'idx()' would be evaluated twice: 'arr[idx()][3]' is read and then written back",
+    );
+  });
+
+  it("accepts a write that evaluates its target once", () => {
+    expect(
+      e0890([
+        "    arr[idx()] <- 7;",
+        "    GPIO.DR_SET[idx()] <- true;",
+        "    arr[i][3] <- true;",
+        "    modes[i].slow <- true;",
+        "    arr[idx()] +<- 1;",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("reports every subscript with a side effect", () => {
+    const found = e0890(["    arr[idx()][volatileIndex] <- true;"]);
+    expect(found.map((e) => e.column)).toEqual([8, 15]);
   });
 });

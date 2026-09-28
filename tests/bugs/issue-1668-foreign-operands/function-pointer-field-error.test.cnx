@@ -1,0 +1,12 @@
+// test-error
+// test-adr: 024
+// #1668 review: calling a C struct's function-pointer field gives the
+// pointed-to function's result. `c_ops.get()` was untyped, so `i *
+// c_ops.get()` went to cnx_clamp_mul_u32.
+#include "fo.h"
+
+void f(u32 i) {
+    f32 r <- i * c_ops.get();
+    // NEGATIVE CONTROL: the same call in floating arithmetic
+    f32 ok <- c_ops.get() * 2.0;
+}

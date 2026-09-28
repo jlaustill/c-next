@@ -23,7 +23,7 @@
 // errors in an EARLIER analyzer, and runAnalyzers stops at the first one that
 // returns errors, so the value analyzer never runs on it.
 int main(void) {
-    Control__DR = 0x01;
+    Control__DR = 0x01U;
     uint32_t seen = Control__DR;
     return seen;
 }

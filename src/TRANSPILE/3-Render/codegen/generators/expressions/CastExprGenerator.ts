@@ -18,64 +18,49 @@
  * reverse it and rename every temp in the emitted C -- a diff no test
  * asserts directly. Rendering stays with the walker; this decides shape only.
  */
-import TYPE_LIMITS from "../../types/TYPE_LIMITS";
+import invariant from "../../../../../utils/invariant";
 import CppModeHelper from "../../helpers/CppModeHelper";
-import CastRequirement from "../../../../2-Plan/CastRequirement";
+import SaturatingCast from "../../helpers/SaturatingCast";
+import ReservedCnxName from "../../../../../utils/ReservedCnxName";
 import type IPlannedCast from "../../types/IPlannedCast";
 import type TranspileState from "../../../../TranspileState";
 
 /**
- * ADR-024 / Issue #632: a float-to-integer cast clamps rather than invoking
- * undefined behavior.
- *
- * MISRA C:2012 Rule 10.3: the limit macros have type `int`, so each is cast to
- * the target type before use (the naive form assigns an `int` expression to a
- * narrower essential type).
- */
-function renderClampedCast(
-  plan: IPlannedCast,
-  sourceType: string,
-  state: TranspileState,
-): string {
-  const maxValue = TYPE_LIMITS.TYPE_MAX[plan.targetTypeName];
-  const minValue = TYPE_LIMITS.TYPE_MIN[plan.targetTypeName];
-
-  if (!maxValue) {
-    // Unknown type, fall back to raw cast - Issue #644
-    return CppModeHelper.cast(plan.targetType, plan.operandCode, state);
-  }
-
-  // Mark that we need limits.h for the type limit macros
-  state.requireInclude("limits");
-
-  // Use appropriate float suffix and type for comparisons
-  const floatSuffix = sourceType === "f32" ? "f" : "";
-  const floatCastType = sourceType === "f32" ? "float" : "double";
-
-  // For unsigned types, minValue is "0", for signed it's a macro like INT8_MIN
-  const minComparison =
-    minValue === "0" ? `0.0${floatSuffix}` : `((${floatCastType})${minValue})`;
-  const maxComparison = `((${floatCastType})${maxValue})`;
-
-  const expr = plan.operandCode;
-  const finalCast = CppModeHelper.cast(plan.targetType, `(${expr})`, state);
-  const castMax = CppModeHelper.cast(plan.targetType, maxValue, state);
-  const castMin = CppModeHelper.cast(plan.targetType, minValue, state);
-  return `((${expr}) > ${maxComparison} ? ${castMax} : (${expr}) < ${minComparison} ? ${castMin} : ${finalCast})`;
-}
-
-/**
- * Render a cast expression.
+ * Render a cast expression, as the plan decided its form.
  *
  * Issue #267/#644: C++ mode emits `static_cast` for MISRA compliance, which
- * `CppModeHelper.cast` decides.
+ * `CppModeHelper.cast` decides. ADR-024 / Issue #632: a float-to-integer cast
+ * saturates; #1668: when its operand has a side effect it calls the
+ * single-evaluation helper, because the inline ternary reads the operand up
+ * to three times.
  */
 function generateCast(plan: IPlannedCast, state: TranspileState): string {
-  if (CastRequirement.requiresClamping(plan.operandType, plan.targetTypeName)) {
-    return renderClampedCast(plan, plan.operandType!, state);
-  }
+  const cast = (type: string, expr: string): string =>
+    CppModeHelper.cast(type, expr, state);
+  if (plan.clampForm === null) return cast(plan.targetType, plan.operandCode);
 
-  return CppModeHelper.cast(plan.targetType, plan.operandCode, state);
+  // The plan saturates only a float source into a C-Next integer target
+  // (`CastRequirement.requiresClamping`), and every one of those has limit
+  // macros. Render re-checked the limits and fell back to a raw cast, a path
+  // the plan's decision left unreachable (#1668 review).
+  const sourceType = plan.operandType;
+  invariant(sourceType !== null, "the plan saturates a typed float source");
+
+  // The limit macros come from <limits.h>
+  state.requireInclude("limits");
+  if (plan.clampForm === "helper") {
+    state.markCastHelperUsed(sourceType, plan.targetTypeName);
+    return `${ReservedCnxName.castHelper(sourceType, plan.targetTypeName)}(${plan.operandCode})`;
+  }
+  const expression = SaturatingCast.expression(
+    plan.operandCode,
+    sourceType,
+    plan.targetTypeName,
+    plan.targetType,
+    cast,
+  );
+  invariant(expression !== null, "every C-Next integer target has limits");
+  return expression;
 }
 
 export default generateCast;

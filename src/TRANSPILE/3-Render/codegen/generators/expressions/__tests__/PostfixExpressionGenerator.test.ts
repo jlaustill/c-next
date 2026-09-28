@@ -9,6 +9,10 @@
  * - Property access (.length, .capacity, .size)
  */
 
+import type IChainBase from "../../../../../2-Plan/types/IChainBase";
+import type IOperandType from "../../../../../../transpiler/types/IOperandType";
+import type IChainStep from "../../../../../../transpiler/types/IChainStep";
+import type TSubscriptKind from "../../../../../../transpiler/types/TSubscriptKind";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import generatePostfixExpression from "../PostfixExpressionGenerator";
 import type IPlannedPostfix from "../../../types/IPlannedPostfix";
@@ -23,6 +27,7 @@ import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
 import TranspileState from "../../../../../TranspileState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import PROPERTY_NAMES from "../../../../../../utils/constants/PROPERTY_NAMES";
 
 // ========================================================================
 // Test Helpers - Mock Symbols
@@ -48,21 +53,20 @@ interface IPostfixPlannerStub {
 
 let sharedState = new TranspileState();
 
+/** Each case's declared variables -- see `createMockInput` */
+let declaredTypes: ReadonlyMap<string, TTypeInfo> = new Map();
+
 function createMockInput(overrides?: {
   symbols?: ICodeGenSymbols;
   typeRegistry?: Map<string, TTypeInfo>;
 }): IGeneratorInput {
-  // Also populate TranspileState with the type registry entries
-  // This is needed because PostfixExpressionGenerator now uses TranspileState directly
-  const typeRegistry = overrides?.typeRegistry ?? new Map<string, TTypeInfo>();
-  for (const [name, info] of typeRegistry) {
-    sharedState.setVariableTypeInfo(name, info);
-  }
+  // #1668 (C7): the generator reads each chain's bound base off its plan,
+  // which `runPostfix` derives from this map
+  declaredTypes = overrides?.typeRegistry ?? new Map<string, TTypeInfo>();
 
   return {
     symbolTable: null,
     symbols: overrides?.symbols ?? createMockSymbols(),
-    typeRegistry,
     functionSignatures: new Map(),
     knownFunctions: new Set(),
     knownStructs: new Set(),
@@ -70,13 +74,6 @@ function createMockInput(overrides?: {
     constValues: new Map(),
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
-    targetCapabilities: {
-      wordSize: 32,
-      hasLdrexStrex: false,
-      hasBasepri: false,
-      significantExternalIdentifierChars: 31,
-      significantInternalIdentifierChars: 63,
-    },
     debugMode: false,
   } as IGeneratorInput;
 }
@@ -124,15 +121,6 @@ function createMockOrchestrator(overrides?: {
   isCppScopeSymbol?: (name: string) => boolean;
   isCppMode?: () => boolean;
   getScopeSeparator?: (isCpp: boolean) => string;
-  getStructFieldInfo?: (
-    structType: string,
-    fieldName: string,
-  ) => { type: string; dimensions?: (number | string)[] } | null;
-  getMemberTypeInfo?: (
-    structType: string,
-    memberName: string,
-  ) => TTypeInfo | null;
-  generateBitMask?: (width: string, is64?: boolean) => string;
   tryEvaluateConstant?: (ctx: unknown) => number | undefined;
   hasFloatBitShadow?: (name: string) => boolean;
   registerFloatBitShadow?: (name: string) => void;
@@ -159,7 +147,6 @@ function createMockOrchestrator(overrides?: {
     isFloatType: vi.fn(),
     isIntegerType: vi.fn(),
     isCNextFunction: vi.fn(),
-    isStructType: vi.fn(),
     getTypeName: vi.fn(),
     tryEvaluateConstant: overrides?.tryEvaluateConstant ?? vi.fn(),
     getZeroInitializer: vi.fn(),
@@ -175,6 +162,7 @@ function createMockOrchestrator(overrides?: {
           simpleIdentifier: expression.getText(),
           expressionType: () => null,
           isArray: () => false,
+          isHandleArrayElement: () => false,
           render: () => expression.getText(),
           renderByReference: () => `&${expression.getText()}`,
         })) ?? null,
@@ -222,10 +210,6 @@ function createMockOrchestrator(overrides?: {
     isKnownScope: overrides?.isKnownScope ?? vi.fn(() => false),
     isCppScopeSymbol: overrides?.isCppScopeSymbol ?? vi.fn(() => false),
     getScopeSeparator: overrides?.getScopeSeparator ?? vi.fn(() => "__"),
-    getStructFieldInfo: overrides?.getStructFieldInfo ?? vi.fn(() => null),
-    getMemberTypeInfo: overrides?.getMemberTypeInfo ?? vi.fn(() => null),
-    generateBitMask:
-      overrides?.generateBitMask ?? vi.fn((w) => `((1 << ${w}) - 1)`),
     addPendingTempDeclaration: overrides?.addPendingTempDeclaration ?? vi.fn(),
     registerFloatBitShadow: overrides?.registerFloatBitShadow ?? vi.fn(),
     markFloatShadowCurrent: overrides?.markFloatShadowCurrent ?? vi.fn(),
@@ -249,15 +233,57 @@ function createMockExpression(text: string): { getText: () => string } {
   return { getText: () => text };
 }
 
+/**
+ * #1668 (C12): an operand as the one operand typer reports it, for a case
+ * that hands render the typer's answer about a member
+ */
+function typed(
+  typeName: string,
+  extra: Partial<IOperandType> = {},
+): IOperandType {
+  return {
+    typeName,
+    cType: null,
+    dimensions: [],
+    category: "none",
+    bitWidth: null,
+    stringCapacity: null,
+    enumTypeName: null,
+    bitmapTypeName: null,
+    overflow: null,
+    hasSideEffect: false,
+    form: { kind: "declared" },
+    binding: null,
+    ...extra,
+  };
+}
+
+/** The typer's step for a member read from `before`, giving `after` */
+function memberStep(
+  before: IOperandType | null,
+  after: IOperandType | null,
+  property: string | null = null,
+) {
+  return { before, subscript: null, after, property };
+}
+
 function createMockPostfixOp(options?: {
   identifier?: string;
+  /** #1668 (C12): the typer's step for a member, as render now reads it */
+  step?: IChainStep;
+  /** #1668: the typer's kind for a subscript; the unknown-type default */
+  typedAs?: TSubscriptKind;
   expressions?: { getText: () => string }[];
   argumentList?: { expression: () => { getText: () => string }[] } | null;
   /** The type of the value a call op calls -- `peek` for `h.onPeek(...)`. */
   calleeType?: string;
 }): TPlannedPostfixOp {
   if (options?.identifier) {
-    return { kind: "member", name: options.identifier };
+    return {
+      kind: "member",
+      name: options.identifier,
+      step: options.step ?? null,
+    };
   }
 
   const expressions = options?.expressions ?? [];
@@ -269,7 +295,11 @@ function createMockPostfixOp(options?: {
       // Rebound by `runPostfix` to the orchestrator's `tryEvaluateConstant`,
       // which is where these cases configure the Issue #1094 fold.
       foldWidth: () => undefined,
+      typedAs:
+        options?.typedAs ??
+        (expressions.length === 2 ? "bit_range" : "array_element"),
       widthText: expressions[expressions.length - 1]?.getText(),
+      step: null,
     } as TPlannedPostfixOp & { widthText?: string };
   }
 
@@ -283,8 +313,10 @@ function createMockPostfixOp(options?: {
     planArguments: () =>
       options?.argumentList?.expression().map((expression) => ({
         simpleIdentifier: expression.getText(),
+        declared: undefined,
         expressionType: () => null,
         isArray: () => false,
+        isHandleArrayElement: () => false,
         render: () => expression.getText(),
         renderByReference: () => `&${expression.getText()}`,
       })) ?? null,
@@ -292,8 +324,10 @@ function createMockPostfixOp(options?: {
 }
 
 /** A plan, plus the primary text `runPostfix` renders through the orchestrator. */
-interface IMockPostfixPlan extends IPlannedPostfix {
+interface IMockPostfixPlan extends Omit<IPlannedPostfix, "base"> {
   readonly primaryText: string;
+  /** #1668: the bound base, when a case's chain is not a named primary's */
+  readonly base?: IChainBase;
 }
 
 function createMockPostfixExpressionContext(
@@ -333,15 +367,108 @@ function createMockPostfixExpressionContext(
  * primary renders as via `createMockOrchestrator({ generatePrimaryExpr })` --
  * so the binding happens here rather than at eighty-two call sites.
  */
+
+/**
+ * #1668 review: a declared type as the typer gives it -- what a property of
+ * the root measures. A string's C buffer is its own, not a dimension.
+ */
+function operandOfDeclared(info: TTypeInfo): IOperandType {
+  const dimensions = [...(info.arrayDimensions ?? [])];
+  if (info.isString) {
+    return typed(`string<${info.stringCapacity ?? 0}>`, {
+      dimensions: dimensions.slice(0, -1),
+      stringCapacity: info.stringCapacity ?? null,
+    });
+  }
+  // The category the typer gives a C-Next primitive (#1760 review: a bit
+  // range reads its width from it)
+  let category: IOperandType["category"] = "none";
+  if (/^u\d+$/.test(info.baseType)) category = "unsigned";
+  else if (/^i\d+$/.test(info.baseType)) category = "signed";
+  else if (/^f\d+$/.test(info.baseType)) category = "floating";
+  return typed(info.baseType, {
+    dimensions,
+    bitWidth: info.bitWidth || null,
+    category,
+  });
+}
+
+/**
+ * #1668 review: each property op's step, as the typer would give it -- the
+ * value the chain has reached: the root, a member step's result, an array's
+ * element. Cases that describe a member give its step; this carries it on.
+ */
+function withPropertySteps(
+  ops: readonly TPlannedPostfixOp[],
+  root: TTypeInfo | undefined,
+  rootedAt: string | undefined,
+): TPlannedPostfixOp[] {
+  let current: IOperandType | null = root ? operandOfDeclared(root) : null;
+  // A `this.`/`global.` root consumes its first `.name`, which the typer
+  // gives no step: a member lookup, never a property (#212)
+  const consumed = rootedAt === "this" || rootedAt === "global" ? 0 : -1;
+  return ops.map((op, index) => {
+    if (op.kind === "member") {
+      if (op.step !== null) {
+        current = op.step.after;
+        return op;
+      }
+      if (index !== consumed && PROPERTY_NAMES.has(op.name)) {
+        // The typer's answer for these cases: the name reads the property.
+        // A root the case does not type is measured as unknown, which is
+        // what the render invariants below are asked about
+        return { ...op, step: memberStep(current, null, op.name) };
+      }
+      current = null;
+      return op;
+    }
+    if (op.kind === "subscript") {
+      // The typer steps every subscript: what it applies to is the value
+      // the chain has reached (#1760 review: a bit range reads its width here)
+      const before = current;
+      current =
+        op.typedAs === "array_element" &&
+        current !== null &&
+        current.dimensions.length > 0
+          ? { ...current, dimensions: current.dimensions.slice(1) }
+          : null;
+      return op.step !== null
+        ? op
+        : {
+            ...op,
+            step: {
+              before,
+              subscript: op.typedAs,
+              after: current,
+              property: null,
+            },
+          };
+    }
+    current = null;
+    return op;
+  });
+}
+
 function runPostfix(
   plan: IMockPostfixPlan,
   input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator & IPostfixPlannerStub,
 ) {
+  // The chain's bound base, as the walker plans it: a named primary binds
+  // itself, both as the root and as the variable its leading part reaches
+  const declared = plan.rootIdentifier
+    ? declaredTypes.get(plan.rootIdentifier)
+    : undefined;
   return generatePostfixExpression(
     {
       ...plan,
+      base: plan.base ?? {
+        root: null,
+        rootTypeInfo: declared,
+        typeInfo: declared,
+        last: undefined,
+      },
       renderPrimary: () =>
         orchestrator.generatePrimaryExpr({
           getText: () => plan.primaryText,
@@ -349,17 +476,19 @@ function runPostfix(
       // Issue #1094's fold is configured per case as the orchestrator's
       // `tryEvaluateConstant`, so it is bound here for the same reason the
       // primary is.
-      ops: plan.ops.map((op) => {
-        if (op.kind !== "subscript") return op;
-        const widthText = (op as { widthText?: string }).widthText ?? "";
-        return {
-          ...op,
-          foldWidth: () =>
-            orchestrator.tryEvaluateConstant({
-              getText: () => widthText,
-            } as unknown as Parser.ExpressionContext),
-        };
-      }),
+      ops: withPropertySteps(plan.ops, declared, plan.rootIdentifier).map(
+        (op) => {
+          if (op.kind !== "subscript") return op;
+          const widthText = (op as { widthText?: string }).widthText ?? "";
+          return {
+            ...op,
+            foldWidth: () =>
+              orchestrator.tryEvaluateConstant({
+                getText: () => widthText,
+              } as unknown as Parser.ExpressionContext),
+          };
+        },
+      ),
     },
     input,
     state,
@@ -556,12 +685,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__GLOBAL_PREFIX__",
         isKnownStruct: (name) => name === "Config",
-        getMemberTypeInfo: () => ({
-          baseType: "u32",
-          isArray: false,
-          bitWidth: 32,
-          isConst: false,
-        }),
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
@@ -658,12 +781,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__THIS_SCOPE__",
         isKnownStruct: (name) => name === "MotorConfig",
-        getMemberTypeInfo: () => ({
-          baseType: "u32",
-          isArray: false,
-          bitWidth: 32,
-          isConst: false,
-        }),
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
@@ -824,7 +941,13 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("alice", [
-        createMockPostfixOp({ identifier: "name" }),
+        createMockPostfixOp({
+          identifier: "name",
+          step: memberStep(
+            typed("Person"),
+            typed("string<64>", { stringCapacity: 64 }),
+          ),
+        }),
         createMockPostfixOp({ identifier: "capacity" }),
       ]);
       const input = createMockInput({ typeRegistry });
@@ -832,23 +955,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "alice",
         isKnownStruct: (name) => name === "Person",
-        getMemberTypeInfo: (structType, memberName) => {
-          if (structType === "Person" && memberName === "name") {
-            return {
-              baseType: "char",
-              isArray: false,
-              bitWidth: 8,
-              isConst: false,
-            };
-          }
-          return null;
-        },
-        getStructFieldInfo: (structType, fieldName) => {
-          if (structType === "Person" && fieldName === "name") {
-            return { type: "string<64>", dimensions: [65] };
-          }
-          return null;
-        },
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
@@ -869,7 +975,13 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("alice", [
-        createMockPostfixOp({ identifier: "name" }),
+        createMockPostfixOp({
+          identifier: "name",
+          step: memberStep(
+            typed("Person"),
+            typed("string<64>", { stringCapacity: 64 }),
+          ),
+        }),
         createMockPostfixOp({ identifier: "size" }),
       ]);
       const input = createMockInput({ typeRegistry });
@@ -877,23 +989,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "alice",
         isKnownStruct: (name) => name === "Person",
-        getMemberTypeInfo: (structType, memberName) => {
-          if (structType === "Person" && memberName === "name") {
-            return {
-              baseType: "char",
-              isArray: false,
-              bitWidth: 8,
-              isConst: false,
-            };
-          }
-          return null;
-        },
-        getStructFieldInfo: (structType, fieldName) => {
-          if (structType === "Person" && fieldName === "name") {
-            return { type: "string<64>", dimensions: [65] };
-          }
-          return null;
-        },
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
@@ -1107,12 +1202,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "point",
         isCppMode: () => false,
-        getMemberTypeInfo: () => ({
-          baseType: "i32",
-          isArray: false,
-          bitWidth: 32,
-          isConst: false,
-        }),
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
@@ -1142,12 +1231,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "point",
         isCppMode: () => true,
-        getMemberTypeInfo: () => ({
-          baseType: "i32",
-          isArray: false,
-          bitWidth: 32,
-          isConst: false,
-        }),
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
@@ -1196,7 +1279,10 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("val", [
-        createMockPostfixOp({ expressions: [createMockExpression("3")] }),
+        createMockPostfixOp({
+          expressions: [createMockExpression("3")],
+          typedAs: "bit_single",
+        }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -1281,11 +1367,10 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "val",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask: () => "0xFF",
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toBe("((val >> 4) & 0xFF)");
+      expect(result.code).toBe("((val >> 4) & 0xFFU)");
     });
 
     it("optimizes bit range at position 0", () => {
@@ -1310,11 +1395,10 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "val",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask: () => "0xFF",
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toBe("((val) & 0xFF)");
+      expect(result.code).toBe("((val) & 0xFFU)");
     });
 
     // Issue #1094: a const/macro width must be resolved to its numeric value (with
@@ -1338,21 +1422,18 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
-      const generateBitMask = vi.fn(() => "0xFFFFFFFFU");
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "val",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask,
         tryEvaluateConstant: () => 32,
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
-      // Width resolved to "32U" (not the identifier "WIDTH"); u32 operand → not 64-bit.
-      expect(generateBitMask).toHaveBeenCalledWith("32U", false);
+      // Width resolved to 32 (not the identifier "WIDTH"), so the mask is a literal
       expect(result.code).toBe("((val) & 0xFFFFFFFFU)");
     });
 
-    it("passes the raw width when it is not a const (#1094)", () => {
+    it("computes a run-time width's mask in the operand's width (#1094, #1668)", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
           "val",
@@ -1366,20 +1447,18 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
-      const generateBitMask = vi.fn(() => "((1U << n) - 1)");
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "val",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask,
         tryEvaluateConstant: () => undefined,
       });
 
-      runPostfix(ctx, input, state, orchestrator);
-      // Non-const width: the generated expression string flows through unchanged.
-      expect(generateBitMask).toHaveBeenCalledWith("n", false);
+      const result = runPostfix(ctx, input, state, orchestrator);
+      // `1U << n` is 16 bits wide where int is, so a u32's mask is computed in 32
+      expect(result.code).toBe("((val) & (((uint32_t)1U << n) - 1U))");
     });
 
-    it("marks a u64 operand as 64-bit for the mask base (#1094)", () => {
+    it("writes a u64 operand's const-width mask as a 64-bit literal (#1094)", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
           "val",
@@ -1396,17 +1475,15 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
-      const generateBitMask = vi.fn(() => "((1ULL << 40U) - 1)");
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "val",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask,
         tryEvaluateConstant: () => 40,
       });
 
-      runPostfix(ctx, input, state, orchestrator);
-      // u64 operand → is64Bit true, so the mask uses a 64-bit base (1ULL).
-      expect(generateBitMask).toHaveBeenCalledWith("40U", true);
+      const result = runPostfix(ctx, input, state, orchestrator);
+      // Never a 32-bit shift: the 40 ones are written out
+      expect(result.code).toBe("((val) & 0xFFFFFFFFFFU)");
     });
   });
 
@@ -1433,7 +1510,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "f",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask: () => "0xFF",
         hasFloatBitShadow: () => false,
         isFloatShadowCurrent: () => false,
       });
@@ -1504,7 +1580,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "f",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask: () => "0xFF",
         hasFloatBitShadow: () => true,
         isFloatShadowCurrent: () => true,
       });
@@ -1512,11 +1587,10 @@ describe("PostfixExpressionGenerator", () => {
       const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).not.toContain("memcpy");
       // Uses union member .u for bit access
-      expect(result.code).toBe("(__bits_f.u & 0xFF)");
+      expect(result.code).toBe("(__bits_f.u & 0xFFU)");
     });
 
-    // Issue #1094: the float branch must resolve a const width too, and tell the
-    // mask generator the f64 union is 64-bit.
+    // Issue #1094: the float branch must resolve a const width too.
     it("resolves a const width for f64 bit indexing (#1094)", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
@@ -1534,20 +1608,16 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState({ inFunctionBody: true });
-      const generateBitMask = vi.fn(() => "0xFFFFFFFFFFFFFFFFULL");
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "d",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask,
         tryEvaluateConstant: () => 64,
         hasFloatBitShadow: () => true,
         isFloatShadowCurrent: () => true,
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
-      // Const width "64U" passed; f64 union → 64-bit mask base.
-      expect(generateBitMask).toHaveBeenCalledWith("64U", true);
-      expect(result.code).toBe("(__bits_d.u & 0xFFFFFFFFFFFFFFFFULL)");
+      expect(result.code).toBe("(__bits_d.u & 0xFFFFFFFFFFFFFFFFU)");
     });
   });
 
@@ -1628,7 +1698,7 @@ describe("PostfixExpressionGenerator", () => {
           createMockOrchestrator({ generatePrimaryExpr: () => "h" }),
           {
             isCNextFunction: vi.fn((name: string) => name === "peek"),
-            isStructType: vi.fn(() => true),
+            isKnownStruct: vi.fn(() => true),
           },
         );
 
@@ -1685,7 +1755,10 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("val", [
-        createMockPostfixOp({ expressions: [createMockExpression("3")] }),
+        createMockPostfixOp({
+          expressions: [createMockExpression("3")],
+          typedAs: "bit_single",
+        }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -1790,12 +1863,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__THIS_SCOPE__",
         isKnownStruct: (name) => name === "LengthConfig",
-        getMemberTypeInfo: () => ({
-          baseType: "u32",
-          isArray: false,
-          bitWidth: 32,
-          isConst: false,
-        }),
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
@@ -1863,25 +1930,26 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("device", [
-        createMockPostfixOp({ identifier: "flags" }),
-        createMockPostfixOp({ identifier: "Active" }),
+        createMockPostfixOp({
+          identifier: "flags",
+          step: memberStep(
+            typed("Device"),
+            typed("StatusBits", { bitmapTypeName: "StatusBits" }),
+          ),
+        }),
+        createMockPostfixOp({
+          identifier: "Active",
+          step: memberStep(
+            typed("StatusBits", { bitmapTypeName: "StatusBits" }),
+            null,
+          ),
+        }),
       ]);
       const input = createMockInput({ symbols, typeRegistry });
       const state = createMockState();
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "device",
         isKnownStruct: (name) => name === "Device",
-        getMemberTypeInfo: (struct, member) => {
-          if (struct === "Device" && member === "flags") {
-            return {
-              baseType: "StatusBits",
-              isArray: false,
-              bitWidth: 32,
-              isConst: false,
-            };
-          }
-          return null;
-        },
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
@@ -1904,25 +1972,26 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("device", [
-        createMockPostfixOp({ identifier: "flags" }),
-        createMockPostfixOp({ identifier: "Unknown" }),
+        createMockPostfixOp({
+          identifier: "flags",
+          step: memberStep(
+            typed("Device"),
+            typed("StatusBits", { bitmapTypeName: "StatusBits" }),
+          ),
+        }),
+        createMockPostfixOp({
+          identifier: "Unknown",
+          step: memberStep(
+            typed("StatusBits", { bitmapTypeName: "StatusBits" }),
+            null,
+          ),
+        }),
       ]);
       const input = createMockInput({ symbols, typeRegistry });
       const state = createMockState();
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "device",
         isKnownStruct: (name) => name === "Device",
-        getMemberTypeInfo: (struct, member) => {
-          if (struct === "Device" && member === "flags") {
-            return {
-              baseType: "StatusBits",
-              isArray: false,
-              bitWidth: 32,
-              isConst: false,
-            };
-          }
-          return null;
-        },
       });
 
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
@@ -2297,31 +2366,40 @@ describe("PostfixExpressionGenerator", () => {
   });
 
   describe("explicit length edge cases (ADR-058)", () => {
-    it("returns dynamic dimension comment for array with C macro size", () => {
-      const typeRegistry = new Map<string, TTypeInfo>([
-        [
-          "arr",
-          {
-            baseType: "u32",
-            bitWidth: 32,
-            isArray: true,
-            arrayDimensions: ["BUFFER_SIZE" as unknown as number], // C macro
-            isConst: false,
-          },
-        ],
-      ]);
-      const ctx = createMockPostfixExpressionContext("arr", [
-        createMockPostfixOp({ identifier: "bit_length" }),
-      ]);
-      const input = createMockInput({ typeRegistry });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "arr",
-      });
+    // #1760 review: this returned a literal 0 behind a comment naming the
+    // dimension; the product is now C's to fold, in uint32_t
+    it.each([
+      ["bit_length", ["BUFFER_SIZE"], "((uint32_t)(BUFFER_SIZE) * 32U)"],
+      ["byte_length", ["BUFFER_SIZE"], "((uint32_t)(BUFFER_SIZE) * 4U)"],
+      ["bit_length", [2, "N"], "((uint32_t)2U * (N) * 32U)"],
+    ])(
+      "returns the C product for .%s of an array sized %j",
+      (property, dimensions, expected) => {
+        const typeRegistry = new Map<string, TTypeInfo>([
+          [
+            "arr",
+            {
+              baseType: "u32",
+              bitWidth: 32,
+              isArray: true,
+              arrayDimensions: dimensions as unknown as number[], // C macros
+              isConst: false,
+            },
+          ],
+        ]);
+        const ctx = createMockPostfixExpressionContext("arr", [
+          createMockPostfixOp({ identifier: property as string }),
+        ]);
+        const input = createMockInput({ typeRegistry });
+        const state = createMockState();
+        const orchestrator = createMockOrchestrator({
+          generatePrimaryExpr: () => "arr",
+        });
 
-      const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toContain("dynamic dimension BUFFER_SIZE");
-    });
+        const result = runPostfix(ctx, input, state, orchestrator);
+        expect(result.code).toBe(expected);
+      },
+    );
 
     it("returns C macro name for element_count with dynamic dimension", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
@@ -2393,8 +2471,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "val",
       });
 
+      // #1668 review: a subject the typer cannot type is E0867's in 2.1
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        "type not found in registry",
+        "E0867 rejects this in pass 2.1",
       );
     });
 
@@ -2443,7 +2522,13 @@ describe("PostfixExpressionGenerator", () => {
         knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
-        createMockPostfixOp({ identifier: "name" }),
+        createMockPostfixOp({
+          identifier: "name",
+          step: memberStep(
+            typed("MyStruct"),
+            typed("string<32>", { stringCapacity: 32 }),
+          ),
+        }),
         createMockPostfixOp({ identifier: "bit_length" }),
       ]);
       const input = createMockInput({ symbols, typeRegistry });
@@ -2451,9 +2536,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "obj",
         isKnownStruct: (name) => name === "MyStruct",
-        getStructFieldInfo: () => ({
-          type: "string<32>",
-        }),
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
@@ -2477,7 +2559,10 @@ describe("PostfixExpressionGenerator", () => {
         knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
-        createMockPostfixOp({ identifier: "value" }),
+        createMockPostfixOp({
+          identifier: "value",
+          step: memberStep(typed("MyStruct"), typed("u16")),
+        }),
         createMockPostfixOp({ identifier: "byte_length" }),
       ]);
       const input = createMockInput({ symbols, typeRegistry });
@@ -2485,9 +2570,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "obj",
         isKnownStruct: (name) => name === "MyStruct",
-        getStructFieldInfo: () => ({
-          type: "u16",
-        }),
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
@@ -2511,7 +2593,13 @@ describe("PostfixExpressionGenerator", () => {
         knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
-        createMockPostfixOp({ identifier: "data" }),
+        createMockPostfixOp({
+          identifier: "data",
+          step: memberStep(
+            typed("MyStruct"),
+            typed("u8", { dimensions: [64] }),
+          ),
+        }),
         createMockPostfixOp({ identifier: "element_count" }),
       ]);
       const input = createMockInput({ symbols, typeRegistry });
@@ -2519,10 +2607,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "obj",
         isKnownStruct: (name) => name === "MyStruct",
-        getStructFieldInfo: () => ({
-          type: "u8",
-          dimensions: [64],
-        }),
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
@@ -2554,9 +2638,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "obj",
         isKnownStruct: (name) => name === "MyStruct",
-        getStructFieldInfo: () => ({
-          type: "u32",
-        }),
       });
 
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
@@ -2581,7 +2662,13 @@ describe("PostfixExpressionGenerator", () => {
         knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
-        createMockPostfixOp({ identifier: "name" }),
+        createMockPostfixOp({
+          identifier: "name",
+          step: memberStep(
+            typed("MyStruct"),
+            typed("string<32>", { stringCapacity: 32 }),
+          ),
+        }),
         createMockPostfixOp({ identifier: "char_count" }),
       ]);
       const input = createMockInput({ symbols, typeRegistry });
@@ -2589,9 +2676,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "obj",
         isKnownStruct: (name) => name === "MyStruct",
-        getStructFieldInfo: () => ({
-          type: "string<32>",
-        }),
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
@@ -2623,9 +2707,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "obj",
         isKnownStruct: (name) => name === "MyStruct",
-        getStructFieldInfo: () => ({
-          type: "u32",
-        }),
       });
 
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
@@ -2643,8 +2724,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "val",
       });
 
+      // #1668 review: a subject the typer cannot type is E0867's in 2.1
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        "type not found in registry",
+        "E0867 rejects this in pass 2.1",
       );
     });
 
@@ -2671,35 +2753,40 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        "unknown dimensions",
+        ".element_count is only available on arrays",
       );
     });
 
-    it("throws error for array with unknown dimensions for bit_length", () => {
+    // #1668 review: this case used to declare an array with no dimensions,
+    // which the typer cannot represent -- an unresolved dimension keeps its
+    // text (the dynamic-dimension cases above). What it measures instead:
+    it("measures a string array's whole storage (ADR-058)", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
-          "arr",
+          "names",
           {
-            baseType: "u32",
-            bitWidth: 32,
+            baseType: "char",
+            bitWidth: 8,
             isArray: true,
-            arrayDimensions: [], // Empty dimensions
+            arrayDimensions: [3, 9],
             isConst: false,
+            isString: true,
+            stringCapacity: 8,
           },
         ],
       ]);
-      const ctx = createMockPostfixExpressionContext("arr", [
+      const ctx = createMockPostfixExpressionContext("names", [
         createMockPostfixOp({ identifier: "bit_length" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
       const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "arr",
+        generatePrimaryExpr: () => "names",
       });
 
-      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        "unknown dimensions",
-      );
+      // Three elements of (8 + 1) x 8 bits: one element's was the old answer
+      const result = runPostfix(ctx, input, state, orchestrator);
+      expect(result.code).toBe("216");
     });
 
     it("handles enum array bit_length", () => {
@@ -2755,7 +2842,7 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        "unsupported element type",
+        "unsupported type 'void'",
       );
     });
   });

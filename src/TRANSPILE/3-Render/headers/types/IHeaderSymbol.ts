@@ -35,16 +35,16 @@ interface IHeaderSymbol {
 
   /** Whether this is an array */
   readonly isArray?: boolean;
+  /**
+   * #958/#895 (#1668), ADR-030: a variable C declares through a pointer -- the
+   * declaration's own `DeclaredPointer` answer, so the `.h` and the `.c`
+   * cannot declare one variable two ways. A handle (#958, ADR-030) is one,
+   * and so is each element of an array of handles (#996).
+   */
+  readonly isPointer?: boolean;
 
   /** Array dimensions (e.g., ["10"] or ["10", "20"]) */
   readonly arrayDimensions?: readonly string[];
-
-  /**
-   * ADR-030: a variable of an opaque type, held through a pointer -- `T*`, and
-   * for an array each element (#996). Set from `isHeldThroughPointer`, the
-   * decision its definition in the `.c` was made from.
-   */
-  readonly isOpaqueHandle?: boolean;
 
   /** Function parameters for signature generation */
   readonly parameters?: readonly IParameterSymbol[];

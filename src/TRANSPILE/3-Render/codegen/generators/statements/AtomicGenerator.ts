@@ -11,9 +11,9 @@
 import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
-import ITargetCapabilities from "../../../../../transpiler/types/ITargetCapabilities";
-import TYPE_WIDTH from "../../../../../transpiler/constants/TYPE_WIDTH";
+import type ITargetDescription from "../../../../../transpiler/types/ITargetDescription";
 import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY";
+import InterruptMask from "../../helpers/InterruptMask";
 
 /**
  * Maps C-Next types to C types (for atomic operations)
@@ -56,30 +56,6 @@ const STREX_MAP: Record<string, string> = {
 };
 
 /**
- * Map compound operators to clamp helper operation names
- */
-const CLAMP_OP_MAP: Record<string, string> = {
-  "+=": "add",
-  "-=": "sub",
-  "*=": "mul",
-};
-
-/**
- * Check if clamp behavior applies and return helper operation name.
- * Returns null if clamp doesn't apply (wrap behavior, float, or unsupported op).
- */
-function getClampHelperOp(cOp: string, typeInfo: TTypeInfo): string | null {
-  if (
-    typeInfo.overflowBehavior === "clamp" &&
-    TYPE_WIDTH[typeInfo.baseType] &&
-    !typeInfo.baseType.startsWith("f") // Floats use native C arithmetic
-  ) {
-    return CLAMP_OP_MAP[cOp] || null;
-  }
-  return null;
-}
-
-/**
  * Generate the inner operation for atomic RMW.
  * Handles clamp/wrap behavior for arithmetic operations.
  *
@@ -89,12 +65,12 @@ function generateInnerAtomicOp(
   cOp: string,
   value: string,
   typeInfo: TTypeInfo,
+  helperOp: string | null,
 ): IGeneratorOutput {
   const effects: TGeneratorEffect[] = [];
   const simpleOp = COMPOUND_TO_BINARY[cOp] || "+";
 
-  // Handle clamp behavior for arithmetic operations (integers only)
-  const helperOp = getClampHelperOp(cOp, typeInfo);
+  // Saturate when the classifier chose a clamp helper
   if (helperOp) {
     effects.push({
       type: "helper",
@@ -142,41 +118,35 @@ function generateLdrexStrexLoop(
   const code = `do {
     ${cType} __old = ${ldrex}(&${target});
     ${cType} __new = ${innerOp};
-    if (${strex}(__new, &${target}) == 0) break;
+    if (${strex}(__new, &${target}) == 0) {
+        break;
+    }
 } while (1);`;
 
   return { code, effects };
 }
 
 /**
- * Generate PRIMASK-based atomic wrapper.
- * Disables all interrupts during the RMW operation.
+ * Generate an interrupt-masked atomic read-modify-write: the ADR-050 masked
+ * region a `critical` block takes, through the same `__cnx_` IRQ wrappers
+ * (#1146: this emitted raw CMSIS with no platform guard, so AVR got CMSIS
+ * calls where `critical` got SREG).
  *
- * @returns Object with code and effects (includes cmsis header, may include helper)
+ * @returns Object with code and effects (the IRQ wrappers, may include helper)
  */
 function generatePrimaskWrapper(
   target: string,
   cOp: string,
   value: string,
   typeInfo: TTypeInfo,
+  helperOp: string | null,
 ): IGeneratorOutput {
   const effects: TGeneratorEffect[] = [];
 
-  // Mark that we need CMSIS headers, and record what this branch costs.
-  // Issue #1143: this branch emits raw CMSIS names with no #if guard and no
-  // __cnx_ indirection, unlike the ADR-050 critical-section wrappers -- see
-  // #1146. The requirement is recorded as unconditional because the emitted
-  // code is unconditional.
-  effects.push(
-    { type: "include", header: "cmsis" },
-    { type: "requires", key: "atomic-primask-cmsis", line: null },
-  );
-
-  // Generate the actual assignment operation inside the critical section
+  // Generate the actual assignment operation inside the masked region
   let assignment: string;
 
-  // Handle clamp behavior (integers only)
-  const helperOp = getClampHelperOp(cOp, typeInfo);
+  // Saturate when the classifier chose a clamp helper
   if (helperOp) {
     effects.push({
       type: "helper",
@@ -188,15 +158,8 @@ function generatePrimaskWrapper(
     assignment = `${target} ${cOp} ${value};`;
   }
 
-  // Generate PRIMASK save/restore wrapper
-  const code = `{
-    uint32_t __primask = __get_PRIMASK();
-    __disable_irq();
-    ${assignment}
-    __set_PRIMASK(__primask);
-}`;
-
-  return { code, effects };
+  const masked = InterruptMask.wrap(assignment, undefined);
+  return { code: masked.code, effects: [...effects, ...masked.effects] };
 }
 
 /**
@@ -207,7 +170,9 @@ function generatePrimaskWrapper(
  * @param cOp - The C compound assignment operator (+=, -=, etc.)
  * @param value - The value expression
  * @param typeInfo - Type information for the target
- * @param targetCapabilities - Platform capabilities
+ * @param clampOp - ADR-044 helper operation from
+ *   `AssignmentClassifier.compoundClampOp`, or null for plain arithmetic
+ * @param targetDescription - The target this file is generated for
  * @returns Generated code and effects
  */
 function generateAtomicRMW(
@@ -215,15 +180,16 @@ function generateAtomicRMW(
   cOp: string,
   value: string,
   typeInfo: TTypeInfo,
-  targetCapabilities: ITargetCapabilities,
+  clampOp: string | null,
+  targetDescription: ITargetDescription,
 ): IGeneratorOutput {
   const baseType = typeInfo.baseType;
 
   // Generate the inner operation (handles clamp/wrap)
-  const innerResult = generateInnerAtomicOp(cOp, value, typeInfo);
+  const innerResult = generateInnerAtomicOp(cOp, value, typeInfo, clampOp);
 
   // Use LDREX/STREX if available for this type, otherwise PRIMASK fallback
-  if (targetCapabilities.hasLdrexStrex && LDREX_MAP[baseType]) {
+  if (targetDescription.ldrex_strex && LDREX_MAP[baseType]) {
     return generateLdrexStrexLoop(
       target,
       innerResult.code,
@@ -231,7 +197,7 @@ function generateAtomicRMW(
       innerResult.effects,
     );
   } else {
-    return generatePrimaskWrapper(target, cOp, value, typeInfo);
+    return generatePrimaskWrapper(target, cOp, value, typeInfo, clampOp);
   }
 }
 

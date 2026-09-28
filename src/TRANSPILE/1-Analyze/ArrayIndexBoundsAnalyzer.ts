@@ -10,10 +10,11 @@
  *
  * `grid[i][9]` is bounded by the shape of `grid[i]`, not of `grid`, so the
  * question at every subscript is "what is the type of the chain before it".
- * That is the prefix walk `OperandTypeResolver` already gives an expression
- * and, since #1322, an assignment target -- one walker for both positions,
- * where codegen resolved the array's name three different ways (bare,
- * scope-resolved, and "root or resolved identifier").
+ * That is the one operand typer's chain walk (#1668), the same for an
+ * expression and an assignment target, where codegen once resolved the
+ * array's name three different ways (bare, scope-resolved, and "root or
+ * resolved identifier"). Its dimensions are 1.4's, folded where the array is
+ * declared, so a local `const N <- 2` sizes `u8[N] buf` at 2 (#1664 box 7).
  *
  * ## One hole closed, probed
  *
@@ -33,16 +34,12 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import OperandTyper from "../../utils/OperandTyper";
 import IArrayIndexBoundsError from "./types/IArrayIndexBoundsError";
-import OperandTypeResolver from "./OperandTypeResolver";
-import ScopeFrameResolver from "./ScopeFrameResolver";
-import TypeText from "./helpers/TypeText";
 import ConstantExpression from "./helpers/ConstantExpression";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type IProgram from "../../transpiler/types/IProgram";
+import type IOperandType from "../../transpiler/types/IOperandType";
 
 /** One subscript in a chain: its expressions, and how many ops follow it. */
 interface ISubscript {
@@ -54,14 +51,9 @@ interface ISubscript {
 
 class ArrayIndexBoundsListener extends CNextListener {
   private readonly found: IArrayIndexBoundsError[] = [];
-  private readonly types: OperandTypeResolver;
 
-  public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    private readonly context: IAnalysisContext,
-  ) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
-    this.types = new OperandTypeResolver(scopes, context);
   }
 
   public errors(): IArrayIndexBoundsError[] {
@@ -71,57 +63,51 @@ class ArrayIndexBoundsListener extends CNextListener {
   override enterPostfixExpression = (
     ctx: Parser.PostfixExpressionContext,
   ): void => {
-    const frame = this.scopes.frameFor(ctx);
-    const ops = ctx.postfixOp();
-    for (const subscript of ArrayIndexBoundsListener.subscriptsOf(ops)) {
-      this.check(
-        subscript,
-        this.types.typeOfPostfixPrefix(ctx, frame, subscript.opsAfter + 1),
-        ArrayIndexBoundsListener.spelling(ctx, ops, subscript.opsAfter),
-      );
-    }
+    this.checkChain(ctx, ctx.postfixOp());
   };
 
   override enterAssignmentTarget = (
     ctx: Parser.AssignmentTargetContext,
   ): void => {
-    const frame = this.scopes.frameFor(ctx);
-    const ops = ctx.postfixTargetOp();
-    for (const subscript of ArrayIndexBoundsListener.subscriptsOf(ops)) {
+    this.checkChain(ctx, ctx.postfixTargetOp());
+  };
+
+  /**
+   * Each subscript against the value it indexes, as the one operand typer
+   * typed the chain. A `this.`/`global.` root consumes its first `.name`, so
+   * the typer's steps are the chain's LAST ops, in order.
+   */
+  private checkChain(
+    ctx: Parser.PostfixExpressionContext | Parser.AssignmentTargetContext,
+    ops: readonly (Parser.PostfixOpContext | Parser.PostfixTargetOpContext)[],
+  ): void {
+    const subscripts = ArrayIndexBoundsListener.subscriptsOf(ops);
+    if (subscripts.length === 0) return;
+    const typing = OperandTyper.chainOf(ctx, this.context);
+    for (const subscript of subscripts) {
+      const step = typing.steps.at(-1 - subscript.opsAfter);
       this.check(
         subscript,
-        this.types.typeOfAssignmentTargetPrefix(
-          ctx,
-          frame,
-          subscript.opsAfter + 1,
-        ),
+        step?.before ?? null,
         ArrayIndexBoundsListener.spelling(ctx, ops, subscript.opsAfter),
       );
     }
-  };
+  }
 
   /** E0854 against the leading dimension of what the subscript indexes. */
   private check(
     subscript: ISubscript,
-    prefixType: string | null,
+    indexed: IOperandType | null,
     name: string,
   ): void {
-    if (prefixType === null || subscript.expressions.length !== 1) return;
-    // #1322 review: both lookups asked the flat const map, whose bare key is
-    // shared by every scope declaring that name -- so `this.t[5]` on a
-    // `u8[N] t` inside `Small` was bounded by whichever scope's `N` was
-    // derived LAST. Swapping two scope declarations flipped E0854 on and off.
-    const scopePath = this.scopes.frameFor(subscript.at).scopePath;
-    const bound = ArrayIndexBoundsListener.leadingDimension(
-      prefixType,
-      scopePath,
-      this.context.program,
-    );
-    if (bound === null) return;
-    const index = ConstantExpression.valueIn(
+    if (indexed === null || subscript.expressions.length !== 1) return;
+    // A dimension 1.4 could fold is a number; one it could not (a C macro)
+    // is left to the C compiler, as codegen's UNRESOLVED_DIMENSION was
+    const bound = indexed.dimensions[0];
+    if (typeof bound !== "number") return;
+    const index = ConstantExpression.valueAt(
       subscript.expressions[0],
-      scopePath,
-      this.context.program,
+      this.context,
     );
     if (index === null) return;
     const { line, column } = ParserUtils.getPosition(subscript.at);
@@ -186,24 +172,6 @@ class ArrayIndexBoundsListener extends CNextListener {
     }
     return full.slice(0, cut);
   }
-
-  /** The first `[N]` of a type text as a size, or null when not sizable here. */
-  private static leadingDimension(
-    typeText: string,
-    scopePath: string,
-    program: IProgram,
-  ): number | null {
-    const inner = TypeText.firstDimension(typeText);
-    if (inner === null) return null;
-    if (inner === "") return null;
-    // A literal in any spelling (`16`, `0x10`, `0b10000`) is its value; a
-    // named dimension is a const when the program knows one, and otherwise a
-    // C macro, which is left to the C compiler as codegen's
-    // UNRESOLVED_DIMENSION was.
-    const literal = LiteralUtils.parseIntegerLiteral(inner);
-    if (literal !== undefined) return literal;
-    return program.constValuesIn(scopePath).get(inner) ?? null;
-  }
 }
 
 class ArrayIndexBoundsAnalyzer {
@@ -211,13 +179,7 @@ class ArrayIndexBoundsAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): IArrayIndexBoundsError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    const listener = new ArrayIndexBoundsListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-      this.context,
-    );
+    const listener = new ArrayIndexBoundsListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

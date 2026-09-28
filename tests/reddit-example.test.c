@@ -10,13 +10,13 @@
 // Tests: bit indexing example for Reddit post
 int main(void) {
     uint8_t header = 0U;
-    header = (uint8_t)((header & ~(((1U << 4) - 1) << 0)) | ((5 & ((1U << 4) - 1)) << 0));
-    header = (uint8_t)((header & ~(((1U << 2) - 1) << 4)) | ((2 & ((1U << 2) - 1)) << 4));
+    header = (uint8_t)((header & ~(0xFU << 0)) | ((5U & 0xFU) << 0));
+    header = (uint8_t)((header & ~(0x3U << 4)) | ((2U & 0x3U) << 4));
     header = (uint8_t)((header & ~(1U << 6)) | (1U << 6));
     header = (uint8_t)((header & ~(1U << 7)) | (0U << 7));
-    uint8_t msgType = (uint8_t)((header) & ((1U << 4U) - 1));
+    uint8_t msgType = (uint8_t)((header) & 0xFU);
     if (msgType != 5) return 1U;
-    uint8_t priority = (uint8_t)((header >> 4U) & ((1U << 2U) - 1));
+    uint8_t priority = (uint8_t)((header >> 4U) & 0x3U);
     if (priority != 2) return 2U;
     bool encrypted = ((((header >> 6U) & 1)) != 0U);
     if (encrypted != true) return 3U;

@@ -44,14 +44,6 @@ describe("ArrayInitHelper", () => {
     });
 
     it("handles size inference with array initializer", () => {
-      // Add existing type to registry
-      state.setVariableTypeInfo("arr", {
-        baseType: "u8",
-        bitWidth: 8,
-        isArray: true,
-        isConst: false,
-      });
-
       const callbacks = {
         state: new TranspileState(),
         generateExpression: vi.fn(() => {
@@ -75,7 +67,6 @@ describe("ArrayInitHelper", () => {
       expect(result!.isArrayInit).toBe(true);
       expect(result!.dimensionSuffix).toBe("[3]");
       expect(result!.initValue).toBe("{1, 2, 3}");
-      expect(state.localArrays.has("arr")).toBe(true);
     });
 
     it("asserts, since #1322, that the fill-all form never reaches an inferred size (E0876 owns it)", () => {

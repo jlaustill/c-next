@@ -1,0 +1,4 @@
+scope Small {
+    public const u8 N <- 2;
+    public u8[N] t;
+}

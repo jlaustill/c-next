@@ -12,24 +12,24 @@
 // Tests: Complex chains mixing hardware registers, bitmap fields, and bit access
 // HIGH RISK AREA: Lines 5850-6285 in CodeGenerator.ts
 int main(void) {
-    MOTOR__STATUS = (MOTOR__STATUS & ~(1U << 0)) | (1U << 0);
-    MOTOR__STATUS = (MOTOR__STATUS & ~(1U << 1)) | (0U << 1);
-    MOTOR__STATUS = (MOTOR__STATUS & ~(0x7U << 2)) | ((5 & 0x7U) << 2);
+    MOTOR__STATUS = (uint8_t)((MOTOR__STATUS & ~(1U << 0)) | (1U << 0));
+    MOTOR__STATUS = (uint8_t)((MOTOR__STATUS & ~(1U << 1)) | (0U << 1));
+    MOTOR__STATUS = (uint8_t)((MOTOR__STATUS & ~(0x7U << 2)) | ((5U & 0x7U) << 2));
     bool isReady = ((((MOTOR__STATUS >> 0) & 1)) != 0U);
     bool hasError = ((((MOTOR__STATUS >> 1) & 1)) != 0U);
     uint8_t mode = (uint8_t)((MOTOR__STATUS >> 2) & 0x7);
-    MOTOR__CONTROL = (MOTOR__CONTROL & ~(1U << 0)) | (1U << 0);
-    MOTOR__CONTROL = (MOTOR__CONTROL & ~(1U << 1)) | (0U << 1);
-    MOTOR__CONTROL = (MOTOR__CONTROL & ~(0xFFU << 2)) | ((127 & 0xFFU) << 2);
+    MOTOR__CONTROL = (uint16_t)((MOTOR__CONTROL & ~(1U << 0)) | (1U << 0));
+    MOTOR__CONTROL = (uint16_t)((MOTOR__CONTROL & ~(1U << 1)) | (0U << 1));
+    MOTOR__CONTROL = (uint16_t)((MOTOR__CONTROL & ~(0xFFU << 2)) | ((127U & 0xFFU) << 2));
     uint8_t speed = (uint8_t)((MOTOR__CONTROL >> 2) & 0xFF);
     bool enabled = ((((MOTOR__CONTROL >> 0) & 1)) != 0U);
-    MOTOR__DATA = (MOTOR__DATA & ~(1U << 0)) | (1U << 0);
-    MOTOR__DATA = (MOTOR__DATA & ~(1U << 15)) | (0U << 15);
-    MOTOR__DATA = (MOTOR__DATA & ~(1U << 31)) | (1U << 31);
+    MOTOR__DATA = (MOTOR__DATA & ~((uint32_t)1U << 0)) | ((uint32_t)1U << 0);
+    MOTOR__DATA = (MOTOR__DATA & ~((uint32_t)1U << 15)) | ((uint32_t)0U << 15);
+    MOTOR__DATA = (MOTOR__DATA & ~((uint32_t)1U << 31)) | ((uint32_t)1U << 31);
     bool bit0 = ((((MOTOR__DATA) & 1)) != 0U);
     bool bit15 = ((((MOTOR__DATA >> 15U) & 1)) != 0U);
     if (((MOTOR__STATUS >> 0) & 1) == true) {
-        MOTOR__CONTROL = (MOTOR__CONTROL & ~(1U << 0)) | (1U << 0);
+        MOTOR__CONTROL = (uint16_t)((MOTOR__CONTROL & ~(1U << 0)) | (1U << 0));
     }
     uint8_t doubleSpeed = (uint8_t)((MOTOR__CONTROL >> 2) & 0xFF) * 2U;
 }

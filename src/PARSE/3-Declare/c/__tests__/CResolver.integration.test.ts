@@ -156,6 +156,30 @@ describe("CResolver - Variable Declarations", () => {
     expect(symbol.visibility).toBe("public");
   });
 
+  // #1760 review: the spelling keeps `volatile`, as a struct field's does, so
+  // the typer knows a read of it has a side effect
+  it("keeps volatile in a variable's and a typedef's spelling", () => {
+    const tree = TestHelpers.parseC(`extern volatile float vf;
+typedef volatile float volatile_float_t;
+typedef volatile float vec3[3];
+extern float nf;`);
+    const result = CResolver.resolve(tree!, "test.h");
+    const typeOf = (name: string) => {
+      const symbol = result.symbols.find((s) => s.name === name);
+      return symbol && "type" in symbol ? symbol.type : undefined;
+    };
+    expect(typeOf("vf")).toBe("volatile float");
+    expect(typeOf("volatile_float_t")).toBe("volatile float");
+    // An array typedef keeps its dimensions when it is volatile too
+    const vec3 = result.symbols.find((s) => s.name === "vec3");
+    expect(vec3).toMatchObject({
+      type: "volatile float",
+      arrayDimensions: [3],
+    });
+    // Control: a plain variable is unchanged
+    expect(typeOf("nf")).toBe("float");
+  });
+
   it("collects extern variable", () => {
     const tree = TestHelpers.parseC(`extern int globalValue;`);
     const result = CResolver.resolve(tree!, "test.h");
@@ -233,6 +257,42 @@ describe("CResolver - Typedefs", () => {
 
     expect(result.symbols[0].name).toBe("uint8_t");
     expect(result.symbols[0].kind).toBe("type");
+  });
+
+  // #1668: `getText()` concatenated a specifier's tokens, running the
+  // keyword into the tag, which no lookup matches -- so a C enum operand had
+  // no essential type. One spelling for every declaration shape.
+  it.each([
+    [
+      "enum tag_e { A, B };\ntypedef enum tag_e tagged_t;",
+      "tagged_t",
+      "enum tag_e",
+    ],
+    [
+      "typedef enum { C_RED, C_GREEN } c_color_t;",
+      "c_color_t",
+      "enum {C_RED,C_GREEN}",
+    ],
+    ["struct foo { int x; };\ntypedef struct foo foo_t;", "foo_t", "foo"],
+    ["enum tag_e { A, B };\nextern enum tag_e ev;", "ev", "enum tag_e"],
+    ["struct foo { int x; };\nextern struct foo gv;", "gv", "foo"],
+    ["typedef unsigned int u_t;", "u_t", "unsigned int"],
+  ])("spells the specifier in %j as %j: %j", (source, name, type) => {
+    const tree = TestHelpers.parseC(source);
+    const result = CResolver.resolve(tree!, "test.h");
+
+    const symbol = result.symbols.find((s) => s.name === name);
+    expect(symbol && "type" in symbol ? symbol.type : undefined).toBe(type);
+  });
+
+  it("spells a struct return type by its tag", () => {
+    const tree = TestHelpers.parseC(
+      "struct foo { int x; };\nstruct foo get(void);",
+    );
+    const result = CResolver.resolve(tree!, "test.h");
+
+    const symbol = result.symbols.find((s) => s.name === "get");
+    expect(symbol?.kind === "function" ? symbol.type : undefined).toBe("foo");
   });
 
   it("collects multiple typedefs", () => {
@@ -386,6 +446,30 @@ describe("CResolver - Struct Fields", () => {
 
     // No warnings since "length" is no longer reserved
     expect(result.warnings).toHaveLength(0);
+  });
+});
+
+// #1760 review: a field records its declarator's indirection, by the rule a
+// typedef's type follows -- it recorded its specifiers alone
+describe("CResolver - Struct field declarators", () => {
+  it("records a pointer field and a function-pointer field as such", () => {
+    const table = new SymbolTable();
+    const tree = TestHelpers.parseC(`typedef struct {
+    float (*readLevel)(void);
+    uint8_t *buf;
+    uint8_t **grid;
+    uint8_t arr[4];
+} Ops;`);
+    CResolver.resolve(tree!, "ops.h", table);
+    const fields = table.getStructFields("Ops");
+    expect(fields?.get("readLevel")?.type).toBe("float (*)(void)");
+    expect(fields?.get("buf")?.type).toBe("uint8_t*");
+    expect(fields?.get("grid")?.type).toBe("uint8_t**");
+    // Control: an array field keeps its element type and its dimensions
+    expect(fields?.get("arr")).toMatchObject({
+      type: "uint8_t",
+      arrayDimensions: [4],
+    });
   });
 });
 

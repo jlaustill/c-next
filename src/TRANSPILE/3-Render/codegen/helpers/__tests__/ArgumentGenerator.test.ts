@@ -7,9 +7,15 @@ import { describe, it, expect, beforeEach } from "vitest";
 import ArgumentGenerator from "../ArgumentGenerator";
 import TranspileState from "../../../../TranspileState";
 import IArgumentGeneratorCallbacks from "../types/IArgumentGeneratorCallbacks";
-import enterScope from "../../../../../transpiler/__tests__/enterScope";
+import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 
 let state = new TranspileState();
+
+/** #1668 (C7): what each case declares, by name -- a call passes it in */
+const declared = new Map<string, TTypeInfo>();
+function declare(name: string, info: TTypeInfo): void {
+  declared.set(name, info);
+}
 
 describe("ArgumentGenerator", () => {
   // #1445: the callbacks are thunks and `generateArg` takes no node, so the 22
@@ -29,6 +35,7 @@ describe("ArgumentGenerator", () => {
   });
 
   beforeEach(() => {
+    declared.clear();
     state = new TranspileState();
   });
 
@@ -45,23 +52,38 @@ describe("ArgumentGenerator", () => {
           isString: false,
         });
 
-        const result = ArgumentGenerator.handleIdentifierArg("cfg", state);
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "cfg",
+          "cfg",
+          declared.get("cfg"),
+          state,
+        );
         expect(result).toBe("cfg");
       });
     });
 
     describe("local arrays", () => {
       it("returns array name unchanged (decay to pointers)", () => {
-        state.localArrays.add("buffer");
+        declare("buffer", {
+          baseType: "u8",
+          bitWidth: 8,
+          isArray: true,
+          isConst: false,
+        });
 
-        const result = ArgumentGenerator.handleIdentifierArg("buffer", state);
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "buffer",
+          "buffer",
+          declared.get("buffer"),
+          state,
+        );
         expect(result).toBe("buffer");
       });
     });
 
     describe("global arrays", () => {
       it("returns global array name unchanged", () => {
-        state.setVariableTypeInfo("globalArr", {
+        declare("globalArr", {
           baseType: "u8",
           bitWidth: 8,
           isArray: true,
@@ -70,6 +92,8 @@ describe("ArgumentGenerator", () => {
 
         const result = ArgumentGenerator.handleIdentifierArg(
           "globalArr",
+          "globalArr",
+          declared.get("globalArr"),
           state,
         );
         expect(result).toBe("globalArr");
@@ -83,7 +107,7 @@ describe("ArgumentGenerator", () => {
       // execution tests passed and only `-Werror` could tell.
       it("lets a global string decay, like any other array", () => {
         state.cppMode = false;
-        state.setVariableTypeInfo("name", {
+        declare("name", {
           baseType: "char",
           bitWidth: 8,
           isArray: true,
@@ -91,34 +115,72 @@ describe("ArgumentGenerator", () => {
           isString: true,
         });
 
-        const result = ArgumentGenerator.handleIdentifierArg("name", state);
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "name",
+          "name",
+          declared.get("name"),
+          state,
+        );
         expect(result).toBe("name");
       });
     });
 
     describe("scope members", () => {
-      it("prefixes scope member and adds & in C mode", () => {
+      // #1760 review: the qualified name is the binder's answer, which the
+      // walker passes as `emitted`; this no longer consults scope members
+      it("adds & to the bound scope member in C mode", () => {
         state.cppMode = false;
-        enterScope(state, "LED");
-        state.setScopeMembers("LED", new Set(["brightness"]));
 
         const result = ArgumentGenerator.handleIdentifierArg(
           "brightness",
+          "LED__brightness",
+          declared.get("brightness"),
           state,
         );
         expect(result).toBe("&LED__brightness");
       });
 
-      it("prefixes scope member without & in C++ mode", () => {
+      it("passes the bound scope member without & in C++ mode", () => {
         state.cppMode = true;
-        enterScope(state, "LED");
-        state.setScopeMembers("LED", new Set(["brightness"]));
 
         const result = ArgumentGenerator.handleIdentifierArg(
           "brightness",
+          "LED__brightness",
+          declared.get("brightness"),
           state,
         );
         expect(result).toBe("LED__brightness");
+      });
+    });
+
+    describe("shadowing locals", () => {
+      it("passes a shadowing local's own name, not the global's", () => {
+        state.cppMode = false;
+
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "x",
+          "g__x",
+          declared.get("x"),
+          state,
+        );
+        expect(result).toBe("&g__x");
+      });
+
+      it("passes a shadowing local array by its own name", () => {
+        declare("buf", {
+          baseType: "u8",
+          bitWidth: 8,
+          isArray: true,
+          isConst: false,
+        });
+
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "buf",
+          "main__buf",
+          declared.get("buf"),
+          state,
+        );
+        expect(result).toBe("main__buf");
       });
     });
 
@@ -126,14 +188,24 @@ describe("ArgumentGenerator", () => {
       it("adds & for local variable in C mode", () => {
         state.cppMode = false;
 
-        const result = ArgumentGenerator.handleIdentifierArg("value", state);
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "value",
+          "value",
+          declared.get("value"),
+          state,
+        );
         expect(result).toBe("&value");
       });
 
       it("returns local variable unchanged in C++ mode", () => {
         state.cppMode = true;
 
-        const result = ArgumentGenerator.handleIdentifierArg("value", state);
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "value",
+          "value",
+          declared.get("value"),
+          state,
+        );
         expect(result).toBe("value");
       });
     });
@@ -433,7 +505,8 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.generateArg(
-        "value",
+        { id: "value", emitted: "value" },
+        declared.get("value"),
         "u8",
         callbacks,
         state,
@@ -456,7 +529,8 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.generateArg(
-        "cfg",
+        { id: "cfg", emitted: "cfg" },
+        declared.get("cfg"),
         "Config",
         callbacks,
         state,
@@ -474,7 +548,9 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.generateArg(
-        null, // no simple identifier
+        null,
+        undefined,
+        // no simple identifier
         "u8",
         callbacks,
         state,
@@ -490,7 +566,9 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.generateArg(
-        null, // no simple identifier
+        null,
+        undefined,
+        // no simple identifier
         "u8",
         callbacks,
         state,

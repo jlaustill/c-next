@@ -12,6 +12,7 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorState from "../IGeneratorState";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
+import LiteralUtils from "../../../../../utils/LiteralUtils";
 import type TranspileState from "../../../../TranspileState";
 
 /**
@@ -51,11 +52,9 @@ function isNumericIntegerLiteral(text: string): boolean {
   if (text === "true" || text === "false") {
     return false;
   }
-  // Exclude floats (contain decimal point or exponent without 0x prefix)
-  if (!text.startsWith("0x") && !text.startsWith("0X")) {
-    if (text.includes(".") || /[eE][+-]?\d/.test(text)) {
-      return false;
-    }
+  // Exclude floats -- the one decision of what a floating literal is (#1668)
+  if (LiteralUtils.floatLiteralWidth(text) !== null) {
+    return false;
   }
   // Must start with digit or be hex/binary/octal
   return /^\d/.test(text) || /^0[xXbBoO]/.test(text);
@@ -116,12 +115,14 @@ const generateLiteral = (
   // ADR-024: Transform C-Next float suffixes to standard C syntax
   // 3.14f32 -> 3.14f (C float)
   // 3.14f64 -> 3.14 (C double, no suffix needed)
-  if (/[fF]32$/.test(literalText)) {
-    literalText = literalText.replace(/[fF]32$/, "f");
-    return { code: literalText, effects };
-  }
-  if (/[fF]64$/.test(literalText)) {
-    literalText = literalText.replace(/[fF]64$/, "");
+  // #1668: asked of the whole literal, not of its last three characters --
+  // the hex integer 0xFF32 ends in `F32` too, and was emitted as 0xFf.
+  const floatWidth = LiteralUtils.floatLiteralWidth(literalText);
+  if (floatWidth !== null) {
+    literalText = literalText.replace(
+      /[fF](32|64)$/,
+      floatWidth === 32 ? "f" : "",
+    );
     return { code: literalText, effects };
   }
 

@@ -7,7 +7,7 @@
  */
 import type IBitAccessAnalysis from "../../../transpiler/types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../../../transpiler/types/TPlannedTargetOp";
-import TTypeInfo from "../../../transpiler/types/TTypeInfo";
+import type IChainBase from "./IChainBase";
 import type TranspileState from "../../TranspileState";
 
 /**
@@ -39,6 +39,17 @@ interface IAssignmentContext {
    */
   readonly renderTarget: () => string;
 
+  /**
+   * The target without its final subscript, by the same renderer: the value
+   * whose bits a bit write reads and writes (#1668 review).
+   *
+   * The bit-write handlers used to build it themselves from the source
+   * spelling, so a local renamed `f__gs` was written as `gs` -- the global
+   * it shadows -- and `S.cfg`, `pv` and a struct parameter's `p.arr` were
+   * emitted as written, not as C names.
+   */
+  readonly renderBitTarget: () => string;
+
   /** ADR-034 bit-access analysis of the target's member chain. */
   readonly analyzeTargetForBitAccess: () => IBitAccessAnalysis;
 
@@ -65,6 +76,13 @@ interface IAssignmentContext {
   readonly valueExpressionType: () => string | null;
   readonly valueIntegerType: () => string | null;
   readonly foldValue: () => number | undefined;
+
+  /**
+   * #1668: whether any operand of the value is floating. A compound assignment
+   * with a floating operand is not integer arithmetic, so it must not reach an
+   * integer clamp helper. False when there is no value.
+   */
+  readonly valueHasFloatingOperand: () => boolean;
 
   // === Extracted identifiers and expressions ===
 
@@ -149,14 +167,17 @@ interface IAssignmentContext {
    * Resolved base identifier for type lookups.
    * Extracted from resolvedTarget by removing subscripts and member access.
    * Example: "ArrayBug_data[0]" -> "ArrayBug_data"
-   * Use this for CodeGenState.typeRegistry lookups instead of identifiers[0].
+   * Its declared type is `target.typeInfo` (#1668), not a lookup by this name.
    */
   readonly resolvedBaseIdentifier: string;
 
-  // === Type info (looked up from registry) ===
+  // === Type info ===
 
-  /** First identifier's type info, if found */
-  readonly firstIdTypeInfo: TTypeInfo | null;
+  /**
+   * #1668 (C7): what the target writes -- its root binding and the written
+   * variable's declared type -- bound once, where the target is typed
+   */
+  readonly target: IChainBase;
 
   // === Computed properties ===
 

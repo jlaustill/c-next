@@ -76,7 +76,7 @@ void handleWhileLoop(ConstCond__Config* config) {
 // Variant: reassignment inside for loop
 void handleForLoop(ConstCond__Config* config) {
     uint8_t errorCode = 0U;
-    for (uint32_t i = 0U; i < 1; i = i + 1) {
+    for (uint32_t i = 0U; i < 1; i = cnx_clamp_add_u32(i, 1)) {
         errorCode = CommandHandler__setValue(config, 200U);
     }
 }

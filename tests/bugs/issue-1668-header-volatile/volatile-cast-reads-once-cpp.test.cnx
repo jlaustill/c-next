@@ -1,0 +1,11 @@
+// test-cpp-only
+// #1760 review: a C++ header's volatile variable is volatile too -- its
+// saturating cast reads it once, through the helper. The C++ collector kept
+// simple type specifiers alone, so `volatile float` was recorded as `float`.
+#include "sensor_regs_cpp.hpp"
+
+void sample() {
+    u8 a <- (u8)cvf;
+    // Control: a plain header float is read inline, as before
+    u8 b <- (u8)cnf;
+}

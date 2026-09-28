@@ -48,20 +48,16 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import CppConstructorHelper from "../../utils/CppConstructorHelper";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import OperandTyper from "../../utils/OperandTyper";
 import FunctionReference from "./helpers/FunctionReference";
 import StructInitializerType from "./helpers/StructInitializerType";
-import OperandTypeResolver from "./OperandTypeResolver";
 import ICppClassInitializerError from "./types/ICppClassInitializerError";
-import ScopeFrameResolver from "./ScopeFrameResolver";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 class CppClassInitializerListener extends CNextListener {
   private readonly found: ICppClassInitializerError[] = [];
 
   public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    private readonly operands: OperandTypeResolver,
     private readonly symbolTable: SymbolTable,
     private readonly context: IAnalysisContext,
   ) {
@@ -77,16 +73,16 @@ class CppClassInitializerListener extends CNextListener {
   ): void => {
     if (CppClassInitializerListener.insideFunctionBody(ctx)) return;
 
-    const frame = this.scopes.frameFor(ctx);
     const typeText = StructInitializerType.establishedTypeText(
       ctx,
-      frame,
-      this.operands,
       this.context,
     );
     if (typeText === null) return; // E0357's to report
 
-    const cppClass = this.cppClassWithConstructor(typeText, frame.scopePath);
+    const cppClass = this.cppClassWithConstructor(
+      typeText,
+      OperandTyper.scopePathAt(ctx, this.context),
+    );
     if (cppClass === null) return;
 
     const { line, column } = ParserUtils.getPosition(ctx);
@@ -154,19 +150,7 @@ class CppClassInitializerAnalyzer {
     // reported before this pass, so there is nothing here to decide.
     if (!cppMode) return [];
 
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-    const scopes = new ScopeFrameResolver(
-      declarations,
-      this.context.symbolTable,
-    );
-
-    const listener = new CppClassInitializerListener(
-      scopes,
-      new OperandTypeResolver(scopes, this.context),
-      symbolTable,
-      this.context,
-    );
+    const listener = new CppClassInitializerListener(symbolTable, this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

@@ -4,26 +4,13 @@
  * applied to an essentially Boolean operand
  * (MISRA C:2012 Rule 10.1, Issue #1183).
  */
-import { describe, it, expect, beforeEach } from "vitest";
-import TranspileState from "../../TranspileState";
-import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
-import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
+import { describe, it, expect } from "vitest";
 import BooleanOperandAnalyzer from "../BooleanOperandAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
-
-function parse(source: string) {
-  const charStream = CharStream.fromString(source);
-  const lexer = new CNextLexer(charStream);
-  const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
-  return parser.program();
-}
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 function analyze(source: string) {
-  return new BooleanOperandAnalyzer(testAnalysisContext(state)).analyze(
-    parse(source),
-  );
+  const { tree, context } = testAnalysisContextFor(source);
+  return new BooleanOperandAnalyzer(context).analyze(tree);
 }
 
 /** Wrap a statement in a function with two bool locals and an integer local. */
@@ -38,13 +25,7 @@ function inMain(statement: string) {
   `;
 }
 
-let state = new TranspileState();
-
 describe("BooleanOperandAnalyzer", () => {
-  beforeEach(() => {
-    state = new TranspileState();
-  });
-
   describe("bool operands of guarded operators (rejected)", () => {
     it.each([
       ["+", "bool c <- a + b;"],

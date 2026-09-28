@@ -51,7 +51,7 @@ uint32_t countDownWhile(uint32_t start) {
 
 uint32_t sumForLoop(uint32_t limit) {
     uint32_t total = 0U;
-    for (uint32_t i = 0U; i < limit; i = i + 1) {
+    for (uint32_t i = 0U; i < limit; i = cnx_clamp_add_u32(i, 1)) {
         total = cnx_clamp_add_u32(total, i);
     }
     return total;

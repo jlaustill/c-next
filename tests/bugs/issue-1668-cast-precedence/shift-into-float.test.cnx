@@ -1,0 +1,30 @@
+// test-execution
+// #1760 review: a C cast binds tighter than a shift, so an integer shift
+// converted to float as `(float)x << 1` shifted a float, which C rejects.
+// The cast converts the whole shift, as static_cast does in C++. A value
+// needs no parentheses (the control in `plain`).
+
+f32 doubled(u32 x) {
+    f32 r <- x << 1;
+    return r;
+}
+
+f32 halved(u32 x) {
+    f32 r <- x >> 1;
+    return r;
+}
+
+f32 plain(u32 x) {
+    f32 r <- x;
+    return r;
+}
+
+u32 main() {
+    f32 d <- doubled(3);
+    if (d != 6.0) return 1;
+    f32 h <- halved(9);
+    if (h != 4.0) return 2;
+    f32 p <- plain(5);
+    if (p != 5.0) return 3;
+    return 0;
+}

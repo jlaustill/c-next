@@ -13,12 +13,12 @@
 // Define a bitmap for motor control register
 // Use bitmap type inside a register definition
 int main(void) {
-    MOTOR__CTRL = (MOTOR__CTRL & ~(1U << 0)) | (1U << 0);
-    MOTOR__CTRL = (MOTOR__CTRL & ~(1U << 1)) | (0U << 1);
-    MOTOR__CTRL = (MOTOR__CTRL & ~(0x7U << 3)) | ((5 & 0x7U) << 3);
+    MOTOR__CTRL = (uint8_t)((MOTOR__CTRL & ~(1U << 0)) | (1U << 0));
+    MOTOR__CTRL = (uint8_t)((MOTOR__CTRL & ~(1U << 1)) | (0U << 1));
+    MOTOR__CTRL = (uint8_t)((MOTOR__CTRL & ~(0x7U << 3)) | ((5U & 0x7U) << 3));
     bool isRunning = ((((MOTOR__CTRL >> 0) & 1)) != 0U);
     uint8_t mode = static_cast<uint8_t>(((MOTOR__CTRL >> 3) & 0x7));
     if (((MOTOR__CTRL >> 2) & 1) == true) {
-        MOTOR__CTRL = (MOTOR__CTRL & ~(0x7U << 3)) | ((0 & 0x7U) << 3);
+        MOTOR__CTRL = (uint8_t)((MOTOR__CTRL & ~(0x7U << 3)) | ((0U & 0x7U) << 3));
     }
 }

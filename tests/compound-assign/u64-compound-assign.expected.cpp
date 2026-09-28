@@ -29,6 +29,7 @@ static inline uint64_t cnx_clamp_sub_u64(uint64_t a, uint64_t b) {
 }
 
 // test-execution
+// test-target-xfail: host cortex-m7 atmega328p #1062 "integer constant is so large that it is unsigned"
 // Tests: u64 compound assignment operators
 // Validates: All 10 compound operators (+<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-)
 // Coverage: Issue #22 - Complete compound assignment operator coverage

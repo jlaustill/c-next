@@ -2,23 +2,17 @@
  * Tests for TranspileState - centralized code generation state management
  */
 
+import TargetResolver from "../../utils/TargetResolver";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import type IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
 import { describe, it, expect, beforeEach } from "vitest";
 import type IProgram from "../../transpiler/types/IProgram";
+import DeclaredPointer from "../../utils/DeclaredPointer";
 import installMockSymbols from "../../transpiler/__tests__/installMockSymbols";
 import TranspileState from "../TranspileState";
-import TTypeInfo from "../../transpiler/types/TTypeInfo";
-import ESourceLanguage from "../../utils/types/ESourceLanguage";
-import IVariableSymbol from "../../transpiler/types/symbols/IVariableSymbol";
-import ICVariableSymbol from "../../transpiler/types/symbols/c/ICVariableSymbol";
-import TTypeUtils from "../../utils/TTypeUtils";
-import TestSymbolUtils from "../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import ScopeUtils from "../../utils/ScopeUtils";
 import createMockSymbols from "../../transpiler/__tests__/codeGenSymbolsHelpers";
-import UNRESOLVED_DIMENSION from "../../transpiler/constants/UNRESOLVED_DIMENSION";
-import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
 import Program from "../../PARSE/4-Resolve/Program";
 import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import parse from "../../PARSE/3-Declare/cnext/__tests__/testHelpers";
@@ -34,52 +28,6 @@ const repoRootForGuard = join(
   "..",
   "..",
 );
-
-/**
- * Create a minimal C-Next IVariableSymbol for testing.
- */
-function createCNextVariableSymbol(
-  overrides: Partial<IVariableSymbol> & { name: string },
-): IVariableSymbol {
-  return {
-    ...TestSymbolUtils.base({
-      kind: "variable",
-      name: overrides.name,
-      scopePath: overrides.scopePath ?? "",
-      sourceFile: overrides.sourceFile ?? "test.cnx",
-      span: overrides.span ?? TestSourceSpan.at(1),
-      sourceLanguage: ESourceLanguage.CNext,
-      visibility: overrides.visibility ?? "private",
-    }),
-    type: overrides.type ?? TTypeUtils.createPrimitive("u32"),
-    isConst: overrides.isConst ?? false,
-    isVolatile: overrides.isVolatile ?? false,
-    overflowBehavior: "clamp",
-    isAtomic: overrides.isAtomic ?? false,
-    isArray: overrides.isArray ?? false,
-    arrayDimensions: overrides.arrayDimensions,
-  };
-}
-
-/**
- * Create a minimal C ICVariableSymbol for testing.
- */
-function createCVariableSymbol(
-  overrides: Partial<ICVariableSymbol> & { name: string; type: string },
-): ICVariableSymbol {
-  return {
-    kind: "variable",
-    name: overrides.name,
-    sourceFile: overrides.sourceFile ?? "test.h",
-    span: overrides.span ?? TestSourceSpan.at(1),
-    sourceLanguage: ESourceLanguage.C,
-    visibility: overrides.visibility ?? "public",
-    type: overrides.type,
-    isConst: overrides.isConst,
-    isArray: overrides.isArray,
-    arrayDimensions: overrides.arrayDimensions,
-  };
-}
 
 let registry = new SymbolRegistry();
 
@@ -138,22 +86,12 @@ describe("TranspileState", () => {
       expect(state.generator).toBeNull();
     });
 
-    it("accepts custom target capabilities", () => {
-      const customTarget = {
-        hasFPU: true,
-        hasHardwareDivide: false,
-        maxBitWidth: 32,
-        hasAtomic: true,
-        wordSize: 32 as const,
-        hasLdrexStrex: true,
-        hasBasepri: true,
-        significantExternalIdentifierChars: 31,
-        significantInternalIdentifierChars: 63,
-      };
+    it("holds the target description it is reset with", () => {
+      const target = TargetResolver.byName("cortex-m7")!;
 
-      state.reset(customTarget);
+      state.reset(target);
 
-      expect(state.targetCapabilities).toEqual(customTarget);
+      expect(state.targetDescription).toBe(target);
     });
   });
 
@@ -226,21 +164,6 @@ describe("TranspileState", () => {
       state.symbols = mockSymbols;
       expect(state.getStructFieldType("MyStruct", "field1")).toBe("u32");
     });
-
-    it("isStructFieldArray returns false without symbols", () => {
-      state.symbols = null;
-      expect(state.isStructFieldArray("MyStruct", "arrayField")).toBe(false);
-    });
-
-    it("isStructFieldArray returns true for array field", () => {
-      state.symbols = mockSymbols;
-      expect(state.isStructFieldArray("MyStruct", "arrayField")).toBe(true);
-    });
-
-    it("isStructFieldArray returns false for non-array field", () => {
-      state.symbols = mockSymbols;
-      expect(state.isStructFieldArray("MyStruct", "field1")).toBe(false);
-    });
   });
 
   describe("getEnumMembers()", () => {
@@ -279,34 +202,9 @@ describe("TranspileState", () => {
   });
 
   describe("Type Registration Helpers", () => {
-    it("registerType adds to typeRegistry", () => {
-      const typeInfo: TTypeInfo = {
-        baseType: "u32",
-        bitWidth: 32,
-        isArray: false,
-        isConst: false,
-      };
-
-      state.registerType("myVar", typeInfo);
-
-      expect(state.getVariableTypeInfo("myVar")).toBe(typeInfo);
-    });
-
-    it("registerConstValue adds to constValues", () => {
-      state.registerConstValue("MY_CONST", 42);
-      expect(state.constValues.get("MY_CONST")).toBe(42);
-    });
-
     it("registerLocalVariable adds to localVariables", () => {
       state.registerLocalVariable("localVar");
       expect(state.localVariables.has("localVar")).toBe(true);
-      expect(state.localArrays.has("localVar")).toBe(false);
-    });
-
-    it("registerLocalVariable with isArray adds to both sets", () => {
-      state.registerLocalVariable("localArr", true);
-      expect(state.localVariables.has("localArr")).toBe(true);
-      expect(state.localArrays.has("localArr")).toBe(true);
     });
 
     it("setCurrentScopeByPath resolves a DOTTED PATH to the registered scope", () => {
@@ -404,7 +302,6 @@ describe("TranspileState", () => {
       // local of the same name.
       expect(state.emittedLocalName("count")).toBe("count");
       expect(state.localVariables.size).toBe(0);
-      expect(state.localArrays.size).toBe(0);
     });
 
     it("registerCallbackType adds to callbackTypes", () => {
@@ -432,442 +329,11 @@ describe("TranspileState", () => {
     });
   });
 
-  describe("Variable Type Info API (Issue #786)", () => {
-    it("getVariableTypeInfo returns local type info from registry", () => {
-      const typeInfo: TTypeInfo = {
-        baseType: "u32",
-        bitWidth: 32,
-        isArray: false,
-        isConst: false,
-      };
-
-      state.setVariableTypeInfo("localVar", typeInfo);
-
-      expect(state.getVariableTypeInfo("localVar")).toBe(typeInfo);
-    });
-
-    it("getVariableTypeInfo returns undefined for unknown variable", () => {
-      expect(state.getVariableTypeInfo("unknownVar")).toBeUndefined();
-    });
-
-    it("getVariableTypeInfo falls back to SymbolTable for C-Next variables", () => {
-      // Add a C-Next variable to SymbolTable (simulating cross-file include)
-      state.symbolTable.addTSymbol(
-        createCNextVariableSymbol({
-          name: "crossFileVar",
-          type: TTypeUtils.createPrimitive("u16"),
-          isArray: true,
-          arrayDimensions: [10],
-        }),
-      );
-
-      const result = state.getVariableTypeInfo("crossFileVar");
-
-      expect(result).toBeDefined();
-      expect(result?.baseType).toBe("u16");
-      expect(result?.bitWidth).toBe(16);
-      expect(result?.isArray).toBe(true);
-      expect(result?.arrayDimensions).toEqual([10]);
-    });
-
-    it("getVariableTypeInfo does not use C header symbols for primitive types", () => {
-      // Add a C header variable with primitive type (should NOT be used)
-      state.symbolTable.addCSymbol(
-        createCVariableSymbol({
-          name: "cHeaderVar",
-          type: "uint32_t",
-        }),
-      );
-
-      expect(state.getVariableTypeInfo("cHeaderVar")).toBeUndefined();
-    });
-
-    it("getVariableTypeInfo returns type info for C header struct variables (Issue #978)", () => {
-      // Register font_t as a typedef struct type
-      state.symbolTable.markTypedefStructType("font_t", "fake_lib.h");
-
-      // Add a C header variable with struct type
-      state.symbolTable.addCSymbol(
-        createCVariableSymbol({
-          name: "big_font",
-          type: "font_t",
-          isConst: true,
-        }),
-      );
-
-      const result = state.getVariableTypeInfo("big_font");
-      expect(result).toBeDefined();
-      expect(result?.baseType).toBe("font_t");
-      expect(result?.isConst).toBe(true);
-      expect(result?.bitWidth).toBe(0);
-      expect(result?.isPointer).toBe(false);
-    });
-
-    it("getVariableTypeInfo returns type info for C struct via getStructFields path (Issue #978)", () => {
-      // Register struct fields directly (non-typedef struct, e.g., `struct point`)
-      state.symbolTable.addStructField("point", "x", "int32_t");
-      state.symbolTable.addStructField("point", "y", "int32_t");
-
-      state.symbolTable.addCSymbol(
-        createCVariableSymbol({
-          name: "origin",
-          type: "point",
-        }),
-      );
-
-      const result = state.getVariableTypeInfo("origin");
-      expect(result).toBeDefined();
-      expect(result?.baseType).toBe("point");
-      expect(result?.bitWidth).toBe(0);
-    });
-
-    it("getVariableTypeInfo detects pointer type from C symbol (Issue #978)", () => {
-      // Register font_t as a struct
-      state.symbolTable.markTypedefStructType("font_t", "lib.h");
-
-      // Pointer variable: type includes * (set by VariableCollector)
-      state.symbolTable.addCSymbol(
-        createCVariableSymbol({
-          name: "font_ptr",
-          type: "font_t*",
-        }),
-      );
-
-      const result = state.getVariableTypeInfo("font_ptr");
-      expect(result).toBeDefined();
-      expect(result?.baseType).toBe("font_t");
-      expect(result?.isPointer).toBe(true);
-    });
-
-    it("gives no answer for a C pointer to a pointer, which it cannot describe", () => {
-      // `{ baseType, isPointer }` says "one pointer to the struct". Stripping
-      // every `*` let `font_t**` claim that, and a call site took its address
-      // for a `font_t**` parameter. Its reader asks the declared C type.
-      state.symbolTable.markTypedefStructType("font_t", "lib.h");
-      state.symbolTable.addCSymbol(
-        createCVariableSymbol({
-          name: "font_table",
-          type: "font_t**",
-        }),
-      );
-
-      expect(state.getVariableTypeInfo("font_table")).toBeUndefined();
-    });
-
-    it("getVariableTypeInfo ignores C array variables with primitive types", () => {
-      state.symbolTable.addCSymbol(
-        createCVariableSymbol({
-          name: "lookup_table",
-          type: "uint8_t",
-          isArray: true,
-          arrayDimensions: [16],
-        }),
-      );
-
-      expect(state.getVariableTypeInfo("lookup_table")).toBeUndefined();
-    });
-
-    it("getVariableTypeInfo ignores C volatile register variables", () => {
-      state.symbolTable.addCSymbol(
-        createCVariableSymbol({
-          name: "status_reg",
-          type: "uint32_t",
-        }),
-      );
-
-      expect(state.getVariableTypeInfo("status_reg")).toBeUndefined();
-    });
-
-    it("getVariableTypeInfo prefers TSymbol over CSymbol with same name (Issue #978)", () => {
-      // Both C-Next and C symbols exist with same name
-      state.symbolTable.markTypedefStructType("config_t", "config.h");
-
-      state.symbolTable.addTSymbol(
-        createCNextVariableSymbol({
-          name: "config",
-          type: TTypeUtils.createPrimitive("u32"),
-        }),
-      );
-
-      state.symbolTable.addCSymbol(
-        createCVariableSymbol({
-          name: "config",
-          type: "config_t",
-        }),
-      );
-
-      // TSymbol should win (checked first in priority order)
-      const result = state.getVariableTypeInfo("config");
-      expect(result?.baseType).toBe("u32");
-    });
-
-    /**
-     * ADR-030: a C-Next variable of an opaque type declared in ANOTHER file is
-     * a pointer here as it is there -- an includer passed `&shared`, a `Dev**`.
-     * The control is a C header's global of the same type: C declared it, not
-     * C-Next, so it keeps its own type and still takes `&`.
-     */
-    it("getVariableTypeInfo reads a cross-file C-Next handle as a pointer", () => {
-      state.program = {
-        isOpaqueType: (name: string) => name === "Dev",
-      } as unknown as IProgram;
-      state.symbolTable.markTypedefStructType("Dev", "dev.h");
-      state.symbolTable.addTSymbol(
-        createCNextVariableSymbol({
-          name: "shared",
-          type: TTypeUtils.createExternal("Dev"),
-        }),
-      );
-      state.symbolTable.addCSymbol(
-        createCVariableSymbol({ name: "cDevice", type: "Dev" }),
-      );
-
-      expect(state.getVariableTypeInfo("shared")?.isPointer).toBe(true);
-      expect(state.getVariableTypeInfo("cDevice")?.isPointer).toBe(false);
-
-      state.program = null;
-    });
-
-    it("getVariableTypeInfo prefers local registry over SymbolTable", () => {
-      // Add both local and SymbolTable version
-      const localInfo: TTypeInfo = {
-        baseType: "i32",
-        bitWidth: 32,
-        isArray: false,
-        isConst: true,
-      };
-      state.setVariableTypeInfo("mixedVar", localInfo);
-
-      state.symbolTable.addTSymbol(
-        createCNextVariableSymbol({
-          name: "mixedVar",
-          type: TTypeUtils.createPrimitive("u8"),
-        }),
-      );
-
-      // Should return local info, not SymbolTable info
-      const result = state.getVariableTypeInfo("mixedVar");
-      expect(result?.baseType).toBe("i32");
-      expect(result?.isConst).toBe(true);
-    });
-
-    it("hasVariableTypeInfo returns true for local registry", () => {
-      state.setVariableTypeInfo("localVar", {
-        baseType: "u8",
-        bitWidth: 8,
-        isArray: false,
-        isConst: false,
-      });
-
-      expect(state.hasVariableTypeInfo("localVar")).toBe(true);
-    });
-
-    it("hasVariableTypeInfo returns true for C-Next SymbolTable variable", () => {
-      state.symbolTable.addTSymbol(
-        createCNextVariableSymbol({
-          name: "crossFileVar",
-          type: TTypeUtils.createPrimitive("u32"),
-        }),
-      );
-
-      expect(state.hasVariableTypeInfo("crossFileVar")).toBe(true);
-    });
-
-    it("hasVariableTypeInfo returns false for unknown variable", () => {
-      expect(state.hasVariableTypeInfo("unknownVar")).toBe(false);
-    });
-
-    it("hasVariableTypeInfo returns false for C header primitive variable", () => {
-      state.symbolTable.addCSymbol(
-        createCVariableSymbol({
-          name: "cVar",
-          type: "int",
-        }),
-      );
-
-      expect(state.hasVariableTypeInfo("cVar")).toBe(false);
-    });
-
-    it("hasVariableTypeInfo returns true for C header struct variable (Issue #978)", () => {
-      state.symbolTable.markTypedefStructType("widget_t", "widget.h");
-      state.symbolTable.addCSymbol(
-        createCVariableSymbol({
-          name: "my_widget",
-          type: "widget_t",
-        }),
-      );
-
-      expect(state.hasVariableTypeInfo("my_widget")).toBe(true);
-    });
-
-    it("hasVariableTypeInfo returns true for C struct via getStructFields path (Issue #978)", () => {
-      state.symbolTable.addStructField("vec2", "x", "float");
-      state.symbolTable.addStructField("vec2", "y", "float");
-
-      state.symbolTable.addCSymbol(
-        createCVariableSymbol({
-          name: "position",
-          type: "vec2",
-        }),
-      );
-
-      expect(state.hasVariableTypeInfo("position")).toBe(true);
-    });
-
-    it("hasVariableTypeInfo returns false for C pointer to non-struct type", () => {
-      state.symbolTable.addCSymbol(
-        createCVariableSymbol({
-          name: "data_ptr",
-          type: "uint8_t*",
-        }),
-      );
-
-      expect(state.hasVariableTypeInfo("data_ptr")).toBe(false);
-    });
-
-    it("setVariableTypeInfo and deleteVariableTypeInfo work correctly", () => {
-      const typeInfo: TTypeInfo = {
-        baseType: "f32",
-        bitWidth: 32,
-        isArray: false,
-        isConst: false,
-      };
-
-      state.setVariableTypeInfo("tempVar", typeInfo);
-      expect(state.getVariableTypeInfo("tempVar")).toBe(typeInfo);
-
-      state.deleteVariableTypeInfo("tempVar");
-      expect(state.getVariableTypeInfo("tempVar")).toBeUndefined();
-    });
-
-    it("getTypeRegistryView returns readonly view", () => {
-      state.setVariableTypeInfo("var1", {
-        baseType: "u8",
-        bitWidth: 8,
-        isArray: false,
-        isConst: false,
-      });
-      state.setVariableTypeInfo("var2", {
-        baseType: "u16",
-        bitWidth: 16,
-        isArray: false,
-        isConst: false,
-      });
-
-      const view = state.getTypeRegistryView();
-
-      expect(view.size).toBe(2);
-      expect(view.has("var1")).toBe(true);
-      expect(view.has("var2")).toBe(true);
-    });
-
-    it("getTypeInfo is deprecated alias for getVariableTypeInfo", () => {
-      const typeInfo: TTypeInfo = {
-        baseType: "u64",
-        bitWidth: 64,
-        isArray: false,
-        isConst: false,
-      };
-
-      state.setVariableTypeInfo("aliasVar", typeInfo);
-
-      // getTypeInfo should return same result
-      expect(state.getTypeInfo("aliasVar")).toBe(typeInfo);
-    });
-
-    it("convertSymbolToTypeInfo handles string<N> types", () => {
-      state.symbolTable.addTSymbol(
-        createCNextVariableSymbol({
-          name: "myString",
-          type: TTypeUtils.createString(32),
-        }),
-      );
-
-      const result = state.getVariableTypeInfo("myString");
-
-      expect(result?.baseType).toBe("char");
-      expect(result?.bitWidth).toBe(8);
-      expect(result?.isString).toBe(true);
-      expect(result?.stringCapacity).toBe(32);
-    });
-
-    it("convertSymbolToTypeInfo handles enum types", () => {
-      // Register an enum
-      installMockSymbols(state, {
-        knownEnums: new Set(["EColor"]),
-      });
-
-      state.symbolTable.addTSymbol(
-        createCNextVariableSymbol({
-          name: "color",
-          type: TTypeUtils.createEnum("EColor"),
-        }),
-      );
-
-      const result = state.getVariableTypeInfo("color");
-
-      expect(result?.baseType).toBe("EColor");
-      expect(result?.isEnum).toBe(true);
-      expect(result?.enumTypeName).toBe("EColor");
-    });
-
-    it("convertSymbolToTypeInfo handles const and atomic", () => {
-      state.symbolTable.addTSymbol(
-        createCNextVariableSymbol({
-          name: "constAtomicVar",
-          type: TTypeUtils.createPrimitive("u32"),
-          isConst: true,
-          isAtomic: true,
-          isVolatile: false,
-          overflowBehavior: "clamp",
-        }),
-      );
-
-      const result = state.getVariableTypeInfo("constAtomicVar");
-
-      expect(result?.isConst).toBe(true);
-      expect(result?.isAtomic).toBe(true);
-    });
-
-    it("convertSymbolToTypeInfo keeps the slot of a dimension it cannot fold (#1360)", () => {
-      state.symbolTable.addTSymbol(
-        createCNextVariableSymbol({
-          name: "arrayVar",
-          type: TTypeUtils.createPrimitive("u8"),
-          isArray: true,
-          arrayDimensions: [10, "invalid", 20],
-        }),
-      );
-
-      const result = state.getVariableTypeInfo("arrayVar");
-
-      // This used to assert [10, 20]. Dropping the slot slides every later
-      // bound one position left, so checkArrayBounds validated dimension 3's
-      // index against dimension 2's bound -- rejecting valid code and skipping
-      // the real bound entirely. #1127 already established slot preservation
-      // for the sibling conversion (getMemberTypeInfo); this one did not follow
-      // it. UNRESOLVED_DIMENSION reads as "size unknown, cannot validate".
-      expect(result?.arrayDimensions).toEqual([10, UNRESOLVED_DIMENSION, 20]);
-    });
-
-    it("convertSymbolToTypeInfo still folds a numeric string dimension (#1360)", () => {
-      // Negative control for the case above: only a dimension that genuinely
-      // cannot be folded becomes UNRESOLVED_DIMENSION. A numeric string carries a real
-      // bound and must keep it, or the check would silently stop enforcing it.
-      state.symbolTable.addTSymbol(
-        createCNextVariableSymbol({
-          name: "numericStringDims",
-          type: TTypeUtils.createPrimitive("u8"),
-          isArray: true,
-          arrayDimensions: ["16", 3],
-        }),
-      );
-
-      const result = state.getVariableTypeInfo("numericStringDims");
-
-      expect(result?.arrayDimensions).toEqual([16, 3]);
-    });
-  });
+  // #1668 (C8): the "Variable Type Info API" describe stood here and is
+  // deleted with the per-file type registry it tested. A name's type is its
+  // binding's -- `DeclaredTypeInfo`, whose tests carry the #978 C-header and
+  // #1360 dimension-slot cases this block asserted through the registry's
+  // cross-file fallback.
 
   describe("Float Bit Shadow Helpers", () => {
     it("registerFloatBitShadow adds to floatBitShadows", () => {
@@ -948,49 +414,29 @@ describe("TranspileState", () => {
       expect(state.isKnownScope("UnknownScope")).toBe(false);
     });
 
-    it("isOpaqueType returns false without a program", () => {
-      state.program = null;
-      expect(state.isOpaqueType("widget_t")).toBe(false);
-    });
-
-    it("isOpaqueType returns true for opaque type", () => {
-      // #1511: read from the artifact. This used to install a per-file
-      // `ICodeGenSymbols.opaqueTypes` set that `mergeOpaqueTypes` patched the
-      // whole-program answer into; both are gone, so the question has one owner.
-      const opaque = new Set(["widget_t", "display_t"]);
-      state.program = {
-        isOpaqueType: (name: string) => opaque.has(name),
-      } as unknown as IProgram;
-
-      expect(state.isOpaqueType("widget_t")).toBe(true);
-      expect(state.isOpaqueType("display_t")).toBe(true);
-      expect(state.isOpaqueType("Point")).toBe(false);
-
-      state.program = null;
-    });
-
     /**
-     * ADR-030: the one "held through a pointer" decision, as #948 and #958
-     * each gated it -- the program's opacity verdict or the symbol table's
-     * forward-declared typedef. A complete type is neither.
+     * ADR-030: the one "held through a pointer" decision, which a
+     * declaration's own pointer-ness (`DeclaredPointer.of`) and 1.4's
+     * parameter stamp (#1722) share. #948 and #958 each gated it with a mark
+     * and a copy of the "did a body arrive" rule of their own; StructCollector
+     * set both marks under one condition, so they are one mark now, resolved
+     * by `OpaqueTypeResolution` (measured: the two never disagreed across the
+     * 1412 fixtures). A complete type is not a handle.
      */
-    it.each<[string, boolean, boolean, boolean]>([
-      ["opaque by the program", true, false, true],
-      ["a forward-declared typedef struct", false, true, true],
-      ["neither", false, false, false],
+    it.each<[string, boolean, boolean]>([
+      ["a typedef of a forward-declared struct", true, true],
+      ["a complete type", false, false],
     ])(
-      "isHeldThroughPointer answers for a type %s",
-      (_label, isOpaque, isTypedefStruct, expected) => {
-        state.program = {
-          isOpaqueType: (name: string) => isOpaque && name === "Dev",
-        } as unknown as IProgram;
+      "isHeldThroughPointer answers for %s",
+      (_label, isTypedefStruct, expected) => {
         if (isTypedefStruct) {
-          state.symbolTable.markTypedefStructType("Dev", "dev.h");
+          state.symbolTable.markOpaqueType("Dev");
         }
 
         expect(state.isHeldThroughPointer("Dev")).toBe(expected);
-
-        state.program = null;
+        expect(state.isHeldThroughPointer("Dev")).toBe(
+          DeclaredPointer.isHandleType("Dev", state.symbolTable),
+        );
       },
     );
   });
@@ -1060,12 +506,6 @@ describe("TranspileState", () => {
       expect(state.isLocalVariable("myVar")).toBe(false);
       state.localVariables.add("myVar");
       expect(state.isLocalVariable("myVar")).toBe(true);
-    });
-
-    it("isLocalArray returns correct value", () => {
-      expect(state.isLocalArray("myArr")).toBe(false);
-      state.localArrays.add("myArr");
-      expect(state.isLocalArray("myArr")).toBe(true);
     });
   });
 

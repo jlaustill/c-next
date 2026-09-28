@@ -1,3 +1,4 @@
+import type TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 /**
  * One argument of a function call, reduced to what the call generator asks of
  * it (#1445 box 3).
@@ -14,20 +15,18 @@
  * function's argument renders with the target parameter's type expected; a
  * C-Next parameter renders either by value or by reference. Rendering the
  * losing route would register that route's includes and `needs*` flags on
- * `CodeGenState` -- and on the by-reference route, `ArgumentGenerator`'s C++
- * member conversion draws `CodeGenState.getNextTempVarName()` and pushes onto
+ * `TranspileState` -- and on the by-reference route, `ArgumentGenerator`'s C++
+ * member conversion draws `TranspileState.getNextTempVarName()` and pushes onto
  * `pendingTempDeclarations`, so a discarded render emits a stray `_tmp<N>`
  * into the enclosing function and shifts the numbering of every later temp.
  *
- * ## `expressionType` is deferred too, and that one is subtler
+ * ## `expressionType` is deferred too
  *
- * It registers nothing, so laziness costs it nothing either -- but it is a
- * read of MUTABLE render-time state (`TypeResolver` reaches
- * `CodeGenState.getVariableTypeInfo` and `currentScopePath`), and today every
- * site that asks it does so AFTER the argument has rendered. Asking eagerly
- * would move every argument's read ahead of every argument's render. No live
- * divergence was found; the thunk keeps the evaluation point exact rather
- * than relying on that staying true.
+ * It registers nothing, so laziness costs it nothing either. It used to read
+ * mutable render-time state through the per-file type registry; since #1668
+ * it reads the typer over 1.4's settled declarations, so an eager ask gives
+ * the same answer. The thunk keeps it where every site asks it, after the
+ * argument has rendered.
  */
 interface IPlannedCallArgument {
   /**
@@ -43,11 +42,26 @@ interface IPlannedCallArgument {
   readonly expressionType: () => string | null;
 
   /**
+   * #1668 (C7): the declared type of the variable the argument names, when
+   * it is one (bare, `this.x`, `global.x`, `Scope.x`); undefined otherwise
+   */
+  readonly declared: TTypeInfo | undefined;
+
+  /**
    * Whether the argument is a whole array, which C decays to a pointer to its
-   * first element. Deferred for the reason `expressionType` is: it reads the
-   * same mutable render-time state, through the same resolver walk.
+   * first element (`OperandTyper.decaysToPointer`).
+   * Deferred like `expressionType`, and like it read from the typer over 1.4's
+   * settled declarations.
    */
   readonly isArray: () => boolean;
+
+  /**
+   * ADR-030 / #996: whether the argument is one element of an array whose
+   * elements are held through pointers (an array of handles). Such an element
+   * is already the handle, so `&arr[i]` would be a `T**`. Decided from the
+   * array's declaration by the typer's chain, not from the rendered text.
+   */
+  readonly isHandleArrayElement: () => boolean;
 
   /**
    * The argument, rendered.

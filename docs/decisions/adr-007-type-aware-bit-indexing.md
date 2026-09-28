@@ -535,6 +535,7 @@ packetArray[OFFSET_FIELD3, 1] <- data.field3;
 | ----- | -------------------------------------------------- | ----------------------------------------------------------- |
 | E0856 | A base is subscripted deeper than its shape allows | `tests/adr-007/subscript-depth-*-error.test.cnx`            |
 | E0888 | A float bit RANGE is read at file scope            | `tests/adr-007/float-bit-range-global-scope-error.test.cnx` |
+| E0890 | A read-modify-write target has a side effect       | `tests/adr-007/rmw-side-effect-*error.test.cnx`             |
 
 An array takes one subscript per dimension (ADR-036) and a bit-indexable scalar
 element one more, for the bit. A third subscript on a one-dimensional array is
@@ -549,6 +550,25 @@ restricted.
 
 Both are asked of an expression and of an assignment TARGET. They are different
 node types, and both fixtures for E0856 are writes.
+
+**A read-modify-write evaluates its target once** (owner ruling, 2026-09-27,
+#1760 review). A bit, bit-range or bitmap-field write keeps the bits it does not
+name, so it reads its target and stores it back. Every subscript in the target,
+the bit index included, would be evaluated twice: a call there would run twice,
+and a volatile read could pick a different element for the store than for the
+read. Such a subscript is an error (E0890), as a call in a condition is (E0702).
+Store it in a variable first:
+
+```cnx
+arr[idx()][3] <- true;   // ERROR E0890: idx() would run twice
+u8 i <- idx();
+arr[i][3] <- true;       // OK
+arr[idx()] <- 7;         // OK: a whole-element write evaluates its target once
+```
+
+A write-1 register member (`wo`, `w1s`, `w1c`, ADR-004) is written without being
+read, so its bit writes are not restricted. A compound operator on a bit is
+already E0857.
 
 ## Scope-context matrix
 

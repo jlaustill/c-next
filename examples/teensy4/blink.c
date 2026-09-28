@@ -36,6 +36,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// The one target this program is for (ADR-049)
+
 // =============================================================================
 // Teensy 4.x Platform Scope
 // =============================================================================
@@ -58,15 +60,15 @@ uint8_t Teensy4__doSomething(void) {
 /* Scope: LED */
 
 void LED__on(void) {
-    Teensy4__GPIO7__DataRegister_Set = (1U << 3);
+    Teensy4__GPIO7__DataRegister_Set = ((uint32_t)1U << 3);
 }
 
 void LED__off(void) {
-    Teensy4__GPIO7__DataRegister_Clear = (1U << 3);
+    Teensy4__GPIO7__DataRegister_Clear = ((uint32_t)1U << 3);
 }
 
 void LED__toggle(void) {
-    Teensy4__GPIO7__DataRegister_Toggle = (1U << 3);
+    Teensy4__GPIO7__DataRegister_Toggle = ((uint32_t)1U << 3);
 }
 
 bool LED__isOn(void) {
@@ -74,12 +76,12 @@ bool LED__isOn(void) {
 }
 
 void LED__configureInterrupt(void) {
-    Teensy4__GPIO7__InterruptConfig1 = (Teensy4__GPIO7__InterruptConfig1 & ~(0x3U << 6)) | (((uint8_t)Teensy4__InterruptType__RISING_EDGE & 0x3U) << 6);
-    Teensy4__GPIO7__InterruptMaskRegister = (Teensy4__GPIO7__InterruptMaskRegister & ~(1U << 3)) | (1U << 3);
+    Teensy4__GPIO7__InterruptConfig1 = (Teensy4__GPIO7__InterruptConfig1 & ~((uint32_t)0x3U << 6)) | (((uint8_t)Teensy4__InterruptType__RISING_EDGE & (uint32_t)0x3U) << 6);
+    Teensy4__GPIO7__InterruptMaskRegister = (Teensy4__GPIO7__InterruptMaskRegister & ~((uint32_t)1U << 3)) | ((uint32_t)1U << 3);
 }
 
 void LED__clearInterrupt(void) {
-    Teensy4__GPIO7__InterruptStatus = (Teensy4__GPIO7__InterruptStatus & ~(1U << 3)) | (1U << 3);
+    Teensy4__GPIO7__InterruptStatus = (Teensy4__GPIO7__InterruptStatus & ~((uint32_t)1U << 3)) | ((uint32_t)1U << 3);
 }
 
 // =============================================================================

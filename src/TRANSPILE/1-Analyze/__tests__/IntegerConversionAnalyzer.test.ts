@@ -1,9 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import TranspileState from "../../TranspileState";
 import IntegerConversionAnalyzer from "../IntegerConversionAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. ADR-024's integer conversions -- E0868 (a literal out of range) and
@@ -11,46 +9,18 @@ import testAnalysisContext from "./testAnalysisContext";
  * wrappers spread across `TypeResolver`, `TypeValidator`, `CodeGenerator` and
  * two helpers. One rule, three spellings, one analyzer.
  */
-const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new IntegerConversionAnalyzer(testAnalysisContext(state)).analyze(
-    tree,
-  );
-};
-
 /**
- * A struct field's type comes from the per-file symbol view, which a unit test
- * does not build. Reaching the chain-resolution arm therefore needs it set --
- * without it the analyzer cannot type `p.col` and stays silent, which looks
- * exactly like the rule not firing.
+ * A struct field's type comes from the per-file symbol view, which 1.3 and 1.4
+ * build from the struct the source declares. Without it the analyzer cannot
+ * type `p.col` and stays silent, which looks exactly like the rule not firing.
  */
-const structs = (fields: Record<string, Record<string, string>>) => {
-  state.symbols = {
-    knownStructs: new Set(Object.keys(fields)),
-    structFields: new Map(
-      Object.entries(fields).map(([name, f]) => [
-        name,
-        new Map(Object.entries(f)),
-      ]),
-    ),
-    structFieldDimensions: new Map(),
-    knownEnums: new Set<string>(),
-    knownScopes: new Set<string>(),
-    knownRegisters: new Set<string>(),
-    knownBitmaps: new Set<string>(),
-    functionReturnTypes: new Map(),
-    scopeMembers: new Map(),
-  } as unknown as typeof state.symbols;
+const errors = (source: string) => {
+  const { tree, context } = testAnalysisContextFor(source);
+  return new IntegerConversionAnalyzer(context).analyze(tree);
 };
-
-afterEach(() => {
-  state = new TranspileState();
-});
 
 const inMain = (body: string): string =>
   `u32 wide <- 1000;\ni32 neg <- -5;\nu8 byte <- 7;\nu32 main() {\n${body}\n    return 0;\n}`;
-
-let state = new TranspileState();
 
 describe("IntegerConversionAnalyzer", () => {
   describe("E0868 -- a literal must fit", () => {
@@ -147,6 +117,20 @@ describe("IntegerConversionAnalyzer", () => {
       ).toHaveLength(1);
     });
 
+    it("does not type a composite with a float literal as an integer (#1668)", () => {
+      // 2.2 types a float literal operand as floating, so this composite is not
+      // an integer composite and is no integer narrowing. 2.1 reads the literal
+      // the same way; skipping it read `wide * 2.5` as a u32 and reported a u32
+      // narrowing. E0810 rejects the mix itself -- this is the passes agreeing.
+      // The composite is floating, so storing it in a u8 is E0891 (#1800):
+      // a float reaches an integer only through a cast.
+      expect(
+        errors(inMain("    u8 x <- wide * 2.5;")).map((error) => error.code),
+      ).toEqual(["E0891"]);
+      // CONTROL: an integer literal is contextually typed and still narrows.
+      expect(errors(inMain("    u8 x <- wide * 2;"))).toHaveLength(1);
+    });
+
     it("leaves a ternary untyped: literal branches have no declared type", () => {
       expect(errors(inMain("    i32 s <- (wide > 0) ? 1 : -1;"))).toEqual([]);
     });
@@ -158,7 +142,6 @@ describe("IntegerConversionAnalyzer", () => {
       expect(
         errors(inMain("    u8[4] arr;\n    arr[0] <- wide;")),
       ).toHaveLength(1);
-      structs({ P: { col: "u8", data: "u32" } });
       expect(
         errors(
           "struct P { u8 col; u32 data; }\nu32 wide <- 9;\nu32 main() {\n    P p;\n    p.col <- wide;\n    return 0;\n}",
@@ -178,6 +161,86 @@ describe("IntegerConversionAnalyzer", () => {
       );
       expect(found).toHaveLength(1);
       expect(found[0].line).toBe(3);
+    });
+  });
+
+  // #1800, owner ruling 2026-09-28: "this should be a compiler error with an
+  // explicit cast". The implicit form was emitted as C's conversion, which is
+  // undefined for NaN and past the target's range; the cast saturates.
+  describe("E0891 -- a float reaches an integer only through a cast", () => {
+    const withFloat = (line: string): string =>
+      `f32 read() {\n    return 1.5;\n}\n${inMain(`    f32 k <- 2.5;\n    bool c <- true;\n${line}`)}`;
+    const codes = (line: string): string[] =>
+      errors(withFloat(line)).map((error) => error.code);
+
+    it.each([
+      ["a float variable", "    u32 b <- k;"],
+      ["a floating composite", "    u32 b <- k + 1.0;"],
+      ["a floating ternary", "    u32 b <- (c = true) ? k : 1.0;"],
+      ["a call returning a float", "    u32 b <- read();"],
+      ["a float literal", "    u32 b <- 3.5;"],
+      ["an assignment", "    u32 b <- 0;\n    b <- k;"],
+    ])("rejects %s", (_label, line) => {
+      expect(codes(line)).toEqual(["E0891"]);
+    });
+
+    it("names the floating type and the cast to write", () => {
+      const [found] = errors(withFloat("    i16 b <- k;"));
+      expect(found.message).toBe(
+        "Implicit conversion from floating f32 to integer i16",
+      );
+      expect(found.helpText).toContain("(i16)value");
+    });
+
+    it.each([
+      ["the explicit cast", "    u32 b <- (u32)k;"],
+      ["a float's bit range (ADR-007)", "    u32 b <- k[0, 32];"],
+      ["an integer", "    u32 b <- byte;"],
+      ["an integer into a float", "    f32 f <- byte;"],
+    ])("accepts %s", (_label, line) => {
+      expect(codes(line)).toEqual([]);
+    });
+
+    // #1760 second review, owner ruling "all positions now": every position
+    // a value lands in, not only a declaration or an assignment
+    const positioned = (body: string): string[] =>
+      errors(
+        [
+          "struct Pair {\n    u32 a;\n    f32 b;\n}",
+          "void take(u32 n) {\n}",
+          "void takeFloat(f32 x) {\n}",
+          "u32 give(f32 x) {\n" + body + "\n}",
+        ].join("\n"),
+      ).map((error) => error.code);
+
+    it.each([
+      ["an argument", "    take(x);\n    return 0;"],
+      ["a return value", "    return x;"],
+      ["a struct field", "    Pair p <- { a: x, b: x };\n    return 0;"],
+      ["an array element", "    u32[2] l <- [x, 1];\n    return 0;"],
+      ["an array fill", "    u32[2] l <- [x*];\n    return 0;"],
+      ["a nested element", "    u32[1][2] l <- [[x, 1]];\n    return 0;"],
+    ])("rejects a float as %s", (_label, body) => {
+      expect(positioned(body)).toEqual(["E0891"]);
+    });
+
+    it.each([
+      ["a cast argument", "    take((u32)x);\n    return 0;"],
+      ["a float parameter", "    takeFloat(x);\n    return 0;"],
+      ["a cast return", "    return (u32)x;"],
+      ["a cast field", "    Pair p <- { a: (u32)x, b: x };\n    return 0;"],
+      ["an integer element", "    u32[2] l <- [(u32)x, 1];\n    return 0;"],
+    ])("accepts %s", (_label, body) => {
+      expect(positioned(body)).toEqual([]);
+    });
+
+    // A `for` header's declaration is a declaration (#1760 second review)
+    it.each([
+      ["E0891", "    for (u32 i <- k; i < 10; i +<- 1) {\n    }"],
+      ["E0868", "    for (u8 j <- 300; j < 10; j +<- 1) {\n    }"],
+      ["E0869", "    for (u8 q <- wide; q < 10; q +<- 1) {\n    }"],
+    ])("reports %s in a for header", (code, line) => {
+      expect(codes(line)).toEqual([code]);
     });
   });
 });

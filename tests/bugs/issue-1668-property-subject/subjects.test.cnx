@@ -1,0 +1,44 @@
+// test-execution
+// #1668 review: a property measures the typer's type for the value it is
+// taken of, root or member alike -- what E0867 in 2.1 decides from too.
+// Render read a root's declared type info and a member's typed step, and:
+// a header `long`'s `.bit_length` was an internal error; a header array's
+// `.element_count` crashed; a field reached through a subscripted array of
+// structs crashed or was measured at the wrong depth (2 bytes for a 6-byte
+// array); and a string array's `.bit_length` was one element's (ADR-058: an
+// array's is its whole storage).
+// Pinned: a C header integer's width is the target's (ADR-049), and a header `long` is 64 bits here.
+#pragma target host
+#include "prop.h"
+
+struct Inner {
+    u8[6] arr;
+}
+
+struct Outer {
+    Inner[2] inners;
+    u8[3] arr;
+}
+
+Outer[2] sarr;
+string<8>[3] names;
+
+u32 main() {
+    u32 lb <- gl.bit_length;
+    if (lb != 64) return 1;
+    u32 bc <- gbuf.element_count;
+    if (bc != 4) return 2;
+    u32 ec <- sarr[1].arr.element_count;
+    if (ec != 3) return 3;
+    u32 by <- sarr[0].inners[1].arr.byte_length;
+    if (by != 6) return 4;
+    u32 nb <- names.bit_length;
+    if (nb != 216) return 5;
+    // NEGATIVE CONTROL: a plain variable and a plain field
+    u32 x <- 0;
+    u32 xb <- x.bit_length;
+    if (xb != 32) return 6;
+    u32 fb <- sarr[0].arr.bit_length;
+    if (fb != 24) return 7;
+    return 0;
+}

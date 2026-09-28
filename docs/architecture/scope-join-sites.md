@@ -32,13 +32,13 @@ about it, so no reader has to re-derive which is which:
 They overlap as descriptions -- a site can be built from source text AND
 read a leaf-keyed map -- so a site takes the FIRST kind above that applies,
 which makes them a partition rather than labels. **Nothing computes this.**
-The order is an instruction to whoever writes the row. `cnext/index.ts`'s
-`scopeName` is the worked example: it is source text from a parse-tree
-identifier, so `path` by description, and it was long filed as
-`leaf-keyed` on the grounds that it is paired with a collection. #1295
-argues that the pairing does not exist -- `constValues`' key goes through
-`fromParts`, which splits dotted paths, so the collection is not filed
-under a leaf-built key. It is `path` on that argument.
+The order is an instruction to whoever writes the row. The worked example
+was `cnext/index.ts`'s `scopeName`, deleted with 1.3's const pass (#1664
+box 7): source text from a parse-tree identifier, so `path` by description,
+though it was long filed as `leaf-keyed` on the grounds that it was paired
+with a collection. #1295 argued that the pairing did not exist -- the
+collection's key went through `fromParts`, which splits dotted paths -- so
+it was `path` on that argument.
 
 This list may shrink freely. It may not grow: `npm run scope-joins:check`
 fails on a file that gains a site, on a call shape nobody has adjudicated,
@@ -48,22 +48,18 @@ judgement cannot outlive the code it was made about. A new row is a prompt
 to adjudicate, not proof of a bug -- but it must be adjudicated before it
 lands.
 
-| File                                                                           | First element      | Sites  | Kind    | Moves with |
-| ------------------------------------------------------------------------------ | ------------------ | ------ | ------- | ---------- |
-| `src/PARSE/3-Declare/cnext/index.ts`                                           | `scopeName`        | 1      | path    | --         |
-| `src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts`                        | `resolvedName`     | 1      | path    | --         |
-| `src/TRANSPILE/2-Plan/AssignmentClassifier.ts`                                 | `firstId`          | 1      | path    | --         |
-| `src/TRANSPILE/2-Plan/AssignmentClassifier.ts`                                 | `scopeName`        | 2      | path    | --         |
-| `src/TRANSPILE/3-Render/codegen/assignment/handlers/AssignmentHandlerUtils.ts` | `leadingId`        | 1      | path    | --         |
-| `src/TRANSPILE/3-Render/codegen/assignment/handlers/BitmapHandlers.ts`         | `scopeName`        | 1      | path    | --         |
-| `src/TRANSPILE/3-Render/codegen/resolution/EnumTypeResolver.ts`                | `parts[0]`         | 1      | path    | --         |
-| `src/TRANSPILE/3-Render/codegen/resolution/EnumTypeResolver.ts`                | `parts[1]`         | 1      | path    | --         |
-| `src/TRANSPILE/3-Render/codegen/resolution/EnumTypeResolver.ts`                | `scopeName`        | 1      | path    | --         |
-| `src/utils/ScopeUtils.ts`                                                      | `scopePath`        | 1      | encoder | --         |
-| `src/utils/ScopeUtils.ts`                                                      | `symbol.scopePath` | 1      | encoder | --         |
-| **total**                                                                      |                    | **12** |         |            |
+| File                                                                           | First element      | Sites | Kind    | Moves with |
+| ------------------------------------------------------------------------------ | ------------------ | ----- | ------- | ---------- |
+| `src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts`                        | `resolvedName`     | 1     | path    | --         |
+| `src/TRANSPILE/2-Plan/AssignmentClassifier.ts`                                 | `firstId`          | 1     | path    | --         |
+| `src/TRANSPILE/2-Plan/AssignmentClassifier.ts`                                 | `scopeName`        | 1     | path    | --         |
+| `src/TRANSPILE/3-Render/codegen/assignment/handlers/AssignmentHandlerUtils.ts` | `leadingId`        | 1     | path    | --         |
+| `src/TRANSPILE/3-Render/codegen/assignment/handlers/BitmapHandlers.ts`         | `scopeName`        | 1     | path    | --         |
+| `src/utils/ScopeUtils.ts`                                                      | `scopePath`        | 1     | encoder | --         |
+| `src/utils/ScopeUtils.ts`                                                      | `symbol.scopePath` | 1     | encoder | --         |
+| **total**                                                                      |                    | **7** |         |            |
 
-12 site(s) across 7 file(s).
+7 site(s) across 5 file(s).
 
 ## What must move, and with what
 

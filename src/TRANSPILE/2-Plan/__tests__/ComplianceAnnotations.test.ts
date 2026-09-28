@@ -49,7 +49,16 @@ describe("ComplianceAnnotations", () => {
     // enumerate stays visible in review rather than growing quietly.
     const rules = ComplianceAnnotations.all().map((a) => a.rule);
 
-    expect(rules.sort()).toEqual(["14.3", "21.15", "8.4"]);
+    expect(rules.sort()).toEqual(["14.3", "21.15", "21.15", "8.4"]);
+  });
+
+  it("renders the float bits union with both pointer types it names", () => {
+    const rendered = ComplianceAnnotations.render(
+      ComplianceAnnotations.floatBitsUnion("double", "uint64_t"),
+    );
+
+    expect(rendered).toContain("double* vs uint64_t*");
+    expect(rendered).toMatch(HOUSE_FORM);
   });
 
   it("renders the slice unroll with both pointer types it names", () => {

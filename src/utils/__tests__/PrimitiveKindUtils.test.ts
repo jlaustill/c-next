@@ -22,26 +22,6 @@ describe("TPrimitiveKind", () => {
     expect(primitives).toHaveLength(12);
   });
 
-  it("provides bit widths for numeric primitives", () => {
-    expect(PrimitiveKindUtils.BIT_WIDTHS.get("u8")).toBe(8);
-    expect(PrimitiveKindUtils.BIT_WIDTHS.get("i32")).toBe(32);
-    expect(PrimitiveKindUtils.BIT_WIDTHS.get("f64")).toBe(64);
-    expect(PrimitiveKindUtils.BIT_WIDTHS.get("bool")).toBe(1);
-    expect(PrimitiveKindUtils.BIT_WIDTHS.get("void")).toBeUndefined();
-  });
-
-  describe("getBitWidth", () => {
-    it("returns bit width for numeric types", () => {
-      expect(PrimitiveKindUtils.getBitWidth("u8")).toBe(8);
-      expect(PrimitiveKindUtils.getBitWidth("i32")).toBe(32);
-      expect(PrimitiveKindUtils.getBitWidth("f64")).toBe(64);
-    });
-
-    it("returns undefined for void", () => {
-      expect(PrimitiveKindUtils.getBitWidth("void")).toBeUndefined();
-    });
-  });
-
   describe("isPrimitive", () => {
     it("returns true for primitive types", () => {
       expect(PrimitiveKindUtils.isPrimitive("u8")).toBe(true);
@@ -56,4 +36,5 @@ describe("TPrimitiveKind", () => {
       expect(PrimitiveKindUtils.isPrimitive("array")).toBe(false);
     });
   });
+  // #1668: a composite with a floating operand is not an integer composite.
 });

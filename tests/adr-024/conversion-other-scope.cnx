@@ -1,0 +1,4 @@
+// Helper (not a test): a scope member another file reads as `Other.wide`.
+scope Other {
+    public u32 wide <- 1000;
+}

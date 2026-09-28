@@ -64,8 +64,10 @@ const CONFIG_PATH = join(__dirname, "..", "..", ".dependency-cruiser.cjs");
 // with a `from` no root recognized, so `isLayerRule` skipped it and neither the
 // transitivity assertion nor the roster below covered it. Verified by mutation
 // -- removing its `reachable: true` left this file at 5 passed, while an
-// instrumentation module importing `utils/DeclaredVariableFacts` (which reaches
-// `PARSE/3-Declare/SymbolTable`) is caught only WITH `reachable`.
+// instrumentation module importing a `utils/` module that reaches
+// `PARSE/3-Declare/SymbolTable` (then `utils/DeclaredVariableFacts`, since
+// deleted; `utils/ForeignTypeFacts` has the same shape) is caught only WITH
+// `reachable`.
 const LAYER_ROOTS = [
   "^src/transpiler/",
   "^src/PARSE/",

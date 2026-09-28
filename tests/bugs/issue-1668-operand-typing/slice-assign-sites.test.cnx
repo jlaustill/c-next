@@ -1,0 +1,27 @@
+// test-error
+// #1668: E0858-E0861 read the buffer's shape and the source's type from the
+// one operand typer, and every assignment site. Before, a slice in a `for`
+// header was never checked (#1726), so an out-of-bounds span compiled.
+// Pinned: a C header integer's width is the target's (ADR-049), and its diagnostics name the host's widths.
+#pragma target host
+#include "c_ints.h"
+
+void main() {
+    u8[8] buf;
+    u32 w <- 1;
+    u8 a8 <- 1;
+
+    // NEGATIVE CONTROLS -- C integer sources, and an in-bounds `for` slice.
+    buf[0, 4] <- cU32;
+    buf[4, 4] <- cSigned;
+    buf[0, 1] <- a8 + 1;
+    for (u32 i <- 0; i < 3; buf[0, 4] <- w) {
+        i +<- 1;
+    }
+
+    // ASSERTIONS
+    buf[0, 4] <- a8 + 1;
+    for (u32 j <- 0; j < 3; buf[6, 4] <- w) {
+        j +<- 1;
+    }
+}

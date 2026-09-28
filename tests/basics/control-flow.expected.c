@@ -54,7 +54,7 @@ int main(void) {
     }
     if (sum != 10) return 4U;
     sum = 0U;
-    for (uint32_t i = 1U; i <= 5; i = i + 1) {
+    for (uint32_t i = 1U; i <= 5; i = cnx_clamp_add_u32(i, 1)) {
         sum = cnx_clamp_add_u32(sum, i);
     }
     if (sum != 15) return 5U;
@@ -64,12 +64,12 @@ int main(void) {
     } while (counter < 3);
     if (counter != 3) return 6U;
     sum = 0U;
-    for (uint32_t i = 0U; i < 5; i = i + 1) {
+    for (uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
     if (sum != 5) return 7U;
     sum = 0U;
-    for (uint32_t i = 0U; i < 5; i = i + 1) {
+    for (uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1)) {
         if (i != 2) {
             sum = cnx_clamp_add_u32(sum, 1U);
         }

@@ -39,6 +39,7 @@ describe("search path parity", () => {
 
   function run(entry: string) {
     return new Transpiler({
+      target: "host",
       input: entry,
       outDir: join(project, "build"),
       noCache: true,

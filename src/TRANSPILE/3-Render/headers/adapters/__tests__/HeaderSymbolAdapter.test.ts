@@ -140,16 +140,16 @@ describe("HeaderSymbolAdapter", () => {
      * ADR-030: the header's `extern` reads the decision the definition was
      * made from -- it declared `extern Dev device;` against `Dev* device`. The
      * complete type is the control: its variable is declared as its value.
+     * The decision is the declaration's `DeclaredPointer` answer, whose handle
+     * arm asks the symbol table (`DeclaredPointer.isHandleType`).
      */
-    it.each<[string, string, boolean | undefined]>([
+    it.each<[string, string, boolean]>([
       ["an opaque type", "Dev", true],
-      ["a complete type", "Full", undefined],
+      ["a complete type", "Full", false],
     ])(
       "marks a variable of %s by whether it is held through a pointer",
       (_label, typeName, expected) => {
-        state.program = {
-          isOpaqueType: (name: string) => name === "Dev",
-        } as unknown as IProgram;
+        state.symbolTable.markOpaqueType("Dev");
         const tSymbol: IVariableSymbol = {
           ...TestSymbolUtils.base({
             kind: "variable",
@@ -171,7 +171,7 @@ describe("HeaderSymbolAdapter", () => {
         const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
         expect(result.type).toBe(typeName);
-        expect(result.isOpaqueHandle).toBe(expected);
+        expect(result.isPointer).toBe(expected);
       },
     );
   });

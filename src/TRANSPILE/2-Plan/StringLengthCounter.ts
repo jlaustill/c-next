@@ -9,6 +9,7 @@
  * Updated for ADR-058: .length replaced with .char_count
  */
 
+import ParserUtils from "../../utils/ParserUtils";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import type TranspileState from "../TranspileState";
 
@@ -215,7 +216,11 @@ class StringLengthCounter {
         const memberName = op.IDENTIFIER()?.getText();
         if (memberName === "char_count") {
           // Check if this is a string type
-          const typeInfo = state.getVariableTypeInfo(primaryId);
+          const typeInfo = state.declarationTypeInfo(
+            null,
+            primaryId,
+            ParserUtils.getPosition(ctx),
+          );
           if (typeInfo?.isString) {
             const currentCount = counts.get(primaryId) || 0;
             counts.set(primaryId, currentCount + 1);

@@ -16,6 +16,7 @@ import ISeparatorContext from "../types/ISeparatorContext";
 import IMemberSeparatorDeps from "../types/IMemberSeparatorDeps";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 import QualifiedNameGenerator from "../../../../utils/QualifiedNameGenerator";
+import type IRootHolding from "../types/IRootHolding";
 
 /**
  * Input parameters for building a separator context
@@ -25,9 +26,9 @@ interface IBuildContextInput {
   hasGlobal: boolean;
   hasThis: boolean;
   currentScopePath: string;
-  isStructParam: boolean;
+  /** How the root is held (`memberAccessChain.rootHolding`) */
+  holding: IRootHolding;
   isCppAccess: boolean;
-  forcePointerSemantics?: boolean;
 }
 
 /**
@@ -46,9 +47,8 @@ class MemberSeparatorResolver {
       hasGlobal,
       hasThis,
       currentScopePath,
-      isStructParam,
+      holding,
       isCppAccess,
-      forcePointerSemantics,
     } = input;
     const isCrossScope =
       hasGlobal &&
@@ -64,11 +64,10 @@ class MemberSeparatorResolver {
 
     return {
       isCrossScope,
-      isStructParam,
+      holding,
       isCppAccess,
       scopedRegName,
       isScopedRegister,
-      forcePointerSemantics,
     };
   }
 
@@ -85,11 +84,11 @@ class MemberSeparatorResolver {
       return "::";
     }
 
-    // Struct parameter uses -> in C mode, . in C++ mode
-    // Issue #895: forcePointerSemantics overrides C++ mode to use -> -- decided
-    // by the one struct-parameter helper, which the whole-value wrap reads too.
-    if (ctx.isStructParam) {
-      return deps.getStructParamSeparator(ctx.forcePointerSemantics ?? false);
+    // A struct parameter uses -> in C mode, . in C++ mode, and a callback-
+    // promoted parameter or a local #895 made a pointer takes -> in both --
+    // decided by the one helper the read path asks too (#1760 review)
+    if (ctx.holding.isStructParam || ctx.holding.isPointerLocal) {
+      return deps.rootMemberSeparator(ctx.holding);
     }
 
     // Cross-scope access (global.Scope.member or global.Register.member)

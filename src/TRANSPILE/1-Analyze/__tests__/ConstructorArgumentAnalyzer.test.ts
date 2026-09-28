@@ -1,9 +1,7 @@
-import { describe, expect, it, beforeEach } from "vitest";
-import TranspileState from "../../TranspileState";
+import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ConstructorArgumentAnalyzer from "../ConstructorArgumentAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. A C++ constructor argument must name a `const` variable (ADR-013,
@@ -23,19 +21,11 @@ import testAnalysisContext from "./testAnalysisContext";
  * declaration site, so 2.1 can answer this without codegen state at all.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new ConstructorArgumentAnalyzer(testAnalysisContext(state)).analyze(
-    tree,
-  );
+  const { tree, context } = testAnalysisContextFor(source);
+  return new ConstructorArgumentAnalyzer(context).analyze(tree);
 };
 
-let state = new TranspileState();
-
 describe("ConstructorArgumentAnalyzer", () => {
-  beforeEach(() => {
-    state = new TranspileState();
-  });
-
   it("rejects a mutable argument, with a real position", () => {
     const found = errors(
       "u8 mutablePin <- 10;\nAdafruit_MAX31856 probe(mutablePin);",

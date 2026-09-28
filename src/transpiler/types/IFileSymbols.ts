@@ -1,4 +1,5 @@
 import type TSymbol from "./symbols/TSymbol";
+import type ILexicalFrame from "./ILexicalFrame";
 
 /**
  * What ONE FILE DECLARES — the artifact of pass 1.3 Declare (#1472).
@@ -53,6 +54,14 @@ interface IFileSymbols {
    * cannot be reconstructed from any single file and belongs to 1.4 (#1724).
    */
   readonly declaredScopeTypes: ReadonlySet<string>;
+
+  /**
+   * #1668 / #1664: the file's lexical frames -- its functions, blocks, `for`
+   * headers and scopes, and the locals, parameters and `for` variables each
+   * declares. As 1.3 read them; 1.4 settles their types and folds their
+   * consts, and every later pass reads the settled frames from `Program`.
+   */
+  readonly lexicalScopes: ILexicalFrame;
 }
 
 export default IFileSymbols;

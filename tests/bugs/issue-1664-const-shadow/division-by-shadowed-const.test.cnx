@@ -1,0 +1,25 @@
+// test-execution
+// #1664 box 7: ADR-051 asks what a const is worth where the division is
+// written. The analyzer kept one file-wide set of zero consts by bare name,
+// so `first()`'s local `const D <- 0` made `10 / D` in `second()` an E0800,
+// where `D` is the global 4.
+const u32 D <- 4;
+
+u32 first() {
+    const u32 D <- 0;
+    u32 y <- D;
+    return y;
+}
+
+u32 second() {
+    u32 x <- 10 / D;
+    return x;
+}
+
+u32 main() {
+    u32 zero <- first();
+    if (zero != 0) return 1;
+    u32 q <- second();
+    if (q != 2) return 2;
+    return 0;
+}

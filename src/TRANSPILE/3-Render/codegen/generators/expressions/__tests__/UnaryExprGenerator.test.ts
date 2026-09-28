@@ -8,27 +8,17 @@
  *
  * #1445: the generator takes `{ operator, operandCode, operandType }`, so
  * there is no node to fake and no orchestrator to stand in for the recursion.
- * `ExpressionTypeResolver.getUnaryExpressionType` is no longer mocked here either -- it
- * moved to the caller, and the operand's type arrives through the thunk.
- * `isUnsignedType` is still the generator's, and still mocked.
+ * The operand's type arrives through the thunk, and whether it is unsigned is
+ * `TypeCheckUtils`'s real answer (#1668: the mocked `ExpressionTypeResolver`
+ * predicate was a copy of it, and is deleted).
  */
 
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import generateUnaryExpr from "../UnaryExprGenerator";
 import type IGeneratorInput from "../../IGeneratorInput";
 import type IGeneratorState from "../../IGeneratorState";
 import type IOrchestrator from "../../IOrchestrator";
 import TranspileState from "../../../../../TranspileState";
-
-vi.mock("../../../../../2-Plan/ExpressionTypeResolver", () => {
-  return {
-    default: {
-      isUnsignedType: vi.fn(),
-    },
-  };
-});
-
-import ExpressionTypeResolver from "../../../../../2-Plan/ExpressionTypeResolver";
 
 // ========================================================================
 // Test Helpers
@@ -69,14 +59,11 @@ const run = (
 
 describe("UnaryExprGenerator", () => {
   afterEach(() => {
-    vi.mocked(ExpressionTypeResolver.isUnsignedType).mockReset();
     state.cppMode = false;
   });
 
   describe("bitwise NOT on unsigned types", () => {
     it("should cast ~u8 to (uint8_t)~c in C mode", () => {
-      vi.mocked(ExpressionTypeResolver.isUnsignedType).mockReturnValue(true);
-
       const result = run("~", "c", "u8");
 
       expect(result.code).toBe("(uint8_t)~c");
@@ -84,8 +71,6 @@ describe("UnaryExprGenerator", () => {
     });
 
     it("should cast ~u16 to (uint16_t)~c in C mode", () => {
-      vi.mocked(ExpressionTypeResolver.isUnsignedType).mockReturnValue(true);
-
       const result = run("~", "c", "u16");
 
       expect(result.code).toBe("(uint16_t)~c");
@@ -94,7 +79,6 @@ describe("UnaryExprGenerator", () => {
 
     it("should use static_cast in C++ mode", () => {
       state.cppMode = true;
-      vi.mocked(ExpressionTypeResolver.isUnsignedType).mockReturnValue(true);
 
       const result = run("~", "c", "u8");
 
@@ -105,8 +89,6 @@ describe("UnaryExprGenerator", () => {
 
   describe("bitwise NOT on signed/unresolvable types", () => {
     it("should not cast ~i8 (signed type)", () => {
-      vi.mocked(ExpressionTypeResolver.isUnsignedType).mockReturnValue(false);
-
       const result = run("~", "c", "i8");
 
       expect(result.code).toBe("~c");

@@ -1,0 +1,28 @@
+// test-execution
+// #1760 review: a float composite saturates when it is cast, whatever its
+// leaves' type names. `k * 2.0` is f32 x f64-literal, whose type is C's usual
+// arithmetic conversion, f64 -- but a composite whose leaves had different
+// names was untyped, so its cast was emitted raw: undefined behaviour for an
+// out-of-range float (UBSan: "400 is outside the range of representable
+// values of type 'unsigned char'").
+f32 k <- 200.0;
+f64 d <- 200.0;
+f32 neg <- -5.0;
+
+u32 main() {
+    // Controls: leaves of one name were already typed, and saturate
+    u8 a <- (u8)(k * k);
+    if (a != 255) return 1;
+    u8 c <- (u8)(k * 2.0f32);
+    if (c != 255) return 2;
+    // Leaves of different names
+    u8 b <- (u8)(k * 2.0);
+    if (b != 255) return 3;
+    u8 e <- (u8)(k + d);
+    if (e != 255) return 4;
+    u16 f <- (u16)(neg * 2);
+    if (f != 0) return 5;
+    u8 g <- (u8)((k > 1.0) ? k : 2.0);
+    if (g != 200) return 6;
+    return 0;
+}

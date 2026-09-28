@@ -1,0 +1,19 @@
+// test-error
+// test-adr: 024
+// #1668 review: a C-Next declaration whose type is a C typedef is typed by
+// that typedef. `real_t x` and a `float32_t` parameter were untyped, so
+// `x * i` went to cnx_clamp_mul_u32 and 2.5 * 3 was 6.0.
+#include "fo.h"
+
+f32 viaParameter(float32_t v, u32 i) {
+    return v * i;
+}
+
+u32 main() {
+    u32 i <- 3;
+    real_t x <- 2.5;
+    f32 r <- x * i;
+    // NEGATIVE CONTROL: the same typedef in floating arithmetic
+    f32 same <- x * 2.0;
+    return 0;
+}

@@ -157,6 +157,45 @@ describe("FunctionCollector", () => {
       expect(symbol.parameters[0].isArray).toBe(true);
       expect(symbol.parameters[0].arrayDimensions).toEqual([4, 4]);
     });
+
+    // #1760 review: a dimension is folded as a declaration's is, never read
+    // with parseInt, which gave "2*BUF" as 2 and "0x10" as 0
+    it.each([
+      ["void f(u8[0x10] p) { }", [16]],
+      ["void f(u8[0b100] p) { }", [4]],
+      ["void f(u8[sizeof(u32)] p) { }", [4]],
+      ["void f(u8[2*BUF] p) { }", ["2*BUF"]],
+      ["void f(u8[BUF] p) { }", ["BUF"]],
+      ["void f(u8[8] p) { }", [8]],
+    ])("folds a parameter's dimension as a declaration's: %s", (code, dims) => {
+      const funcCtx = parse(code).declaration(0)!.functionDeclaration()!;
+      const symbol = FunctionCollector.collect(
+        funcCtx,
+        "test.cnx",
+        "",
+        "private",
+      );
+      expect(symbol.parameters[0].arrayDimensions).toEqual(dims);
+    });
+
+    it.each([
+      ["u32 main(string args[]) { return 0; }", [""]],
+      ["i32 main(u8 args[][]) { return 0; }", ["", ""]],
+    ])(
+      "keeps the C-style dimensions E0874 admits for main's args: %s (#1668)",
+      (code, dimensions) => {
+        const funcCtx = parse(code).declaration(0)!.functionDeclaration()!;
+        const symbol = FunctionCollector.collect(
+          funcCtx,
+          "test.cnx",
+          "",
+          "private",
+        );
+
+        expect(symbol.parameters[0].isArray).toBe(true);
+        expect(symbol.parameters[0].arrayDimensions).toEqual(dimensions);
+      },
+    );
   });
 
   describe("scoped functions", () => {

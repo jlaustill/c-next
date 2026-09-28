@@ -1,0 +1,10 @@
+// #1668 / ADR-049: the target a helper declares is the whole program's. This
+// file declares none, so its atomic read-modify-write lowers to LDREX/STREX
+// for the helper's teensy41; it used to get the default platform's PRIMASK.
+#include "teensy-pinned.cnx"
+
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- pinnedValue;
+}

@@ -60,7 +60,7 @@ function(add_cnext_test TEST_NAME)
   # Custom command: transpile .cnx -> .c/.h
   add_custom_command(
     OUTPUT ${GENERATED_C} ${GENERATED_H}
-    COMMAND ${CNEXT_COMPILER} ${CNX_FILE}
+    COMMAND ${CNEXT_COMPILER} ${CNX_FILE} --target host
     DEPENDS ${CNX_FILE}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Transpiling ${TEST_NAME}.test.cnx"
@@ -96,7 +96,7 @@ function(add_cnext_cpp_test TEST_NAME)
   # Custom command: transpile .cnx -> .cpp/.hpp (C++ mode)
   add_custom_command(
     OUTPUT ${GENERATED_CPP} ${GENERATED_HPP}
-    COMMAND ${CNEXT_COMPILER} ${CNX_FILE} --cpp
+    COMMAND ${CNEXT_COMPILER} ${CNX_FILE} --cpp --target host
     DEPENDS ${CNX_FILE}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Transpiling ${TEST_NAME}.test.cnx (C++ mode)"

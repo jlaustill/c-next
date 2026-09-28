@@ -20,8 +20,11 @@ bool checkThreshold(u32 value) {
     return false;
 }
 
-// Callback returning i32 (signed)
-i32 getSignedValue(u32 input) {
+// Callback returning i32 (signed). #1681: its parameter was `u32`, and
+// `0 - input` gave -10 only because arithmetic on parameters wrapped and a
+// u32 return into an i32 is not yet checked (#1618). As u32 arithmetic it
+// saturates at 0; a signed input is what a negative result needs.
+i32 getSignedValue(i32 input) {
     return 0 - input;
 }
 

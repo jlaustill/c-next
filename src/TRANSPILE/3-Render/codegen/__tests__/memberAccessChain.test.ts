@@ -10,7 +10,7 @@
 
 import memberAccessChain from "../memberAccessChain";
 
-const { getStructParamSeparator, wrapStructParamValue } = memberAccessChain;
+const { getStructParamSeparator, wholeParamValue } = memberAccessChain;
 
 /**
  * Both helpers read ONE decision -- is this struct parameter a pointer here, or
@@ -34,7 +34,14 @@ describe("getStructParamSeparator", () => {
   );
 });
 
-describe("wrapStructParamValue", () => {
+describe("wholeParamValue", () => {
+  const struct = {
+    isStruct: true,
+    isArray: false,
+    isOpaqueHandle: false,
+    forcePointerSemantics: false,
+  };
+
   it.each<[string, boolean, boolean, string]>([
     ["C", false, false, "(*config)"],
     ["C++", true, false, "config"],
@@ -44,23 +51,90 @@ describe("wrapStructParamValue", () => {
     "wraps a whole-value struct parameter in %s",
     (_label, cppMode, forcePointerSemantics, expected) => {
       expect(
-        wrapStructParamValue("config", { cppMode, forcePointerSemantics }),
+        wholeParamValue(
+          "config",
+          { ...struct, forcePointerSemantics },
+          cppMode,
+        ),
       ).toBe(expected);
     },
   );
 
-  it("should handle parameter names with underscores", () => {
+  // ADR-030 / #1722: the handle's value IS the pointer; an array parameter
+  // is the pointer C passes; anything else resolved as it stands
+  it.each<[string, Parameters<typeof wholeParamValue>[1]]>([
+    ["an opaque handle", { ...struct, isOpaqueHandle: true }],
+    ["an array parameter", { ...struct, isArray: true }],
+    ["a scalar parameter", { ...struct, isStruct: false }],
+    ["no parameter", undefined],
+  ])("leaves %s unwrapped", (_label, paramInfo) => {
+    expect(wholeParamValue("p", paramInfo, false)).toBe("p");
+  });
+});
+
+// #1760 review: how a root is held, decided once for both member-access paths
+describe("memberAccessChain.rootHolding", () => {
+  const facts = {
+    isKnownStruct: (name: string) => name === "widget_t" || name === "Dev",
+    isHeldThroughPointer: (name: string) => name === "Dev",
+  };
+  const local = (baseType: string, isPointer: boolean) => ({
+    baseType,
+    bitWidth: 0,
+    isArray: false,
+    isConst: false,
+    isPointer,
+  });
+
+  it("answers a parameter from the parameter", () => {
     expect(
-      wrapStructParamValue("my_config", {
-        cppMode: false,
-        forcePointerSemantics: false,
-      }),
-    ).toBe("(*my_config)");
+      memberAccessChain.rootHolding(
+        { isStruct: true, forcePointerSemantics: true },
+        local("widget_t", true),
+        facts,
+      ),
+    ).toEqual({
+      isStructParam: true,
+      forcePointerSemantics: true,
+      isPointerLocal: false,
+    });
+  });
+
+  it("holds a local #895 made a pointer to a struct through the pointer", () => {
     expect(
-      wrapStructParamValue("my_config", {
-        cppMode: true,
-        forcePointerSemantics: false,
-      }),
-    ).toBe("my_config");
+      memberAccessChain.rootHolding(undefined, local("widget_t", true), facts)
+        .isPointerLocal,
+    ).toBe(true);
+  });
+
+  it.each([
+    ["a struct held by value", local("widget_t", false)],
+    ["an opaque handle", local("Dev", true)],
+    ["a pointer to a non-struct", local("char", true)],
+    ["an untyped root", undefined],
+  ])("holds %s by nothing", (_label, rootTypeInfo) => {
+    expect(
+      memberAccessChain.rootHolding(undefined, rootTypeInfo, facts),
+    ).toEqual({
+      isStructParam: false,
+      forcePointerSemantics: false,
+      isPointerLocal: false,
+    });
+  });
+
+  it("gives a pointer local -> in C++ too, and a C++ reference .", () => {
+    const pointer = memberAccessChain.rootHolding(
+      undefined,
+      local("widget_t", true),
+      facts,
+    );
+    expect(memberAccessChain.rootMemberSeparator(pointer, true)).toBe("->");
+    const reference = memberAccessChain.rootHolding(
+      { isStruct: true, forcePointerSemantics: false },
+      undefined,
+      facts,
+    );
+    expect(memberAccessChain.rootMemberSeparator(reference, true)).toBe(".");
+    expect(memberAccessChain.rootMemberSeparator(reference, false)).toBe("->");
   });
 });

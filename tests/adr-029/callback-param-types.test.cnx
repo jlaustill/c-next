@@ -8,8 +8,12 @@
 // value now shapes its arguments from the function that is its type, as a direct
 // call does, and this runs again.
 // Callback with u8 parameter
+// #1681: arithmetic on a u8 parameter clamps at 255 (ADR-044), so `val + 100`
+// saturated check 2's 255 + 100 to 255. The sum is taken at u32, where it is
+// 355 -- check 2 is about the value arriving intact, not about overflow.
 u32 processU8(u8 val) {
-    return val + 100;
+    u32 wide <- val;
+    return wide + 100;
 }
 
 // Callback with u32 parameter

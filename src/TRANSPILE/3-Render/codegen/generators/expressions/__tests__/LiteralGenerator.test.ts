@@ -56,6 +56,24 @@ describe("LiteralGenerator", () => {
     });
   });
 
+  // #1668: a hex integer can END in `F32`/`F64`. Reading that as a float
+  // suffix emitted 0xFF32 as `0xFf` (255) and 0xABCDEF64 as `0xABCDE`.
+  describe("hex literals ending in F32 or F64 (#1668)", () => {
+    it.each([
+      ["0xFF32", "u32", "0xFF32U"],
+      ["0xABCDEF64", "u64", "0xABCDEF64ULL"],
+      ["0xF32", "i32", "0xF32"],
+    ])("keeps %s whole (expected %s)", (text, expectedType, code) => {
+      const result = generateLiteral(
+        text,
+        { expectedType } as IGeneratorState,
+        state,
+      );
+
+      expect(result.code).toBe(code);
+    });
+  });
+
   describe("integer suffixes (Issue #130)", () => {
     it.each([
       ["should transform u64 suffix to ULL", "42u64", "42ULL"],

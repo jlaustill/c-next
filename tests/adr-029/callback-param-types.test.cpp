@@ -8,6 +8,19 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // test-execution
 // test-adr: 029
 // Tests: Callbacks with various parameter types
@@ -18,13 +31,17 @@
 // value now shapes its arguments from the function that is its type, as a direct
 // call does, and this runs again.
 // Callback with u8 parameter
+// #1681: arithmetic on a u8 parameter clamps at 255 (ADR-044), so `val + 100`
+// saturated check 2's 255 + 100 to 255. The sum is taken at u32, where it is
+// 355 -- check 2 is about the value arriving intact, not about overflow.
 uint32_t processU8(uint8_t val) {
-    return val + 100U;
+    uint32_t wide = val;
+    return cnx_clamp_add_u32(wide, 100U);
 }
 
 // Callback with u32 parameter
 uint32_t processU32(uint32_t val) {
-    return val + 1000U;
+    return cnx_clamp_add_u32(val, 1000U);
 }
 
 // Callback with bool parameter

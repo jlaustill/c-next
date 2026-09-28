@@ -7,95 +7,62 @@
  */
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
-import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
+import AssignmentClassifier from "../../../../2-Plan/AssignmentClassifier";
 import TAssignmentHandler from "./TAssignmentHandler";
 import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
-import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 
-/** Maps C operators to clamp helper operation names */
-const CLAMP_OP_MAP: Record<string, string> = {
-  "+=": "add",
-  "-=": "sub",
-  "*=": "mul",
-};
-
 /**
- * Get typeInfo for assignment target.
- * Handles simple identifiers, this.member, and global.member patterns.
+ * The target's type info. Both kinds are classified only when it resolved.
  */
-function getTargetTypeInfo(ctx: IAssignmentContext): {
-  typeInfo: TTypeInfo | undefined;
-} {
-  const id = ctx.identifiers[0];
-
-  // Simple identifier
-  if (ctx.isSimpleIdentifier) {
-    return { typeInfo: ctx.state.getVariableTypeInfo(id) };
-  }
-
-  // this.member: lookup using scoped name
-  if (ctx.isSimpleThisAccess && ctx.state.currentScopePath) {
-    const scopedName = QualifiedNameGenerator.forMember(
-      ctx.state.currentScopePath,
-      id,
-    );
-    return { typeInfo: ctx.state.getVariableTypeInfo(scopedName) };
-  }
-
-  // global.member: lookup using direct name
-  if (ctx.isSimpleGlobalAccess) {
-    return { typeInfo: ctx.state.getVariableTypeInfo(id) };
-  }
-
-  // Fallback to direct lookup
-  return { typeInfo: ctx.state.getVariableTypeInfo(id) };
+function targetTypeInfo(ctx: IAssignmentContext): TTypeInfo {
+  return AssignmentClassifier.targetTypeInfo(ctx)!;
 }
 
 /**
  * Handle atomic read-modify-write: atomic counter +<- 1
  *
  * Delegates to CodeGenerator's generateAtomicRMW which uses
- * LDREX/STREX on supported platforms or PRIMASK otherwise.
+ * LDREX/STREX on supported platforms or PRIMASK otherwise. Whether the inner
+ * operation saturates is the classifier's decision, passed in.
  */
 function handleAtomicRMW(ctx: IAssignmentContext): string {
-  const { typeInfo } = getTargetTypeInfo(ctx);
+  const typeInfo = targetTypeInfo(ctx);
   const target = ctx.renderTarget();
 
   return ctx.state
     .requireGenerator()
-    .generateAtomicRMW(target, ctx.cOp, ctx.generatedValue, typeInfo!);
+    .generateAtomicRMW(
+      target,
+      ctx.cOp,
+      ctx.generatedValue,
+      typeInfo,
+      AssignmentClassifier.compoundClampOp(ctx, typeInfo),
+    );
 }
 
 /**
  * Handle overflow-clamped compound assignment: clamp u8 saturated +<- 200
  *
- * Generates calls to cnx_clamp_add_u8, cnx_clamp_sub_u8, etc.
- * Only applies to integers (floats use native C arithmetic with infinity).
+ * Generates calls to cnx_clamp_add_u8, cnx_clamp_sub_u8, etc. Classified only
+ * when `AssignmentClassifier.compoundClampOp` names a helper.
  */
 function handleOverflowClamp(ctx: IAssignmentContext): string {
-  const { typeInfo } = getTargetTypeInfo(ctx);
+  const typeInfo = targetTypeInfo(ctx);
   const target = ctx.renderTarget();
-
-  // Floats use native C arithmetic (overflow to infinity)
-  if (TypeCheckUtils.usesNativeArithmetic(typeInfo!.baseType)) {
-    return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
-  }
-
-  const helperOp = CLAMP_OP_MAP[ctx.cOp];
+  const helperOp = AssignmentClassifier.compoundClampOp(ctx, typeInfo);
 
   if (helperOp) {
     // #1241: ADR-044's rule firing on the COMPOUND form. The expression form
     // (`a <- a + b`) records in BinaryExprGenerator; this is the `a +<- b` path,
     // which reaches a different decision and would otherwise leave every
-    // compound-only fixture without a derivable context. Recorded past the float and
-    // helper-lookup gates, so only an actually-lowered clamp claims a cell.
+    // compound-only fixture without a derivable context. Recorded past the
+    // helper decision, so only an actually-lowered clamp claims a cell.
     AdrProvenance.record("044", ctx.targetLine);
-    ctx.state.markClampOpUsed(helperOp, typeInfo!.baseType);
-    return `${target} = cnx_clamp_${helperOp}_${typeInfo!.baseType}(${target}, ${ctx.generatedValue});`;
+    ctx.state.markClampOpUsed(helperOp, typeInfo.baseType);
+    return `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${ctx.generatedValue});`;
   }
 
-  // Fallback for operators without clamp helpers (e.g., /=)
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
 }
 

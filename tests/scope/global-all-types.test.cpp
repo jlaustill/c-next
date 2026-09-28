@@ -10,6 +10,7 @@
 #include <limits.h>
 
 // test-execution
+// test-target-xfail: host cortex-m7 atmega328p #1062 "integer constant is so large that it is unsigned"
 // Test: ADR-016 global. accessor with all primitive types
 // Verifies that global. works correctly with every C-Next primitive type inside scope methods
 // Unsigned integer globals

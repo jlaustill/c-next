@@ -1,0 +1,12 @@
+32:18 error[E0810]: Binary operator combines operands of different essential type categories (signed and unsigned)
+       help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. Reinterpret one operand's bits to match the other with bit indexing, e.g. value[0, 32] (ADR-007/ADR-024).
+33:21 error[E0810]: Binary operator combines operands of different essential type categories (signed and unsigned)
+       help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. Reinterpret one operand's bits to match the other with bit indexing, e.g. value[0, 32] (ADR-007/ADR-024).
+34:18 error[E0810]: Binary operator combines operands of different essential type categories (unsigned and enum Color)
+       help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. Convert one operand explicitly, e.g. with a cast (ADR-024).
+35:18 error[E0810]: Binary operator combines operands of different essential type categories (unsigned and character)
+       help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. Convert one operand explicitly, e.g. with a cast (ADR-024).
+36:20 error[E0810]: Binary operator combines operands of different essential type categories (unsigned and character)
+       help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. Convert one operand explicitly, e.g. with a cast (ADR-024).
+37:19 error[E0810]: Binary operator combines operands of different essential type categories (unsigned and Boolean)
+       help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. Convert one operand explicitly, e.g. with a cast (ADR-024).

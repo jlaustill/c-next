@@ -19,6 +19,7 @@ import INTEGER_TYPES from "../transpiler/types/INTEGER_TYPES";
 import UNSIGNED_TYPES from "../transpiler/types/UNSIGNED_TYPES";
 import SIGNED_TYPES from "../transpiler/types/SIGNED_TYPES";
 import FLOAT_TYPES from "../transpiler/types/FLOAT_TYPES";
+import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
 
 /** Standard bit widths for MMIO optimization */
 const STANDARD_WIDTHS = [8, 16, 32] as const;
@@ -55,6 +56,19 @@ class TypeCheckUtils {
   }
 
   /**
+   * The values an integer type holds, `[min, max]`, or null for a type that
+   * is not a C-Next integer. BigInt, because a u64 bound is past 2^53, where
+   * a double stops being exact.
+   */
+  static integerRange(typeName: string): readonly [bigint, bigint] | null {
+    if (!TypeCheckUtils.isInteger(typeName)) return null;
+    const width = BigInt(TYPE_WIDTH[typeName]);
+    return TypeCheckUtils.isUnsigned(typeName)
+      ? [0n, (1n << width) - 1n]
+      : [-(1n << (width - 1n)), (1n << (width - 1n)) - 1n];
+  }
+
+  /**
    * Check if a type name is a floating point type.
    *
    * @param typeName - The type name to check
@@ -65,12 +79,17 @@ class TypeCheckUtils {
   }
 
   /**
-   * Check if a type name is a string type (string<N>).
+   * Whether a type NAME is a sized string spelling, `string<N>`.
+   *
+   * Not "is this a string": a bare `string` (`main`'s args) is one too, and
+   * that is `OperandTyper.isString`'s question, asked of a typed value. This
+   * one reads a spelling, and was named `isString` beside it while the two
+   * disagreed on a bare `string` (#1668 review).
    *
    * @param typeName - The type name to check
    * @returns true if it matches string<N> pattern
    */
-  static isString(typeName: string): boolean {
+  static isSizedStringName(typeName: string): boolean {
     return /^string<\d+>$/.test(typeName);
   }
 

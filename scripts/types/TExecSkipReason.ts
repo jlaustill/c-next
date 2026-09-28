@@ -11,8 +11,17 @@
  * recorded now, because a report that names a cause has to know it.
  */
 type TExecSkipReason =
-  /** Generated code needs an ARM runtime this host cannot execute. */
-  | "arm"
+  /**
+   * The program's target is not the host, so it is compiled for its target
+   * and not run (#1668). This replaced a text sniff for ARM intrinsics,
+   * which also fired on host programs whose code merely mentions them.
+   */
+  | "target"
+  /**
+   * The host cell is an expected failure (`test-target-xfail: host #N`), so
+   * there was no run to compare between C and C++.
+   */
+  | "xfail"
   /** Compilation and execution were skipped, so there was nothing to run. */
   | "transpile-only"
   /**

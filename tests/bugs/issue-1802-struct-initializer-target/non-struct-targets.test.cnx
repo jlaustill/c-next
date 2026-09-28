@@ -1,0 +1,28 @@
+// test-error
+// #1802: only a struct takes `{ field: value }`. A bitmap's value is its
+// backing integer, inside a struct or not (owner ruling 2026-09-28), and a
+// scalar has no fields. Each was emitted as a designated initializer that C
+// rejects. The integer forms and the struct initializers beside them are the
+// controls: they stay silent.
+bitmap8 Flags {
+    A,
+    B,
+    C[6]
+}
+
+struct Cfg {
+    u32 word;
+    Flags f;
+}
+
+u32 main() {
+    Flags standalone <- { A: 1 };
+    Cfg nested <- { word: 1, f: { A: 1 } };
+    u32 scalar <- { a: 1 };
+    u8[2] elements <- [{ a: 1 }, 2];
+
+    Flags byValue <- 3;
+    Cfg control <- { word: 1, f: 3 };
+    Cfg[2] controls <- [{ word: 1, f: 0 }, { word: 2, f: 1 }];
+    return control.word + controls[1].word;
+}

@@ -1,0 +1,20 @@
+u32[4] data;
+
+u32 pick(i32 i) {
+    return data[i];
+}
+
+u32 sum() {
+    u32 total <- 0;
+    for (u32 i <- 0; i < 4; i +<- 1) {
+        total +<- data[i];
+    }
+    return total;
+}
+
+// test-error
+// #1694 program 2. `pick`'s i32 subscript on line 4 is E0850. At f8651d55d it
+// was accepted (exit 0): the u32 `i` of the later loop replaced the entry for
+// `i`. NEGATIVE CONTROL: the loop's own `data[i]` on line 10 is unsigned and
+// must not be reported. The program is kept byte-for-byte on lines 1-13, and
+// the marker is last, so the positions are the card's.

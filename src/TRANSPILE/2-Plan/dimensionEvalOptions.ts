@@ -16,17 +16,26 @@
  * dimension form becomes resolvable everywhere at once.
  */
 
-import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
+import ConstantFold from "../../utils/ConstantFold";
 import type TranspileState from "../TranspileState";
+import type ISourcePosition from "../../utils/types/ISourcePosition";
+import type IConstantEvalOptions from "../../utils/types/IConstantEvalOptions";
 
 /**
- * Build the constant-folding options for an array dimension from current state.
+ * The constant-folding options for a dimension folded at `at`: the const
+ * values visible there, as 1.4 settled them (#1664 box 7), and the type
+ * widths `sizeof` needs.
+ *
+ * Render held one mutable map per file instead, seeded with every const under
+ * its bare name and written as the walk passed a local const, so a local `N`
+ * in one function sized another's `u8[N]`.
  */
-function dimensionEvalOptions(state: TranspileState) {
-  return {
-    constValues: state.constValues,
-    typeWidths: TYPE_WIDTH,
-  };
+function dimensionEvalOptions(
+  state: TranspileState,
+  at: ISourcePosition,
+): IConstantEvalOptions {
+  const typing = state.typingContext();
+  return ConstantFold.at(typing.program, typing.sourceFile, at);
 }
 
 export default dimensionEvalOptions;

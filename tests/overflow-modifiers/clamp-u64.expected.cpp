@@ -24,6 +24,7 @@ static inline uint64_t cnx_clamp_sub_u64(uint64_t a, uint64_t b) {
 }
 
 // test-execution
+// test-target-xfail: host cortex-m7 atmega328p #1062 "integer constant is so large that it is unsigned"
 // Tests: clamp modifier for u64 type (0 to 18446744073709551615)
 // Validates overflow clamps to UINT64_MAX, underflow clamps to 0
 // ADR-044: Per-variable overflow semantics

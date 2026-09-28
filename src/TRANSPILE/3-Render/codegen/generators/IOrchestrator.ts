@@ -68,9 +68,6 @@ interface IOrchestrator {
   /** Check if a function is defined in C-Next (vs C headers) */
   isCNextFunction(name: string): boolean;
 
-  /** Issue #322: Check if a type is a struct type */
-  isStructType(typeName: string): boolean;
-
   /**
    * Brace that zero-initializes a whole aggregate -- `{}` in C++, `{0}` in C.
    * #1568: the ADR-029 init function needs it for the struct as a whole, and
@@ -240,17 +237,8 @@ interface IOrchestrator {
   /** Get the separator for scope access (:: for C++, _ for C-Next) */
   getScopeSeparator(isCppAccess: boolean): string;
 
-  /** Get struct field info for .length calculations */
-  getStructFieldInfo(
-    structType: string,
-    fieldName: string,
-  ): { type: string; dimensions?: (number | string)[] } | null;
-
   /** Get member type info for struct access chains */
   getMemberTypeInfo(structType: string, memberName: string): TTypeInfo | null;
-
-  /** Generate a bit mask for bit range access */
-  generateBitMask(width: string, is64Bit?: boolean): string;
 
   /** Add a pending temp variable declaration (for float bit indexing) */
   addPendingTempDeclaration(declaration: string): void;
@@ -270,23 +258,11 @@ interface IOrchestrator {
   // === Issue #948: Opaque Type Helpers ===
 
   /**
-   * Check if a type is an opaque (forward-declared) struct type.
-   * Opaque types can only be used as pointers (cannot be instantiated).
-   */
-  isOpaqueType(typeName: string): boolean;
-
-  /**
    * ADR-030: whether a declaration of this type is held through a pointer.
    * The one answer every declaration site reads -- see
    * `TranspileState.isHeldThroughPointer`.
    */
   isHeldThroughPointer(typeName: string): boolean;
-
-  /**
-   * Mark a scope variable as having an opaque type.
-   * These variables are generated as pointers with NULL initialization.
-   */
-  markOpaqueScopeVariable(qualifiedName: string): void;
 }
 
 export default IOrchestrator;

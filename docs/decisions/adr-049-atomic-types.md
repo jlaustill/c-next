@@ -38,9 +38,11 @@ C-Next needs a way to declare variables that are safe for ISR/main sharing, with
 
 ### Platform Capabilities
 
+_(Corrected 2026-09-26, #1668: Cortex-M0+ is ARMv6-M, which has no exclusive-access instructions. This table and the old target list both said it had them.)_
+
 | Feature                   | M0  | M0+ | M3/M4/M7 |
 | ------------------------- | --- | --- | -------- |
-| LDREX/STREX               | No  | Yes | Yes      |
+| LDREX/STREX               | No  | No  | Yes      |
 | PRIMASK (disable all IRQ) | Yes | Yes | Yes      |
 | BASEPRI (selective IRQ)   | No  | No  | Yes      |
 
@@ -205,10 +207,12 @@ counter.store(42, Ordering.Release);
 
 How does the compiler know which intrinsics to emit?
 
+_(Corrected 2026-09-26, #1668: Cortex-M0+ is ARMv6-M and has no LDREX/STREX, so it uses the critical section like Cortex-M0.)_
+
 | Platform   | RMW Implementation         |
 | ---------- | -------------------------- |
 | Cortex-M3+ | LDREX/STREX loop           |
-| Cortex-M0+ | LDREX/STREX loop           |
+| Cortex-M0+ | Critical section (PRIMASK) |
 | Cortex-M0  | Critical section (PRIMASK) |
 
 **Related question:** How does C-Next know the target platform? (See ADR-009 Q6)
@@ -466,93 +470,121 @@ For v1, the simplicity of "all atomics are SeqCst" outweighs micro-optimization.
 
 ### Q6: Target Platform Specification ✓
 
-**Decision: Capability-based targeting with named aliases**
+> **Rewritten 2026-09-26 (#1668), by owner ruling.** The previous text decided "capability-based with named aliases": three facts (word size, LDREX/STREX, BASEPRI), a table of names, the precedence below, and an error when no target is found. The owner ruled that this precedence and the missing-target error are right, and that the code, which did neither, must follow them. The same rulings widened a target to a complete description and moved the named targets into a published catalog. Three statements in the old text were wrong and are corrected: Cortex-M0+ had LDREX/STREX, the example error code E0802 belongs to a different diagnostic, and the ADR carried its own list of targets.
 
-The transpiler needs three pieces of information to generate correct atomic code:
+**Decision: every program names exactly one target, and a target is a complete description of the platform facts the language depends on.**
 
-| Capability    | Values     | Purpose                                   |
-| ------------- | ---------- | ----------------------------------------- |
-| `word_size`   | 8, 16, 32  | Natural atomicity of types                |
-| `ldrex_strex` | true/false | Lock-free RMW vs critical section         |
-| `basepri`     | true/false | Selective interrupt masking (for ADR-050) |
+#### Why a target is required
 
-**Named targets are just aliases** for these three capabilities:
+Atomic lowering (this ADR), selective interrupt masking (ADR-050), the width of a C or C++ header's `int`, `long` and `size_t` operands (ADR-024), and the identifier-significance limits of MISRA C:2012 Rules 5.1 and 5.9 all depend on the platform. A program with no target has no defined meaning, so it is rejected.
+
+#### The target description (schema version 1)
+
+A target description gives every one of these facts. None is optional, except the two toolchain fields.
+
+| Field                       | Kind              | Allowed         | Meaning                                                                                    |
+| --------------------------- | ----------------- | --------------- | ------------------------------------------------------------------------------------------ |
+| `name`                      | string            | one pragma word | the target's name (catalog only)                                                           |
+| `word_size`                 | unsigned integer  | 8, 16, 32, 64   | the widest naturally atomic access                                                         |
+| `ldrex_strex`               | Boolean           |                 | exclusive-access read-modify-write instructions exist                                      |
+| `basepri`                   | Boolean           |                 | selective interrupt masking exists (ADR-050)                                               |
+| `char_bits`                 | unsigned integer  | 8               | a platform with a wider `char` is rejected explicitly                                      |
+| `char_signed`               | Boolean           |                 | plain `char` is signed                                                                     |
+| `short_bits`                | unsigned integer  | 16              |                                                                                            |
+| `int_bits`                  | unsigned integer  | 16, 32          |                                                                                            |
+| `long_bits`                 | unsigned integer  | 32, 64          |                                                                                            |
+| `long_long_bits`            | unsigned integer  | 64              |                                                                                            |
+| `size_t_bits`               | unsigned integer  | 16, 32, 64      |                                                                                            |
+| `pointer_bits`              | unsigned integer  | 16, 32, 64      |                                                                                            |
+| `float_bits`                | unsigned integer  | 32              |                                                                                            |
+| `double_bits`               | unsigned integer  | 32, 64          |                                                                                            |
+| `long_double_bits`          | unsigned integer  | 32, 64, 96, 128 | storage size, at least `double_bits`                                                       |
+| `big_endian`                | Boolean           |                 |                                                                                            |
+| `external_identifier_chars` | unsigned integer  | at least 6      | MISRA C:2012 Rule 5.1                                                                      |
+| `internal_identifier_chars` | unsigned integer  | at least 31     | MISRA C:2012 Rule 5.9                                                                      |
+| `toolchain_triple`          | string (optional) |                 | a compiler configuration used to check generated code; never changes the program's meaning |
+| `toolchain_cpu`             | string (optional) |                 | as above                                                                                   |
+
+A description must also satisfy C's relations: `short` ≤ `int` ≤ `long` ≤ `long long`, and `float` ≤ `double` ≤ `long double`.
+
+#### Named targets
+
+Named targets are published with the compiler as **one C-Next source file**, the target catalog, which any conforming compiler reads as a C-Next program:
+
+- The file declares its schema version, and a compiler rejects a version it does not know.
+- Each target is a `const TargetDescription` whose initializer gives every required field as a **literal**: an integer, `true` or `false`, or a string. No expression and no reference to another constant is allowed, so no compiler has to evaluate code to learn a target.
+- A name that denotes the same platform as another is a `const TargetAlias`, which maps the name to that target's name. No fact is written twice.
+- Names are strings, because a name such as `cortex-m0+` is not an identifier. They match **exactly**, with no case folding.
+- The build machine is a target like any other, named `host`.
+- Adding a target means adding one initializer to the catalog. **The catalog, not this ADR, lists the targets**, so there is no second list to drift.
+
+#### Where the target comes from
 
 ```
-# Target mapping (internal or config file)
-# target_name,    word_size, ldrex_strex, basepri
-
-cortex-m0,        32,        false,       false
-cortex-m0+,       32,        true,        false
-cortex-m3,        32,        true,        true
-cortex-m4,        32,        true,        true
-cortex-m7,        32,        true,        true
-avr,              8,         false,       false
-atmega328p,       8,         false,       false
-teensy41,         32,        true,        true
-arduino-uno,      8,         false,       false
-stm32f4,          32,        true,        true
+1. Source: #pragma target <name>, or an inline description (below)
+       ↓ (if not present)
+2. The command-line target option (a project configuration's `target` is its default)
+       ↓ (if not present)
+3. The build system: PlatformIO, meaning the board of the environment being built
+       ↓ (if not found)
+4. COMPILER ERROR: the program names no target
 ```
 
-**Usage - known target:**
+Every name given in source or as the option must be a known target, even when a higher rung decides. A tool that only parses, such as an editor listing symbols, needs no target.
+
+#### Pragma syntax
+
+A pragma is `#pragma`, a key, and its values separated by spaces or tabs, all on one line, before any declaration:
+
+- A key is a letter or underscore followed by letters, digits or underscores. A value is letters, digits, `_`, `.`, `+` and `-`.
+- The keys are `target` and the description's field names except `name` and the toolchain fields. Each takes exactly one value.
+- An integer field takes decimal digits, and a Boolean field takes `true` or `false`.
+- Any other pragma is an error.
+
+#### Inline description
+
+A program's description pragmas together form one description, for a platform the catalog does not name:
 
 ```cnx
-#pragma target teensy41
-// Maps to: word_size=32, ldrex_strex=true, basepri=true
-
-atomic u32 counter <- 0;
-counter +<- 1;  // Generates LDREX/STREX loop
-```
-
-**Usage - new/unsupported MCU:**
-
-```cnx
-// Specify capabilities directly
 #pragma word_size 32
 #pragma ldrex_strex true
 #pragma basepri false
+#pragma char_bits 8
+#pragma char_signed false
+#pragma short_bits 16
+#pragma int_bits 32
+#pragma long_bits 32
+#pragma long_long_bits 64
+#pragma size_t_bits 32
+#pragma pointer_bits 32
+#pragma float_bits 32
+#pragma double_bits 64
+#pragma long_double_bits 64
+#pragma big_endian false
+#pragma external_identifier_chars 31
+#pragma internal_identifier_chars 63
 
 atomic u32 counter <- 0;
-counter +<- 1;  // Generates LDREX/STREX loop
+counter +<- 1;  // Generates the LDREX/STREX loop
 ```
 
-**Priority order for target resolution:**
+- It must be complete, under the same rule as a catalog entry.
+- It cannot be combined with `#pragma target`.
+
+A partial description is an error that lists the missing fields. For a file whose only description pragma is `#pragma word_size 32`:
 
 ```
-1. Source pragmas (#pragma target OR individual capabilities)
-       ↓ (if not present)
-2. Command-line flag (--target=X or --word-size=32 --ldrex-strex=true --basepri=false)
-       ↓ (if not present)
-3. Build system detection (platformio.ini, Arduino IDE, CMake, etc.)
-       ↓ (if not found)
-4. COMPILER ERROR: Cannot determine target platform
+Error: myfile.cnx:1:0 error[E0514]: incomplete target description
+       help: missing: ldrex_strex, basepri, char_bits, char_signed, short_bits, int_bits, long_bits, long_long_bits, size_t_bits, pointer_bits, float_bits, double_bits, long_double_bits, big_endian, external_identifier_chars, internal_identifier_chars. Either use '#pragma target <name>' or give every field (ADR-049).
 ```
 
-**Contributing new targets:**
+#### One target per program
 
-Adding support for a new MCU is simply adding one line to the target mapping:
+Every target declaration in a program, whether it is in the entry file or an included `.cnx`, must describe the same target, compared field by field. A file with no declaration takes the program's target.
 
-```
-my-exotic-mcu, 32, true, false
-```
+#### Scope-context matrix
 
-This makes C-Next easily extensible to new platforms without code changes.
-
-**Validation:**
-
-- If `#pragma target X` is used, X must be in the known target list
-- If individual capabilities are used, ALL THREE must be specified
-- Partial specification is a compiler error
-
-```
-error[E0802]: Incomplete target specification
-  --> myfile.cnx:2
-   |
- 2 | #pragma word_size 32
-   |
-   | word_size specified but ldrex_strex and basepri are missing.
-   | Either use '#pragma target <name>' or specify all three capabilities.
-```
+A target declaration appears before every declaration, so it lies in none of the matrix's four contexts, and target diagnostics occupy no cell.
 
 ### Q7: Atomics Within Scope ✓
 
@@ -638,21 +670,35 @@ The compiler tracks ISR vs main access per-member, not per-scope, so mixed atomi
 3. ~~Should direct assignment be allowed?~~ **RESOLVED: yes, type handles safety**
 4. ~~Which primitive types can be atomic?~~ **RESOLVED: all scalars, structs/arrays use critical**
 5. ~~Should memory ordering be exposed or hidden?~~ **RESOLVED: SeqCst always, compiler enforces atomic for ISR-shared**
-6. ~~How is target platform specified?~~ **RESOLVED: capability-based with named aliases**
+6. ~~How is target platform specified?~~ **RESOLVED: a complete target description, named or inline** (rewritten 2026-09-26, #1668)
 7. ~~How do atomics work within `scope`?~~ **RESOLVED: works naturally with `this.` prefix**
 
 ---
 
 ## Diagnostics
 
-| Code  | Reported when                                      | Asserted by                                    |
-| ----- | -------------------------------------------------- | ---------------------------------------------- |
-| E0889 | A declaration carries both `atomic` and `volatile` | `tests/adr-049/atomic-volatile-error.test.cnx` |
+| Code  | Reported when                                                                                                               | Asserted by                                                                                |
+| ----- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| E0889 | A declaration carries both `atomic` and `volatile`                                                                          | `tests/adr-049/atomic-volatile-error.test.cnx`                                             |
+| E0510 | A name given as a target, in source or as the target option, is not a known target                                          | `tests/bugs/issue-1668-targets/unknown-pragma.test.cnx`                                    |
+| E0511 | Two target declarations in one program describe different platforms, or one names a target and another describes one inline | `tests/bugs/issue-1668-targets/conflicting-pragmas.test.cnx`, `target-and-inline.test.cnx` |
+| E0512 | A pragma's key is neither `target` nor a description field                                                                  | `tests/bugs/issue-1668-targets/pragma-unknown-key.test.cnx`                                |
+| E0513 | A pragma's value is wrong in count, kind or range                                                                           | `tests/bugs/issue-1668-targets/pragma-bad-value.test.cnx`, `inline-bad-values.test.cnx`    |
+| E0514 | An inline description leaves a field out                                                                                    | `tests/bugs/issue-1668-targets/inline-incomplete.test.cnx`                                 |
+| E0515 | Nothing names the program's target: no pragma, no option, no build-system board                                             | `tests/bugs/issue-1668-targets/target-required/no-target.test.cnx`                         |
 
 `atomic` is `volatile` plus the guarantee that a read or write cannot be torn,
 so writing both says one of two different things and the author has to be asked
 which. The rule is entirely syntactic -- two modifier tokens on one declaration
 -- so it needs no type, no scope and no symbols.
+
+E0510 and E0511 are the two ways a program's one target can fail to exist
+(Q6). E0510 is reported at the naming pragma, or on the entry file when the
+option named it -- even when a pragma decides, because a misspelled option
+is an error rather than a setting that happens to be overridden. E0511 is
+reported at the declaration that disagrees with the first. Declarations agree
+when they describe the same platform, whatever the names, so an alias agrees
+with the target it names.
 
 ## Scope-Context Matrix (#1219)
 

@@ -86,6 +86,7 @@ describe("#1301: the retained-parse cache is released at end of run", () => {
       includeDirs: [tempDir],
       outDir: tempDir,
       headerOutDir: tempDir,
+      target: "host",
     };
     return new Transpiler(config);
   }

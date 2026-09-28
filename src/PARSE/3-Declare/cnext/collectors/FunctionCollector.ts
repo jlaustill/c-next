@@ -14,6 +14,7 @@ import SymbolRegistry from "../../SymbolRegistry";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../transpiler/types/TVisibility";
 import ParserUtils from "../../../../utils/ParserUtils";
+import DimensionResolver from "../utils/DimensionResolver";
 
 class FunctionCollector {
   /**
@@ -122,7 +123,7 @@ class FunctionCollector {
    * Extract parameter information from parameter contexts.
    * Converts type strings to TType.
    */
-  private static collectParameters(
+  static collectParameters(
     params: Parser.ParameterContext[],
     scopePath = "",
     isScopeType?: (qualifiedName: string) => boolean,
@@ -135,24 +136,23 @@ class FunctionCollector {
 
       // Check for C-Next style array type (u8[8] param, u8[4][4] param, u8[] param)
       const arrayTypeCtx = typeCtx.arrayType();
-      const isArray = arrayTypeCtx !== null;
+      // #1668: and the C-style dimensions E0874 admits for `main(string
+      // args[])`, which this dropped -- so the declaration read `args` as a
+      // scalar while the function's own plan read it as an array
+      const cStyleDimensions = p.arrayDimension();
+      const isArray = arrayTypeCtx !== null || cStyleDimensions.length > 0;
 
-      // Extract array dimensions from arrayType syntax (supports multi-dimensional)
-      const arrayDimensions: (number | string)[] = [];
-      if (isArray) {
-        for (const dim of arrayTypeCtx.arrayTypeDimension()) {
-          const sizeExpr = dim.expression();
-          if (sizeExpr) {
-            const dimStr = sizeExpr.getText();
-            const dimNum = Number.parseInt(dimStr, 10);
-            // Convert numeric strings to numbers, keep others as strings
-            arrayDimensions.push(Number.isNaN(dimNum) ? dimStr : dimNum);
-          } else {
-            // Unbounded array dimension
-            arrayDimensions.push("");
-          }
-        }
-      }
+      // Each dimension folds as a declaration's does (#1760 review): parseInt
+      // read `2*BUF` as 2 and `0x10` as 0, so the prototype disagreed with
+      // the definition and a subscript was checked against the wrong size.
+      // An unsized `[]` keeps its slot as "".
+      const arrayDimensions: (number | string)[] = [
+        ...(arrayTypeCtx?.arrayTypeDimension() ?? []),
+        ...cStyleDimensions,
+      ].map((dim) => {
+        const sizeExpr = dim.expression();
+        return sizeExpr ? DimensionResolver.resolve(sizeExpr) : "";
+      });
 
       return {
         name,

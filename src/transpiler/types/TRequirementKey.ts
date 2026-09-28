@@ -24,7 +24,6 @@ type TRequirementKey =
   | "critical-cmsis-fallback"
   // --- atomics (ADR-049) ---
   | "atomic-ldrex-cmsis"
-  | "atomic-primask-cmsis"
   // --- struct initializers ---
   | "cpp-designated-initializer"
   | "cpp-compound-literal"

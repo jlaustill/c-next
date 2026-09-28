@@ -36,8 +36,14 @@ interface ITranspilerConfig {
   /** ADR-044: When true, generate panic-on-overflow helpers instead of clamp */
   debugMode?: boolean;
 
-  /** ADR-049: Target platform for atomic code generation */
+  /** ADR-049: the program's target, when its source names none */
   target?: string;
+
+  /**
+   * ADR-049: the PlatformIO environment being built. Its board names the
+   * target when no pragma or option does; absent, default_envs does.
+   */
+  pioEnv?: string;
 
   /** Issue #35: Collect grammar rule coverage during parsing */
   collectGrammarCoverage?: boolean;

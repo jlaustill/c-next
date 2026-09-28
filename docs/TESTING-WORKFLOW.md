@@ -253,24 +253,24 @@ npm run antlr
 # Type-check TypeScript
 npm run typecheck
 
-# Test fix
-cnext [test-file].cnx
+# Test fix (every program names its target, ADR-049)
+cnext [test-file].cnx --target host
 ````
 
 **Code Generator Bugs:**
 
 ```bash
 # Edit code generator
-vim src/codegen/CodeGenerator.ts
+vim src/TRANSPILE/3-Render/codegen/CodeGenerator.ts
 
 # Type-check changes
 npm run typecheck
 
 # Test fix
-cnext [test-file].cnx
+cnext [test-file].cnx --target host
 
 # Compare output
-diff [test].c [test].expected.c
+diff [test].test.c [test].expected.c
 ```
 
 **Document if can't fix immediately:**
@@ -287,19 +287,14 @@ diff [test].c [test].expected.c
 
 #### Step 9: Create Expected Output Files
 
-For tests that pass:
+For tests that pass, let the harness write the snapshots:
 
 ```bash
-cd tests/[feature]
-
-# Generate and save expected output
-for test in *.test.cnx; do
-  if cnext "$test" && [ -f "${test%.test.cnx}.c" ]; then
-    cp "${test%.test.cnx}.c" "${test%.test.cnx}.expected.c"
-    echo "Created ${test%.test.cnx}.expected.c"
-  fi
-done
+npm test -- tests/[feature]/ --update
 ```
+
+It transpiles each fixture for its target (host unless it names one) and writes
+its `.expected.*` files. A plain `npm test` only compares them.
 
 **Output:** `.expected.c` files for snapshot testing
 

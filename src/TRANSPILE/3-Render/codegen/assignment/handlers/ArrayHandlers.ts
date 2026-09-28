@@ -462,7 +462,7 @@ function handleArraySlice(ctx: IAssignmentContext): string {
 
   // Use resolvedBaseIdentifier for type lookup (includes scope prefix)
   const name = ctx.resolvedBaseIdentifier;
-  const typeInfo = ctx.state.getVariableTypeInfo(name);
+  const typeInfo = ctx.target.typeInfo;
 
   // Validate 1D array only
   if (typeInfo?.arrayDimensions && typeInfo.arrayDimensions.length > 1) {

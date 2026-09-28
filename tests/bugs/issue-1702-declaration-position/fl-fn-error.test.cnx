@@ -1,0 +1,15 @@
+f32 probe(bool c) {
+    f32 v <- 2.5;
+    u8 k <- 3;
+    f32 r <- 0.0;
+    if (c = true) {
+        r <- v * k;
+        u8 v <- 1;
+        r <- r + 1.0;
+    }
+    return r;
+}
+
+// test-error
+// #1702: at `r <- v * k`, `v` is the outer f32, so the product mixes integer
+// and floating (E0810). The check took the later inner `u8 v` and passed.

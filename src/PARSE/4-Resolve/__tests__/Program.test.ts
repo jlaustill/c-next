@@ -1,8 +1,12 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import ConstantFold from "../../../utils/ConstantFold";
 import parse from "../../3-Declare/cnext/__tests__/testHelpers";
 import CNextResolver from "../../3-Declare/cnext/index";
 import Program from "../Program";
 import SymbolGuards from "../../../transpiler/types/symbols/SymbolGuards";
+import type IVariableSymbol from "../../../transpiler/types/symbols/IVariableSymbol";
+import type IStructSymbol from "../../../transpiler/types/symbols/IStructSymbol";
+import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
 import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 import TypeResolver from "../../../utils/TypeResolver";
 import type IFileSymbols from "../../../transpiler/types/IFileSymbols";
@@ -57,6 +61,34 @@ describe("Program", () => {
         ]),
       ),
     },
+  });
+
+  // #1760 review: a file the program does not hold is a caller's bug. The
+  // binding accessors used to fall back to "no locals" for one, which loses
+  // every shadowing decision with no error, while lexicalFrameAt asserted.
+  describe("a file the program does not hold", () => {
+    const at = { line: 1, column: 0 };
+
+    it("is an internal error for every lexical accessor", () => {
+      const program = Program.build([declare("u32 x <- 1;", "a.cnx")]);
+      expect(() => program.bindValue("nope.cnx", null, "x", at)).toThrow(
+        "nope.cnx is a file of this program",
+      );
+      expect(() => program.lexicalDeclarationAt("nope.cnx", "x", at)).toThrow(
+        "nope.cnx is a file of this program",
+      );
+      expect(() => program.lexicalFrameAt("nope.cnx", at)).toThrow(
+        "nope.cnx is a file of this program",
+      );
+    });
+
+    it("still answers for a file it holds", () => {
+      const program = Program.build([declare("u32 x <- 1;", "a.cnx")]);
+      expect(program.bindValue("a.cnx", null, "x", at)).toMatchObject({
+        kind: "variable",
+      });
+      expect(program.lexicalDeclarationAt("a.cnx", "x", at)).toBeNull();
+    });
   });
 
   describe("the copy a scope holds", () => {
@@ -261,39 +293,123 @@ describe("Program", () => {
     });
   });
 
-  describe("external const values", () => {
+  describe("constant values", () => {
     it("reads a const declared in another file", () => {
       // #1220: the case where a per-file answer was wrong. `SIZE` is declared
-      // in one file and asked about from the program.
+      // in one file and asked about from another.
+      // #1760 second review: a file sees a const its include closure
+      // declares, so the program states the include, as the one it models
+      // would.
+      const lib = declare(`const u32 SIZE <- 4;`, "lib.cnx");
+      const use = declare(`u32 unrelated <- 1;`, "use.cnx");
+
+      const program = Program.build(
+        [lib, use],
+        including({ "use.cnx": ["lib.cnx"] }),
+      );
+
+      expect(
+        program.constantAt("use.cnx", "SIZE", { line: 1, column: 0 }),
+      ).toEqual({ value: 4, typeName: "u32" });
+    });
+
+    // #1760 second review: the fold repeated rounds over every pending
+    // const, O(n^2) in reverse dependency order. The guard counts attempts.
+    it.each([
+      [
+        "dependency",
+        (i: number, _n: number) => (i === 0 ? "1" : `C${i - 1} + 1`),
+      ],
+      [
+        "reverse dependency",
+        (i: number, n: number) => (i === n - 1 ? "1" : `C${i + 1} + 1`),
+      ],
+    ])(
+      "folds a chain of consts in %s order with a linear number of attempts",
+      (_order, initializer) => {
+        const n = 200;
+        const source = Array.from(
+          { length: n },
+          (_, i) => `const u32 C${i} <- ${initializer(i, n)};`,
+        ).join("\n");
+        const attempts = vi.spyOn(ConstantFold, "declared");
+        try {
+          const program = Program.build([declare(source, "lib.cnx")]);
+          expect(
+            program.constantAt("lib.cnx", "C0", { line: n + 1, column: 0 })
+              ?.value,
+          ).toBeGreaterThan(0);
+          expect(attempts.mock.calls.length).toBeLessThanOrEqual(2 * n);
+        } finally {
+          attempts.mockRestore();
+        }
+      },
+    );
+
+    it("reads no const from a file it does not include (#1738)", () => {
       const lib = declare(`const u32 SIZE <- 4;`, "lib.cnx");
       const use = declare(`u32 unrelated <- 1;`, "use.cnx");
 
       const program = Program.build([lib, use]);
 
-      expect(program.constValue("SIZE")).toBe(4);
-      expect(program.constValues().get("SIZE")).toBe(4);
+      expect(
+        program.constantAt("use.cnx", "SIZE", { line: 1, column: 0 }),
+      ).toBeNull();
     });
 
-    it("keys a scope's const by its C name as well as its bare name (#1322)", () => {
-      // `this.STEP` inside `Board` asks for `Board__STEP`; the bare `STEP` is
-      // what a dimension written as `STEP` inside the scope asks for. Two
-      // scopes declaring the same bare name must not share one slot.
+    it("keys a scope's const by its declaration, never by a bare name two scopes share (#1322, #1538)", () => {
+      // `this.STEP` inside `Board` binds `Board__STEP`, and so does a bare
+      // `STEP` written there. Two scopes declaring the same bare name must not
+      // share one slot, and neither's bare name is a file-scope const.
       const lib = declare(
-        `scope Board {\n    const u8 STEP <- 12;\n}\nscope Other {\n    const u8 STEP <- 3;\n}`,
+        `scope Board {\n    const u8 STEP <- 12;\n}\nscope Other {\n    const u8 STEP <- 3;\n}\nu32 after <- 1;`,
+        "lib.cnx",
+      );
+      const program = Program.build([lib]);
+      const valueOf = (cName: string) =>
+        program.constantOf({
+          kind: "variable",
+          symbol: program.symbolByCName(cName) as IVariableSymbol,
+        })?.value;
+
+      expect(valueOf("Board__STEP")).toBe(12);
+      expect(valueOf("Other__STEP")).toBe(3);
+      expect(
+        program.constantAt("lib.cnx", "STEP", { line: 2, column: 4 })?.value,
+      ).toBe(12);
+      expect(
+        program.constantAt("lib.cnx", "STEP", { line: 5, column: 4 })?.value,
+      ).toBe(3);
+      expect(
+        program.constantAt("lib.cnx", "STEP", { line: 7, column: 0 }),
+      ).toBeNull();
+    });
+
+    it("is null for a non-const and for an unknown name", () => {
+      const lib = declare(`u32 mutable <- 4;\nu32 after <- 1;`, "lib.cnx");
+      const program = Program.build([lib]);
+      const at = { line: 2, column: 0 };
+
+      expect(program.constantAt("lib.cnx", "mutable", at)).toBeNull();
+      expect(program.constantAt("lib.cnx", "nothingCalledThis", at)).toBeNull();
+    });
+
+    it("gives a name that binds to a parameter no value, whatever a const of that name holds (#1664 review)", () => {
+      // The const views held folded consts only, so the parameter `N` was
+      // absent and the file-scope `N` answered for it.
+      const lib = declare(
+        `const u32 N <- 10;\nvoid f(u32 N) {\n    u32 x <- N;\n}\nu32 after <- 1;`,
         "lib.cnx",
       );
       const program = Program.build([lib]);
 
-      expect(program.constValue("Board__STEP")).toBe(12);
-      expect(program.constValue("Other__STEP")).toBe(3);
-    });
-
-    it("is undefined for a non-const and for an unknown name", () => {
-      const lib = declare(`u32 mutable <- 4;`, "lib.cnx");
-      const program = Program.build([lib]);
-
-      expect(program.constValue("mutable")).toBeUndefined();
-      expect(program.constValue("nothingCalledThis")).toBeUndefined();
+      expect(
+        program.constantAt("lib.cnx", "N", { line: 3, column: 13 }),
+      ).toBeNull();
+      // NEGATIVE CONTROL: outside `f`, `N` is the const
+      expect(
+        program.constantAt("lib.cnx", "N", { line: 5, column: 0 })?.value,
+      ).toBe(10);
     });
   });
 
@@ -305,11 +421,30 @@ describe("Program", () => {
       const lib = declare(`const u32 SIZE <- 4;`, "lib.cnx");
       const use = declare(`u32[SIZE] buffer;`, "use.cnx");
 
+      const program = Program.build(
+        [lib, use],
+        including({ "use.cnx": ["lib.cnx"] }),
+      );
+
+      const buffer = find(program.symbolsInFile("use.cnx"), "buffer");
+      expect(SymbolGuards.isVariable(buffer)).toBe(true);
+      if (SymbolGuards.isVariable(buffer)) {
+        expect(buffer.arrayDimensions).toEqual([4]);
+      }
+    });
+
+    it("leaves a dimension naming a const in a file it does not include (#1738)", () => {
+      // #1760 second review: the run-wide lookup sized this 4, over whatever
+      // the file itself could see -- a header macro, in #1738's case
+      const lib = declare(`const u32 SIZE <- 4;`, "lib.cnx");
+      const use = declare(`u32[SIZE] buffer;`, "use.cnx");
+
       const program = Program.build([lib, use]);
 
       const buffer = find(program.symbolsInFile("use.cnx"), "buffer");
+      expect(SymbolGuards.isVariable(buffer)).toBe(true);
       if (SymbolGuards.isVariable(buffer)) {
-        expect(buffer.arrayDimensions).toEqual([4]);
+        expect(buffer.arrayDimensions).toEqual(["SIZE"]);
       }
     });
 
@@ -326,6 +461,99 @@ describe("Program", () => {
         expect(rebuilt.arrayDimensions).toEqual(["SOME_MACRO"]);
       }
       expect(rebuilt).toBe(declared);
+    });
+
+    // #1664 box 7: 1.4 is the one place a const-named dimension folds, for
+    // every kind of declaration, with the consts visible where it is written
+    const dimensionsOf = (source: string, name: string) => {
+      const symbol = find(
+        Program.build([declare(source, "a.cnx")]).symbolsInFile("a.cnx"),
+        name,
+      );
+      expect(SymbolGuards.isVariable(symbol)).toBe(true);
+      return (symbol as IVariableSymbol).arrayDimensions;
+    };
+
+    it("folds a const derived from another const, in either order", () => {
+      expect(
+        dimensionsOf(`const u32 A <- 4;\nconst u32 B <- A;\nu8[B] g;`, "g"),
+      ).toEqual([4]);
+      expect(
+        dimensionsOf(`u8[B] g;\nconst u32 B <- A;\nconst u32 A <- 4;`, "g"),
+      ).toEqual([4]);
+    });
+
+    it("folds a scope member's dimension with its own scope's const (#1538)", () => {
+      const twoScopes = (first: string, second: string) =>
+        [first, second].join("\n");
+      const small = "scope Small {\nconst u8 N <- 2;\npublic u8[N] t;\n}";
+      const big = "scope Big {\nconst u8 N <- 10;\npublic u8[N] b;\n}";
+      for (const source of [twoScopes(small, big), twoScopes(big, small)]) {
+        expect(dimensionsOf(source, "t")).toEqual([2]);
+        expect(dimensionsOf(source, "b")).toEqual([10]);
+      }
+    });
+
+    it("lets a scope's own const shadow a file-scope one even when it does not fold (#1664 review)", () => {
+      // `7 % 4` does not fold here, so the view of folded consts had no scope
+      // `N` and gave the global's 1: `S__buf[1]` for a program whose `S.N`
+      // is 3.
+      expect(
+        dimensionsOf(
+          `const u32 N <- 1;\nscope S {\nconst u32 N <- 7 % 4;\npublic u8[N] buf;\n}`,
+          "buf",
+        ),
+      ).toEqual(["N"]);
+    });
+
+    it("folds a scope const with its own scope's names, whichever is declared first (#1664 review)", () => {
+      expect(
+        dimensionsOf(
+          `const u32 N <- 4;\nscope S {\nconst u32 M <- N;\nconst u32 N <- 10;\npublic u8[M] buf;\n}`,
+          "buf",
+        ),
+      ).toEqual([10]);
+    });
+
+    it("does not fold a result an operand's type cannot hold (#1664 review)", () => {
+      // ADR-044: `A - 3` on a u8 is 0 in C, and `E + E` is 255
+      expect(
+        dimensionsOf(`const u8 A <- 2;\nconst u8 B <- A - 3;\nu8[B] g;`, "g"),
+      ).toEqual(["B"]);
+      expect(
+        dimensionsOf(`const u8 E <- 200;\nconst u8 F <- E + E;\nu8[F] g;`, "g"),
+      ).toEqual(["F"]);
+      // Literal operands have no type of their own, so the const's declared
+      // type is the one that must hold the result: C stores 260 in a u8 as 4
+      expect(dimensionsOf(`const u8 X <- 250 + 10;\nu8[X] g;`, "g")).toEqual([
+        "X",
+      ]);
+      // NEGATIVE CONTROL: a result every operand's type holds
+      expect(
+        dimensionsOf(`const u8 A <- 2;\nconst u8 G <- A + 3;\nu8[G] g;`, "g"),
+      ).toEqual([5]);
+    });
+
+    it("folds a struct field's dimension", () => {
+      const program = Program.build([
+        declare(`const u32 A <- 4;\nstruct P {\n  u8[A] data;\n}`, "a.cnx"),
+      ]);
+      const struct = find(program.symbolsInFile("a.cnx"), "P");
+      expect(SymbolGuards.isStruct(struct)).toBe(true);
+      expect((struct as IStructSymbol).fields.get("data")?.dimensions).toEqual([
+        4,
+      ]);
+    });
+
+    it("folds a parameter's dimension", () => {
+      const program = Program.build([
+        declare(`const u32 A <- 4;\nvoid f(u8[A] buf) {\n}`, "a.cnx"),
+      ]);
+      const fn = find(program.symbolsInFile("a.cnx"), "f");
+      expect(SymbolGuards.isFunction(fn)).toBe(true);
+      expect((fn as IFunctionSymbol).parameters[0].arrayDimensions).toEqual([
+        4,
+      ]);
     });
   });
 
@@ -522,6 +750,43 @@ describe("Program", () => {
     });
   });
 
+  describe("resolveFunction (#1698)", () => {
+    // Where a bare call's lookup starts is decided here, once: the typer and
+    // the C name a call is emitted under pass the scope path they stand in,
+    // and used to derive the start scope from it themselves.
+    const program = (): ReturnType<typeof Program.build> =>
+      Program.build(
+        [
+          declare(
+            `u32 get() { return 1; }
+u32 other() { return 2; }
+scope Gauge {
+  u8 get() { return 3; }
+}`,
+            "a.cnx",
+          ),
+        ],
+        { registry },
+      );
+
+    it("finds a scope's own function before a global of the same name", () => {
+      expect(program().resolveFunction("get", "Gauge")?.scopePath).toBe(
+        "Gauge",
+      );
+    });
+
+    it("walks out to the global scope from inside a scope", () => {
+      expect(program().resolveFunction("other", "Gauge")?.name).toBe("other");
+    });
+
+    it("starts at the global scope at file scope and for an unknown path", () => {
+      expect(program().resolveFunction("get", "")?.scopePath).toBe("");
+      expect(program().resolveFunction("get", "NoSuchScope")?.scopePath).toBe(
+        "",
+      );
+    });
+  });
+
   describe("the query surface", () => {
     it("answers by canonical C name, by file, and lists its files", () => {
       const lib = declare(
@@ -563,21 +828,22 @@ describe("Program", () => {
       const keys = Object.keys(program).sort();
 
       expect(keys).toEqual([
+        "bindValue",
         "callGraph",
         "callbackCompatibleFunctions",
         "cnxIncludeRewrites",
         "codeGenSymbolsFor",
         "conflicts",
-        "constValue",
-        "constValues",
-        "constValuesIn",
+        "constantAt",
+        "constantOf",
         "externalStructFields",
         "functionParamLists",
-        "globalScope",
         "includeSearchPaths",
         "isOpaqueType",
         "isScopeTypeVisibleFrom",
         "knownEnums",
+        "lexicalDeclarationAt",
+        "lexicalFrameAt",
         "modifiedParameters",
         "opaqueTypes",
         "passByValueParams",
@@ -588,6 +854,7 @@ describe("Program", () => {
         "sourceFiles",
         "symbolByCName",
         "symbolsInFile",
+        "target",
         "typesDeclaredIn",
       ]);
     });

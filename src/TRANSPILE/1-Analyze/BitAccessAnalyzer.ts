@@ -23,6 +23,16 @@
  * statement. At file scope there is no statement to emit it into. This is the
  * one rule here that is about WHERE the access is written rather than what it
  * is written on.
+ *
+ * ## E0890: a read-modify-write evaluates its target twice
+ *
+ * A bit, bit-range or bitmap-field write keeps the other bits, so it reads the
+ * target and stores it back: every subscript in the target, and the bit index
+ * with it, is evaluated twice. A call or a volatile read there runs twice, and
+ * the store can land on a different element than the read. Owner ruling
+ * (#1760 review): reject it, as E0702 rejects a call in a condition. A
+ * write-1 register member is composed without a read (ADR-004), so it is
+ * evaluated once and is not restricted.
  */
 
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
@@ -31,14 +41,15 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import ChainRoot from "./helpers/ChainRoot";
+import OperandTyper from "../../utils/OperandTyper";
+import ChainRoot from "../../utils/ChainRoot";
 import EnclosingFunction from "./helpers/EnclosingFunction";
-import TypeText from "./helpers/TypeText";
-import IDeclaredVar from "./types/IDeclaredVar";
+import AssignmentSiteListener from "./AssignmentSiteListener";
 import IBitAccessError from "./types/IBitAccessError";
-import TChainRoot from "./types/TChainRoot";
-import ScopeFrameResolver from "./ScopeFrameResolver";
+import TChainRoot from "../../transpiler/types/TChainRoot";
+import RegisterAccessMode from "../../utils/RegisterAccessMode";
+import RegisterMemberReference from "./helpers/RegisterMemberReference";
+import type TAssignmentSite from "./types/TAssignmentSite";
 import SHARED_FLOAT_TYPES from "../../transpiler/types/FLOAT_TYPES";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
@@ -54,7 +65,7 @@ const FLOAT_TYPES = new Set<string>(SHARED_FLOAT_TYPES);
 class BitAccessListener extends CNextListener {
   private readonly found: IBitAccessError[] = [];
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
   }
 
@@ -101,10 +112,8 @@ class BitAccessListener extends CNextListener {
    * type that `enterPostfixExpression` never sees. Both fixtures for E0856 are
    * writes, so a rule reading only expressions caught neither of them.
    */
-  override enterAssignmentStatement = (
-    ctx: Parser.AssignmentStatementContext,
-  ): void => {
-    const target = ctx.assignmentTarget();
+  public checkSite(site: TAssignmentSite): void {
+    const target = site.assignmentTarget();
     const name = target.IDENTIFIER()?.getText();
     if (name === undefined) return;
     // A target carries its root as its own token, so the name is always the
@@ -115,7 +124,40 @@ class BitAccessListener extends CNextListener {
       target,
       ChainRoot.ofTarget(target),
     );
-  };
+    this.checkSingleEvaluation(site);
+  }
+
+  /** E0890: each subscript of a read-modify-write target with a side effect */
+  private checkSingleEvaluation(site: TAssignmentSite): void {
+    // A compound operator on a bit is E0857's; on a whole location it is one
+    // C compound assignment, which evaluates its target once
+    if (site.assignmentOperator().getText() !== "<-") return;
+    const target = site.assignmentTarget();
+    if (!this.isReadModifyWrite(target)) return;
+    const indices = target.postfixTargetOp().flatMap((op) => op.expression());
+    for (const index of indices) {
+      if (!OperandTyper.hasSideEffect(index, this.context)) continue;
+      this.report(
+        index,
+        "E0890",
+        `'${index.getText()}' would be evaluated twice: '${target.getText()}' is read and then written back`,
+        "A bit, bit-range or bitmap-field write keeps the other bits, so it reads its target and stores it back, and every subscript in the target runs twice. Store the index in a variable first (ADR-007).",
+      );
+    }
+  }
+
+  /** Whether writing `target` reads it back first to keep the other bits */
+  private isReadModifyWrite(target: Parser.AssignmentTargetContext): boolean {
+    const last = OperandTyper.chainOf(target, this.context).steps.at(-1);
+    if (last === undefined) return false;
+    const writesBits =
+      last.subscript === "bit_single" || last.subscript === "bit_range";
+    const writesBitmapField =
+      last.subscript === null && (last.before?.bitmapTypeName ?? null) !== null;
+    if (!writesBits && !writesBitmapField) return false;
+    const register = RegisterMemberReference.ofTarget(target, this.context);
+    return !RegisterAccessMode.isWriteOne(register?.access);
+  }
 
   private checkChain(
     name: string,
@@ -123,14 +165,18 @@ class BitAccessListener extends CNextListener {
       | Parser.PostfixOpContext
       | Parser.PostfixTargetOpContext
     )[],
-    at: ParserRuleContext,
+    at: Parser.PostfixExpressionContext | Parser.AssignmentTargetContext,
     root: TChainRoot,
   ): void {
-    const declared = this.declarationFor(name, at, root);
+    // The declaration the spelling names, as the typer binds it: the type
+    // its first subscript applies to (#1668). A `this.` root has spent its
+    // `.name`, so the typer's steps begin at the subscripts in both shapes.
+    const declared =
+      OperandTyper.chainOf(at, this.context).steps[0]?.before ?? null;
     if (declared === null) return; // not a declaration this pass can measure
 
     const spelling = root === null ? name : `${root}.${name}`;
-    const baseType = TypeText.withoutDimensions(declared.typeText);
+    const baseType = declared.typeName ?? "";
     this.checkFloatRangeScope(subscripts, baseType, spelling, at);
     this.checkDepth(
       subscripts,
@@ -139,23 +185,6 @@ class BitAccessListener extends CNextListener {
       spelling,
       at,
     );
-  }
-
-  /**
-   * The declaration a spelling names.
-   *
-   * #1322 review: this had its own answer, and it was wrong for `this.`. It
-   * gave `global.` a file-scope arm and sent `this.` down the same outward walk
-   * as a bare name, so a local shadowing a scope member captured it -- and the
-   * `invariant()` that replaced codegen's throw then fired, telling the user
-   * 2.1 had rejected a program it had silently let through. One resolver now.
-   */
-  private declarationFor(
-    name: string,
-    at: ParserRuleContext,
-    root: TChainRoot,
-  ): IDeclaredVar | null {
-    return this.scopes.declarationFor(root, name, this.scopes.frameFor(at));
   }
 
   /**
@@ -238,13 +267,16 @@ class BitAccessAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): IBitAccessError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-    const listener = new BitAccessListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-    );
+    const listener = new BitAccessListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+    ParseTreeWalker.DEFAULT.walk(
+      new AssignmentSiteListener((site) => listener.checkSite(site)),
+      tree,
+    );
+    // Reported in source order, as the one walk these replace did
+    return listener
+      .errors()
+      .sort((a, b) => a.line - b.line || a.column - b.column);
   }
 }
 

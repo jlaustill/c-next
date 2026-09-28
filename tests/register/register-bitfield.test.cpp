@@ -16,10 +16,10 @@
 // 16-bit configuration bitmap
 // Register using multiple bitmap types as members
 void configureUART(void) {
-    UART__CTRL = (UART__CTRL & ~(1U << 0)) | (1U << 0);
-    UART__CTRL = (UART__CTRL & ~(1U << 1)) | (1U << 1);
-    UART__CTRL = (UART__CTRL & ~(1U << 2)) | (1U << 2);
-    UART__CTRL = (UART__CTRL & ~(0x3U << 5)) | ((3 & 0x3U) << 5);
+    UART__CTRL = (uint8_t)((UART__CTRL & ~(1U << 0)) | (1U << 0));
+    UART__CTRL = (uint8_t)((UART__CTRL & ~(1U << 1)) | (1U << 1));
+    UART__CTRL = (uint8_t)((UART__CTRL & ~(1U << 2)) | (1U << 2));
+    UART__CTRL = (uint8_t)((UART__CTRL & ~(0x3U << 5)) | ((3U & 0x3U) << 5));
 }
 
 bool isUARTReady(void) {
@@ -27,18 +27,18 @@ bool isUARTReady(void) {
 }
 
 void configureTimer(uint8_t prescale) {
-    TIMER__CONFIG = (TIMER__CONFIG & ~(1U << 0)) | (0U << 0);
-    TIMER__CONFIG = (TIMER__CONFIG & ~(0xFFU << 4)) | ((prescale & 0xFFU) << 4);
-    TIMER__CONFIG = (TIMER__CONFIG & ~(1U << 2)) | (1U << 2);
-    TIMER__CONFIG = (TIMER__CONFIG & ~(1U << 3)) | (1U << 3);
-    TIMER__CONFIG = (TIMER__CONFIG & ~(1U << 0)) | (1U << 0);
+    TIMER__CONFIG = (uint16_t)((TIMER__CONFIG & ~(1U << 0)) | (0U << 0));
+    TIMER__CONFIG = (uint16_t)((TIMER__CONFIG & ~(0xFFU << 4)) | ((prescale & 0xFFU) << 4));
+    TIMER__CONFIG = (uint16_t)((TIMER__CONFIG & ~(1U << 2)) | (1U << 2));
+    TIMER__CONFIG = (uint16_t)((TIMER__CONFIG & ~(1U << 3)) | (1U << 3));
+    TIMER__CONFIG = (uint16_t)((TIMER__CONFIG & ~(1U << 0)) | (1U << 0));
 }
 
 int main(void) {
     configureUART();
     bool uartReady = isUARTReady();
     if (uartReady == true) {
-        UART__DATA = 0x55;
+        UART__DATA = 0x55U;
     }
     configureTimer(100U);
     bool hasError = ((((UART__STATUS >> 4) & 1)) != 0U);

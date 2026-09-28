@@ -54,6 +54,9 @@ enum AssignmentKind {
   /** matrix[i][j][FIELD_BIT] <- false (bit on multi-dim array element) */
   ARRAY_ELEMENT_BIT,
 
+  /** row[i][0, 4] <- 6 (bit range on an array element, #1668) */
+  ARRAY_ELEMENT_BIT_RANGE,
+
   // === String operations ===
 
   /** str <- "hello" (simple string variable) */

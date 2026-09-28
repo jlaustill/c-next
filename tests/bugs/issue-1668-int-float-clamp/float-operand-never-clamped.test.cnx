@@ -1,0 +1,61 @@
+// test-execution
+// Issue #1668: every integer x float mix is E0810 now, whatever the path to the
+// operand: a struct field, an array element, a call result, a scope member or
+// an ADR-029 callback (#1092 item 1, folded into #1668). The explicit spelling
+// casts the integer, and it must evaluate in floating arithmetic -- none of
+// these may reach an integer clamp helper. `i * 2.5` used to evaluate to 6.0.
+
+struct Sample {
+    f32 v;
+}
+
+f32 half() {
+    return 2.5;
+}
+
+f32 scaleFn() {
+    return 2.5;
+}
+
+struct Scaler {
+    scaleFn fn;
+}
+
+scope Counter {
+    u32 value <- 3;
+
+    public f32 scaled() {
+        return (f32)this.value * 2.5;
+    }
+}
+
+u32 main() {
+    u32 i <- 3;
+    Sample s <- { v: 2.5 };
+    f32[2] arr <- [2.5, 1.0];
+    Scaler scaler <- { fn: scaleFn };
+
+    f32 literal <- (f32)i * 2.5;
+    if (literal != 7.5) return 1;
+
+    f32 field <- (f32)i * s.v;
+    if (field != 7.5) return 2;
+
+    f32 element <- (f32)i * arr[0];
+    if (element != 7.5) return 3;
+
+    f32 call <- (f32)i * half();
+    if (call != 7.5) return 4;
+
+    f32 member <- Counter.scaled();
+    if (member != 7.5) return 5;
+
+    f32 callback <- (f32)i * scaler.fn();
+    if (callback != 7.5) return 6;
+
+    f32 compound <- 2.5;
+    compound *<- (f32)i;
+    if (compound != 7.5) return 7;
+
+    return 0;
+}

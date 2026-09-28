@@ -1,19 +1,68 @@
-import TYPE_MAP from "../TRANSPILE/3-Render/codegen/types/TYPE_MAP";
+import CompositeType from "./CompositeType";
+import CExpression from "./CExpression";
+import CNEXT_TO_C_TYPE_MAP from "./constants/TypeMappings";
+import type IBitWidth from "../transpiler/types/IBitWidth";
+import type IOperandType from "../transpiler/types/IOperandType";
 
 /**
- * Types that need explicit cast for MISRA 10.3 compliance.
- * These types are narrower than int (32-bit) and need casts after
- * bit manipulation operations which promote to int.
+ * The storage's width, from its fixed-width C type: `uint32_t`, `int16_t`, ...
+ * A type this does not name (`bool`, or none known) has no width here.
  */
-const NARROW_TYPES = new Set(["u8", "u16", "i8", "i16"]);
+const FIXED_WIDTH = /^u?int(8|16|32|64)_t$/;
+
+/** A bit width written as a constant: `24`, or `24U` once suffixed */
+const CONSTANT_WIDTH = /^(\d+)U?$/;
 
 /**
- * Bit manipulation utilities for C code generation.
- * Pure functions that generate C code strings for bit operations.
+ * Bit manipulation utilities for C code generation: the one rule for
+ * writing a bit or a bit range of an integer, whatever names it -- a
+ * variable, a bitmap field, a register member, or a float's bits.
  *
- * Extracted from CodeGenerator.ts as part of ADR-065 decomposition.
+ * Every write takes its storage's C type, because two decisions depend on
+ * it (#1668):
+ * - an operand shifted into storage wider than 16 bits is cast to the
+ *   storage's own unsigned width first. C promises `unsigned int` only 16
+ *   bits, and where it is 16 bits (AVR) `1U << 16` is undefined and
+ *   `~(1U << 3)` is a 16-bit mask that clears bits 16-31 of the storage it
+ *   is ANDed with -- a silent miscompile that compiles cleanly. A
+ *   fixed-width type is exact on every target, so the output is too;
+ * - storage narrower than 32 bits, or signed, takes the MISRA C:2012 Rule
+ *   10.3 cast back to its type: the operators promote, and the result is
+ *   unsigned (#1760 second review: an `i32` or `i64` target took none).
+ *
+ * Any other named storage is an integer whose width the target does not fix
+ * (`int_fast16_t`, which is `long` on a 64-bit host): the typer gives it no
+ * width, and only such a type is passed here by name. Its write is worked in
+ * `uintmax_t` and cast back to the storage type (owner ruling, #1760 review),
+ * which is correct at any width and the same on every target. A 32-bit `1U`
+ * mask there cleared the upper half of a 64-bit `long`.
  */
 class BitUtils {
+  /**
+   * The C type an integer's bits are read or written in: a known width's
+   * fixed-width type, or, for an integer the target gives no width, the type
+   * its header spelled, which is worked in `uintmax_t` (see above). Undefined
+   * for anything else. #1760 review: a read sized its mask from the ROOT's
+   * declared type while a write asked this of the value ranged, so
+   * `this.v[0, n]` on a u64 had a 32-bit mask.
+   */
+  static storageOf(value: IOperandType | null): string | undefined {
+    const type = CompositeType.integerOf([value]);
+    if (type !== null) return CNEXT_TO_C_TYPE_MAP[type];
+    const isInteger =
+      value?.category === "signed" || value?.category === "unsigned";
+    return isInteger ? (value.cType ?? undefined) : undefined;
+  }
+
+  /**
+   * A `[start, width]` width as C: its folded value, `NU`, when it folds, so
+   * the mask is a literal (Issue #1094, #1096: `(1U << WIDTH) - 1U` is
+   * undefined at full width); its rendered text otherwise
+   */
+  static widthText(width: IBitWidth): string {
+    return width.folded === undefined ? width.text : `${width.folded}U`;
+  }
+
   /**
    * Convert a boolean expression to an unsigned integer (0U or 1U).
    * Handles literal "true"/"false" and generates ternary for expressions.
@@ -29,138 +78,32 @@ class BitUtils {
   }
 
   /**
-   * Generate a bit mask for the given width.
-   * Uses pre-computed hex values for common widths to avoid undefined behavior.
+   * The mask of `width` ones. A constant width is written as its value, a
+   * hex literal C sizes to fit on every target; only a width known at run
+   * time is computed, in the storage's width.
    *
-   * @param width - The bit width (number or string expression)
-   * @param targetType - Optional target type for 64-bit aware mask generation
+   * @param width - The bit width (number, or the generated C for it)
+   * @param storage - The C type of the value masked, when known
    * @returns C code string for the mask
    */
-  static generateMask(width: string | number, targetType?: string): string {
-    const widthNum =
-      typeof width === "number" ? width : Number.parseInt(width, 10);
-    const is64Bit = targetType === "u64" || targetType === "i64";
-    if (!Number.isNaN(widthNum)) {
-      const hex = BitUtils.maskHex(widthNum, is64Bit);
-      if (hex) return hex;
+  static generateMask(width: string | number, storage?: string): string {
+    const constant = CONSTANT_WIDTH.exec(String(width));
+    if (constant) {
+      return BitUtils.maskHex(Number(constant[1]));
     }
-    // Use ULL for 64-bit types to avoid overflow on large shifts
-    const one = is64Bit ? "1ULL" : "1U";
-    return `((${one} << ${width}) - 1)`;
+    return `((${BitUtils.widen("1U", storage)} << ${width}) - 1U)`;
   }
 
   /**
-   * Return pre-computed hex mask for common bit widths.
-   * Returns null for uncommon widths.
+   * The hex literal of `width` ones, e.g. 4 -> `0xFU`, 64 ->
+   * `0xFFFFFFFFFFFFFFFFU`. The `U` suffix is MISRA C:2012 Rule 7.2's.
    *
-   * @param width - The bit width
-   * @param is64Bit - Whether the target is a 64-bit type (use ULL suffix)
-   * @returns Hex mask string or null
+   * @param width - The bit width, 0 to 64
+   * @returns Hex mask string
    */
-  static maskHex(width: number, is64Bit = false): string | null {
-    // For 64-bit targets, use ULL suffix to prevent overflow on shifts >= 32
-    if (is64Bit) {
-      switch (width) {
-        case 8:
-          return "0xFFULL";
-        case 16:
-          return "0xFFFFULL";
-        case 32:
-          return "0xFFFFFFFFULL";
-        case 64:
-          return "0xFFFFFFFFFFFFFFFFULL";
-        default:
-          return null;
-      }
-    }
-    switch (width) {
-      case 8:
-        return "0xFFU";
-      case 16:
-        return "0xFFFFU";
-      case 32:
-        return "0xFFFFFFFFU";
-      case 64:
-        return "0xFFFFFFFFFFFFFFFFULL";
-      default:
-        return null;
-    }
-  }
-
-  /**
-   * Return the appropriate unsigned "1" literal for a given type.
-   * Uses "1ULL" for 64-bit types, "1U" for others.
-   * MISRA C:2012 Rule 10.1 requires unsigned operands for bitwise operations.
-   *
-   * @param typeName - The C-Next type name (e.g., "u64", "i32")
-   * @returns "1ULL" for 64-bit types, "1U" otherwise
-   */
-  static oneForType(typeName: string): string {
-    return typeName === "u64" || typeName === "i64" ? "1ULL" : "1U";
-  }
-
-  /**
-   * Format a number as an unsigned uppercase hex string (e.g., 255 -> "0xFFU").
-   * Used for generating hex mask literals in generated C code.
-   * Includes U suffix for MISRA C:2012 Rule 10.1 compliance.
-   *
-   * @param value - The numeric value to format
-   * @returns Hex string like "0xFFU" or "0x1FU"
-   */
-  static formatHex(value: number): string {
-    return `0x${value.toString(16).toUpperCase()}U`;
-  }
-
-  /**
-   * Wrap an expression with a cast for MISRA 10.3 compliance on narrow types.
-   * Bit manipulation operations promote to int; this casts back to the target type.
-   *
-   * @param expr - The expression to potentially wrap
-   * @param targetType - The C-Next type name (e.g., "u8", "u16")
-   * @returns Expression wrapped with cast if narrow, or original expression
-   */
-  private static wrapNarrowCast(expr: string, targetType?: string): string {
-    if (!targetType || !NARROW_TYPES.has(targetType)) {
-      return expr;
-    }
-    const cType = TYPE_MAP[targetType] ?? targetType;
-    return `(${cType})(${expr})`;
-  }
-
-  /**
-   * Generate code to read a single bit from a value.
-   * Pattern: ((target >> offset) & 1)
-   *
-   * @param target - The value to read from
-   * @param offset - Bit position (0-indexed)
-   * @returns C code string for the bit read
-   */
-  static singleBitRead(target: string, offset: string | number): string {
-    if (offset === 0 || offset === "0") {
-      return `((${target}) & 1)`;
-    }
-    return `((${target} >> ${offset}) & 1)`;
-  }
-
-  /**
-   * Generate code to read multiple bits from a value.
-   * Pattern: ((target >> offset) & mask)
-   *
-   * @param target - The value to read from
-   * @param offset - Starting bit position (0-indexed)
-   * @param width - Number of bits to read
-   * @returns C code string for the bit range read
-   */
-  static bitRangeRead(
-    target: string,
-    offset: string | number,
-    width: string | number,
-  ): string {
-    const mask = BitUtils.generateMask(width);
-    if (offset === 0 || offset === "0") {
-      return `((${target}) & ${mask})`;
-    }
-    return `((${target} >> ${offset}) & ${mask})`;
+  static maskHex(width: number): string {
+    const ones = (1n << BigInt(width)) - 1n;
+    return `0x${ones.toString(16).toUpperCase()}U`;
   }
 
   /**
@@ -171,24 +114,19 @@ class BitUtils {
    * @param target - The variable to modify
    * @param offset - Bit position (0-indexed)
    * @param value - Value to write (will be converted via boolToInt)
-   * @param targetType - Optional target type for 64-bit aware code generation
+   * @param storage - The target's C type, when known
    * @returns C code string for the assignment
    */
   static singleBitWrite(
     target: string,
     offset: string | number,
     value: string,
-    targetType?: string,
+    storage?: string,
   ): string {
-    const intValue = BitUtils.boolToInt(value);
-    const is64Bit = targetType === "u64" || targetType === "i64";
-    const one = is64Bit ? "1ULL" : "1U";
-    // For 64-bit types, cast the value to ensure shift doesn't overflow
-    const valueShift = is64Bit
-      ? `((uint64_t)${intValue} << ${offset})`
-      : `(${intValue} << ${offset})`;
-    const rhs = `(${target} & ~(${one} << ${offset})) | ${valueShift}`;
-    return `${target} = ${BitUtils.wrapNarrowCast(rhs, targetType)};`;
+    const one = BitUtils.widen("1U", storage);
+    const bit = BitUtils.widen(BitUtils.boolToInt(value), storage);
+    const rhs = `(${target} & ~(${one} << ${offset})) | (${bit} << ${offset})`;
+    return BitUtils.assign(target, rhs, storage);
   }
 
   /**
@@ -197,21 +135,24 @@ class BitUtils {
    *
    * @param target - The variable to modify
    * @param offset - Starting bit position (0-indexed)
-   * @param width - Number of bits to write
-   * @param value - Value to write
-   * @param targetType - Optional target type for 64-bit aware code generation
+   * @param width - Number of bits to write: a constant, or the C for it with
+   *   its fold, so every writer folds (#1096)
+   * @param value - Value to write, masked as one operand (#1760 second review:
+   *   `a | b & mask` wrote bits outside the range)
+   * @param storage - The target's C type, when known
    * @returns C code string for the assignment
    */
   static multiBitWrite(
     target: string,
     offset: string | number,
-    width: string | number,
+    width: number | IBitWidth,
     value: string,
-    targetType?: string,
+    storage?: string,
   ): string {
-    const mask = BitUtils.generateMask(width, targetType);
-    const rhs = `(${target} & ~(${mask} << ${offset})) | ((${value} & ${mask}) << ${offset})`;
-    return `${target} = ${BitUtils.wrapNarrowCast(rhs, targetType)};`;
+    const mask = BitUtils.shiftedMask(BitUtils.widthOf(width), storage);
+    const masked = `(${CExpression.operand(value)} & ${mask})`;
+    const rhs = `(${target} & ~(${mask} << ${offset})) | (${masked} << ${offset})`;
+    return BitUtils.assign(target, rhs, storage);
   }
 
   /**
@@ -222,22 +163,17 @@ class BitUtils {
    * @param target - The register to write
    * @param offset - Bit position (0-indexed)
    * @param value - Value to write (will be converted via boolToInt)
-   * @param targetType - Optional target type for 64-bit aware code generation
+   * @param storage - The target's C type, when known
    * @returns C code string for the assignment
    */
   static writeOnlySingleBit(
     target: string,
     offset: string | number,
     value: string,
-    targetType?: string,
+    storage?: string,
   ): string {
-    const intValue = BitUtils.boolToInt(value);
-    // For 64-bit types, cast to ensure correct shift width
-    // boolToInt already returns unsigned values (1U/0U) for MISRA 10.1 compliance
-    const castPrefix =
-      targetType === "u64" || targetType === "i64" ? "(uint64_t)" : "";
-    const rhs = `(${castPrefix}${intValue} << ${offset})`;
-    return `${target} = ${BitUtils.wrapNarrowCast(rhs, targetType)};`;
+    const bit = BitUtils.widen(BitUtils.boolToInt(value), storage);
+    return `${target} = ${BitUtils.narrowCast(storage)}(${bit} << ${offset});`;
   }
 
   /**
@@ -247,21 +183,80 @@ class BitUtils {
    *
    * @param target - The register to write
    * @param offset - Starting bit position (0-indexed)
-   * @param width - Number of bits to write
-   * @param value - Value to write
-   * @param targetType - Optional target type for 64-bit aware code generation
+   * @param width - Number of bits to write (see `multiBitWrite`)
+   * @param value - Value to write, masked as one operand
+   * @param storage - The target's C type, when known
    * @returns C code string for the assignment
    */
   static writeOnlyMultiBit(
     target: string,
     offset: string | number,
-    width: string | number,
+    width: number | IBitWidth,
     value: string,
-    targetType?: string,
+    storage?: string,
   ): string {
-    const mask = BitUtils.generateMask(width, targetType);
-    const rhs = `((${value} & ${mask}) << ${offset})`;
-    return `${target} = ${BitUtils.wrapNarrowCast(rhs, targetType)};`;
+    const mask = BitUtils.shiftedMask(BitUtils.widthOf(width), storage);
+    const cast = BitUtils.narrowCast(storage);
+    return `${target} = ${cast}((${CExpression.operand(value)} & ${mask}) << ${offset});`;
+  }
+
+  /** A writer's width as C: a constant as it is, a written one folded */
+  private static widthOf(width: number | IBitWidth): string | number {
+    return typeof width === "number" ? width : BitUtils.widthText(width);
+  }
+
+  /** A mask about to be shifted into `storage`: a computed one already is */
+  private static shiftedMask(
+    width: string | number,
+    storage: string | undefined,
+  ): string {
+    const mask = BitUtils.generateMask(width, storage);
+    return CONSTANT_WIDTH.test(String(width))
+      ? BitUtils.widen(mask, storage)
+      : mask;
+  }
+
+  /** An operand shifted into `storage`, in the storage's width (see above) */
+  private static widen(operand: string, storage: string | undefined): string {
+    if (BitUtils.isUnfixed(storage)) return `(uintmax_t)${operand}`;
+    const bits = BitUtils.bitsOf(storage);
+    return bits > 16 ? `(uint${bits}_t)${operand}` : operand;
+  }
+
+  /** A read-modify-write's assignment, cast back as `narrowCast` says */
+  private static assign(
+    target: string,
+    rhs: string,
+    storage: string | undefined,
+  ): string {
+    const cast = BitUtils.narrowCast(storage);
+    if (cast === "") {
+      return `${target} = ${rhs};`;
+    }
+    return `${target} = ${cast}(${rhs});`;
+  }
+
+  /**
+   * The Rule 10.3 cast back to storage narrower than 32 bits, to signed
+   * storage, or to storage of unfixed width, which is worked in `uintmax_t`;
+   * none otherwise
+   */
+  private static narrowCast(storage: string | undefined): string {
+    if (BitUtils.isUnfixed(storage)) return `(${storage})`;
+    const bits = BitUtils.bitsOf(storage);
+    const signed = storage?.startsWith("int") ?? false;
+    return bits > 0 && (bits < 32 || signed) ? `(${storage})` : "";
+  }
+
+  /** Storage named by a type whose width the target does not fix */
+  private static isUnfixed(storage: string | undefined): boolean {
+    return storage !== undefined && !FIXED_WIDTH.test(storage);
+  }
+
+  /** The storage's width in bits, or 0 when its type is not fixed-width */
+  private static bitsOf(storage: string | undefined): number {
+    const match = FIXED_WIDTH.exec(storage ?? "");
+    return match ? Number(match[1]) : 0;
   }
 }
 

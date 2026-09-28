@@ -54,7 +54,8 @@ for cnx_file in $EXAMPLES; do
 
     echo -n "  Transpiling ${filename}.cnx... "
 
-    if "${PROJECT_ROOT}/bin/cnext.js" "$cnx_file" -o "$c_file" >/dev/null 2>&1; then
+    # ADR-049: every program names a target; a pinned example keeps its own.
+    if "${PROJECT_ROOT}/bin/cnext.js" "$cnx_file" --target host -o "$c_file" >/dev/null 2>&1; then
         echo -e "${GREEN}OK${NC}"
         TRANSPILED=$((TRANSPILED + 1))
     else

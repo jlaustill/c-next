@@ -33,6 +33,7 @@ describe("a scoped type in a generated header", () => {
       writeFileSync(join(project, name), text);
     }
     const result = await new Transpiler({
+      target: "host",
       input: join(project, entry),
       outDir: project,
       noCache: true,

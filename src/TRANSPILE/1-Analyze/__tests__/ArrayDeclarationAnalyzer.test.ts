@@ -1,50 +1,13 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import CNextResolver from "../../../PARSE/3-Declare/cnext";
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import TranspileState from "../../TranspileState";
-import Program from "../../../PARSE/4-Resolve/Program";
-import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import ArrayDeclarationAnalyzer from "../ArrayDeclarationAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
-/**
- * #1322. ADR-036's declaration shape (E0874 C-style, E0875 unbounded
- * parameter) and ADR-035's initializer rules (E0866 list and count, E0876
- * fill-all on an inferred size), replacing five codegen throws and the string
- * analyzer's array arm. Every fact is in the parse tree; a const dimension is
- * sized through the program's const table, which a unit test does not build,
- * so `tests/adr-035/array-init-error` asserts that arm end to end.
- */
+/** The analyzer's findings on `source`, declared and resolved as 1.3/1.4 do */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new ArrayDeclarationAnalyzer(testAnalysisContext(state)).analyze(tree);
+  const { tree, context } = testAnalysisContextFor(source);
+  return new ArrayDeclarationAnalyzer(context).analyze(tree);
 };
-
-/**
- * The same, with a real program artifact behind it, so a const DIMENSION
- * resolves. Built rather than stubbed because the thing under test is which
- * const a scoped dimension resolves to, and a stub would encode the answer.
- */
-const errorsWithProgram = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  state.program = Program.build([
-    CNextResolver.resolve(tree, "collide.cnx", registry),
-  ]);
-  return new ArrayDeclarationAnalyzer(testAnalysisContext(state)).analyze(tree);
-};
-
-afterEach(() => {
-  state = new TranspileState();
-});
-
-let registry = new SymbolRegistry();
-
-beforeEach(() => {
-  registry = new SymbolRegistry();
-});
-
-let state = new TranspileState();
 
 describe("ArrayDeclarationAnalyzer", () => {
   describe("E0874 -- C-style declarations and parameters", () => {
@@ -96,11 +59,9 @@ describe("ArrayDeclarationAnalyzer", () => {
     // won. This legal program was REJECTED, `declared [8] but the initializer
     // has 2 element(s)`, against `Small.table` sized by `Large.SIZE`.
     //
-    // Asserted here rather than as a fixture because the EMITTED array size
-    // still comes from the collided key (#1538, which folds the dimension at
-    // declare time), so compiling code in this shape would assert C the static
-    // analysis correctly rejects. See
-    // `tests/bugs/issue-1322-scoped-const-collision/README.md`.
+    // The emitted size agrees since #1538 was fixed (#1668, C11): 1.3, 1.4 and
+    // render all fold a scope's dimension with that scope's own consts, which
+    // `tests/bugs/issue-1538-scope-const-collision/` asserts in the C.
     const twoScopes = (first: string, second: string) =>
       [
         `scope ${first} { private const u8 SIZE <- ${first === "Small" ? 2 : 8}; public u8[SIZE] table <- [${first === "Small" ? "1, 2" : "1, 2, 3, 4, 5, 6, 7, 8"}]; }`,
@@ -108,14 +69,14 @@ describe("ArrayDeclarationAnalyzer", () => {
       ].join("\n");
 
     it("accepts both arrays whichever scope is declared first", () => {
-      expect(errorsWithProgram(twoScopes("Small", "Large"))).toEqual([]);
-      expect(errorsWithProgram(twoScopes("Large", "Small"))).toEqual([]);
+      expect(errors(twoScopes("Small", "Large"))).toEqual([]);
+      expect(errors(twoScopes("Large", "Small"))).toEqual([]);
     });
 
     it("still counts a genuine mismatch inside a scope", () => {
       // The control: without it, "resolves to nothing" would pass this suite
       // exactly as "resolves correctly" does.
-      const found = errorsWithProgram(
+      const found = errors(
         "scope Small { private const u8 SIZE <- 2; public u8[SIZE] table <- [1, 2, 3]; }",
       );
       expect(found.map((e) => e.code)).toEqual(["E0866"]);

@@ -408,8 +408,11 @@ Generates optimized code based on target platform:
 
 - **Cortex-M3/M4/M7**: LDREX/STREX retry loops (lock-free)
 - **Cortex-M0/M0+**: PRIMASK disable/restore (interrupt masking)
+- **AVR**: SREG save, `cli()`, restore (interrupt masking)
 
-Target detection priority: `--target` CLI flag > `platformio.ini` > `#pragma target` > default
+A target with no interrupt masking, such as `host` or `esp32`, has no lowering yet (#1789).
+
+A program has exactly one target (ADR-049): `#pragma target` in any file, else the `--target` option (a config file's `target` is its default), else the board of the PlatformIO environment being built. A program that names none is error E0515. Every name must be a known target — `cnext --help` lists them — and every file that declares one must declare the same.
 
 ### Volatile Variables (ADR-064)
 

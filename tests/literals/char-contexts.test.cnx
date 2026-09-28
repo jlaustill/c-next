@@ -25,10 +25,10 @@ u32 main() {
 
     // Test equality comparison
     u8 c <- 'X';
-    if (c != 'X') return 5;
+    if (c != (u8)'X') return 5;
 
     // Test not-equal comparison
-    if (c = 'Y') return 6;
+    if (c = (u8)'Y') return 6;
 
     // Test less-than comparison (ASCII ordering)
     if ('A' >= 'B') return 7;
@@ -45,11 +45,11 @@ u32 main() {
 
     // Test char literals in array initializer
     u8[5] vowels <- ['a', 'e', 'i', 'o', 'u'];
-    if (vowels[0] != 'a') return 10;
-    if (vowels[1] != 'e') return 11;
-    if (vowels[2] != 'i') return 12;
-    if (vowels[3] != 'o') return 13;
-    if (vowels[4] != 'u') return 14;
+    if (vowels[0] != (u8)'a') return 10;
+    if (vowels[1] != (u8)'e') return 11;
+    if (vowels[2] != (u8)'i') return 12;
+    if (vowels[3] != (u8)'o') return 13;
+    if (vowels[4] != (u8)'u') return 14;
 
     // Test array element assignment with char literal
     u8[4] buffer;
@@ -132,12 +132,12 @@ u32 main() {
     // Test addition (useful for case conversion)
     u8 upperA <- 'A';
     u8 lowerA <- upperA + 32; // Convert to lowercase
-    if (lowerA != 'a') return 21;
+    if (lowerA != (u8)'a') return 21;
 
     // Test subtraction
     u8 lowerZ <- 'z';
     u8 upperZ <- lowerZ - 32; // Convert to uppercase
-    if (upperZ != 'Z') return 22;
+    if (upperZ != (u8)'Z') return 22;
 
     return 0; // All tests passed
 }

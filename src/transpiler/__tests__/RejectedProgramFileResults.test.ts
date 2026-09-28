@@ -39,6 +39,7 @@ describe("a rejected program plans no file, including a clean one (#1320)", () =
       input: join(dir, "entry.cnx"),
       outDir: dir,
       noCache: true,
+      target: "host",
     });
     const result = await transpiler.transpile({ kind: "files" });
 

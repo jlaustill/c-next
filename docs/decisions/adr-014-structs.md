@@ -294,11 +294,12 @@ Rectangle r <- {
 
 ## Diagnostics
 
-| Code      | Reported when                                                                                                                                                                                                       | Asserted by                                                  |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| ~~E0356~~ | _Retired._ Was: a struct initializer writes a type where the position already declares one. The syntax it rejected is removed, so it is a parse error — `tests/adr-014/struct-written-type-rejected-error.test.cnx` |                                                              |
-| E0357     | A struct initializer writes no type and stands where no position declares one                                                                                                                                       | `tests/adr-014/struct-no-type-error.test.cnx`                |
-| E0508     | A C++ class with a constructor is initialized where no statement can follow it                                                                                                                                      | `tests/external-types/cpp-class-scope-member-error.test.cnx` |
+| Code      | Reported when                                                                                                                                                                                                       | Asserted by                                                                   |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| ~~E0356~~ | _Retired._ Was: a struct initializer writes a type where the position already declares one. The syntax it rejected is removed, so it is a parse error — `tests/adr-014/struct-written-type-rejected-error.test.cnx` |                                                                               |
+| E0357     | A struct initializer writes no type and stands where no position declares one                                                                                                                                       | `tests/adr-014/struct-no-type-error.test.cnx`                                 |
+| E0358     | A struct initializer stands where the position gives a type that is not a struct: a primitive, a string, a bitmap, an enum, a function type, or a C header's scalar, pointer or function pointer                    | `tests/bugs/issue-1802-struct-initializer-target/non-struct-targets.test.cnx` |
+| E0508     | A C++ class with a constructor is initialized where no statement can follow it                                                                                                                                      | `tests/external-types/cpp-class-scope-member-error.test.cnx`                  |
 
 A struct literal has no type of its own, and the position it stands in gives it
 one. The positions that do are a variable's declaration (including a `for`
@@ -311,8 +312,22 @@ Every position that carries a value is on that list, so the written form
 expression statement. E0357's help therefore does not offer "write the type" as
 a remedy: it would name the other error.
 
-Both are decided during analysis, at the initializer's own position, and every
-offense in a file is reported.
+**Only a struct takes `{ field: value }`.** Where the position gives a type
+that is not a struct, the initializer is E0358. That covers a primitive, a
+string, a bitmap, an enum, an ADR-029 function type, and a C header's scalar,
+pointer or function pointer. A header's struct and union take it, including a
+typedef whose struct is named by its tag. That holds in every position on the
+list above, and for an element of an array's list, which is typed by the
+element. An array's whole initializer is ADR-035's list (E0866), wherever a
+whole array is taken: a declaration, a field, an assignment target, and a
+parameter (#1760 review, 2026-09-28). A bitmap's
+value is its backing integer (ADR-034), wherever it is written. Owner ruling,
+2026-09-28: _"a bitmap should be defined the exact same way it is anywhere else,
+being inside a struct changes nothing"_. The brace form had emitted a designated
+initializer on a scalar, which C rejects.
+
+All three are decided during analysis, at the initializer's own position, and
+every offense in a file is reported.
 
 **E0508 is the one place this syntax depends on the target language.** A C++
 class with a user-defined constructor is not an aggregate, so the initializer
@@ -336,21 +351,24 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | same file           | error    |
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
-| top-level function | imported direct     | off      |
-| scope method       | imported direct     | off      |
-| global variable    | imported direct     | off      |
-| scope member       | imported direct     | off      |
-| top-level function | imported transitive | off      |
-| scope method       | imported transitive | off      |
-| global variable    | imported transitive | off      |
-| scope member       | imported transitive | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
 
-Both rules are decided entirely within the file that writes the initializer:
-whether a type is written is syntax, and whether the position supplies one is a
-question about that initializer's own ancestors. Nothing crosses an include, so
-the imported cells record that they cannot exist rather than that they are
-uncovered. The struct being initialized may of course be declared elsewhere --
-that is what makes it a struct, not what makes either rule fire.
+E0357 is decided entirely within the file that writes the initializer, because
+whether the position supplies a type is a question about the initializer's own
+ancestors. E0358 asks which type the position supplies, and that type can be
+declared in an included file: the imported cells exist because of it. They
+record a bitmap declared one include away and two includes away, each written
+with braces in all four contexts beside a struct initializer that stays silent
+(`tests/adr-014/struct-init-non-struct-direct-error.test.cnx`,
+`tests/adr-014/struct-init-non-struct-transitive-error.test.cnx`). Until #1802
+these cells were `off`, recorded as unable to exist.
 
 ## Implementation Notes
 

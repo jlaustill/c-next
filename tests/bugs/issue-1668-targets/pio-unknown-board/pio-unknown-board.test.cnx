@@ -1,0 +1,10 @@
+// test-error
+// test-no-target
+// #1668 / ADR-049: when PlatformIO decides the target, its board must map to
+// one. nucleo_f446re is not a catalog name and ststm32 is not a platform with
+// one target, so E0510 names the board, instead of silently using a default.
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- 1;
+}

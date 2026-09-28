@@ -25,11 +25,11 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Coverage: Values passed through call chains
 // Level 3: deepest functions
 uint32_t addOne(uint32_t val) {
-    return val + 1U;
+    return cnx_clamp_add_u32(val, 1U);
 }
 
 void modifyAddOne(uint32_t& val) {
-    val += 1U;
+    val = cnx_clamp_add_u32(val, 1U);
 }
 
 // Level 2: middle functions
@@ -62,7 +62,7 @@ void modifyAddFour(uint32_t& val) {
 
 // Multiple parameters through chain
 uint32_t sumThree(uint32_t a, uint32_t b, uint32_t c) {
-    return a + b + c;
+    return cnx_clamp_add_u32(cnx_clamp_add_u32(a, b), c);
 }
 
 uint32_t sumSix(uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e, uint32_t f) {

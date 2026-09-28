@@ -44,11 +44,11 @@ uint32_t WrapTest__getPosition(void) {
 }
 
 void WrapTest__incrementByteCounter(void) {
-    WrapTest__byteCounter += 10U;
+    WrapTest__byteCounter = static_cast<uint8_t>((WrapTest__byteCounter + 10U));
 }
 
 void WrapTest__incrementTickCount(void) {
-    WrapTest__tickCount += 10U;
+    WrapTest__tickCount = static_cast<uint16_t>((WrapTest__tickCount + 10U));
 }
 
 void WrapTest__incrementCycleCounter(void) {
@@ -56,11 +56,11 @@ void WrapTest__incrementCycleCounter(void) {
 }
 
 void WrapTest__incrementBrightness(void) {
-    WrapTest__brightness += 5U;
+    WrapTest__brightness = static_cast<uint8_t>((WrapTest__brightness + 5U));
 }
 
 void WrapTest__incrementSensorValue(void) {
-    WrapTest__sensorValue += 100U;
+    WrapTest__sensorValue = static_cast<uint16_t>((WrapTest__sensorValue + 100U));
 }
 
 void WrapTest__incrementPosition(void) {
@@ -68,11 +68,11 @@ void WrapTest__incrementPosition(void) {
 }
 
 void WrapTest__decrementBrightness(void) {
-    WrapTest__brightness -= 20U;
+    WrapTest__brightness = static_cast<uint8_t>((WrapTest__brightness - 20U));
 }
 
 void WrapTest__decrementSensorValue(void) {
-    WrapTest__sensorValue -= 150U;
+    WrapTest__sensorValue = static_cast<uint16_t>((WrapTest__sensorValue - 150U));
 }
 
 void WrapTest__decrementPosition(void) {
@@ -80,11 +80,11 @@ void WrapTest__decrementPosition(void) {
 }
 
 void WrapTest__decrementByteCounter(void) {
-    WrapTest__byteCounter -= 1U;
+    WrapTest__byteCounter = static_cast<uint8_t>((WrapTest__byteCounter - 1U));
 }
 
 void WrapTest__decrementTickCount(void) {
-    WrapTest__tickCount -= 1U;
+    WrapTest__tickCount = static_cast<uint16_t>((WrapTest__tickCount - 1U));
 }
 
 void WrapTest__decrementCycleCounter(void) {

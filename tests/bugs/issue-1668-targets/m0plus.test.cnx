@@ -1,0 +1,11 @@
+// #1668 / ADR-049: a target name is one pragma word, so `cortex-m0+` can be
+// named. The old grammar stopped the name at the `+` ("extraneous input
+// '+'"), so the one ARMv6-M name with a `+` could not be used at all. Its
+// atomic lowers to PRIMASK masking: ARMv6-M has no LDREX/STREX.
+#pragma target cortex-m0+ // a trailing comment is still a comment
+
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- 1;
+}

@@ -1,0 +1,25 @@
+// test-error
+// test-adr: 014
+// #1802: E0358 is decided by the type a position gives, and that type can be
+// declared two includes away, through a helper: `Flags` is a bitmap, whose value is
+// its backing integer, in each context. The struct initializer of `Cfg`
+// beside them is the control, and stays silent.
+#include "lib/struct-init-chain.cnx"
+
+Flags atFileScope <- { A: 1 };
+Cfg control <- { word: 1, f: 3 };
+// #1760 second review: a field of an included struct is typed too, so a
+// bitmap field takes its integer here as it does at a declaration
+Cfg nested <- { word: 1, f: { A: 1 } };
+
+void f() {
+    Flags local <- { A: 1 };
+}
+
+scope S {
+    Flags member <- { A: 1 };
+
+    public void method() {
+        Flags inside <- { A: 1 };
+    }
+}

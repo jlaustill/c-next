@@ -34,12 +34,12 @@ Handlers Handlers_init(void) {
 }
 
 uint32_t run(const Handlers* h, sinkI_fp cb) {
-    float x = h->f(5U);
+    float x = (float)h->f(5U);
     h->w(5U);
     uint64_t big = h->f(12U);
     uint64_t b = wide(cb(6));
     uint32_t same = h->f(7U);
-    float y = sink32(8U);
+    float y = (float)sink32(8U);
     sinkVoid(9U);
     uint64_t c = wide(sinkI(6));
     if (x < 4.5) {

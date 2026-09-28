@@ -1,0 +1,19 @@
+// test-execution
+// #1668 review: a bit of an element of a C header's array is written like
+// any other element's. The handler asserted the ROOT's C-Next array
+// dimensions, which a header variable does not have, so `gbuf[1][3]` was an
+// internal error.
+#include "wide.h"
+
+u32 main() {
+    gbuf[1] <- 0;
+    gbuf[1][3] <- true;
+    if (gbuf[1] != 8) return 1;
+    gbuf[2] <- 0;
+    gbuf[2][0, 4] <- 5;
+    if (gbuf[2] != 5) return 2;
+    // NEGATIVE CONTROL: an element write is not a bit write
+    gbuf[3] <- 7;
+    if (gbuf[3] != 7) return 3;
+    return 0;
+}

@@ -22,22 +22,28 @@
  * through `this.host`, all of them already public.
  */
 import type ISubstringOps from "./3-Render/codegen/types/ISubstringOps";
+import type IChainStep from "../transpiler/types/IChainStep";
 import type IStringConcatOps from "./3-Render/codegen/types/IStringConcatOps";
 import { basename } from "node:path";
 import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import CommentScanner from "../PARSE/2-Parse/CommentScanner";
-import TypeRegistrationEngine from "./2-Plan/TypeRegistrationEngine";
 import CommentFormatter from "./3-Render/codegen/CommentFormatter";
 import IComment from "../transpiler/types/IComment";
 import TYPE_MAP from "./3-Render/codegen/types/TYPE_MAP";
 import TParameterInfo from "../transpiler/types/TParameterInfo";
 import ICodeGeneratorOptions from "./3-Render/codegen/types/ICodeGeneratorOptions";
-import ExpressionTypeResolver from "./2-Plan/ExpressionTypeResolver";
 import TypeValidator from "./3-Render/codegen/TypeValidator";
 import IGeneratorOutput from "./3-Render/codegen/generators/IGeneratorOutput";
 import EmissionPlan from "./2-Plan/EmissionPlan";
 import DeclarationPlan from "./2-Plan/DeclarationPlan";
+import CastRequirement from "./2-Plan/CastRequirement";
+import OperandTyper from "../utils/OperandTyper";
+import CppNamespaceUtils from "../utils/CppNamespaceUtils";
+import PlanTyping from "./2-Plan/PlanTyping";
+import CompositeType from "../utils/CompositeType";
+import type IOperandType from "../transpiler/types/IOperandType";
+import type TOverflowBehavior from "../transpiler/types/TOverflowBehavior";
 import type TDeclarationKind from "../transpiler/types/TDeclarationKind";
 import type IEmissionPlan from "../transpiler/types/IEmissionPlan";
 import type IEmissionFacts from "../transpiler/types/IEmissionFacts";
@@ -94,8 +100,12 @@ import ExpressionUtils from "../utils/ExpressionUtils";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
 import includeGenerators from "./3-Render/codegen/generators/support/IncludeGenerator";
 import commentUtils from "./3-Render/codegen/generators/support/CommentUtils";
-import STRUCT_POINTER_C_FUNCTIONS from "../transpiler/constants/STRUCT_POINTER_C_FUNCTIONS";
+import DeclaredTypeInfo from "./2-Plan/DeclaredTypeInfo";
+import DeclaredPointer from "../utils/DeclaredPointer";
+import type IChainBase from "./2-Plan/types/IChainBase";
+import type TTypeInfo from "../transpiler/types/TTypeInfo";
 import memberAccessChain from "./3-Render/codegen/memberAccessChain";
+import type IRootHolding from "./3-Render/codegen/types/IRootHolding";
 import AssignmentHandlerRegistry from "./3-Render/codegen/assignment/index";
 import AssignmentClassifier from "./2-Plan/AssignmentClassifier";
 import AssignmentOperatorMapper from "./3-Render/codegen/helpers/AssignmentOperatorMapper";
@@ -111,8 +121,6 @@ import MemberChainAnalyzer from "./3-Render/codegen/analysis/MemberChainAnalyzer
 import type IBitAccessAnalysis from "../transpiler/types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../transpiler/types/TPlannedTargetOp";
 import ArgumentGenerator from "./3-Render/codegen/helpers/ArgumentGenerator";
-import AssignmentExpectedTypeResolver from "./3-Render/codegen/helpers/AssignmentExpectedTypeResolver";
-import analyzePostfixOps from "../utils/PostfixAnalysisUtils";
 import CppMemberHelper from "./2-Plan/CppMemberHelper";
 import IPostfixOp from "../transpiler/types/IPostfixOp";
 import CppConstructorHelper from "../utils/CppConstructorHelper";
@@ -128,6 +136,7 @@ import IPostfixChainDeps from "./3-Render/codegen/types/IPostfixChainDeps";
 import IPostfixOperation from "./3-Render/codegen/types/IPostfixOperation";
 import ExpressionUnwrapper from "../utils/ExpressionUnwrapper";
 import ParserUtils from "../utils/ParserUtils";
+import type ISourcePosition from "../utils/types/ISourcePosition";
 import IMemberSeparatorDeps from "./3-Render/codegen/types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./3-Render/codegen/types/IParameterDereferenceDeps";
 import ISeparatorContext from "./3-Render/codegen/types/ISeparatorContext";
@@ -146,16 +155,13 @@ import ParameterInputAdapter from "./3-Render/codegen/helpers/ParameterInputAdap
 import ParameterSignatureBuilder from "./3-Render/codegen/helpers/ParameterSignatureBuilder";
 import SizeofResolver from "./3-Render/codegen/resolution/SizeofResolver";
 import type TSizeofOperand from "./3-Render/codegen/types/TSizeofOperand";
-import EnumTypeResolver from "./3-Render/codegen/resolution/EnumTypeResolver";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import MisraSuppressionUtils from "./3-Render/MisraSuppressionUtils";
 import QualifiedCName from "../utils/QualifiedCName";
 import ToolchainRequirementUtils from "../utils/ToolchainRequirementUtils";
 import ScopeUtils from "../utils/ScopeUtils";
 import TypeBinding from "../PARSE/3-Declare/TypeBinding";
-import type ITargetCapabilities from "../transpiler/types/ITargetCapabilities";
-import DEFAULT_TARGET from "../transpiler/constants/DEFAULT_TARGET";
-import TargetResolver from "../utils/TargetResolver";
+import type ITargetDescription from "../transpiler/types/ITargetDescription";
 import SymbolTypeResolver from "../utils/TypeResolver";
 import CNEXT_TO_C_TYPE_MAP from "../utils/constants/TypeMappings";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
@@ -481,8 +487,7 @@ class CodeGenWalker {
       operator,
       operandCode: this.generateUnaryExpr(operand),
       // lazy: only `~` consults it
-      operandType: () =>
-        ExpressionTypeResolver.getUnaryExpressionType(operand, this.host.state),
+      operandType: () => this.directTypeOf(operand),
     });
   }
 
@@ -566,8 +571,16 @@ class CodeGenWalker {
     // question from two representations behind a `"kind" in op` probe. Planning
     // is pure (it builds thunks and renders nothing), so doing it first costs
     // nothing and leaves the validator one branch and one shape.
-    const plannedOps = ops.map((op, index) =>
-      this.planPostfixOp(ctx, op, index),
+    //
+    // #1668 (S25): each subscript's kind is the one operand typer's, step by
+    // step. A `this.`/`global.` chain consumes its first `.name`, so the
+    // typer's steps are the op list's tail.
+    const typing = this.host.state.typingContext();
+    const chain = OperandTyper.chainOf(ctx, typing);
+    const steps = chain.steps;
+    const offset = ops.length - steps.length;
+    const plannedOps = ops.map((op, i) =>
+      this.planPostfixOp(op, steps[i - offset] ?? null),
     );
 
     return {
@@ -585,21 +598,29 @@ class CodeGenWalker {
           )
         : 0,
       ops: plannedOps,
+      // #1668 (C7): the chain's bound base, from the same typed chain
+      base: DeclaredTypeInfo.ofChain(
+        chain,
+        typing.symbols,
+        this.host.state.symbolTable,
+        this.host.state.targetDescription,
+      ),
     };
   }
 
   /**
-   * Which of `postfixOp`'s three shapes this one is. `index` is its position
-   * in `postfix`, so a call can name the value it calls: everything before it.
+   * Which of `postfixOp`'s three shapes this one is. `step` is the one operand
+   * typer's step for it (#1668): a subscript's kind, and for a call the value
+   * it calls -- everything before it (#1561, #1696).
    */
   private planPostfixOp(
-    postfix: Parser.PostfixExpressionContext,
     op: Parser.PostfixOpContext,
-    index: number,
+    step: IChainStep | null,
   ): TPlannedPostfixOp {
+    const typedAs = step?.subscript ?? null;
     const identifier = op.IDENTIFIER();
     if (identifier) {
-      return { kind: "member", name: identifier.getText() };
+      return { kind: "member", name: identifier.getText(), step };
     }
 
     const indexes = op.expression();
@@ -609,6 +630,9 @@ class CodeGenWalker {
       // rather than a runtime one. Captured here rather than indexed inside
       // the thunk so the arity check above is what guarantees it exists.
       const widthExpr = indexes.at(-1);
+      // The typer types every subscript it walks, an untyped value's
+      // included (the classifier's default for an unknown type)
+      invariant(typedAs !== null, "the typer typed this subscript");
       return {
         kind: "subscript",
         indexCount: indexes.length,
@@ -618,6 +642,8 @@ class CodeGenWalker {
           widthExpr === undefined
             ? undefined
             : this.tryEvaluateConstant(widthExpr),
+        typedAs,
+        step,
       };
     }
 
@@ -627,12 +653,10 @@ class CodeGenWalker {
       // an `#include` sits in no scope, function or variable, so the matrix's
       // context axis has nothing to ask it.
       line: op.start?.line,
-      calleeType: () =>
-        ExpressionTypeResolver.getPostfixTypeInfo(
-          postfix,
-          this.host.state,
-          index,
-        )?.baseType ?? null,
+      // ADR-029: a callback-typed value names the function that is its type,
+      // by C name -- the key `callbackTypes` holds. A function's own name is
+      // not a typed value, so the typer's step has no `before`: null.
+      calleeType: () => step?.before?.typeName ?? null,
       planArguments: () => this.planCallArguments(op.argumentList() || null),
     };
   }
@@ -847,22 +871,35 @@ class CodeGenWalker {
       kind: "arithmetic",
       defaultOperator: "+",
       operators: this.getOperatorsFromChildren(ctx),
-      // Asked AFTER the operands render, which is where they are asked today:
-      // both read the type registry, and asking earlier asks about a state the
-      // operands have not reached.
-      clampType: () =>
-        ExpressionTypeResolver.getCompositeIntegerType(ctx, this.host.state),
-      clampBehavior: () =>
-        ExpressionTypeResolver.getCompositeOverflowBehavior(
-          ctx,
-          this.host.state,
-        ),
+      // Asked AFTER the operands render, which is where they are asked today.
+      // Both read the typer over 1.4's settled declarations, so the order is
+      // not load-bearing; it is kept because it is where the plan asks.
+      clampType: () => this.compositeClampType(ctx),
+      clampBehavior: () => this.compositeClampBehavior(ctx),
       adrLine: ctx.start?.line,
       renderOperands: children.map(
         (child) => () =>
           this.renderBinaryLevel(this.planMultiplicativeLevel(child)),
       ),
     };
+  }
+
+  /**
+   * #1668 (C6b): a composite's integer type, as the typer settled it -- the
+   * answer 2.1's E0869 reads too -- so the clamp helper's width and the
+   * conversion check cannot count a different set of operands
+   */
+  private compositeClampType(ctx: ParserRuleContext): string | null {
+    const t = OperandTyper.typeOf(ctx, this.host.state.typingContext());
+    return t?.bitWidth === null ? null : (t?.typeName ?? null);
+  }
+
+  /** #1668 (C6b): ADR-044's behavior for a composite, PlanTyping's row */
+  private compositeClampBehavior(
+    ctx: ParserRuleContext,
+  ): TOverflowBehavior | null {
+    const typing = this.host.state.typingContext();
+    return PlanTyping.overflowOf(OperandTyper.valueLeaves(ctx, typing));
   }
 
   private planMultiplicativeLevel(
@@ -879,13 +916,8 @@ class CodeGenWalker {
       kind: "arithmetic",
       defaultOperator: "*",
       operators: this.getOperatorsFromChildren(ctx),
-      clampType: () =>
-        ExpressionTypeResolver.getCompositeIntegerType(ctx, this.host.state),
-      clampBehavior: () =>
-        ExpressionTypeResolver.getCompositeOverflowBehavior(
-          ctx,
-          this.host.state,
-        ),
+      clampType: () => this.compositeClampType(ctx),
+      clampBehavior: () => this.compositeClampBehavior(ctx),
       adrLine: ctx.start?.line,
       // `generateUnaryExpr` applies its own effects, so a leaf contributes
       // none here -- matching the empty array the multiplicative tail passed.
@@ -913,21 +945,13 @@ class CodeGenWalker {
     // second arm was dead: the only caller is `SwitchGenerator`, which passes
     // `node.expression()`. The resolver's `!("ternaryExpression" in ctx)` guard
     // existed to discriminate the union and could therefore never fire.
-    return EnumTypeResolver.resolve(
-      ctx.getText(),
-      () => {
-        const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
-        if (!postfix) return null;
-        const resolvedType = ExpressionTypeResolver.getPostfixExpressionType(
-          postfix,
-          this.host.state,
-        );
-        return resolvedType && this.host.state.isKnownEnum(resolvedType)
-          ? resolvedType
-          : null;
-      },
-      this.host.state,
-    );
+    //
+    // #1668: the one operand typer's answer, which 2.1's ADR-017 rules read
+    // too, so the case label and the E0428/E0434 checks cannot disagree
+    // about whether the switch is on an enum. A header's enum has no C-Next
+    // enum type: its members are global C names and need no qualifying.
+    const t = OperandTyper.typeOf(ctx, this.host.state.typingContext());
+    return t?.category === "enum" ? t.enumTypeName : null;
   }
 
   /**
@@ -947,26 +971,33 @@ class CodeGenWalker {
 
     // Check if it's a simple variable of string type
     if (BareIdentifier.matches(text)) {
-      const typeInfo = this.host.state.getVariableTypeInfo(text);
+      const typeInfo = this.host.state.declarationTypeInfo(
+        null,
+        text,
+        ParserUtils.getPosition(ctx),
+      );
       if (typeInfo?.isString) {
         return true;
       }
     }
 
     // Issue #1030: Check for struct member access (e.g., person.name)
-    if (this._isStructMemberStringExpression(text)) {
+    if (this._isStructMemberStringExpression(text, ctx)) {
       return true;
     }
 
     // Issue #137: Check for array element access (e.g., names[0], arr[i])
-    return this._isArrayAccessStringExpression(text);
+    return this._isArrayAccessStringExpression(text, ctx);
   }
 
   /**
    * Check if array access expression evaluates to a string.
    * Extracted from isStringExpression to reduce cognitive complexity.
    */
-  private _isArrayAccessStringExpression(text: string): boolean {
+  private _isArrayAccessStringExpression(
+    text: string,
+    ctx: Parser.RelationalExpressionContext,
+  ): boolean {
     // Pattern: identifier[expression] or identifier[expression][expression]...
     // BUT NOT if accessing properties that return numbers, not strings
     const arrayAccessMatch = /^([a-zA-Z_]\w*)\[/.exec(text);
@@ -990,7 +1021,11 @@ class CodeGenWalker {
     }
 
     const arrayName = arrayAccessMatch[1];
-    const typeInfo = this.host.state.getVariableTypeInfo(arrayName);
+    const typeInfo = this.host.state.declarationTypeInfo(
+      null,
+      arrayName,
+      ParserUtils.getPosition(ctx),
+    );
     if (!typeInfo) {
       return false;
     }
@@ -1011,7 +1046,7 @@ class CodeGenWalker {
     return Boolean(
       typeInfo.isArray &&
       typeInfo.baseType &&
-      TypeCheckUtils.isString(typeInfo.baseType),
+      TypeCheckUtils.isSizedStringName(typeInfo.baseType),
     );
   }
 
@@ -1019,7 +1054,10 @@ class CodeGenWalker {
    * Check if struct member access expression evaluates to a string.
    * Issue #1030: Handles patterns like person.name, config.key
    */
-  private _isStructMemberStringExpression(text: string): boolean {
+  private _isStructMemberStringExpression(
+    text: string,
+    ctx: Parser.RelationalExpressionContext,
+  ): boolean {
     // Pattern: identifier.identifier (simple member access)
     // Must not end with a property that returns a number
     if (
@@ -1043,7 +1081,11 @@ class CodeGenWalker {
     const [, varName, fieldName] = memberMatch;
 
     // Get the struct variable's type
-    const typeInfo = this.host.state.getVariableTypeInfo(varName);
+    const typeInfo = this.host.state.declarationTypeInfo(
+      null,
+      varName,
+      ParserUtils.getPosition(ctx),
+    );
     if (!typeInfo) {
       return false;
     }
@@ -1093,13 +1135,15 @@ class CodeGenWalker {
     ctx: Parser.ExpressionContext,
     targetParamBaseType?: string,
   ): string {
-    const simpleId = ExpressionUnwrapper.getSimpleIdentifier(ctx);
+    const simpleId = this.boundArgumentName(ctx);
+    const declared = this.nameTypeOf(ctx);
     // #1445: thunks closing over `ctx`. `ArgumentGenerator` never read a
     // member off the node -- it threaded it through five callbacks and four
     // private helpers only to hand it back -- so the node stays here, where
     // the tree already is.
     return ArgumentGenerator.generateArg(
       simpleId,
+      declared,
       targetParamBaseType,
       {
         generateExpression: () => this.generateExpression(ctx),
@@ -1114,11 +1158,104 @@ class CodeGenWalker {
   }
 
   /**
+   * A bare-name argument as written, and the C name the one binder gives it
+   * (#1760 review): the same answer a read and an assignment target take,
+   * through `TypeValidator.resolveBareIdentifier`.
+   */
+  private boundArgumentName(
+    ctx: Parser.ExpressionContext,
+  ): { readonly id: string; readonly emitted: string } | null {
+    const id = ExpressionUnwrapper.getSimpleIdentifier(ctx);
+    if (id === null) return null;
+    return { id, emitted: this.boundName(id, ParserUtils.getPosition(ctx)) };
+  }
+
+  /** The C name a bare identifier at `at` is emitted under (ADR-057) */
+  private boundName(id: string, at: ISourcePosition): string {
+    return (
+      TypeValidator.resolveBareIdentifier(
+        id,
+        at,
+        (name: string) => this.host.isKnownStruct(name),
+        this.host.state,
+      ) ?? id
+    );
+  }
+
+  /**
+   * #1668 (C7): the declared type of what an expression NAMES -- a variable
+   * spelled bare, `this.x`, `global.x` or `Scope.x`, with nothing applied to
+   * it -- and undefined for anything else. The registry reads this replaces
+   * were keyed by an argument's rendered text, which only ever matched a
+   * name's.
+   */
+  private nameTypeOf(ctx: Parser.ExpressionContext): TTypeInfo | undefined {
+    const typing = this.host.state.typingContext();
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
+    if (postfix === null) return undefined;
+    const chain = OperandTyper.chainOf(postfix, typing);
+    if (chain.steps.length !== DeclaredTypeInfo.nameSteps(chain)) {
+      return undefined;
+    }
+    return DeclaredTypeInfo.ofChain(
+      chain,
+      typing.symbols,
+      this.host.state.symbolTable,
+      this.host.state.targetDescription,
+    ).typeInfo;
+  }
+
+  /**
+   * ADR-030 / #996: whether an argument is one element of an array held
+   * through pointers -- `handles[i]` of a `Dev[4] handles`, however the array
+   * is named: bare, `this.`, `global.`, or `Scope.` from outside the scope.
+   * The array's own declaration says so (`isPointer` on an array of handles,
+   * from `DeclaredPointer`), for a parameter, a file-scope, local or scope
+   * variable, and one declared in an included file alike.
+   */
+  private isHandleArrayElement(ctx: Parser.ExpressionContext): boolean {
+    const typing = this.host.state.typingContext();
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
+    if (postfix === null) return false;
+    const chain = OperandTyper.chainOf(postfix, typing);
+    const subscript = chain.steps[DeclaredTypeInfo.nameSteps(chain)];
+    if (subscript?.subscript !== "array_element") return false;
+    const array = DeclaredTypeInfo.ofChain(
+      chain,
+      typing.symbols,
+      this.host.state.symbolTable,
+      this.host.state.targetDescription,
+    ).typeInfo;
+    return (array?.isArray ?? false) && (array?.isPointer ?? false);
+  }
+
+  /**
    * Issue #304: Get the type of an expression.
    * Part of IOrchestrator interface.
    */
   getExpressionType(ctx: Parser.ExpressionContext): string | null {
-    return ExpressionTypeResolver.getExpressionType(ctx, this.host.state);
+    return this.directTypeOf(ctx);
+  }
+
+  /** #1668 (C6c): an expression's one type for 2.2, PlanTyping's row */
+  private directTypeOf(ctx: ParserRuleContext): string | null {
+    return PlanTyping.directTypeName(
+      OperandTyper.typeOf(ctx, this.host.state.typingContext()),
+    );
+  }
+
+  /**
+   * The integer type an expression converts from: its one type, or a
+   * composite's integer type -- the answer 2.1's E0869 reads
+   */
+  private integerTypeOf(ctx: ParserRuleContext): string | null {
+    return this.directTypeOf(ctx) ?? this.compositeClampType(ctx);
+  }
+
+  /** Whether any value leaf is floating, or indeterminate (CompositeType) */
+  private hasFloatingLeaf(ctx: ParserRuleContext): boolean {
+    const typing = this.host.state.typingContext();
+    return CompositeType.anyFloating(OperandTyper.valueLeaves(ctx, typing));
   }
 
   /**
@@ -1198,19 +1335,28 @@ class CodeGenWalker {
    * Generate an assignment target.
    * Part of IOrchestrator interface.
    * Issue #387: Unified postfix chain - all patterns now use IDENTIFIER postfixTargetOp*
+   *
+   * @param opCount how many of the target's postfix operations to render;
+   *        all of them unless given. A bit write renders its target without
+   *        the final subscript through this same renderer (#1668 review), so
+   *        a renamed local, a scope member or a struct parameter is spelled
+   *        once, here.
    */
-  generateAssignmentTarget(ctx: Parser.AssignmentTargetContext): string {
+  generateAssignmentTarget(
+    ctx: Parser.AssignmentTargetContext,
+    opCount?: number,
+  ): string {
     const hasGlobal = ctx.GLOBAL() !== null;
     const hasThis = ctx.THIS() !== null;
     const identifier = ctx.IDENTIFIER()?.getText();
-    const postfixOps = ctx.postfixTargetOp();
+    const postfixOps = ctx.postfixTargetOp().slice(0, opCount);
 
     // SonarCloud S3776: Use SimpleIdentifierResolver for simple identifier case
     if (!hasGlobal && !hasThis && postfixOps.length === 0 && identifier) {
       return SimpleIdentifierResolver.resolve(
         identifier,
         this._buildSimpleIdentifierDeps(),
-        ctx.start?.line,
+        ParserUtils.getPosition(ctx),
       );
     }
 
@@ -1221,7 +1367,6 @@ class CodeGenWalker {
     let resolvedIdentifier = identifier ?? "";
     if (!hasGlobal && !hasThis && identifier) {
       const isParameter = this.host.state.currentParameters.has(identifier);
-      const isLocalVariable = this.host.state.localVariables.has(identifier);
       const isKnownRegister =
         this.host.state.symbols?.knownRegisters.has(identifier);
       // Issue #1100: Parameters with postfix ops (array/bit subscript, member
@@ -1250,10 +1395,9 @@ class CodeGenWalker {
         // the local, in the same function, compiling clean.
         const resolved = TypeValidator.resolveBareIdentifier(
           identifier,
-          isLocalVariable,
+          ParserUtils.getPosition(ctx),
           (name: string) => this.host.isKnownStruct(name),
           this.host.state,
-          ctx.start?.line,
         );
         if (resolved !== null) {
           resolvedIdentifier = resolved;
@@ -1281,6 +1425,7 @@ class CodeGenWalker {
       firstId,
       hasGlobal,
       hasThis,
+      this.targetDeclaration(ctx).rootTypeInfo,
     );
 
     return PostfixChainBuilder.build(
@@ -1360,7 +1505,7 @@ class CodeGenWalker {
     // hot path for exactly the divergences this work closes.
     return ArrayDimensionParser.parseSingleDimension(
       ctx,
-      dimensionEvalOptions(this.transpileState),
+      dimensionEvalOptions(this.transpileState, ParserUtils.getPosition(ctx)),
     );
   }
 
@@ -1550,7 +1695,10 @@ class CodeGenWalker {
     if (ctx.IDENTIFIER()) {
       const id = ctx.IDENTIFIER()!.getText();
       // #1322: `break`/`continue` (ADR-026, E0703) are rejected in pass 2.1.
-      return this._resolveIdentifierExpression(id, ctx.start?.line);
+      return this._resolveIdentifierExpression(
+        id,
+        ParserUtils.getPosition(ctx),
+      );
     }
     if (ctx.literal()) {
       return this._generateLiteralExpression(ctx.literal()!);
@@ -1600,11 +1748,8 @@ class CodeGenWalker {
       isKnownScope: (name: string) => this.host.isKnownScope(name),
       isKnownRegister: (name: string) =>
         this.host.state.symbols!.knownRegisters.has(name),
-      getStructParamSeparator: (forcePointerSemantics: boolean) =>
-        memberAccessChain.getStructParamSeparator({
-          cppMode: this.host.state.cppMode,
-          forcePointerSemantics,
-        }),
+      rootMemberSeparator: (holding: IRootHolding) =>
+        memberAccessChain.rootMemberSeparator(holding, this.host.state.cppMode),
     };
   }
 
@@ -1657,14 +1802,15 @@ class CodeGenWalker {
     tokenStream?: CommonTokenStream,
     options?: ICodeGeneratorOptions,
   ): string {
-    // ADR-049: Determine target capabilities with priority: CLI > pragma > default
-    const targetCapabilities = this.resolveTargetCapabilities(
-      tree,
-      options?.target,
+    // ADR-049: the target is decided before codegen, by the orchestrator;
+    // this walk only reads it.
+    invariant(
+      options?.targetDescription,
+      "the pipeline always supplies options.targetDescription to generate(); its absence is a caller/API error, not a program error",
     );
 
     // Reset state for fresh generation (must be before any state assignments)
-    this.resetGeneratorState(targetCapabilities);
+    this.resetGeneratorState(options.targetDescription);
 
     // Initialize options and configuration (after reset)
     this.initializeGenerateOptions(options, tokenStream);
@@ -1682,14 +1828,11 @@ class CodeGenWalker {
     // afterwards and correctly overwrites on a name collision.
     this.registerIncludedCallbackTypes();
 
-    // Initialize symbol data and const values
+    // Initialize symbol data
     this.initializeSymbolData();
 
     // Initialize all helper objects
     this.initializeHelperObjects(tree);
-
-    // Second pass: register all variable types in the type registry
-    this.registerAllVariableTypes(tree);
 
     // Assemble and return the output
     return this.assembleGeneratedOutput(tree, options);
@@ -1726,12 +1869,12 @@ class CodeGenWalker {
   /**
    * Reset all generator state for a fresh generation pass.
    */
-  private resetGeneratorState(targetCapabilities: ITargetCapabilities): void {
+  private resetGeneratorState(targetDescription: ITargetDescription): void {
     // One reset, because there is one state. Two classes stood here --
     // `CodeGenState.reset(targetCapabilities)` and `TranspilerState.reset()` --
     // and merging them under #1452 left the second call clobbering the first's
     // argument, so `--target` silently fell back to the default capabilities.
-    this.host.state.reset(targetCapabilities);
+    this.host.state.reset(targetDescription);
 
     // Set generator reference for handlers to use
     // #1652 removed `ICodeGenApi`'s four parse-node members, and every one that
@@ -1751,17 +1894,9 @@ class CodeGenWalker {
       this.host.state.setScopeMembers(scopeName, new Set(members));
     }
 
-    // Issue #461: seed constValues for this file's generation.
-    // Issue #1220: one derivation of "what is this const worth", not a second
-    // walk here -- this loop and the symbol table's were two implementations of
-    // one rule, and only one was reachable from the analyzers.
-    // #1447: that derivation now lives on `Program`, because a const reached
-    // through an include is worth the same as one declared beside the use and
-    // only 1.4 sees both. Copied into a mutable map because generation adds
-    // file-local consts to it as it goes.
-    this.host.state.constValues = new Map(
-      this.host.state.program?.constValues(),
-    );
+    // #1664 box 7: const values are not seeded here. A dimension folds with
+    // `dimensionEvalOptions(state, position)`, what 1.4 settled as visible
+    // there.
   }
 
   /**
@@ -2070,6 +2205,7 @@ class CodeGenWalker {
       selfIncludeAdded: this.host.state.selfIncludeAdded,
       existingIncludeTargets,
       clampOps: this.host.state.usedClampOps,
+      castHelpers: this.host.state.usedCastHelpers,
       safeDivOps: this.host.state.usedSafeDivOps,
       floatAssertSites: ToolchainRequirements.takeDeferredSites(
         "float_static_assert",
@@ -2155,33 +2291,12 @@ class CodeGenWalker {
     if (safeDivHelpers.length > 0) {
       output.push(...safeDivHelpers);
     }
-  }
 
-  /**
-   * ADR-049: Resolve target capabilities with priority: CLI > pragma > default.
-   *
-   * Delegates to TargetResolver so this file and the whole-program Rule 5.1
-   * check read the same pragma the same way (#1307 review).
-   *
-   * @param tree - The parsed program tree
-   * @param cliTarget - Optional target from CLI --target flag
-   */
-  private resolveTargetCapabilities(
-    tree: Parser.ProgramContext,
-    cliTarget?: string,
-  ): ITargetCapabilities {
-    if (cliTarget) {
-      const fromCli = TargetResolver.byName(cliTarget);
-      if (fromCli) {
-        return fromCli;
-      }
-      console.warn(
-        `Warning: Unknown target '${cliTarget}', falling back to pragma or default`,
-      );
-    }
-
-    return (
-      TargetResolver.byName(TargetResolver.fromPragma(tree)) ?? DEFAULT_TARGET
+    output.push(
+      ...helperGenerators.generateCastHelpers(
+        plan.castHelpers,
+        this.host.isCppMode(),
+      ),
     );
   }
 
@@ -2351,25 +2466,6 @@ class CodeGenWalker {
   }
 
   /**
-   * Second pass: register all variable types in the type registry
-   * This ensures type information is available before generating any code,
-   * allowing .length and other type-dependent operations to work regardless
-   * of declaration order (e.g., scope functions can reference globals declared later)
-   * SonarCloud S3776: Refactored to use helper methods.
-   */
-  private registerAllVariableTypes(tree: Parser.ProgramContext): void {
-    TypeRegistrationEngine.register(
-      tree,
-      {
-        tryEvaluateConstant: (ctx) => this.tryEvaluateConstant(ctx),
-        requireInclude: (header) => this.host.state.requireInclude(header),
-        resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
-      },
-      this.host.state,
-    );
-  }
-
-  /**
    * A parameter as the function CONTEXT needs it (#1445).
    *
    * Distinct from `planParameter`, which serves the signature adapter, and the
@@ -2428,7 +2524,10 @@ class CodeGenWalker {
     if (cStyleDimensions.length > 0) {
       return ArrayDimensionParser.parseDimensions(
         cStyleDimensions,
-        dimensionEvalOptions(this.transpileState),
+        dimensionEvalOptions(
+          this.transpileState,
+          ParserUtils.getPosition(cStyleDimensions[0]),
+        ),
       );
     }
 
@@ -2439,7 +2538,10 @@ class CodeGenWalker {
       if (!expression) return [];
       const size = ArrayDimensionParser.parseSingleDimension(
         expression,
-        dimensionEvalOptions(this.transpileState),
+        dimensionEvalOptions(
+          this.transpileState,
+          ParserUtils.getPosition(expression),
+        ),
       );
       return [size ?? UNRESOLVED_DIMENSION];
     });
@@ -2558,7 +2660,7 @@ class CodeGenWalker {
     isOpaqueHandle: boolean;
   } {
     // ADR-006: struct-ness drives reference semantics.
-    const isStruct = this.host.isStructType(typeName);
+    const isStruct = this.host.isKnownStruct(typeName);
 
     // ADR-029: a parameter whose type is itself a function-as-type.
     const cbInfo = this.host.state.callbackTypes.get(typeName);
@@ -2579,7 +2681,7 @@ class CodeGenWalker {
     // rejected by cc while the transpiler exited 0). Both are now wrong in one
     // place instead of differently wrong in two -- which is the property this
     // method exists to hold, and the one its comment already claimed.
-    if (!isArray && TypeCheckUtils.isString(typeName)) {
+    if (!isArray && TypeCheckUtils.isSizedStringName(typeName)) {
       return {
         type: "char*",
         isStruct: false,
@@ -2821,7 +2923,10 @@ class CodeGenWalker {
               }
               const folded = ArrayDimensionParser.parseSingleDimension(
                 expr,
-                dimensionEvalOptions(this.transpileState),
+                dimensionEvalOptions(
+                  this.transpileState,
+                  ParserUtils.getPosition(expr),
+                ),
               );
               return `[${folded ?? this.generateExpression(expr)}]`;
             })
@@ -2869,7 +2974,7 @@ class CodeGenWalker {
     return StringOperationsHelper.getStringConcatOperands(
       operands[0],
       operands[1],
-      this.host.state,
+      this.declaredTypeAt(ctx),
     );
   }
 
@@ -2889,21 +2994,23 @@ class CodeGenWalker {
     return StringOperationsHelper.getSubstringOperands(
       subscript.name,
       () => subscript.indexes.map((index) => this.generateExpression(index)),
-      this.host.state,
+      this.declaredTypeAt(ctx),
     );
   }
 
-  private _isFloatType(typeName: string): boolean {
-    return ExpressionTypeResolver.isFloatType(typeName);
+  /**
+   * #1668 (C7): a bare name's declared type where `ctx` is, for a helper
+   * that holds only an operand's text
+   */
+  private declaredTypeAt(
+    ctx: ParserRuleContext,
+  ): (name: string) => TTypeInfo | undefined {
+    const at = ParserUtils.getPosition(ctx);
+    return (name) => this.host.state.declarationTypeInfo(null, name, at);
   }
 
-  /**
-   * ADR-024: Get the type of a unary expression (for cast validation).
-   */
-  private getUnaryExpressionType(
-    ctx: Parser.UnaryExpressionContext,
-  ): string | null {
-    return ExpressionTypeResolver.getUnaryExpressionType(ctx, this.host.state);
+  private _isFloatType(typeName: string): boolean {
+    return TypeCheckUtils.isFloat(typeName);
   }
 
   /**
@@ -2973,6 +3080,7 @@ class CodeGenWalker {
       ops,
       baseId,
       targetParamBaseType,
+      postfix,
     );
   }
 
@@ -2999,8 +3107,13 @@ class CodeGenWalker {
     ops: Parser.PostfixOpContext[],
     baseId: string,
     targetParamBaseType: string,
+    at: Parser.PostfixExpressionContext,
   ): boolean {
-    const typeInfo = this.host.state.getVariableTypeInfo(baseId);
+    const typeInfo = this.host.state.declarationTypeInfo(
+      null,
+      baseId,
+      ParserUtils.getPosition(at),
+    );
     return CppMemberHelper.needsComplexMemberConversion(
       this._toPostfixOps(ops),
       typeInfo,
@@ -3027,7 +3140,11 @@ class CodeGenWalker {
     const baseId = primary.IDENTIFIER()?.getText();
     if (!baseId) return false;
 
-    const typeInfo = this.host.state.getVariableTypeInfo(baseId);
+    const typeInfo = this.host.state.declarationTypeInfo(
+      null,
+      baseId,
+      ParserUtils.getPosition(postfix),
+    );
     const paramInfo = this.host.state.currentParameters.get(baseId);
 
     return CppMemberHelper.isStringSubscriptPattern(
@@ -3077,11 +3194,15 @@ class CodeGenWalker {
     if (!baseId) return "not-array";
 
     // Look up the struct type from either:
-    // 1. Local variable: typeRegistry.get(baseId).baseType
+    // 1. The declaration the name binds here (#1668)
     // 2. Parameter: currentParameters.get(baseId).baseType
     let structType: string | undefined;
 
-    const typeInfo = this.host.state.getVariableTypeInfo(baseId);
+    const typeInfo = this.host.state.declarationTypeInfo(
+      null,
+      baseId,
+      ParserUtils.getPosition(postfix),
+    );
     if (typeInfo) {
       structType = typeInfo.baseType;
     } else {
@@ -3539,9 +3660,13 @@ class CodeGenWalker {
 
     return ctx.expression().map((expression) => ({
       simpleIdentifier: this.getSimpleIdentifier(expression),
+      declared: this.nameTypeOf(expression),
       expressionType: () => this.getExpressionType(expression),
       isArray: () =>
-        ExpressionTypeResolver.isArrayExpression(expression, this.host.state),
+        OperandTyper.decaysToPointer(
+          OperandTyper.typeOf(expression, this.host.state.typingContext()),
+        ),
+      isHandleArrayElement: () => this.isHandleArrayElement(expression),
       render: () => this.generateExpression(expression),
       renderByReference: (targetParamBaseType: string | undefined) =>
         this.generateFunctionArg(expression, targetParamBaseType),
@@ -3971,7 +4096,10 @@ class CodeGenWalker {
 
     const folded = ArrayDimensionParser.parseSingleDimension(
       expression,
-      dimensionEvalOptions(this.transpileState),
+      dimensionEvalOptions(
+        this.transpileState,
+        ParserUtils.getPosition(expression),
+      ),
     );
     return folded === undefined
       ? this.generateExpression(expression)
@@ -4046,13 +4174,13 @@ class CodeGenWalker {
    *
    * ## This planner WRITES, and the order is the contract
    *
-   * `inferVariableType` renders; `trackLocalVariable` registers the variable's
-   * type info; `emittedLocalName` is only correct after that registration; and
-   * ADR-045's string discrimination reads the registry registration filled --
-   * which is why `string<32> s <- s + "x"` is detected as a concatenation and
-   * rejected E0864 for "capacity 33", the 32 read back off `s` itself (#1643
-   * tracks that the name resolves at all). So this is not a description
-   * computed ahead of time; it is the sequence the renderer used to perform,
+   * `inferVariableType` renders; `trackLocalVariable` records the local's
+   * name for the walk. What a name is typed as is not written here: it binds
+   * through 1.4's lexical frames (#1668, C8), which is why
+   * `string<32> s <- s + "x"` is detected as a concatenation and rejected
+   * E0864 for "capacity 33", the 32 read off `s`'s own declaration (#1643
+   * tracks that the name binds in its own initializer at all). The steps are
+   * still the sequence the renderer used to perform,
    * with the rendering lifted out of it.
    */
   private planVariableDecl(
@@ -4081,7 +4209,7 @@ class CodeGenWalker {
     const type = this._inferVariableType(ctx, name);
 
     // Track local variable metadata
-    this._trackLocalVariable(ctx, name);
+    this._trackLocalVariable(name);
 
     // ADR-057: the identifier this declaration is EMITTED under. Computed once,
     // here, because the string and array forms below return before the plain
@@ -4089,11 +4217,6 @@ class CodeGenWalker {
     // deciding the same thing. Registries keep the source name; only the
     // generated text moves.
     const emittedName = this.host.state.emittedLocalName(name);
-
-    // Issue #895 Bug B: If type was inferred as pointer, mark it in the registry
-    if (type.endsWith("*")) {
-      this._markVariableAsPointer(name);
-    }
 
     // ADR-045: string types have their own three forms
     const stringPlan = this.planStringDecl(
@@ -4148,29 +4271,16 @@ class CodeGenWalker {
     const type = this.generateType(ctx.type());
     const name = ctx.IDENTIFIER().getText();
 
-    const args = argListCtx.IDENTIFIER().map((argNode) => {
-      const argName = argNode.getText();
-      const isFileScope =
-        this.host.state.getVariableTypeInfo(argName) !== undefined;
-      return isFileScope || !this.host.state.currentScopePath
-        ? argName
-        : QualifiedNameGenerator.forMember(
-            this.host.state.currentScopePath,
-            argName,
-          );
-    });
-
-    // Track the variable in type registry. #375 also set an
-    // `isExternalCppType` flag here; it was written at this one site and read
-    // at none, from #375 (closed 2026-01-24) until it was removed. knip does
-    // not analyze interface members, so nothing reported it.
-    this.host.state.setVariableTypeInfo(name, {
-      baseType: type,
-      bitWidth: 0, // Unknown for C++ types
-      isArray: false,
-      arrayDimensions: [],
-      isConst: false,
-    });
+    // #1668: what each argument NAMES, by the one binder -- a scope member
+    // is emitted by its C name, a shadowing local by its ADR-057 name. It is
+    // the same answer a function argument takes (#1760 review): this was a
+    // second spelling of that decision beside ArgumentGenerator's own.
+    const args = argListCtx.IDENTIFIER().map((argNode) =>
+      this.boundName(argNode.getText(), {
+        line: argNode.symbol.line,
+        column: argNode.symbol.column,
+      }),
+    );
 
     // Track as local variable if inside function body
     if (this.host.state.inFunctionBody) {
@@ -4305,7 +4415,10 @@ class CodeGenWalker {
     return (
       ArrayDimensionParser.parseSingleDimension(
         sizeExpr,
-        dimensionEvalOptions(this.transpileState),
+        dimensionEvalOptions(
+          this.transpileState,
+          ParserUtils.getPosition(sizeExpr),
+        ),
       ) ?? null
     );
   }
@@ -4340,14 +4453,11 @@ class CodeGenWalker {
    * #1445 box 3: `StringDeclHelper` used to be handed the `TypeContext` and do
    * this navigation itself.
    *
-   * WHERE it is called from is load-bearing and was measured. `planVariableDecl`
-   * calls `trackLocalVariable` before it reaches this, and that registers the
-   * declared variable's type info -- string capacity included -- so the
-   * variable's own name resolves inside its own initializer:
+   * WHERE it is called from was load-bearing while a per-file registry was
+   * filled as the walk went; #1668 (C8) deleted it. The variable's own name
+   * binds through 1.4's lexical frames wherever this is called, so
    * `string<32> s <- s + "x"` is detected as a concatenation and rejected
-   * E0864 for "capacity 33", the 32 read back off `s` itself. Moving this call
-   * ahead of the registration asks the registry before it is filled and loses
-   * the diagnostic. (That the name resolves at all is a separate defect,
+   * E0864 for "capacity 33", the 32 read off `s`'s own declaration. (That the name resolves at all is a separate defect,
    * #1643.)
    */
   private planStringDecl(
@@ -4359,6 +4469,8 @@ class CodeGenWalker {
     const arrayTypeCtx = typeCtx.arrayType?.();
     const arrayStringCtx = arrayTypeCtx?.stringType?.();
     if (arrayTypeCtx && arrayStringCtx) {
+      // ADR-045: a sized string is copied and measured with <string.h>
+      this.host.state.requireInclude("string");
       return this.planStringArray(
         arrayTypeCtx,
         arrayStringCtx,
@@ -4378,6 +4490,8 @@ class CodeGenWalker {
       return { kind: "unsized", initText: expression?.getText() ?? null };
     }
 
+    // ADR-045: a sized string is copied and measured with <string.h>
+    this.host.state.requireInclude("string");
     return {
       kind: "bounded",
       capacity: Number.parseInt(intLiteral.getText(), 10),
@@ -4389,8 +4503,8 @@ class CodeGenWalker {
    * The four ways a bounded string's initializer can be written, ready to be
    * asked in ADR-045's order.
    *
-   * `concat` is eager because deciding it reads the type registry by name and
-   * generates nothing. The other two are unevaluated: `renderSubstring`
+   * `concat` is eager because deciding it reads the typer and generates
+   * nothing. The other two are unevaluated: `renderSubstring`
    * generates the index expressions once it decides the source IS a string,
    * and `render` generates the whole initializer -- either can request an
    * include or queue a C++ temp, so raising those effects for an arm that is
@@ -4403,6 +4517,10 @@ class CodeGenWalker {
       concat: this._getStringConcatOperands(expression),
       renderSubstring: () => this._getSubstringOperands(expression),
       text: expression.getText(),
+      sourceCapacity: StringOperationsHelper.getStringExprCapacity(
+        expression.getText(),
+        this.declaredTypeAt(expression),
+      ),
       render: () => this.generateExpression(expression),
     };
   }
@@ -4437,7 +4555,10 @@ class CodeGenWalker {
         // initialized") and which CLAUDE.md rules out.
         const folded = ArrayDimensionParser.parseSingleDimension(
           sizeExpr,
-          dimensionEvalOptions(this.transpileState),
+          dimensionEvalOptions(
+            this.transpileState,
+            ParserUtils.getPosition(sizeExpr),
+          ),
         );
         dimensions += `[${folded ?? sizeExpr.getText()}]`;
       } else {
@@ -4483,207 +4604,29 @@ class CodeGenWalker {
     // that consequence for every declaration site.
     const type = this.generateDeclaredType(ctx.type());
 
-    // Issue #958 / ADR-030: a variable of an opaque type is a pointer. The same
-    // decision a scope member and the header's `extern` read, so a file-scope
-    // variable's declaration in the `.h` says what its definition here says.
-    if (this.host.state.isHeldThroughPointer(type)) {
-      return `${type}*`;
-    }
-
-    if (!ctx.expression()) {
-      return type;
-    }
-
-    // Issue #895 Bug B: Check if initializer is a C function call returning pointer
-    const pointerType = this._inferPointerTypeFromFunctionCall(
-      ctx.expression()!,
-      type,
-    );
-    if (pointerType) {
-      return pointerType;
-    }
-
-    // ADR-046: Handle nullable C pointer types (c_ prefix variables)
-    if (name.startsWith("c_")) {
-      const exprText = ctx.expression()!.getText();
-      for (const funcName of STRUCT_POINTER_C_FUNCTIONS) {
-        if (exprText.includes(`${funcName}(`)) {
-          return `${type}*`;
-        }
-      }
-    }
-
-    return type;
+    // #958, #895 Bug B and ADR-046: whether the declaration is a C pointer is
+    // `DeclaredPointer`'s decision, read off the declaration's type info
+    // (#1668) -- the answer every later read of this name gets -- so the
+    // emitted type only follows it. Bound just past the declarator, where
+    // the name comes into scope.
+    const declarator = ctx.IDENTIFIER().symbol;
+    const info = this.host.state.declarationTypeInfo(null, name, {
+      line: declarator.line,
+      column: declarator.column + 1,
+    });
+    return DeclaredPointer.spell(type, info?.isPointer ?? false);
   }
 
   /**
-   * Issue #895 Bug B: Infer pointer type from C function return type.
-   * If initializer is a call to a C function that returns T*, and declared
-   * type is T, return T* instead of T.
+   * Issue #696: Track a local variable's name. Its const value, if any, is
+   * 1.4's, read where a dimension is folded (#1664 box 7).
    */
-  private _inferPointerTypeFromFunctionCall(
-    expr: Parser.ExpressionContext,
-    declaredType: string,
-  ): string | null {
-    // Extract function name from C function call patterns
-    const funcName = this._extractCFunctionName(expr);
-    if (!funcName) {
-      return null;
-    }
-
-    // Look up C function in symbol table
-    const cFunc = this.host.state.symbolTable?.getCSymbol(funcName);
-    if (cFunc?.kind !== "function") {
-      return null;
-    }
-
-    // Check if return type is a pointer to the declared type
-    const returnType = cFunc.type;
-    if (!returnType.endsWith("*")) {
-      return null;
-    }
-
-    // Check if the base return type matches the declared type
-    // e.g., "widget_t *" or "widget_t*" matches declared "widget_t"
-    // The guard above established the last character is '*', so dropping it and
-    // trimming is exactly what /\s*\*\s*$/ did -- without the super-linear
-    // backtracking that pattern has on a long run of spaces (S8786).
-    const returnBaseType = returnType.slice(0, -1).trim();
-    if (returnBaseType === declaredType) {
-      return `${declaredType}*`;
-    }
-
-    return null;
-  }
-
-  /**
-   * Extract C function name from expression patterns.
-   * Handles both:
-   * - global.funcName(...) - explicit global access
-   * - funcName(...) - direct call (if funcName is a known C function)
-   * Returns null if expression doesn't match these patterns.
-   */
-  private _extractCFunctionName(expr: Parser.ExpressionContext): string | null {
-    const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
-    if (!postfix) {
-      return null;
-    }
-
-    const primary = postfix.primaryExpression();
-    const ops = postfix.postfixOp();
-
-    // Pattern 1: global.funcName(...)
-    if (primary.GLOBAL()) {
-      return this._extractGlobalPatternFuncName(ops);
-    }
-
-    // Pattern 2: funcName(...) - direct call
-    const identifier = primary.IDENTIFIER();
-    if (identifier) {
-      return this._extractDirectCallFuncName(identifier.getText(), ops);
-    }
-
-    return null;
-  }
-
-  /**
-   * Extract function name from global.funcName(...) pattern.
-   */
-  private _extractGlobalPatternFuncName(
-    ops: Parser.PostfixOpContext[],
-  ): string | null {
-    if (ops.length < 2) {
-      return null;
-    }
-
-    const memberOp = ops[0];
-    if (!memberOp.IDENTIFIER()) {
-      return null;
-    }
-
-    const callOp = ops[1];
-    if (!this._isCallOp(callOp)) {
-      return null;
-    }
-
-    return memberOp.IDENTIFIER()!.getText();
-  }
-
-  /**
-   * Extract function name from direct funcName(...) call if it's a C function.
-   */
-  private _extractDirectCallFuncName(
-    funcName: string,
-    ops: Parser.PostfixOpContext[],
-  ): string | null {
-    if (ops.length < 1) {
-      return null;
-    }
-
-    if (!this._isCallOp(ops[0])) {
-      return null;
-    }
-
-    // Verify this is actually a C function (not a C-Next scope function)
-    const cFunc = this.host.state.symbolTable?.getCSymbol(funcName);
-    if (cFunc?.kind === "function") {
-      return funcName;
-    }
-
-    return null;
-  }
-
-  /**
-   * Check if a postfix op is a function call.
-   */
-  private _isCallOp(op: Parser.PostfixOpContext): boolean {
-    return Boolean(op.argumentList() || op.getText().startsWith("("));
-  }
-
-  /**
-   * Issue #696: Track local variable for type registry and const values.
-   */
-  private _trackLocalVariable(
-    ctx: Parser.VariableDeclarationContext,
-    name: string,
-  ): void {
+  private _trackLocalVariable(name: string): void {
     if (!this.host.state.inFunctionBody) {
       return;
     }
 
-    TypeRegistrationEngine.trackVariable(
-      ctx,
-      {
-        tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
-        requireInclude: (header) => this.host.state.requireInclude(header),
-        resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
-      },
-      this.host.state,
-    );
     this.host.state.registerLocalVariable(name);
-
-    // Bug #8: Track local const values for array size and bit index resolution
-    if (ctx.constModifier() && ctx.expression()) {
-      const constValue = this.tryEvaluateConstant(ctx.expression()!);
-      if (constValue !== undefined) {
-        this.host.state.constValues.set(name, constValue);
-      }
-    }
-  }
-
-  /**
-   * Issue #895 Bug B: Mark variable as a pointer in the type registry.
-   * Called when type inference detects that a variable should be a pointer
-   * (e.g., initialized from a C function returning T*).
-   */
-  private _markVariableAsPointer(name: string): void {
-    const typeInfo = this.host.state.getVariableTypeInfo(name);
-    if (typeInfo) {
-      this.host.state.setVariableTypeInfo(name, {
-        ...typeInfo,
-        isPointer: true,
-      });
-    }
   }
 
   /**
@@ -4764,11 +4707,13 @@ class CodeGenWalker {
    */
   analyzeMemberChainForBitAccess(
     targetCtx: Parser.AssignmentTargetContext,
+    lastStep: IChainStep | undefined,
   ): IBitAccessAnalysis {
+    // #1668 (C12): what the last subscript indexes is the typer's answer,
+    // typed once with the target (`IChainBase.last`)
     return MemberChainAnalyzer.analyze(
-      targetCtx.IDENTIFIER()?.getText() ?? null,
+      lastStep,
       targetCtx.postfixTargetOp().map((op) => this.planTargetOp(op)),
-      this.host.state,
     );
   }
 
@@ -4793,52 +4738,64 @@ class CodeGenWalker {
       indexCount: indexes.length,
       renderIndexes: () =>
         indexes.map((index) => this.generateExpression(index)),
+      foldWidth: () =>
+        indexes.length === 2 ? this.tryEvaluateConstant(indexes[1]) : undefined,
     };
+  }
+
+  /** #1668 (C7): what an assignment target writes, by the one binder */
+  private targetDeclaration(
+    target: Parser.AssignmentTargetContext,
+  ): IChainBase {
+    const typing = this.host.state.typingContext();
+    return DeclaredTypeInfo.ofChain(
+      OperandTyper.chainOf(target, typing),
+      typing.symbols,
+      this.host.state.symbolTable,
+      this.host.state.targetDescription,
+    );
+  }
+
+  /**
+   * The type an assignment's value is rendered against: what the target
+   * holds, as the typer types it -- its C-Next name, or, where C-Next does
+   * not fix the width (a header `size_t`), the header's spelling, so the
+   * output is the same on every target -- with `::` for a C++ namespace's
+   * type. #1760 review: three walkers derived it from the target's shape,
+   * and a header `uint8_t` field came back as that spelling, which the
+   * MISRA C:2012 Rule 10.3 cast does not read, while a scalar's bit range
+   * and a bitmap field had none at all. A slice's value is serialized at
+   * its own width, so it has none (#1085).
+   */
+  private assignedValueType(
+    targetCtx: Parser.AssignmentTargetContext,
+    target: IChainBase,
+  ): string | null {
+    if (target.last?.subscript === "array_slice") return null;
+    const written = OperandTyper.typeOfTarget(
+      targetCtx,
+      this.host.state.typingContext(),
+    );
+    const name = written?.cType ?? written?.typeName ?? null;
+    return name === null
+      ? null
+      : CppNamespaceUtils.convertToCppNamespace(
+          name,
+          this.host.state.symbolTable,
+        );
   }
 
   private generateAssignment(ctx: Parser.AssignmentStatementContext): string {
     const targetCtx = ctx.assignmentTarget();
 
-    // Issue #644: Set expected type for inferred struct initializers and overflow behavior
-    // Delegated to AssignmentExpectedTypeResolver helper
-    const savedAssignmentContext = { ...this.host.state.assignmentContext };
-
-    // Issue #644: AssignmentExpectedTypeResolver is now static
-    // #1445: the resolver takes the target's SHAPE -- a name, a chain of names
-    // and two booleans. The walk stays here, where the node is.
-    const postfixOps = targetCtx.postfixTargetOp();
-    const baseId = targetCtx.IDENTIFIER()?.getText();
-    const chain =
-      baseId && postfixOps.length > 0
-        ? analyzePostfixOps(baseId, postfixOps)
-        : { identifiers: [] as string[], hasSubscript: false };
-    const resolved = AssignmentExpectedTypeResolver.resolve(
-      {
-        baseId,
-        identifiers: chain.identifiers,
-        hasSubscript: chain.hasSubscript,
-        // the `[offset, length]` slice / bit-range form
-        hasRangeSubscript: postfixOps.some(
-          (op) => op.expression().length === 2,
-        ),
-        hasPostfixOps: postfixOps.length > 0,
-      },
-      this.host.state,
+    // #1668 (C7): what the target writes, bound once -- the expected type
+    // below and every classifier rule and handler read this
+    const target = this.targetDeclaration(targetCtx);
+    const expectedType = this.assignedValueType(targetCtx, target);
+    // withExpectedType restores expectedType however the render exits
+    const value = this.host.state.withExpectedType(expectedType, () =>
+      this.generateExpression(ctx.expression()),
     );
-    if (resolved.assignmentContext) {
-      this.host.state.assignmentContext = resolved.assignmentContext;
-    }
-
-    // Use withExpectedType for exception safety on expectedType,
-    // manually save/restore assignmentContext
-    let value: string;
-    try {
-      value = this.host.state.withExpectedType(resolved.expectedType, () =>
-        this.generateExpression(ctx.expression()),
-      );
-    } finally {
-      this.host.state.assignmentContext = savedAssignmentContext;
-    }
 
     // #1322: the operator was mapped to its C form here and used for nothing
     // but the `isCompound` flag that `AssignmentValidator` took. ADR-065's
@@ -4868,20 +4825,19 @@ class CodeGenWalker {
     // ADR-065: Dispatch to assignment handlers
     // Build context, classify, and dispatch - all patterns handled by handlers
     const assignCtx = buildAssignmentContext(ctx, {
-      typeRegistry: this.host.state.getTypeRegistryView(),
+      target,
       state: this.host.state,
       // Already rendered, inside the expectedType window above -- never again.
       generatedValue: () => value,
-      generateAssignmentTarget: (target) =>
-        this.generateAssignmentTarget(target),
-      analyzeMemberChainForBitAccess: (target) =>
-        this.analyzeMemberChainForBitAccess(target),
+      generateAssignmentTarget: (target, opCount) =>
+        this.generateAssignmentTarget(target, opCount),
+      analyzeMemberChainForBitAccess: (target, lastStep) =>
+        this.analyzeMemberChainForBitAccess(target, lastStep),
       generateExpression: (expr) => this.generateExpression(expr),
       tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
-      expressionType: (expr) =>
-        ExpressionTypeResolver.getExpressionType(expr, this.host.state),
-      integerExpressionType: (expr) =>
-        ExpressionTypeResolver.getIntegerExpressionType(expr, this.host.state),
+      expressionType: (expr) => this.directTypeOf(expr),
+      integerExpressionType: (expr) => this.integerTypeOf(expr),
+      hasFloatingOperand: (expr) => this.hasFloatingLeaf(expr),
       toCOperator: (cnextOp, line) =>
         AssignmentOperatorMapper.toCOperator(cnextOp, line),
     });
@@ -4901,21 +4857,24 @@ class CodeGenWalker {
     return {
       getParameterInfo: (name: string) =>
         this.host.state.currentParameters.get(name),
+      // A target with no postfix op is the parameter's whole value, written
+      // as the read side reads it (#1760 second review: `p = (*q);`)
       resolveParameter: (name: string, paramInfo: TParameterInfo) =>
-        ParameterDereferenceResolver.resolve(
-          name,
+        memberAccessChain.wholeParamValue(
+          ParameterDereferenceResolver.resolve(
+            name,
+            paramInfo,
+            this._buildParameterDereferenceDeps(),
+          ),
           paramInfo,
-          this._buildParameterDereferenceDeps(),
+          this.host.state.cppMode,
         ),
-      isLocalVariable: (name: string) =>
-        this.host.state.localVariables.has(name),
-      resolveBareIdentifier: (name: string, isLocal: boolean, line?: number) =>
+      resolveBareIdentifier: (name: string, at: ISourcePosition) =>
         TypeValidator.resolveBareIdentifier(
           name,
-          isLocal,
+          at,
           (n: string) => this.host.isKnownStruct(n),
           this.host.state,
-          line,
         ),
     };
   }
@@ -4946,13 +4905,17 @@ class CodeGenWalker {
     firstId: string,
     hasGlobal: boolean,
     hasThis: boolean,
+    rootTypeInfo: TTypeInfo | undefined,
   ): IPostfixChainDeps {
-    const paramInfo = this.host.state.currentParameters.get(firstId);
-    const isStructParam = paramInfo?.isStruct ?? false;
+    // How the root is held: the one answer the read path reads too (#1760
+    // review: a local #895 made a pointer took `.`)
+    const holding = memberAccessChain.rootHolding(
+      this.host.state.currentParameters.get(firstId),
+      rootTypeInfo,
+      this.host,
+    );
     const isCppAccess = hasGlobal && this.host.isCppScopeSymbol(firstId);
     const separatorDeps = this._buildMemberSeparatorDeps();
-    // Issue #895: Callback-compatible params need pointer semantics even in C++ mode
-    const forcePointerSemantics = paramInfo?.forcePointerSemantics ?? false;
 
     const separatorCtx: ISeparatorContext =
       MemberSeparatorResolver.buildContext(
@@ -4961,9 +4924,8 @@ class CodeGenWalker {
           hasGlobal,
           hasThis,
           currentScopePath: this.host.state.currentScopePath,
-          isStructParam,
+          holding,
           isCppAccess,
-          forcePointerSemantics,
         },
         separatorDeps,
       );
@@ -5330,7 +5292,10 @@ class CodeGenWalker {
    * Resolve an identifier in a primary expression context
    * Handles: main args, parameters, local variables, scope resolution, enum members
    */
-  private _resolveIdentifierExpression(id: string, line?: number): string {
+  private _resolveIdentifierExpression(
+    id: string,
+    at: ISourcePosition,
+  ): string {
     // Special case: main function's args parameter -> argv
     if (this.host.state.mainArgsName && id === this.host.state.mainArgsName) {
       return "argv";
@@ -5347,13 +5312,11 @@ class CodeGenWalker {
     }
 
     // ADR-016: Resolve bare identifier using local -> scope -> global priority
-    const isLocalVariable = this.host.state.localVariables.has(id);
     const resolved = TypeValidator.resolveBareIdentifier(
       id,
-      isLocalVariable,
+      at,
       (name: string) => this.host.isKnownStruct(name),
       this.host.state,
-      line,
     );
     if (resolved !== null) {
       // Issue #741: Check if this is a private const that should be inlined
@@ -5456,9 +5419,40 @@ class CodeGenWalker {
     const targetType = this.generateType(ctx.type());
     const targetTypeName = ctx.type().getText();
     const operandCode = this.generateUnaryExpr(ctx.unaryExpression());
-    const operandType = this.getUnaryExpressionType(ctx.unaryExpression());
+    const operand = OperandTyper.typeOf(
+      ctx.unaryExpression(),
+      this.host.state.typingContext(),
+    );
+    const operandType = PlanTyping.castSourceType(operand);
 
-    return { targetType, targetTypeName, operandCode, operandType };
+    return {
+      targetType,
+      targetTypeName,
+      operandCode,
+      operandType,
+      clampForm: CodeGenWalker.clampFormOf(
+        operand,
+        operandType,
+        targetTypeName,
+      ),
+    };
+  }
+
+  /**
+   * ADR-024's saturation, and #1668's single-evaluation form of it: a cast
+   * whose operand has a side effect -- a call, or a volatile or atomic read,
+   * as the one operand typer reports -- calls a helper, so the operand is
+   * evaluated once. A pure operand keeps the bounded ternary.
+   */
+  private static clampFormOf(
+    operand: IOperandType | null,
+    operandType: string | null,
+    targetTypeName: string,
+  ): IPlannedCast["clampForm"] {
+    if (!CastRequirement.requiresClamping(operandType, targetTypeName)) {
+      return null;
+    }
+    return operand?.hasSideEffect ? "helper" : "inline";
   }
 
   /**
@@ -5636,6 +5630,9 @@ class CodeGenWalker {
       "#endif",
       "#elif defined(__AVR__)",
       "// AVR Arduino: use SREG for interrupt state",
+      "// SREG is declared by avr-libc's <avr/io.h>, cli() by its <avr/interrupt.h>",
+      "#include <avr/io.h>",
+      "#include <avr/interrupt.h>",
       "// Note: Uses PRIMASK naming for API consistency across platforms (AVR has no PRIMASK)",
       "// Returns uint8_t which is implicitly widened to uint32_t at call sites - this is intentional",
       "static inline uint8_t __cnx_get_PRIMASK(void) { return SREG; }",

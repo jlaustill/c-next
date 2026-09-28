@@ -5,6 +5,7 @@
  * Extracted from Pipeline.ts to reduce duplication and improve testability.
  */
 
+import TargetDirectives from "./TargetDirectives";
 import { CharStream, CommonTokenStream, Parser, Token } from "antlr4ng";
 
 import { CNextLexer } from "./grammar/CNextLexer";
@@ -229,6 +230,7 @@ class CNextSourceParser {
       get comments() {
         return scanner.extractAll();
       },
+      targetDirectives: TargetDirectives.read(tree),
       parseErrors: errors,
     };
   }

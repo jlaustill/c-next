@@ -1,0 +1,29 @@
+// test-execution
+// Issue #1668: whether a literal is floating is decided once, from the whole
+// literal. Each check below failed when it was decided from part of the text:
+// - a trailing `F32`/`F64` also ends a hex integer, and the render layer
+//   stripped it as a float suffix: 0xFF32 was emitted as 0xFf (255);
+// - a `.` also occurs in the char literal '.', and E0804 rejected
+//   `x % '.'` as a floating modulo operand. Every rule now asks the one
+//   operand typer, and '.' is a character: `x % '.'` is E0810, since
+//   character is its own Rule 10.4 category and `%` is not MISRA's character
+//   exception. `+` is, so it checks the classification: a character operand
+//   is allowed there and a floating one is not.
+
+u32 main() {
+    u32 hex32 <- 0xFF32;
+    if (hex32 != 65330) return 1;
+
+    u64 three <- 3;
+    u64 hex64 <- three * 0xABCDEF64;
+    if (hex64 != 8647200300) return 2;
+
+    u8 hundred <- 100;
+    u8 sum <- hundred + '.';
+    if (sum != 146) return 3;
+
+    f32 suffixed <- 2.5f32;
+    if (suffixed != 2.5) return 4;
+
+    return 0;
+}

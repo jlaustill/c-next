@@ -21,6 +21,11 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
+}
+
 // ADR-013: Short-circuit evaluation prevents unsafe operations
 // Critical for embedded systems where bounds checking and validation matter
 uint32_t accessCount = 0U;
@@ -33,7 +38,7 @@ bool isIndexSafe(uint32_t index) {
 
 uint32_t performDangerousOperation(uint32_t index) {
     accessCount = cnx_clamp_add_u32(accessCount, 1U);
-    dangerousValue = index * 2U;
+    dangerousValue = cnx_clamp_mul_u32(index, 2U);
     return dangerousValue;
 }
 

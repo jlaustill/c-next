@@ -9,9 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Targets (ADR-049, Issue #1668).** A program names exactly one target: `#pragma target <name>`, `--target <name>`, `"target"` in `cnext.config.json`, or the board of the PlatformIO environment being built. `targets/targets.cnx` is the catalog (`cnext --help` lists it). A platform it does not name can be described inline, one `#pragma` per field (E0512–E0514). The run prints `Target: <name> (<source>)`.
 - Return values of non-void functions must now be used or explicitly discarded with `(void) f(...)` — new error **E0708** (ADR-070, Issue #847). This is a **breaking change**: 61 call sites across the test suite and examples were migrated.
 
 ### Changed
+
+- **An implicit float-to-integer conversion is error E0891** (ADR-024, Issue #1800).
+  This is a **breaking change**. `u32 b <- k;` with `f32 k`, a floating composite
+  or ternary, a call returning a float, and the same in an assignment, a `for`
+  header, an argument, a return, a struct field or an array element were
+  accepted. They were emitted as C's own conversion, which is undefined for NaN
+  and for a value past the target's range. The migration is the explicit cast,
+  `(u32)k`, which truncates and then clamps to the range (ADR-056).
+
+- **A PlatformIO project's `default_envs` includes the build machine's
+  `PLATFORMIO_DEFAULT_ENVS`**, as PlatformIO appends it (ADR-049, Issue #1794).
+  A standalone `cnext` run read the file alone, so it could report a target for
+  fewer environments than `pio run` builds.
+
+- **A program that names no target is error E0515** (ADR-049, Issue #1668). This is a
+  **breaking change** for every existing project. The migration is one line:
+  `"target": "<name>"` in `cnext.config.json` covers every file. `#pragma target <name>`
+  in the entry file or `--target <name>` also work, and an unknown name is E0510.
+
+  A PlatformIO project whose boards map to known targets needs no line, but should
+  **re-run `cnext --pio-install`**. The regenerated `cnext_build.py` passes each build's
+  environment (`--pio-env`) and shows the target and any warnings in `pio run`. A script
+  written before this passes no environment. A project whose environments name different
+  targets, and that sets no `default_envs`, then fails every build with E0511.
+
+- **Mixed integer and floating arithmetic is error E0810** (ADR-024, MISRA C:2012
+  Rule 10.4, Issue #1668). This is a **breaking change**. `u32 i <- 3; f32 x <- i * 2.5;`
+  used to evaluate to 6.0, because the integer operand chose integer arithmetic. Write
+  the conversion where it happens: `(f32)i * 2.5`. The rule covers compound assignment,
+  comparisons and a conditional's value arms. Its categories are MISRA's: signed,
+  unsigned, floating, Boolean and character, and each named enum is its own.
 
 - A generated `#include` now names its target **relative to the header output
   directory**, so that directory alone is sufficient on the C compiler's search
@@ -54,6 +86,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stdlib function metadata moved to `StdlibFunctions`, shared by `FunctionCallAnalyzer` and `ReturnValueUseAnalyzer`.
 
 ### Fixed
+
+- **A struct initializer on a type that is not a struct is error E0358** (ADR-014,
+  Issue #1802). `u32 x <- { a: 1 }` and `Flags f <- { A: 1 }` were accepted
+  and emitted a designated initializer that C rejects. That held whether they
+  stood alone, as a struct's field, or as an array's element. A bitmap takes
+  its backing integer, standalone or as a struct's field (`Flags f <- 3`,
+  `Cfg c <- { word: 1, f: 3 }`), then its fields one by one (ADR-034).
 
 - `StdlibFunctions.header()` no longer resolves inherited `Object` members, so a callee named `constructor` or `toString` is no longer treated as a known stdlib function.
 - E0708 now covers a bare intra-scope call (ADR-057 house style), scope methods reached through a `.cnx` include, and non-void functions declared in an included `.hpp` — each was silently exempt through a name-resolution gap.

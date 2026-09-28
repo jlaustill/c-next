@@ -1,0 +1,7 @@
+// A volatile index and a function, declared in another file, for
+// rmw-side-effect-imported-error.
+volatile u8 sharedIndex <- 0;
+
+u8 nextIndex() {
+    return 1;
+}

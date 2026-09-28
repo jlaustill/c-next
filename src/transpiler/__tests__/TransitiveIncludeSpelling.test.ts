@@ -75,13 +75,16 @@ describe("a header reached through another file's include (#1725)", () => {
     writeFileSync(mainPath, main);
 
     const files = await new Transpiler({
+      target: "host",
       input: mainPath,
       outDir: join(project, mainDir),
       noCache: true,
     }).transpile({ kind: "files" });
-    const source = await new Transpiler({ input: "", noCache: true }).transpile(
-      { kind: "source", source: main, sourcePath: mainPath },
-    );
+    const source = await new Transpiler({
+      target: "host",
+      input: "",
+      noCache: true,
+    }).transpile({ kind: "source", source: main, sourcePath: mainPath });
     expect(files.errors).toEqual([]);
     expect(source.errors).toEqual([]);
     const headerOf = (result: typeof files, dir: string, name: string) =>

@@ -1,0 +1,19 @@
+// test-execution
+// #1700: inside a scope method, a u8 local that shadows a u32 scope member is
+// typed as the local, so `x + x` saturates in u8 at 255. It was typed as the
+// member: `cnx_clamp_add_u32(x, x)` gave 400, truncated to 144.
+scope S {
+    u32 x <- 0;
+
+    public u8 f() {
+        u8 x <- 200;
+        u8 y <- x + x;
+        return y;
+    }
+}
+
+u32 main() {
+    u8 r <- S.f();
+    if (r != 255) return 1;
+    return 0;
+}

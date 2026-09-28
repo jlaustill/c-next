@@ -67,7 +67,11 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
 
   /** Each input's result on a fresh instance: the answer overlap must not change. */
   async function alone(input: ReturnType<typeof second>) {
-    return new Transpiler({ input: "", noCache: true }).transpile(input);
+    return new Transpiler({
+      target: "host",
+      input: "",
+      noCache: true,
+    }).transpile(input);
   }
 
   /** Holds every header preprocess until `release()` is called. */
@@ -91,7 +95,11 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
 
   async function overlapped(board: boolean) {
     const release = holdPreprocessor();
-    const transpiler = new Transpiler({ input: "", noCache: true });
+    const transpiler = new Transpiler({
+      target: "host",
+      input: "",
+      noCache: true,
+    });
     const firstRun = transpiler.transpile(first(board));
     // Let the first run reach the held preprocessor.
     await new Promise((resolve) => setImmediate(resolve));
@@ -139,6 +147,7 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
     const config = {
       input: "",
       noCache: true,
+      target: "host",
       headerOutDir: join(tempDir, "include"),
     };
     const firstAlone = await new Transpiler(config).transpile(parked);
@@ -162,7 +171,11 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
   });
 
   it("control: the same runs one after the other on one instance", async () => {
-    const transpiler = new Transpiler({ input: "", noCache: true });
+    const transpiler = new Transpiler({
+      target: "host",
+      input: "",
+      noCache: true,
+    });
     const firstResult = await transpiler.transpile(first(true));
     const secondResult = await transpiler.transpile(second());
 

@@ -44,7 +44,6 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import EnclosingScope from "./helpers/EnclosingScope";
 import TypeText from "./helpers/TypeText";
 import ParserUtils from "../../utils/ParserUtils";
 import IArrayDeclarationError from "./types/IArrayDeclarationError";
@@ -61,19 +60,6 @@ class ArrayDeclarationListener extends CNextListener {
   constructor(private readonly context: IAnalysisContext) {
     super();
   }
-
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly enclosing = new EnclosingScope();
-
-  override enterScopeDeclaration = (
-    ctx: Parser.ScopeDeclarationContext,
-  ): void => {
-    this.enclosing.enter(ctx.IDENTIFIER().getText());
-  };
-
-  override exitScopeDeclaration = (): void => {
-    this.enclosing.exit();
-  };
 
   public errors(): IArrayDeclarationError[] {
     return this.found;
@@ -107,7 +93,7 @@ class ArrayDeclarationListener extends CNextListener {
     const arrayType = typeCtx.arrayType();
     const expression = ctx.expression();
     if (!arrayType || !expression) return;
-    this.checkInitializer(arrayType, expression, this.enclosing.current());
+    this.checkInitializer(arrayType, expression);
   };
 
   override enterParameter = (ctx: Parser.ParameterContext): void => {
@@ -157,7 +143,6 @@ class ArrayDeclarationListener extends CNextListener {
   private checkInitializer(
     arrayType: Parser.ArrayTypeContext,
     expression: Parser.ExpressionContext,
-    scopePath: string,
   ): void {
     const dimensions = arrayType.arrayTypeDimension();
     const inferred = dimensions.some((d) => d.expression() === null);
@@ -190,7 +175,7 @@ class ArrayDeclarationListener extends CNextListener {
       const expr = d.expression();
       return expr === null
         ? null
-        : ConstantExpression.valueIn(expr, scopePath, this.context.program);
+        : ConstantExpression.valueAt(expr, this.context);
     });
     this.checkLevel(initializer, sizes, 0);
   }

@@ -8,6 +8,14 @@ contributors:
 C-Next is a safer C for embedded systems. It transpiles to clean, readable C.
 
 ```c
+// Every program names its one target (ADR-049), and a #pragma comes before
+// any declaration, so it opens the file:
+#pragma target teensy41         // a catalog name; `cnext --help` lists them
+// ...or describe it inline, one #pragma per field, every field given:
+// #pragma word_size 32
+// #pragma ldrex_strex true      (and the rest of the target description)
+// (--target on the command line, or "target" in cnext.config.json, also work)
+
 // Single-line comments work as you expect
 /* Multi-line comments too */
 
@@ -275,6 +283,16 @@ i32 signedVal <- -100;
 // u32 unsigned <- signedVal;   // ERROR: sign change forbidden
 u32 asBits <- signedVal[0, 32]; // OK: explicit reinterpret
 
+// Mixing integer and float (FORBIDDEN - cast the integer)
+u32 count <- 3;
+f32 scale <- 2.5;
+// f32 total <- count * scale;  // ERROR: integer and floating categories
+f32 total <- (f32)count * scale; // OK: 7.5
+
+// Float to integer (FORBIDDEN without a cast - the cast clamps to the range)
+// u32 whole <- total;          // ERROR: implicit float-to-integer conversion
+u32 whole <- (u32)total;        // OK: 7 (the fraction is truncated)
+
 // =============================================================================
 // 8. OVERFLOW BEHAVIOR
 // =============================================================================
@@ -487,6 +505,9 @@ const f32 PI <- 3.14159;
 // #define only for flags (conditional compilation)
 #define ARDUINO
 #define DEBUG
+
+// #pragma target is at the top of this file: a directive comes before any
+// declaration
 
 #ifdef ARDUINO
 // Arduino-specific code

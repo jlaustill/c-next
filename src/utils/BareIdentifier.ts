@@ -15,8 +15,8 @@
  *
  * It lives in `utils/` because it has to: `output/` may not import
  * `1-Analyze` -- depcruise makes that edge an error, transitively -- and three
- * of the five sites sit on opposite sides of that line. `PrimitiveKindUtils`
- * holds `widestIntegerOf` for the same reason.
+ * of the five sites sit on opposite sides of that line. `CompositeType`, the
+ * one composite typing both passes read, lives here for the same reason.
  *
  * NOT a validity check for a name a user may declare. `ReservedCnxName` owns
  * that, and it rejects names this accepts (`cnx_tmp0` matches here and is

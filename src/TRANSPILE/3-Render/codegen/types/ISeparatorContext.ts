@@ -1,3 +1,5 @@
+import type IRootHolding from "./IRootHolding";
+
 /**
  * Context for determining member access separators in assignment targets.
  *
@@ -9,8 +11,8 @@ interface ISeparatorContext {
   /** Whether this is a cross-scope access (global.Scope or global.Register) */
   readonly isCrossScope: boolean;
 
-  /** Whether the base identifier is a struct parameter */
-  readonly isStructParam: boolean;
+  /** How the chain's root is held (`memberAccessChain.rootHolding`) */
+  readonly holding: IRootHolding;
 
   /** Whether this is a C++ namespace/class access requiring :: */
   readonly isCppAccess: boolean;
@@ -20,13 +22,6 @@ interface ISeparatorContext {
 
   /** Whether scopedRegName refers to a known register */
   readonly isScopedRegister: boolean;
-
-  /**
-   * Issue #895: Force pointer semantics even in C++ mode.
-   * When true, struct params use -> instead of . because they're part of
-   * a callback-compatible function that must match C typedef signatures.
-   */
-  readonly forcePointerSemantics?: boolean;
 }
 
 export default ISeparatorContext;

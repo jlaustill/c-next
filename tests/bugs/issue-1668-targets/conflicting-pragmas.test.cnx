@@ -1,0 +1,11 @@
+// test-error
+// #1668 / ADR-049: a program has exactly one target. This file names
+// teensy41 (ARMv7E-M, LDREX) and its helper names cortex-m0 (ARMv6-M, no
+// LDREX). Each file used to be generated for its own target, so one program
+// mixed lowerings; now it is E0511, at the declaration that disagrees.
+#include "conflict-helper.cnx"
+#pragma target teensy41
+
+u32 read() {
+    return helperValue;
+}

@@ -30,7 +30,7 @@
 uint32_t Lib__useBoth(void) {
     Lib__Mode m = Lib__Mode__BETA;
     Lib__Point p = { .x = 3U, .y = 4U };
-    return p.x + p.y + m;
+    return p.x + p.y + static_cast<uint32_t>(m);
 }
 
 int main(void) {

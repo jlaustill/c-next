@@ -6,6 +6,7 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import ConfigPrinter from "./ConfigPrinter";
+import TargetResolver from "../utils/TargetResolver";
 import IParsedArgs from "./types/IParsedArgs";
 
 /**
@@ -19,6 +20,7 @@ interface IYargsResult {
   cpp: boolean;
   include: string[];
   target?: string;
+  "pio-env"?: string;
   D: string[];
   parse: boolean;
   clean: boolean;
@@ -75,7 +77,13 @@ A safer C for embedded systems development.`,
       })
       .option("target", {
         type: "string",
-        describe: "Target platform for atomic code gen (ADR-049)",
+        describe: "The program's target, when its source names none (ADR-049)",
+        requiresArg: true,
+      })
+      .option("pio-env", {
+        type: "string",
+        describe:
+          "PlatformIO environment being built; its board names the target (ADR-049)",
         requiresArg: true,
       })
       .option("D", {
@@ -150,7 +158,7 @@ A safer C for embedded systems development.`,
   cnext src/main.cnx                        # Entry point (follows includes)
   cnext main.cnx -o build/main.c            # Explicit output path
 
-Target platforms: teensy41, cortex-m7, cortex-m4, cortex-m3, cortex-m0+, cortex-m0, avr
+Target platforms: ${TargetResolver.names().join(", ")}
 
 Config files (searched in order, JSON format):
   cnext.config.json, .cnext.json, .cnextrc
@@ -161,7 +169,7 @@ Config options:
   include        Additional include directories (string[])
   output         Output directory for generated files (string)
   headerOut      Separate directory for header files (string)
-  target         Target platform for atomic code gen (string)
+  target         The program's target, when its source names none (string)
   debugMode      Generate panic-on-overflow helpers (boolean)`,
       )
 
@@ -242,6 +250,7 @@ class ArgParser {
       defines,
       cppRequired: parsed.cpp,
       target: parsed.target,
+      pioEnv: parsed["pio-env"],
       preprocess: parsed.preprocess,
       verbose: parsed.verbose,
       noCache: !parsed.cache,

@@ -1,0 +1,25 @@
+// test-error
+// #1668: E0804 (ADR-024) asks the one operand typer whether an operand of
+// `%` is floating, so every shape of operand is asked -- a struct field, an
+// element, a call result and a cast. Only a bare float name or literal was.
+struct Sample {
+    f32 k;
+}
+
+f32 half() {
+    return 0.5;
+}
+
+void main() {
+    Sample s <- { k: 2.5 };
+    f32[2] ks <- [1.5, 2.5];
+    u32 n <- 7;
+
+    // NEGATIVE CONTROL -- integer operands, including an integer field cast.
+    u32 fine <- n % (u32)3;
+
+    f32 a <- s.k % 2;
+    f32 b <- ks[1] % 2;
+    f32 c <- half() % 2;
+    f32 d <- (f32)n % 2;
+}

@@ -1,0 +1,10 @@
+// test-error
+// #1668 / ADR-049: every name given must be a known target. `bogus` used to
+// be accepted silently, and the program compiled for the default platform.
+#pragma target bogus
+
+atomic u32 counter <- 0;
+
+void increment() {
+    counter +<- 1;
+}

@@ -2,9 +2,9 @@
  * Unit tests for CodeGenWalker - the main transpiler component.
  * Tests the IOrchestrator interface and internal methods.
  */
+import TargetResolver from "../../utils/TargetResolver";
+import ProgramGeneration from "./ProgramGeneration";
 import PublicInterface from "../2-Plan/PublicInterface";
-import Program from "../../PARSE/4-Resolve/Program";
-import ModificationFacts from "../../transpiler/ModificationFacts";
 import { describe, it, expect, beforeEach } from "vitest";
 import CodeGenWalker from "../CodeGenWalker";
 import CodeGenerator from "../3-Render/codegen/CodeGenerator";
@@ -15,7 +15,6 @@ import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import TSymbolInfoAdapter from "../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import TParameterInfo from "../../transpiler/types/TParameterInfo";
-import TranspileState from "../TranspileState";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import DeferredTypes from "../../PARSE/4-Resolve/DeferredTypes";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
@@ -77,10 +76,6 @@ function setupGenerator(source: string): {
   const state = host.state;
   // Set symbolTable in TranspileState before generate (TranspileState owns SymbolTable)
   state.symbolTable = symbolTable;
-  // #1511: the whole-program facts codegen reads. Without them every small
-  // primitive parameter looks ineligible for pass-by-value and comes out a
-  // pointer.
-  installProgramFor(state, tree);
   // Generate to initialize the generator state
   generateWithProgram(generator, tree, tokenStream, {
     symbolInfo: symbols,
@@ -101,56 +96,14 @@ function createMinimalGenerator(source: string): {
   return { generator, host };
 }
 
-/**
- * Install the artifact these tests now depend on.
- *
- * #1511: pass-by-value eligibility is a whole-program fact — is this parameter
- * modified anywhere down the call chain? — so a generator with no `Program`
- * behind it answers "not eligible" for everything and emits pointers where the
- * real run emits values. Built from the real resolver output and through the
- * same `ModificationFacts.derive` production uses, so a single-file test agrees
- * with a real run rather than approximating one.
- */
-function installProgramFor(
-  state: TranspileState,
-  tree: Parser.ProgramContext,
-  sourcePath = "test.cnx",
-): void {
-  const declared = CNextResolver.resolve(tree, sourcePath, registry);
-  const modifications = ModificationFacts.derive(
-    [{ parsed: { tree } as never, fileSymbols: declared }],
-    registry,
-    state.symbolTable,
-  );
-  state.program = Program.build([declared], {
-    modifications,
-    registry,
-  });
-}
-
-/**
- * Generate with the whole-program artifact in place.
- *
- * Every test here builds one file and calls `generate` directly, which no longer
- * suffices: pass-by-value eligibility is a `Program` fact since #1511, and
- * without one every small primitive parameter is reported ineligible and comes
- * out a pointer. Wrapping the call keeps that setup in one place instead of at
- * six hundred call sites, and installs it from the tree actually being
- * generated, so it cannot go stale between tests.
- */
-function generateWithProgram(
+/** This file's registry, bound once -- the setup is `ProgramGeneration`'s. */
+const generateWithProgram = (
   generator: CodeGenWalker,
   tree: Parser.ProgramContext,
   tokenStream: Parameters<CodeGenWalker["generate"]>[1],
   options: Parameters<CodeGenWalker["generate"]>[2],
-): ReturnType<CodeGenWalker["generate"]> {
-  installProgramFor(
-    generator.transpileState,
-    tree,
-    options?.sourcePath ?? "test.cnx",
-  );
-  return generator.generate(tree, tokenStream, options);
-}
+): ReturnType<CodeGenWalker["generate"]> =>
+  ProgramGeneration.generate(generator, tree, tokenStream, options, registry);
 
 let registry = new SymbolRegistry();
 
@@ -326,11 +279,9 @@ describe("CodeGenWalker", () => {
 
         expect(input.symbolTable).not.toBeNull();
         expect(input.symbols).not.toBeNull();
-        expect(input.typeRegistry).toBeInstanceOf(Map);
         expect(input.functionSignatures).toBeInstanceOf(Map);
         expect(input.knownFunctions).toBeInstanceOf(Set);
         expect(input.knownStructs).toBeInstanceOf(Set);
-        expect(input.constValues).toBeInstanceOf(Map);
         expect(input.callbackTypes).toBeInstanceOf(Map);
         expect(input.callbackFieldTypes).toBeInstanceOf(Map);
         expect(typeof input.debugMode).toBe("boolean");
@@ -350,7 +301,6 @@ describe("CodeGenWalker", () => {
         expect(typeof state.inFunctionBody).toBe("boolean");
         expect(state.currentParameters).toBeInstanceOf(Map);
         expect(state.localVariables).toBeInstanceOf(Set);
-        expect(state.localArrays).toBeInstanceOf(Set);
         expect(state.scopeMembers).toBeInstanceOf(Map);
       });
     });
@@ -597,6 +547,11 @@ describe("CodeGenWalker", () => {
 
         expect(host.isKnownStruct("UnknownStruct")).toBe(false);
       });
+
+      it("should return false for primitive type", () => {
+        const { host } = createMinimalGenerator(`void foo() { }`);
+        expect(host.isKnownStruct("u32")).toBe(false);
+      });
     });
 
     describe("isFloatType()", () => {
@@ -673,21 +628,6 @@ describe("CodeGenWalker", () => {
       it("should return false by default", () => {
         const { host } = createMinimalGenerator(`void foo() { }`);
         expect(host.isCppMode()).toBe(false);
-      });
-    });
-
-    describe("isStructType()", () => {
-      it("should return true for struct type", () => {
-        const { host } = createMinimalGenerator(`
-          struct Point { i32 x; i32 y; }
-        `);
-
-        expect(host.isStructType("Point")).toBe(true);
-      });
-
-      it("should return false for primitive type", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
-        expect(host.isStructType("u32")).toBe(false);
       });
     });
 
@@ -842,22 +782,6 @@ describe("CodeGenWalker", () => {
 
         host.exitFunctionBody();
         expect(host.hasFloatBitShadow("__bits_myFloat")).toBe(false);
-      });
-    });
-
-    describe("generateBitMask()", () => {
-      it("should generate 32-bit mask", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
-
-        const mask = host.generateBitMask("8", false);
-        expect(mask).toContain("0xFFU");
-      });
-
-      it("should generate 64-bit mask with ULL suffix", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
-
-        const mask = host.generateBitMask("8", true);
-        expect(mask).toContain("ULL");
       });
     });
 
@@ -1148,69 +1072,37 @@ describe("CodeGenWalker", () => {
     });
   });
 
-  describe("Target capabilities", () => {
-    it("should use default capabilities when no target specified", () => {
+  describe("Target description", () => {
+    // Which target a file gets is decided before codegen (TargetResolver);
+    // the walk only records what it is given.
+    it("records the target it is given", () => {
       const source = `void foo() { }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
-      // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+      const symbols = TSymbolInfoAdapter.convert(declareAndResolve(tree));
+      const teensy41 = TargetResolver.byName("teensy41")!;
 
       generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
+        targetDescription: teensy41,
       });
 
-      const input = host.getInput();
-      expect(input.targetCapabilities.wordSize).toBe(32);
+      expect(host.state.targetDescription).toBe(teensy41);
     });
 
-    it("should use CLI target when specified", () => {
-      const source = `void foo() { }`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
-      // the walk accumulates read the SAME instance the walk drove.
-      const host = new CodeGenerator();
-      const generator = new CodeGenWalker(host);
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
+    it("refuses to generate without a target", () => {
+      const { tree, tokenStream } = CNextSourceParser.parse(`void foo() { }`);
+      const generator = new CodeGenWalker(new CodeGenerator());
+      const symbols = TSymbolInfoAdapter.convert(declareAndResolve(tree));
 
-      generateWithProgram(generator, tree, tokenStream, {
-        symbolInfo: symbols,
-        sourcePath: "test.cnx",
-        target: "teensy41",
-      });
-
-      const input = host.getInput();
-      expect(input.targetCapabilities.hasLdrexStrex).toBe(true);
-      expect(input.targetCapabilities.hasBasepri).toBe(true);
-    });
-
-    it("should handle unknown CLI target with warning", () => {
-      const source = `void foo() { }`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
-      // the walk accumulates read the SAME instance the walk drove.
-      const host = new CodeGenerator();
-      const generator = new CodeGenWalker(host);
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      // Should not throw, just warn and use default
-      generateWithProgram(generator, tree, tokenStream, {
-        symbolInfo: symbols,
-        sourcePath: "test.cnx",
-        target: "unknown-target",
-      });
-
-      const input = host.getInput();
-      expect(input.targetCapabilities.wordSize).toBe(32);
+      expect(() =>
+        generator.generate(tree, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        }),
+      ).toThrow(/targetDescription/);
     });
   });
 
@@ -2086,27 +1978,6 @@ describe("CodeGenWalker", () => {
     });
   });
 
-  describe("getStructFieldInfo()", () => {
-    it("should return field info for known struct", () => {
-      const { host } = createMinimalGenerator(`
-        struct Point { i32 x; i32 y; }
-      `);
-
-      const fieldInfo = host.getStructFieldInfo("Point", "x");
-      expect(fieldInfo).not.toBeNull();
-      expect(fieldInfo?.type).toBe("i32");
-    });
-
-    it("should return null for unknown field", () => {
-      const { host } = createMinimalGenerator(`
-        struct Point { i32 x; i32 y; }
-      `);
-
-      const fieldInfo = host.getStructFieldInfo("Point", "z");
-      expect(fieldInfo).toBeNull();
-    });
-  });
-
   describe("getMemberTypeInfo()", () => {
     it("should return member type info for known struct", () => {
       const { host } = createMinimalGenerator(`
@@ -2840,9 +2711,10 @@ describe("CodeGenWalker", () => {
       expect(code).toContain("uint32_t add(");
       expect(code).toContain("uint32_t sub(");
       expect(code).toContain("uint32_t mul(");
-      expect(code).toContain("return a + b");
-      expect(code).toContain("return a - b");
-      expect(code).toContain("return a * b");
+      // #1681: arithmetic on parameters clamps (ADR-044)
+      expect(code).toContain("return cnx_clamp_add_u32(a, b)");
+      expect(code).toContain("return cnx_clamp_sub_u32(a, b)");
+      expect(code).toContain("return cnx_clamp_mul_u32(a, b)");
     });
   });
 
@@ -4749,7 +4621,7 @@ describe("CodeGenWalker", () => {
     it("should generate float to int cast with clamping", () => {
       const source = `
         f32 floatVal <- 100.5;
-        i32 intVal <- floatVal as i32;
+        i32 intVal <- (i32)floatVal;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4765,9 +4637,11 @@ describe("CodeGenWalker", () => {
         sourcePath: "test.cnx",
       });
 
-      // Float to int cast generates clamping code
-      expect(code).toContain("floatVal");
-      expect(code).toContain("int32_t");
+      // Float to int cast generates clamping code: saturating at both bounds
+      // (#1800: `floatVal as i32` here was a parse-recovered implicit
+      // conversion, which pass 2.1 now rejects as E0891)
+      expect(code).toContain("(int32_t)INT32_MAX");
+      expect(code).toContain("(int32_t)INT32_MIN");
     });
   });
 
@@ -9548,7 +9422,7 @@ describe("CodeGenWalker", () => {
 
         // Float bit access uses union-based type punning (MISRA 21.15 compliant)
         expect(code).toContain("union { float f; uint32_t u; }");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
     });
 
@@ -11183,8 +11057,8 @@ describe("CodeGenWalker", () => {
         });
 
         expect(code).toContain(">> 8U");
-        // Mask is generated as ((1U << 4U) - 1) for bit width 4
-        expect(code).toContain("((1U << 4U) - 1)");
+        // A constant width's mask is written as its value (#1668)
+        expect(code).toContain("((flags >> 8U) & 0xFU)");
       });
     });
 
@@ -11730,7 +11604,7 @@ describe("CodeGenWalker", () => {
         });
 
         // Bit access extracts bit 0 with width 1 (no shift for position 0)
-        expect(code).toContain("((flags) & ((1U << 1U) - 1))");
+        expect(code).toContain("((flags) & 0x1U)");
       });
 
       it("should not dereference array parameter for index access", () => {
@@ -11833,7 +11707,7 @@ describe("CodeGenWalker", () => {
 
         // Float bit access uses union-based type punning (MISRA 21.15 compliant)
         expect(code).toContain("union { float f; uint32_t u; }");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
 
       it("should generate f64 bit range read with union", () => {
@@ -11859,7 +11733,7 @@ describe("CodeGenWalker", () => {
 
         // f64 uses double/uint64_t union
         expect(code).toContain("union { double f; uint64_t u; }");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
     });
 
@@ -13433,7 +13307,7 @@ describe("CodeGenWalker", () => {
 
         // Float bit access uses union-based type punning (MISRA 21.15 compliant)
         expect(code).toContain("union { float f; uint32_t u; }");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
     });
 
@@ -14145,7 +14019,7 @@ describe("CodeGenWalker", () => {
         // Should use union-based type punning (MISRA 21.15 compliant)
         expect(code).toContain("__bits_floatVal");
         expect(code).toContain("union { float f; uint32_t u; }");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
 
       it("should generate f64 bit range read with 64-bit union shadow", () => {
@@ -14172,7 +14046,7 @@ describe("CodeGenWalker", () => {
         // Should use 64-bit union for f64 (MISRA 21.15 compliant)
         expect(code).toContain("__bits_doubleVal");
         expect(code).toContain("union { double f; uint64_t u; }");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
 
       it("should reuse shadow variable for repeated float bit reads", () => {
@@ -15031,7 +14905,7 @@ describe("CodeGenWalker", () => {
         expect(code).toContain(">> 8");
         // Uses union, not memcpy (MISRA 21.15 compliant)
         expect(code).toContain("union { float f; uint32_t u; }");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
 
       it("should generate f32 bit range with start=0", () => {
@@ -16409,7 +16283,8 @@ describe("CodeGenWalker", () => {
         });
 
         expect(code).toContain("uint32_t add(uint32_t a, uint32_t b)");
-        expect(code).toContain("return a + b");
+        // #1681: arithmetic on parameters clamps (ADR-044)
+        expect(code).toContain("return cnx_clamp_add_u32(a, b)");
       });
 
       it("should generate function with array parameter", () => {
@@ -17028,7 +16903,7 @@ describe("CodeGenWalker", () => {
         // Uses union, not memcpy (MISRA 21.15 compliant)
         expect(code).toContain("union { float f; uint32_t u; } __bits_fval;");
         expect(code).toContain("__bits_fval.u");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
 
       it("should generate f64 bit range access with uint64_t union shadow", () => {
@@ -17055,7 +16930,7 @@ describe("CodeGenWalker", () => {
         // Uses union, not memcpy (MISRA 21.15 compliant)
         expect(code).toContain("union { double f; uint64_t u; } __bits_dval;");
         expect(code).toContain("__bits_dval.u");
-        expect(code).not.toContain("memcpy");
+        expect(code).not.toContain("memcpy(");
       });
     });
   });
@@ -17115,8 +16990,11 @@ describe("CodeGenWalker", () => {
         sourcePath: "test.cnx",
       });
 
-      // Const values are inlined, 5 gets U suffix per MISRA Rule 7.2
-      expect(code).toContain("uint8_t result = 10 + 5U;");
+      // Const values are inlined, 5 gets U suffix per MISRA Rule 7.2. The
+      // sum of a u8 const and a literal saturates (ADR-044): the transpiler
+      // always emitted this helper; the harness said `10 + 5U` only while
+      // 2.2's own lookup could not find the scope const (#1668, C6b).
+      expect(code).toContain("uint8_t result = cnx_clamp_add_u8(10, 5U);");
       expect(code).not.toContain("Bar_OFFSET");
     });
   });

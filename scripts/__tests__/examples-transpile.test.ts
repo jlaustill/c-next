@@ -69,9 +69,12 @@ describe("examples transpile and compile cleanly (Issue #1048)", () => {
       // in PathNormalizer -- so this key was silently discarded. Removed rather
       // than added: the test asserts transpile success and clean compilation,
       // neither of which it affects (#1489).
+      // ADR-049: every program names a target. An example that pins one
+      // keeps it -- source outranks the option (#1668).
       const pipeline = new Transpiler({
         input: file,
         outDir,
+        target: "host",
       });
 
       const result = await pipeline.transpile({ kind: "files" });

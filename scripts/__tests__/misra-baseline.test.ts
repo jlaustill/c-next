@@ -30,6 +30,17 @@ describe("buildArgs", () => {
     expect(args).toContain("--addon=misra");
     expect(args).toContain("foo.test.c");
   });
+
+  it("passes a file's extra flags before the file itself (#1668)", () => {
+    // A Cortex-M file is analyzed against the vendored CMSIS-Core with the
+    // architecture macros that make it declare its intrinsics
+    const extra = ["-I", "vendor/cmsis-core", "-D__ARM_ARCH_7EM__=1"];
+    const args = MisraBaseline.buildArgs("foo.test.c", "tests/include", extra);
+    expect(args.slice(-4)).toEqual([...extra, "foo.test.c"]);
+    expect(
+      MisraBaseline.buildArgs("foo.test.c", "tests/include"),
+    ).not.toContain("vendor/cmsis-core");
+  });
 });
 
 describe("parseViolations", () => {

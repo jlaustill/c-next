@@ -19,9 +19,9 @@
 
 void configure(uint32_t mode) {
     HW__CTRL = mode;
-    HW__CTRL = (HW__CTRL & ~(1U << 3)) | (1U << 3);
-    HW__SET = (1U << 0);
-    HW__COMMAND = 0x42;
+    HW__CTRL = (HW__CTRL & ~((uint32_t)1U << 3)) | ((uint32_t)1U << 3);
+    HW__SET = ((uint32_t)1U << 0);
+    HW__COMMAND = 0x42U;
 }
 
 uint32_t poll(void) {

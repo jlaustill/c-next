@@ -14,14 +14,14 @@ codes that already have a fixture.
 | --------- | ----------------------- | ------- |
 | E00xx     | Reserved/Test           | 1       |
 | E02xx     | Identifier/Param Naming | 5       |
-| E03xx     | Struct Fields/Init      | 4       |
+| E03xx     | Struct Fields/Init      | 5       |
 | E04xx     | Symbol Resolution       | 16      |
-| E05xx     | Include/Preprocessor    | 9       |
+| E05xx     | Include/Preprocessor    | 15      |
 | E06xx     | Sizeof Expressions      | 2       |
 | E07xx     | Control Flow            | 12      |
-| E08xx     | Arithmetic/Array Safety | 49      |
+| E08xx     | Arithmetic/Array Safety | 51      |
 | E09xx     | NULL Safety             | 8       |
-| **Total** |                         | **106** |
+| **Total** |                         | **115** |
 
 ---
 
@@ -65,12 +65,9 @@ identifier, so a join that is injective can still land on one identifier once th
 target truncates it. The `__` separator costs two characters per level and the
 scope name costs its full length, so the budget is consumed by the encoding, not
 by the author's naming (#1307). Reported against
-`ITargetCapabilities.significantExternalIdentifierChars`, not a hardcoded 31 —
-the limit belongs to the C target. Because Rule 5.1 is a whole-program property,
-the budget is resolved once per run rather than per file: an explicit `--target`
-names one target for every translation unit and wins outright; otherwise the
-narrowest budget among the files' `#pragma target` declarations applies, since a
-pair that collides for the strictest target in a build collides in that build. Scoped to identifiers C-Next generates with
+the target description's `external_identifier_chars`, not a hardcoded 31 —
+the limit belongs to the C target. Rule 5.1 is a whole-program property, and a
+program has exactly one target (ADR-049), so the budget is that target's. Scoped to identifiers C-Next generates with
 external linkage: `private` members are `static` and get the 63-character
 internal budget (#1338), types have no linkage, and a C/C++ header's identifiers
 are not C-Next's to rename. The message names `cnxScopedName` rather than the
@@ -89,11 +86,12 @@ second header and the program ran with a wrong value.
 
 ## E03xx — Struct Fields and Initializers
 
-| Code  | Message                                                                     | Help                                                                                                                                                                                                             | Source                                         |
-| ----- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| E0355 | Struct field uses a reserved property name                                  | Reserved names (e.g., `.length`). Use 'len', 'size', or 'count'                                                                                                                                                  | `logic/analysis/StructFieldAnalyzer.ts`        |
-| E0356 | _(retired)_ — was: redundant type in a struct initializer                   | Removed with the grammar alternative it rejected (#1322): `Point { x: 1 }` was never valid C-Next, since every position that consumes a value already declares the type. It is a parse error now. Not reassigned | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
-| E0357 | A struct initializer with no written type, in a position that declares none | Move it where a type is declared: a variable, an assignment target, a field, an argument, or a return                                                                                                            | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
+| Code  | Message                                                                                                                                                                          | Help                                                                                                                                                                                                             | Source                                         |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| E0355 | Struct field uses a reserved property name                                                                                                                                       | Reserved names (e.g., `.length`). Use 'len', 'size', or 'count'                                                                                                                                                  | `logic/analysis/StructFieldAnalyzer.ts`        |
+| E0356 | _(retired)_ — was: redundant type in a struct initializer                                                                                                                        | Removed with the grammar alternative it rejected (#1322): `Point { x: 1 }` was never valid C-Next, since every position that consumes a value already declares the type. It is a parse error now. Not reassigned | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
+| E0357 | A struct initializer with no written type, in a position that declares none                                                                                                      | Move it where a type is declared: a variable, an assignment target, a field, an argument, or a return                                                                                                            | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
+| E0358 | A struct initializer gives a value to a type that is not a struct (a primitive, a string, a bitmap, an enum, a function type, or a header's scalar, pointer or function pointer) | Give a value of the type itself; a bitmap's is its backing integer, set field by field after (ADR-034)                                                                                                           | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
 
 ---
 
@@ -173,6 +171,12 @@ include-visibility is not derivable for a C or C++ name.
 | E0507 | C++ header in a run that does not target C++                        | Set `cppRequired: true` in the config, or pass `--cpp`                                                                                                                                                                                 | `Transpiler.ts`                                      |
 | E0508 | C++ class with a constructor initialized outside a function body    | A class with a constructor is not an aggregate, so its fields are assigned one at a time, and a declaration outside a function body has no statement to assign them in                                                                 | `TRANSPILE/1-Analyze/CppClassInitializerAnalyzer.ts` |
 | E0509 | Generated header names a C-Next source that is not there            | A generated header records the source it was written from; check that source is present and reachable from the include path                                                                                                            | `Transpiler.ts`                                      |
+| E0510 | Not a known target                                                  | Name a target from the catalog, exactly as it is spelled there; `cnext --help` lists them (ADR-049)                                                                                                                                    | `PARSE/4-Resolve/RunTarget.ts`                       |
+| E0511 | Target declarations in one program disagree                         | A program has one target: declare the same one in every file that declares one, or declare it once (ADR-049)                                                                                                                           | `PARSE/4-Resolve/RunTarget.ts`                       |
+| E0512 | Unknown pragma                                                      | A pragma names the program's target: `target`, or a target description field (ADR-049)                                                                                                                                                 | `PARSE/4-Resolve/RunTarget.ts`                       |
+| E0513 | Invalid value for a pragma key                                      | An integer field takes decimal digits from the schema's allowed values, a Boolean field takes `true` or `false`, and each key takes exactly one value (ADR-049)                                                                        | `PARSE/4-Resolve/RunTarget.ts`                       |
+| E0514 | Incomplete target description                                       | An inline description gives every field, like a catalog row; the help lists what is missing (ADR-049)                                                                                                                                  | `PARSE/4-Resolve/RunTarget.ts`                       |
+| E0515 | The program names no target                                         | Name one with `#pragma target <name>`, `--target <name>`, `"target"` in `cnext.config.json`, or a PlatformIO environment's board (ADR-049)                                                                                             | `PARSE/4-Resolve/RunTarget.ts`                       |
 
 ---
 
@@ -220,12 +224,12 @@ include-visibility is not derivable for a C or C++ name.
 
 ### Essential Type Safety (MISRA C:2012)
 
-| Code  | Message                                                                                                | Help                                                                                         | Source                                        |
-| ----- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| E0805 | Shift operator used on a signed integer type (MISRA C:2012 Rule 10.1)                                  | Shift an unsigned value; signed shifts are UB / implementation-defined in C                  | `TRANSPILE/1-Analyze/ShiftAnalyzer.ts`        |
-| E0806 | Compound assignment used on a `bool` (MISRA C:2012 Rule 10.1)                                          | Only `<-` is valid on a bool; flip a flag with `flag <- !flag`                               | `logic/analysis/BooleanOperandAnalyzer.ts`    |
-| E0807 | Arithmetic, bitwise, shift or relational operator applied to a `bool` operand (MISRA C:2012 Rule 10.1) | A bool is not a number; combine flags with `&&` / `\|\|` / `!`, compare them with `=` / `!=` | `logic/analysis/BooleanOperandAnalyzer.ts`    |
-| E0810 | Binary operator combines operands of different essential type categories (Rule 10.4)                   | Reinterpret one operand's bits to match the other with bit indexing, e.g. `value[0, 32]`     | `logic/analysis/MixedTypeCategoryAnalyzer.ts` |
+| Code  | Message                                                                                                             | Help                                                                                                                                                  | Source                                             |
+| ----- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| E0805 | Shift operator used on a signed integer type (MISRA C:2012 Rule 10.1)                                               | Shift an unsigned value; signed shifts are UB / implementation-defined in C                                                                           | `TRANSPILE/1-Analyze/ShiftAnalyzer.ts`             |
+| E0806 | Compound assignment used on a `bool` (MISRA C:2012 Rule 10.1)                                                       | Only `<-` is valid on a bool; flip a flag with `flag <- !flag`                                                                                        | `logic/analysis/BooleanOperandAnalyzer.ts`         |
+| E0807 | Arithmetic, bitwise, shift or relational operator applied to a `bool` operand (MISRA C:2012 Rule 10.1)              | A bool is not a number; combine flags with `&&` / `\|\|` / `!`, compare them with `=` / `!=`                                                          | `logic/analysis/BooleanOperandAnalyzer.ts`         |
+| E0810 | Operands of different essential type categories: a binary operator's, or a conditional's two value arms (Rule 10.4) | Integer and floating: cast the integer, e.g. `(f32)value`. Signed and unsigned: reinterpret one operand's bits with bit indexing, e.g. `value[0, 32]` | `TRANSPILE/1-Analyze/MixedTypeCategoryAnalyzer.ts` |
 
 ### Array Index Type Safety
 
@@ -250,22 +254,22 @@ include-visibility is not derivable for a C or C++ name.
 
 ### Subscript Depth (ADR-036 / ADR-007)
 
-| Code  | Message                                                                        | Help                                                                                                             | Source                                              |
-| ----- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| E0856 | More subscripts than the base's shape allows                                   | One per array dimension plus one optional bit index (ADR-036/ADR-007)                                            | `TRANSPILE/1-Analyze/BitAccessAnalyzer.ts`          |
-| E0857 | Compound assignment on a target that is not a whole storage location           | A compound operator reads, modifies and writes back one location; write the read and write separately            | `TRANSPILE/1-Analyze/CompoundAssignmentAnalyzer.ts` |
-| E0858 | Slice assignment target cannot be sliced (element type, dimensions, or size)   | Slice a one-dimensional integer or string buffer whose size folds at compile time                                | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`    |
-| E0859 | Slice assignment offset or length is not a compile-time constant               | Use a literal or a `const`; a runtime span cannot be bounds-checked                                              | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`    |
-| E0860 | Slice assignment span does not fit the buffer (bounds, alignment, or sign)     | Keep `offset + length / elementSize` within the capacity, and the length a positive multiple of the element size | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`    |
-| E0861 | Slice assignment source does not fit the slice (type, width, or literal range) | Assign an integer no wider than the slice, or widen the slice                                                    | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`    |
-| E0862 | String declaration does not state a capacity that can be determined            | Write the capacity, e.g. `string<64>`; only a `const` with a literal can have one inferred                       | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`  |
-| E0863 | String at file scope is initialized by something other than a literal          | Move the declaration into a function, or initialize it empty and assign later                                    | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`  |
-| E0864 | Value does not fit the declared string capacity                                | Widen the declaration, or shorten the value                                                                      | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`  |
-| E0865 | Substring bounds exceed the source string                                      | Keep `start + length` within the source's capacity                                                               | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`  |
-| E0866 | Array initializer does not match the declaration (ADR-035)                     | Give a bracketed list with one element per slot at every level, or the fill-all form                             | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts`   |
-| E0867 | Length property not available on this type (ADR-058)                           | `.element_count` needs an array, `.char_count` a string, `.bit_length`/`.byte_length` a sized type               | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts`     |
-| E0868 | Integer literal does not fit the target type's range (ADR-024)                 | Widen the target type, or narrow the value; an unsigned type holds no negative                                   | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`  |
-| E0869 | Implicit narrowing or sign-changing integer conversion (ADR-024)               | Use bit indexing to say which bits you mean, e.g. `value[0, 8]`                                                  | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`  |
+| Code  | Message                                                                                                    | Help                                                                                                             | Source                                                                                            |
+| ----- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| E0856 | More subscripts than the base's shape allows                                                               | One per array dimension plus one optional bit index (ADR-036/ADR-007)                                            | `TRANSPILE/1-Analyze/BitAccessAnalyzer.ts`                                                        |
+| E0857 | Compound assignment on a target that is not a whole storage location                                       | A compound operator reads, modifies and writes back one location; write the read and write separately            | `TRANSPILE/1-Analyze/CompoundAssignmentAnalyzer.ts`                                               |
+| E0858 | Slice assignment target cannot be sliced (element type, dimensions, or size)                               | Slice a one-dimensional integer or string buffer whose size folds at compile time                                | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`                                                  |
+| E0859 | Slice assignment offset or length is not a compile-time constant                                           | Use a literal or a `const`; a runtime span cannot be bounds-checked                                              | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`                                                  |
+| E0860 | Slice assignment span does not fit the buffer (bounds, alignment, or sign)                                 | Keep `offset + length / elementSize` within the capacity, and the length a positive multiple of the element size | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`                                                  |
+| E0861 | Slice assignment source does not fit the slice (type, width, or literal range)                             | Assign an integer no wider than the slice, or widen the slice                                                    | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`                                                  |
+| E0862 | String declaration does not state a capacity that can be determined                                        | Write the capacity, e.g. `string<64>`; only a `const` with a literal can have one inferred                       | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`                                                |
+| E0863 | String at file scope is initialized by something other than a literal                                      | Move the declaration into a function, or initialize it empty and assign later                                    | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`                                                |
+| E0864 | Value does not fit the declared string capacity                                                            | Widen the declaration, or shorten the value                                                                      | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`                                                |
+| E0865 | Substring bounds exceed the source string                                                                  | Keep `start + length` within the source's capacity                                                               | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`                                                |
+| E0866 | Array initializer does not match the declaration, or a whole array is given a struct initializer (ADR-035) | Give a bracketed list with one element per slot at every level, or the fill-all form                             | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts`, `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
+| E0867 | Length property not available on this type (ADR-058)                                                       | `.element_count` needs an array, `.char_count` a string, `.bit_length`/`.byte_length` a sized type               | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts`                                                   |
+| E0868 | Integer literal does not fit the target type's range (ADR-024)                                             | Widen the target type, or narrow the value; an unsigned type holds no negative                                   | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`                                                |
+| E0869 | Implicit narrowing or sign-changing integer conversion (ADR-024)                                           | Use bit indexing to say which bits you mean, e.g. `value[0, 8]`                                                  | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`                                                |
 
 ### Register Access Modifiers (ADR-004)
 
@@ -312,11 +316,11 @@ base: bare, `this.` and `global.`.
 
 ### Bitmap Access (ADR-034)
 
-| Code  | Message                                                   | Help                                                                  | Source                                        |
-| ----- | --------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------- |
-| E0881 | A literal too wide for the bitmap field it is assigned to | Widen the field in the bitmap declaration, or write a value that fits | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
-| E0882 | A member the bitmap does not declare                      | Use one of the bitmap's declared fields                               | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
-| E0883 | Bracket indexing on a bitmap                              | A bitmap is addressed by named field, not by bit index                | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
+| Code  | Message                                                                             | Help                                                                  | Source                                        |
+| ----- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------- |
+| E0881 | A constant value, a const included, too wide for the bitmap field it is assigned to | Widen the field in the bitmap declaration, or write a value that fits | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
+| E0882 | A member the bitmap does not declare                                                | Use one of the bitmap's declared fields                               | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
+| E0883 | Bracket indexing on a bitmap                                                        | A bitmap is addressed by named field, not by bit index                | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
 
 ### Safe Division Call Shape (ADR-051)
 
@@ -334,10 +338,12 @@ base: bare, `this.` and `global.`.
 
 ### Bit Access and Declaration Modifiers (ADR-007 / ADR-049)
 
-| Code  | Message                                         | Help                                                                  | Source                                               |
-| ----- | ----------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------- |
-| E0888 | A float bit range read at file scope            | The union copy it lowers to is a statement; read it inside a function | `TRANSPILE/1-Analyze/BitAccessAnalyzer.ts`           |
-| E0889 | Both `atomic` and `volatile` on one declaration | `atomic` already implies `volatile`; choose one                       | `TRANSPILE/1-Analyze/DeclarationModifierAnalyzer.ts` |
+| Code  | Message                                                           | Help                                                                  | Source                                               |
+| ----- | ----------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------- |
+| E0888 | A float bit range read at file scope                              | The union copy it lowers to is a statement; read it inside a function | `TRANSPILE/1-Analyze/BitAccessAnalyzer.ts`           |
+| E0889 | Both `atomic` and `volatile` on one declaration                   | `atomic` already implies `volatile`; choose one                       | `TRANSPILE/1-Analyze/DeclarationModifierAnalyzer.ts` |
+| E0890 | A read-modify-write target has a side effect                      | Store the index in a variable first; a bit write evaluates it twice   | `TRANSPILE/1-Analyze/BitAccessAnalyzer.ts`           |
+| E0891 | Implicit conversion from a floating value to an integer (ADR-024) | Write the conversion as a cast, which saturates: `(u32)value`         | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`   |
 
 ## E09xx — NULL Safety (ADR-046)
 

@@ -28,15 +28,14 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import ScopeFrameResolver from "./ScopeFrameResolver";
+import BoundDeclaration from "./helpers/BoundDeclaration";
 import IConstructorArgumentError from "./types/IConstructorArgumentError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 class ConstructorArgumentListener extends CNextListener {
   private readonly found: IConstructorArgumentError[] = [];
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
   }
 
@@ -53,9 +52,16 @@ class ConstructorArgumentListener extends CNextListener {
     for (const identifier of args.IDENTIFIER()) {
       const name = identifier.getText();
       const { line, column } = ParserUtils.getPosition(ctx);
-      const declared = this.scopes.declarationOfNameLexical(
-        name,
-        this.scopes.frameFor(ctx),
+      // What the name binds to before this declaration, through Program's
+      // one binder (#1668): a const local, member or global, this file's or
+      // an included one's
+      const declared = BoundDeclaration.of(
+        this.context.program.bindValue(
+          this.context.sourceFile,
+          null,
+          name,
+          ParserUtils.getPosition({ start: identifier.symbol }),
+        ),
       );
 
       if (!declared) {
@@ -87,12 +93,7 @@ class ConstructorArgumentAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): IConstructorArgumentError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    const listener = new ConstructorArgumentListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-    );
+    const listener = new ConstructorArgumentListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

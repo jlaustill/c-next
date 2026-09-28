@@ -220,18 +220,27 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
     // with the walk, which is outside the render pass, so it is no longer a
     // RENDER site consulting a plan. That is precisely the transition this
     // roster exists to make visible in a diff.
+    //
+    // #1668: the atomic and overflow-clamp handlers re-derived the target's
+    // type and whether a compound saturates, and `AtomicGenerator` decided the
+    // latter a third time from its own operator map. They ask the classifier
+    // for both now, and the atomic generator is handed the answer -- a
+    // decision moving toward the planner.
+    "codegen/assignment/handlers/SpecialHandlers.ts",
   ],
   CastRequirement: [
     // #1445 box 3 slice 38: `CodeGenerator` consulted this inline while
     // walking a cast; the render half moved to `CastExprGenerator` and the
-    // consultation went with it. The site changed, the edge did not -- which
-    // is exactly the event this table exists to make visible in a diff.
-    "codegen/generators/expressions/CastExprGenerator.ts",
+    // consultation went with it. #1668 (C5) then moved the decision itself
+    // into the plan: `IPlannedCast.clampForm` says whether and how a cast
+    // saturates, so `CastExprGenerator` reads the plan and consults nothing.
     "codegen/helpers/NarrowingCastHelper.ts",
   ],
   ComplianceAnnotations: [
     "codegen/assignment/handlers/ArrayHandlers.ts",
     "codegen/generators/statements/ControlFlowGenerator.ts",
+    // #1760 review: the float bits union, which carried no citation
+    "codegen/helpers/FloatBitHelper.ts",
     "codegen/helpers/StructInitFunction.ts",
   ],
   CppMemberHelper: [
@@ -266,7 +275,10 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
     "codegen/generators/declarationGenerators/RegisterBlockPlacement.ts",
   ],
   SubscriptClassifier: [
-    "codegen/generators/expressions/PostfixExpressionGenerator.ts",
+    // #1668 (S25): `PostfixExpressionGenerator` classified a subscript here
+    // from the type registry, which holds no C header variable. It reads the
+    // kind the plan carries now -- the one operand typer's, the answer 2.1's
+    // bit-access rules read -- so the consultation left render.
   ],
   SubscriptDepthValidator: [
     // #1445 box 3 split this decider's two entry points between two modules,

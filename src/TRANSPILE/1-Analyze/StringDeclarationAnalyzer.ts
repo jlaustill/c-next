@@ -34,13 +34,10 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
 import ParserUtils from "../../utils/ParserUtils";
 import StringUtils from "../../utils/StringUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import IScopeFrame from "./types/IScopeFrame";
+import OperandTyper from "../../utils/OperandTyper";
 import IStringDeclarationError from "./types/IStringDeclarationError";
-import ScopeFrameResolver from "./ScopeFrameResolver";
 import ConstantExpression from "./helpers/ConstantExpression";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import DeclaredVariableFacts from "../../utils/DeclaredVariableFacts";
 
 /** What a string-valued expression can hold, or null if it is not one. */
 interface IStringSource {
@@ -51,10 +48,7 @@ interface IStringSource {
 class StringDeclarationListener extends CNextListener {
   private readonly found: IStringDeclarationError[] = [];
 
-  public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    private readonly context: IAnalysisContext,
-  ) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
   }
 
@@ -182,15 +176,15 @@ class StringDeclarationListener extends CNextListener {
     expression: Parser.ExpressionContext,
     capacity: number,
   ): void {
-    const frame = this.scopes.frameFor(ctx);
+    const at: ParserRuleContext = ctx;
 
-    const substring = this.substringOf(expression, frame);
+    const substring = this.substringOf(expression, at);
     if (substring !== null) {
       this.checkSubstring(expression, substring, capacity);
       return;
     }
 
-    const concat = this.concatOf(expression, frame);
+    const concat = this.concatOf(expression, at);
     if (concat !== null) {
       const required = concat[0] + concat[1];
       if (required > capacity) {
@@ -204,7 +198,7 @@ class StringDeclarationListener extends CNextListener {
       return;
     }
 
-    const source = this.stringSourceOf(expression, frame);
+    const source = this.stringSourceOf(expression, at);
     if (source === null) return;
 
     if (source.isLiteral && source.capacity > capacity) {
@@ -260,42 +254,34 @@ class StringDeclarationListener extends CNextListener {
   /** A string-valued expression's capacity: a literal's length, or a declared one. */
   private stringSourceOf(
     expression: Parser.ExpressionContext,
-    frame: IScopeFrame,
+    at: ParserRuleContext,
   ): IStringSource | null {
     const literal = StringDeclarationListener.literalOf(expression);
     if (literal !== null) {
       return { capacity: StringUtils.literalLength(literal), isLiteral: true };
     }
     const name = expression.getText();
-    const capacity = this.capacityOfName(name, frame);
+    const capacity = this.capacityOfName(name, at);
     return capacity === null ? null : { capacity, isLiteral: false };
   }
 
   /**
    * A declared string's capacity, from this file's frames or the run-wide view.
    *
-   * Lexical FIRST so a local declaration still shadows an imported one -- the
-   * shape `ScopeFrameResolver.typeOfName` established, written once here rather
-   * than at each of the three places that ask.
+   * The name binds through Program's one binder (#1668), so a local still
+   * shadows an imported declaration, written once here rather than at each
+   * of the three places that ask.
    */
-  private capacityOfName(name: string, frame: IScopeFrame): number | null {
+  private capacityOfName(name: string, at: ParserRuleContext): number | null {
     if (!/^[A-Za-z_]\w*$/.test(name)) return null;
-    const declared = this.scopes.declarationOfNameLexical(name, frame);
-    if (declared?.stringCapacity != null) return declared.stringCapacity;
-    const info = DeclaredVariableFacts.typeInfoOf(
-      this.context.symbols,
-      this.context.symbolTable,
-      name,
-    );
-    return info?.isString && info.stringCapacity !== undefined
-      ? info.stringCapacity
-      : null;
+    const t = OperandTyper.typeOfName(name, at, this.context);
+    return t !== null && t.dimensions.length === 0 ? t.stringCapacity : null;
   }
 
   /** `left + right` where BOTH operands are strings, as their capacities. */
   private concatOf(
     expression: Parser.ExpressionContext,
-    frame: IScopeFrame,
+    at: ParserRuleContext,
   ): [number, number] | null {
     const additive = ExpressionUnwrapper.getAdditiveExpression(expression);
     if (!additive) return null;
@@ -305,26 +291,26 @@ class StringDeclarationListener extends CNextListener {
     // inside an identifier or a literal.
     if (operands.length !== 2 || additive.MINUS().length > 0) return null;
 
-    const left = this.capacityOfOperand(operands[0], frame);
-    const right = this.capacityOfOperand(operands[1], frame);
+    const left = this.capacityOfOperand(operands[0], at);
+    const right = this.capacityOfOperand(operands[1], at);
     return left !== null && right !== null ? [left, right] : null;
   }
 
   private capacityOfOperand(
     operand: ParserRuleContext,
-    frame: IScopeFrame,
+    at: ParserRuleContext,
   ): number | null {
     const text = operand.getText();
     if (text.startsWith('"') && text.endsWith('"')) {
       return StringUtils.literalLength(text);
     }
-    return this.capacityOfName(text, frame);
+    return this.capacityOfName(text, at);
   }
 
   /** `src[start, length]`, or `src[i]` which is sugar for `src[i, 1]`. */
   private substringOf(
     expression: Parser.ExpressionContext,
-    frame: IScopeFrame,
+    at: ParserRuleContext,
   ): {
     start: number | null;
     length: number | null;
@@ -338,7 +324,7 @@ class StringDeclarationListener extends CNextListener {
     const sourceName = postfix.primaryExpression()?.IDENTIFIER()?.getText();
     if (!sourceName) return null;
 
-    const capacity = this.capacityOfName(sourceName, frame);
+    const capacity = this.capacityOfName(sourceName, at);
     if (capacity === null) return null;
 
     const subscripts = ops[0].expression();
@@ -407,14 +393,11 @@ class StringDeclarationListener extends CNextListener {
   /**
    * #1322 review: the flat const map answers "whichever scope declared this
    * name last". A string index or slice bound named by a scoped const was
-   * measured against the wrong one; `ConstantExpression` asks from here.
+   * measured against the wrong one; `ConstantExpression` asks from where the
+   * bound is written, locals included.
    */
   private constantOf(expr: Parser.ExpressionContext): number | null {
-    return ConstantExpression.valueIn(
-      expr,
-      this.scopes.frameFor(expr).scopePath,
-      this.context.program,
-    );
+    return ConstantExpression.valueAt(expr, this.context);
   }
 
   private report(
@@ -433,13 +416,7 @@ class StringDeclarationAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   public analyze(tree: Parser.ProgramContext): IStringDeclarationError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    const listener = new StringDeclarationListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-      this.context,
-    );
+    const listener = new StringDeclarationListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

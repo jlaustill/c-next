@@ -353,6 +353,14 @@ bool isRunning <- status.flags.Running;
 u8 mode <- status.flags.Mode;
 ```
 
+A bitmap's value is its backing integer, and its fields are then set one by one:
+`MotorFlags flags <- 0; flags.Running <- true;`. That is the same whether the
+bitmap stands alone or is a struct's field, where the integer is the field's
+initializer (`{ flags: 0, speed_percent: 50 }`). A struct initializer is not a
+bitmap's value in either place: `{ Running: 1 }` is E0358 (ADR-014). Owner
+ruling, 2026-09-28: _"a bitmap should be defined the exact same way it is
+anywhere else, being inside a struct changes nothing"_.
+
 ### Overflow Behavior
 
 - **Compile-time literals**: Error if value exceeds field width

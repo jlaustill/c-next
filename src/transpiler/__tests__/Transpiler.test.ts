@@ -22,7 +22,10 @@ describe("Transpiler", () => {
       // because it doesn't rely on FileDiscovery for the main code path
 
       it("transpiles source string without file I/O", async () => {
-        const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+        const transpiler = new Transpiler(
+          { input: "", noCache: true, target: "host" },
+          mockFs,
+        );
 
         const result = (
           await transpiler.transpile({
@@ -37,7 +40,10 @@ describe("Transpiler", () => {
       });
 
       it("returns parse errors for invalid source", async () => {
-        const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+        const transpiler = new Transpiler(
+          { input: "", noCache: true, target: "host" },
+          mockFs,
+        );
 
         const result = await transpiler.transpile({
           kind: "source",
@@ -49,7 +55,10 @@ describe("Transpiler", () => {
       });
 
       it("generates header code for exported functions", async () => {
-        const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+        const transpiler = new Transpiler(
+          { input: "", noCache: true, target: "host" },
+          mockFs,
+        );
 
         const result = (
           await transpiler.transpile({
@@ -68,7 +77,10 @@ describe("Transpiler", () => {
       });
 
       it("returns undefined headerCode when no exports", async () => {
-        const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+        const transpiler = new Transpiler(
+          { input: "", noCache: true, target: "host" },
+          mockFs,
+        );
 
         const result = (
           await transpiler.transpile({
@@ -85,7 +97,7 @@ describe("Transpiler", () => {
 
       it("respects parseOnly mode", async () => {
         const transpiler = new Transpiler(
-          { input: "", parseOnly: true, noCache: true },
+          { input: "", parseOnly: true, noCache: true, target: "host" },
           mockFs,
         );
 
@@ -101,7 +113,10 @@ describe("Transpiler", () => {
       });
 
       it("rejects a write to an undefined name, and reports rather than throws", async () => {
-        const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+        const transpiler = new Transpiler(
+          { input: "", noCache: true, target: "host" },
+          mockFs,
+        );
 
         const result = (
           await transpiler.transpile({
@@ -126,7 +141,10 @@ describe("Transpiler", () => {
       });
 
       it("reports narrowing error at the correct line", async () => {
-        const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+        const transpiler = new Transpiler(
+          { input: "", noCache: true, target: "host" },
+          mockFs,
+        );
 
         const result = (
           await transpiler.transpile({
@@ -183,7 +201,10 @@ describe("Transpiler", () => {
       });
 
       it("transpiles various C-Next types correctly", async () => {
-        const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+        const transpiler = new Transpiler(
+          { input: "", noCache: true, target: "host" },
+          mockFs,
+        );
 
         const result = (
           await transpiler.transpile({
@@ -213,7 +234,10 @@ describe("Transpiler", () => {
       });
 
       it("handles assignment operator correctly", async () => {
-        const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+        const transpiler = new Transpiler(
+          { input: "", noCache: true, target: "host" },
+          mockFs,
+        );
 
         const result = (
           await transpiler.transpile({
@@ -232,7 +256,10 @@ describe("Transpiler", () => {
       });
 
       it("handles equality operator correctly", async () => {
-        const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+        const transpiler = new Transpiler(
+          { input: "", noCache: true, target: "host" },
+          mockFs,
+        );
 
         const result = (
           await transpiler.transpile({
@@ -250,7 +277,10 @@ describe("Transpiler", () => {
       });
 
       it("generates struct definitions", async () => {
-        const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+        const transpiler = new Transpiler(
+          { input: "", noCache: true, target: "host" },
+          mockFs,
+        );
 
         const result = (
           await transpiler.transpile({
@@ -274,7 +304,10 @@ describe("Transpiler", () => {
       });
 
       it("generates enum definitions", async () => {
-        const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+        const transpiler = new Transpiler(
+          { input: "", noCache: true, target: "host" },
+          mockFs,
+        );
 
         const result = (
           await transpiler.transpile({
@@ -299,7 +332,10 @@ describe("Transpiler", () => {
       });
 
       it("handles scope definitions", async () => {
-        const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+        const transpiler = new Transpiler(
+          { input: "", noCache: true, target: "host" },
+          mockFs,
+        );
 
         const result = (
           await transpiler.transpile({
@@ -331,6 +367,7 @@ describe("Transpiler", () => {
             input: "/project/src/main.cnx",
             outDir: "/project/build",
             noCache: true,
+            target: "host",
           },
           mockFs,
         );
@@ -354,6 +391,7 @@ describe("Transpiler", () => {
             input: "/project/src/main.cnx",
             outDir: "/project/build",
             noCache: true,
+            target: "host",
           },
           mockFs,
         );
@@ -373,6 +411,7 @@ describe("Transpiler", () => {
             outDir: "/project/build",
             headerOutDir: "/project/include",
             noCache: true,
+            target: "host",
           },
           mockFs,
         );
@@ -400,6 +439,7 @@ describe("Transpiler", () => {
             input: "/project/src/lib.cnx",
             outDir: "/project/build",
             noCache: true,
+            target: "host",
           },
           mockFs,
         );
@@ -419,6 +459,7 @@ describe("Transpiler", () => {
           {
             input: "/nonexistent/file.cnx",
             noCache: true,
+            target: "host",
           },
           mockFs,
         );
@@ -435,6 +476,7 @@ describe("Transpiler", () => {
           {
             input: "/project/empty",
             noCache: true,
+            target: "host",
           },
           mockFs,
         );
@@ -451,6 +493,7 @@ describe("Transpiler", () => {
           {
             input: "/project/src/invalid.cnx",
             noCache: true,
+            target: "host",
           },
           mockFs,
         );
@@ -492,7 +535,7 @@ describe("Transpiler", () => {
         );
 
         const transpiler = new Transpiler(
-          { input: "/project/src/app.cnx", noCache: true },
+          { input: "/project/src/app.cnx", noCache: true, target: "host" },
           mockFs,
         );
 
@@ -524,7 +567,7 @@ describe("Transpiler", () => {
         );
 
         const transpiler = new Transpiler(
-          { input: "/project/src/app.cnx", noCache: true },
+          { input: "/project/src/app.cnx", noCache: true, target: "host" },
           mockFs,
         );
 
@@ -559,6 +602,7 @@ describe("Transpiler", () => {
           input: testFile,
           outDir: testDir,
           noCache: true,
+          target: "host",
         });
 
         const result = await transpiler.transpile({ kind: "files" });
@@ -594,6 +638,7 @@ describe("Transpiler", () => {
           input: entry,
           outDir: testDir,
           noCache: true,
+          target: "host",
         });
 
         const result = await transpiler.transpile({ kind: "files" });
@@ -629,6 +674,7 @@ describe("Transpiler", () => {
         const transpiler = new Transpiler({
           input: testFile,
           noCache: true,
+          target: "host",
         });
 
         const result = await transpiler.transpile({ kind: "files" });
@@ -645,6 +691,7 @@ describe("Transpiler", () => {
         const transpiler = new Transpiler({
           input: testFile,
           noCache: true,
+          target: "host",
         });
 
         const result = await transpiler.transpile({ kind: "files" });
@@ -662,6 +709,7 @@ describe("Transpiler", () => {
         const transpiler = new Transpiler({
           input: testFile,
           noCache: true,
+          target: "host",
         });
 
         const result = await transpiler.transpile({ kind: "files" });
@@ -679,6 +727,7 @@ describe("Transpiler", () => {
           input: testFile,
           outDir: outputDir,
           noCache: true,
+          target: "host",
         });
 
         const result = await transpiler.transpile({ kind: "files" });
@@ -702,6 +751,7 @@ describe("Transpiler", () => {
           input: testFile,
           outDir: testDir,
           noCache: true,
+          target: "host",
         });
 
         const result = await transpiler.transpile({ kind: "files" });
@@ -722,7 +772,10 @@ describe("Transpiler", () => {
     });
 
     it("transpile({ kind: 'source' }) returns ITranspilerResult with files[]", async () => {
-      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+      const transpiler = new Transpiler(
+        { input: "", noCache: true, target: "host" },
+        mockFs,
+      );
 
       const result = await transpiler.transpile({
         kind: "source",
@@ -734,7 +787,10 @@ describe("Transpiler", () => {
     });
 
     it("transpile({ kind: 'source' }) returns header in files[0].headerCode", async () => {
-      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+      const transpiler = new Transpiler(
+        { input: "", noCache: true, target: "host" },
+        mockFs,
+      );
 
       const result = await transpiler.transpile({
         kind: "source",
@@ -749,7 +805,10 @@ describe("Transpiler", () => {
     });
 
     it("transpile({ kind: 'source' }) returns errors in result", async () => {
-      const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+      const transpiler = new Transpiler(
+        { input: "", noCache: true, target: "host" },
+        mockFs,
+      );
 
       const result = await transpiler.transpile({
         kind: "source",

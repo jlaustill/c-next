@@ -1,9 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import TranspileState from "../../TranspileState";
 import SliceAssignmentAnalyzer from "../SliceAssignmentAnalyzer";
-import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. ADR-052's slice rules -- E0858 (what may be sliced), E0859 (the span
@@ -16,17 +14,11 @@ import testAnalysisContext from "./testAnalysisContext";
  * `tests/slice-assignment/` exercises end to end.
  */
 const errors = (body: string) => {
-  const { tree } = CNextSourceParser.parse(`void f() {\n${body}\n}`);
-  return new SliceAssignmentAnalyzer(testAnalysisContext(state)).analyze(tree);
+  const { tree, context } = testAnalysisContextFor(`void f() {\n${body}\n}`);
+  return new SliceAssignmentAnalyzer(context).analyze(tree);
 };
 
 const codes = (body: string) => errors(body).map((e) => e.code);
-
-afterEach(() => {
-  state = new TranspileState();
-});
-
-let state = new TranspileState();
 
 describe("SliceAssignmentAnalyzer", () => {
   describe("E0858 -- what can be sliced at all", () => {

@@ -1,0 +1,6 @@
+// The scope member `S.N`, declared in a file `sees-global.cnx` never includes.
+// Public so this file has a header: a file with nothing public has none while
+// its includers still include it (#1810).
+scope S {
+    public const u32 N <- 2;
+}

@@ -23,51 +23,38 @@
  * sibling of E0806 (compound assignment to a bool, Issue #1145) on the
  * assignment side.
  *
- * Two-pass analysis, sharing DeclarationScopeCollector with the Rule 10.4
- * analyzer so both resolve declarations through one scope-shadowing pass:
- * 1. Collect declarations into per-scope frames.
- * 2. Walk each guarded operator level and report any Boolean operand.
+ * Whether an operand is Boolean is the one operand typer's answer (#1668),
+ * the same fact E0810 reads, so the two codes cannot disagree about which
+ * operands they share; `admitsBoolean` is where E0810 defers to this rule.
  */
 
 import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IBooleanOperandError from "./types/IBooleanOperandError";
-import IScopeFrame from "./types/IScopeFrame";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import ScopeFrameResolver from "./ScopeFrameResolver";
-import OperandTypeResolver from "./OperandTypeResolver";
 import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
+import AssignmentSiteListener from "./AssignmentSiteListener";
 import ParserUtils from "../../utils/ParserUtils";
+import OperandTyper from "../../utils/OperandTyper";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import type TAssignmentSite from "./types/TAssignmentSite";
+import type TBinaryOperatorLevel from "./types/TBinaryOperatorLevel";
 
 /**
- * Second pass: report essentially Boolean operands of guarded operators.
+ * Reports essentially Boolean operands of guarded operators.
  */
 class BooleanOperandListener extends CNextListener {
-  private readonly analyzer: BooleanOperandAnalyzer;
-
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly scopes: ScopeFrameResolver;
-
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly types: OperandTypeResolver;
-
   constructor(
-    analyzer: BooleanOperandAnalyzer,
-    scopes: ScopeFrameResolver,
-    context: IAnalysisContext,
+    private readonly analyzer: BooleanOperandAnalyzer,
+    private readonly context: IAnalysisContext,
   ) {
     super();
-    this.analyzer = analyzer;
-    this.scopes = scopes;
-    this.types = new OperandTypeResolver(scopes, context);
   }
 
   /**
    * Whether an operand is essentially Boolean.
    *
-   * Every case defers to the shared type resolver, so a bool reads the same
+   * Every case defers to the one operand typer, so a bool reads the same
    * however it is spelled: a declaration (`flag`, `this.flag`, `sensor.ready`,
    * `outer.inner.ready`, `flags[0]`), a literal, `!x`, or a comparison or
    * logical result (`a && b`, `a = b`, `n < 5`) that no declaration names.
@@ -77,13 +64,8 @@ class BooleanOperandListener extends CNextListener {
    * the opposite -- it is well-formed alone, so the parent operator is the only
    * place its misuse can be reported (Issue #1183 review).
    */
-  private isBooleanOperand(
-    ctx: ParserRuleContext,
-    frame: IScopeFrame,
-  ): boolean {
-    return OperandTypeResolver.isBooleanType(
-      this.types.typeOfOperand(ctx, frame),
-    );
+  private isBooleanOperand(ctx: ParserRuleContext): boolean {
+    return OperandTyper.isBoolean(OperandTyper.typeOf(ctx, this.context));
   }
 
   /**
@@ -95,31 +77,25 @@ class BooleanOperandListener extends CNextListener {
    * a bool TARGET (E0806) and a bool right-hand side (E0807). Before this,
    * `n +<- flag` was accepted while the identical `n <- n + flag` was rejected.
    */
-  override enterAssignmentStatement = (
-    ctx: Parser.AssignmentStatementContext,
-  ): void => {
-    const operator = ctx.assignmentOperator().getText();
+  public checkAssignment(site: TAssignmentSite): void {
+    const operator = site.assignmentOperator().getText();
     if (operator === "<-") return;
 
-    const target = ctx.assignmentTarget();
-    const frame = this.scopes.frameFor(ctx);
-
+    const target = site.assignmentTarget();
     if (
-      OperandTypeResolver.isBooleanType(
-        this.types.typeOfAssignmentTarget(target, frame),
-      )
+      OperandTyper.isBoolean(OperandTyper.typeOfTarget(target, this.context))
     ) {
       const { line, column } = ParserUtils.getPosition(target);
       this.analyzer.addCompoundAssignmentError(line, column, target.getText());
       return;
     }
 
-    const value = ctx.expression();
-    if (this.isBooleanOperand(value, frame)) {
+    const value = site.expression();
+    if (this.isBooleanOperand(value)) {
       const { line, column } = ParserUtils.getPosition(value);
       this.analyzer.addError(line, column, operator);
     }
-  };
+  }
 
   /**
    * Report one error per guarded operator whose left or right operand is
@@ -130,12 +106,11 @@ class BooleanOperandListener extends CNextListener {
    * a single mistake, and naming both operands would double every diagnostic.
    */
   public checkLevel(operands: ParserRuleContext[]): void {
-    const frame = this.scopes.frameFor(operands[0]);
     const parent = operands[0].parent;
 
     for (let i = 0; i < operands.length - 1; i += 1) {
-      const leftIsBoolean = this.isBooleanOperand(operands[i], frame);
-      const rightIsBoolean = this.isBooleanOperand(operands[i + 1], frame);
+      const leftIsBoolean = this.isBooleanOperand(operands[i]);
+      const rightIsBoolean = this.isBooleanOperand(operands[i + 1]);
       if (!leftIsBoolean && !rightIsBoolean) continue;
 
       const operator = parent?.getChild(i * 2 + 1)?.getText() ?? "";
@@ -155,7 +130,7 @@ class BooleanOperandListener extends CNextListener {
     const operand = ctx.unaryExpression();
     if (!operand) return;
 
-    if (this.isBooleanOperand(operand, this.scopes.frameFor(ctx))) {
+    if (this.isBooleanOperand(operand)) {
       const { line, column } = ParserUtils.getPosition(ctx);
       this.analyzer.addError(line, column, operator);
     }
@@ -174,27 +149,34 @@ class BooleanOperandAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   /**
+   * MISRA C:2012 Rule 10.1: whether an operator level may take an essentially
+   * Boolean operand. Only equality may -- comparing a flag is how C-Next tests
+   * it. Every other level, and every compound assignment, is this rule's:
+   * E0807, or E0806 for a bool target. E0810 asks, so that a Boolean mix is
+   * one defect reported under one code (#1668).
+   */
+  static admitsBoolean(level: TBinaryOperatorLevel | "compound"): boolean {
+    return level === "equality";
+  }
+
+  /**
    * Analyze the parse tree for Boolean operands of inappropriate operators.
    */
   public analyze(tree: Parser.ProgramContext): IBooleanOperandError[] {
     this.errors = [];
 
-    const collector = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(collector, tree);
+    const listener = new BooleanOperandListener(this, this.context);
 
-    const listener = new BooleanOperandListener(
-      this,
-      new ScopeFrameResolver(collector, this.context.symbolTable),
-      this.context,
-    );
-
-    // Every binary level EXCEPT equality: comparing two bools with = / != is
-    // permitted by Rule 10.1 and is how C-Next tests a flag.
     ParseTreeWalker.DEFAULT.walk(
       new BinaryOperatorLevelListener((operands, level) => {
-        if (level === "equality") return;
+        if (BooleanOperandAnalyzer.admitsBoolean(level)) return;
         listener.checkLevel(operands);
       }),
+      tree,
+    );
+
+    ParseTreeWalker.DEFAULT.walk(
+      new AssignmentSiteListener((site) => listener.checkAssignment(site)),
       tree,
     );
 

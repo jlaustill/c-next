@@ -141,21 +141,6 @@ class ExpressionUtils {
   }
 
   /**
-   * Collect all additive expressions from a ternary expression.
-   *
-   * Uses flatMap chains to traverse the expression grammar efficiently.
-   * Useful for analyzers that need to examine operands at the additive level.
-   *
-   * @param ctx - The ternary expression context
-   * @returns Array of all additive expression contexts in the tree
-   */
-  static collectAdditiveExpressions(
-    ctx: Parser.TernaryExpressionContext,
-  ): Parser.AdditiveExpressionContext[] {
-    return ExpressionUtils.collectAdditiveFromOrExprs(ctx.orExpression());
-  }
-
-  /**
    * Collect additive expressions from an array of orExpression contexts.
    *
    * Internal helper that performs the actual flatMap traversal.

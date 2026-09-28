@@ -10,7 +10,7 @@
 // ADR-004: Basic register declaration and access
 // Tests: standalone register definition outside of scope
 int main(void) {
-    GPIO__DR = 0xFF;
+    GPIO__DR = 0xFFU;
     uint32_t status = GPIO__PSR;
     uint32_t data = GPIO__DR;
 }

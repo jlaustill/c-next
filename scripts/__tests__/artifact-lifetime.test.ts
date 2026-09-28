@@ -145,6 +145,10 @@ function namedType(file: string, name: string): Type {
  */
 const ARTIFACTS: ReadonlyArray<readonly [string, string]> = [
   ["src/transpiler/types/IFileSymbols.ts", "IFileSymbols"],
+  // #1668: named directly, so a later field of node type fails on the frame
+  // itself rather than only through IFileSymbols.
+  ["src/transpiler/types/ILexicalFrame.ts", "ILexicalFrame"],
+  ["src/transpiler/types/ILocalDeclaration.ts", "ILocalDeclaration"],
   ["src/transpiler/types/ICodeGenSymbols.ts", "ICodeGenSymbols"],
   ["src/transpiler/types/ICodeGenApi.ts", "ICodeGenApi"],
   ["src/transpiler/types/symbols/TSymbol.ts", "TSymbol"],

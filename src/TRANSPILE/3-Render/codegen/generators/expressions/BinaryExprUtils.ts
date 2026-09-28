@@ -6,11 +6,11 @@ import LiteralUtils from "../../../../../utils/LiteralUtils";
 
 class BinaryExprUtils {
   /**
-   * Issue #235: Try to parse a string as a numeric constant.
-   * Delegates to LiteralUtils.parseIntegerLiteral to avoid duplication.
+   * Issue #235: Try to parse a string as a numeric constant, when its value
+   * is exact (#1760 review: `LiteralUtils.isExactInteger`).
    */
   static tryParseNumericLiteral(code: string): number | undefined {
-    return LiteralUtils.parseIntegerLiteral(code);
+    return LiteralUtils.exactIntegerLiteral(code);
   }
 
   /**
@@ -35,8 +35,10 @@ class BinaryExprUtils {
 
   /**
    * Issue #235: Evaluate a constant arithmetic expression.
-   * Returns the result if all operands are numeric and evaluation succeeds,
-   * undefined otherwise (falls back to non-folded code).
+   * Returns the result if all operands are numeric and every step is exact,
+   * undefined otherwise (falls back to non-folded code). #1760 review: a step
+   * past 2^53 is rounded, and `9007199254740993 - 9007199254740992` folded
+   * to 0 where C computes 1.
    */
   static tryFoldConstants(
     operandCodes: string[],
@@ -44,43 +46,42 @@ class BinaryExprUtils {
   ): number | undefined {
     const values = operandCodes.map(BinaryExprUtils.tryParseNumericLiteral);
 
-    if (values.includes(undefined)) {
-      return undefined;
-    }
-
-    let result = values[0] as number;
+    let result = values[0];
     for (let i = 0; i < operators.length; i++) {
-      const op = operators[i];
-      const rightValue = values[i + 1] as number;
-
-      switch (op) {
-        case "*":
-          result = result * rightValue;
-          break;
-        case "/":
-          if (rightValue === 0) {
-            return undefined;
-          }
-          result = Math.trunc(result / rightValue);
-          break;
-        case "%":
-          if (rightValue === 0) {
-            return undefined;
-          }
-          result = result % rightValue;
-          break;
-        case "+":
-          result = result + rightValue;
-          break;
-        case "-":
-          result = result - rightValue;
-          break;
-        default:
-          return undefined;
-      }
+      result = BinaryExprUtils.applyOperator(
+        operators[i],
+        result,
+        values[i + 1],
+      );
     }
+    return LiteralUtils.isExactInteger(result) ? result : undefined;
+  }
 
-    return result;
+  /**
+   * One step of a constant fold, or undefined when an operand is unknown,
+   * the divisor is zero, or the step is not exact.
+   */
+  private static applyOperator(
+    op: string,
+    left: number | undefined,
+    right: number | undefined,
+  ): number | undefined {
+    if (!LiteralUtils.isExactInteger(left)) return undefined;
+    if (!LiteralUtils.isExactInteger(right)) return undefined;
+    switch (op) {
+      case "*":
+        return left * right;
+      case "/":
+        return right === 0 ? undefined : Math.trunc(left / right);
+      case "%":
+        return right === 0 ? undefined : left % right;
+      case "+":
+        return left + right;
+      case "-":
+        return left - right;
+      default:
+        return undefined;
+    }
   }
 
   /**

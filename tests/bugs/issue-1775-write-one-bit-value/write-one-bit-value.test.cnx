@@ -1,0 +1,29 @@
+// #1775: a bit of a write-1 register member takes the value it is given.
+// A runtime value was discarded and a one written instead, so
+// `GPIO.DR_SET[3] <- flag` set bit 3 when `flag` was false -- and on a `w1c`
+// member cleared a pending flag the program did not ask to clear. ADR-004
+// rejects a compile-time zero here (E0872), not a runtime one.
+register GPIO @ 0x40000000 {
+    DR_SET: u32 w1s @ 0x04,
+    PENDING: u32 w1c @ 0x08,
+    CMD: u8 wo @ 0x0C,
+}
+
+scope Led {
+    register PORT @ 0x40001000 {
+        SET: u32 w1s @ 0x00,
+    }
+
+    public void show(bool on) {
+        // The scoped spelling reaches the same write
+        this.PORT.SET[5] <- on;
+    }
+}
+
+void apply(bool flag, bool ack, bool go) {
+    GPIO.DR_SET[3] <- flag;
+    GPIO.PENDING[16] <- ack;
+    GPIO.CMD[1] <- go;
+    // Control: a literal one is still written as one
+    GPIO.DR_SET[4] <- true;
+}

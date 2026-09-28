@@ -182,7 +182,7 @@ describe("ToolchainRequirementUtils", () => {
     });
 
     it("groups sibling arms of one feature together", () => {
-      // The four critical-section arms must sort adjacently so the report can
+      // The four interrupt-masking arms must sort adjacently so the report can
       // present them as alternatives rather than four separate costs.
       const result = ToolchainRequirementUtils.reportable(
         recorded(
@@ -198,8 +198,8 @@ describe("ToolchainRequirementUtils", () => {
       );
       expect(features).toEqual([
         "atomic read-modify-write",
-        "critical section",
-        "critical section",
+        "interrupt masking",
+        "interrupt masking",
       ]);
     });
   });
@@ -235,16 +235,18 @@ describe("ToolchainRequirementUtils", () => {
         "c",
       );
       const alternatives = lines.find((line) => line.includes("one of"));
-      expect(alternatives).toContain("critical section requires one of:");
+      expect(alternatives).toContain("interrupt masking requires one of:");
       expect(alternatives).toContain("avr-libc");
     });
 
     it("states a single platform requirement without the alternatives wording", () => {
       const lines = ToolchainRequirementUtils.describeForBanner(
-        recorded("baseline-c", "atomic-primask-cmsis"),
+        recorded("baseline-c", "atomic-ldrex-cmsis"),
         "c",
       );
-      expect(lines).toContain("atomic read-modify-write requires CMSIS.");
+      expect(lines).toContain(
+        "atomic read-modify-write requires CMSIS + ARMv7-M.",
+      );
     });
 
     it("does not claim an extension that only one platform arm needs", () => {

@@ -1,4 +1,11 @@
 import type IFunctionSymbol from "./symbols/IFunctionSymbol";
+import type IFoldedConstant from "./IFoldedConstant";
+import type ILexicalFrame from "./ILexicalFrame";
+import type ILocalDeclaration from "./ILocalDeclaration";
+import type ISourceSpan from "./ISourceSpan";
+import type TChainRoot from "./TChainRoot";
+import type TValueBinding from "./TValueBinding";
+import type TRunTarget from "./TRunTarget";
 import type IScopeSymbol from "./symbols/IScopeSymbol";
 import type TSymbol from "./symbols/TSymbol";
 import type IConflict from "./IConflict";
@@ -78,29 +85,13 @@ interface IProgram {
   externalStructFields(): ReadonlyMap<string, ReadonlySet<string>>;
 
   /**
-   * Integer value of a named const, or undefined when the name is not a const
-   * with a literal integer initializer.
-   *
-   * Cross-file by nature: #1220 is the case where an analyzer knew only the
-   * consts it had walked out of the current file, so `10 / ZERO` with an
-   * imported ZERO emitted a real division by zero that compiled clean.
+   * What a binding is worth at compile time, with the declared type that
+   * holds it: a const local's or a folded global's or scope member's value.
+   * Null for anything else -- a variable, a parameter, an unfolded const, a
+   * scope, a header name. Asked of a binding, so the answer is about the
+   * declaration the spelling means (#1538, #1664 review).
    */
-  constValue(name: string): number | undefined;
-
-  /** Every const name to its integer value, keyed by bare name. */
-  constValues(): ReadonlyMap<string, number>;
-
-  /**
-   * The same, as seen from inside `scopePath`: that scope's own consts shadow
-   * file-scope ones of the same name, in ADR-057's candidate order.
-   *
-   * #1322 review: asking `constValues()` from inside a scope is asking a
-   * question the flat map cannot answer. Two scopes each declaring `SIZE`
-   * share its bare key, so the answer is whichever was derived last -- which
-   * rejected a legal program and made ADR-036's bounds check order-dependent.
-   * A caller inside a scope asks with it.
-   */
-  constValuesIn(scopePath: string): ReadonlyMap<string, number>;
+  constantOf(binding: TValueBinding): IFoldedConstant | null;
 
   /**
    * Every symbol conflict in the program.
@@ -193,6 +184,56 @@ interface IProgram {
   cnxIncludeRewrites(sourceFile: string): ReadonlyMap<string, string>;
 
   /**
+   * #1668 / #1664: the innermost lexical frame of `sourceFile` containing
+   * `at`, or its file frame. Settled and frozen with the program.
+   */
+  lexicalFrameAt(
+    sourceFile: string,
+    at: Pick<ISourceSpan, "line" | "column">,
+  ): ILexicalFrame;
+
+  /**
+   * The local, parameter or `for` variable `name` binds to at `at`, or null.
+   * The lexical half of binding only; `bindValue` is the whole decision.
+   */
+  lexicalDeclarationAt(
+    sourceFile: string,
+    name: string,
+    at: Pick<ISourceSpan, "line" | "column">,
+  ): ILocalDeclaration | null;
+
+  /**
+   * What a value name, written bare, as `this.name` or as `global.name`,
+   * means at `at` -- the one place a spelling becomes a declaration, for
+   * typing and emission alike.
+   */
+  bindValue(
+    sourceFile: string,
+    root: TChainRoot,
+    name: string,
+    at: Pick<ISourceSpan, "line" | "column">,
+  ): TValueBinding | null;
+
+  /**
+   * A bare name's compile-time value where it is used: `constantOf` of what
+   * `bindValue` binds it to. The one question every constant fold asks, so a
+   * parameter, a variable or an unfolded const shadows a folded const of the
+   * same name exactly as it does for typing (#1664 review).
+   */
+  constantAt(
+    sourceFile: string,
+    name: string,
+    at: Pick<ISourceSpan, "line" | "column">,
+  ): IFoldedConstant | null;
+
+  /**
+   * ADR-049: the run's one target, settled from every file's pragmas and the
+   * target option. Asking a program built without target inputs is a caller
+   * error: only a test builds one, and only a test that never asks.
+   */
+  target(): TRunTarget;
+
+  /**
    * Issue #1322: the directories an angle include from `sourceFile` is searched
    * along, in discovery's priority order. Empty when the file was never
    * discovered, which is also a real answer: a rule that guessed a search path
@@ -230,14 +271,18 @@ interface IProgram {
    */
   scopePathOf(name: string): string;
 
-  /** The global scope for this run. */
-  globalScope(): IScopeSymbol;
-
-  /** Resolve `name` from `fromScope`, walking current -> parent -> global. */
-  resolveFunction(
-    name: string,
-    fromScope: IScopeSymbol,
-  ): IFunctionSymbol | null;
+  /**
+   * The function a bare call to `name` means from inside `fromScopePath`
+   * (`""` at file scope), walking current -> parent -> global (ADR-057). A
+   * path that names no scope resolves from the global scope.
+   *
+   * It takes the PATH, not a scope, so where a lookup starts is decided here
+   * once. The typer (#1698) and the C name a call is emitted under each
+   * derived the start scope themselves, the same expression twice; the key a
+   * call is typed by and the name it is emitted under now share one
+   * resolution rather than two that agreed.
+   */
+  resolveFunction(name: string, fromScopePath: string): IFunctionSymbol | null;
 }
 
 export default IProgram;

@@ -6,7 +6,7 @@
  * - Ensures atomic execution of multi-variable operations
  */
 import IGeneratorOutput from "../IGeneratorOutput";
-import TGeneratorEffect from "../TGeneratorEffect";
+import InterruptMask from "../../helpers/InterruptMask";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
@@ -58,36 +58,17 @@ const generateCriticalStatement = (
   _state: IGeneratorState,
   _orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
-  const effects: TGeneratorEffect[] = [];
-
   // #1322: the early-exit check that stood here is E0853 in pass 2.1, which
   // reaches every statement the grammar can nest inside the block -- including
   // `switch`, which the recursion it replaces did not descend into.
 
-  // Mark that we need IRQ wrapper functions (not cmsis_gcc.h include)
-  // This avoids macro collisions with platform headers like Teensy's imxrt.h
-  //
-  // Issue #1143: the line is carried so the deferred emitter can tell the user
-  // *which* critical block made their project depend on CMSIS or avr-libc.
-  // This records no requirement -- the wrappers have not been emitted yet.
-  effects.push({
-    type: "include",
-    header: "irq_wrappers",
-    line: critical.line,
-  });
-
-  // Remove outer braces from block since we're wrapping
+  // The IRQ wrappers, not cmsis_gcc.h: this avoids macro collisions with
+  // platform headers like Teensy's imxrt.h. Issue #1143: the line is carried
+  // so the deferred emitter can tell the user *which* critical block made
+  // their project depend on CMSIS or avr-libc. The masked region is the one
+  // an atomic read-modify-write takes too (#1146).
   const innerCode = critical.blockCode.slice(1, -1).trim();
-
-  // Generate PRIMASK save/restore wrapper using __cnx_ prefixed functions
-  const code = `{
-    uint32_t __primask = __cnx_get_PRIMASK();
-    __cnx_disable_irq();
-    ${innerCode}
-    __cnx_set_PRIMASK(__primask);
-}`;
-
-  return { code, effects };
+  return InterruptMask.wrap(innerCode, critical.line);
 };
 
 export default generateCriticalStatement;

@@ -1,0 +1,18 @@
+// test-error
+// #1668: E0857 reads each subscript's kind from the one operand typer and
+// every assignment site. Before, a compound assignment in a `for` header was
+// never checked (#1726), so `flags[0] +<- 1` -- a bit index -- compiled there.
+void main() {
+    u8 flags <- 0;
+    u8[4] bytes;
+
+    // NEGATIVE CONTROL -- an array element is one storage location
+    for (u32 i <- 0; i < 3; bytes[0] +<- 1) {
+        i +<- 1;
+    }
+
+    // ASSERTION
+    for (u32 j <- 0; j < 3; flags[0] +<- 1) {
+        j +<- 1;
+    }
+}

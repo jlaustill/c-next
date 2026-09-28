@@ -29,5 +29,5 @@ extern const uint8_t BUFFER_SIZE = 8U;
 uint8_t Device__buffer[8] = {};
 
 int main(void) {
-    Device__buffer[0] = 1;
+    Device__buffer[0] = 1U;
 }

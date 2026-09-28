@@ -14,39 +14,47 @@
  * declarations were swapped -- the order-dependent diagnostic these analyzers'
  * own comments cite #1399 for, arriving through a different map.
  *
- * Asking from a scope is ADR-057's candidate order, which
- * `ConstAssignmentAnalyzer.constSymbol`, `RegisterAccessAnalyzer.isFalseConst`
- * and `ShiftAnalyzer.constValue` had each derived separately for const-ness
- * while the VALUE lookups kept the flat one.
+ * Asking from a position is ADR-057's candidate order -- locals, then the
+ * enclosing scope, then file scope -- and it is the program's one binder that
+ * walks it (`ConstantFold.at`), the same binder typing uses. A name bound to
+ * a variable, a parameter or an unfolded const has no value, so it shadows a
+ * folded const of the same name instead of letting that one answer (#1664
+ * review).
  */
 
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
-import TYPE_WIDTH from "../../../transpiler/constants/TYPE_WIDTH";
 import ArrayDimensionParser from "../../../utils/ArrayDimensionParser";
-import type IProgram from "../../../transpiler/types/IProgram";
+import ConstantFold from "../../../utils/ConstantFold";
+import ParserUtils from "../../../utils/ParserUtils";
+import type IAnalysisContext from "../types/IAnalysisContext";
 
 class ConstantExpression {
   /**
-   * The expression's integer value as seen from `scopePath`, or null when it
-   * is not a compile-time constant here.
+   * The expression's integer value where it is written, or null when it is
+   * not a compile-time constant there.
+   *
+   * #1664 box 7: "where it is written" includes the locals declared before
+   * it. Asking only the enclosing scope (`constValuesIn`) missed a local
+   * `const N <- 2`, so `u8[N] buf` was bounded by the global `N` and
+   * `buf[5]` passed ADR-036's check against a two-element array.
    *
    * Null is a real answer, not a failure: a dimension may name a C macro this
    * pass cannot resolve, and a rule that guessed a value for it would report
    * against a bound the C compiler never sees.
    */
-  static valueIn(
+  static valueAt(
     expr: Parser.ExpressionContext,
-    scopePath: string,
-    program: IProgram,
+    context: IAnalysisContext,
   ): number | null {
     return (
-      ArrayDimensionParser.parseSingleDimension(expr, {
-        // #1456: the artifact is handed in. The `?? []` this replaces was a
-        // guard that could not fire AND a wrong answer if it ever did -- an
-        // empty const map is a real answer meaning "this scope declares none".
-        constValues: new Map(program.constValuesIn(scopePath)),
-        typeWidths: TYPE_WIDTH,
-      }) ?? null
+      ArrayDimensionParser.parseSingleDimension(
+        expr,
+        ConstantFold.at(
+          context.program,
+          context.sourceFile,
+          ParserUtils.getPosition(expr),
+        ),
+      ) ?? null
     );
   }
 }

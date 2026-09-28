@@ -21,15 +21,12 @@
  * bounded copy sequences, and the capacity diagnostics.
  *
  * The plan is built at the call site rather than in `CodeGenerator`, where
- * every other planner on this branch sits, and that placement is MEASURED
- * rather than preferred. `VariableDeclHelper.generateVariableDecl` calls
- * `trackLocalVariable` -- which registers the declared variable's type info,
- * string capacity included -- BEFORE it reaches the string path, so the
- * variable's own name resolves inside its own initializer: `string<32> s <-
- * s + "x"` is detected as a concatenation and rejected with E0864 for
- * "capacity 33", which is 32 read back off `s`'s own declaration. Planning one
- * frame earlier, in `CodeGenerator.generateVariableDecl`, would ask the
- * registry before that registration and lose the diagnostic. (That the name
+ * every other planner on this branch sits. That placement once carried an
+ * ordering contract with a per-file type registry the render walk filled as
+ * it went; #1668 (C8) deleted the registry. A name binds through the lexical
+ * frames 1.4 settled before rendering, so `string<32> s <- s + "x"` reads
+ * `s`'s own declaration -- detected as a concatenation and rejected with
+ * E0864 for "capacity 33" -- wherever the plan is built. (That the name
  * resolves at all is a separate defect, filed as #1643; this comment records
  * why the placement cannot be changed while it holds.)
  */
@@ -40,7 +37,6 @@ import IRenderedModifiers from "../types/IRenderedModifiers";
 import IStringConcatOps from "../types/IStringConcatOps";
 import ISubstringOps from "../types/ISubstringOps";
 import TPlannedStringDecl from "../types/TPlannedStringDecl";
-import StringOperationsHelper from "./StringOperationsHelper";
 import StringUtils from "../../../../utils/StringUtils";
 import invariant from "../../../../utils/invariant";
 import type TranspileState from "../../../TranspileState";
@@ -86,7 +82,6 @@ class StringDeclHelper {
           name,
           modifiers,
           isConst,
-          state,
         );
     }
   }
@@ -109,11 +104,6 @@ class StringDeclHelper {
     } = modifiers;
 
     const decl = `${extern}${constMod}${atomic}${volatileMod}char ${name}${plan.dimensions}[${plan.elementCapacity + 1}]`;
-
-    // Track as local array
-    // ADR-057: `name` is the EMITTED identifier; every registry keys on the
-    // source spelling, which is what references in the source say.
-    state.localArrays.add(state.sourceLocalName(name));
 
     // No initializer - zero-initialize
     if (!plan.renderInit) {
@@ -242,8 +232,8 @@ class StringDeclHelper {
     // Validate and check if it's a literal or variable
     const isLiteral = StringDeclHelper._validateStringInit(
       init.text,
+      init.sourceCapacity,
       capacity,
-      state,
     );
 
     if (isLiteral) {
@@ -280,8 +270,8 @@ class StringDeclHelper {
    */
   private static _validateStringInit(
     exprText: string,
+    sourceCapacity: number | null,
     capacity: number,
-    state: TranspileState,
   ): boolean {
     // Validate string literal fits capacity
     if (exprText.startsWith('"') && exprText.endsWith('"')) {
@@ -295,11 +285,8 @@ class StringDeclHelper {
       return true; // Is a literal
     }
 
-    // Check for string variable assignment
-    const srcCapacity = StringOperationsHelper.getStringExprCapacity(
-      exprText,
-      state,
-    );
+    // A string variable's capacity, as the plan bound it (#1668)
+    const srcCapacity = sourceCapacity;
     if (srcCapacity !== null && srcCapacity > capacity) {
       invariant(
         false,
@@ -418,7 +405,6 @@ class StringDeclHelper {
     name: string,
     modifiers: IRenderedModifiers,
     isConst: boolean,
-    state: TranspileState,
   ): string {
     if (!isConst) {
       invariant(
@@ -443,17 +429,6 @@ class StringDeclHelper {
 
     // Infer capacity from literal length
     const inferredCapacity = StringUtils.literalLength(initText);
-
-    // Register in type registry with inferred capacity
-    state.setVariableTypeInfo(state.sourceLocalName(name), {
-      baseType: "char",
-      bitWidth: 8,
-      isArray: true,
-      arrayDimensions: [inferredCapacity + 1],
-      isConst: true,
-      isString: true,
-      stringCapacity: inferredCapacity,
-    });
 
     // #1642's open box. This arm hand-assembled `${extern}const `, dropping
     // `atomic`/`volatile` and hardcoding the `const` rather than reading the

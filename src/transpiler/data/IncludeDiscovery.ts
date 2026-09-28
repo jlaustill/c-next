@@ -1,5 +1,6 @@
 import { dirname, resolve, join, isAbsolute } from "node:path";
 
+import PlatformIOIni from "./PlatformIOIni";
 import IFileSystem from "../types/IFileSystem";
 import NodeFileSystem from "../NodeFileSystem";
 
@@ -186,64 +187,6 @@ class IncludeDiscovery {
   }
 
   /**
-   * Collect the raw value of every `lib_extra_dirs` key in a platformio.ini.
-   *
-   * Line-based rather than a single pattern. The previous
-   * /^\s*lib_extra_dirs\s*=\s*(.+?)(?=^\s*\[|\s*^\w+\s*=|$)/gms was
-   * super-linear (S8786) and, more importantly, wrong: under /m the `$`
-   * alternative matches at the end of every line, so the lazy capture stopped
-   * at the first one and the documented multi-line form kept only its first
-   * path (#1181). The section and next-key alternatives were unreachable.
-   *
-   * A continuation line is one that is indented and contains no `=` of its
-   * own; the value ends at the next section header, the next key, or the end
-   * of the file.
-   */
-  private static _collectLibExtraDirsValues(content: string): string[] {
-    const values: string[] = [];
-    const lines = content.split("\n");
-
-    let index = 0;
-    while (index < lines.length) {
-      const keyMatch = /^[ \t]*lib_extra_dirs[ \t]*=(.*)$/.exec(lines[index]);
-      index += 1;
-      if (!keyMatch) {
-        continue;
-      }
-
-      const collected = [keyMatch[1]];
-      while (
-        index < lines.length &&
-        IncludeDiscovery._isContinuationLine(lines[index])
-      ) {
-        collected.push(lines[index]);
-        index += 1;
-      }
-
-      values.push(collected.join("\n"));
-    }
-
-    return values;
-  }
-
-  /**
-   * A continuation of the value above it: indented, not starting a key of its
-   * own, and not opening a new section.
-   *
-   * The key test is anchored rather than a bare `includes("=")`: a directory
-   * name may contain `=` (`/opt/vendor/lib=v2`), and treating that as a new key
-   * would end the value early and silently drop it -- the same loss #1181 was
-   * about. Only `name =` at the start of the line begins a key.
-   */
-  private static _isContinuationLine(line: string): boolean {
-    return (
-      /^[ \t]+\S/.test(line) &&
-      !/^[ \t]*[\w.]+[ \t]*=/.test(line) &&
-      !line.trimStart().startsWith("[")
-    );
-  }
-
-  /**
    * Parse platformio.ini for lib_extra_dirs
    *
    * Issue #355: PlatformIO allows specifying additional library directories
@@ -271,33 +214,14 @@ class IncludeDiscovery {
       //   lib_extra_dirs =
       //     path1
       //     path2
-      for (const value of IncludeDiscovery._collectLibExtraDirsValues(
-        content,
-      )) {
-        // Split by newlines or commas, handling both single-line and multi-line formats
-        const dirs = value
-          .split(/[\n,]/)
-          .map((d) => {
-            // Strip inline comments (e.g., "path ; comment" or "path # comment")
-            const semicolonIdx = d.indexOf(";");
-            const hashIdx = d.indexOf("#");
-            const commentIndex = Math.min(
-              semicolonIdx === -1 ? Infinity : semicolonIdx,
-              hashIdx === -1 ? Infinity : hashIdx,
-            );
-            return d.slice(0, commentIndex).trim();
-          })
-          .map((d) => {
-            // Strip surrounding quotes (e.g., "path with spaces" or 'path')
-            if (
-              (d.startsWith('"') && d.endsWith('"')) ||
-              (d.startsWith("'") && d.endsWith("'"))
-            ) {
-              return d.slice(1, -1);
-            }
-            return d;
-          })
-          .filter((d) => d.length > 0);
+      // The one list rule (#1760 review: this file split and stripped
+      // comments with its own copy). A path in quotes is read without them,
+      // as it was before (679035029); PlatformIO keeps them, and quotes are
+      // stripped nowhere else, since in a section name they change the section.
+      for (const value of PlatformIOIni.valuesOf(content, "lib_extra_dirs")) {
+        const dirs = PlatformIOIni.list(value)
+          .map((dir) => (/^(["']).*\1$/.test(dir) ? dir.slice(1, -1) : dir))
+          .filter((dir) => dir.length > 0);
 
         for (const dir of dirs) {
           // Resolve relative to project root
@@ -315,12 +239,13 @@ class IncludeDiscovery {
   }
 
   /**
-   * Find project root by walking up directory tree looking for markers
+   * Find the project root by walking up from `startDir` to the nearest
+   * directory holding any project marker, the filesystem root included.
    *
-   * Project markers (in order of preference):
-   * - platformio.ini (PlatformIO project)
-   * - cnext.config.json or .cnext.json (C-Next config)
-   * - .git/ (Git repository root)
+   * The one finder (#1668): include discovery and the transpiler's cache and
+   * header base used to walk with two marker lists that each lacked a marker
+   * the other had. Every marker counts equally -- the nearest directory wins,
+   * so the list's order decides nothing.
    *
    * @param startDir - Directory to start search from
    * @param fs - File system abstraction (defaults to NodeFileSystem)
@@ -330,28 +255,26 @@ class IncludeDiscovery {
     startDir: string,
     fs: IFileSystem = defaultFs,
   ): string | null {
-    let dir = resolve(startDir);
-
     const markers = [
-      "platformio.ini",
       "cnext.config.json",
       ".cnext.json",
       ".cnextrc",
+      "platformio.ini",
       ".git",
+      "package.json",
     ];
 
-    // Walk up directory tree until marker found or filesystem root
-    while (dir !== dirname(dir)) {
-      for (const marker of markers) {
-        const markerPath = join(dir, marker);
-        if (fs.exists(markerPath)) {
-          return dir;
-        }
+    let dir = resolve(startDir);
+    while (true) {
+      if (markers.some((marker) => fs.exists(join(dir, marker)))) {
+        return dir;
       }
-      dir = dirname(dir);
+      const parent = dirname(dir);
+      if (parent === dir) {
+        return null;
+      }
+      dir = parent;
     }
-
-    return null;
   }
 
   /**

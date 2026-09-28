@@ -1,0 +1,24 @@
+// test-execution
+// #1760 review: main inlined an unfolded scope const at file scope as its
+// initializer text, where `K` bound to the global. The dimension read
+// `cnx_clamp_add_u32(K+1, 1)`, which C cannot compile at file scope. It
+// folds against the scope's K now, so the table has 4 elements, and the
+// global K is untouched (the control).
+const u32 K <- 10;
+
+scope S {
+    const u32 K <- 2;
+    const u32 N <- K + 1;
+    public u8[N + 1] table;
+
+    public u32 count() {
+        return this.table.element_count;
+    }
+}
+
+u32 main() {
+    u32 n <- S.count();
+    if (n != 4) return 1;
+    if (K != 10) return 2;
+    return 0;
+}

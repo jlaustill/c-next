@@ -1,0 +1,18 @@
+// test-execution
+// #1701 NEGATIVE CONTROL: in the same function, the BARE `x` is the `u8`
+// local, which saturates at 255. This was right before the fix.
+u32 x <- 0;
+
+u32 f() {
+    u8 x <- 1;
+    x +<- 1000;
+    u32 local <- x;
+    return local;
+}
+
+u32 main() {
+    u32 local <- f();
+    if (local != 255) return 1;
+    if (global.x != 0) return 2;
+    return 0;
+}

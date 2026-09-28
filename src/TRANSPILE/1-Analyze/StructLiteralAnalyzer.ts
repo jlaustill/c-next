@@ -1,5 +1,6 @@
 /**
- * ADR-014 struct initializers: E0357.
+ * ADR-014 struct initializers: E0357, E0358, and E0866 where a whole array is
+ * taken.
  *
  * #1322. Two throws in `CodeGenerator._resolveStructInitializerTypeName`, both
  * reported as `1:0`, and one of them fired on valid code (#1277).
@@ -52,9 +53,14 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
 import StructInitializerType from "./helpers/StructInitializerType";
 import IStructLiteralError from "./types/IStructLiteralError";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 class StructLiteralListener extends CNextListener {
   private readonly found: IStructLiteralError[] = [];
+
+  public constructor(private readonly context: IAnalysisContext) {
+    super();
+  }
 
   public errors(): IStructLiteralError[] {
     return this.found;
@@ -66,13 +72,44 @@ class StructLiteralListener extends CNextListener {
     // The STRUCTURAL question -- "does some enclosing position supply a type?"
     // -- and deliberately not "which type", which a C-header struct's field
     // cannot answer in this pass. See `hasEstablishingPosition`.
-    if (StructInitializerType.hasEstablishingPosition(ctx)) return;
+    if (!StructInitializerType.hasEstablishingPosition(ctx)) {
+      this.report(
+        ctx,
+        "E0357",
+        "Cannot infer struct type: nothing here says which struct this is",
+        "Put the initializer where a type is declared -- a variable, an assignment target, a field, an argument, or a return (ADR-014).",
+      );
+      return;
+    }
 
+    // ADR-014: an array's whole initializer is ADR-035's list (E0866). A
+    // declaration's is checked by that rule; a field, an assignment target
+    // or a parameter that is an array is checked here (#1760 second review:
+    // each typed the element, so the struct form passed for an array of
+    // structs and was E0358's for an array of scalars).
+    if (StructInitializerType.takesWholeArray(ctx, this.context)) {
+      this.report(
+        ctx,
+        "E0866",
+        `An array must be given a list, not '${ctx.getText()}'`,
+        "Write the elements out in brackets, or set them one at a time (ADR-035).",
+      );
+      return;
+    }
+
+    // #1802: only a struct takes `{ field: value }`. A bitmap is its backing
+    // integer wherever it is written, inside a struct or not (owner ruling
+    // 2026-09-28), and a scalar's field list became a designated initializer
+    // C rejects.
+    const target = StructInitializerType.nonStructTarget(ctx, this.context);
+    if (target === null) return;
     this.report(
       ctx,
-      "E0357",
-      "Cannot infer struct type: nothing here says which struct this is",
-      "Put the initializer where a type is declared -- a variable, an assignment target, a field, an argument, or a return (ADR-014).",
+      "E0358",
+      `A struct initializer cannot be a value of '${target.typeName}', which is not a struct`,
+      target.isBitmap
+        ? `A bitmap's value is its backing integer, set field by field after: '${target.typeName} v <- 0; v.<field> <- true;' (ADR-034).`
+        : `Give a value of type '${target.typeName}'; only a struct takes '{ field: value }' (ADR-014).`,
     );
   };
 
@@ -88,8 +125,10 @@ class StructLiteralListener extends CNextListener {
 }
 
 class StructLiteralAnalyzer {
+  public constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): IStructLiteralError[] {
-    const listener = new StructLiteralListener();
+    const listener = new StructLiteralListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

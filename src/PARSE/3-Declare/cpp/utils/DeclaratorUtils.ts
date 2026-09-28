@@ -8,6 +8,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import SymbolUtils from "../../SymbolUtils";
+import type {
+  DeclaratorContext,
+  DeclSpecifierSeqContext,
+  PointerOperatorContext,
+} from "../../../2-Parse/cpp/grammar/CPP14Parser";
 import IExtractedParameter from "../../shared/IExtractedParameter";
 import ParameterExtractorUtils from "../../shared/ParameterExtractorUtils";
 
@@ -56,6 +61,16 @@ class DeclaratorUtils {
     const innerNoPtr = noPtr.noPointerDeclarator?.();
     if (innerNoPtr) {
       return DeclaratorUtils.extractNoPointerDeclaratorName(innerNoPtr);
+    }
+
+    // A parenthesized pointer declarator, `(*readLevel)` in `float (*readLevel)()`: its
+    // name is inside it (#1760 review: such a member had no name, so it was
+    // dropped)
+    const innerPtr = noPtr.pointerDeclarator?.();
+    if (innerPtr) {
+      return DeclaratorUtils.extractNoPointerDeclaratorName(
+        innerPtr.noPointerDeclarator(),
+      );
     }
 
     return null;
@@ -192,6 +207,66 @@ class DeclaratorUtils {
       return true;
     }
     return false;
+  }
+
+  /**
+   * The type a data member's declarator records: its base type with the
+   * declarator's indirection -- a pointer's depth, or a function pointer's
+   * `T (*)(params)` -- the spellings the C side records (#1760 review: a
+   * member recorded its specifiers alone, so `uint8_t *buf` was a `uint8_t`
+   * and `float (*readLevel)()` a `float`). A reference keeps its base type.
+   */
+  static declaredType(baseType: string, declarator: DeclaratorContext): string {
+    const pointer = declarator.pointerDeclarator();
+    if (!pointer) return baseType;
+    const params = pointer.noPointerDeclarator().parametersAndQualifiers();
+    if (params && DeclaratorUtils.isFunctionPointer(declarator)) {
+      return `${baseType} (*)(${params.getText().slice(1, -1)})`;
+    }
+    return (
+      baseType +
+      "*".repeat(DeclaratorUtils.starCount(pointer.pointerOperator()))
+    );
+  }
+
+  /**
+   * Whether a declarator declares a pointer to a function, `(*readLevel)()`: its
+   * parameters apply to a parenthesized pointer declarator, where a
+   * function's apply to its name. A class's member of this shape is a data
+   * member (#1760 review: it was taken for a member function and dropped).
+   */
+  static isFunctionPointer(declarator: DeclaratorContext): boolean {
+    const outer = declarator.pointerDeclarator()?.noPointerDeclarator();
+    const inner = outer?.noPointerDeclarator()?.pointerDeclarator();
+    return (
+      outer?.parametersAndQualifiers() != null &&
+      inner != null &&
+      DeclaratorUtils.starCount(inner.pointerOperator()) > 0
+    );
+  }
+
+  /** How many of a declarator's pointer operators are `*`, not `&` */
+  private static starCount(operators: PointerOperatorContext[]): number {
+    return operators.filter((op) => op.getText().startsWith("*")).length;
+  }
+
+  /**
+   * Whether a declaration is `volatile` (#1760 review): the type string below
+   * keeps simple type specifiers alone, so a `volatile float` variable was
+   * recorded as `float`, and the typer could not know that reading it has a
+   * side effect.
+   */
+  static isVolatile(declSpecSeq: DeclSpecifierSeqContext): boolean {
+    return declSpecSeq
+      .declSpecifier()
+      .some(
+        (spec) =>
+          spec
+            .typeSpecifier()
+            ?.trailingTypeSpecifier()
+            ?.cvQualifier()
+            ?.getText() === "volatile",
+      );
   }
 
   /**

@@ -21,11 +21,14 @@
 
 import { ParserRuleContext } from "antlr4ng";
 
+import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
+import ChainRoot from "../../../utils/ChainRoot";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import IRegisterMember from "../types/IRegisterMember";
-import TChainRoot from "../types/TChainRoot";
-import ScopeFrameResolver from "../ScopeFrameResolver";
+import TChainRoot from "../../../transpiler/types/TChainRoot";
+import OperandTyper from "../../../utils/OperandTyper";
+import ParserUtils from "../../../utils/ParserUtils";
 import type IAnalysisContext from "../types/IAnalysisContext";
 import type ICodeGenSymbols from "../../../transpiler/types/ICodeGenSymbols";
 
@@ -137,28 +140,60 @@ class RegisterMemberReference {
         );
   }
 
+  /**
+   * The register member an assignment target names, or null: its leading
+   * names up to the first subscript, read from the target's own root
+   */
+  static ofTarget(
+    target: Parser.AssignmentTargetContext,
+    context: IAnalysisContext,
+  ): IRegisterMember | null {
+    const names = target
+      .postfixTargetOp()
+      .map((op) => (op.DOT() === null ? null : op.IDENTIFIER()!.getText()));
+    return RegisterMemberReference.resolve(
+      ChainRoot.ofTarget(target),
+      RegisterMemberReference.leadingNames(
+        target.IDENTIFIER().getText(),
+        names,
+      ),
+      target,
+      context,
+    );
+  }
+
   /** The register member a chain names, or null when it names none. */
   static resolve(
     root: TChainRoot,
     chain: string[],
     node: ParserRuleContext,
-    scopes: ScopeFrameResolver,
     context: IAnalysisContext,
   ): IRegisterMember | null {
     const symbols = context.symbols;
     if (chain.length < 2) return null;
 
-    const frame = scopes.frameFor(node);
+    // A bare root that names a declared value here -- a local, a member, a
+    // global, this file's or an included one's -- shadows a register of that
+    // spelling; Program's one binder decides what the name means (#1668)
+    const scopePath = OperandTyper.scopePathAt(node, context);
+    const binding =
+      root === null
+        ? context.program.bindValue(
+            context.sourceFile,
+            null,
+            chain[0],
+            ParserUtils.getPosition(node),
+          )
+        : null;
     const isShadowed =
-      root === null &&
-      scopes.declarationOfNameLexical(chain[0], frame) !== null;
+      binding?.kind === "local" || binding?.kind === "variable";
 
     const prefix = root === null ? "" : `${root}.`;
     for (const { reg, at } of RegisterMemberReference.registerCandidates(
       symbols,
       root,
       chain,
-      frame.scopePath,
+      scopePath,
       isShadowed,
     )) {
       const member = chain[at];

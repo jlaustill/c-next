@@ -8,29 +8,47 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
+}
+
 // test-execution
 // test-adr: 029
 // Tests: Callbacks with multiple parameters
 // Validates: two-param and three-param callbacks work correctly
 // Two-parameter callback
 uint32_t addTwo(uint32_t a, uint32_t b) {
-    return a + b;
+    return cnx_clamp_add_u32(a, b);
 }
 
 // Alternative two-param callback
 uint32_t multiplyTwo(uint32_t a, uint32_t b) {
-    return a * b;
+    return cnx_clamp_mul_u32(a, b);
 }
 
 // Three-parameter callback
 uint32_t addThree(uint32_t a, uint32_t b, uint32_t c) {
-    return a + b + c;
+    return cnx_clamp_add_u32(cnx_clamp_add_u32(a, b), c);
 }
 
 // Mixed type two-parameter callback
 uint32_t mixedParams(uint32_t val, bool flag) {
     if (flag == true) {
-        return val * 2U;
+        return cnx_clamp_mul_u32(val, 2U);
     }
     return val;
 }

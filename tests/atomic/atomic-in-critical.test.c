@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  * Requires: C99.
  * atomic read-modify-write requires CMSIS + ARMv7-M.
- * critical section requires one of: ARMv7-M core + Arduino core, ARMv7-M core, avr-libc, CMSIS (by target).
+ * interrupt masking requires one of: ARMv7-M core + Arduino core, ARMv7-M core, avr-libc, CMSIS (by target).
  */
 
 #include "atomic-in-critical.test.h"
@@ -36,6 +36,9 @@ __attribute__((always_inline)) static inline void __cnx_disable_irq(void) {
 #endif
 #elif defined(__AVR__)
 // AVR Arduino: use SREG for interrupt state
+// SREG is declared by avr-libc's <avr/io.h>, cli() by its <avr/interrupt.h>
+#include <avr/io.h>
+#include <avr/interrupt.h>
 // Note: Uses PRIMASK naming for API consistency across platforms (AVR has no PRIMASK)
 // Returns uint8_t which is implicitly widened to uint32_t at call sites - this is intentional
 static inline uint8_t __cnx_get_PRIMASK(void) { return SREG; }
@@ -77,12 +80,16 @@ void criticalUpdate(void) {
         do {
             uint32_t __old = __LDREXW(&sharedCounter);
             uint32_t __new = cnx_clamp_add_u32(__old, 1U);
-            if (__STREXW(__new, &sharedCounter) == 0) break;
+            if (__STREXW(__new, &sharedCounter) == 0) {
+                break;
+            }
         } while (1);
         do {
             uint16_t __old = __LDREXH(&sequence);
             uint16_t __new = __old + 1U;
-            if (__STREXH(__new, &sequence) == 0) break;
+            if (__STREXH(__new, &sequence) == 0) {
+                break;
+            }
         } while (1);
         __cnx_set_PRIMASK(__primask);
     }
@@ -98,7 +105,9 @@ void enqueueWithCount(uint8_t data) {
         do {
             uint32_t __old = __LDREXW(&sharedCounter);
             uint32_t __new = cnx_clamp_add_u32(__old, 1U);
-            if (__STREXW(__new, &sharedCounter) == 0) break;
+            if (__STREXW(__new, &sharedCounter) == 0) {
+                break;
+            }
         } while (1);
         __cnx_set_PRIMASK(__primask);
     }
@@ -112,12 +121,16 @@ void batchUpdate(uint32_t delta) {
         do {
             uint32_t __old = __LDREXW(&sharedCounter);
             uint32_t __new = cnx_clamp_add_u32(__old, delta);
-            if (__STREXW(__new, &sharedCounter) == 0) break;
+            if (__STREXW(__new, &sharedCounter) == 0) {
+                break;
+            }
         } while (1);
         do {
             uint16_t __old = __LDREXH(&sequence);
             uint16_t __new = __old + 1U;
-            if (__STREXH(__new, &sequence) == 0) break;
+            if (__STREXH(__new, &sequence) == 0) {
+                break;
+            }
         } while (1);
         __cnx_set_PRIMASK(__primask);
     }
@@ -132,7 +145,9 @@ void conditionalIncrement(void) {
             do {
                 uint32_t __old = __LDREXW(&sharedCounter);
                 uint32_t __new = cnx_clamp_add_u32(__old, 1U);
-                if (__STREXW(__new, &sharedCounter) == 0) break;
+                if (__STREXW(__new, &sharedCounter) == 0) {
+                    break;
+                }
             } while (1);
         }
         __cnx_set_PRIMASK(__primask);

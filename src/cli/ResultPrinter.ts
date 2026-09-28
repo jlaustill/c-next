@@ -55,6 +55,9 @@ class ResultPrinter {
     if (result.success) {
       console.log("");
       console.log(`Compiled ${result.filesProcessed} files`);
+      if (result.target) {
+        console.log(`Target: ${result.target.name} (${result.target.source})`);
+      }
       console.log(`Collected ${result.symbolsCollected} symbols`);
       console.log(`Generated ${result.outputFiles.length} output files:`);
       for (const file of result.outputFiles) {

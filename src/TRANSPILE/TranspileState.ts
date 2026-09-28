@@ -1,29 +1,32 @@
+import type ITargetDescription from "../transpiler/types/ITargetDescription";
 import SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import ReservedCnxName from "../utils/ReservedCnxName";
 import ICodeGenSymbols from "../transpiler/types/ICodeGenSymbols";
 import TTypeInfo from "../transpiler/types/TTypeInfo";
+import type TChainRoot from "../transpiler/types/TChainRoot";
+import type TValueBinding from "../transpiler/types/TValueBinding";
+import type ISourcePosition from "../utils/types/ISourcePosition";
+import DeclaredTypeInfo from "./2-Plan/DeclaredTypeInfo";
 import TParameterInfo from "../transpiler/types/TParameterInfo";
 import ICallbackTypeInfo from "../transpiler/types/ICallbackTypeInfo";
-import ITargetCapabilities from "../transpiler/types/ITargetCapabilities";
 import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
-import UNRESOLVED_DIMENSION from "../transpiler/constants/UNRESOLVED_DIMENSION";
+import ArrayDimensionText from "../utils/ArrayDimensionText";
 import type ICodeGenApi from "../transpiler/types/ICodeGenApi";
 import DeclaredTypeFacts from "../utils/DeclaredTypeFacts";
+import DeclaredPointer from "../utils/DeclaredPointer";
 import OutputExtensions from "../utils/OutputExtensions";
 import type IOutputExtensions from "../transpiler/types/IOutputExtensions";
 import QualifiedCName from "../utils/QualifiedCName";
 import ScopeUtils from "../utils/ScopeUtils";
 import type ITypeBindingDeps from "../transpiler/types/ITypeBindingDeps";
-import DEFAULT_TARGET from "../transpiler/constants/DEFAULT_TARGET";
 import StructFieldFacts from "../utils/StructFieldFacts";
-import DeclaredVariableFacts from "../utils/DeclaredVariableFacts";
 import type IProgram from "../transpiler/types/IProgram";
+import type ITypingContext from "../transpiler/types/ITypingContext";
 import type IDeclarationPlan from "../transpiler/types/IDeclarationPlan";
 import type IFunctionSignature from "../transpiler/types/IFunctionSignature";
 import invariant from "../utils/invariant";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 import type TIncludeHeader from "../transpiler/types/TIncludeHeader";
-import type IAssignmentOverflowContext from "../transpiler/types/IAssignmentOverflowContext";
 
 /**
  * 2.3 Render's per-file working state, as an INSTANCE.
@@ -38,16 +41,10 @@ import type IAssignmentOverflowContext from "../transpiler/types/IAssignmentOver
  * that. So the statics dissolve BEFORE the file moves, and this is where they
  * go.
  *
- * Owned by `CodeGenerator` * Owned by `CodeGenerator`, which the walker reaches as `this.host`, so both
+ * Owned by `CodeGenerator`, which the walker reaches as `this.host`, so both
  * read one object instead of one global.
  */
 class TranspileState {
-  /** ADR-044: Current assignment context for overflow behavior */
-  assignmentContext: IAssignmentOverflowContext = {
-    targetName: null,
-    targetType: null,
-    overflowBehavior: "clamp",
-  };
   /**
    * Issue #1467: author spelling -> resolved header path for this file's `.cnx`
    * includes. Decided by PathResolver during discovery and handed here; codegen
@@ -106,6 +103,8 @@ class TranspileState {
   usedClampOps: Set<string> = new Set();
   /** Track which safe division helpers are needed: "div_u32", "mod_i16" */
   usedSafeDivOps: Set<string> = new Set();
+  /** #1668: single-evaluation saturating casts, as `"f32_u8"` keys */
+  usedCastHelpers: Set<string> = new Set();
 
   /**
    * THE sink for include and deferred-emission requests.
@@ -204,6 +203,85 @@ class TranspileState {
   }
 
   /**
+   * #1668: mark a single-evaluation saturating cast as used -- the helper a
+   * clamped cast calls when its operand has a side effect. The helper uses
+   * the limit macros, so it needs `<limits.h>` exactly as the inline form does.
+   */
+  markCastHelperUsed(sourceType: string, targetType: string): void {
+    this.usedCastHelpers.add(`${sourceType}_${targetType}`);
+    this.requireInclude("limits");
+  }
+
+  /**
+   * #1668: the operand typer's context for this file, over the facts 1.4
+   * settled -- the same artifact 2.1's analyzers read, so 2.2 types an operand
+   * exactly as 2.1 did. Null for a render with no program behind it (a unit
+   * test that builds codegen state alone).
+   */
+  /**
+   * #1668 (C7): a name's declared type where it is used -- `bindValue` at
+   * `at`, then `DeclaredTypeInfo.of`. This replaces the per-file registry,
+   * whose one flat key space per function could not tell an inner block's
+   * `x` from its sibling's, nor `global.x` from a local `x`. `root` is the
+   * chain's `this`/`global`, as the source spelled it; `name` may be a
+   * shadowing local's emitted name, which is mapped back to its source name.
+   */
+  declarationTypeInfo(
+    root: TChainRoot,
+    name: string,
+    at: ISourcePosition,
+  ): TTypeInfo | undefined {
+    const typing = this.typingContext();
+    const binding = this.bindingAt(root, name, at);
+    return DeclaredTypeInfo.of(
+      binding,
+      typing.symbols,
+      this.symbolTable,
+      this.targetDescription,
+    );
+  }
+
+  /**
+   * #1668 (C7): which declaration a name means where it is used -- the
+   * binder's local -> scope -> global order (ADR-057). `name` may be a
+   * shadowing local's emitted name, mapped back to its source name.
+   */
+  bindingAt(
+    root: TChainRoot,
+    name: string,
+    at: ISourcePosition,
+  ): TValueBinding | null {
+    const typing = this.typingContext();
+    return typing.program.bindValue(
+      typing.sourceFile,
+      root,
+      this.sourceLocalName(name),
+      at,
+    );
+  }
+
+  /**
+   * What the one operand typer reads for the file being rendered. Render
+   * always runs against a program (#1668 review: fifteen sites carried a
+   * default for a missing one, guards that could not fire in production and
+   * would have answered wrongly if they had).
+   */
+  typingContext(): ITypingContext {
+    invariant(
+      this.program !== null &&
+        this.symbols !== null &&
+        this.sourcePath !== null,
+      "render runs against a program: set program, symbols and sourcePath first",
+    );
+    return {
+      sourceFile: this.sourcePath,
+      symbols: this.symbols,
+      program: this.program,
+      symbolTable: this.symbolTable,
+    };
+  }
+
+  /**
    * 2.2 Plan's declaration decisions for the file being generated.
    *
    * Frozen, and set once before any declaration renders. Held here rather than
@@ -256,14 +334,6 @@ class TranspileState {
    * writes the pointer inline, because no caller needs to name it.
    */
   publicCallbackTypeReferences: Set<string> = new Set();
-  /**
-   * Tracks scope variables with opaque (forward-declared) struct types.
-   * These are generated as pointers with NULL initialization and should
-   * be passed directly (not with &) since they're already pointers.
-   * Maps qualified name (e.g., "MyScope_widget") to true.
-   */
-  private opaqueScopeVariables: Set<string> = new Set();
-
   /**
    * 2.2 Plan's declaration decisions, asserted present.
    *
@@ -342,40 +412,6 @@ class TranspileState {
    */
   headerOwnsCallbackTypedef(functionName: string): boolean {
     return this.publicCallbackTypeReferences.has(functionName);
-  }
-  /**
-   * Check if generated code accesses an opaque scope variable (and is thus
-   * already a pointer). Used during argument generation to decide whether an
-   * address-of (&) prefix is needed.
-   *
-   * Handles two forms:
-   * - Direct access:        "MyScope_widget"     → the handle itself (pointer)
-   * - Array-element access: "MyScope_widgets[i]" → an element of an opaque
-   *   handle array, which is itself a pointer (Issue #996)
-   *
-   * @param generatedCode - The generated access expression (e.g. "UI_widgets[i]")
-   * @returns true if this resolves to an opaque scope variable (already a pointer)
-   */
-  isOpaqueScopeVariableAccess(generatedCode: string): boolean {
-    if (this.opaqueScopeVariables.has(generatedCode)) {
-      return true;
-    }
-    // Issue #996: An element of an opaque-handle array is already a pointer.
-    // Match on the base array name that precedes the subscript.
-    const bracketIndex = generatedCode.indexOf("[");
-    if (bracketIndex === -1) {
-      return false;
-    }
-    return this.opaqueScopeVariables.has(generatedCode.slice(0, bracketIndex));
-  }
-  /**
-   * Mark a scope variable as having an opaque (forward-declared) struct type.
-   * These are generated as pointers with NULL initialization.
-   *
-   * @param qualifiedName - The fully qualified variable name (e.g., "MyScope_widget")
-   */
-  markOpaqueScopeVariable(qualifiedName: string): void {
-    this.opaqueScopeVariables.add(qualifiedName);
   }
 
   /** Expected type for struct initializers and enum inference */
@@ -527,16 +563,6 @@ class TranspileState {
   // TYPE TRACKING
   // ===========================================================================
 
-  /**
-   * Track variable types for bit access, .length, and type inference.
-   * PRIVATE: Use getVariableTypeInfo()/setVariableTypeInfo() instead.
-   * This ensures cross-file variables from SymbolTable are also found.
-   */
-  private typeRegistry: Map<string, TTypeInfo> = new Map();
-
-  /** Bug #8: Compile-time const values for array size resolution */
-  constValues: Map<string, number> = new Map();
-
   // ===========================================================================
   // FUNCTION & CALLBACK TRACKING
   // ===========================================================================
@@ -617,9 +643,6 @@ class TranspileState {
   /** ADR-016: Local variables in current function (allowed as bare identifiers) */
   localVariables: Set<string> = new Set();
 
-  /** ADR-006: Local array variables (no & needed when passing) */
-  localArrays: Set<string> = new Set();
-
   /**
    * ADR-057: bare source name -> the C identifier a shadowing local is emitted
    * under.
@@ -689,8 +712,11 @@ class TranspileState {
     return this.lastArrayInitCount > 0 || this.lastArrayFillValue !== undefined;
   }
 
-  /** ADR-049: Target platform capabilities */
-  targetCapabilities: ITargetCapabilities = DEFAULT_TARGET;
+  /**
+   * ADR-049: the target this file is generated for. Set by `reset()` from the
+   * description the orchestrator decided; null only before the first file.
+   */
+  targetDescription: ITargetDescription | null = null;
 
   // ===========================================================================
   // INCLUDE FLAGS (track required standard library includes)
@@ -764,14 +790,13 @@ class TranspileState {
    *
    * One owner for the whole family. Four copies of this block existed, and they
    * had already diverged: one of them cleared three of the four registers and
-   * left `localArrays` to leak between functions. Adding `localRenames` to four
+   * left a local-array set (since deleted, #1668) to leak between functions. Adding `localRenames` to four
    * call sites would have made that five. (The copy that diverged lived on
    * `FunctionContextManager`, which #1450 deleted as production-dead; the point
    * survives it, so it is stated without the name.)
    */
   private clearFunctionLocals(): void {
     this.localVariables.clear();
-    this.localArrays.clear();
     this.localRenames.clear();
     this.floatBitShadows.clear();
     this.floatShadowCurrent.clear();
@@ -943,172 +968,18 @@ class TranspileState {
   }
 
   /**
-   * Issue #948: Check if a type name is an opaque (forward-declared) struct type.
-   * Opaque types are incomplete types that can only be used as pointers.
-   * Example: `typedef struct _widget_t widget_t;` without a body makes `widget_t` opaque.
-   */
-  isOpaqueType(typeName: string): boolean {
-    // #1511: the artifact resolved this once for the whole program. It used to
-    // read a per-file set that `mergeOpaqueTypes` patched the cross-file answer
-    // into, which made this a second place the question was answered.
-    return this.program?.isOpaqueType(typeName) ?? false;
-  }
-
-  /**
-   * Issue #958: Check if a type name is an external typedef struct type.
-   * External typedef struct types should use pointer semantics for scope variables.
-   *
-   * True for a forward typedef (`typedef struct Tag Name;`) whose tag has no
-   * body anywhere in the run: `StructCollector` records only typedefs without
-   * a body, and #948 drops one whose tag later receives a body. A complete
-   * struct is never one. This used to say it was true for complete structs
-   * too, which it has not been since #948. It differs from `isOpaqueType` in
-   * source, not meaning: this reads the symbol table's per-run record, that
-   * the program's resolved answer (#1511).
-   */
-  isTypedefStructType(typeName: string): boolean {
-    return this.symbolTable?.isTypedefStructType(typeName) ?? false;
-  }
-
-  /**
    * ADR-030: is a C-Next declaration of this type held through a pointer?
    *
    * An incomplete type can only be held through a pointer, so a declaration of
    * one is `T*` wherever C-Next declares it -- a scope member, a file-scope or
    * local variable, a parameter, a callback typedef's parameter -- and an array
    * of them is an array of pointers (#996). This is the ONE answer each of
-   * those sites reads, and so does the header's `extern` for a variable: it
-   * asked nothing and declared `extern Dev device;` against the `.c`'s
-   * `Dev* device`, while the scope and file-scope paths asked two different
-   * predicates.
-   *
-   * Both predicates, because #948 and #958 each gated one of those paths. They
-   * are marked from the same StructCollector branch and resolved by the same
-   * "did a body ever arrive" rule, so they do not disagree -- which is also why
-   * one of them is redundant.
+   * those sites reads. A declaration's own pointer-ness (`DeclaredPointer.of`,
+   * which the `.c` definition and the header's `extern` both follow) asks the
+   * same predicate, `DeclaredPointer.isHandleType`, so the two cannot differ.
    */
   isHeldThroughPointer(typeName: string): boolean {
-    return this.isOpaqueType(typeName) || this.isTypedefStructType(typeName);
-  }
-
-  /**
-   * Get type info for a variable, as CODEGEN sees it.
-   *
-   * Checks the local typeRegistry first, then the declared answer below, so a
-   * generated file's own variables win over the cross-file ones.
-   *
-   * Issue #786: This unified lookup ensures cross-file variables
-   * (defined in included files) are found even before code generation
-   * registers them locally.
-   *
-   * **Not reachable from 2.1 Analyze.** `typeRegistry` is filled by
-   * `CodeGenerator.generate()` and cleared by `reset()`, both after the
-   * analyzers run, so an analyzer calling this reads a map that belongs to a
-   * different file -- see `declaredVariableType` below, which is the question
-   * an analyzer is actually asking.
-   */
-  getVariableTypeInfo(name: string): TTypeInfo | undefined {
-    // First check the local type registry (current file's variables)
-    const localInfo = this.typeRegistry.get(name);
-    if (localInfo) {
-      return localInfo;
-    }
-
-    // ADR-057: callers reach here with a RESOLVED identifier -- for a scope
-    // member that is already the registry key (`Scope__member`), but for a
-    // shadowing local it is the emitted name while the registry is keyed on
-    // the source spelling. Resolving both here rather than in each of the
-    // ~65 call sites keeps one answer to "what type is this?"; without it a
-    // bit-range write on a shadowing local silently lost its narrowing cast.
-    const sourceName = this.sourceLocalName(name);
-    if (sourceName !== name) {
-      const renamedInfo = this.typeRegistry.get(sourceName);
-      if (renamedInfo) {
-        return renamedInfo;
-      }
-    }
-
-    return this.declaredVariableType(name);
-  }
-
-  /**
-   * What a variable's type is according to what the program DECLARES -- the
-   * answer that does not depend on which file has been generated.
-   *
-   * #1432. `getVariableTypeInfo` above layers the per-file `typeRegistry` on
-   * top of this; the registry probe is the entire difference, and it is
-   * codegen's alone. An analyzer that probed it got the PREVIOUS RUN's answer,
-   * and a signed array subscript reached generated C at exit 0.
-   */
-  declaredVariableType(name: string): TTypeInfo | undefined {
-    const declared = DeclaredVariableFacts.typeInfoOf(
-      this.symbols,
-      this.symbolTable,
-      name,
-    );
-
-    // ADR-030: a C-Next variable declared in ANOTHER file is held through a
-    // pointer here exactly as it is there, and its declaring file's registry is
-    // the only place that recorded it -- so an includer passed `&shared`, a
-    // `Dev**`, where the handle belongs. The same rule answers it. A C global
-    // is not a C-Next declaration, so an incomplete-typed one keeps its type.
-    if (
-      declared !== undefined &&
-      DeclaredVariableFacts.symbolOf(this.symbolTable, name) !== undefined &&
-      this.isHeldThroughPointer(declared.baseType)
-    ) {
-      return { ...declared, isPointer: true };
-    }
-    return declared;
-  }
-
-  /**
-   * Legacy alias for getVariableTypeInfo.
-   * @deprecated Use getVariableTypeInfo() instead
-   */
-  getTypeInfo(name: string): TTypeInfo | undefined {
-    return this.getVariableTypeInfo(name);
-  }
-
-  /**
-   * Whether a variable type is registered, asked of the one lookup.
-   *
-   * This was a SECOND implementation of `getVariableTypeInfo`, and the two
-   * disagreed. It called `symbolTable.getTSymbol(name)` bare, where
-   * `DeclaredVariableFacts.symbolOf` falls back to the by-C-name index
-   * (#1303/#1139) -- so for a scoped `u32 value` in `Counter`,
-   * `getVariableTypeInfo("Counter__value")` answered `u32` while this answered
-   * `false`, which reads as "no such variable" rather than "wrong question".
-   * It carried its own copy of the #978 C-struct-global arm too.
-   *
-   * Delegating is what makes "is it registered?" and "what is it?" one decision
-   * rather than two that happen to agree on unscoped names.
-   */
-  hasVariableTypeInfo(name: string): boolean {
-    return this.getVariableTypeInfo(name) !== undefined;
-  }
-
-  /**
-   * Set variable type info in the local registry.
-   */
-  setVariableTypeInfo(name: string, info: TTypeInfo): void {
-    this.typeRegistry.set(name, info);
-  }
-
-  /**
-   * Delete variable type info from the local registry.
-   */
-  deleteVariableTypeInfo(name: string): void {
-    this.typeRegistry.delete(name);
-  }
-
-  /**
-   * Get a read-only view of the local type registry.
-   * Used for passing to helper functions that need to iterate over types.
-   * Note: This only returns locally registered types, not cross-file symbols.
-   */
-  getTypeRegistryView(): ReadonlyMap<string, TTypeInfo> {
-    return this.typeRegistry;
+    return DeclaredPointer.isHandleType(typeName, this.symbolTable);
   }
 
   /**
@@ -1206,13 +1077,6 @@ class TranspileState {
    */
   isLocalVariable(name: string): boolean {
     return this.localVariables.has(name);
-  }
-
-  /**
-   * Check if a name is a local array.
-   */
-  isLocalArray(name: string): boolean {
-    return this.localArrays.has(name);
   }
 
   /**
@@ -1366,9 +1230,8 @@ class TranspileState {
     //
     // UNRESOLVED_DIMENSION holds the slot and reads as "size unknown";
     // TypeValidator.checkArrayBounds skips it because it is not > 0.
-    const dims = fieldInfo.dimensions?.map((d) =>
-      typeof d === "number" ? d : UNRESOLVED_DIMENSION,
-    );
+    const dims =
+      fieldInfo.dimensions && ArrayDimensionText.numeric(fieldInfo.dimensions);
 
     return {
       baseType: fieldInfo.type,
@@ -1377,15 +1240,6 @@ class TranspileState {
       isArray,
       arrayDimensions: dims && dims.length > 0 ? dims : undefined,
     };
-  }
-
-  /**
-   * Check if a struct field is an array.
-   */
-  isStructFieldArray(structName: string, fieldName: string): boolean {
-    return (
-      this.symbols?.structFieldArrays.get(structName)?.has(fieldName) ?? false
-    );
   }
 
   /**
@@ -1405,20 +1259,6 @@ class TranspileState {
   // ===========================================================================
   // TYPE REGISTRATION HELPERS
   // ===========================================================================
-
-  /**
-   * Register a variable type.
-   */
-  registerType(name: string, info: TTypeInfo): void {
-    this.setVariableTypeInfo(name, info);
-  }
-
-  /**
-   * Register a const value.
-   */
-  registerConstValue(name: string, value: number): void {
-    this.constValues.set(name, value);
-  }
 
   /**
    * Enter a scope by its DOTTED PATH.
@@ -1491,8 +1331,7 @@ class TranspileState {
    * Record that a shadowing local is emitted under a different C identifier.
    *
    * Keyed on the BARE name because that is what every reference in the source
-   * says and what every registry (`typeRegistry`, `localVariables`,
-   * `constValues`) is keyed by. Only the emitted text moves.
+   * says and what `localVariables` is keyed by. Only the emitted text moves.
    */
   registerLocalRename(name: string, emittedName: string): void {
     this.localRenames.set(name, emittedName);
@@ -1517,7 +1356,7 @@ class TranspileState {
    *
    * Needed where a helper is handed the emitted name for code generation but
    * must still register under the name the source used: every registry
-   * (`localVariables`, `localArrays`, `typeRegistry`) is keyed by the source
+   * (`localVariables`) is keyed by the source
    * spelling, because that is what references in the source say.
    */
   sourceLocalName(emittedName: string): string {
@@ -1539,12 +1378,9 @@ class TranspileState {
    * caller that registered first would ask about a name that is already local
    * and always be told "no collision".
    */
-  registerLocalVariable(name: string, isArray: boolean = false): void {
+  registerLocalVariable(name: string): void {
     this.planShadowingLocalName(name);
     this.localVariables.add(name);
-    if (isArray) {
-      this.localArrays.add(name);
-    }
   }
 
   /**
@@ -1643,7 +1479,7 @@ class TranspileState {
   }
 
   /** Cleared per file, at the top of `generate()`. */
-  reset(targetCapabilities?: ITargetCapabilities): void {
+  reset(targetDescription: ITargetDescription | null = null): void {
     // Generator reference
     this.generator = null;
 
@@ -1654,8 +1490,6 @@ class TranspileState {
     // box 5); there is no `clear()` to call.
 
     // Type tracking
-    this.typeRegistry = new Map();
-    this.constValues = new Map();
 
     // Function & callback tracking
     this.knownFunctions = new Set();
@@ -1672,7 +1506,6 @@ class TranspileState {
     this.currentFunctionName = null;
     this.currentParameters = new Map();
     this.localVariables = new Set();
-    this.localArrays = new Set();
     this.localRenames = new Map();
     this.scopeMembers = new Map();
     this.floatBitShadows = new Set();
@@ -1683,7 +1516,7 @@ class TranspileState {
     this.mainArgsName = null;
     this.lastArrayInitCount = 0;
     this.lastArrayFillValue = undefined;
-    this.targetCapabilities = targetCapabilities ?? DEFAULT_TARGET;
+    this.targetDescription = targetDescription;
 
     // Include flags
 
@@ -1705,9 +1538,9 @@ class TranspileState {
     this.callbackTypeReferences = new Set();
     this.publicCallbackTypeReferences = new Set();
     this.declarationPlanOrNull = null;
-    this.opaqueScopeVariables = new Set();
     this.usedClampOps = new Set();
     this.usedSafeDivOps = new Set();
+    this.usedCastHelpers = new Set();
     this.needsStdint = false;
     this.needsStdbool = false;
     this.needsString = false;
@@ -1720,11 +1553,6 @@ class TranspileState {
     this.pendingCallbackTypedefs = [];
     this.currentFunctionReturnType = null;
     this.indentLevel = 0;
-    this.assignmentContext = {
-      targetName: null,
-      targetType: null,
-      overflowBehavior: "clamp",
-    };
     this.lengthCache = null;
     this.debugMode = false;
     this.selfIncludeAdded = false;

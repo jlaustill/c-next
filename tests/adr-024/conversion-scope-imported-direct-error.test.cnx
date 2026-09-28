@@ -1,0 +1,21 @@
+// test-error
+// test-adr: 024
+// E0869 across one include hop -- matrix cells: imported direct, in the scope-member
+// and scope-method contexts (#1668, C13). A global source was typed here
+// before #1668 too; these cells were unoccupied, and declared `off`.
+
+#include "conversion-declarations.cnx"
+
+scope Reader {
+    // NEGATIVE CONTROL -- the imported source into a target wide enough for it.
+    u32 okMember <- wideShared;
+
+    // ASSERTION -- scope member context.
+    u8 narrowMember <- wideShared;
+
+    public u8 read() {
+        // ASSERTION -- scope method context.
+        u8 narrowLocal <- wideShared;
+        return narrowLocal;
+    }
+}

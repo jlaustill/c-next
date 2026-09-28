@@ -158,64 +158,55 @@ describe("VariableCollector", () => {
       expect(symbol.arrayDimensions).toEqual([4, 4]);
     });
 
-    it("resolves constant references in array dimensions (issue #455)", () => {
+    it("keeps a const-named dimension as text, for 1.4 to fold (#455, #1664 box 7)", () => {
       const code = `
         bool flags[DEVICE_COUNT];
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const constValues = new Map<string, number>([["DEVICE_COUNT", 4]]);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
         "",
         "public",
-        constValues,
       );
 
       expect(symbol.isArray).toBe(true);
-      expect(symbol.arrayDimensions).toEqual([4]);
+      expect(symbol.arrayDimensions).toEqual(["DEVICE_COUNT"]);
     });
 
-    it("resolves mixed literal and constant dimensions (issue #455)", () => {
+    it("keeps a const-named dimension as text beside a literal (#455)", () => {
       const code = `
         i32 matrix[ROWS][8];
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const constValues = new Map<string, number>([["ROWS", 4]]);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
         "",
         "public",
-        constValues,
       );
 
       expect(symbol.isArray).toBe(true);
-      expect(symbol.arrayDimensions).toEqual([4, 8]);
+      expect(symbol.arrayDimensions).toEqual(["ROWS", 8]);
     });
 
-    it("resolves multiple constant dimensions (issue #455)", () => {
+    it("keeps several const-named dimensions as text (#455)", () => {
       const code = `
         u16 data[WIDTH][HEIGHT];
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const constValues = new Map<string, number>([
-        ["WIDTH", 10],
-        ["HEIGHT", 20],
-      ]);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
         "",
         "public",
-        constValues,
       );
 
       expect(symbol.isArray).toBe(true);
-      expect(symbol.arrayDimensions).toEqual([10, 20]);
+      expect(symbol.arrayDimensions).toEqual(["WIDTH", "HEIGHT"]);
     });
 
     it("collects C-Next style array with dimensions in type (u8[8] arr)", () => {
@@ -252,23 +243,21 @@ describe("VariableCollector", () => {
       expect(symbol.arrayDimensions).toEqual([4, 4]);
     });
 
-    it("collects C-Next style array with const reference dimension", () => {
+    it("keeps a const reference in a C-Next style array as text", () => {
       const code = `
         u8[SIZE] buffer;
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const constValues = new Map<string, number>([["SIZE", 16]]);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
         "",
         "public",
-        constValues,
       );
 
       expect(symbol.isArray).toBe(true);
-      expect(symbol.arrayDimensions).toEqual([16]);
+      expect(symbol.arrayDimensions).toEqual(["SIZE"]);
     });
 
     it("preserves unresolved macro as string in C-Next style array", () => {
@@ -360,6 +349,40 @@ describe("VariableCollector", () => {
       );
 
       expect(symbol.span.line).toBe(3);
+    });
+  });
+
+  describe("initializerCallee (#895, #1668)", () => {
+    /** What 1.3 records the first local's initializer calling */
+    const calleeOf = (body: string) => {
+      const declaration = parse(`void f() {\n${body}\n}`)
+        .declaration(0)!
+        .functionDeclaration()!
+        .block()!
+        .statement(0)!
+        .variableDeclaration()!;
+      return VariableCollector.declaredFacts(declaration, "").initializerCallee;
+    };
+
+    it.each([
+      ["a direct call", "u8 x <- make();", "make"],
+      ["a global call", "u8 x <- global.make();", "make"],
+      // #1760 review: the call must be the chain's last operation -- what
+      // follows it reads INTO the result, so the declaration is not the
+      // pointer the call returns
+      ["a call with a member after it", "u8 x <- make().v;", null],
+      ["a call with a subscript after it", "u8 x <- make()[2];", null],
+      [
+        "a global call with a subscript after it",
+        "u8 x <- global.make()[2];",
+        null,
+      ],
+      ["not a lone call", "u8 x <- make() + 1;", null],
+      ["a member's call", "u8 x <- s.make();", null],
+      ["a name", "u8 x <- y;", null],
+      ["no initializer", "u8 x;", null],
+    ])("%s", (_why, body, expected) => {
+      expect(calleeOf(body)).toBe(expected);
     });
   });
 });

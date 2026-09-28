@@ -181,6 +181,10 @@ The test for tier is mechanical: **could you compute it with only this file open
 > direction: the test above asks whether one file is enough, and the answer is now that
 > **no** file is needed. It is a configuration input, known before pass 1.1 opens anything,
 > which is why nothing downstream can read it too early.
+>
+> The **target catalog** (`targets/targets.cnx`, ADR-049) is a configuration input in the
+> same sense: it ships with the compiler, not with the program, and is read and validated
+> once per process before any source file is opened.
 
 The AST is Tier 1 with a short lifetime. That resolves the problem of a parse tree that
 cannot be serialized, rather than relocating it: pull a serializable `SourceSpan` out and
@@ -221,31 +225,33 @@ a question its own artifact should already answer.
 
 #### Tier 1 -- authored in 1.3 Declare
 
-| fact                                             | note                                                             |
-| ------------------------------------------------ | ---------------------------------------------------------------- |
-| `kind`                                           | the discriminator; never erased at a layer boundary              |
-| `name`                                           | the leaf, as written in its scope                                |
-| `fullyQualifiedCName`                            | the identifier C sees                                            |
-| `cnxScopedName`                                  | the name the author wrote; what a diagnostic quotes              |
-| scope reference                                  | a path or id, never a live object                                |
-| `sourceFile`, `span`                             | a symbol-level diagnostic can point as precisely as any other    |
-| `sourceLanguage`                                 | C-Next, C or C++                                                 |
-| `visibility`                                     | public or private, as declared                                   |
-| declared type                                    | structured, never flattened to a string at a boundary            |
-| array dimensions                                 | as written; `(number \| string)[]`                               |
-| `isConst` (as written), `isAtomic`, `isVolatile` | qualifiers, on every kind that can carry them                    |
-| `overflowBehavior`                               | clamp or wrap, so the declared behavior survives a file boundary |
-| `initialValue`                                   | initializer source text                                          |
-| members as symbols                               | enum members, bitmap fields, register members and struct fields  |
-| function parameters, return type                 | ordered, named, typed                                            |
-| is-a-callback-type                               | ADR-029 function-as-type, and its typedef name                   |
+| fact                                             | note                                                                                                                                                                      |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `kind`                                           | the discriminator; never erased at a layer boundary                                                                                                                       |
+| `name`                                           | the leaf, as written in its scope                                                                                                                                         |
+| `fullyQualifiedCName`                            | the identifier C sees                                                                                                                                                     |
+| `cnxScopedName`                                  | the name the author wrote; what a diagnostic quotes                                                                                                                       |
+| scope reference                                  | a path or id, never a live object                                                                                                                                         |
+| `sourceFile`, `span`                             | a symbol-level diagnostic can point as precisely as any other                                                                                                             |
+| `sourceLanguage`                                 | C-Next, C or C++                                                                                                                                                          |
+| `visibility`                                     | public or private, as declared                                                                                                                                            |
+| declared type                                    | structured, never flattened to a string at a boundary                                                                                                                     |
+| array dimensions                                 | as written; `(number \| string)[]`                                                                                                                                        |
+| `isConst` (as written), `isAtomic`, `isVolatile` | qualifiers, on every kind that can carry them                                                                                                                             |
+| `overflowBehavior`                               | clamp or wrap, so the declared behavior survives a file boundary                                                                                                          |
+| `initialValue`                                   | initializer source text                                                                                                                                                   |
+| members as symbols                               | enum members, bitmap fields, register members and struct fields                                                                                                           |
+| function parameters, return type                 | ordered, named, typed                                                                                                                                                     |
+| is-a-callback-type                               | ADR-029 function-as-type, and its typedef name                                                                                                                            |
+| lexical declarations                             | #1668: a file's frames -- each function, block and `for` header -- with the locals and parameters declared in each and where, so a use binds only a declaration before it |
 
 #### Tier 2 -- authored in 1.4 Resolve
 
 Auto-const; parameter-modified, direct and transitive; pass-by-value eligibility; the call
 graph; opaque-vs-defined; symbol conflicts; callback promotion; which C
-header declares a type; transitively visible enums from includes; external const values;
-external struct fields; resolved array dimensions.
+header declares a type; transitively visible enums from includes; const values, every const
+folded once and visible by scope and position (#1668, C11); external struct fields; resolved
+array dimensions, for variables, parameters, struct fields and locals alike.
 
 > `isExported` is **not** a fact. It is `visibility`, minus ADR-030's `main` exemption,
 > minus "a scope is a container, not a declaration". Those rules belong in `EmissionPlan`;

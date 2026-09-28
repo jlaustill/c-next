@@ -49,6 +49,7 @@ describe("include-graph visibility (Issue #1435)", () => {
       writeFileSync(mainPath, MAIN_USES_ENUM);
       // An explicit outDir: without one the run writes into the cwd (#1705).
       const result = await new Transpiler({
+        target: "host",
         input: mainPath,
         outDir: join(project, "build"),
         noCache: true,
@@ -87,6 +88,7 @@ describe("include-graph visibility (Issue #1435)", () => {
 
       // Exactly how `ServeCommand` (the editor preview) calls it.
       const result = await new Transpiler({
+        target: "host",
         input: "",
         noCache: true,
       }).transpile({
@@ -108,6 +110,7 @@ describe("include-graph visibility (Issue #1435)", () => {
 
       for (const sourcePath of [undefined, ""]) {
         const result = await new Transpiler({
+          target: "host",
           input: "",
           noCache: true,
         }).transpile({
@@ -161,10 +164,18 @@ void setup() {
         outDir: join(project, "build"),
         noCache: true,
       };
-      const files = await new Transpiler({ ...config, input: path }).transpile({
+      const files = await new Transpiler({
+        target: "host",
+        ...config,
+        input: path,
+      }).transpile({
         kind: "files",
       });
-      const source = await new Transpiler({ ...config, input: "" }).transpile({
+      const source = await new Transpiler({
+        target: "host",
+        ...config,
+        input: "",
+      }).transpile({
         kind: "source",
         source: text,
         workingDir: join(project, "src"),
@@ -288,7 +299,11 @@ void main() {
     });
 
     function transpile(where: { workingDir?: string; sourcePath?: string }) {
-      return new Transpiler({ input: "", noCache: true }).transpile({
+      return new Transpiler({
+        target: "host",
+        input: "",
+        noCache: true,
+      }).transpile({
         kind: "source",
         source: QUOTED,
         ...where,
@@ -419,7 +434,11 @@ void main() {
         join(project, "a.cnx"),
         `${included}\n\nu8 fa() {\n    return 1;\n}\n`,
       );
-      return new Transpiler({ input: "", noCache: true }).transpile({
+      return new Transpiler({
+        target: "host",
+        input: "",
+        noCache: true,
+      }).transpile({
         kind: "source",
         source: ROOT,
         sourcePath: join(project, "main.cnx"),
@@ -477,10 +496,12 @@ void main() {
       };
 
       const fromInput = await new Transpiler({
+        target: "host",
         input: "",
         noCache: true,
       }).transpile({ ...input, includeDirs: dirs });
       const fromConfig = await new Transpiler({
+        target: "host",
         input: "",
         noCache: true,
         includeDirs: dirs,
@@ -540,6 +561,7 @@ scope M {
       writeFileSync(mainPath, MAIN);
 
       const result = await new Transpiler({
+        target: "host",
         input: mainPath,
         outDir: join(project, "src"),
         noCache: true,
@@ -560,6 +582,7 @@ scope M {
       const mainPath = join(project, "src", "main.cnx");
 
       const result = await new Transpiler({
+        target: "host",
         input: "",
         noCache: true,
       }).transpile({ kind: "source", source: MAIN, sourcePath: mainPath });
@@ -582,7 +605,12 @@ scope M {
     async function transpile(main: string) {
       fs.addFile("/vfs/src/main.cnx", main);
       const result = await new Transpiler(
-        { input: "/vfs/src/main.cnx", outDir: "/vfs/build", noCache: true },
+        {
+          input: "/vfs/src/main.cnx",
+          outDir: "/vfs/build",
+          noCache: true,
+          target: "host",
+        },
         fs,
       ).transpile({ kind: "files" });
       return {

@@ -1,0 +1,33 @@
+// test-error
+// test-adr: 024
+// #1668 review: a C header's name written `global.name` is typed as the
+// bare name is. `global.` is how a scope reaches a header name its own
+// member shadows, and the binder gave `global.` a variable or a scope,
+// never a header's name -- so every operand below was untyped, and
+// `raw * global.scale` went to cnx_clamp_mul_u32: 3 * 2.5 was 6.0.
+#include "fo.h"
+
+scope Sensor {
+    u32 scale <- 3;
+
+    public f32 variable(u32 raw) {
+        return raw * global.scale;
+    }
+
+    public f32 field(u32 raw) {
+        return raw * global.c_pt.cf;
+    }
+
+    public f32 call(u32 raw) {
+        return raw * global.cGetF();
+    }
+
+    public u32 signedness() {
+        return global.c_u + global.c_s;
+    }
+
+    // NEGATIVE CONTROL: the bare `scale` is the scope's own u32
+    public u32 own(u32 raw) {
+        return raw * scale;
+    }
+}

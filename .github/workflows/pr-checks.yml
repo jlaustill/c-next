@@ -383,6 +383,15 @@ jobs:
         with:
           name: build-output
 
+      - name: Install the target matrix's cross toolchains
+        # #1668 box 13: every fixture is also compiled for a Cortex-M and an
+        # AVR, against their real C libraries. The runner's preflight fails the
+        # run if one is missing rather than skipping its cells. The list is the
+        # one the preflight's error message names.
+        run: |
+          sudo apt-get update -qq
+          xargs sudo apt-get install -y -qq < scripts/cross-toolchain-packages.txt
+
       - name: Run integration tests (transpile + compile + execute)
         # Covers tests/bugs/ regression fixtures — same command a developer runs.
         run: npm test

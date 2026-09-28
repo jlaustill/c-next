@@ -33,7 +33,6 @@ class TestGeneratorState {
       inFunctionBody: false,
       currentParameters: new Map(),
       localVariables: new Set(),
-      localArrays: new Set(),
       expectedType: null,
       headerOwnsTypeDefinitions: false,
       scopeMembers: new Map(),

@@ -16,20 +16,20 @@ int main(void) {
     float in_range = 100.0;
     float at_max = 255.0;
     float at_min = 0.0;
-    uint8_t result = ((over) > ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (over) < 0.0f ? (uint8_t)0 : (uint8_t)(over));
+    uint8_t result = ((over) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (over) < 0.0f ? (uint8_t)0 : (uint8_t)(over));
     if (result != 255) return 1U;
-    result = ((way_over) > ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (way_over) < 0.0f ? (uint8_t)0 : (uint8_t)(way_over));
+    result = ((way_over) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (way_over) < 0.0f ? (uint8_t)0 : (uint8_t)(way_over));
     if (result != 255) return 2U;
-    result = ((negative) > ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (negative) < 0.0f ? (uint8_t)0 : (uint8_t)(negative));
+    result = ((negative) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (negative) < 0.0f ? (uint8_t)0 : (uint8_t)(negative));
     if (result != 0) return 3U;
-    result = ((in_range) > ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (in_range) < 0.0f ? (uint8_t)0 : (uint8_t)(in_range));
+    result = ((in_range) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (in_range) < 0.0f ? (uint8_t)0 : (uint8_t)(in_range));
     if (result != 100) return 4U;
-    result = ((at_max) > ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (at_max) < 0.0f ? (uint8_t)0 : (uint8_t)(at_max));
+    result = ((at_max) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (at_max) < 0.0f ? (uint8_t)0 : (uint8_t)(at_max));
     if (result != 255) return 5U;
-    result = ((at_min) > ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (at_min) < 0.0f ? (uint8_t)0 : (uint8_t)(at_min));
+    result = ((at_min) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (at_min) < 0.0f ? (uint8_t)0 : (uint8_t)(at_min));
     if (result != 0) return 6U;
     float frac = 127.9;
-    result = ((frac) > ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (frac) < 0.0f ? (uint8_t)0 : (uint8_t)(frac));
+    result = ((frac) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (frac) < 0.0f ? (uint8_t)0 : (uint8_t)(frac));
     if (result != 127) return 7U;
     return 0U;
 }

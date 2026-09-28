@@ -68,6 +68,22 @@ class ComplianceAnnotations {
   }
 
   /**
+   * A float's bits reached through a union (ADR-007). Copying them into an
+   * integer with `memcpy` would pass a float pointer beside an integer one,
+   * which the rule forbids (#1760 review: the union carried no citation).
+   */
+  static floatBitsUnion(
+    floatCType: string,
+    bitsCType: string,
+  ): IComplianceAnnotation {
+    return {
+      rule: "21.15",
+      what: "float bits accessed through a union",
+      why: `memcpy would pass incompatible pointer types: ${floatCType}* vs ${bitsCType}*`,
+    };
+  }
+
+  /**
    * The one rendering of the house form,
    * `/* <Standard> Rule <N>: <what> (<why>). *\/`.
    */
@@ -103,6 +119,7 @@ class ComplianceAnnotations {
       ComplianceAnnotations.FOREVER_LOOP,
       ComplianceAnnotations.INIT_PROTOTYPE,
       ComplianceAnnotations.sliceUnroll("uint8_t", "uint32_t"),
+      ComplianceAnnotations.floatBitsUnion("float", "uint32_t"),
     ];
   }
 }

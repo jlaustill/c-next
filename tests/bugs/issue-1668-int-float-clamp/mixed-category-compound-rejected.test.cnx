@@ -1,0 +1,60 @@
+// test-error
+// test-adr: 024
+// Issue #1668: a compound assignment is the same Rule 10.4 operator as its
+// binary form. `y *<- 2.5` is `y <- y * 2.5`, so it is E0810 too, and so is a
+// signed/unsigned mix, which ADR-024 already rejected in the binary form while
+// `y +<- b` compiled. The integer case used to reach cnx_clamp_mul_u32(y, 2.5).
+// The functions after the flagged ones are negative controls and must stay silent.
+
+u32 unsignedTimesLiteral() {
+    u32 y <- 3;
+    y *<- 2.5;
+    return y;
+}
+
+u32 unsignedTimesFloat(f32 k) {
+    u32 y <- 3;
+    y *<- k;
+    return y;
+}
+
+f32 floatPlusUnsigned(f32 k) {
+    u32 i <- 3;
+    f32 x <- k;
+    x +<- i;
+    return x;
+}
+
+u32 unsignedPlusSigned(i32 b) {
+    u32 y <- 3;
+    y +<- b;
+    return y;
+}
+
+u32 forUpdateBySigned(i32 step) {
+    u32 total <- 0;
+    for (u32 i <- 0; i < 8; i +<- step) {
+        total +<- 1;
+    }
+    return total;
+}
+
+u32 unsignedPlusLiteral() {
+    u32 y <- 3;
+    y +<- 1;
+    y <<<- 2;
+    return y;
+}
+
+f32 floatTimesLiterals(f32 k) {
+    f32 x <- k;
+    x *<- 2.5;
+    x *<- 3;
+    return x;
+}
+
+u32 unsignedPlusUnsigned(u8 small) {
+    u32 y <- 3;
+    y +<- small;
+    return y;
+}

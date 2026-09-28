@@ -30,45 +30,38 @@
 
 import { ParseTreeWalker } from "antlr4ng";
 
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import ScopeFrameResolver from "./ScopeFrameResolver";
+import OperandTyper from "../../utils/OperandTyper";
+import AssignmentSiteListener from "./AssignmentSiteListener";
 import ICompoundAssignmentError from "./types/ICompoundAssignmentError";
-import ChainRoot from "./helpers/ChainRoot";
-import StructFieldFacts from "../../utils/StructFieldFacts";
+import type IOperandType from "../../transpiler/types/IOperandType";
+import type TAssignmentSite from "./types/TAssignmentSite";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** What made a target unusable, in words the message can name. */
 type TRejection = "bit index" | "bit range or slice" | "string";
 
-class CompoundAssignmentListener extends CNextListener {
+class CompoundAssignmentCheck {
   private readonly found: ICompoundAssignmentError[] = [];
 
-  public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    private readonly context: IAnalysisContext,
-  ) {
-    super();
-  }
+  public constructor(private readonly context: IAnalysisContext) {}
 
   public errors(): ICompoundAssignmentError[] {
     return this.found;
   }
 
-  override enterAssignmentStatement = (
-    ctx: Parser.AssignmentStatementContext,
-  ): void => {
+  /** A compound assignment, in a statement or a `for` header (#1726) */
+  public checkSite(site: TAssignmentSite): void {
     // `ASSIGN` is the plain `<-`; every other operator in the rule is compound.
     // Asking what it is NOT keeps this from listing the operators, which is the
     // enumeration that let E0853 miss `switch`.
-    if (ctx.assignmentOperator().ASSIGN()) return;
+    if (site.assignmentOperator().ASSIGN()) return;
 
-    const reason = this.rejectionFor(ctx.assignmentTarget());
+    const reason = this.rejectionFor(site.assignmentTarget());
     if (reason === null) return;
 
-    const { line, column } = ParserUtils.getPosition(ctx);
+    const { line, column } = ParserUtils.getPosition(site);
     this.found.push({
       code: "E0857",
       line,
@@ -77,123 +70,37 @@ class CompoundAssignmentListener extends CNextListener {
       helpText:
         "A compound operator reads, modifies and writes back one storage location. Write the read and the write out separately.",
     });
-  };
+  }
 
   /**
    * Why this target cannot take a compound operator, or null.
    *
-   * Walks the postfix chain carrying the DIMENSIONS the next subscript would
-   * apply to. That is what makes `bytes.data[0] +<- 5` legal while
-   * `flags[0] +<- 1` is not: the first subscript indexes a struct field that
-   * was declared an array, and the base variable's own array-ness says nothing
-   * about it. The first version of this asked only the base and rejected three
-   * real fixtures.
+   * Each subscript is what the one operand typer classified it as, against
+   * the shape of what it indexes (#1668). That is what makes
+   * `bytes.data[0] +<- 5` legal while `flags[0] +<- 1` is not: the first
+   * indexes a struct field declared an array, the second a scalar, which is a
+   * bit index (ADR-007). A shape the typer cannot establish is array access,
+   * and never rejects: a name this pass cannot resolve is another
+   * diagnostic's to report, not this one's to guess at.
    */
-  /**
-   * One subscript step. A shape that is not established never rejects, and an
-   * established scalar being subscripted is a bit index (ADR-007).
-   */
-  private static afterSubscript(
-    dimensions: readonly (number | string)[] | null,
-  ): {
-    dimensions: readonly (number | string)[] | null;
-    rejection?: TRejection | null;
-  } {
-    if (dimensions === null) return { dimensions: null, rejection: null };
-    if (dimensions.length === 0) {
-      return { dimensions, rejection: "bit index" };
-    }
-    return { dimensions: dimensions.slice(1) };
-  }
-
-  /**
-   * One `.field` step.
-   *
-   * #1322: both maps are read through one resolved key inside `CodeGenState`,
-   * so a scope-declared struct is found here and by every other
-   * chain-following analyzer. This used to derive the key privately, which
-   * left the other four resolving nothing for the same structs.
-   */
-  private afterMember(
-    typeName: string | null,
-    field: string | undefined,
-  ): {
-    dimensions: readonly (number | string)[] | null;
-    typeName: string | null;
-  } {
-    if (field === undefined || typeName === null) {
-      return { dimensions: null, typeName: null };
-    }
-    return {
-      dimensions:
-        StructFieldFacts.dimensionsOf(this.context.symbols, typeName, field) ??
-        null,
-      typeName:
-        StructFieldFacts.typeOf(this.context.symbols, typeName, field) ?? null,
-    };
-  }
-
   private rejectionFor(
     target: Parser.AssignmentTargetContext,
   ): TRejection | null {
-    const declared = this.declaredBase(target);
-    const ops = target.postfixTargetOp();
-
-    if (ops.length === 0) {
-      return declared !== null && declared.stringCapacity !== null
-        ? "string"
-        : null;
+    // A range or a slice is never one storage location, whatever it
+    // indexes, so this needs no resolved shape.
+    if (target.postfixTargetOp().some((op) => op.expression().length >= 2)) {
+      return "bit range or slice";
     }
-
-    // What the next subscript indexes into. `null` means "not established" --
-    // an unresolved base, or a field whose declaration this pass cannot see --
-    // and an unestablished shape never rejects. A name this pass cannot resolve
-    // is another diagnostic's to report, not this one's to guess at.
-    let dimensions: readonly (number | string)[] | null =
-      declared?.dimensions ?? null;
-    let typeName: string | null = declared?.typeText ?? null;
-
-    for (const op of ops) {
-      const subscripts = op.expression();
-
-      if (subscripts.length >= 2) {
-        // A range or a slice is never one storage location, whatever it
-        // indexes, so this needs no resolved shape.
-        return "bit range or slice";
-      }
-
-      if (subscripts.length === 1) {
-        const stepped = CompoundAssignmentListener.afterSubscript(dimensions);
-        if (stepped.rejection !== undefined) return stepped.rejection;
-        dimensions = stepped.dimensions;
-        continue;
-      }
-
-      const stepped = this.afterMember(typeName, op.IDENTIFIER()?.getText());
-      dimensions = stepped.dimensions;
-      typeName = stepped.typeName;
+    const typing = OperandTyper.chainOf(target, this.context);
+    if (typing.steps.some((step) => step.subscript === "bit_single")) {
+      return "bit index";
     }
-
-    // The chain may END on a string -- `config.name +<- " suffix"` where `name`
-    // is a `string<32>` field. Asking only the base variable missed it, because
-    // the base is the struct. A string is a buffer copied by `strncpy`, not a
-    // value `+` can be applied to, wherever it is reached from.
-    return CompoundAssignmentAnalyzer.isStringType(typeName) ? "string" : null;
-  }
-
-  /**
-   * #1322 review: this read only `target.IDENTIFIER()`, so BOTH `this.` and
-   * `global.` were dropped and the base was always resolved lexically. With a
-   * shadowing local, `global.buf +<- " more"` on a file-scope `string<16>`
-   * reached C as `cnx_clamp_add_u8(buf, " more")` -- which gcc rejects -- at
-   * exit 0, because E0857 measured the local `u8` instead.
-   */
-  private declaredBase(target: Parser.AssignmentTargetContext) {
-    return this.scopes.declarationFor(
-      ChainRoot.ofTarget(target),
-      target.IDENTIFIER().getText(),
-      this.scopes.frameFor(target),
-    );
+    // The chain may END on a string -- `config.name +<- " suffix"` where
+    // `name` is a `string<32>` field. A string is a buffer copied by
+    // `strncpy`, not a value `+` can be applied to, wherever it is reached
+    // from.
+    const last = OperandTyper.typeOfTarget(target, this.context);
+    return CompoundAssignmentAnalyzer.isString(last) ? "string" : null;
   }
 }
 
@@ -201,26 +108,18 @@ class CompoundAssignmentAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  /**
-   * A declared type text naming a bounded string.
-   *
-   * `structFields` records a field's type as written, so a `string<32>` field
-   * arrives here as that text rather than as a parsed capacity.
-   */
-  public static isStringType(typeName: string | null): boolean {
-    return typeName !== null && /^string\s*</.test(typeName);
+  /** A bounded string value -- not an element of one, which is a char */
+  public static isString(t: IOperandType | null): boolean {
+    return t !== null && t.dimensions.length === 0 && OperandTyper.isString(t);
   }
 
   public analyze(tree: Parser.ProgramContext): ICompoundAssignmentError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
-
-    const listener = new CompoundAssignmentListener(
-      new ScopeFrameResolver(declarations, this.context.symbolTable),
-      this.context,
+    const check = new CompoundAssignmentCheck(this.context);
+    ParseTreeWalker.DEFAULT.walk(
+      new AssignmentSiteListener((site) => check.checkSite(site)),
+      tree,
     );
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+    return check.errors();
   }
 }
 

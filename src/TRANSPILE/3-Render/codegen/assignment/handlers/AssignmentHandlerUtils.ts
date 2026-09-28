@@ -9,6 +9,8 @@ import IRegisterNameResult from "./IRegisterNameResult";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import invariant from "../../../../../utils/invariant";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
+import BitUtils from "../../../../../utils/BitUtils";
+import type IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 
 /**
  * Validate that compound assignment operators are not used with bit field access.
@@ -98,9 +100,64 @@ function buildRegisterNameWithScopeDetection(
 }
 
 /**
+ * The one bit write: the target without its final subscript, rendered by
+ * the target renderer, and that subscript's bit or bit range (#1668 review).
+ *
+ * Five handlers and the member-chain one each rebuilt the base from the
+ * source spelling, so a local renamed `f__gs` was written as the global
+ * `gs`, and each picked the mask's width from a type NAME only `u64`/`i64`
+ * matched: a header's `uint64_t` or a `u64` struct field got `1U << 40`,
+ * undefined behavior. The width is the typer's now, for the value the
+ * subscript indexes, whatever its spelling -- and the MISRA C:2012 Rule
+ * 10.3 narrowing cast comes with it for every form, not only two.
+ * `BitUtils` takes it as the C type the value is stored in, which is what a
+ * bitmap, a register member and a float's bits give it too.
+ *
+ * #1760 review: the value's category decides the write, once, for every
+ * target. A float's bits go through a union, an element's and a field's too
+ * (they fell through to a plain subscript store, and a variable was the only
+ * float this reached). An integer the target gives no width, such as a
+ * header's `int_fast16_t`, is written in `uintmax_t` by its own type name
+ * (owner ruling), where a 32-bit mask cleared the upper half of a `long`.
+ */
+function writeBits(ctx: IAssignmentContext): string {
+  const last = ctx.postfixOps.at(-1);
+  invariant(
+    last?.kind === "subscript",
+    "a bit write's target ends in a subscript: the classifier routed it here",
+  );
+  // Source order: the base's own subscripts, then the bit's
+  const base = ctx.renderBitTarget();
+  const [start, widthText] = last.renderIndexes();
+  // Every writer takes the width with its fold (#1096): the float branch
+  // passed it unfolded, and masked a runtime `1U << 32` at full width
+  const width =
+    widthText === undefined
+      ? undefined
+      : { text: widthText, folded: last.foldWidth() };
+  const value = ctx.target.last?.before ?? null;
+  if (value?.category === "floating") {
+    invariant(value.typeName !== null, "the typer names a float's type");
+    return ctx.state.requireGenerator().generateFloatBitWrite({
+      target: base,
+      floatType: value.typeName,
+      bitIndex: start,
+      width: width ?? null,
+      value: ctx.generatedValue,
+      isVariable: ctx.postfixOps.length === 1,
+    });
+  }
+  const storage = BitUtils.storageOf(value);
+  return width === undefined
+    ? BitUtils.singleBitWrite(base, start, ctx.generatedValue, storage)
+    : BitUtils.multiBitWrite(base, start, width, ctx.generatedValue, storage);
+}
+
+/**
  * Assignment Handler Utilities
  */
 class AssignmentHandlerUtils {
+  static readonly writeBits = writeBits;
   static readonly validateWriteOnlyValue = validateWriteOnlyValue;
   static readonly buildScopedRegisterName = buildScopedRegisterName;
   static readonly buildRegisterNameWithScopeDetection =

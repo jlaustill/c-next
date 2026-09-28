@@ -67,7 +67,7 @@ function setupSymbols(
  */
 function createMockCallbacks(): IFunctionContextCallbacks {
   return {
-    isStructType: vi.fn(() => false),
+    isKnownStruct: vi.fn(() => false),
   };
 }
 
@@ -283,7 +283,7 @@ describe("FunctionContextManager", () => {
 
     it("registers struct parameter using callback", () => {
       const callbacks = createMockCallbacks();
-      (callbacks.isStructType as ReturnType<typeof vi.fn>).mockReturnValue(
+      (callbacks.isKnownStruct as ReturnType<typeof vi.fn>).mockReturnValue(
         true,
       );
 
@@ -297,7 +297,7 @@ describe("FunctionContextManager", () => {
       const paramInfo = state.currentParameters.get("point");
       expect(paramInfo).toBeDefined();
       expect(paramInfo!.isStruct).toBe(true);
-      expect(callbacks.isStructType).toHaveBeenCalledWith("Point");
+      expect(callbacks.isKnownStruct).toHaveBeenCalledWith("Point");
     });
 
     it("registers string parameter", () => {
@@ -350,7 +350,7 @@ describe("FunctionContextManager", () => {
         // A struct with a body is a known struct; a forward-declared typedef
         // is not -- the stamp is what makes it one.
         const callbacks: IFunctionContextCallbacks = {
-          isStructType: vi.fn(() => !isOpaque),
+          isKnownStruct: vi.fn(() => !isOpaque),
         };
 
         FunctionContextManager.processParameter(
@@ -367,9 +367,9 @@ describe("FunctionContextManager", () => {
         const paramInfo = state.currentParameters.get("p");
         expect(paramInfo!.isStruct).toBe(true);
         expect(paramInfo!.isOpaqueHandle).toBe(expected);
-        expect(state.getVariableTypeInfo("p")!.isPointer ?? false).toBe(
-          expected,
-        );
+        // #1668: the call site's pointer-ness is the parameter's declared
+        // type (`DeclaredTypeInfo`), not a registry entry written here; its
+        // handle case is asserted in DeclaredTypeInfo.test.ts
       },
     );
   });
@@ -390,7 +390,7 @@ describe("FunctionContextManager", () => {
 
     it("resolves user type and checks struct", () => {
       const callbacks = createMockCallbacks();
-      (callbacks.isStructType as ReturnType<typeof vi.fn>).mockReturnValue(
+      (callbacks.isKnownStruct as ReturnType<typeof vi.fn>).mockReturnValue(
         true,
       );
 
@@ -477,7 +477,7 @@ describe("FunctionContextManager", () => {
 
     it("resolves an array of user types to the element type", () => {
       const callbacks = createMockCallbacks();
-      (callbacks.isStructType as ReturnType<typeof vi.fn>).mockReturnValue(
+      (callbacks.isKnownStruct as ReturnType<typeof vi.fn>).mockReturnValue(
         true,
       );
 
@@ -509,114 +509,7 @@ describe("FunctionContextManager", () => {
     });
   });
 
-  describe("registerParameterType", () => {
-    it("registers parameter in type registry", () => {
-      FunctionContextManager.registerParameterType(
-        {
-          typeName: "u32",
-          isStruct: false,
-          isCallback: false,
-          isString: false,
-        },
-        plannedParam("x", plannedType({ primitiveName: "u32" })),
-        state,
-      );
-
-      const typeInfo = state.getVariableTypeInfo("x");
-      expect(typeInfo).toBeDefined();
-      expect(typeInfo!.baseType).toBe("u32");
-      expect(typeInfo!.isParameter).toBe(true);
-    });
-
-    it("registers enum parameter with enumTypeName", () => {
-      setupSymbols({ knownEnums: new Set(["Color"]) });
-
-      FunctionContextManager.registerParameterType(
-        {
-          typeName: "Color",
-          isStruct: false,
-          isCallback: false,
-          isString: false,
-        },
-        plannedParam("color", plannedType({ named: named("bare", "Color") })),
-        state,
-      );
-
-      const typeInfo = state.getVariableTypeInfo("color");
-      expect(typeInfo).toBeDefined();
-      expect(typeInfo!.isEnum).toBe(true);
-      expect(typeInfo!.enumTypeName).toBe("Color");
-    });
-
-    it("registers bitmap parameter with bitWidth", () => {
-      setupSymbols({
-        knownBitmaps: new Set(["Flags"]),
-        bitmapBitWidth: new Map([["Flags", 8]]),
-      });
-
-      FunctionContextManager.registerParameterType(
-        {
-          typeName: "Flags",
-          isStruct: false,
-          isCallback: false,
-          isString: false,
-        },
-        plannedParam("flags", plannedType({ named: named("bare", "Flags") })),
-        state,
-      );
-
-      const typeInfo = state.getVariableTypeInfo("flags");
-      expect(typeInfo).toBeDefined();
-      expect(typeInfo!.isBitmap).toBe(true);
-      expect(typeInfo!.bitmapTypeName).toBe("Flags");
-      expect(typeInfo!.bitWidth).toBe(8);
-    });
-
-    it("appends the null terminator to a string array's dimensions", () => {
-      FunctionContextManager.registerParameterType(
-        {
-          typeName: "string<32>",
-          isStruct: false,
-          isCallback: false,
-          isString: true,
-        },
-        plannedParam("names", plannedType({ isString: true, isArray: true }), {
-          isArray: true,
-          arrayDimensions: [5],
-          stringCapacity: 32,
-        }),
-        state,
-      );
-
-      const typeInfo = state.getVariableTypeInfo("names");
-      expect(typeInfo!.arrayDimensions).toEqual([5, 33]);
-    });
-  });
-
   describe("clearParameters", () => {
-    it("removes parameters from type registry", () => {
-      state.currentParameters.set("x", {
-        name: "x",
-        baseType: "u32",
-        isArray: false,
-        isStruct: false,
-        isConst: false,
-        isCallback: false,
-        isString: false,
-      });
-      state.setVariableTypeInfo("x", {
-        baseType: "u32",
-        bitWidth: 32,
-        isArray: false,
-        isConst: false,
-        isParameter: true,
-      });
-
-      FunctionContextManager.clearParameters(state);
-
-      expect(state.getVariableTypeInfo("x")).toBeUndefined();
-    });
-
     it("clears currentParameters map", () => {
       state.currentParameters.set("x", {
         name: "x",
@@ -631,14 +524,6 @@ describe("FunctionContextManager", () => {
       FunctionContextManager.clearParameters(state);
 
       expect(state.currentParameters.size).toBe(0);
-    });
-
-    it("clears localArrays set", () => {
-      state.localArrays.add("arr");
-
-      FunctionContextManager.clearParameters(state);
-
-      expect(state.localArrays.size).toBe(0);
     });
   });
 

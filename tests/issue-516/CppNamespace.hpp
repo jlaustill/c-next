@@ -1,5 +1,5 @@
 #pragma once
-#include <cstdint>
+#include <stdint.h>
 
 // Test header for issue #516: C++ namespace function calls
 namespace SeaDash {

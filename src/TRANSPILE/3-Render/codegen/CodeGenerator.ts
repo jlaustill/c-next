@@ -3,11 +3,11 @@
  * Transforms C-Next AST to clean, readable C code
  */
 
+import type IFloatBitWrite from "../../../transpiler/types/IFloatBitWrite";
 import ReservedCnxName from "../../../utils/ReservedCnxName";
 
 // Issue #60: BITMAP_SIZE and BITMAP_BACKING_TYPE moved to SymbolCollector
 import TTypeInfo from "../../../transpiler/types/TTypeInfo";
-import ExpressionTypeResolver from "../../2-Plan/ExpressionTypeResolver";
 import IOrchestrator from "./generators/IOrchestrator";
 import IGeneratorInput from "./generators/IGeneratorInput";
 import IGeneratorState from "./generators/IGeneratorState";
@@ -17,10 +17,10 @@ import TGeneratorEffect from "./generators/TGeneratorEffect";
 import atomicGenerators from "./generators/statements/AtomicGenerator";
 // Declaration generators
 // ADR-065: Extracted utilities
-import BitUtils from "../../../utils/BitUtils";
 import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
 import FormatUtils from "../../../utils/FormatUtils";
 import StringUtils from "../../../utils/StringUtils";
+import invariant from "../../../utils/invariant";
 // Support generators
 // ADR-046: which nullable C functions return a struct pointer (#1322: a
 // constant lookup, not an analyzer -- see the module header)
@@ -42,7 +42,6 @@ import FloatBitHelper from "./helpers/FloatBitHelper";
 // Issue #644: Assignment expected type resolution helper
 // PR #715: C++ member conversion helper for improved testability
 // PR #715: Boolean conversion helper for improved testability
-import BooleanHelper from "./helpers/BooleanHelper";
 // PR #715: C++ constructor detection helper for improved testability
 // PR #715: Set/Map utilities for improved testability
 // PR #715: Symbol lookup utilities for improved testability
@@ -63,7 +62,7 @@ import type IPlannedFunctionParameter from "./types/IPlannedFunctionParameter";
 import FunctionContextManager from "./helpers/FunctionContextManager";
 import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
-import DeclaredTypeFacts from "../../../utils/DeclaredTypeFacts";
+import TypeCheckUtils from "../../../utils/TypeCheckUtils";
 import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
 import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
@@ -100,14 +99,11 @@ export default class CodeGenerator implements IOrchestrator {
     return {
       symbolTable: this.state.symbolTable,
       symbols: this.state.symbols,
-      typeRegistry: this.state.getTypeRegistryView(),
       functionSignatures: this.state.functionSignatures,
       knownFunctions: this.state.knownFunctions,
       knownStructs: this.state.symbols?.knownStructs ?? new Set(),
-      constValues: this.state.constValues,
       callbackTypes: this.state.callbackTypes,
       callbackFieldTypes: this.state.callbackFieldTypes,
-      targetCapabilities: this.state.targetCapabilities,
       debugMode: this.state.debugMode,
     };
   }
@@ -123,7 +119,6 @@ export default class CodeGenerator implements IOrchestrator {
       inFunctionBody: this.state.inFunctionBody,
       currentParameters: this.state.currentParameters,
       localVariables: this.state.localVariables,
-      localArrays: this.state.localArrays,
       expectedType: this.state.expectedType,
       headerOwnsTypeDefinitions:
         this.state.declarationPlan().headerOwnsTypeDefinitions, // #369/#1450
@@ -261,27 +256,23 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isKnownStruct(typeName: string): boolean {
-    return DeclaredTypeFacts.isStruct(
-      this.state.symbols,
-      this.state.symbolTable,
-      typeName,
-    );
+    return this.state.isKnownStruct(typeName);
   }
 
   /**
    * Check if a type is a float type.
-   * Part of IOrchestrator interface - delegates to ExpressionTypeResolver.
+   * Part of IOrchestrator interface - delegates to TypeCheckUtils.
    */
   isFloatType(typeName: string): boolean {
-    return ExpressionTypeResolver.isFloatType(typeName);
+    return TypeCheckUtils.isFloat(typeName);
   }
 
   /**
    * Check if a type is an integer type.
-   * Part of IOrchestrator interface - delegates to ExpressionTypeResolver.
+   * Part of IOrchestrator interface - delegates to TypeCheckUtils.
    */
   isIntegerType(typeName: string): boolean {
-    return ExpressionTypeResolver.isIntegerType(typeName);
+    return TypeCheckUtils.isInteger(typeName);
   }
 
   /**
@@ -661,25 +652,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Get struct field info for .length calculations.
-   * Part of IOrchestrator interface.
-   *
-   * Delegated, not re-implemented. This body was a second copy that asked
-   * `symbolTable` alone -- a bare `structFields.get(name)` with no key
-   * derivation -- so it answered `null` for a SCOPE-declared struct, whose
-   * fields are recorded under the transpiled key. #1322 fixed that on the state
-   * by falling back through `resolvedStructKey`, and the fix reached
-   * `AssignmentClassifier` and `BitmapHandlers` while the six sites that come
-   * through `IOrchestrator` kept the old answer.
-   */
-  getStructFieldInfo(
-    structType: string,
-    fieldName: string,
-  ): { type: string; dimensions?: (number | string)[] } | null {
-    return this.state.getStructFieldInfo(structType, fieldName);
-  }
-
-  /**
    * Get member type info for struct access chains.
    * Part of IOrchestrator interface.
    *
@@ -692,16 +664,6 @@ export default class CodeGenerator implements IOrchestrator {
    */
   getMemberTypeInfo(structType: string, memberName: string): TTypeInfo | null {
     return this.state.getMemberTypeInfo(structType, memberName);
-  }
-
-  /**
-   * Generate a bit mask for bit range access.
-   * Part of IOrchestrator interface.
-   * Issue #644: Delegate to BitUtils for code reuse.
-   */
-  generateBitMask(width: string, is64Bit: boolean = false): string {
-    // BitUtils.generateMask expects a type string, not a boolean
-    return BitUtils.generateMask(width, is64Bit ? "u64" : undefined);
   }
 
   /**
@@ -745,15 +707,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #948: Check if a type is an opaque (forward-declared) struct type.
-   * Opaque types can only be used as pointers (cannot be instantiated).
-   * Part of IOrchestrator interface.
-   */
-  isOpaqueType(typeName: string): boolean {
-    return this.state.isOpaqueType(typeName);
-  }
-
-  /**
    * ADR-030: whether a declaration of this type is held through a pointer.
    * Part of IOrchestrator interface.
    */
@@ -761,22 +714,9 @@ export default class CodeGenerator implements IOrchestrator {
     return this.state.isHeldThroughPointer(typeName);
   }
 
-  /**
-   * Issue #948: Mark a scope variable as having an opaque type.
-   * These variables are generated as pointers with NULL initialization.
-   * Part of IOrchestrator interface.
-   */
-  markOpaqueScopeVariable(qualifiedName: string): void {
-    this.state.markOpaqueScopeVariable(qualifiedName);
-  }
-
   // ===========================================================================
   // End IOrchestrator Implementation
   // ===========================================================================
-
-  private foldBooleanToInt(expr: string): string {
-    return BooleanHelper.foldBooleanToInt(expr);
-  }
 
   // Issue #63: validateIncludeNotImplementationFile moved to TypeValidator
 
@@ -809,14 +749,6 @@ export default class CodeGenerator implements IOrchestrator {
     // #1511: the artifact's answer, so the `.h` this feeds and the `.c` this
     // class emits cannot disagree -- they now read one derivation.
     return this.state.program?.passByValueParams() ?? new Map();
-  }
-
-  /**
-   * Issue #322: Check if a type name is a user-defined struct
-   * Part of IOrchestrator interface.
-   */
-  isStructType(typeName: string): boolean {
-    return ExpressionTypeResolver.isStructType(typeName, this.state);
   }
 
   /**
@@ -863,7 +795,7 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private _getFunctionContextCallbacks(): IFunctionContextCallbacks {
     return {
-      isStructType: (typeName: string) => this.isStructType(typeName),
+      isKnownStruct: (typeName: string) => this.isKnownStruct(typeName),
     };
   }
 
@@ -906,23 +838,11 @@ export default class CodeGenerator implements IOrchestrator {
    *
    * @public
    */
-  generateFloatBitWrite(
-    name: string,
-    typeInfo: TTypeInfo,
-    bitIndex: string,
-    width: string | null,
-    value: string,
-  ): string | null {
+  generateFloatBitWrite(bitWrite: IFloatBitWrite): string {
     // Issue #644: FloatBitHelper is now static, pass callbacks
     return FloatBitHelper.generateFloatBitWrite(
-      name,
-      typeInfo,
-      bitIndex,
-      width,
-      value,
+      bitWrite,
       {
-        generateBitMask: (w, is64Bit) => this.generateBitMask(w, is64Bit),
-        foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
         requireInclude: (header) => this.state.requireInclude(header),
       },
       this.state,
@@ -946,13 +866,19 @@ export default class CodeGenerator implements IOrchestrator {
     cOp: string,
     value: string,
     typeInfo: TTypeInfo,
+    clampOp: string | null,
   ): string {
+    invariant(
+      this.state.targetDescription,
+      "generate() sets the target before any statement is rendered",
+    );
     const result = atomicGenerators.generateAtomicRMW(
       target,
       cOp,
       value,
       typeInfo,
-      this.state.targetCapabilities,
+      clampOp,
+      this.state.targetDescription,
     );
     this.applyEffects(result.effects);
     return result.code;

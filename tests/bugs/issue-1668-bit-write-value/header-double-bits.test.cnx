@@ -1,0 +1,13 @@
+// test-execution
+// #1760 review: a header `double`'s subscript was typed as an element, not as
+// the bit index ADR-007 gives a float, so `dd[63] <- true` was emitted as
+// `dd[63] = true;`, which C rejects. It is written through a union now.
+// Pinned: a header `double` is 32 bits on AVR, so its union is the host's.
+#pragma target host
+#include "double_bits.h"
+
+u32 main() {
+    dd[63] <- true;
+    if (dd != -2.0) return 1;
+    return 0;
+}

@@ -84,11 +84,37 @@ describe("PlatformIOCommand", () => {
 
       // Should use entry point approach
       expect(scriptContent).toContain('Path("src/main.cnx")');
-      expect(scriptContent).toContain('["cnext", str(entry)]');
+      // ADR-049: the environment being built names the target (#1668)
+      expect(scriptContent).toContain(
+        '["cnext", str(entry), "--pio-env", env["PIOENV"]]',
+      );
 
       // Should NOT loop over individual .cnx files
       expect(scriptContent).not.toContain("for cnx_file");
       expect(scriptContent).not.toContain("rglob");
+    });
+
+    it("generates script that shows a successful run's target and warnings", () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue("[env:esp32]\n");
+
+      PlatformIOCommand.install();
+
+      const scriptCall = vi
+        .mocked(fs.writeFileSync)
+        .mock.calls.find((call) =>
+          (call[0] as string).includes("cnext_build.py"),
+        );
+      const scriptContent = scriptCall?.[1] as string;
+
+      // #1760 review: the ADR-049 `Target:` line was filtered out of pio run,
+      // and warnings, which go to stderr, were printed only on failure
+      expect(scriptContent).toContain(
+        'line.startswith(("Compiled", "Target", "Collected", "Generated"))',
+      );
+      expect(scriptContent).toContain(
+        "if result.stderr:\n            print(result.stderr.rstrip())",
+      );
     });
 
     it("generates script that runs at import time, not as buildprog pre-action (issue #833)", () => {

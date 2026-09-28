@@ -20,6 +20,11 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
+}
+
 // test-execution
 // Tests: multi-dimensional u16 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
@@ -56,7 +61,7 @@ int main(void) {
     if (16 != 16) return 16U;
     for (uint32_t i = 0U; i < 4; i += 1) {
         for (uint32_t j = 0U; j < 8; j += 1) {
-            matrix2d[i][j] = (((i * 100U + j)) & 0xFFFFU);
+            matrix2d[i][j] = static_cast<uint16_t>((((cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100U), j))) & 0xFFFFU));
         }
     }
     if (matrix2d[0U][0U] != 0) return 17U;
@@ -67,7 +72,7 @@ int main(void) {
     for (uint32_t i = 0U; i < 2; i += 1) {
         for (uint32_t j = 0U; j < 3; j += 1) {
             for (uint32_t k = 0U; k < 4; k += 1) {
-                cube3d[i][j][k] = (((i * 100U + j * 10U + k)) & 0xFFFFU);
+                cube3d[i][j][k] = static_cast<uint16_t>((((cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100U), cnx_clamp_mul_u32(j, 10U)), k))) & 0xFFFFU));
                 sum = cnx_clamp_add_u32(sum, cube3d[i][j][k]);
             }
         }

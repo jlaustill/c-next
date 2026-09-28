@@ -1,6 +1,5 @@
 /**
- * Whether an assignment target ends in a bit access, and the pieces the
- * read-modify-write needs if it does.
+ * Whether an assignment target ends in a bit, or a bit range, of an integer.
  *
  * #1445: declared THREE times before this file existed -- in
  * `MemberChainAnalyzer` (which produces it), in `ICodeGenApi` (which dispatches
@@ -13,20 +12,14 @@
  * layer is a shared contract, and this directory is where the layer rules send
  * those.
  *
- * The three optional fields are present exactly when `isBitAccess` is true.
- * That is not expressed as a union because `ICodeGenApi`'s consumer reads them
- * behind that check with `!`, and changing how they are read is a separate
- * change from giving them one home.
+ * #1668 review: it carried the rendered base target, bit index and type as
+ * well, built from the source spelling, so a renamed local's bit write wrote
+ * the global it shadows. The write is `AssignmentHandlerUtils.writeBits` now,
+ * the one every bit handler uses, and this is only the decision.
  */
 interface IBitAccessAnalysis {
   /** True if the last subscript is bit access on an integer */
   isBitAccess: boolean;
-  /** The base target expression (without bit index) */
-  baseTarget?: string;
-  /** The bit index expression */
-  bitIndex?: string;
-  /** The base type of the target */
-  baseType?: string;
 }
 
 export default IBitAccessAnalysis;

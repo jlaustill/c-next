@@ -49,15 +49,15 @@ u32 main() {
 
     // Test newline comparison
     u8 c <- '\n';
-    if (c != '\n') return 15;
+    if (c != (u8)'\n') return 15;
 
     // Test tab comparison
     c <- '\t';
-    if (c != '\t') return 16;
+    if (c != (u8)'\t') return 16;
 
     // Test null comparison
     c <- '\0';
-    if (c != '\0') return 17;
+    if (c != (u8)'\0') return 17;
 
     // ===== Escape sequences in switch =====
     u8 whitespace <- '\t';

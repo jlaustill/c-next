@@ -133,31 +133,6 @@ const _resolveArgType = (
 const _pointerDepth = (cType: string): number => cType.split("*").length - 1;
 
 /**
- * ADR-030 / #996: is this argument an element of an array whose elements are
- * pointers? An array of opaque handles is an array of pointers, so `arr[i]` is
- * already the handle and `&arr[i]` is a `T**` where a `T*` belongs.
- *
- * Asked of the array itself, which is where its declaration recorded it --
- * `isOpaqueScopeVariableAccess` asks the same of a scope member. That split,
- * two stores for one fact, is older than this helper; this makes the registry
- * half answer for an element as the scope half already did, for a parameter,
- * a file-scope or local variable, and one declared in an included file alike.
- */
-const _isElementOfPointerArray = (
-  argCode: string,
-  orchestrator: IOrchestrator,
-): boolean => {
-  const bracketIndex = argCode.indexOf("[");
-  if (bracketIndex <= 0) {
-    return false;
-  }
-  const array = orchestrator.state.getVariableTypeInfo(
-    argCode.slice(0, bracketIndex),
-  );
-  return (array?.isArray ?? false) && (array?.isPointer ?? false);
-};
-
-/**
  * How many pointers deep an argument's VALUE already is.
  *
  * A C variable says so in its declared type: `Dev**` is 2. Issue #895 Bug B:
@@ -166,19 +141,14 @@ const _isElementOfPointerArray = (
  * (#996). Anything else is a value, 0.
  */
 const _argPointerDepth = (
-  argCode: string,
   argType: string | null,
   isRegisteredPointer: boolean,
-  orchestrator: IOrchestrator,
+  isHandleArrayElement: boolean,
 ): number => {
   if (argType?.endsWith("*")) {
     return _pointerDepth(argType);
   }
-  const isPointer =
-    isRegisteredPointer ||
-    _isElementOfPointerArray(argCode, orchestrator) ||
-    orchestrator.state.isOpaqueScopeVariableAccess(argCode);
-  return isPointer ? 1 : 0;
+  return isRegisteredPointer || isHandleArrayElement ? 1 : 0;
 };
 
 /**
@@ -234,7 +204,7 @@ const _generateCFunctionArg = (
 
   // Resolve the argument's type (expression type → variable registry → C symbol
   // table for extern globals) to decide whether it needs address-of.
-  const typeInfo = orchestrator.state.getVariableTypeInfo(argCode);
+  const typeInfo = arg.declared;
   const argType = _resolveArgType(
     arg,
     argCode,
@@ -243,10 +213,9 @@ const _generateCFunctionArg = (
   );
 
   const argPointerDepth = _argPointerDepth(
-    argCode,
     argType,
     typeInfo?.isPointer ?? false,
-    orchestrator,
+    arg.isHandleArrayElement(),
   );
 
   // Add & if argument needs address-of to match parameter type.
@@ -269,7 +238,7 @@ const _generateCFunctionArg = (
     !arg.isArray() &&
     (argPointerDepth > 0
       ? _pointerDepth(targetParam.baseType) === argPointerDepth + 1
-      : orchestrator.isStructType(argType) ||
+      : orchestrator.isKnownStruct(argType) ||
         _parameterExpectsAddressOf(
           targetParam.baseType,
           argType,
@@ -311,7 +280,7 @@ const _shouldPassByValue = (
   const isCrossFilePrimitive =
     isCrossFile &&
     CallExprUtils.isKnownPrimitiveType(targetParam.baseType) &&
-    !orchestrator.isStructType(targetParam.baseType) &&
+    !orchestrator.isKnownStruct(targetParam.baseType) &&
     !CallExprUtils.isStringType(targetParam.baseType);
 
   // Issue #551: Unknown types (external enums, typedefs) use pass-by-value
@@ -324,7 +293,7 @@ const _shouldPassByValue = (
   // scope variable and array element (`&UI__held`), which #996's and #1722's
   // fixtures pin.
   const isUnknownType =
-    !orchestrator.isStructType(targetParam.baseType) &&
+    !orchestrator.isKnownStruct(targetParam.baseType) &&
     !CallExprUtils.isKnownPrimitiveType(targetParam.baseType) &&
     !CallExprUtils.isStringType(targetParam.baseType) &&
     !isFloatParam &&
@@ -396,7 +365,7 @@ const generateFunctionCall = (
 
   // ADR-051: Handle safe_div() and safe_mod() built-in functions
   if (funcExpr === "safe_div" || funcExpr === "safe_mod") {
-    return generateSafeDivMod(funcExpr, args, effects, orchestrator);
+    return generateSafeDivMod(funcExpr, args, effects);
   }
 
   // Regular function call handling
@@ -476,7 +445,6 @@ const generateSafeDivMod = (
   funcName: string,
   args: readonly IPlannedCallArgument[],
   effects: TGeneratorEffect[],
-  orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   // #1322: ADR-051's call shape is E0884 (four arguments) and E0885 (the first
   // is a variable to receive the result) in pass 2.1, and a `const` output is
@@ -495,7 +463,7 @@ const generateSafeDivMod = (
   );
 
   // Look up the type of the output parameter
-  const typeInfo = orchestrator.state.getVariableTypeInfo(outputArgId);
+  const typeInfo = args[0].declared;
   invariant(
     typeInfo,
     `${funcName}'s output parameter is a declared variable with a type -- E0885 rejects this in pass 2.1, before this runs`,

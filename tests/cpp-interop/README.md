@@ -30,14 +30,10 @@ cpp-interop/
 ├── comprehensive-cpp.hpp          # Master header (20 sections)
 ├── comprehensive-cpp-stubs.cpp    # Stub implementations for linking
 ├── comprehensive-cpp.test.cnx     # Master test (all sections)
-├── comprehensive-cpp.expected.c   # Expected output patterns
-│
-├── isolated/                      # Isolated tests per feature
-│   ├── namespace.*                # Namespace access tests
-│   ├── static-methods.*           # Static method tests
-│   ├── enum-class.*               # Enum class tests
-│   └── ...                        # More isolated tests
-│
+├── comprehensive-cpp.expected.cpp # Expected output
+├── comprehensive-cpp.patterns.md  # Expected output patterns
+├── cpp-namespace-types.test.cnx   # C++ namespace types as C-Next types
+├── MockLib.hpp                    # The header cpp-namespace-types includes
 └── README.md                      # This file
 ```
 
@@ -48,12 +44,12 @@ cpp-interop/
 npm test -- tests/cpp-interop/
 
 # Manual comprehensive test
-cnext tests/cpp-interop/comprehensive-cpp.test.cnx --cpp -o /tmp/out/
-g++ -std=c++14 -fsyntax-only /tmp/out/comprehensive-cpp.cpp -I tests/cpp-interop/
+cnext tests/cpp-interop/comprehensive-cpp.test.cnx --cpp --target host -o /tmp/out/
+g++ -std=c++14 -fsyntax-only /tmp/out/comprehensive-cpp.test.cpp -I tests/cpp-interop/
 
 # Check specific patterns in output
-grep -E '::' /tmp/out/comprehensive-cpp.cpp | head -20  # Should see ::
-grep -E '\{0\}' /tmp/out/comprehensive-cpp.cpp          # Should be empty
+grep -E '::' /tmp/out/comprehensive-cpp.test.cpp | head -20  # Should see ::
+grep -E '\{0\}' /tmp/out/comprehensive-cpp.test.cpp     # Should be empty
 ```
 
 ## Validation Criteria

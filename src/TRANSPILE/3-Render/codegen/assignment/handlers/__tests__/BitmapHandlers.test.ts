@@ -3,10 +3,11 @@
  * Tests bitmap field assignment handler functions.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import bitmapHandlers from "../BitmapHandlers";
 import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
+import type IBitmapFieldLayout from "../../../../../../transpiler/types/IBitmapFieldLayout";
 import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
 import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
@@ -24,7 +25,7 @@ function createMockContext(
   const resolvedBaseIdentifier =
     overrides.resolvedBaseIdentifier ?? identifiers[0];
 
-  return {
+  const ctx = {
     identifiers,
     ...HandlerTestUtils.subscriptsOf([]),
     isCompound: false,
@@ -43,6 +44,7 @@ function createMockContext(
     hasValue: true,
     valueExpressionType: () => null,
     valueIntegerType: () => null,
+    valueHasFloatingOperand: () => false,
     foldValue: () =>
       HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     postfixOps: [],
@@ -64,6 +66,11 @@ function createMockContext(
     state,
     ...overrides,
   } as IAssignmentContext;
+  // #1668 (C7): what the target writes, as the binder would bind it
+  return {
+    ...ctx,
+    target: overrides.target ?? HandlerTestUtils.targetOf(state, ctx),
+  };
 }
 
 let state = new TranspileState();
@@ -94,183 +101,115 @@ describe("BitmapHandlers", () => {
     });
   });
 
-  describe("handleBitmapFieldSingleBit (BITMAP_FIELD_SINGLE_BIT)", () => {
-    const getHandler = () =>
-      bitmapHandlers.find(
-        ([kind]) => kind === AssignmentKind.BITMAP_FIELD_SINGLE_BIT,
-      )?.[1];
+  describe("handleBitmapField (a field of a bitmap value)", () => {
+    const VALUE_KINDS = [
+      AssignmentKind.BITMAP_FIELD_SINGLE_BIT,
+      AssignmentKind.BITMAP_FIELD_MULTI_BIT,
+      AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD,
+      AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD,
+    ];
+    const handlerFor = (kind: AssignmentKind) =>
+      bitmapHandlers.find(([k]) => k === kind)![1];
+    const write = (ctx: IAssignmentContext) =>
+      handlerFor(AssignmentKind.BITMAP_FIELD_SINGLE_BIT)(ctx);
 
-    it("generates single-bit read-modify-write", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]);
+    /** A field write as the planner renders its target and the typer types it */
+    const fieldWrite = (
+      rendered: string,
+      bitmapType: string,
+      identifiers: string[],
+      generatedValue = "true",
+    ): IAssignmentContext => {
+      const ctx = createMockContext({ identifiers, generatedValue });
+      const before = {
+        ...HandlerTestUtils.operandOf("u8", false, false),
+        bitmapTypeName: bitmapType,
+      };
+      return {
+        ...ctx,
+        renderBitTarget: () => rendered,
+        target: {
+          ...ctx.target,
+          last: { before, subscript: null, property: null, after: null },
+        },
+      };
+    };
+
+    const declareBitmap = (
+      bitmapType: string,
+      storage: string,
+      fields: [string, IBitmapFieldLayout][],
+    ) =>
       HandlerTestUtils.setupMockSymbols(state, {
-        bitmapFields: new Map([
-          ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
-        ]),
+        bitmapBackingType: new Map([[bitmapType, storage]]),
+        bitmapFields: new Map([[bitmapType, new Map(fields)]]),
       });
-      const ctx = createMockContext();
 
-      const result = getHandler()!(ctx);
+    // #1760 second review: the target was rebuilt from the source spelling,
+    // so `fl.C` in a function with a local `fl` wrote the global `fl`
+    it.each(VALUE_KINDS)(
+      "%s writes the rendered target, not the spelling",
+      (kind) => {
+        declareBitmap("Sm", "uint8_t", [["C", { offset: 4, width: 4 }]]);
+        const ctx = fieldWrite("main__fl", "Sm", ["fl", "C"], "5U");
 
-      expect(result).toContain("flags =");
-      expect(result).toContain("& ~(1U << 0)");
-      expect(result).toContain("<< 0");
+        expect(handlerFor(kind)(ctx)).toBe(
+          "main__fl = (uint8_t)((main__fl & ~(0xFU << 4)) | ((5U & 0xFU) << 4));",
+        );
+      },
+    );
+
+    it("writes through a parameter as it renders", () => {
+      declareBitmap("Sm", "uint8_t", [["A", { offset: 0, width: 1 }]]);
+
+      expect(write(fieldWrite("(*s)", "Sm", ["s", "A"]))).toBe(
+        "(*s) = (uint8_t)(((*s) & ~(1U << 0)) | (1U << 0));",
+      );
     });
 
-    it("generates single-bit write with correct offset", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
+    it("shifts a single bit to its offset", () => {
+      declareBitmap("StatusFlags", "uint8_t", [
+        ["Active", { offset: 3, width: 1 }],
       ]);
-      HandlerTestUtils.setupMockSymbols(state, {
-        bitmapFields: new Map([
-          ["StatusFlags", new Map([["Active", { offset: 3, width: 1 }]])],
-        ]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["flags", "Active"],
-      });
 
-      const result = getHandler()!(ctx);
-
-      expect(result).toContain("<< 3");
+      expect(
+        write(fieldWrite("flags", "StatusFlags", ["flags", "Active"])),
+      ).toContain("<< 3");
     });
 
     it("throws on unknown bitmap field", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]);
-      HandlerTestUtils.setupMockSymbols(state, {
-        bitmapFields: new Map([["StatusFlags", new Map()]]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["flags", "Unknown"],
-      });
+      declareBitmap("StatusFlags", "uint8_t", []);
 
-      expect(() => getHandler()!(ctx)).toThrow("agree on the bitmap field key");
+      expect(() =>
+        write(fieldWrite("flags", "StatusFlags", ["flags", "Unknown"])),
+      ).toThrow("agree on the bitmap field key");
     });
 
-    // #1322: compound assignment on a bit index, bit range, slice, bitmap field
-    // or string is E0857 in pass 2.1 -- one decision where `output/` had six
-    // throws with four messages, and `validateNotCompound` defined twice verbatim.
-    // The pipeline halts before these handlers run. Covered by
-    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
-    // `tests/compound-assign/` and `tests/string-assignment/`.
-
-    // #1322: "validates bitmap field literal" stood here and asserted the
-    // delegation to `TypeValidator.validateBitmapFieldLiteral`, which is
-    // deleted. ADR-034's overflow rule is E0881 in pass 2.1, decided from the
-    // bitmap's layouts and the value's own text rather than from a field this
-    // handler had already resolved. Deleted with its mock rather than left
-    // asserting a call that cannot happen.
-  });
-
-  describe("handleBitmapFieldMultiBit (BITMAP_FIELD_MULTI_BIT)", () => {
-    const getHandler = () =>
-      bitmapHandlers.find(
-        ([kind]) => kind === AssignmentKind.BITMAP_FIELD_MULTI_BIT,
-      )?.[1];
-
-    it("generates multi-bit read-modify-write with mask", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
+    it("masks a multi-bit field", () => {
+      declareBitmap("StatusFlags", "uint8_t", [
+        ["Mode", { offset: 4, width: 3 }],
       ]);
-      HandlerTestUtils.setupMockSymbols(state, {
-        bitmapFields: new Map([
-          ["StatusFlags", new Map([["Mode", { offset: 4, width: 3 }]])],
-        ]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["flags", "Mode"],
-        generatedValue: "3",
-      });
 
-      const result = getHandler()!(ctx);
+      const result = write(
+        fieldWrite("flags", "StatusFlags", ["flags", "Mode"], "3"),
+      );
 
-      expect(result).toContain("flags =");
       expect(result).toContain("& ~(0x7U << 4)");
       expect(result).toContain("(3 & 0x7U)");
-      expect(result).toContain("<< 4");
     });
 
-    it("generates correct mask for 2-bit field", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["config", { bitmapTypeName: "Config", baseType: "u8" }],
-      ]);
-      HandlerTestUtils.setupMockSymbols(state, {
-        bitmapFields: new Map([
-          ["Config", new Map([["Priority", { offset: 0, width: 2 }]])],
-        ]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["config", "Priority"],
-        generatedValue: "2",
-      });
+    it("shifts in 32 bits when the bitmap is backed by 32 (#1668)", () => {
+      declareBitmap("Rgb", "uint32_t", [["Red", { offset: 16, width: 8 }]]);
 
-      const result = getHandler()!(ctx);
-
-      expect(result).toContain("0x3");
+      expect(write(fieldWrite("color", "Rgb", ["color", "Red"], "64"))).toBe(
+        "color = (color & ~((uint32_t)0xFFU << 16)) | ((64 & (uint32_t)0xFFU) << 16);",
+      );
     });
-  });
 
-  describe("handleBitmapArrayElementField (BITMAP_ARRAY_ELEMENT_FIELD)", () => {
-    const getHandler = () =>
-      bitmapHandlers.find(
-        ([kind]) => kind === AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD,
-      )?.[1];
-
-    it("generates array element bitmap field assignment", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["flagsArray", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]);
-      HandlerTestUtils.setupMockGenerator(state, {
-        generateExpression: vi.fn().mockReturnValue("i"),
-      });
-      HandlerTestUtils.setupMockSymbols(state, {
-        bitmapFields: new Map([
-          ["StatusFlags", new Map([["Active", { offset: 0, width: 1 }]])],
-        ]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["flagsArray", "Active"],
-        ...HandlerTestUtils.subscriptsOf([{ mockValue: "i" } as never]),
-      });
-
-      const result = getHandler()!(ctx);
-
-      expect(result).toContain("flagsArray[i] =");
-      expect(result).toContain("& ~(1U << 0)");
-    });
-  });
-
-  describe("handleStructMemberBitmapField (STRUCT_MEMBER_BITMAP_FIELD)", () => {
-    const getHandler = () =>
-      bitmapHandlers.find(
-        ([kind]) => kind === AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD,
-      )?.[1];
-
-    it("generates struct member bitmap field assignment", () => {
-      HandlerTestUtils.setupMockTypeRegistry(state, [
-        ["device", { baseType: "Device" }],
-      ]);
-      HandlerTestUtils.setupMockSymbols(state, {
-        bitmapFields: new Map([
-          ["StatusFlags", new Map([["Active", { offset: 2, width: 1 }]])],
-        ]),
-        // structFields maps struct type -> field name -> field type
-        structFields: new Map([
-          ["Device", new Map([["flags", "StatusFlags"]])],
-        ]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["device", "flags", "Active"],
-      });
-
-      const result = getHandler()!(ctx);
-
-      expect(result).toContain("device.flags =");
-      expect(result).toContain("<< 2");
-    });
+    // #1322: compound assignment on a bitmap field is E0857 in pass 2.1, and
+    // ADR-034's overflow rule is E0881 there too; the pipeline halts before
+    // these handlers run. Covered by
+    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts`.
   });
 
   describe("handleRegisterMemberBitmapField (REGISTER_MEMBER_BITMAP_FIELD)", () => {
@@ -281,6 +220,7 @@ describe("BitmapHandlers", () => {
 
     it("generates register member bitmap field assignment", () => {
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["MotorCtrl", "uint8_t"]]),
         bitmapFields: new Map([
           ["MotorCtrl", new Map([["Running", { offset: 0, width: 1 }]])],
         ]),
@@ -295,6 +235,25 @@ describe("BitmapHandlers", () => {
       expect(result).toContain("MOTOR__CTRL =");
       expect(result).toContain("& ~(1U << 0)");
     });
+
+    it("writes a write-only member without reading it (#1776)", () => {
+      HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["MotorCtrl", "uint8_t"]]),
+        bitmapFields: new Map([
+          ["MotorCtrl", new Map([["Running", { offset: 0, width: 1 }]])],
+        ]),
+        registerMemberTypes: new Map([["MOTOR__CTRL", "MotorCtrl"]]),
+        registerMemberAccess: new Map([["MOTOR__CTRL", "wo"]]),
+      });
+      const ctx = createMockContext({
+        identifiers: ["MOTOR", "CTRL", "Running"],
+      });
+
+      const result = getHandler()!(ctx);
+
+      // The scoped spelling already wrote plainly; this one read the member
+      expect(result).toBe("MOTOR__CTRL = (uint8_t)(1U << 0);");
+    });
   });
 
   describe("handleScopedRegisterMemberBitmapField (SCOPED_REGISTER_MEMBER_BITMAP_FIELD)", () => {
@@ -306,6 +265,7 @@ describe("BitmapHandlers", () => {
     it("generates this-prefixed scoped register bitmap field", () => {
       enterScope(state, "Motor");
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["ICR1Bits", "uint8_t"]]),
         bitmapFields: new Map([
           ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
         ]),
@@ -326,6 +286,7 @@ describe("BitmapHandlers", () => {
     it("generates scope-prefixed register bitmap field", () => {
       HandlerTestUtils.setupMockGenerator(state, {});
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["ICR1Bits", "uint8_t"]]),
         bitmapFields: new Map([
           ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
         ]),
@@ -351,6 +312,7 @@ describe("BitmapHandlers", () => {
     it("generates write-only pattern for wo register", () => {
       enterScope(state, "Motor");
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["SetBits", "uint8_t"]]),
         bitmapFields: new Map([
           ["SetBits", new Map([["LED", { offset: 0, width: 1 }]])],
         ]),
@@ -372,6 +334,7 @@ describe("BitmapHandlers", () => {
     it("generates write-only pattern for w1s register", () => {
       enterScope(state, "Motor");
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["SetBits", "uint8_t"]]),
         bitmapFields: new Map([
           ["SetBits", new Map([["LED", { offset: 3, width: 1 }]])],
         ]),
@@ -392,6 +355,7 @@ describe("BitmapHandlers", () => {
     it("generates write-only pattern for w1c register", () => {
       enterScope(state, "Motor");
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["ClearBits", "uint8_t"]]),
         bitmapFields: new Map([
           ["ClearBits", new Map([["LED", { offset: 5, width: 1 }]])],
         ]),

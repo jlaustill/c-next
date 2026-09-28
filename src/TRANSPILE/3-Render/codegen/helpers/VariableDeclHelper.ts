@@ -19,24 +19,21 @@
  *
  * ## The planner writes state, and that is not an accident
  *
- * Building the plan registers the variable's type info, marks it as a pointer
- * when its type was inferred as one, and resolves its emitted name -- in that
- * order, because `emittedLocalName` is only correct after registration and
- * ADR-045's string discrimination reads the registry that registration filled.
- * The plan is therefore built immediately before it is rendered, in the same
- * call. What is left here is assembly: prefixes, dimension placement, the
+ * Building the plan records the local, marks it as a pointer when its type
+ * was inferred as one, and resolves its emitted name. What the name is typed
+ * as is not written here: it binds through the lexical frames 1.4 settled
+ * (#1668, C8, which deleted the render-time registry this once filled). The
+ * plan is built immediately before it is rendered, in the same call. What is left here is assembly: prefixes, dimension placement, the
  * MISRA Rule 10.3 cast, and the C++ assignment queue.
  */
 
 import invariant from "../../../../utils/invariant";
 import ArrayInitHelper from "./ArrayInitHelper";
-import CppModeHelper from "./CppModeHelper";
 import NarrowingCastHelper from "./NarrowingCastHelper";
 import StringDeclHelper from "./StringDeclHelper";
 import IPlannedArrayDeclaration from "../types/IPlannedArrayDeclaration";
 import TPlannedVariableDecl from "../types/TPlannedVariableDecl";
 import TPlannedVariableInitializer from "../types/TPlannedVariableInitializer";
-import TYPE_MAP from "../types/TYPE_MAP";
 import type TranspileState from "../../../TranspileState";
 
 /**
@@ -143,8 +140,6 @@ class VariableDeclHelper {
         ),
       );
       if (arrayInitResult) {
-        // Track as local array for type resolution
-        state.localArrays.add(sourceName);
         // When size inference happens and the empty dim is in arrayType,
         // dimensionSuffix already contains the inferred size - don't duplicate
         const fullDimSuffix = plan.hasEmptyArrayTypeDimension
@@ -162,7 +157,6 @@ class VariableDeclHelper {
     // Generate dimensions: arrayType dimension first, then arrayDimension dimensions
     const newDecl =
       decl + plan.arrayTypeDimensions + plan.renderCStyleDimensions();
-    state.localArrays.add(sourceName);
 
     return { handled: false, code: "", decl: newDecl, isArray: true };
   }
@@ -209,17 +203,16 @@ class VariableDeclHelper {
             state,
           );
         }
-        // Float to int: add explicit cast for MISRA compliance
-        // Note: For safety, users should use explicit cast in C-Next source: (i32)float
-        // which generates a clamping expression. This implicit cast is just for
-        // MISRA 10.3 compliance when user omits explicit cast.
-        if (
-          NarrowingCastHelper.isFloatCategory(exprType) &&
-          NarrowingCastHelper.isIntegerCategory(typeName)
-        ) {
-          const cType = TYPE_MAP[typeName] ?? typeName;
-          exprCode = CppModeHelper.cast(cType, exprCode, state);
-        }
+        // Float to int is E0891 in pass 2.1 (#1800): the author writes the
+        // cast, which saturates. This emitted a raw C conversion instead,
+        // undefined for NaN and past the target's range.
+        invariant(
+          !(
+            NarrowingCastHelper.isFloatCategory(exprType) &&
+            NarrowingCastHelper.isIntegerCategory(typeName)
+          ),
+          "an implicit float-to-integer conversion is rejected in pass 2.1 (E0891)",
+        );
       }
 
       return `${decl} = ${exprCode}`;
@@ -269,8 +262,8 @@ class VariableDeclHelper {
   ): string {
     // ADR-057: the DECLARED identifier is the emitted one -- a local shadowing a
     // file-scope name carries a distinct C name so `global.x` still reaches
-    // past it. Every registry stays keyed on the bare source name, which is
-    // what references in the source actually say; only the text moves.
+    // past it. References in the source say the bare name, and bind to this
+    // declaration through the lexical frames; only the text moves.
     const base = `${plan.modifierPrefix}${plan.type} ${plan.emittedName}`;
 
     // Array declarations can complete the whole declaration themselves.

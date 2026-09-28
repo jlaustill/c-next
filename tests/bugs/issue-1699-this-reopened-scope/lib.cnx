@@ -1,0 +1,8 @@
+// #1699's helper: the scope, reopened by each fixture beside it, and a
+// file-scope `f32 x` that a `this.x` must not read
+f32 x <- 1.5;
+
+scope Lib {
+    public u32 x <- 300;
+    public u8[4] arr;
+}

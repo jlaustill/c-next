@@ -25,8 +25,10 @@ interface ICliConfig {
   parseOnly: boolean;
   /** Separate output directory for headers */
   headerOutDir?: string;
-  /** Target platform for atomic code generation */
+  /** The program's target, when its source names none (ADR-049) */
   target?: string;
+  /** The PlatformIO environment being built (ADR-049) */
+  pioEnv?: string;
   /** Generate panic-on-overflow helpers */
   debugMode?: boolean;
 }

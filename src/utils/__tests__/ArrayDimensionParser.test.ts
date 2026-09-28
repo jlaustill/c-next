@@ -9,6 +9,22 @@ import ArrayDimensionParser from "../ArrayDimensionParser";
 import UNRESOLVED_DIMENSION from "../../transpiler/constants/UNRESOLVED_DIMENSION";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
+import type IConstantEvalOptions from "../types/IConstantEvalOptions";
+
+/** A lookup over untyped consts, as a literal-only test needs */
+function constants(
+  values: ReadonlyMap<string, number>,
+  types: ReadonlyMap<string, string> = new Map(),
+): IConstantEvalOptions {
+  return {
+    constantOf: (name) => {
+      const value = values.get(name);
+      return value === undefined
+        ? undefined
+        : { value, typeName: types.get(name) ?? null };
+    },
+  };
+}
 
 describe("ArrayDimensionParser", () => {
   /**
@@ -55,9 +71,10 @@ describe("ArrayDimensionParser", () => {
         const expr = getExpression("u8 x <- SIZE;");
         expect(expr).not.toBeNull();
         const constValues = new Map([["SIZE", 10]]);
-        const result = ArrayDimensionParser.parseSingleDimension(expr!, {
-          constValues,
-        });
+        const result = ArrayDimensionParser.parseSingleDimension(
+          expr!,
+          constants(constValues),
+        );
         expect(result).toBe(10);
       });
 
@@ -65,9 +82,10 @@ describe("ArrayDimensionParser", () => {
         const expr = getExpression("u8 x <- UNKNOWN;");
         expect(expr).not.toBeNull();
         const constValues = new Map([["SIZE", 10]]);
-        const result = ArrayDimensionParser.parseSingleDimension(expr!, {
-          constValues,
-        });
+        const result = ArrayDimensionParser.parseSingleDimension(
+          expr!,
+          constants(constValues),
+        );
         expect(result).toBeUndefined();
       });
 
@@ -87,9 +105,10 @@ describe("ArrayDimensionParser", () => {
           ["A", 5],
           ["B", 3],
         ]);
-        const result = ArrayDimensionParser.parseSingleDimension(expr!, {
-          constValues,
-        });
+        const result = ArrayDimensionParser.parseSingleDimension(
+          expr!,
+          constants(constValues),
+        );
         expect(result).toBe(8);
       });
 
@@ -97,19 +116,51 @@ describe("ArrayDimensionParser", () => {
         const expr = getExpression("u8 x <- UNKNOWN+B;");
         expect(expr).not.toBeNull();
         const constValues = new Map([["B", 3]]);
-        const result = ArrayDimensionParser.parseSingleDimension(expr!, {
-          constValues,
-        });
+        const result = ArrayDimensionParser.parseSingleDimension(
+          expr!,
+          constants(constValues),
+        );
         expect(result).toBeUndefined();
       });
+
+      // #1664 review: ADR-044 lowers `A - B` on u8 operands to a saturating
+      // helper, so C computes 0 where this arithmetic says -1. A result a
+      // typed operand cannot hold has no value; an untyped literal has no
+      // range of its own.
+      it.each([
+        ["u8 2 - u8 3", "u8 x <- A-B;", [2, 3], undefined],
+        ["u8 250 + u8 10", "u8 x <- A+B;", [250, 10], undefined],
+        ["u8 2 - the literal 3", "u8 x <- A-3;", [2, 3], undefined],
+        ["u8 2 + u8 3, which u8 holds", "u8 x <- A+B;", [2, 3], 5],
+      ])(
+        "gives %s the value C computes, or none",
+        (_label, source, [a, b], expected) => {
+          const expr = getExpression(source as string);
+          const result = ArrayDimensionParser.parseSingleDimension(
+            expr!,
+            constants(
+              new Map([
+                ["A", a],
+                ["B", b],
+              ]),
+              new Map([
+                ["A", "u8"],
+                ["B", "u8"],
+              ]),
+            ),
+          );
+          expect(result).toBe(expected);
+        },
+      );
 
       it("returns undefined when right operand unknown", () => {
         const expr = getExpression("u8 x <- A+UNKNOWN;");
         expect(expr).not.toBeNull();
         const constValues = new Map([["A", 5]]);
-        const result = ArrayDimensionParser.parseSingleDimension(expr!, {
-          constValues,
-        });
+        const result = ArrayDimensionParser.parseSingleDimension(
+          expr!,
+          constants(constValues),
+        );
         expect(result).toBeUndefined();
       });
     });
@@ -175,6 +226,41 @@ describe("ArrayDimensionParser", () => {
       });
     });
 
+    // #1760 review: a literal or a result a double cannot hold exactly
+    describe("values past 2^53", () => {
+      it.each([
+        ["a literal", "9007199254740993", undefined],
+        [
+          "a difference of literals",
+          "9007199254740993-9007199254740992",
+          undefined,
+        ],
+        ["a product that leaves the range", "4294967296*4294967296", undefined],
+        [
+          "a sizeof product that leaves the range",
+          "sizeof(u64)*9007199254740991",
+          undefined,
+        ],
+        [
+          "a sizeof sum that leaves the range",
+          "sizeof(u8)+9007199254740991",
+          undefined,
+        ],
+        ["a control in the range", "9007199254740991-9007199254740990", 1],
+        [
+          "a sizeof control in the range",
+          "sizeof(u64)*1125899906842623",
+          9007199254740984,
+        ],
+      ])("gives %s no value", (_label, text, expected) => {
+        expect(
+          ArrayDimensionParser.parseText(text as string, {
+            typeWidths: TYPE_WIDTH,
+          }),
+        ).toBe(expected);
+      });
+    });
+
     describe("sizeof addition", () => {
       it("evaluates sizeof(u32)+4", () => {
         const expr = getExpression("u8 x <- sizeof(u32)+4;");
@@ -223,9 +309,10 @@ describe("ArrayDimensionParser", () => {
       ])("resolves addition of %s", (_label, source, expected) => {
         const expr = getExpression(source as string);
         expect(expr).not.toBeNull();
-        const result = ArrayDimensionParser.parseSingleDimension(expr!, {
-          constValues: new Map([["SIZE", 6]]),
-        });
+        const result = ArrayDimensionParser.parseSingleDimension(
+          expr!,
+          constants(new Map([["SIZE", 6]])),
+        );
         expect(result).toBe(expected);
       });
     });
@@ -267,9 +354,10 @@ describe("ArrayDimensionParser", () => {
       const dims = getArrayDimensions("u8 arr[SIZE];");
       expect(dims).not.toBeNull();
       const constValues = new Map([["SIZE", 20]]);
-      const result = ArrayDimensionParser.parseAllDimensions(dims!, {
-        constValues,
-      });
+      const result = ArrayDimensionParser.parseAllDimensions(
+        dims!,
+        constants(constValues),
+      );
       expect(result).toEqual([20]);
     });
 

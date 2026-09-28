@@ -1,0 +1,59 @@
+// test-error
+// test-adr: 024
+// Issue #1668: an integer and a floating operand are different essential type
+// categories (ADR-024, MISRA C:2012 Rule 10.4), so combining them is E0810.
+// Every flagged line used to compile and reach an integer clamp helper, which
+// truncated the float: `i * 2.5` evaluated to 6.0.
+// The functions after the flagged ones are negative controls and must stay silent.
+
+const f32 SCALE <- 2.5;
+
+f32 localTimesLiteral() {
+    u32 i <- 3;
+    f32 x <- i * 2.5;
+    return x;
+}
+
+f32 localTimesVariable(f32 k) {
+    u32 i <- 3;
+    f32 x <- i * k;
+    return x;
+}
+
+f32 floatOperandFirst(f32 k) {
+    u32 i <- 3;
+    f32 x <- k * i;
+    return x;
+}
+
+f32 signedPlusConst() {
+    i32 i <- 3;
+    f32 x <- i + SCALE;
+    return x;
+}
+
+bool comparedWithFloat(u32 i) {
+    bool below <- (i < 2.5);
+    return below;
+}
+
+f32 explicitCast() {
+    u32 i <- 3;
+    f32 x <- (f32)i * 2.5;
+    return x;
+}
+
+f32 integerLiteralWithFloat(f32 k) {
+    f32 x <- k * 3;
+    return x;
+}
+
+f32 floatOnly(f32 k) {
+    f32 x <- k * SCALE;
+    return x;
+}
+
+bool comparedAsFloat(u32 i) {
+    bool below <- ((f32)i < 2.5);
+    return below;
+}

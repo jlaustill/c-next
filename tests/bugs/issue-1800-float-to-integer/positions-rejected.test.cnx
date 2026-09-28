@@ -1,0 +1,34 @@
+// test-error
+// #1760 second review, owner ruling "all positions now": a float reached an
+// integer parameter, return value, struct field or array element through
+// C's implicit conversion, undefined for NaN and past the target's range.
+// Each is E0891 now, as a declaration is. The controls stay silent: the
+// explicit cast at each position, and a float into a float parameter.
+struct Pair {
+    u32 a;
+    f32 b;
+}
+
+void take(u32 n) {}
+
+void takeFloat(f32 x) {}
+
+u32 give(f32 x) {
+    return x;
+}
+
+u32 giveCast(f32 x) {
+    return (u32)x;
+}
+
+void positions(f32 k) {
+    take(k);
+    Pair p <- { a: k, b: k };
+    u32[2] list <- [k, 1];
+    u32[2] filled <- [k*];
+
+    take((u32)k);
+    takeFloat(k);
+    Pair q <- { a: (u32)k, b: k };
+    u32[2] castList <- [(u32)k, 1];
+}

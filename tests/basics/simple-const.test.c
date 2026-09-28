@@ -49,7 +49,7 @@ int main(void) {
     if (3 != EXPECTED_LENGTH) return 7U;
     uint32_t sum = 0U;
     const uint32_t ITERATIONS = 5U;
-    for (uint32_t i = 0U; i < ITERATIONS; i = i + 1) {
+    for (uint32_t i = 0U; i < ITERATIONS; i = cnx_clamp_add_u32(i, 1)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
     if (sum != 5) return 8U;

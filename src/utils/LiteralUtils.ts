@@ -8,72 +8,46 @@
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 
 /**
+ * A float literal's shape as the grammar spells one: digits, an optional
+ * fraction, an optional exponent and an optional width suffix, captured. The
+ * grammar also requires a fraction or an exponent, which `[.eE]` asserts
+ * beside it -- in the pattern, that requirement doubled every arm.
+ */
+const FLOAT_LITERAL = /^\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?:[fF](32|64))?$/;
+
+/**
  * Static utility methods for literal analysis
  */
 class LiteralUtils {
   /**
-   * Check if a literal represents zero.
-   *
-   * Handles all C-Next literal formats:
-   * - Integer: 0
-   * - Hex: 0x0, 0X0
-   * - Binary: 0b0, 0B0
-   * - Suffixed decimal: 0u8, 0i32, etc.
-   * - Suffixed hex: 0x0u8, 0x0i32, etc.
-   * - Suffixed binary: 0b0u8, 0b0i32, etc.
+   * Check if a literal represents zero, in any C-Next literal format
+   * (decimal, hex, binary, float, each with or without a suffix).
    *
    * @param ctx - The literal context from the parse tree
    * @returns true if the literal is zero
    */
   static isZero(ctx: Parser.LiteralContext): boolean {
-    const text = ctx.getText();
+    return LiteralUtils.isZeroText(ctx.getText());
+  }
 
-    // Integer literal: exactly "0"
-    if (ctx.INTEGER_LITERAL()) {
-      return text === "0";
-    }
-
-    // Hex literal: 0x0 or 0X0
-    if (ctx.HEX_LITERAL()) {
-      return text === "0x0" || text === "0X0";
-    }
-
-    // Binary literal: 0b0 or 0B0
-    if (ctx.BINARY_LITERAL()) {
-      return text === "0b0" || text === "0B0";
-    }
-
-    // Suffixed decimal: 0u8, 0i32, etc.
-    if (ctx.SUFFIXED_DECIMAL()) {
-      return text.startsWith("0u") || text.startsWith("0i");
-    }
-
-    // Suffixed hex: 0x0u8, 0x0i32, etc.
-    if (ctx.SUFFIXED_HEX()) {
-      return (
-        text.startsWith("0x0u") ||
-        text.startsWith("0x0i") ||
-        text.startsWith("0X0u") ||
-        text.startsWith("0X0i")
-      );
-    }
-
-    // Suffixed binary: 0b0u8, 0b0i32, etc.
-    if (ctx.SUFFIXED_BINARY()) {
-      return (
-        text.startsWith("0b0u") ||
-        text.startsWith("0b0i") ||
-        text.startsWith("0B0u") ||
-        text.startsWith("0B0i")
-      );
-    }
-
-    // Issue #1010: Float literals (0.0, 0.0f, .0, etc.)
-    if (ctx.FLOAT_LITERAL()) {
-      return LiteralUtils.isFloatZero(text);
-    }
-
-    return false;
+  /**
+   * Whether a numeric literal's text is zero, by its VALUE rather than its
+   * spelling -- for a node's text, and for a const's initializer, which
+   * arrives as text from a declaration that may be in another file (#1664
+   * box 7). The spelling test this replaced missed `00`, `0x00`, `0x00u8`
+   * and every suffixed float (`0.0f32`). Anything that is not a numeric
+   * literal (a string, a char, `false`) is not zero.
+   */
+  static isZeroText(text: string): boolean {
+    const trimmed = text.trim();
+    const integer = LiteralUtils.parseIntegerLiteral(
+      trimmed.replace(/[uUiI](?:8|16|32|64)$/, ""),
+    );
+    if (integer !== undefined) return integer === 0;
+    return (
+      LiteralUtils.floatLiteralWidth(trimmed) !== null &&
+      LiteralUtils.isFloatZero(trimmed.replace(/[fF](?:32|64)$/, ""))
+    );
   }
 
   /**
@@ -101,14 +75,61 @@ class LiteralUtils {
    * @returns true if the literal is a float
    */
   static isFloat(ctx: Parser.LiteralContext): boolean {
-    // Check for FLOAT_LITERAL token
-    if (ctx.FLOAT_LITERAL()) {
-      return true;
+    return LiteralUtils.floatLiteralWidth(ctx.getText()) !== null;
+  }
+
+  /**
+   * The width of a floating literal's type, read from its text: 32 for
+   * `2.5f32`, 64 for `2.5f64` and for an unsuffixed `2.5` (a C `double`).
+   * Null when the text is not a floating literal.
+   *
+   * #1668: the one decision of whether a literal is floating. It used to be
+   * made three ways, each by a partial test that some other literal also
+   * passes. A trailing `f32` also ends the hex integer `0xFF32`, which the
+   * render layer then emitted as `0xFf`. A `.` also occurs in the char literal
+   * `'.'`, which E0804 then rejected as a floating modulo operand. So the text
+   * must match the grammar's FLOAT_LITERAL / SUFFIXED_FLOAT shape as a whole.
+   */
+  static floatLiteralWidth(text: string): 32 | 64 | null {
+    const match = FLOAT_LITERAL.exec(text);
+    if (!match || !/[.eE]/.test(text)) return null;
+    return match[1] === "32" ? 32 : 64;
+  }
+
+  /**
+   * ADR-024: Get the type from a literal (suffixed or unsuffixed).
+   *
+   * #1668: moved here from 2.2's ExpressionTypeResolver so that 2.1 can type a
+   * composite's literal operand with the same rule 2.2 uses. Composite typing is
+   * one decision (`CompositeType`) that both layers read, and it treats a
+   * floating operand as a veto, so both have to agree on which literal operands
+   * are floating.
+   */
+  static typeOf(ctx: Parser.LiteralContext): string | null {
+    const text = ctx.getText();
+
+    if (text === "true" || text === "false") return "bool";
+
+    const suffixMatch = /([uUiI])(8|16|32|64)$/.exec(text);
+    if (suffixMatch) {
+      const signChar = suffixMatch[1].toLowerCase();
+      const width = suffixMatch[2];
+      return (signChar === "u" ? "u" : "i") + width;
     }
 
-    // Fallback: check text for decimal point (not in strings)
-    const text = ctx.getText();
-    return text.includes(".") && !text.startsWith('"');
+    // A plain float literal (no suffix) has type double in C
+    const floatWidth = LiteralUtils.floatLiteralWidth(text);
+    if (floatWidth !== null) {
+      return `f${floatWidth}`;
+    }
+
+    // Plain integer literals (no suffix) have type int in C
+    // Check for integer: starts with digit, no decimal point
+    if (/^\d+$/.test(text) || /^0[xXbBoO][\da-fA-F]+$/.test(text)) {
+      return "int";
+    }
+
+    return null;
   }
 
   /**
@@ -143,6 +164,38 @@ class LiteralUtils {
     }
 
     return undefined;
+  }
+
+  /**
+   * Whether a folded value is exact (#1760 review). A double holds every
+   * integer up to 2^53 - 1 and rounds past it, so `9007199254740993` parses
+   * to 2^53. A fold that computed with the rounded value folded
+   * `BIG - 9007199254740992` to 0, a false E0800, where C computes 1. Every
+   * fold asks this of each literal it reads and each value it computes, and
+   * gives no value otherwise: an unknown is never reported against.
+   */
+  static isExactInteger(value: number | undefined): value is number {
+    return value !== undefined && Number.isSafeInteger(value);
+  }
+
+  /** An integer literal's value for a fold, when that value is exact */
+  static exactIntegerLiteral(text: string): number | undefined {
+    const value = LiteralUtils.parseIntegerLiteral(text);
+    return LiteralUtils.isExactInteger(value) ? value : undefined;
+  }
+
+  /**
+   * The value of an integer literal as written in C-Next source, with any
+   * width suffix (`9u8`, `3i32`): decimal, hex or binary. Null for anything
+   * else, and for a leading-zero literal (`010`), which the emitted C reads as
+   * octal while `parseIntegerLiteral` reads decimal -- #1728 owns what it
+   * means; until then no rule asserts a value C may disagree with (#1076).
+   */
+  static integerValue(text: string): number | null {
+    if (/^0\d/.test(text)) return null;
+    const match = /^(0[xX][\da-fA-F]+|0[bB][01]+|\d+)([uUiI]\d+)?$/.exec(text);
+    if (match === null) return null;
+    return LiteralUtils.parseIntegerLiteral(match[1]) ?? null;
   }
 }
 
