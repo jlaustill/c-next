@@ -9,6 +9,19 @@
 #include <stdbool.h>
 #include <string.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // test-execution
 // #1668 (C7): a struct member of a scope, read through `this.` inside the
 // scope and `Scope.` outside it -- an element of a field array, a bit of a
@@ -21,11 +34,13 @@ Cfg S__cfg = {0};
 
 void S__init(void) {
     Cfg c = {0};
-    c.arr[1] = 7U;
-    c.word = 8U;
+    c.arr[0] = 0U;
+    c.word = 0U;
     (void) strncpy(c.name, "abc", 16); c.name[16] = '\0';
     c.f = (uint8_t)((c.f & ~(1U << 0)) | (1U << 0));
     S__cfg = c;
+    S__cfg.arr[1] = 7U;
+    S__cfg.word = 8U;
 }
 
 uint32_t S__inside(void) {
@@ -45,7 +60,7 @@ uint32_t S__inside(void) {
 int main(void) {
     S__init();
     uint32_t inside = S__inside();
-    if (inside != 0) return 1U;
+    if (inside != 0) return cnx_clamp_add_u32(10U, inside);
     uint8_t a = S__cfg.arr[1U];
     if (a != 7) return 2U;
     bool b = ((((S__cfg.word >> 3U) & 1)) != 0U);

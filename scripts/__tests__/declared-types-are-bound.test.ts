@@ -44,10 +44,24 @@ function renderSideFiles(): string[] {
     );
 }
 
-/** `Map<string, TTypeInfo>`, however it is spelled */
+/**
+ * The fewest render-side files there can be before the arms are taken to
+ * have lost their target. 157 when this was written; a floor, not a reading.
+ */
+const RENDER_FLOOR = 100;
+
+/** The string-keyed map types a registry could be spelled with */
+const MAP_NAMES = new Set(["Map", "ReadonlyMap", "Record"]);
+
+/** `Map<string, TTypeInfo>`, `ReadonlyMap<…>` or `Record<…>` */
 function isTypeInfoMap(type: Type): boolean {
-  if (type.getSymbol()?.getName() !== "Map") return false;
-  const [key, value] = type.getTypeArguments();
+  // `Record` is an alias, so its name and arguments are the alias's
+  const alias = type.getAliasSymbol();
+  const name = (alias ?? type.getSymbol())?.getName();
+  if (name === undefined || !MAP_NAMES.has(name)) return false;
+  const [key, value] = alias
+    ? type.getAliasTypeArguments()
+    : type.getTypeArguments();
   return (
     key?.isString() === true &&
     value !== undefined &&
@@ -113,6 +127,17 @@ function referencesTo(
 }
 
 describe("declared types are bound, not registered", () => {
+  // #1760 review: arms A, B and D are keyed on paths. Were the render side to
+  // move, each would compare [] to [] and stay green.
+  it("finds the render side the arms search", () => {
+    const files = renderSideFiles();
+    expect(files).toContain("src/TRANSPILE/TranspileState.ts");
+    expect(files).toContain("src/TRANSPILE/CodeGenWalker.ts");
+    expect(
+      files.filter((path) => path.startsWith("src/TRANSPILE/3-Render/")).length,
+    ).toBeGreaterThan(RENDER_FLOOR);
+  });
+
   it("arm A: no render-side class holds a Map<string, TTypeInfo>", () => {
     expect(typeInfoMapFields(renderSideFiles())).toEqual([]);
   });
@@ -125,13 +150,21 @@ describe("declared types are bound, not registered", () => {
       `import type TTypeInfo from "../../transpiler/types/TTypeInfo";
        export default class Planted {
          private readonly registry: Map<string, TTypeInfo> = new Map();
+         private readonly view: ReadonlyMap<string, TTypeInfo> = new Map();
+         private readonly record: Record<string, TTypeInfo> = {};
+         private readonly counts: Map<string, number> = new Map();
        }`,
       { overwrite: true },
     );
     try {
+      // One per spelling, and not the map of something else
       expect(
         typeInfoMapFields(["src/TRANSPILE/3-Render/__planted__.ts"]),
-      ).toEqual(["src/TRANSPILE/3-Render/__planted__.ts:Planted.registry"]);
+      ).toEqual([
+        "src/TRANSPILE/3-Render/__planted__.ts:Planted.registry",
+        "src/TRANSPILE/3-Render/__planted__.ts:Planted.view",
+        "src/TRANSPILE/3-Render/__planted__.ts:Planted.record",
+      ]);
     } finally {
       project.removeSourceFile(planted);
     }

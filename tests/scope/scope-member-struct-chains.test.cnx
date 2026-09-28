@@ -22,14 +22,18 @@ scope S {
     public Cfg cfg;
 
     public void init() {
-        // Built in a local and assigned whole: writing a subscripted or
-        // string field through `this.cfg` is #1731
+        // The string field and the flag are set on a local and assigned
+        // whole: writing them through `this.cfg` is #1731 part (2) and
+        // #1801. The array and the word are then written through
+        // `this.cfg`, where a subscripted field was #1731 part (1).
         Cfg c;
-        c.arr[1] <- 7;
-        c.word <- 8;
+        c.arr[0] <- 0;
+        c.word <- 0;
         c.name <- "abc";
         c.f.A <- true;
         this.cfg <- c;
+        this.cfg.arr[1] <- 7;
+        this.cfg.word <- 8;
     }
 
     public u32 inside() {
@@ -50,8 +54,9 @@ scope S {
 
 u32 main() {
     S.init();
+    // 10 + the failing check, so the exit code says which one
     u32 inside <- S.inside();
-    if (inside != 0) return 1;
+    if (inside != 0) return 10 + inside;
 
     u8 a <- S.cfg.arr[1];
     if (a != 7) return 2;
