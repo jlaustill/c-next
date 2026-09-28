@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-454 fixture(s) assert a diagnostic; 439 carry a code.
+457 fixture(s) assert a diagnostic; 442 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -198,6 +198,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-058/length-property-imported-direct-error.test.cnx                                     | E0867               |
 | tests/adr-058/length-property-imported-transitive-error.test.cnx                                 | E0867               |
 | tests/adr-058/length-property-in-scope-error.test.cnx                                            | E0867               |
+| tests/adr-058/length-property-scope-struct-field-error.test.cnx                                  | E0886               |
+| tests/adr-058/length-property-scope-struct-imported-error.test.cnx                               | E0886               |
+| tests/adr-058/length-property-top-level-struct-field-error.test.cnx                              | E0886               |
 | tests/adr-058/length-property-wrong-type-error.test.cnx                                          | E0867               |
 | tests/adr-068/forever-disguised-dowhile.test.cnx                                                 | E0707               |
 | tests/adr-068/forever-disguised-for-cond.test.cnx                                                | E0707               |

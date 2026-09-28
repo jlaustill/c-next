@@ -505,7 +505,7 @@ known width.
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
 | top-level function | imported direct     | error    |
-| scope method       | imported direct     | off      |
+| scope method       | imported direct     | error    |
 | global variable    | imported direct     | error    |
 | scope member       | imported direct     | off      |
 | top-level function | imported transitive | error    |
@@ -519,8 +519,13 @@ function body -- all four same-file contexts, probed rather than assumed.
 The imported columns matter because the rule asks the SUBJECT's type, and the
 subject may be declared in another file. A check reading only the file in front
 of it finds no type for it, and an unknown type never rejects -- so the rule
-would go quiet across an include rather than fail. The scope contexts are `off`
-in those columns as a stated obligation, not a claim they cannot exist.
+would go quiet across an include rather than fail. A scope method reaches an
+imported subject through a field whose type a scope in the included file
+declares, and that is the case that failed: the subject went untyped, so the
+deprecated `.length` escaped E0886 and failed later, uncoded, at `1:0` (#1661).
+That cell is `error` for it.
+The remaining scope cells are `off` as a stated obligation, not a claim they
+cannot exist.
 
 **A divergence this matrix does not cover.** The property table above gives
 structs `.bit_length`, `.byte_length` and `.element_count`, and the transpiler
