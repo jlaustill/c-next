@@ -903,9 +903,9 @@ describe("OperandTyper.chainOf: a field named like a property", () => {
 
   it("types a header struct's field as the field", () => {
     const c = header(`#include <stdint.h>
-typedef struct { uint32_t size; } cbuf_t;
-extern cbuf_t cbuf;`);
-    const step = lastStep("u32 r <- cbuf.size;", c);
+typedef struct { uint32_t size; } ring_t;
+extern ring_t ring;`);
+    const step = lastStep("u32 r <- ring.size;", c);
     expect(step?.property).toBeNull();
     expect(step?.after).toMatchObject({ typeName: "u32" });
   });
