@@ -291,10 +291,10 @@ describe("BitUtils.storageOf and widthText", () => {
   });
 
   it("stores nothing else", () => {
-    expect(BitUtils.storageOf(operand("f32", "floating", "float"))).toBe(
-      undefined,
-    );
-    expect(BitUtils.storageOf(null)).toBe(undefined);
+    expect(
+      BitUtils.storageOf(operand("f32", "floating", "float")),
+    ).toBeUndefined();
+    expect(BitUtils.storageOf(null)).toBeUndefined();
   });
 
   it("writes a folded width as its value, and any other as its text", () => {

@@ -69,20 +69,17 @@ class CppModeHelper {
    * @param expr - The expression to cast
    * @returns The cast expression
    */
-  static cast(type: string, expr: string, state: TranspileState): string {
-    return CppModeHelper.castIn(state.cppMode, type, expr);
-  }
-
-  /**
-   * The same decision for a caller that holds the mode rather than the
-   * state -- a helper emitted once per file (#1668)
-   *
-   * The two modes cast the whole expression. A C cast binds tighter than any
-   * binary operator, so `(float)x << 1` shifted a float, which C rejects,
-   * where C++ shifted and then converted (#1760 review).
-   */
-  static castIn(cppMode: boolean, type: string, expr: string): string {
-    return cppMode
+  static cast(
+    type: string,
+    expr: string,
+    mode: Pick<TranspileState, "cppMode">,
+  ): string {
+    // The two modes cast the whole expression. A C cast binds tighter than
+    // any binary operator, so `(float)x << 1` shifted a float, which C
+    // rejects, where C++ shifted and then converted (#1760 review). A caller
+    // that holds the mode rather than the state -- a helper emitted once per
+    // file (#1668) -- passes `{ cppMode }`.
+    return mode.cppMode
       ? `static_cast<${type}>(${expr})`
       : CppModeHelper.cStyleCast(type, expr);
   }

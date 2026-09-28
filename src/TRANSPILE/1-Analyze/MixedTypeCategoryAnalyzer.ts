@@ -311,7 +311,8 @@ class MixedTypeCategoryAnalyzer {
       }),
       tree,
     );
-    for (const [operands, level] of levels.reverse()) {
+    levels.reverse();
+    for (const [operands, level] of levels) {
       check.checkLevel(operands, level);
     }
 

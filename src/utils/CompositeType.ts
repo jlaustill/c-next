@@ -55,7 +55,7 @@ class CompositeType {
   static floatingOf(leaves: ReadonlyArray<IOperandType | null>): string | null {
     let floating: string | null = null;
     for (const leaf of leaves) {
-      if (leaf === null || leaf.category !== "floating") continue;
+      if (leaf?.category !== "floating") continue;
       if (leaf.typeName === "f64") return "f64";
       floating ??= leaf.typeName;
     }

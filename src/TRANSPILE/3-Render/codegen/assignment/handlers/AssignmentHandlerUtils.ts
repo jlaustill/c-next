@@ -132,16 +132,14 @@ function writeBits(ctx: IAssignmentContext): string {
   const value = ctx.target.last?.before ?? null;
   if (value?.category === "floating") {
     invariant(value.typeName !== null, "the typer names a float's type");
-    return ctx.state
-      .requireGenerator()
-      .generateFloatBitWrite(
-        base,
-        value.typeName,
-        start,
-        width ?? null,
-        ctx.generatedValue,
-        ctx.postfixOps.length === 1,
-      );
+    return ctx.state.requireGenerator().generateFloatBitWrite({
+      target: base,
+      floatType: value.typeName,
+      bitIndex: start,
+      width: width ?? null,
+      value: ctx.generatedValue,
+      isVariable: ctx.postfixOps.length === 1,
+    });
   }
   const storage = BitUtils.storageOf(value);
   return width === undefined

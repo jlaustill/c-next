@@ -21,6 +21,7 @@ import BitRangeHelper from "./BitRangeHelper";
 import BitUtils from "../../../../utils/BitUtils";
 import ComplianceAnnotations from "../../../2-Plan/ComplianceAnnotations";
 import type TranspileState from "../../../TranspileState";
+import type IFloatBitWrite from "../../../../transpiler/types/IFloatBitWrite";
 
 /**
  * Callback types for code generation operations.
@@ -68,37 +69,39 @@ class FloatBitHelper {
    * is written through a union of its own, in a block (#1760 review: it was
    * written as a plain subscript store that C rejects).
    *
-   * @param target - The float written, as C: a variable's name, or an lvalue
-   * @param floatType - Its C-Next type, `f32` or `f64`, as the typer gives it
-   * @param bitIndex - Bit index expression (start position)
-   * @param width - Bit width expression (null for single bit)
-   * @param value - Value to write
-   * @param isVariable - Whether `target` names a variable
+   * @param bitWrite - The float written, its type, and the bits written
    * @param callbacks - Code generation callbacks
    */
   static generateFloatBitWrite(
-    target: string,
-    floatType: string,
-    bitIndex: string,
-    width: string | null,
-    value: string,
-    isVariable: boolean,
+    bitWrite: IFloatBitWrite,
     callbacks: IFloatBitCallbacks,
     state: TranspileState,
   ): string {
     callbacks.requireInclude("float_static_assert"); // For size verification
 
-    const intType = FloatBitHelper.bitsTypeOf(floatType);
+    const target = bitWrite.target;
+    const intType = FloatBitHelper.bitsTypeOf(bitWrite.floatType);
     // The integer member is written like any other integer (#1668): a bit
     // or a bit range of a uint32_t or a uint64_t
     const write = (bits: string): string =>
-      width === null
-        ? BitUtils.singleBitWrite(bits, bitIndex, value, intType)
-        : BitUtils.multiBitWrite(bits, bitIndex, width, value, intType);
+      bitWrite.width === null
+        ? BitUtils.singleBitWrite(
+            bits,
+            bitWrite.bitIndex,
+            bitWrite.value,
+            intType,
+          )
+        : BitUtils.multiBitWrite(
+            bits,
+            bitWrite.bitIndex,
+            bitWrite.width,
+            bitWrite.value,
+            intType,
+          );
 
-    if (!isVariable) {
+    if (!bitWrite.isVariable) {
       const body = [
-        FloatBitHelper.unionDeclaration(floatType, "__bits"),
+        FloatBitHelper.unionDeclaration(bitWrite.floatType, "__bits"),
         `__bits.f = ${target};`,
         write("__bits.u"),
         `${target} = __bits.f;`,
@@ -116,12 +119,13 @@ class FloatBitHelper {
     // Check if shadow already has current value (skip redundant read)
     const shadowIsCurrent = state.floatShadowCurrent.has(shadowName);
     const decl = needsDeclaration
-      ? `${FloatBitHelper.unionDeclaration(floatType, shadowName)}\n`
+      ? `${FloatBitHelper.unionDeclaration(bitWrite.floatType, shadowName)}\n`
       : "";
     const readUnion = shadowIsCurrent ? "" : `${shadowName}.f = ${target};\n`;
     // Mark shadow as current after this write
     state.floatShadowCurrent.add(shadowName);
-    return `${decl}${readUnion}${write(`${shadowName}.u`)}\n${target} = ${shadowName}.f;`;
+    const bits = write(`${shadowName}.u`);
+    return `${decl}${readUnion}${bits}\n${target} = ${shadowName}.f;`;
   }
 }
 

@@ -3,6 +3,7 @@
  * Transforms C-Next AST to clean, readable C code
  */
 
+import type IFloatBitWrite from "../../../transpiler/types/IFloatBitWrite";
 import ReservedCnxName from "../../../utils/ReservedCnxName";
 
 // Issue #60: BITMAP_SIZE and BITMAP_BACKING_TYPE moved to SymbolCollector
@@ -837,22 +838,10 @@ export default class CodeGenerator implements IOrchestrator {
    *
    * @public
    */
-  generateFloatBitWrite(
-    target: string,
-    floatType: string,
-    bitIndex: string,
-    width: string | null,
-    value: string,
-    isVariable: boolean,
-  ): string {
+  generateFloatBitWrite(bitWrite: IFloatBitWrite): string {
     // Issue #644: FloatBitHelper is now static, pass callbacks
     return FloatBitHelper.generateFloatBitWrite(
-      target,
-      floatType,
-      bitIndex,
-      width,
-      value,
-      isVariable,
+      bitWrite,
       {
         requireInclude: (header) => this.state.requireInclude(header),
       },

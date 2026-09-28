@@ -393,9 +393,9 @@ void f() {
 }`;
     const program = build({ "a.cnx": source });
     const use = at(source, "u8 last");
-    expect(program.lexicalDeclarationAt("a.cnx", "N", use)?.constValue).toBe(
-      null,
-    );
+    expect(
+      program.lexicalDeclarationAt("a.cnx", "N", use)?.constValue,
+    ).toBeNull();
     expect(
       program.bindValue("a.cnx", null, "N", at(source, "N + 1"))?.kind,
     ).toBe("local");

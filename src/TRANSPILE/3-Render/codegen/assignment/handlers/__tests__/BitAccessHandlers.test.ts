@@ -312,14 +312,14 @@ describe("BitAccessHandlers", () => {
       const result = getHandler()!(ctx);
 
       // The typer's float type, and a variable: its shadow union
-      expect(generateFloatBitWrite).toHaveBeenCalledWith(
-        "f",
-        "f32",
-        "0",
-        "8",
-        "true",
-        true,
-      );
+      expect(generateFloatBitWrite).toHaveBeenCalledWith({
+        target: "f",
+        floatType: "f32",
+        bitIndex: "0",
+        width: "8",
+        value: "true",
+        isVariable: true,
+      });
       expect(result).toBe("float_range_write_result");
     });
   });
@@ -351,14 +351,14 @@ describe("BitAccessHandlers", () => {
       const result = handlerOf(AssignmentKind.ARRAY_ELEMENT_BIT)!(ctx);
 
       // Not a variable: the element has no name to key a shadow by
-      expect(generateFloatBitWrite).toHaveBeenCalledWith(
-        "fa[1]",
-        "f32",
-        "31",
-        null,
-        "true",
-        false,
-      );
+      expect(generateFloatBitWrite).toHaveBeenCalledWith({
+        target: "fa[1]",
+        floatType: "f32",
+        bitIndex: "31",
+        width: null,
+        value: "true",
+        isVariable: false,
+      });
       expect(result).toBe("element_write");
     });
 

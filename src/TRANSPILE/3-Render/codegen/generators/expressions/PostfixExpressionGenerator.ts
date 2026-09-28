@@ -602,7 +602,8 @@ const measuredLength = (
   const factors = dimensions.map((dim) =>
     typeof dim === "number" ? `${dim}U` : `(${dim})`,
   );
-  return `((uint32_t)${[...factors, `${perElement}U`].join(" * ")})`;
+  const unit = `${perElement}U`;
+  return `((uint32_t)${[...factors, unit].join(" * ")})`;
 };
 
 /**

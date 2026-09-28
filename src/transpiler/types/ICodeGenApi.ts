@@ -11,6 +11,7 @@
  * type, so the two modules imported each other. A member that no caller needs
  * is not a channel; it is a second way to ask, which is what this card removes.
  */
+import type IFloatBitWrite from "./IFloatBitWrite";
 import type TTypeInfo from "./TTypeInfo";
 
 interface ICodeGenApi {
@@ -27,14 +28,7 @@ interface ICodeGenApi {
   ): string;
 
   /** Generate a float bit write through a union (ADR-007) */
-  generateFloatBitWrite(
-    target: string,
-    floatType: string,
-    bitIndex: string,
-    width: string | null,
-    value: string,
-    isVariable: boolean,
-  ): string;
+  generateFloatBitWrite(bitWrite: IFloatBitWrite): string;
 
   /** Get type info for struct member */
   getMemberTypeInfo(structType: string, fieldName: string): TTypeInfo | null;

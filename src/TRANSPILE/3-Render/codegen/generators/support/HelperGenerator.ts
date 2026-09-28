@@ -153,7 +153,7 @@ const generateCastHelpers = (
 ): string[] => {
   if (keys.length === 0) return [];
   const cast = (type: string, expr: string): string =>
-    CppModeHelper.castIn(cppMode, type, expr);
+    CppModeHelper.cast(type, expr, { cppMode });
   const lines: string[] = [
     "/* ADR-024 / Issue #1668: a saturating float-to-integer cast whose operand has a side",
     "   effect -- a call, or a volatile or atomic read -- calls one of these, so the operand is",
