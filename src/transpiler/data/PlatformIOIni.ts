@@ -194,7 +194,7 @@ class PlatformIOIni {
     );
     const fromMachine = MACHINE_DEFAULT_ENVS.map(
       (name) => environment[name],
-    ).find((value) => value);
+    ).find(Boolean);
     let raw = fromFile;
     if (fromMachine) {
       raw = fromFile ? `${fromFile}\n${fromMachine}` : fromMachine;
