@@ -215,7 +215,7 @@ class MixedCategoryCheck {
     if (MixedCategoryCheck.ownedElsewhere(left, right, "compound")) return;
     if (MixedCategoryCheck.differ(left, right, text)) {
       const { line, column } = ParserUtils.getPosition(value);
-      this.analyzer.addError(line, column, left!, right!);
+      this.analyzer.addError(line, column, left!, right!, "compound");
     }
   }
 }
@@ -260,6 +260,20 @@ class MixedTypeCategoryAnalyzer {
     return this.errors.sort((a, b) => a.line - b.line || a.column - b.column);
   }
 
+  /** The diagnostic's text for each place two categories meet */
+  private static message(
+    what: "binary" | "conditional" | "compound",
+    pair: string,
+  ): string {
+    if (what === "conditional") {
+      return `Conditional operator's value arms have different essential type categories (${pair})`;
+    }
+    if (what === "compound") {
+      return `Compound assignment combines a target and a value of different essential type categories (${pair})`;
+    }
+    return `Binary operator combines operands of different essential type categories (${pair})`;
+  }
+
   /** How a category reads in a message */
   private static label(category: string): string {
     if (category.startsWith("enum:")) return `enum ${category.slice(5)}`;
@@ -271,7 +285,7 @@ class MixedTypeCategoryAnalyzer {
     column: number,
     left: string,
     right: string,
-    what: "binary" | "conditional" = "binary",
+    what: "binary" | "conditional" | "compound" = "binary",
   ): void {
     const integer = (c: string) => c === "signed" || c === "unsigned";
     const floating =
@@ -285,7 +299,12 @@ class MixedTypeCategoryAnalyzer {
       "MISRA C:2012 Rule 10.4: both operands must share an essential type category. ";
     let helpText = `${rule}Convert one operand explicitly, e.g. with a cast (ADR-024).`;
     if (floating) {
-      helpText = `${rule}Convert the integer operand with an explicit cast, e.g. (f32)value (ADR-024).`;
+      // A compound assignment's target is its left operand, and a target
+      // cannot be cast (#1760 review)
+      helpText =
+        what === "compound" && integer(left)
+          ? `${rule}The target cannot be converted: write the assignment out with explicit conversions, e.g. x <- (u32)((f32)x * k) (ADR-024).`
+          : `${rule}Convert the integer operand with an explicit cast, e.g. (f32)value (ADR-024).`;
     }
     if (signedness) {
       helpText = `${rule}Reinterpret one operand's bits to match the other with bit indexing, e.g. value[0, 32] (ADR-007/ADR-024).`;
@@ -294,10 +313,7 @@ class MixedTypeCategoryAnalyzer {
       code: "E0810",
       line,
       column,
-      message:
-        what === "conditional"
-          ? `Conditional operator's value arms have different essential type categories (${pair})`
-          : `Binary operator combines operands of different essential type categories (${pair})`,
+      message: MixedTypeCategoryAnalyzer.message(what, pair),
       helpText,
     });
   }
