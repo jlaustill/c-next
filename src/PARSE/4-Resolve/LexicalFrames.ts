@@ -185,13 +185,14 @@ class LexicalFrames {
     return LexicalFrames.compare(span, at) < 0;
   }
 
+  /** Whether a position lies in a span, whose end is exclusive (ISourceSpan) */
   private static contains(span: ISourceSpan, at: TPosition): boolean {
     return (
       LexicalFrames.compare(span, at) <= 0 &&
       LexicalFrames.compare(at, {
         line: span.endLine,
         column: span.endColumn,
-      }) <= 0
+      }) < 0
     );
   }
 }

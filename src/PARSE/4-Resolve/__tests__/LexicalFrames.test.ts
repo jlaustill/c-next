@@ -144,6 +144,46 @@ void f() {
     expect(binding).toMatchObject({ kind: "variable" });
   });
 
+  // #1760 review: a span's end is exclusive, so the token written right after
+  // a frame's last character is outside it. Read as inclusive, `}buf[7]`
+  // bound the block's local and got a false E0854.
+  it("does not place the token right after a block's closing brace inside it", () => {
+    const source = `u8[8] buf <- [0*];
+void f() {
+    { u8[2] buf <- [0*]; buf[1] <- 1; }buf[7] <- 1;
+}`;
+    const program = build({ "a.cnx": source });
+    const after = program.bindValue("a.cnx", null, "buf", at(source, "buf[7]"));
+    expect(after).toMatchObject({ kind: "variable" });
+    // Control: the block's own last statement still binds the local
+    const inside = program.bindValue(
+      "a.cnx",
+      null,
+      "buf",
+      at(source, "buf[1]"),
+    );
+    expect(inside).toMatchObject({ kind: "local" });
+  });
+
+  it("does not place the token right after an unbraced for body inside the loop", () => {
+    const source = `u8[8] buf <- [0*];
+void f() {
+    u32 x <- 0;
+    for (u8 buf <- 0; buf < 2; buf +<- 1) x <- 1;buf[7] <- 1;
+}`;
+    const program = build({ "a.cnx": source });
+    const after = program.bindValue("a.cnx", null, "buf", at(source, "buf[7]"));
+    expect(after).toMatchObject({ kind: "variable" });
+    // Control: the loop's own condition binds the loop variable
+    const inside = program.bindValue(
+      "a.cnx",
+      null,
+      "buf",
+      at(source, "buf < 2"),
+    );
+    expect(inside).toMatchObject({ kind: "local" });
+  });
+
   it("keeps sibling blocks disjoint (#1666)", () => {
     const source = `void f() {
     {
