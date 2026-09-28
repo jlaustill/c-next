@@ -25,7 +25,7 @@
    repeating the side effect. */
 
 static inline uint8_t cnx_cast_sat_f32_u8(float value) {
-    return ((value) > ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (value) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((value)));
+    return ((value) >= ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (value) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((value)));
 }
 
 float grid[2] = {300.0, 7.0};
@@ -47,9 +47,9 @@ int main(void) {
     if (a != 255) return 1U;
     uint8_t b = cnx_cast_sat_f32_u8(Gauge__fn());
     if (b != 2) return 2U;
-    uint8_t c = ((cS.v) > ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (cS.v) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((cS.v)));
+    uint8_t c = ((cS.v) >= ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (cS.v) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((cS.v)));
     if (c != 0) return 3U;
-    uint8_t e = ((grid[0U]) > ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (grid[0U]) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((grid[0U])));
+    uint8_t e = ((grid[0U]) >= ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (grid[0U]) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((grid[0U])));
     if (e != 255) return 4U;
     return 0U;
 }

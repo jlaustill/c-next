@@ -29,7 +29,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
    repeating the side effect. */
 
 static inline uint8_t cnx_cast_sat_f32_u8(float value) {
-    return ((value) > ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (value) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((value)));
+    return ((value) >= ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (value) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((value)));
 }
 
 // test-execution
@@ -66,7 +66,7 @@ int main(void) {
     if (b != 100) return 3U;
     if (calls != 2) return 4U;
     float k = 300.0;
-    uint8_t c = ((k) > ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (k) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((k)));
+    uint8_t c = ((k) >= ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (k) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((k)));
     if (c != 255) return 5U;
     return 0U;
 }

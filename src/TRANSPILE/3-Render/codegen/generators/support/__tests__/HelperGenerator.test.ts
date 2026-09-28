@@ -310,7 +310,7 @@ describe("generateCastHelpers", () => {
       "static inline int16_t cnx_cast_sat_f64_i16(double value) {",
     );
     expect(code).toContain(
-      "return ((value) > ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (value) < 0.0f ? (uint8_t)0 : (uint8_t)(value));",
+      "return ((value) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (value) < 0.0f ? (uint8_t)0 : (uint8_t)(value));",
     );
   });
 

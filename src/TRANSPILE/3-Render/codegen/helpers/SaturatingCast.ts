@@ -42,7 +42,10 @@ class SaturatingCast {
     const finalCast = cast(targetCType, `(${operand})`);
     const castMax = cast(targetCType, maxValue);
     const castMin = cast(targetCType, minValue);
-    return `((${operand}) > ${maxComparison} ? ${castMax} : (${operand}) < ${minComparison} ? ${castMin} : ${finalCast})`;
+    // `>=`, not `>` (#1760 review): `(float)UINT32_MAX` rounds up to 2^32,
+    // and under `>` that value reached the raw cast, which is undefined. At an
+    // exactly representable maximum both branches give MAX.
+    return `((${operand}) >= ${maxComparison} ? ${castMax} : (${operand}) < ${minComparison} ? ${castMin} : ${finalCast})`;
   }
 
   /** The C type of a float source: `float` for `f32`, else `double` */

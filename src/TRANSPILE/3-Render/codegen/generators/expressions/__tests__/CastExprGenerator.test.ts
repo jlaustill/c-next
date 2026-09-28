@@ -89,7 +89,7 @@ describe("CastExprGenerator", () => {
 
       // (f) > MAX ? MAX : (f) < MIN ? MIN : (uint8_t)(f)
       expect(result).toBe(
-        "((f) > ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (f) < 0.0f ? (uint8_t)0 : (uint8_t)(f))",
+        "((f) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (f) < 0.0f ? (uint8_t)0 : (uint8_t)(f))",
       );
     });
 
@@ -148,7 +148,7 @@ describe("CastExprGenerator", () => {
 
     it("inlines the bounded ternary for a pure operand, recording nothing", () => {
       const code = generateCast(plan("uint8_t", "u8", "x", "f32"), state);
-      expect(code.startsWith("((x) > ")).toBe(true);
+      expect(code.startsWith("((x) >= ")).toBe(true);
       expect(state.usedCastHelpers.size).toBe(0);
     });
   });
