@@ -21,6 +21,8 @@ import ConstantFold from "./ConstantFold";
 import TTypeUtils from "./TTypeUtils";
 import PrimitiveKindUtils from "./PrimitiveKindUtils";
 import ChainRoot from "./ChainRoot";
+import TypeCheckUtils from "./TypeCheckUtils";
+import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
 import ExpressionUtils from "./ExpressionUtils";
 import ForeignTypeFacts from "./ForeignTypeFacts";
 import LiteralUtils from "./LiteralUtils";
@@ -301,7 +303,9 @@ class OperandTyper {
     if (t === null) return false;
     const name = t.typeName ?? "";
     return (
-      t.stringCapacity !== null || name === "string" || /^string\s*</.test(name)
+      t.stringCapacity !== null ||
+      name === "string" ||
+      TypeCheckUtils.isSizedStringName(name)
     );
   }
 
@@ -346,9 +350,10 @@ class OperandTyper {
     if (typeName === null) return "none";
     if (typeName === "bool") return "boolean";
     if (typeName === "char") return "character";
-    if (/^u(?:8|16|32|64)$/.test(typeName)) return "unsigned";
-    if (/^i(?:8|16|32|64)$/.test(typeName)) return "signed";
-    if (/^f(?:32|64)$/.test(typeName)) return "floating";
+    // TypeCheckUtils' lists, not a second spelling of them (#1760 review)
+    if (TypeCheckUtils.isUnsigned(typeName)) return "unsigned";
+    if (TypeCheckUtils.isSigned(typeName)) return "signed";
+    if (TypeCheckUtils.isFloat(typeName)) return "floating";
     return "none";
   }
 
@@ -874,19 +879,20 @@ class OperandTyper {
     ctx: ITypingContext,
   ): IChainStart {
     const at = ParserUtils.getPosition(node);
-    const ops = [...node.postfixOp()];
     const primary = node.primaryExpression();
-    const root = ChainRoot.ofPrimary(primary);
-    if (root !== null) {
-      const first = ops.shift();
-      const name = first?.IDENTIFIER()?.getText();
-      if (!name || first?.DOT() === null) {
+    // The one head rule (#1760 review: this re-derived it, DOT guard and all)
+    const head = ChainRoot.headOf(primary, node.postfixOp());
+    const ops = node.postfixOp().slice(head.opsConsumed);
+    if (head.root !== null) {
+      if (head.identifier === null) {
         return { binding: null, value: UNKNOWN, ops: [] };
       }
-      return OperandTyper.rootedStart(root, name, ops, at, ctx);
+      const name = head.identifier.getText();
+      return OperandTyper.rootedStart(head.root, name, ops, at, ctx);
     }
-    const identifier = primary.IDENTIFIER();
-    if (identifier) return OperandTyper.namedStart(identifier, ops, at, ctx);
+    if (head.identifier) {
+      return OperandTyper.namedStart(head.identifier, ops, at, ctx);
+    }
     const t = OperandTyper.primaryType(primary, ctx);
     return {
       binding: null,
@@ -1473,8 +1479,9 @@ class OperandTyper {
   }
 
   private static widthOf(typeName: string | null): number | null {
-    const match = typeName ? /^[ui](8|16|32|64)$/.exec(typeName) : null;
-    return match ? Number(match[1]) : null;
+    return typeName !== null && TypeCheckUtils.isInteger(typeName)
+      ? TYPE_WIDTH[typeName]
+      : null;
   }
 
   private static cNameOf(sourceName: string): string {

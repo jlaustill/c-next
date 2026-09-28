@@ -16,6 +16,7 @@ import type IChainStep from "../../../../../../transpiler/types/IChainStep";
 import type IOperandType from "../../../../../../transpiler/types/IOperandType";
 import ScopeUtils from "../../../../../../utils/ScopeUtils";
 import QualifiedCName from "../../../../../../utils/QualifiedCName";
+import TYPE_WIDTH from "../../../../../../transpiler/constants/TYPE_WIDTH";
 
 /**
  * Set up mock symbols on state.
@@ -137,22 +138,6 @@ function subscriptsOf(nodes: readonly unknown[]): {
   };
 }
 
-/** Common type bit widths for test mocks */
-const TYPE_BIT_WIDTHS: Record<string, number> = {
-  u8: 8,
-  i8: 8,
-  u16: 16,
-  i16: 16,
-  u32: 32,
-  i32: 32,
-  u64: 64,
-  i64: 64,
-  f32: 32,
-  f64: 64,
-  bool: 1,
-  string: 0,
-};
-
 /**
  * Create a TTypeInfo with sensible defaults.
  * Only override the fields you care about in tests.
@@ -161,7 +146,7 @@ function createTypeInfo(overrides: Partial<TTypeInfo> = {}): TTypeInfo {
   const baseType = overrides.baseType ?? "u32";
   return {
     baseType,
-    bitWidth: overrides.bitWidth ?? TYPE_BIT_WIDTHS[baseType] ?? 32,
+    bitWidth: overrides.bitWidth ?? TYPE_WIDTH[baseType] ?? 32,
     isArray: overrides.isArray ?? false,
     isConst: overrides.isConst ?? false,
     ...overrides,
@@ -236,7 +221,7 @@ function operandOf(
     typeName,
     dimensions: [],
     category,
-    bitWidth: integer ? TYPE_BIT_WIDTHS[typeName] : null,
+    bitWidth: integer ? TYPE_WIDTH[typeName] : null,
     stringCapacity: null,
     enumTypeName: null,
     bitmapTypeName: null,
