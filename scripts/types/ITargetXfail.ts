@@ -10,6 +10,12 @@ interface ITargetXfail {
   /** The one mode the marker covers, or every mode when it names none */
   readonly mode?: TTestMode;
   readonly issue: number;
+  /**
+   * The text the cell's failure must contain, when the marker quotes one
+   * (#1760 second review): a cell failing for any other reason -- a crash, a
+   * new error -- is not the expected failure, and is reported
+   */
+  readonly expect?: string;
 }
 
 export default ITargetXfail;

@@ -59,7 +59,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 // test-c-only
-// test-target-xfail: host #1147
+// test-target-xfail: host #1147 "implicit declaration of function"
 uint8_t buffer[64] = {0};
 
 uint32_t writeIdx = 0U;

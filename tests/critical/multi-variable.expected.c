@@ -59,7 +59,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 // test-c-only
-// test-target-xfail: host #1147
+// test-target-xfail: host #1147 "implicit declaration of function"
 // ADR-050: Critical section with multiple variables
 // Tests: multiple variables protected in one critical section
 uint32_t readIdx = 0U;

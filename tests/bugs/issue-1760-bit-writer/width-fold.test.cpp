@@ -11,7 +11,7 @@ static_assert(sizeof(float) == 4, "Float bit indexing requires 32-bit float");
 static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double");
 
 // test-execution
-// test-target-xfail: atmega328p #1709
+// test-target-xfail: atmega328p #1709 "Float bit indexing requires 64-bit double"
 // #1096 and #1760's second review: a constant width folds on every bit
 // writer. It folded only for an integer, so a float's bits at W == 32 were
 // masked with a runtime `1U << 32`, which is undefined.

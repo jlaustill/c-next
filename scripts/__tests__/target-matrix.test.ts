@@ -146,8 +146,30 @@ describe("TestUtils.targetXfails", () => {
     ["cpp #1147", "a mode and no target"],
   ])("rejects `%s` (%s)", (argument) => {
     expect(TestUtils.targetXfails(`// test-target-xfail: ${argument}\n`)).toBe(
-      `\`// test-target-xfail: ${argument}\` must name targets, an optional mode and an issue, e.g. \`// test-target-xfail: avr cpp #1234\``,
+      `\`// test-target-xfail: ${argument}\` must name targets, an optional mode, an issue and an optional quoted failure text, e.g. \`// test-target-xfail: avr cpp #1234 "shift count"\``,
     );
+  });
+
+  // #1760 second review: a quoted text is the failure the cell must show
+  it("reads a quoted failure text after the issue", () => {
+    expect(
+      TestUtils.targetXfails(
+        '// test-target-xfail: host cortex-m7 #1062 "integer constant is so large"\n',
+      ),
+    ).toEqual([
+      {
+        target: "host",
+        mode: undefined,
+        issue: 1062,
+        expect: "integer constant is so large",
+      },
+      {
+        target: "cortex-m7",
+        mode: undefined,
+        issue: 1062,
+        expect: "integer constant is so large",
+      },
+    ]);
   });
 
   it("rejects a marker naming a target the catalog does not have", () => {
@@ -159,6 +181,37 @@ describe("TestUtils.targetXfails", () => {
 
 describe("TestUtils.settleCell", () => {
   const avr = [{ target: "atmega328p", issue: 1147 }];
+
+  // #1760 second review: an expected failure absorbed ANY failure
+  it("takes a quoted failure as expected only when the cell shows it", () => {
+    const quoted = [
+      { target: "atmega328p", issue: 1147, expect: "SREG undeclared" },
+    ];
+    expect(
+      TestUtils.settleCell(
+        "atmega328p",
+        "c",
+        "error: SREG undeclared here",
+        "compiled",
+        quoted,
+      ).outcome,
+    ).toBe("xfail");
+    expect(
+      TestUtils.settleCell(
+        "atmega328p",
+        "c",
+        "transpile crashed",
+        "compiled",
+        quoted,
+      ),
+    ).toEqual({
+      target: "atmega328p",
+      mode: "c",
+      outcome: "failed",
+      detail:
+        '`// test-target-xfail` expects atmega328p to fail with "SREG undeclared" (#1147), and it failed otherwise: transpile crashed',
+    });
+  });
 
   it("passes an unmarked cell that compiled", () => {
     expect(

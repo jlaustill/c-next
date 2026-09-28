@@ -12,6 +12,12 @@ interface ITargetCell {
   readonly outcome: TTargetCellOutcome;
   /** Why it failed, was not compiled, or is an expected failure */
   readonly detail?: string;
+  /**
+   * An expected-failure host cell whose program still linked and ran: the
+   * marker waives the `-Werror` compile, not the execution (#1760 second
+   * review)
+   */
+  readonly executed?: boolean;
 }
 
 export default ITargetCell;

@@ -1,5 +1,5 @@
 // test-execution
-// test-target-xfail: atmega328p #1709
+// test-target-xfail: atmega328p #1709 "Float bit indexing requires 64-bit double"
 // #1760 review: a bit write is decided by the value whose bits it writes.
 // A float element's, a float field's and a header float element's bits were
 // written as plain subscript stores that C rejects: a float variable was the

@@ -672,17 +672,17 @@ E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees 
 
 ### Test Types
 
-| Marker                                                | Behavior                                                                               |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| _(none)_                                              | Run in BOTH C and C++ modes                                                            |
-| `// test-c-only`                                      | C mode only                                                                            |
-| `// test-cpp-only`                                    | C++ mode only                                                                          |
-| `// test-execution`                                   | Execute and validate (MUST use `if (x != y) return N;`)                                |
-| `// test-error`                                       | Expect compile error (create `.expected.error`)                                        |
-| `// test-transpile-only`                              | Skip compilation entirely                                                              |
-| `// test-no-warnings`                                 | Compile `-O3 -Wall -Wextra -Werror` (every TU)                                         |
-| `// test-no-target`                                   | Pass no `--target`; the fixture is about where one comes from                          |
-| `// test-target-xfail: <target>... [c\|cpp] #<issue>` | Those targets' cells must fail until the issue is fixed (every mode, or the one named) |
+| Marker                                                         | Behavior                                                                                                                          |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| _(none)_                                                       | Run in BOTH C and C++ modes                                                                                                       |
+| `// test-c-only`                                               | C mode only                                                                                                                       |
+| `// test-cpp-only`                                             | C++ mode only                                                                                                                     |
+| `// test-execution`                                            | Execute and validate (MUST use `if (x != y) return N;`)                                                                           |
+| `// test-error`                                                | Expect compile error (create `.expected.error`)                                                                                   |
+| `// test-transpile-only`                                       | Skip compilation entirely                                                                                                         |
+| `// test-no-warnings`                                          | Compile `-O3 -Wall -Wextra -Werror` (every TU)                                                                                    |
+| `// test-no-target`                                            | Pass no `--target`; the fixture is about where one comes from                                                                     |
+| `// test-target-xfail: <target>... [c\|cpp] #<issue> "<text>"` | Those targets' cells must fail until the issue is fixed (every mode, or the one named), with a failure containing the quoted text |
 
 **Execution tests MUST validate every result** with unique return codes (1, 2, 3...). Return 0 only if ALL pass.
 
@@ -725,8 +725,11 @@ foo.expected.error    # Expected error (if test-error)
   byte** (and a `test-error` fixture the host's diagnostics). One that differs
   legitimately, such as a C header integer's width, is pinned with
   `#pragma target host`. A cell that fails for a known bug carries
-  `// test-target-xfail` naming its issue, and must keep failing: a marked cell
-  that passes, or a marker naming a cell that never runs, fails the fixture
+  `// test-target-xfail` naming its issue and quoting its failure, and must keep
+  failing that way: a marked cell that passes, fails with other text, or is named
+  but never runs fails the fixture. A marked host cell waives only the `-Werror`
+  compile: a `test-execution` program still links and runs, and must pass, unless
+  the marker covers that failure too (#1760 second review)
 - **Cross-file testing**: Always test with symbols in included files, not just same-file
 - **Scope-context matrix (#1219)**: a check that works in one context routinely fails in
   another, and the corpus does not notice — 35 of 37 error codes have **zero** cross-file

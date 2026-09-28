@@ -74,8 +74,9 @@ class TestMarkers {
     ["test-no-target", /^[ \t]*\/\/[ \t]*test-no-target[ \t]*$/m],
     ["test-adr", /^[ \t]*\/\/[ \t]*test-adr:[ \t]*(.+)$/m],
     ["test-link", /^[ \t]*\/\/[ \t]*test-link:[ \t]*(.+)$/m],
-    // #1668 box 12: `// test-target-xfail: <target> #<issue>` -- that
-    // target's cell must fail until the issue is fixed
+    // #1668 box 12: `// test-target-xfail: <target> #<issue> "<text>"` --
+    // that target's cell must fail, showing the text, until the issue is
+    // fixed
     ["test-target-xfail", /^[ \t]*\/\/[ \t]*test-target-xfail:[ \t]*(.+)$/m],
   ]);
 

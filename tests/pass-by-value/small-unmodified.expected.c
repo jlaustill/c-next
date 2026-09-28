@@ -71,7 +71,7 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 
 // test-c-only
 // test-execution
-// test-target-xfail: host #1147
+// test-target-xfail: host #1147 "implicit declaration of function"
 // Issue #269: Pass-by-value for small unmodified parameters
 // Tests that unmodified small primitive types pass by value,
 // while modified parameters still pass by pointer.

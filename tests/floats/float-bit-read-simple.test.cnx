@@ -1,5 +1,5 @@
 // test-execution
-// test-target-xfail: atmega328p #1709
+// test-target-xfail: atmega328p #1709 "Float bit indexing requires 64-bit double"
 // Simple test for float bit read inside function
 
 u32 main() {

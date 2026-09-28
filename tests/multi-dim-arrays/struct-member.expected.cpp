@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-// test-target-xfail: atmega328p #1766
+// test-target-xfail: atmega328p #1766 "is too large"
 // ADR-036: Multi-dimensional arrays in structs
 Image screen = {};
 

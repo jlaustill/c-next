@@ -9,7 +9,7 @@
 
 // test-cpp-only
 // test-execution
-// test-target-xfail: atmega328p #1710
+// test-target-xfail: atmega328p #1710 "narrowing conversion of"
 // Test: Struct with anonymous member used as function argument
 #include "anon_types.h"
 

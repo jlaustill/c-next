@@ -65,7 +65,7 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 
 // test-c-only
 // test-coverage: 33.2-critical-inside-loop
-// test-target-xfail: host #1147
+// test-target-xfail: host #1147 "implicit declaration of function"
 // Coverage: Section 7.7, 33.2 - Critical section inside loops
 // Tests: critical sections inside for, while, and do-while loops
 uint32_t sharedData[10] = {0};

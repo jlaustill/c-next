@@ -917,13 +917,44 @@ class TestUtils {
       strict,
     );
     if (!compiled.valid) {
-      return TestUtils.settleCell(
+      const settled = TestUtils.settleCell(
         TargetMatrix.HOST,
         mode,
         `${mode.toUpperCase()} compilation failed: ${compiled.message}`,
         "compiled",
         xfails,
       );
+      if (
+        settled.outcome !== "xfail" ||
+        !TestMarkers.has("test-execution", source)
+      ) {
+        return settled;
+      }
+      // #1760 second review: the marker waives the -Werror compile, not the
+      // execution. The program still links and runs -- without -Werror, as
+      // `executeOnHost` builds it -- and must pass, unless the marker covers
+      // that failure too: a host with no implementation cannot build it at
+      // all (#1147), where a warning's marker cannot (#1062's quotes one).
+      const failure = TestUtils.executeOnHost(
+        cnxFile,
+        source,
+        entryImpl,
+        helperImplFiles,
+        rootDir,
+        mode,
+        result,
+      );
+      if (failure === null) {
+        return { ...settled, executed: true };
+      }
+      const execution = TestUtils.settleCell(
+        TargetMatrix.HOST,
+        mode,
+        failure,
+        "executed",
+        xfails,
+      );
+      return execution.outcome === "xfail" ? settled : execution;
     }
     if (!TestMarkers.has("test-execution", source)) {
       return TestUtils.settleCell(
@@ -1212,19 +1243,28 @@ class TestUtils {
         ? { target, mode, outcome: passed }
         : { target, mode, outcome: "failed", detail: failure };
     }
-    return failure === null
-      ? {
-          target,
-          mode,
-          outcome: "failed",
-          detail: `\`// test-target-xfail: ${xfail.target} #${xfail.issue}\` expects ${target} to fail, and it passed: remove the marker and update #${xfail.issue}`,
-        }
-      : {
-          target,
-          mode,
-          outcome: "xfail",
-          detail: `#${xfail.issue}: ${failure}`,
-        };
+    if (failure === null) {
+      return {
+        target,
+        mode,
+        outcome: "failed",
+        detail: `\`// test-target-xfail: ${xfail.target} #${xfail.issue}\` expects ${target} to fail, and it passed: remove the marker and update #${xfail.issue}`,
+      };
+    }
+    if (xfail.expect !== undefined && !failure.includes(xfail.expect)) {
+      return {
+        target,
+        mode,
+        outcome: "failed",
+        detail: `\`// test-target-xfail\` expects ${target} to fail with "${xfail.expect}" (#${xfail.issue}), and it failed otherwise: ${failure}`,
+      };
+    }
+    return {
+      target,
+      mode,
+      outcome: "xfail",
+      detail: `#${xfail.issue}: ${failure}`,
+    };
   }
 
   /** The catalog row a target name resolves to, aliases included */
@@ -1235,9 +1275,10 @@ class TestUtils {
   /**
    * The fixture's \`// test-target-xfail\` markers, or why one is malformed.
    *
-   * \`// test-target-xfail: <target>... [c|cpp] #<issue>\`: each named
-   * target's cells must fail until the issue is fixed -- in the named mode
-   * only, when one is given. A marker must name an issue, so an expected
+   * \`// test-target-xfail: <target>... [c|cpp] #<issue> ["<text>"]\`: each
+   * named target's cells must fail until the issue is fixed -- in the named
+   * mode only, when one is given, and with a failure containing the quoted
+   * text, when one is given. A marker must name an issue, so an expected
    * failure always says what fixes it.
    */
   static targetXfails(source: string): ITargetXfail[] | string {
@@ -1246,8 +1287,9 @@ class TestUtils {
       TestMarkers.globalSpellingOf("test-target-xfail"),
     )) {
       const argument = match[1].trim();
-      const usage = `\`// test-target-xfail: ${argument}\` must name targets, an optional mode and an issue, e.g. \`// test-target-xfail: avr cpp #1234\``;
-      const words = argument.split(/[ \t]+/);
+      const usage = `\`// test-target-xfail: ${argument}\` must name targets, an optional mode, an issue and an optional quoted failure text, e.g. \`// test-target-xfail: avr cpp #1234 "shift count"\``;
+      const quoted = /^(.*?)[ \t]+"([^"]+)"$/.exec(argument);
+      const words = (quoted?.[1] ?? argument).split(/[ \t]+/);
       const issue = /^#(\d+)$/.exec(words.at(-1) ?? "");
       if (issue === null || words.length < 2) {
         return usage;
@@ -1273,6 +1315,7 @@ class TestUtils {
           target: description.name,
           mode: modes.at(0),
           issue: Number(issue[1]),
+          ...(quoted === null ? {} : { expect: quoted[2] }),
         });
       }
     }
@@ -1893,7 +1936,7 @@ class TestUtils {
     result.cells = cells;
 
     const host = cells.find((cell) => cell.target === TargetMatrix.HOST);
-    if (execution && host?.outcome === "xfail") {
+    if (execution && host?.outcome === "xfail" && host.executed !== true) {
       result.skippedExec = true;
       result.skipReason = "xfail";
     }

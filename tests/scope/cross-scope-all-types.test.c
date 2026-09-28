@@ -25,7 +25,7 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 }
 
 // test-execution
-// test-target-xfail: host cortex-m7 atmega328p #1062
+// test-target-xfail: host cortex-m7 atmega328p #1062 "integer constant is so large that it is unsigned"
 // Test: ADR-016 Cross-scope access with all primitive types
 // Verifies that scopes can correctly access each other's public members
 // Tests: all primitive types, cross-scope method calls, arrays, modifiers

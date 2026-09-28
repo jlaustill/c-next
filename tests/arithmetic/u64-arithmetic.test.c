@@ -30,7 +30,7 @@ static inline uint64_t cnx_clamp_sub_u64(uint64_t a, uint64_t b) {
 
 // test-coverage: 1.1-u64-in-arithmetic-expression
 // test-execution
-// test-target-xfail: host cortex-m7 atmega328p #1062
+// test-target-xfail: host cortex-m7 atmega328p #1062 "integer constant is so large that it is unsigned"
 // Tests: u64 arithmetic operations (+, -, *, /, %)
 // Validates all basic arithmetic operations with u64 type
 // Includes edge cases with large values relevant to embedded systems

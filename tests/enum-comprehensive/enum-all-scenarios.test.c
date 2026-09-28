@@ -61,7 +61,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 // test-c-only
 // test-execution
-// test-target-xfail: host #1147
+// test-target-xfail: host #1147 "implicit declaration of function"
 // Tests: Comprehensive enum scenarios - global, scope, cross-scope, loops, atomic, critical
 // === GLOBAL ENUM ===
 // === GLOBAL ENUM VARIABLE ===
