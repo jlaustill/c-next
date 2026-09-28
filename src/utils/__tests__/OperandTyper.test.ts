@@ -307,6 +307,33 @@ void main() {
     expect(mixed).toMatchObject({ typeName: null, category: "none" });
   });
 
+  // #1760 review: floating leaves of different names were untyped, so a
+  // cast of them skipped ADR-024's saturation
+  it.each([
+    ["f32 x f64 literal", "f32 k <- 2.0;\nf32 r <- k * 2.0;", "f64"],
+    ["f32 + f64", "f32 k <- 2.0;\nf64 d <- 2.0;\nf64 r <- k + d;", "f64"],
+    ["f32 x integer literal", "f32 k <- 2.0;\nf32 r <- k * 2;", "f32"],
+    ["a control: one name", "f32 k <- 2.0;\nf32 r <- k * k;", "f32"],
+  ])(
+    "types a floating composite, %s, by C's conversion",
+    (_why, body, name) => {
+      expect(typeOf(inMain(body))).toMatchObject({
+        typeName: name,
+        category: "floating",
+      });
+    },
+  );
+
+  it("types floating arms of different names by C's conversion", () => {
+    const arms = typeOf(inMain("f32 k <- 2.0;\nf64 r <- (k > 1.0) ? k : 2.0;"));
+    expect(arms).toMatchObject({ typeName: "f64", category: "floating" });
+    // Control: an integer arm beside a floating one stays untyped (E0810)
+    const mixed = typeOf(
+      inMain("f32 k <- 2.0;\nu8 a <- 1;\nf32 r <- (k > 1.0) ? k : a;"),
+    );
+    expect(mixed).toMatchObject({ typeName: null, category: "none" });
+  });
+
   it.each([
     ["-x", "-a", "i16"],
     ["~x", "~a", "i16"],

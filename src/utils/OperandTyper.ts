@@ -25,6 +25,7 @@ import ExpressionUtils from "./ExpressionUtils";
 import ForeignTypeFacts from "./ForeignTypeFacts";
 import LiteralUtils from "./LiteralUtils";
 import ParserUtils from "./ParserUtils";
+import CompositeType from "./CompositeType";
 import QualifiedCName from "./QualifiedCName";
 import PROPERTY_NAMES from "./constants/PROPERTY_NAMES";
 import ScopeUtils from "./ScopeUtils";
@@ -423,11 +424,27 @@ class OperandTyper {
     const category =
       categories.size === 1 ? ([...categories][0] ?? "none") : "none";
     return {
-      ...OperandTyper.plain(names.size === 1 ? [...names][0] : null),
+      ...OperandTyper.plain(
+        OperandTyper.compositeName(names, category, leaves),
+      ),
       category,
       hasSideEffect: typed.some((leaf) => leaf.hasSideEffect),
       form: { kind: "composite", leaves },
     };
+  }
+
+  /**
+   * A composite's type name: its leaves' one name, or for floating leaves of
+   * different names C's usual arithmetic conversion (`CompositeType`) --
+   * integer composites are typed at their consumer, by `CompositeType`.
+   */
+  private static compositeName(
+    names: ReadonlySet<string | null>,
+    category: TEssentialCategory,
+    leaves: ReadonlyArray<IOperandType | null>,
+  ): string | null {
+    if (names.size === 1) return [...names][0] ?? null;
+    return category === "floating" ? CompositeType.floatingOf(leaves) : null;
   }
 
   private static ternaryType(
@@ -444,13 +461,36 @@ class OperandTyper {
       whenTrue.typeName === whenFalse.typeName &&
       whenTrue.category === whenFalse.category;
     return {
-      ...(same ? whenTrue : OperandTyper.plain(null)),
+      ...(same ? whenTrue : OperandTyper.floatingArms(whenTrue, whenFalse)),
       overflow: null,
       binding: null,
       hasSideEffect:
         (whenTrue?.hasSideEffect ?? false) ||
         (whenFalse?.hasSideEffect ?? false),
       form: { kind: "ternary", arms: [whenTrue, whenFalse] },
+    };
+  }
+
+  /**
+   * Two arms of different types: C's usual arithmetic conversion when every
+   * arm with an essential category is floating (`c ? k : 2.0` is f64), and
+   * untyped otherwise -- E0810 rejects the mixes in 2.1.
+   */
+  private static floatingArms(
+    whenTrue: IOperandType | null,
+    whenFalse: IOperandType | null,
+  ): IOperandType {
+    const arms = [whenTrue, whenFalse];
+    const categorized = arms.filter(
+      (arm): arm is IOperandType => arm !== null && arm.category !== "none",
+    );
+    const allFloating =
+      categorized.length > 0 &&
+      categorized.every((arm) => arm.category === "floating");
+    if (!allFloating) return OperandTyper.plain(null);
+    return {
+      ...OperandTyper.plain(CompositeType.floatingOf(arms)),
+      category: "floating",
     };
   }
 

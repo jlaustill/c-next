@@ -40,6 +40,28 @@ class CompositeType {
     return sign !== null && width > 0 ? `${sign}${width}` : null;
   }
 
+  /**
+   * The floating type of a composite -- or a conditional's two arms -- whose
+   * leaves are floating: C's usual arithmetic conversions give f64 when any
+   * floating leaf is f64, else the floating leaves' type. Null when no leaf
+   * is floating. Leaves with no essential category (an unsuffixed literal)
+   * are not counted, and the caller has settled that no leaf is an integer.
+   *
+   * #1760 review: a composite whose leaves had different type names --
+   * `k * 2.0`, f32 x f64 literal -- was untyped, so a cast of it skipped
+   * ADR-024's saturation and was emitted raw, which is undefined for an
+   * out-of-range float.
+   */
+  static floatingOf(leaves: ReadonlyArray<IOperandType | null>): string | null {
+    let floating: string | null = null;
+    for (const leaf of leaves) {
+      if (leaf === null || leaf.category !== "floating") continue;
+      if (leaf.typeName === "f64") return "f64";
+      floating ??= leaf.typeName;
+    }
+    return floating;
+  }
+
   /** Whether a floating or indeterminate leaf makes this non-integer arithmetic */
   static anyFloating(leaves: ReadonlyArray<IOperandType | null>): boolean {
     return leaves.some(
