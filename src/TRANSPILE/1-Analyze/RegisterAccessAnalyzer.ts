@@ -89,16 +89,8 @@ class RegisterAccessListener extends CNextListener {
   /** A write, in a statement or a `for` header (#1726) */
   public checkSite(ctx: TAssignmentSite): void {
     const target = ctx.assignmentTarget();
-    const root: TChainRoot = ChainRoot.ofTarget(target);
     const ops = target.postfixTargetOp();
-    const names = ops.map((op) =>
-      op.DOT() !== null ? op.IDENTIFIER()!.getText() : null,
-    );
-    const chain = RegisterMemberReference.leadingNames(
-      target.IDENTIFIER().getText(),
-      names,
-    );
-    const found = this.resolve(root, chain, target);
+    const found = RegisterMemberReference.ofTarget(target, this.context);
     if (found === null) return;
 
     const op = ctx.assignmentOperator().getText();

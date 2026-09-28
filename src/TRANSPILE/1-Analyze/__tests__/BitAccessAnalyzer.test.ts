@@ -83,3 +83,62 @@ describe("BitAccessAnalyzer (E0888)", () => {
     ).toEqual([]);
   });
 });
+
+describe("BitAccessAnalyzer (E0890)", () => {
+  const e0890 = (body: string[]) =>
+    errors(
+      [
+        "bitmap8 Mode {",
+        "    fast,",
+        "    slow,",
+        "    level[6]",
+        "}",
+        "register GPIO @ 0x40000000 {",
+        "    DR: u32 rw @ 0x00,",
+        "    DR_SET: u32 wo @ 0x04,",
+        "}",
+        "u8[4] arr <- [0*];",
+        "Mode[4] modes;",
+        "volatile u8 vidx <- 0;",
+        "u32 word <- 0;",
+        "u8 idx() {",
+        "    return 1;",
+        "}",
+        "void f() {",
+        "    u8 i <- 2;",
+        ...body,
+        "}",
+      ].join("\n"),
+    ).filter((e) => e.code === "E0890");
+
+  it("rejects a side effect in a read-modify-write target", () => {
+    const found = e0890([
+      "    arr[idx()][3] <- true;",
+      "    word[idx()] <- true;",
+      "    arr[vidx][2, 4] <- 5;",
+      "    modes[idx()].fast <- true;",
+      "    GPIO.DR[idx()] <- true;",
+    ]);
+    expect(found.map((e) => e.line)).toEqual([19, 20, 21, 22, 23]);
+    expect(found[0].message).toBe(
+      "'idx()' would be evaluated twice: 'arr[idx()][3]' is read and then written back",
+    );
+  });
+
+  it("accepts a write that evaluates its target once", () => {
+    expect(
+      e0890([
+        "    arr[idx()] <- 7;",
+        "    GPIO.DR_SET[idx()] <- true;",
+        "    arr[i][3] <- true;",
+        "    modes[i].slow <- true;",
+        "    arr[idx()] +<- 1;",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("reports every subscript with a side effect", () => {
+    const found = e0890(["    arr[idx()][vidx] <- true;"]);
+    expect(found.map((e) => e.column)).toEqual([8, 15]);
+  });
+});

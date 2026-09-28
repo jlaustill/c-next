@@ -83,6 +83,23 @@ const DECLARED: TOperandForm = { kind: "declared" };
 
 class OperandTyper {
   /**
+   * Whether evaluating an expression has a side effect: it calls a function
+   * or reads a volatile or atomic declaration. A call the typer cannot type
+   * still counts, found by its spelling. The one test for an element read's
+   * own side effect and for a read-modify-write target that would evaluate
+   * the expression twice (E0890).
+   */
+  static hasSideEffect(
+    expr: Parser.ExpressionContext,
+    ctx: ITypingContext,
+  ): boolean {
+    return (
+      ExpressionUtils.hasFunctionCall(expr) ||
+      OperandTyper.typeOf(expr, ctx)?.hasSideEffect === true
+    );
+  }
+
+  /**
    * The value type of any expression-level node: it descends through
    * single-child levels, parentheses, unary operators, ternaries and
    * composites. Null when the operand has no type this can settle.
@@ -1312,11 +1329,7 @@ class OperandTyper {
     const keep = {
       hasSideEffect:
         t.hasSideEffect ||
-        indices.some(
-          (index) =>
-            ExpressionUtils.hasFunctionCall(index) ||
-            OperandTyper.typeOf(index, ctx)?.hasSideEffect === true,
-        ),
+        indices.some((index) => OperandTyper.hasSideEffect(index, ctx)),
     };
 
     switch (subscript) {

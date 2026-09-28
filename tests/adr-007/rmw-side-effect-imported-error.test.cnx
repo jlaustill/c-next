@@ -1,0 +1,14 @@
+// test-error
+// test-adr: 007
+// #1760 review: E0890 when the side effect in a read-modify-write target is
+// declared in an included file. The last write, with a literal index, is the
+// silent control.
+#include "rmw-side-effect-decls.cnx"
+
+u8[4] table <- [0*];
+
+void update() {
+    table[sharedIndex][1] <- true;
+    table[nextIndex()][0, 2] <- 3;
+    table[1][1] <- true;
+}

@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 15      |
 | E06xx     | Sizeof Expressions      | 2       |
 | E07xx     | Control Flow            | 12      |
-| E08xx     | Arithmetic/Array Safety | 49      |
+| E08xx     | Arithmetic/Array Safety | 50      |
 | E09xx     | NULL Safety             | 8       |
-| **Total** |                         | **112** |
+| **Total** |                         | **113** |
 
 ---
 
@@ -341,6 +341,7 @@ base: bare, `this.` and `global.`.
 | ----- | ----------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------- |
 | E0888 | A float bit range read at file scope            | The union copy it lowers to is a statement; read it inside a function | `TRANSPILE/1-Analyze/BitAccessAnalyzer.ts`           |
 | E0889 | Both `atomic` and `volatile` on one declaration | `atomic` already implies `volatile`; choose one                       | `TRANSPILE/1-Analyze/DeclarationModifierAnalyzer.ts` |
+| E0890 | A read-modify-write target has a side effect    | Store the index in a variable first; a bit write evaluates it twice   | `TRANSPILE/1-Analyze/BitAccessAnalyzer.ts`           |
 
 ## E09xx — NULL Safety (ADR-046)
 

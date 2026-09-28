@@ -23,6 +23,16 @@
  * statement. At file scope there is no statement to emit it into. This is the
  * one rule here that is about WHERE the access is written rather than what it
  * is written on.
+ *
+ * ## E0890: a read-modify-write evaluates its target twice
+ *
+ * A bit, bit-range or bitmap-field write keeps the other bits, so it reads the
+ * target and stores it back: every subscript in the target, and the bit index
+ * with it, is evaluated twice. A call or a volatile read there runs twice, and
+ * the store can land on a different element than the read. Owner ruling
+ * (#1760 review): reject it, as E0702 rejects a call in a condition. A
+ * write-1 register member is composed without a read (ADR-004), so it is
+ * evaluated once and is not restricted.
  */
 
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
@@ -37,6 +47,8 @@ import EnclosingFunction from "./helpers/EnclosingFunction";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import IBitAccessError from "./types/IBitAccessError";
 import TChainRoot from "../../transpiler/types/TChainRoot";
+import RegisterAccessMode from "../../utils/RegisterAccessMode";
+import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import type TAssignmentSite from "./types/TAssignmentSite";
 import SHARED_FLOAT_TYPES from "../../transpiler/types/FLOAT_TYPES";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -112,6 +124,39 @@ class BitAccessListener extends CNextListener {
       target,
       ChainRoot.ofTarget(target),
     );
+    this.checkSingleEvaluation(site);
+  }
+
+  /** E0890: each subscript of a read-modify-write target with a side effect */
+  private checkSingleEvaluation(site: TAssignmentSite): void {
+    // A compound operator on a bit is E0857's; on a whole location it is one
+    // C compound assignment, which evaluates its target once
+    if (site.assignmentOperator().getText() !== "<-") return;
+    const target = site.assignmentTarget();
+    if (!this.isReadModifyWrite(target)) return;
+    const indices = target.postfixTargetOp().flatMap((op) => op.expression());
+    for (const index of indices) {
+      if (!OperandTyper.hasSideEffect(index, this.context)) continue;
+      this.report(
+        index,
+        "E0890",
+        `'${index.getText()}' would be evaluated twice: '${target.getText()}' is read and then written back`,
+        "A bit, bit-range or bitmap-field write keeps the other bits, so it reads its target and stores it back, and every subscript in the target runs twice. Store the index in a variable first (ADR-007).",
+      );
+    }
+  }
+
+  /** Whether writing `target` reads it back first to keep the other bits */
+  private isReadModifyWrite(target: Parser.AssignmentTargetContext): boolean {
+    const last = OperandTyper.chainOf(target, this.context).steps.at(-1);
+    if (last === undefined) return false;
+    const writesBits =
+      last.subscript === "bit_single" || last.subscript === "bit_range";
+    const writesBitmapField =
+      last.subscript === null && (last.before?.bitmapTypeName ?? null) !== null;
+    if (!writesBits && !writesBitmapField) return false;
+    const register = RegisterMemberReference.ofTarget(target, this.context);
+    return !RegisterAccessMode.isWriteOne(register?.access);
   }
 
   private checkChain(

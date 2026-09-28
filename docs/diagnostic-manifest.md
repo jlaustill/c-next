@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-438 fixture(s) assert a diagnostic; 423 carry a code.
+440 fixture(s) assert a diagnostic; 425 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -23,6 +23,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-004/register-wo-set-false-error.test.cnx                                               | E0872               |
 | tests/adr-004/register-write-ro-error.test.cnx                                                   | E0871               |
 | tests/adr-007/float-bit-range-global-scope-error.test.cnx                                        | E0888               |
+| tests/adr-007/rmw-side-effect-error.test.cnx                                                     | E0890               |
+| tests/adr-007/rmw-side-effect-imported-error.test.cnx                                            | E0890               |
 | tests/adr-007/slice-bounds-violation.test.cnx                                                    | E0860               |
 | tests/adr-007/slice-imported-direct-error.test.cnx                                               | E0860               |
 | tests/adr-007/slice-imported-transitive-error.test.cnx                                           | E0860               |

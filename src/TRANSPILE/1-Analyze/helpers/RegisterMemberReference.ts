@@ -21,6 +21,8 @@
 
 import { ParserRuleContext } from "antlr4ng";
 
+import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
+import ChainRoot from "../../../utils/ChainRoot";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import IRegisterMember from "../types/IRegisterMember";
@@ -136,6 +138,28 @@ class RegisterMemberReference {
           here,
           isShadowed,
         );
+  }
+
+  /**
+   * The register member an assignment target names, or null: its leading
+   * names up to the first subscript, read from the target's own root
+   */
+  static ofTarget(
+    target: Parser.AssignmentTargetContext,
+    context: IAnalysisContext,
+  ): IRegisterMember | null {
+    const names = target
+      .postfixTargetOp()
+      .map((op) => (op.DOT() === null ? null : op.IDENTIFIER()!.getText()));
+    return RegisterMemberReference.resolve(
+      ChainRoot.ofTarget(target),
+      RegisterMemberReference.leadingNames(
+        target.IDENTIFIER().getText(),
+        names,
+      ),
+      target,
+      context,
+    );
   }
 
   /** The register member a chain names, or null when it names none. */

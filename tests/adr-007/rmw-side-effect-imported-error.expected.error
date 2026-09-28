@@ -1,0 +1,4 @@
+11:10 error[E0890]: 'sharedIndex' would be evaluated twice: 'table[sharedIndex][1]' is read and then written back
+       help: A bit, bit-range or bitmap-field write keeps the other bits, so it reads its target and stores it back, and every subscript in the target runs twice. Store the index in a variable first (ADR-007).
+12:10 error[E0890]: 'nextIndex()' would be evaluated twice: 'table[nextIndex()][0,2]' is read and then written back
+       help: A bit, bit-range or bitmap-field write keeps the other bits, so it reads its target and stores it back, and every subscript in the target runs twice. Store the index in a variable first (ADR-007).
