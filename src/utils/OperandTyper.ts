@@ -384,6 +384,22 @@ class OperandTyper {
     );
   }
 
+  /**
+   * The composite operator level (`*`, `+`, `&`, `^`, `|`) an expression IS,
+   * through single-child chains and parentheses, or null. The same descent
+   * `valueLeaves` flattens, for a rule that needs the level itself -- Rule
+   * 10.4's category of an operand that is an operation (#1760 review).
+   */
+  static compositeLevelOf(node: ParserRuleContext): ParserRuleContext | null {
+    const inner = OperandTyper.descend(node);
+    if (OperandTyper.isCompositeLevel(inner)) return inner;
+    if (inner instanceof Parser.PrimaryExpressionContext) {
+      const parenthesized = inner.expression();
+      if (parenthesized) return OperandTyper.compositeLevelOf(parenthesized);
+    }
+    return null;
+  }
+
   private static isCompositeLevel(node: ParserRuleContext): boolean {
     return (
       node instanceof Parser.BitwiseOrExpressionContext ||

@@ -78,6 +78,13 @@ const CHARACTER_ARITHMETIC: ReadonlySet<string> = new Set(["+", "+<-"]);
 class MixedCategoryCheck {
   private readonly enums: EnumValueResolver;
 
+  /**
+   * Each checked level's own category, for the level that contains it: the
+   * running category it folded to, or null when a pair in it differed --
+   * already reported there, once. Levels are checked innermost first.
+   */
+  private readonly levelCategories = new Map<ParserRuleContext, Category>();
+
   constructor(
     private readonly analyzer: MixedTypeCategoryAnalyzer,
     private readonly context: IAnalysisContext,
@@ -103,11 +110,16 @@ class MixedCategoryCheck {
   }
 
   /**
-   * One category for an operand, from its value leaves: the category they
-   * share, or null when they have none -- or disagree, which is reported at
-   * the inner operator, once.
+   * One category for an operand. An operand that is itself an operator level
+   * has the category that level folded to; any other has the category its
+   * value leaves share, or null when they have none -- or disagree, which is
+   * reported at the inner operator, once.
    */
   private operandCategory(ctx: ParserRuleContext): Category {
+    const level = OperandTyper.compositeLevelOf(ctx);
+    if (level !== null && this.levelCategories.has(level)) {
+      return this.levelCategories.get(level) ?? null;
+    }
     let resolved: Category = null;
     for (const leaf of OperandTyper.valueLeaves(ctx, this.context)) {
       const category = MixedCategoryCheck.rule104Category(leaf);
@@ -121,22 +133,69 @@ class MixedCategoryCheck {
     return resolved;
   }
 
+  /**
+   * Checks one level, folding a running category left to right (#1760
+   * review). Only adjacent operands were compared, so a category-less
+   * literal between two operands broke the chain: `a * 2 * k` passed. A
+   * category-less operand now adopts the running category; an exempt
+   * character + integer gives character (MISRA C:2012 D.7); after a pair
+   * that differs -- reported there -- the right operand's category runs on.
+   */
   public checkLevel(
     operands: ParserRuleContext[],
     level: TBinaryOperatorLevel,
   ): void {
     const parent = operands[0]?.parent;
-    for (let i = 0; i < operands.length - 1; i += 1) {
-      if (this.enumComparison(operands[i], operands[i + 1], level)) continue;
-      const left = this.operandCategory(operands[i]);
-      const right = this.operandCategory(operands[i + 1]);
-      if (MixedCategoryCheck.ownedElsewhere(left, right, level)) continue;
-      const operator = parent?.getChild(i * 2 + 1)?.getText() ?? "";
-      if (MixedCategoryCheck.differ(left, right, operator)) {
-        const { line, column } = ParserUtils.getPosition(operands[i + 1]);
-        this.analyzer.addError(line, column, left!, right!);
+    let running = this.operandCategory(operands[0]);
+    let mixed = false;
+    for (let i = 1; i < operands.length; i += 1) {
+      const right = this.operandCategory(operands[i]);
+      const operator = parent?.getChild(i * 2 - 1)?.getText() ?? "";
+      if (this.reportsPair(operands[i - 1], operands[i], level)) {
+        if (MixedCategoryCheck.differ(running, right, operator)) {
+          const { line, column } = ParserUtils.getPosition(operands[i]);
+          this.analyzer.addError(line, column, running!, right!);
+          mixed = true;
+        }
       }
+      running = MixedCategoryCheck.fold(running, right, operator);
     }
+    if (parent) this.levelCategories.set(parent, mixed ? null : running);
+  }
+
+  /** Whether this rule, not another, reports a mix between two operands */
+  private reportsPair(
+    left: ParserRuleContext,
+    right: ParserRuleContext,
+    level: TBinaryOperatorLevel,
+  ): boolean {
+    if (this.enumComparison(left, right, level)) return false;
+    return !MixedCategoryCheck.ownedElsewhere(
+      this.operandCategory(left),
+      this.operandCategory(right),
+      level,
+    );
+  }
+
+  /**
+   * The category after `running operator right`: character for MISRA's
+   * exempt character + integer (D.7), the running one when `right` has
+   * none, and `right`'s otherwise.
+   */
+  private static fold(
+    running: Category,
+    right: Category,
+    operator: string,
+  ): Category {
+    if (right === null) return running;
+    if (running === null) return right;
+    if (
+      running !== right &&
+      !MixedCategoryCheck.differ(running, right, operator)
+    ) {
+      return "character";
+    }
+    return right;
   }
 
   /**
@@ -242,13 +301,19 @@ class MixedTypeCategoryAnalyzer {
     this.errors = [];
     const check = new MixedCategoryCheck(this, this.context);
 
+    // Levels are met outermost first; checked innermost first, so a level
+    // that is an operand of another has its category when that one asks
+    const levels: Array<[ParserRuleContext[], TBinaryOperatorLevel]> = [];
     ParseTreeWalker.DEFAULT.walk(
       new BinaryOperatorLevelListener((operands, level) => {
         if (level === "shift") return;
-        check.checkLevel(operands, level);
+        levels.push([operands, level]);
       }),
       tree,
     );
+    for (const [operands, level] of levels.reverse()) {
+      check.checkLevel(operands, level);
+    }
 
     ParseTreeWalker.DEFAULT.walk(
       new AssignmentSiteListener((site) => check.checkCompound(site)),
