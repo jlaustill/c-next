@@ -12,6 +12,8 @@
  * to a narrower essential type).
  */
 import TYPE_LIMITS from "../types/TYPE_LIMITS";
+import CNEXT_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
+import invariant from "../../../../utils/invariant";
 
 class SaturatingCast {
   /**
@@ -48,9 +50,18 @@ class SaturatingCast {
     return `((${operand}) >= ${maxComparison} ? ${castMax} : (${operand}) < ${minComparison} ? ${castMin} : ${finalCast})`;
   }
 
-  /** The C type of a float source: `float` for `f32`, else `double` */
+  /**
+   * The C type of a float source, from the one type map (#1760 second
+   * review: this and the float-bits union each spelled it, with opposite
+   * defaults for anything but `f32` and `f64`)
+   */
   static floatCType(sourceType: string): string {
-    return sourceType === "f32" ? "float" : "double";
+    const cType = CNEXT_TO_C_TYPE_MAP[sourceType];
+    invariant(
+      cType === "float" || cType === "double",
+      `a saturating cast's source is a float ('${sourceType}')`,
+    );
+    return cType;
   }
 }
 

@@ -94,15 +94,11 @@ class MisraBaseline {
 
   /**
    * cppcheck argv for a single C file. Always enables style (the #1057 fix).
-   * @param {string} file
-   * @param {string} includeDir
-   * @returns {string[]}
-   */
-  /**
    * @param {string} file - the translation unit to analyze
    * @param {string} includeDir - the corpus's shared include directory
    * @param {string[]} [extraArgs] - more cppcheck flags for this file, such
    *   as a Cortex-M file's CMSIS-Core include and architecture macros
+   * @returns {string[]}
    */
   static buildArgs(file, includeDir, extraArgs = []) {
     return [

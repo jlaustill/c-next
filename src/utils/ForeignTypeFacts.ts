@@ -142,15 +142,12 @@ class ForeignTypeFacts {
   }
 
   /**
-   * Strip trailing pointer stars from a C type string (e.g., "font_t*" → "font_t").
-   * Uses string operations instead of regex to avoid SonarCloud ReDoS flag (S5852).
-   */
-  /**
    * What a C pointer type points at: `font_t*` is `font_t`. One level only
    * (#1435's review): stripping every `*` made `Dev**` claim to be a `Dev*`,
    * and a call site took its address for a `Dev**` parameter -- a `Dev***`.
    * One level leaves `Dev*`, which is no struct, so a pointer to a pointer
-   * gets no answer here and its reader asks the declared C type.
+   * gets no answer here and its reader asks the declared C type. String
+   * operations, not a regex, which SonarCloud flags for ReDoS (S5852).
    */
   private static stripOnePointer(type: string): string {
     return type.endsWith("*") ? type.slice(0, -1).trim() : type;
@@ -495,11 +492,6 @@ class ForeignTypeFacts {
     return ForeignTypeFacts.unqualified(cType).replace(/^(?:std)?::/, "");
   }
 
-  /**
-   * The C types the language knows by name, or undefined for any other
-   * spelling. A known name with no width on this target (no target, or the C
-   * library's choice) keeps its category and gives a null width.
-   */
   /** An integer or a float: an element with a width, fixed or not */
   private static hasWidth(element: TForeignElement): boolean {
     return (
@@ -518,6 +510,11 @@ class ForeignTypeFacts {
     return FIXED_INTEGER.test(type) || type === "char";
   }
 
+  /**
+   * The C types the language knows by name, or undefined for any other
+   * spelling. A known name with no width on this target (no target, or the C
+   * library's choice) keeps its category and gives a null width.
+   */
   private static knownSpelling(
     type: string,
     target: ITargetDescription | null,

@@ -1079,13 +1079,16 @@ class TestUtils {
       };
     }
     const mirrored = join(mirror, relative(join(rootDir, "tests"), cnxFile));
+    // The mirror's own root, as `targetDependentDiagnostics` renders against
+    // (#1760 second review: the project root printed `../../tmp/cnx-matrix-…`)
+    const root = dirname(mirror);
     const transpile = transpileViaCli(mirrored, mode === "cpp", {
       target,
-      root: dirname(mirror),
+      root,
     });
     if (!transpile.success) {
       const errors = transpile.errors
-        .map((e) => renderDiagnostic(e, mirrored))
+        .map((e) => renderDiagnostic(e, mirrored, root))
         .join("\n");
       return TestUtils.settleCell(
         target,

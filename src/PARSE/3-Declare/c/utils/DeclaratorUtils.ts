@@ -208,9 +208,6 @@ class DeclaratorUtils {
   }
 
   /**
-   * Check if declaration specifiers contain a specific storage class.
-   */
-  /**
    * The type a declarator records: the base type with any indirection the
    * declarator carries -- a pointer's depth, or a function pointer's
    * `T (*)(params)`. The one rule for a typedef and a struct field (#1760
@@ -242,41 +239,29 @@ class DeclaratorUtils {
    *   inner directDeclarator -> '(' declarator ')'
    *   inner declarator -> pointer directDeclarator -> * PointCallback
    */
-  static isFunctionPointerDeclarator(declarator: any): boolean {
-    const directDecl = declarator.directDeclarator?.();
-    if (!directDecl) return false;
-
+  private static isFunctionPointerDeclarator(
+    declarator: DeclaratorContext,
+  ): boolean {
+    const directDecl = declarator.directDeclarator();
     // The outer directDeclarator has: directDeclarator '(' params ')'
-    // Check for parameter list at the outer level
     const hasParams =
-      directDecl.parameterTypeList?.() !== null ||
-      Boolean(directDecl.LeftParen?.());
-
+      directDecl.parameterTypeList() !== null ||
+      directDecl.LeftParen() !== null;
     if (!hasParams) return false;
 
     // The inner directDeclarator should be '(' declarator ')' with a pointer
-    const innerDirectDecl = directDecl.directDeclarator?.();
-    if (!innerDirectDecl) return false;
-
-    const nestedDecl = innerDirectDecl.declarator?.();
-    if (!nestedDecl) return false;
-
-    return Boolean(nestedDecl.pointer?.());
+    const nestedDecl = directDecl.directDeclarator()?.declarator();
+    return (nestedDecl?.pointer() ?? null) !== null;
   }
 
   /**
    * Extract parameter text from a function pointer declarator.
    * Returns the text of the parameters from a function pointer like "(*Callback)(Point p)".
    */
-  static extractParamText(declarator: any): string {
-    const directDecl = declarator.directDeclarator?.();
-    if (!directDecl) return "";
-
-    const paramTypeList = directDecl.parameterTypeList?.();
-    if (!paramTypeList) return "";
-
-    return paramTypeList.getText();
+  private static extractParamText(declarator: DeclaratorContext): string {
+    return declarator.directDeclarator().parameterTypeList()?.getText() ?? "";
   }
+
   /**
    * Whether a declaration is `volatile` (#1760 review). The specifier list is
    * read for its type specifiers alone, so a `volatile float` global was
@@ -289,6 +274,9 @@ class DeclaratorUtils {
       .some((spec) => spec.typeQualifier()?.getText() === "volatile");
   }
 
+  /**
+   * Check if declaration specifiers contain a specific storage class.
+   */
   static hasStorageClass(
     declSpecs: DeclarationSpecifiersContext,
     storage: string,

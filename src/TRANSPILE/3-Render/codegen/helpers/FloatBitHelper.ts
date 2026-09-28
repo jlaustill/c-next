@@ -18,6 +18,7 @@
 
 import TIncludeHeader from "../../../../transpiler/types/TIncludeHeader";
 import BitRangeHelper from "./BitRangeHelper";
+import SaturatingCast from "./SaturatingCast";
 import BitUtils from "../../../../utils/BitUtils";
 import ComplianceAnnotations from "../../../2-Plan/ComplianceAnnotations";
 import type TranspileState from "../../../TranspileState";
@@ -50,7 +51,7 @@ class FloatBitHelper {
    * it).
    */
   static unionDeclaration(floatType: string, name: string): string {
-    const floatCType = floatType === "f64" ? "double" : "float";
+    const floatCType = SaturatingCast.floatCType(floatType);
     const bitsCType = FloatBitHelper.bitsTypeOf(floatType);
     return [
       ComplianceAnnotations.render(
