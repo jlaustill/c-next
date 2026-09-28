@@ -452,6 +452,24 @@ lib_extra_dirs = extra_libs
       expect(paths.some((p) => p.includes("extra_libs"))).toBe(true);
     });
 
+    it("parses a CRLF platformio.ini's lib_extra_dirs (#1760 review)", () => {
+      mkdirSync(join(testDir, "crlf_libs"), { recursive: true });
+      mkdirSync(join(testDir, "crlf_more"), { recursive: true });
+      writeFileSync(
+        join(testDir, "platformio.ini"),
+        "[env:esp32]\r\nlib_extra_dirs =\r\n    crlf_libs\r\n    crlf_more\r\n",
+      );
+      mkdirSync(join(testDir, "src"), { recursive: true });
+      writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
+
+      const paths = IncludeDiscovery.discoverIncludePaths(
+        join(testDir, "src", "main.cnx"),
+      );
+
+      expect(paths.some((p) => p.endsWith("crlf_libs"))).toBe(true);
+      expect(paths.some((p) => p.endsWith("crlf_more"))).toBe(true);
+    });
+
     it("collects every path from a multi-line lib_extra_dirs (#1181)", () => {
       // The multi-line form is what PlatformIO's own docs show for more than
       // one directory. The previous pattern captured only the first path,
@@ -582,6 +600,22 @@ lib_extra_dirs = "quoted lib"
       );
 
       expect(paths.some((p) => p.includes("quoted lib"))).toBe(true);
+    });
+
+    it("adds no directory for an empty quoted lib_extra_dirs", () => {
+      mkdirSync(join(testDir, "src"), { recursive: true });
+      writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
+      const discover = (ini: string) => {
+        writeFileSync(join(testDir, "platformio.ini"), ini);
+        return IncludeDiscovery.discoverIncludePaths(
+          join(testDir, "src", "main.cnx"),
+        );
+      };
+
+      // Unquoted, `""` is empty: it names no directory, not the project root
+      expect(discover('[env:esp32]\nlib_extra_dirs = ""\n')).toEqual(
+        discover("[env:esp32]\n"),
+      );
     });
   });
 

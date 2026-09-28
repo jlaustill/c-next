@@ -214,31 +214,14 @@ class IncludeDiscovery {
       //   lib_extra_dirs =
       //     path1
       //     path2
+      // The one list rule (#1760 review: this file split and stripped
+      // comments with its own copy). A path in quotes is read without them,
+      // as it was before (679035029); PlatformIO keeps them, and quotes are
+      // stripped nowhere else, since in a section name they change the section.
       for (const value of PlatformIOIni.valuesOf(content, "lib_extra_dirs")) {
-        // Split by newlines or commas, handling both single-line and multi-line formats
-        const dirs = value
-          .split(/[\n,]/)
-          .map((d) => {
-            // Strip inline comments (e.g., "path ; comment" or "path # comment")
-            const semicolonIdx = d.indexOf(";");
-            const hashIdx = d.indexOf("#");
-            const commentIndex = Math.min(
-              semicolonIdx === -1 ? Infinity : semicolonIdx,
-              hashIdx === -1 ? Infinity : hashIdx,
-            );
-            return d.slice(0, commentIndex).trim();
-          })
-          .map((d) => {
-            // Strip surrounding quotes (e.g., "path with spaces" or 'path')
-            if (
-              (d.startsWith('"') && d.endsWith('"')) ||
-              (d.startsWith("'") && d.endsWith("'"))
-            ) {
-              return d.slice(1, -1);
-            }
-            return d;
-          })
-          .filter((d) => d.length > 0);
+        const dirs = PlatformIOIni.list(value)
+          .map((dir) => (/^(["']).*\1$/.test(dir) ? dir.slice(1, -1) : dir))
+          .filter((dir) => dir.length > 0);
 
         for (const dir of dirs) {
           // Resolve relative to project root

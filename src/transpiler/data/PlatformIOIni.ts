@@ -12,19 +12,32 @@ import type IFileSystem from "../types/IFileSystem";
 import type IPlatformIOEnv from "../types/IPlatformIOEnv";
 import type IPlatformIOProject from "../types/IPlatformIOProject";
 
-/** How deep `extends` may chain before the file is taken to be cyclic */
-const MAX_EXTENDS = 8;
+/** How deep `${section.option}` may nest before a value is taken as cyclic */
+const MAX_INTERPOLATION = 8;
+
+/** A `${section.option}` reference, as PlatformIO spells one */
+const REFERENCE = /\$\{([^.}]+)\.([^}]+)\}/g;
+
+/** `default_envs`, and the old name PlatformIO still reads it by */
+const DEFAULT_ENVS: readonly string[] = ["default_envs", "env_default"];
 
 class PlatformIOIni {
   /**
-   * Section name -> key -> raw value, in file order. Keys before any section
-   * belong to the section named "". A value continues onto each following line
-   * that is indented, does not start a key of its own, and does not open a
-   * section (#1181); continuation lines are joined with "\n".
+   * Section name -> key -> value, in file order, read as PlatformIO's
+   * configparser reads the file. Blank lines and comment lines are skipped,
+   * so neither ends a value (#1760 review: both did), and a comment after
+   * whitespace is dropped from its line. A value continues onto each
+   * following line that is indented, does not start a key of its own, and
+   * does not open a section (#1181). Each line is trimmed and the lines are
+   * joined with "\n", so a value written below its key starts with one. Keys
+   * before any section belong to the section named "".
    */
   static sections(content: string): Map<string, Map<string, string>> {
     const sections = new Map<string, Map<string, string>>();
-    const lines = content.split("\n");
+    // #1760 review: a CRLF file kept `\r` on every line, so no key matched
+    const lines = content
+      .split(/\r?\n/)
+      .filter((line) => !/^\s*(?:[;#]|$)/.test(line));
     let section = "";
     let index = 0;
     while (index < lines.length) {
@@ -39,12 +52,12 @@ class PlatformIOIni {
       if (!key) {
         continue;
       }
-      const collected = [key[2]];
+      const collected = [PlatformIOIni.uncomment(key[2])];
       while (
         index < lines.length &&
         PlatformIOIni.isContinuation(lines[index])
       ) {
-        collected.push(lines[index]);
+        collected.push(PlatformIOIni.uncomment(lines[index]));
         index += 1;
       }
       if (!sections.has(section)) {
@@ -55,7 +68,7 @@ class PlatformIOIni {
     return sections;
   }
 
-  /** Every section's raw value for `key`, in file order */
+  /** Every section's value for `key`, in file order */
   static valuesOf(content: string, key: string): string[] {
     const values: string[] = [];
     for (const keys of PlatformIOIni.sections(content).values()) {
@@ -84,8 +97,12 @@ class PlatformIOIni {
         continue;
       }
       const envName = name.slice("env:".length).trim();
-      const board = PlatformIOIni.envValue(sections, name, "board");
-      const platform = PlatformIOIni.envValue(sections, name, "platform");
+      const board =
+        PlatformIOIni.optionValue(sections, name, ["board"])?.trim() ||
+        undefined;
+      const platform = PlatformIOIni.platformName(
+        PlatformIOIni.optionValue(sections, name, ["platform"]),
+      );
       envs.push({
         name: envName,
         ...(board === undefined ? {} : { board }),
@@ -93,53 +110,136 @@ class PlatformIOIni {
       });
     }
     const defaultEnvs = PlatformIOIni.list(
-      sections.get("platformio")?.get("default_envs") ?? "",
+      PlatformIOIni.optionValue(sections, "platformio", DEFAULT_ENVS) ?? "",
     );
     return { path, envs, defaultEnvs };
   }
 
   /**
-   * An env's value for `key`: its own, else the first section it `extends`
-   * that has one, else the common `[env]` section's.
+   * A section's value for an option known by any of `names`, found as
+   * PlatformIO finds it (its config's `walk_options`), with its
+   * `${section.option}` references expanded: the section's own options, then
+   * the sections it `extends` -- the LAST listed first, each one's own parents
+   * before the next -- and for an env the common `[env]` section last. The
+   * first section giving the option answers, even with an empty value. A
+   * section is visited once, so a cyclic `extends` ends. #1760 review: `[env]`
+   * answered for the first parent before the rest were read, so
+   * `extends = flags, teensy_base` built `[env]`'s board.
    */
-  private static envValue(
+  private static optionValue(
     sections: ReadonlyMap<string, ReadonlyMap<string, string>>,
     section: string,
-    key: string,
+    names: readonly string[],
     depth = 0,
   ): string | undefined {
-    const own = PlatformIOIni.clean(sections.get(section)?.get(key));
-    if (own !== undefined || depth >= MAX_EXTENDS) {
-      return own ?? PlatformIOIni.clean(sections.get("env")?.get(key));
-    }
-    for (const parent of PlatformIOIni.list(
-      sections.get(section)?.get("extends") ?? "",
-    )) {
-      const inherited = PlatformIOIni.envValue(
-        sections,
-        parent,
-        key,
-        depth + 1,
-      );
-      if (inherited !== undefined) {
-        return inherited;
-      }
-    }
-    return PlatformIOIni.clean(sections.get("env")?.get(key));
+    const raw = PlatformIOIni.walkValue(sections, section, names);
+    return raw === undefined
+      ? undefined
+      : PlatformIOIni.expand(raw, sections, section, depth);
   }
 
-  /** A comma- or line-separated value, trimmed, empties dropped */
-  private static list(value: string): string[] {
+  private static walkValue(
+    sections: ReadonlyMap<string, ReadonlyMap<string, string>>,
+    section: string,
+    names: readonly string[],
+  ): string | undefined {
+    const stack = section.startsWith("env:") ? ["env", section] : [section];
+    const visited = new Set<string>();
+    while (stack.length > 0) {
+      const name = stack.pop()!;
+      if (visited.has(name)) continue;
+      visited.add(name);
+      const options = sections.get(name) ?? new Map<string, string>();
+      for (const [option, value] of options) {
+        if (names.includes(option)) return value;
+      }
+      stack.push(...PlatformIOIni.list(options.get("extends") ?? ""));
+    }
+    return undefined;
+  }
+
+  /**
+   * A value with its `${section.option}` references expanded, as PlatformIO
+   * expands them. Undefined when a reference cannot be expanded here -- the
+   * build machine's `${sysenv.X}`, a missing option, a cycle -- so the value
+   * says nothing. #1760 review: `board = ${common.board}` gave a false E0510.
+   */
+  private static expand(
+    value: string,
+    sections: ReadonlyMap<string, ReadonlyMap<string, string>>,
+    section: string,
+    depth: number,
+  ): string | undefined {
+    if (!value.includes("${")) return value;
+    if (depth >= MAX_INTERPOLATION) return undefined;
+    let unexpanded = false;
+    const expanded = value.replace(REFERENCE, (_whole, from, option) => {
+      const found = PlatformIOIni.reference(
+        sections,
+        section,
+        String(from),
+        String(option),
+        depth,
+      );
+      unexpanded ||= found === undefined;
+      return found ?? "";
+    });
+    return unexpanded || expanded.includes("${") ? undefined : expanded;
+  }
+
+  /**
+   * One `${from.option}`: `this` is the section asked about, whose env name
+   * is `${this.__env__}`, and `sysenv` is the build machine's, so unknown here
+   */
+  private static reference(
+    sections: ReadonlyMap<string, ReadonlyMap<string, string>>,
+    section: string,
+    from: string,
+    option: string,
+    depth: number,
+  ): string | undefined {
+    if (from === "sysenv") return undefined;
+    if (from === "this" && option === "__env__") {
+      return section.startsWith("env:")
+        ? section.slice("env:".length)
+        : undefined;
+    }
+    const named = from === "this" ? section : from;
+    return PlatformIOIni.optionValue(sections, named, [option], depth + 1);
+  }
+
+  /**
+   * A platform's name from its PlatformIO spec: `atmelavr` from
+   * `atmelavr@~4.2.0` and from `platformio/atmelavr` (#1760 review: both
+   * gave a false E0510)
+   */
+  private static platformName(spec: string | undefined): string | undefined {
+    const name = spec?.split("@")[0].split("/").at(-1)?.trim();
+    return name || undefined;
+  }
+
+  /**
+   * A value's items as PlatformIO splits one (`parse_multi_values`): by line
+   * when it has several, else at ", " -- so `a,b` is ONE item -- each
+   * trimmed, empties dropped. `sections()` has dropped the comments, line by
+   * line, so a comma in a comment adds no item. The one list rule `extends`,
+   * `default_envs` and `lib_extra_dirs` read. #1760 review: this split at
+   * every comma, then cut comments from each piece.
+   */
+  static list(value: string): string[] {
     return value
-      .split(/[\n,]/)
-      .map((item) => PlatformIOIni.clean(item) ?? "")
+      .split(value.includes("\n") ? "\n" : ", ")
+      .map((item) => item.trim())
       .filter((item) => item.length > 0);
   }
 
-  /** A single value without its inline `;` comment, or undefined if empty */
-  private static clean(value: string | undefined): string | undefined {
-    const text = value?.replace(/\s;.*$/, "").trim();
-    return text || undefined;
+  /**
+   * A line's text without its comment, trimmed. A comment is `;` or `#`
+   * after whitespace, as configparser has it (#1760 review:
+   * `board = uno  # comment` kept the comment)
+   */
+  private static uncomment(text: string): string {
+    return text.replace(/\s[;#].*$/, "").trim();
   }
 
   private static isContinuation(line: string): boolean {
