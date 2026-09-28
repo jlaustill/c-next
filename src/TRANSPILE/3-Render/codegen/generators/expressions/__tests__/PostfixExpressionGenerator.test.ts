@@ -120,7 +120,6 @@ function createMockOrchestrator(overrides?: {
   isCppScopeSymbol?: (name: string) => boolean;
   isCppMode?: () => boolean;
   getScopeSeparator?: (isCpp: boolean) => string;
-  generateBitMask?: (width: string, is64?: boolean) => string;
   tryEvaluateConstant?: (ctx: unknown) => number | undefined;
   hasFloatBitShadow?: (name: string) => boolean;
   registerFloatBitShadow?: (name: string) => void;
@@ -210,8 +209,6 @@ function createMockOrchestrator(overrides?: {
     isKnownScope: overrides?.isKnownScope ?? vi.fn(() => false),
     isCppScopeSymbol: overrides?.isCppScopeSymbol ?? vi.fn(() => false),
     getScopeSeparator: overrides?.getScopeSeparator ?? vi.fn(() => "__"),
-    generateBitMask:
-      overrides?.generateBitMask ?? vi.fn((w) => `((1 << ${w}) - 1)`),
     addPendingTempDeclaration: overrides?.addPendingTempDeclaration ?? vi.fn(),
     registerFloatBitShadow: overrides?.registerFloatBitShadow ?? vi.fn(),
     markFloatShadowCurrent: overrides?.markFloatShadowCurrent ?? vi.fn(),
@@ -1344,11 +1341,10 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "val",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask: () => "0xFF",
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toBe("((val >> 4) & 0xFF)");
+      expect(result.code).toBe("((val >> 4) & 0xFFU)");
     });
 
     it("optimizes bit range at position 0", () => {
@@ -1373,11 +1369,10 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "val",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask: () => "0xFF",
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toBe("((val) & 0xFF)");
+      expect(result.code).toBe("((val) & 0xFFU)");
     });
 
     // Issue #1094: a const/macro width must be resolved to its numeric value (with
@@ -1401,21 +1396,18 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
-      const generateBitMask = vi.fn(() => "0xFFFFFFFFU");
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "val",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask,
         tryEvaluateConstant: () => 32,
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
-      // Width resolved to "32U" (not the identifier "WIDTH"); u32 operand → not 64-bit.
-      expect(generateBitMask).toHaveBeenCalledWith("32U", false);
+      // Width resolved to 32 (not the identifier "WIDTH"), so the mask is a literal
       expect(result.code).toBe("((val) & 0xFFFFFFFFU)");
     });
 
-    it("passes the raw width when it is not a const (#1094)", () => {
+    it("computes a run-time width's mask in the operand's width (#1094, #1668)", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
           "val",
@@ -1429,20 +1421,18 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
-      const generateBitMask = vi.fn(() => "((1U << n) - 1)");
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "val",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask,
         tryEvaluateConstant: () => undefined,
       });
 
-      runPostfix(ctx, input, state, orchestrator);
-      // Non-const width: the generated expression string flows through unchanged.
-      expect(generateBitMask).toHaveBeenCalledWith("n", false);
+      const result = runPostfix(ctx, input, state, orchestrator);
+      // `1U << n` is 16 bits wide where int is, so a u32's mask is computed in 32
+      expect(result.code).toBe("((val) & (((uint32_t)1U << n) - 1U))");
     });
 
-    it("marks a u64 operand as 64-bit for the mask base (#1094)", () => {
+    it("writes a u64 operand's const-width mask as a 64-bit literal (#1094)", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
           "val",
@@ -1459,17 +1449,15 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
-      const generateBitMask = vi.fn(() => "((1ULL << 40U) - 1)");
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "val",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask,
         tryEvaluateConstant: () => 40,
       });
 
-      runPostfix(ctx, input, state, orchestrator);
-      // u64 operand → is64Bit true, so the mask uses a 64-bit base (1ULL).
-      expect(generateBitMask).toHaveBeenCalledWith("40U", true);
+      const result = runPostfix(ctx, input, state, orchestrator);
+      // Never a 32-bit shift: the 40 ones are written out
+      expect(result.code).toBe("((val) & 0xFFFFFFFFFFU)");
     });
   });
 
@@ -1496,7 +1484,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "f",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask: () => "0xFF",
         hasFloatBitShadow: () => false,
         isFloatShadowCurrent: () => false,
       });
@@ -1567,7 +1554,6 @@ describe("PostfixExpressionGenerator", () => {
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "f",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask: () => "0xFF",
         hasFloatBitShadow: () => true,
         isFloatShadowCurrent: () => true,
       });
@@ -1575,11 +1561,10 @@ describe("PostfixExpressionGenerator", () => {
       const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).not.toContain("memcpy");
       // Uses union member .u for bit access
-      expect(result.code).toBe("(__bits_f.u & 0xFF)");
+      expect(result.code).toBe("(__bits_f.u & 0xFFU)");
     });
 
-    // Issue #1094: the float branch must resolve a const width too, and tell the
-    // mask generator the f64 union is 64-bit.
+    // Issue #1094: the float branch must resolve a const width too.
     it("resolves a const width for f64 bit indexing (#1094)", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
@@ -1597,20 +1582,16 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState({ inFunctionBody: true });
-      const generateBitMask = vi.fn(() => "0xFFFFFFFFFFFFFFFFULL");
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "d",
         generateExpression: (ctx) => ctx.getText(),
-        generateBitMask,
         tryEvaluateConstant: () => 64,
         hasFloatBitShadow: () => true,
         isFloatShadowCurrent: () => true,
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
-      // Const width "64U" passed; f64 union → 64-bit mask base.
-      expect(generateBitMask).toHaveBeenCalledWith("64U", true);
-      expect(result.code).toBe("(__bits_d.u & 0xFFFFFFFFFFFFFFFFULL)");
+      expect(result.code).toBe("(__bits_d.u & 0xFFFFFFFFFFFFFFFFU)");
     });
   });
 

@@ -16,7 +16,6 @@ import TGeneratorEffect from "./generators/TGeneratorEffect";
 import atomicGenerators from "./generators/statements/AtomicGenerator";
 // Declaration generators
 // ADR-065: Extracted utilities
-import BitUtils from "../../../utils/BitUtils";
 import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
 import FormatUtils from "../../../utils/FormatUtils";
 import StringUtils from "../../../utils/StringUtils";
@@ -42,7 +41,6 @@ import FloatBitHelper from "./helpers/FloatBitHelper";
 // Issue #644: Assignment expected type resolution helper
 // PR #715: C++ member conversion helper for improved testability
 // PR #715: Boolean conversion helper for improved testability
-import BooleanHelper from "./helpers/BooleanHelper";
 // PR #715: C++ constructor detection helper for improved testability
 // PR #715: Set/Map utilities for improved testability
 // PR #715: Symbol lookup utilities for improved testability
@@ -668,16 +666,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Generate a bit mask for bit range access.
-   * Part of IOrchestrator interface.
-   * Issue #644: Delegate to BitUtils for code reuse.
-   */
-  generateBitMask(width: string, is64Bit: boolean = false): string {
-    // BitUtils.generateMask expects a type string, not a boolean
-    return BitUtils.generateMask(width, is64Bit ? "u64" : undefined);
-  }
-
-  /**
    * Add a pending temp variable declaration (for float bit indexing).
    * Part of IOrchestrator interface.
    */
@@ -728,10 +716,6 @@ export default class CodeGenerator implements IOrchestrator {
   // ===========================================================================
   // End IOrchestrator Implementation
   // ===========================================================================
-
-  private foldBooleanToInt(expr: string): string {
-    return BooleanHelper.foldBooleanToInt(expr);
-  }
 
   // Issue #63: validateIncludeNotImplementationFile moved to TypeValidator
 
@@ -868,8 +852,6 @@ export default class CodeGenerator implements IOrchestrator {
       width,
       value,
       {
-        generateBitMask: (w, is64Bit) => this.generateBitMask(w, is64Bit),
-        foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
         requireInclude: (header) => this.state.requireInclude(header),
       },
       this.state,

@@ -9,8 +9,8 @@
 // Tests: writing multiple bits with [start, width] syntax
 int main(void) {
     uint8_t config = 0U;
-    config = (uint8_t)((config & ~(((1U << 4) - 1) << 0)) | ((5 & ((1U << 4) - 1)) << 0));
-    config = (uint8_t)((config & ~(((1U << 4) - 1) << 4)) | ((15 & ((1U << 4) - 1)) << 4));
+    config = (uint8_t)((config & ~(0xFU << 0)) | ((5 & 0xFU) << 0));
+    config = (uint8_t)((config & ~(0xFU << 4)) | ((15 & 0xFU) << 4));
     uint16_t value = 0U;
     value = (uint16_t)((value & ~(0xFFU << 0)) | ((0xFF & 0xFFU) << 0));
     value = (uint16_t)((value & ~(0xFFU << 8)) | ((0xAB & 0xFFU) << 8));

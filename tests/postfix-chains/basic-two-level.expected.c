@@ -24,7 +24,7 @@ int main(void) {
     points[0].x = 5;
     points[0].y = 15;
     int32_t px = points[0U].x;
-    GPIO__DR = (GPIO__DR & ~(1U << 3)) | (1U << 3);
+    GPIO__DR = (GPIO__DR & ~((uint32_t)1U << 3)) | ((uint32_t)1U << 3);
     bool bit = ((((GPIO__DR >> 5U) & 1)) != 0U);
-    GPIO__DR_SET = (1U << 7);
+    GPIO__DR_SET = ((uint32_t)1U << 7);
 }

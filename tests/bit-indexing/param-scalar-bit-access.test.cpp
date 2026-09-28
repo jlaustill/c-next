@@ -25,13 +25,13 @@ bool bitOfParam(uint32_t v) {
 // Single-bit write on a scalar parameter. The parameter becomes a pointer in
 // C (it's modified), so the write must dereference: (*v) = ...
 uint32_t setBitOfParam(uint32_t& v) {
-    v = (v & ~(1U << 4)) | (1U << 4);
+    v = (v & ~((uint32_t)1U << 4)) | ((uint32_t)1U << 4);
     return v;
 }
 
 // Clearing a bit on a scalar parameter
 uint32_t clearBitOfParam(uint32_t& v) {
-    v = (v & ~(1U << 4)) | (0U << 4);
+    v = (v & ~((uint32_t)1U << 4)) | ((uint32_t)0U << 4);
     return v;
 }
 

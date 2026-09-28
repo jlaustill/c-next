@@ -22,15 +22,15 @@ int main(void) {
     float result = 0.0;
     union { float f; uint32_t u; } __bits_result;
     __bits_result.f = result;
-    __bits_result.u = (__bits_result.u & ~(0xFFU << 24)) | (((uint32_t)0x3F & 0xFFU) << 24);
+    __bits_result.u = (__bits_result.u & ~((uint32_t)0xFFU << 24)) | ((0x3F & (uint32_t)0xFFU) << 24);
     result = __bits_result.f;
-    __bits_result.u = (__bits_result.u & ~(0xFFU << 16)) | (((uint32_t)0x80 & 0xFFU) << 16);
+    __bits_result.u = (__bits_result.u & ~((uint32_t)0xFFU << 16)) | ((0x80 & (uint32_t)0xFFU) << 16);
     result = __bits_result.f;
     if (result != 1.0) return 2U;
     double testDouble = 1.0;
     union { double f; uint64_t u; } __bits_testDouble;
     __bits_testDouble.f = testDouble;
-    uint8_t highByte = ((__bits_testDouble.u >> 56U) & 0xFFULL);
+    uint8_t highByte = ((__bits_testDouble.u >> 56U) & 0xFFU);
     if (highByte != 0x3F) return 3U;
     return 0U;
 }

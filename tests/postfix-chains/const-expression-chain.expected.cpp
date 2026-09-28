@@ -48,16 +48,16 @@ int main(void) {
     sensors[INDEX_0].data = 0xFFU;
     sensors[INDEX_0].data = (uint8_t)((sensors[INDEX_0].data & ~(1U << LED_BIT)) | (0U << LED_BIT));
     sensors[INDEX_0].data = (uint8_t)((sensors[INDEX_0].data & ~(1U << STATUS_BIT)) | (1U << STATUS_BIT));
-    GPIO__DR = (GPIO__DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
-    GPIO__DR = (GPIO__DR & ~(1U << STATUS_BIT)) | (0U << STATUS_BIT);
-    GPIO__DR_SET = (1U << LED_BIT);
+    GPIO__DR = (GPIO__DR & ~((uint32_t)1U << LED_BIT)) | ((uint32_t)1U << LED_BIT);
+    GPIO__DR = (GPIO__DR & ~((uint32_t)1U << STATUS_BIT)) | ((uint32_t)0U << STATUS_BIT);
+    GPIO__DR_SET = ((uint32_t)1U << LED_BIT);
     const uint32_t COMPUTED_IDX = cnx_clamp_add_u32(INDEX_1, INDEX_1);
     sensors[COMPUTED_IDX].id = 500U;
     uint32_t computedId = sensors[COMPUTED_IDX].id;
     sensors[INDEX_0].data = (uint8_t)((sensors[INDEX_0].data & ~(1U << LED_BIT)) | (1U << LED_BIT));
     sensors[INDEX_1].data = (uint8_t)((sensors[INDEX_1].data & ~(1U << STATUS_BIT)) | (0U << STATUS_BIT));
     if (((sensors[INDEX_0].data >> LED_BIT) & 1) == true) {
-        GPIO__DR = (GPIO__DR & ~(1U << LED_BIT)) | (1U << LED_BIT);
+        GPIO__DR = (GPIO__DR & ~((uint32_t)1U << LED_BIT)) | ((uint32_t)1U << LED_BIT);
     }
     const uint32_t ROW = 0U;
     const uint32_t COL = 1U;

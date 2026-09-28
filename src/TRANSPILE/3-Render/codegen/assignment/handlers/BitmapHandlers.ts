@@ -22,15 +22,6 @@ import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
 import type TranspileState from "../../../../TranspileState";
 
 /**
- * Calculate mask value and hex string for bitmap field.
- */
-function calculateMask(width: number): { mask: number; maskHex: string } {
-  const mask = (1 << width) - 1;
-  const maskHex = BitUtils.formatHex(mask);
-  return { mask, maskHex };
-}
-
-/**
  * Validate and get bitmap field info, throwing appropriate errors.
  */
 function getBitmapFieldInfo(
@@ -62,39 +53,59 @@ function getBitmapFieldInfo(
 }
 
 /**
- * Generate bitmap field write using read-modify-write pattern.
+ * A bitmap field write: the field's bits of the bitmap's backing scalar,
+ * written by `BitUtils`, whose width decisions read the backing type (#1668).
+ * A write-1 register member takes a plain write, never a read-modify-write:
+ * the member cannot be read (#1776).
  */
-function generateBitmapWrite(
+function writeBitmapField(
   target: string,
-  fieldInfo: IBitmapFieldLayout,
-  value: string,
+  bitmapType: string,
+  fieldName: string,
+  ctx: IAssignmentContext,
+  writeOnly: boolean,
 ): string {
-  const { maskHex } = calculateMask(fieldInfo.width);
-
-  if (fieldInfo.width === 1) {
-    // Single bit write: target = (target & ~(1U << offset)) | ((value ? 1 : 0) << offset)
-    return `${target} = (${target} & ~(1U << ${fieldInfo.offset})) | (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;
-  } else {
-    // Multi-bit write: target = (target & ~(mask << offset)) | ((value & mask) << offset)
-    return `${target} = (${target} & ~(${maskHex} << ${fieldInfo.offset})) | ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
+  const field = getBitmapFieldInfo(bitmapType, fieldName, ctx.state);
+  const storage = ctx.state.symbols!.bitmapBackingType.get(bitmapType);
+  invariant(
+    storage,
+    `a bitmap the resolver collected has a backing type ('${bitmapType}')`,
+  );
+  const value = ctx.generatedValue;
+  if (field.width === 1) {
+    return writeOnly
+      ? BitUtils.writeOnlySingleBit(target, field.offset, value, storage)
+      : BitUtils.singleBitWrite(target, field.offset, value, storage);
   }
+  return writeOnly
+    ? BitUtils.writeOnlyMultiBit(
+        target,
+        field.offset,
+        field.width,
+        value,
+        storage,
+      )
+    : BitUtils.multiBitWrite(target, field.offset, field.width, value, storage);
 }
 
 /**
- * Generate write-only bitmap field write (no RMW).
+ * A bitmap field of a register member, which is write-1 when the member's
+ * access says so -- however the member is spelled.
  */
-function generateWriteOnlyBitmapWrite(
-  target: string,
-  fieldInfo: IBitmapFieldLayout,
-  value: string,
+function writeRegisterMemberBitmapField(
+  fullRegMember: string,
+  fieldName: string,
+  ctx: IAssignmentContext,
 ): string {
-  const { maskHex } = calculateMask(fieldInfo.width);
-
-  if (fieldInfo.width === 1) {
-    return `${target} = (${BitUtils.boolToInt(value)} << ${fieldInfo.offset});`;
-  } else {
-    return `${target} = ((${value} & ${maskHex}) << ${fieldInfo.offset});`;
-  }
+  const bitmapType = ctx.state.symbols!.registerMemberTypes.get(fullRegMember)!;
+  const accessMod = ctx.state.symbols!.registerMemberAccess.get(fullRegMember);
+  return writeBitmapField(
+    fullRegMember,
+    bitmapType,
+    fieldName,
+    ctx,
+    RegisterAccessMode.isWriteOne(accessMod),
+  );
 }
 
 /**
@@ -106,15 +117,14 @@ function handleBitmapFieldSingleBit(ctx: IAssignmentContext): string {
   const typeInfo = ctx.target.rootTypeInfo;
   const bitmapType = typeInfo!.bitmapTypeName!;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx.state);
-  return generateBitmapWrite(varName, fieldInfo, ctx.generatedValue);
+  return writeBitmapField(varName, bitmapType, fieldName, ctx, false);
 }
 
 /**
  * Handle multi-bit bitmap field: flags.Mode <- 3
  */
 function handleBitmapFieldMultiBit(ctx: IAssignmentContext): string {
-  // Same logic as single bit, generateBitmapWrite handles width
+  // Same logic as single bit, writeBitmapField handles width
   return handleBitmapFieldSingleBit(ctx);
 }
 
@@ -127,11 +137,10 @@ function handleBitmapArrayElementField(ctx: IAssignmentContext): string {
   const typeInfo = ctx.target.rootTypeInfo;
   const bitmapType = typeInfo!.bitmapTypeName!;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx.state);
   const index = ctx.renderSubscript(0);
   const arrayElement = `${arrayName}[${index}]`;
 
-  return generateBitmapWrite(arrayElement, fieldInfo, ctx.generatedValue);
+  return writeBitmapField(arrayElement, bitmapType, fieldName, ctx, false);
 }
 
 /**
@@ -149,10 +158,9 @@ function handleStructMemberBitmapField(ctx: IAssignmentContext): string {
   );
   const bitmapType = memberInfo!.baseType;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx.state);
   const memberPath = `${structName}.${memberName}`;
 
-  return generateBitmapWrite(memberPath, fieldInfo, ctx.generatedValue);
+  return writeBitmapField(memberPath, bitmapType, fieldName, ctx, false);
 }
 
 /**
@@ -164,10 +172,7 @@ function handleRegisterMemberBitmapField(ctx: IAssignmentContext): string {
   const fieldName = ctx.identifiers[2];
 
   const fullRegMember = QualifiedCName.fromParts([regName, memberName]);
-  const bitmapType = ctx.state.symbols!.registerMemberTypes.get(fullRegMember)!;
-
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx.state);
-  return generateBitmapWrite(fullRegMember, fieldInfo, ctx.generatedValue);
+  return writeRegisterMemberBitmapField(fullRegMember, fieldName, ctx);
 }
 
 /**
@@ -209,23 +214,7 @@ function handleScopedRegisterMemberBitmapField(
 
   // A register MEMBER is qualified by its register, textually -- not by a scope.
   const fullRegMember = QualifiedCName.fromParts([fullRegName, memberName]);
-  const bitmapType = ctx.state.symbols!.registerMemberTypes.get(fullRegMember)!;
-
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx.state);
-
-  // Check for write-only register (includes w1s, w1c)
-  const accessMod = ctx.state.symbols!.registerMemberAccess.get(fullRegMember);
-  const isWriteOnly = RegisterAccessMode.isWriteOne(accessMod);
-
-  if (isWriteOnly) {
-    return generateWriteOnlyBitmapWrite(
-      fullRegMember,
-      fieldInfo,
-      ctx.generatedValue,
-    );
-  }
-
-  return generateBitmapWrite(fullRegMember, fieldInfo, ctx.generatedValue);
+  return writeRegisterMemberBitmapField(fullRegMember, fieldName, ctx);
 }
 
 /**

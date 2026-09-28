@@ -18,7 +18,7 @@ int main(void) {
     gbuf[1] = (uint8_t)((gbuf[1] & ~(1U << 3)) | (1U << 3));
     if (gbuf[1U] != 8) return 1U;
     gbuf[2] = 0;
-    gbuf[2] = (uint8_t)((gbuf[2] & ~(((1U << 4) - 1) << 0)) | ((5 & ((1U << 4) - 1)) << 0));
+    gbuf[2] = (uint8_t)((gbuf[2] & ~(0xFU << 0)) | ((5 & 0xFU) << 0));
     if (gbuf[2U] != 5) return 2U;
     gbuf[3] = 7;
     if (gbuf[3U] != 7) return 3U;

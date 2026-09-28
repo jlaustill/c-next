@@ -122,12 +122,13 @@ describe("BitAccessHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("flags =");
-      expect(result).toContain("& ~(1U << 3)");
-      expect(result).toContain("1U << 3");
+      // #1668: a u32 shifts in 32 bits, since `unsigned int` may be 16
+      expect(result).toBe(
+        "flags = (flags & ~((uint32_t)1U << 3)) | ((uint32_t)1U << 3);",
+      );
     });
 
-    it("uses 1ULL for 64-bit types", () => {
+    it("shifts in 64 bits for 64-bit types", () => {
       HandlerTestUtils.declareTypes(state, [["flags", { baseType: "u64" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("32"),
@@ -138,10 +139,10 @@ describe("BitAccessHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("1ULL << 32");
+      expect(result).toContain("~((uint64_t)1U << 32)");
     });
 
-    it("uses 1ULL for signed 64-bit types", () => {
+    it("shifts in unsigned 64 bits for signed 64-bit types", () => {
       HandlerTestUtils.declareTypes(state, [["flags", { baseType: "i64" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("bit"),
@@ -150,8 +151,7 @@ describe("BitAccessHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      // i64 uses 1ULL for the mask and cast for the value
-      expect(result).toContain("1ULL << bit");
+      expect(result).toContain("~((uint64_t)1U << bit)");
     });
 
     it("converts true to 1", () => {
@@ -264,7 +264,7 @@ describe("BitAccessHandlers", () => {
       expect(result).toContain("<< 4");
     });
 
-    it("uses ULL suffix for 64-bit bit range mask", () => {
+    it("shifts a 64-bit bit range's mask in 64 bits", () => {
       HandlerTestUtils.declareTypes(state, [["flags", { baseType: "u64" }]]);
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
@@ -283,8 +283,9 @@ describe("BitAccessHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      // 64-bit type uses ULL suffix on the hex mask
-      expect(result).toContain("0xFFFFULL");
+      expect(result).toBe(
+        "flags = (flags & ~((uint64_t)0xFFFFU << 32)) | ((value & (uint64_t)0xFFFFU) << 32);",
+      );
     });
 
     it("delegates to float bit write for float types", () => {
@@ -382,7 +383,7 @@ describe("BitAccessHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("arr[i] =");
-      expect(result).toContain("& ~(1U << BIT)");
+      expect(result).toContain("& ~((uint32_t)1U << BIT)");
     });
 
     it("generates array element bit assignment for 2D array", () => {
@@ -411,7 +412,7 @@ describe("BitAccessHandlers", () => {
       expect(result).toContain("& ~(1U << FIELD_BIT)");
     });
 
-    it("uses 1ULL for 64-bit array element", () => {
+    it("shifts a 64-bit array element's bit in 64 bits", () => {
       HandlerTestUtils.declareTypes(state, [
         ["arr", { baseType: "u64", arrayDimensions: [5] }],
       ]);
@@ -431,7 +432,7 @@ describe("BitAccessHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("1ULL << 40");
+      expect(result).toContain("~((uint64_t)1U << 40)");
     });
 
     it("writes the element's bit when no C-Next declaration gives the array's dimensions", () => {

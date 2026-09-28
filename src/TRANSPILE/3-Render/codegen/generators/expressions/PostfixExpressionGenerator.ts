@@ -27,6 +27,8 @@ import memberAccessChain from "../../memberAccessChain";
 import BitmapAccessHelper from "./BitmapAccessHelper";
 import BitRangeHelper from "../../helpers/BitRangeHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
+import BitUtils from "../../../../../utils/BitUtils";
+import TYPE_MAP from "../../types/TYPE_MAP";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
 import TYPE_WIDTH from "../../../../../transpiler/constants/TYPE_WIDTH";
@@ -1224,12 +1226,14 @@ const handleBitRangeSubscript = (
       effects,
     );
   } else {
-    // Issue #1094: 64-bit operands need a 64-bit mask base (1ULL / wide hex) so
-    // widths > 32 don't shift past a 32-bit literal's width.
-    const is64BitOperand =
-      ctx.primaryTypeInfo?.baseType === "u64" ||
-      ctx.primaryTypeInfo?.baseType === "i64";
-    const mask = orchestrator.generateBitMask(maskWidth, is64BitOperand);
+    // Issue #1094, #1668: a width known only at run time computes its mask
+    // in the operand's own width, so a 64-bit operand's does not shift past
+    // a 32-bit literal's, nor a 32-bit one's past a 16-bit int's
+    const baseType = ctx.primaryTypeInfo?.baseType;
+    const mask = BitUtils.generateMask(
+      maskWidth,
+      baseType === undefined ? undefined : TYPE_MAP[baseType],
+    );
     // Skip shift when start is 0 (either "0" or "0U" with MISRA suffix)
     let expr: string;
     if (start === "0" || start === "0U") {
@@ -1303,7 +1307,7 @@ const handleFloatBitRange = (
   const floatType = getFloatTypeName(ctx.baseType);
   const intType = isF64 ? "uint64_t" : "uint32_t";
   const shadowName = BitRangeHelper.getShadowVarName(ctx.rootIdentifier);
-  const mask = orchestrator.generateBitMask(ctx.maskWidth, isF64);
+  const mask = BitUtils.generateMask(ctx.maskWidth, intType);
 
   const needsDeclaration = !orchestrator.hasFloatBitShadow(shadowName);
   if (needsDeclaration) {

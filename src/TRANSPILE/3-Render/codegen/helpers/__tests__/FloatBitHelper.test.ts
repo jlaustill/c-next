@@ -16,8 +16,6 @@ import type TIncludeHeader from "../../../../../transpiler/types/TIncludeHeader"
  * Callback types for code generation operations.
  */
 interface IFloatBitCallbacks {
-  generateBitMask: (width: string, is64Bit?: boolean) => string;
-  foldBooleanToInt: (expr: string) => string;
   requireInclude: (header: TIncludeHeader) => void;
 }
 
@@ -30,10 +28,6 @@ describe("FloatBitHelper", () => {
     state = new TranspileState();
 
     callbacks = {
-      generateBitMask: vi.fn((width, _is64Bit) => `((1U << ${width}) - 1)`),
-      foldBooleanToInt: vi.fn((expr) =>
-        expr === "true" ? "1" : expr === "false" ? "0" : expr,
-      ),
       requireInclude: vi.fn(),
     };
   });
@@ -85,9 +79,9 @@ describe("FloatBitHelper", () => {
       );
       // Read via union
       expect(result).toContain("__bits_myFloat.f = myFloat;");
-      // Bit manipulation via .u
+      // Bit manipulation via .u, written like any uint32_t (#1668)
       expect(result).toContain(
-        "__bits_myFloat.u = (__bits_myFloat.u & ~(1U << 3))",
+        "__bits_myFloat.u = (__bits_myFloat.u & ~((uint32_t)1U << 3)) | ((uint32_t)1U << 3);",
       );
       // Write back via union
       expect(result).toContain("myFloat = __bits_myFloat.f;");
@@ -120,7 +114,9 @@ describe("FloatBitHelper", () => {
       expect(result).toContain(
         "union { double f; uint64_t u; } __bits_myDouble;",
       );
-      expect(result).toContain("1ULL << 5");
+      expect(result).toContain(
+        "__bits_myDouble.u = (__bits_myDouble.u & ~((uint64_t)1U << 5)) | ((uint64_t)0U << 5);",
+      );
     });
 
     it("generates bit range write for f32 using union", () => {
@@ -144,7 +140,9 @@ describe("FloatBitHelper", () => {
       expect(result).toContain(
         "union { float f; uint32_t u; } __bits_myFloat;",
       );
-      expect(callbacks.generateBitMask).toHaveBeenCalledWith("8", false);
+      expect(result).toContain(
+        "__bits_myFloat.u = (__bits_myFloat.u & ~((uint32_t)0xFFU << 0)) | ((value & (uint32_t)0xFFU) << 0);",
+      );
     });
 
     it("skips union declaration when shadow already exists", () => {

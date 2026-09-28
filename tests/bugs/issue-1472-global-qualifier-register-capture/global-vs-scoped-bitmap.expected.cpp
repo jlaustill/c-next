@@ -39,6 +39,6 @@
 
 
 int main(void) {
-    Chip__CTRL__GLOBAL_STATUS = (Chip__CTRL__GLOBAL_STATUS & ~(1U << 0)) | ((1 ? 1U : 0U) << 0);
-    Chip__CTRL__LOCAL_STATUS = (Chip__CTRL__LOCAL_STATUS & ~(1U << 9)) | ((1 ? 1U : 0U) << 9);
+    Chip__CTRL__GLOBAL_STATUS = (uint8_t)((Chip__CTRL__GLOBAL_STATUS & ~(1U << 0)) | ((1 ? 1U : 0U) << 0));
+    Chip__CTRL__LOCAL_STATUS = (uint16_t)((Chip__CTRL__LOCAL_STATUS & ~(1U << 9)) | ((1 ? 1U : 0U) << 9));
 }

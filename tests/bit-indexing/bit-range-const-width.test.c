@@ -16,14 +16,14 @@ int main(void) {
     uint32_t b = 0x12345678U;
     uint32_t full = ((b) & 0xFFFFFFFFU);
     if (full != 0x12345678) return 1U;
-    uint32_t part = ((b) & ((1U << 12U) - 1));
+    uint32_t part = ((b) & 0xFFFU);
     if (part != 0x678) return 2U;
     const uint8_t FULL64 = 64U;
     uint64_t big = 0x123456789ABCDEF0ULL;
-    uint64_t full64 = ((big) & 0xFFFFFFFFFFFFFFFFULL);
+    uint64_t full64 = ((big) & 0xFFFFFFFFFFFFFFFFU);
     if (full64 != 0x123456789ABCDEF0) return 3U;
     const uint8_t W40 = 40U;
-    uint64_t w40 = ((big) & ((1ULL << 40U) - 1));
+    uint64_t w40 = ((big) & 0xFFFFFFFFFFU);
     if (w40 != 0x789ABCDEF0) return 4U;
     return 0U;
 }

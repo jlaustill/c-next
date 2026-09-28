@@ -18,7 +18,7 @@
 static Cfg S__local = {0};
 
 void S__run(void) {
-    S__local.flags = (S__local.flags & ~(1U << 4)) | (1U << 4);
+    S__local.flags = (S__local.flags & ~((uint32_t)1U << 4)) | ((uint32_t)1U << 4);
     S__local.data[1] = 3U;
 }
 

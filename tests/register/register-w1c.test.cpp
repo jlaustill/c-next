@@ -16,7 +16,7 @@ void clearInterrupt(uint32_t mask) {
 }
 
 void clearPendingIRQ(uint8_t irqNum) {
-    INT__PENDING = (1U << irqNum);
+    INT__PENDING = ((uint32_t)1U << irqNum);
 }
 
 void clearGpioInterrupt(uint32_t bitMask) {
@@ -24,7 +24,7 @@ void clearGpioInterrupt(uint32_t bitMask) {
 }
 
 void clearSingleBit(uint8_t bit) {
-    INT__STATUS = (1U << bit);
+    INT__STATUS = ((uint32_t)1U << bit);
 }
 
 int main(void) {

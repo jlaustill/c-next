@@ -19,16 +19,13 @@
 import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 import TIncludeHeader from "../../../../transpiler/types/TIncludeHeader";
 import BitRangeHelper from "./BitRangeHelper";
+import BitUtils from "../../../../utils/BitUtils";
 import type TranspileState from "../../../TranspileState";
 
 /**
  * Callback types for code generation operations.
  */
 interface IFloatBitCallbacks {
-  /** Generate a bit mask expression */
-  generateBitMask: (width: string, is64Bit?: boolean) => string;
-  /** Fold boolean expressions to 0/1 integer */
-  foldBooleanToInt: (expr: string) => string;
   /** Request an include header */
   requireInclude: (header: TIncludeHeader) => void;
 }
@@ -82,7 +79,6 @@ class FloatBitHelper {
     const floatType = getFloatTypeName(typeInfo.baseType);
     const intType = isF64 ? "uint64_t" : "uint32_t";
     const shadowName = BitRangeHelper.getShadowVarName(name);
-    const maskSuffix = isF64 ? "ULL" : "U";
 
     // Check if shadow variable needs declaration
     const needsDeclaration = !state.floatBitShadows.has(shadowName);
@@ -103,22 +99,14 @@ class FloatBitHelper {
     // Mark shadow as current after this write
     state.floatShadowCurrent.add(shadowName);
 
-    if (width === null) {
-      // Single bit assignment: floatVar[3] <- true
-      return (
-        `${decl}${readUnion}` +
-        `${shadowName}.u = (${shadowName}.u & ~(1${maskSuffix} << ${bitIndex})) | ((${intType})${callbacks.foldBooleanToInt(value)} << ${bitIndex});\n` +
-        `${name} = ${shadowName}.f;`
-      );
-    } else {
-      // Bit range assignment: floatVar[0, 8] <- b0
-      const mask = callbacks.generateBitMask(width, isF64);
-      return (
-        `${decl}${readUnion}` +
-        `${shadowName}.u = (${shadowName}.u & ~(${mask} << ${bitIndex})) | (((${intType})${value} & ${mask}) << ${bitIndex});\n` +
-        `${name} = ${shadowName}.f;`
-      );
-    }
+    // The integer member is written like any other integer (#1668): a bit
+    // or a bit range of a uint32_t or a uint64_t
+    const bits = `${shadowName}.u`;
+    const write =
+      width === null
+        ? BitUtils.singleBitWrite(bits, bitIndex, value, intType)
+        : BitUtils.multiBitWrite(bits, bitIndex, width, value, intType);
+    return `${decl}${readUnion}${write}\n${name} = ${shadowName}.f;`;
   }
 }
 

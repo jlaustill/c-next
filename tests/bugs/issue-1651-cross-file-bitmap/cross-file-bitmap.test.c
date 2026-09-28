@@ -42,10 +42,10 @@
 LocalFlags local = 0;
 
 int main(void) {
-    shared = (shared & ~(1U << 0)) | ((1 ? 1U : 0U) << 0);
-    shared = (shared & ~(0x7U << 2)) | ((5 & 0x7U) << 2);
-    local = (local & ~(1U << 0)) | ((1 ? 1U : 0U) << 0);
-    local = (local & ~(0x7U << 1)) | ((3 & 0x7U) << 1);
+    shared = (uint8_t)((shared & ~(1U << 0)) | ((1 ? 1U : 0U) << 0));
+    shared = (uint8_t)((shared & ~(0x7U << 2)) | ((5 & 0x7U) << 2));
+    local = (uint8_t)((local & ~(1U << 0)) | ((1 ? 1U : 0U) << 0));
+    local = (uint8_t)((local & ~(0x7U << 1)) | ((3 & 0x7U) << 1));
     if (((shared >> 0) & 1) != 1) {
         return 1U;
     }

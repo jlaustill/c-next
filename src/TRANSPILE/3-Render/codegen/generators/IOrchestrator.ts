@@ -240,9 +240,6 @@ interface IOrchestrator {
   /** Get member type info for struct access chains */
   getMemberTypeInfo(structType: string, memberName: string): TTypeInfo | null;
 
-  /** Generate a bit mask for bit range access */
-  generateBitMask(width: string, is64Bit?: boolean): string;
-
   /** Add a pending temp variable declaration (for float bit indexing) */
   addPendingTempDeclaration(declaration: string): void;
 

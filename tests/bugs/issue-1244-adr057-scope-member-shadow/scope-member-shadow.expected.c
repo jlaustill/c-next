@@ -27,7 +27,7 @@ static Holder Reg__Other = {0};
 
 uint8_t Reg__useShadowed(void) {
     Reg__Other.member = 0U;
-    Reg__Other.member = (uint8_t)((Reg__Other.member & ~(((1U << 3) - 1) << 4)) | ((5U & ((1U << 3) - 1)) << 4));
+    Reg__Other.member = (uint8_t)((Reg__Other.member & ~(0x7U << 4)) | ((5U & 0x7U) << 4));
     return Reg__Other.member;
 }
 

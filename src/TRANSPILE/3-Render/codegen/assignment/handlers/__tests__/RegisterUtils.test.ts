@@ -41,34 +41,6 @@ describe("RegisterUtils", () => {
     });
   });
 
-  describe("extractBitRangeParams", () => {
-    beforeEach(() => {
-      state = new TranspileState();
-      HandlerTestUtils.setupMockGenerator(state, {
-        generateExpression: vi
-          .fn()
-          .mockImplementation((ctx) => ctx?.mockExpr ?? "0"),
-      });
-    });
-
-    it("extracts start, width, and mask from subscripts", () => {
-      const result = RegisterUtils.extractBitRangeParams("4", "8");
-
-      expect(result.start).toBe("4");
-      expect(result.width).toBe("8");
-      // BitUtils.generateMask returns optimized hex for common widths
-      expect(result.mask).toBe("0xFFU");
-    });
-
-    it("handles dynamic expressions", () => {
-      const result = RegisterUtils.extractBitRangeParams("offset", "width_var");
-
-      expect(result.start).toBe("offset");
-      expect(result.width).toBe("width_var");
-      expect(result.mask).toBe("((1U << width_var) - 1)");
-    });
-  });
-
   describe("tryGenerateMMIO", () => {
     beforeEach(() => {
       state = new TranspileState();
@@ -225,34 +197,6 @@ describe("RegisterUtils", () => {
       expect(result.success).toBe(true);
       expect(result.statement).toBe(
         "*((volatile uint32_t*)(0x401B8000 + 0x00)) = (0xDEADBEEF);",
-      );
-    });
-  });
-
-  describe("generateWriteOnlyBitRange", () => {
-    it("generates write-only bit range assignment", () => {
-      const result = RegisterUtils.generateWriteOnlyBitRange(
-        "GPIO7_DR",
-        "value",
-        "((1U << 8) - 1)",
-        "4",
-      );
-
-      expect(result).toBe("GPIO7_DR = ((value & ((1U << 8) - 1)) << 4);");
-    });
-  });
-
-  describe("generateRmwBitRange", () => {
-    it("generates read-modify-write bit range assignment", () => {
-      const result = RegisterUtils.generateRmwBitRange(
-        "GPIO7_DR",
-        "value",
-        "((1U << 8) - 1)",
-        "4",
-      );
-
-      expect(result).toBe(
-        "GPIO7_DR = (GPIO7_DR & ~(((1U << 8) - 1) << 4)) | ((value & ((1U << 8) - 1)) << 4);",
       );
     });
   });

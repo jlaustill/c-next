@@ -18,7 +18,7 @@ int main(void) {
     if (32 != 32) return 1U;
     if (4 != 4) return 2U;
     Flags f = {0};
-    f = (f & ~(0xFU << 0)) | ((1 & 0xFU) << 0);
+    f = (uint16_t)((f & ~(0xFU << 0)) | ((1 & 0xFU) << 0));
     if (16 != 16) return 3U;
     if (2 != 2) return 4U;
     return 0U;

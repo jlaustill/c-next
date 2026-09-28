@@ -95,7 +95,7 @@ uint32_t Counter__writeStructField(void) {
 
 uint32_t Counter__writeBitRange(void) {
     uint8_t Counter__writeBitRange__wflags = 0U;
-    Counter__writeBitRange__wflags = (uint8_t)((Counter__writeBitRange__wflags & ~(((1U << 4) - 1) << 0)) | ((3 & ((1U << 4) - 1)) << 0));
+    Counter__writeBitRange__wflags = (uint8_t)((Counter__writeBitRange__wflags & ~(0xFU << 0)) | ((3 & 0xFU) << 0));
     return Counter__writeBitRange__wflags;
 }
 

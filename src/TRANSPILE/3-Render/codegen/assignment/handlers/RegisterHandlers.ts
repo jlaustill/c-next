@@ -17,64 +17,64 @@ import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
 /**
- * Handle register single bit: GPIO7.DR_SET[LED_BIT] <- true
+ * A bit of a register member. A write-1 member (`wo`, `w1s`, `w1c`) is
+ * written without being read, and takes the value it is given: a runtime
+ * zero is written as one, which the hardware ignores (#1775).
  */
-function handleRegisterBit(ctx: IAssignmentContext): string {
-  // Issue #707: Use shared validation utility
-
-  const { fullName } =
-    AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
-      ctx.identifiers,
-      (name) => ctx.state.isKnownScope(name),
-    );
-  const accessMod = ctx.state.symbols!.registerMemberAccess.get(fullName);
-  const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
-
+function writeRegisterBit(ctx: IAssignmentContext, memberName: string): string {
+  const accessMod = ctx.state.symbols!.registerMemberAccess.get(memberName);
+  const storage = ctx.state.symbols!.registerMemberCTypes.get(memberName);
   const bitIndex = ctx.renderSubscript(0);
 
-  if (isWriteOnly) {
+  if (RegisterUtils.isWriteOnlyRegister(accessMod)) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
       ctx.generatedValue,
-      fullName,
+      memberName,
       bitIndex,
       true,
     );
-    return `${fullName} = (1U << ${bitIndex});`;
+    return BitUtils.writeOnlySingleBit(
+      memberName,
+      bitIndex,
+      ctx.generatedValue,
+      storage,
+    );
   }
 
-  return `${fullName} = (${fullName} & ~(1U << ${bitIndex})) | (${BitUtils.boolToInt(ctx.generatedValue)} << ${bitIndex});`;
+  return BitUtils.singleBitWrite(
+    memberName,
+    bitIndex,
+    ctx.generatedValue,
+    storage,
+  );
 }
 
 /**
- * Handle register bit range: GPIO7.DR_SET[0, 8] <- value
+ * A bit range of a register member. A write-1 member takes a plain write,
+ * as a byte-aligned memory access when the range allows one.
+ *
+ * @param regName the register itself, whose base address the memory access uses
  */
-function handleRegisterBitRange(ctx: IAssignmentContext): string {
-  // Issue #707: Use shared validation utility
+function writeRegisterBitRange(
+  ctx: IAssignmentContext,
+  memberName: string,
+  regName: string,
+): string {
+  const accessMod = ctx.state.symbols!.registerMemberAccess.get(memberName);
+  const storage = ctx.state.symbols!.registerMemberCTypes.get(memberName);
+  const start = ctx.renderSubscript(0);
+  const width = ctx.renderSubscript(1);
 
-  const { fullName, regName } =
-    AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
-      ctx.identifiers,
-      (name) => ctx.state.isKnownScope(name),
-    );
-  const accessMod = ctx.state.symbols!.registerMemberAccess.get(fullName);
-  const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
-
-  const { start, width, mask } = RegisterUtils.extractBitRangeParams(
-    ctx.renderSubscript(0),
-    ctx.renderSubscript(1),
-  );
-
-  if (isWriteOnly) {
+  if (RegisterUtils.isWriteOnlyRegister(accessMod)) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
       ctx.generatedValue,
-      fullName,
+      memberName,
       `${start}, ${width}`,
       false,
     );
 
-    // Try MMIO optimization
     const mmio = RegisterUtils.tryGenerateMMIO(
-      fullName,
+      memberName,
       regName,
       ctx.foldSubscript(0),
       ctx.foldSubscript(1),
@@ -85,60 +85,64 @@ function handleRegisterBitRange(ctx: IAssignmentContext): string {
       return mmio.statement!;
     }
 
-    // Fallback: write shifted value
-    return RegisterUtils.generateWriteOnlyBitRange(
-      fullName,
-      ctx.generatedValue,
-      mask,
+    return BitUtils.writeOnlyMultiBit(
+      memberName,
       start,
+      width,
+      ctx.generatedValue,
+      storage,
     );
   }
 
-  // Read-write: read-modify-write
-  return RegisterUtils.generateRmwBitRange(
-    fullName,
-    ctx.generatedValue,
-    mask,
+  return BitUtils.multiBitWrite(
+    memberName,
     start,
+    width,
+    ctx.generatedValue,
+    storage,
   );
+}
+
+/**
+ * Handle register single bit: GPIO7.DR_SET[LED_BIT] <- true
+ */
+function handleRegisterBit(ctx: IAssignmentContext): string {
+  const { fullName } =
+    AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
+      ctx.identifiers,
+      (name) => ctx.state.isKnownScope(name),
+    );
+  return writeRegisterBit(ctx, fullName);
+}
+
+/**
+ * Handle register bit range: GPIO7.DR_SET[0, 8] <- value
+ */
+function handleRegisterBitRange(ctx: IAssignmentContext): string {
+  const { fullName, regName } =
+    AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
+      ctx.identifiers,
+      (name) => ctx.state.isKnownScope(name),
+    );
+  return writeRegisterBitRange(ctx, fullName, regName);
 }
 
 /**
  * Handle scoped register single bit: this.GPIO7.DR_SET[bit] <- true
  */
 function handleScopedRegisterBit(ctx: IAssignmentContext): string {
-  // Issue #707: Use shared validation utilities
-
   // Build scoped name: Scope_Register_Member
   const regName = AssignmentHandlerUtils.buildScopedRegisterName(
     ctx.state.currentScopePath,
     ctx.identifiers,
   );
-
-  const accessMod = ctx.state.symbols!.registerMemberAccess.get(regName);
-  const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
-
-  const bitIndex = ctx.renderSubscript(0);
-
-  if (isWriteOnly) {
-    AssignmentHandlerUtils.validateWriteOnlyValue(
-      ctx.generatedValue,
-      regName,
-      bitIndex,
-      true,
-    );
-    return `${regName} = (1U << ${bitIndex});`;
-  }
-
-  return `${regName} = (${regName} & ~(1U << ${bitIndex})) | (${BitUtils.boolToInt(ctx.generatedValue)} << ${bitIndex});`;
+  return writeRegisterBit(ctx, regName);
 }
 
 /**
  * Handle scoped register bit range: this.GPIO7.ICR1[6, 2] <- value
  */
 function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
-  // Issue #707: Use shared validation utilities
-
   // #1298: `currentScopePath` IS the whole enclosing path. A scope's leaf name
   // discards every outer component -- the exact leaf-only encoder #1285 removed
   // -- so pass the path on unmodified.
@@ -152,50 +156,7 @@ function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
     declaringScopePath,
     parts[0],
   );
-
-  const accessMod = ctx.state.symbols!.registerMemberAccess.get(regName);
-  const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
-
-  const { start, width, mask } = RegisterUtils.extractBitRangeParams(
-    ctx.renderSubscript(0),
-    ctx.renderSubscript(1),
-  );
-
-  if (isWriteOnly) {
-    AssignmentHandlerUtils.validateWriteOnlyValue(
-      ctx.generatedValue,
-      regName,
-      `${start}, ${width}`,
-      false,
-    );
-
-    // Try MMIO optimization
-    const mmio = RegisterUtils.tryGenerateMMIO(
-      regName,
-      scopedRegName,
-      ctx.foldSubscript(0),
-      ctx.foldSubscript(1),
-      ctx.generatedValue,
-      ctx.state,
-    );
-    if (mmio.success) {
-      return mmio.statement!;
-    }
-
-    return RegisterUtils.generateWriteOnlyBitRange(
-      regName,
-      ctx.generatedValue,
-      mask,
-      start,
-    );
-  }
-
-  return RegisterUtils.generateRmwBitRange(
-    regName,
-    ctx.generatedValue,
-    mask,
-    start,
-  );
+  return writeRegisterBitRange(ctx, regName, scopedRegName);
 }
 
 /**

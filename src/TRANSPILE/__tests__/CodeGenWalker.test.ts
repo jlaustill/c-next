@@ -785,22 +785,6 @@ describe("CodeGenWalker", () => {
       });
     });
 
-    describe("generateBitMask()", () => {
-      it("should generate 32-bit mask", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
-
-        const mask = host.generateBitMask("8", false);
-        expect(mask).toContain("0xFFU");
-      });
-
-      it("should generate 64-bit mask with ULL suffix", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
-
-        const mask = host.generateBitMask("8", true);
-        expect(mask).toContain("ULL");
-      });
-    });
-
     describe("getScopeSeparator()", () => {
       it("should return :: for C++ access", () => {
         const { host } = createMinimalGenerator(`void foo() { }`);
@@ -11071,8 +11055,8 @@ describe("CodeGenWalker", () => {
         });
 
         expect(code).toContain(">> 8U");
-        // Mask is generated as ((1U << 4U) - 1) for bit width 4
-        expect(code).toContain("((1U << 4U) - 1)");
+        // A constant width's mask is written as its value (#1668)
+        expect(code).toContain("((flags >> 8U) & 0xFU)");
       });
     });
 
@@ -11618,7 +11602,7 @@ describe("CodeGenWalker", () => {
         });
 
         // Bit access extracts bit 0 with width 1 (no shift for position 0)
-        expect(code).toContain("((flags) & ((1U << 1U) - 1))");
+        expect(code).toContain("((flags) & 0x1U)");
       });
 
       it("should not dereference array parameter for index access", () => {

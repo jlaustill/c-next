@@ -25,7 +25,7 @@ int main(void) {
     double y = 1.5;
     union { double f; uint64_t u; } __bits_y;
     __bits_y.f = y;
-    uint64_t ybits = (__bits_y.u & 0xFFFFFFFFFFFFFFFFULL);
+    uint64_t ybits = (__bits_y.u & 0xFFFFFFFFFFFFFFFFU);
     if (ybits != 0x3FF8000000000000) return 2U;
     return 0U;
 }

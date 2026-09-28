@@ -34,11 +34,11 @@ void Driver__globalByteAligned(void) {
 }
 
 void Driver__bareReadModifyWrite(void) {
-    PORT__Mode = (PORT__Mode & ~(((1U << 2) - 1) << 10)) | ((3 & ((1U << 2) - 1)) << 10);
-    PORT__Mode = (PORT__Mode & ~(1U << 5)) | (1U << 5);
+    PORT__Mode = (PORT__Mode & ~((uint32_t)0x3U << 10)) | ((3 & (uint32_t)0x3U) << 10);
+    PORT__Mode = (PORT__Mode & ~((uint32_t)1U << 5)) | ((uint32_t)1U << 5);
 }
 
 void Driver__globalReadModifyWrite(void) {
-    PORT__Mode = (PORT__Mode & ~(((1U << 2) - 1) << 10)) | ((3 & ((1U << 2) - 1)) << 10);
-    PORT__Mode = (PORT__Mode & ~(1U << 5)) | (1U << 5);
+    PORT__Mode = (PORT__Mode & ~((uint32_t)0x3U << 10)) | ((3 & (uint32_t)0x3U) << 10);
+    PORT__Mode = (PORT__Mode & ~((uint32_t)1U << 5)) | ((uint32_t)1U << 5);
 }

@@ -57,7 +57,7 @@ Lib__Point Lib__makeOrigin(void) {
 
 uint8_t Lib__useFlags(void) {
     Lib__Flags f = 0;
-    f = (f & ~(1U << 0)) | (1U << 0);
+    f = (uint8_t)((f & ~(1U << 0)) | (1U << 0));
     return static_cast<uint8_t>(((f >> 1) & 0x7));
 }
 

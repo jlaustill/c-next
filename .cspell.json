@@ -159,14 +159,8 @@
     "fenv",
     "feof",
     "ferror",
-    "FFFFFFFFFFFFFFFFULL",
-    "FFFFFFFFU",
-    "FFFFFFFFULL",
-    "FFFFU",
-    "FFFFULL",
     "fflush",
     "ffreestanding",
-    "FFULL",
     "fgetc",
     "fgets",
     "findirect",
@@ -674,6 +668,7 @@
     ".idea/**",
     ".claude/settings.local.json"
   ],
+  "ignoreRegExpList": ["/\\b0[xX][0-9A-Fa-f]+[uUlL]*\\b/g"],
   "enableFiletypes": ["typescript", "markdown", "json"],
   "dictionaries": ["typescript", "node", "npm", "softwareTerms"]
 }

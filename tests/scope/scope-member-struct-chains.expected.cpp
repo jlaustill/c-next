@@ -24,7 +24,7 @@ void S__init(void) {
     c.arr[1] = 7U;
     c.word = 8U;
     (void) strncpy(c.name, "abc", 16); c.name[16] = '\0';
-    c.f = (c.f & ~(1U << 0)) | (1U << 0);
+    c.f = (uint8_t)((c.f & ~(1U << 0)) | (1U << 0));
     S__cfg = c;
 }
 

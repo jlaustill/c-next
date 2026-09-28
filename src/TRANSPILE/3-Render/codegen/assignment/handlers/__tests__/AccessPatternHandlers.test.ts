@@ -320,12 +320,12 @@ describe("AccessPatternHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("grid[2][3].flags =");
-      expect(result).toContain("& ~(1U << 0)");
-      expect(result).toContain("1U << 0");
+      expect(result).toBe(
+        "grid[2][3].flags = (grid[2][3].flags & ~((uint32_t)1U << 0)) | ((uint32_t)1U << 0);",
+      );
     });
 
-    it("uses 1ULL for 64-bit bit access", () => {
+    it("shifts a 64-bit member's bit in 64 bits", () => {
       const ctx = bitWriteContext(
         "data",
         [{ kind: "member", name: "flags" }, index("bit")],
@@ -335,7 +335,7 @@ describe("AccessPatternHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(result).toContain("1ULL << bit");
+      expect(result).toContain("~((uint64_t)1U << bit)");
     });
 
     // #1322: compound assignment on a bit index, bit range, slice, bitmap field

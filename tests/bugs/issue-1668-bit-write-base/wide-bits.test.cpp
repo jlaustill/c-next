@@ -6,7 +6,6 @@
 #include "wide-bits.test.hpp"
 
 // test-execution
-// test-target-xfail: atmega328p #1668
 // #1668 review: a bit write takes its mask's width from the value it
 // writes, whatever that value's type is spelled. The width came from the
 // type NAME, which matched only `u64`/`i64`: a header's `uint64_t`, and a
@@ -21,20 +20,20 @@ Wide w = {};
 
 int main(void) {
     gbig = 0;
-    gbig = (gbig & ~(1ULL << 40)) | ((uint64_t)1U << 40);
+    gbig = (gbig & ~((uint64_t)1U << 40)) | ((uint64_t)1U << 40);
     if (gbig != 0x10000000000) return 1U;
-    gbig = (gbig & ~(((1ULL << 4) - 1) << 40)) | ((3 & ((1ULL << 4) - 1)) << 40);
+    gbig = (gbig & ~((uint64_t)0xFU << 40)) | ((3 & (uint64_t)0xFU) << 40);
     if (gbig != 0x30000000000) return 2U;
-    gws.big = (gws.big & ~(1ULL << 40)) | ((uint64_t)1U << 40);
+    gws.big = (gws.big & ~((uint64_t)1U << 40)) | ((uint64_t)1U << 40);
     if (gws.big != 0x10000000000) return 3U;
-    w.big = (w.big & ~(1ULL << 40)) | ((uint64_t)1U << 40);
+    w.big = (w.big & ~((uint64_t)1U << 40)) | ((uint64_t)1U << 40);
     if (w.big != 0x10000000000) return 4U;
-    w.bigs[1] = (w.bigs[1] & ~(1ULL << 63)) | ((uint64_t)1U << 63);
+    w.bigs[1] = (w.bigs[1] & ~((uint64_t)1U << 63)) | ((uint64_t)1U << 63);
     if (w.bigs[1U] != 0x8000000000000000) return 5U;
-    w.big = (w.big & ~(((1ULL << 4) - 1) << 44)) | ((5ULL & ((1ULL << 4) - 1)) << 44);
+    w.big = (w.big & ~((uint64_t)0xFU << 44)) | ((5ULL & (uint64_t)0xFU) << 44);
     if (w.big != 0x510000000000) return 6U;
     uint32_t narrow = 0U;
-    narrow = (narrow & ~(1U << 31)) | (1U << 31);
+    narrow = (narrow & ~((uint32_t)1U << 31)) | ((uint32_t)1U << 31);
     if (narrow != 0x80000000) return 7U;
     return 0U;
 }

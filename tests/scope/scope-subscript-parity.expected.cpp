@@ -68,7 +68,7 @@ uint8_t Reg__sliceByte(uint32_t index) {
 
 uint8_t Reg__bitRange(void) {
     Reg__flags = 0U;
-    Reg__flags = (uint8_t)((Reg__flags & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4));
+    Reg__flags = (uint8_t)((Reg__flags & ~(0x7U << 4)) | ((5 & 0x7U) << 4));
     return Reg__flags;
 }
 
@@ -80,7 +80,7 @@ uint8_t Reg__viaGlobalPrefix(void) {
 
 uint8_t Reg__globalBitRange(void) {
     globalFlags = 0U;
-    globalFlags = (uint8_t)((globalFlags & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4));
+    globalFlags = (uint8_t)((globalFlags & ~(0x7U << 4)) | ((5 & 0x7U) << 4));
     return globalFlags;
 }
 
@@ -114,7 +114,7 @@ uint8_t Reg__scopedSliceByte(uint32_t index) {
 
 uint8_t Reg__scopedBitRange(void) {
     Other__flags = 0;
-    Other__flags = (uint8_t)((Other__flags & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4));
+    Other__flags = (uint8_t)((Other__flags & ~(0x7U << 4)) | ((5 & 0x7U) << 4));
     return Other__flags;
 }
 
@@ -137,7 +137,7 @@ uint8_t Reg__bareScopedSliceByte(uint32_t index) {
 
 uint8_t Reg__bareScopedBitRange(void) {
     Other__flags = 0;
-    Other__flags = (uint8_t)((Other__flags & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4));
+    Other__flags = (uint8_t)((Other__flags & ~(0x7U << 4)) | ((5 & 0x7U) << 4));
     return Other__flags;
 }
 
@@ -171,7 +171,7 @@ int main(void) {
     if (globalViaPrefix != 2) return 11U;
     if (globalViaPrefix != globalBuffer[3U]) return 12U;
     globalFlags = 0U;
-    globalFlags = (uint8_t)((globalFlags & ~(((1U << 3) - 1) << 4)) | ((5 & ((1U << 3) - 1)) << 4));
+    globalFlags = (uint8_t)((globalFlags & ~(0x7U << 4)) | ((5 & 0x7U) << 4));
     if (globalFlags != 80) return 13U;
     uint8_t globalRanged = Reg__globalBitRange();
     if (globalRanged != 80) return 14U;

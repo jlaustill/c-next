@@ -19,7 +19,7 @@ uint32_t f(void) {
     S f__gs = gs;
     f__gs.flags = (uint8_t)((f__gs.flags & ~(1U << 2)) | (1U << 2));
     f__gs.arr[1] = (uint8_t)((f__gs.arr[1] & ~(1U << 3)) | (1U << 3));
-    f__gs.arr[2] = (uint8_t)((f__gs.arr[2] & ~(((1U << 4) - 1) << 0)) | ((5U & ((1U << 4) - 1)) << 0));
+    f__gs.arr[2] = (uint8_t)((f__gs.arr[2] & ~(0xFU << 0)) | ((5U & 0xFU) << 0));
     if (gs.flags != 0) return 1U;
     if (gs.arr[1U] != 0) return 2U;
     if (gs.arr[2U] != 0) return 3U;

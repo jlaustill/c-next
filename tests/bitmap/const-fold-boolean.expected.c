@@ -12,12 +12,12 @@
 // Tests: Constant-folding of literal boolean values in bitmap assignments
 int main(void) {
     Flags f = {0};
-    f = (f & ~(1U << 0)) | (1U << 0);
+    f = (uint8_t)((f & ~(1U << 0)) | (1U << 0));
     if (((f >> 0) & 1) != true) return 1U;
-    f = (f & ~(1U << 1)) | (0U << 1);
+    f = (uint8_t)((f & ~(1U << 1)) | (0U << 1));
     if (((f >> 1) & 1) != false) return 2U;
     bool val = true;
-    f = (f & ~(1U << 2)) | ((val ? 1U : 0U) << 2);
+    f = (uint8_t)((f & ~(1U << 2)) | ((val ? 1U : 0U) << 2));
     if (((f >> 2) & 1) != true) return 3U;
     return 0U;
 }

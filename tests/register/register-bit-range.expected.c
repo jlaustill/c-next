@@ -10,27 +10,27 @@
 // test-coverage: 12-bit-range-access
 // Tests: Bit range access on register members using [start, width] syntax
 void setTimerPrescaler(uint8_t prescaler) {
-    TIMER__PRESCALE = (TIMER__PRESCALE & ~(1U << 0)) | ((prescaler ? 1U : 0U) << 0);
+    TIMER__PRESCALE = (TIMER__PRESCALE & ~((uint32_t)0xFFU << 0)) | ((prescaler & (uint32_t)0xFFU) << 0);
 }
 
 void setTimerMode(uint8_t mode) {
-    TIMER__CTRL = (TIMER__CTRL & ~(1U << 0)) | ((mode ? 1U : 0U) << 0);
+    TIMER__CTRL = (TIMER__CTRL & ~((uint32_t)0xFU << 0)) | ((mode & (uint32_t)0xFU) << 0);
 }
 
 void setTimerFlags(uint8_t flags) {
-    TIMER__CTRL = (TIMER__CTRL & ~(1U << 4)) | ((flags ? 1U : 0U) << 4);
+    TIMER__CTRL = (TIMER__CTRL & ~((uint32_t)0xFU << 4)) | ((flags & (uint32_t)0xFU) << 4);
 }
 
 void configureOptions(uint16_t opts) {
-    CONFIG__OPTIONS = (CONFIG__OPTIONS & ~(1U << 0)) | ((opts ? 1U : 0U) << 0);
+    CONFIG__OPTIONS = (CONFIG__OPTIONS & ~((uint32_t)0xFFFFU << 0)) | ((opts & (uint32_t)0xFFFFU) << 0);
 }
 
 uint8_t readTimerMode(void) {
-    return ((TIMER__CTRL) & ((1U << 4U) - 1));
+    return ((TIMER__CTRL) & 0xFU);
 }
 
 uint8_t readTimerFlags(void) {
-    return ((TIMER__CTRL >> 4U) & ((1U << 4U) - 1));
+    return ((TIMER__CTRL >> 4U) & 0xFU);
 }
 
 int main(void) {

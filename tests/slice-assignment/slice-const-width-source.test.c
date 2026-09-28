@@ -19,7 +19,6 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 // test-execution
-// test-target-xfail: atmega328p #1668
 // Issue #1085 review: a composite slice source whose bit-extraction width is a
 // CONST (b[0, WIDTH]) must type at the extracted width, exactly like the literal
 // form (b[0, 24]). Before the fix, bitExtractionWidth() only matched a literal
@@ -34,7 +33,7 @@ int main(void) {
     uint8_t a = 0U;
     uint32_t b = 0x12345678U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
-    const uint32_t cnx_tmp0 = (uint32_t)(cnx_clamp_add_u32(a, ((b) & ((1U << 24U) - 1))));
+    const uint32_t cnx_tmp0 = (uint32_t)(cnx_clamp_add_u32(a, ((b) & 0xFFFFFFU)));
     buf[0] = (uint8_t)(cnx_tmp0);
     buf[1] = (uint8_t)(cnx_tmp0 >> 8U);
     buf[2] = (uint8_t)(cnx_tmp0 >> 16U);

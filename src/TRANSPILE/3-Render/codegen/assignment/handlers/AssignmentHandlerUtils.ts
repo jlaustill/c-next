@@ -11,6 +11,7 @@ import invariant from "../../../../../utils/invariant";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 import BitUtils from "../../../../../utils/BitUtils";
 import CompositeType from "../../../../../utils/CompositeType";
+import TYPE_MAP from "../../types/TYPE_MAP";
 import type IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 
 /**
@@ -111,6 +112,8 @@ function buildRegisterNameWithScopeDetection(
  * undefined behavior. The width is the typer's now, for the value the
  * subscript indexes, whatever its spelling -- and the MISRA C:2012 Rule
  * 10.3 narrowing cast comes with it for every form, not only two.
+ * `BitUtils` takes it as the C type the value is stored in, which is what a
+ * bitmap, a register member and a float's bits give it too.
  */
 function writeBits(ctx: IAssignmentContext): string {
   const last = ctx.postfixOps.at(-1);
@@ -121,11 +124,11 @@ function writeBits(ctx: IAssignmentContext): string {
   // Source order: the base's own subscripts, then the bit's
   const base = ctx.renderBitTarget();
   const [start, width] = last.renderIndexes();
-  const type =
-    CompositeType.integerOf([ctx.target.last?.before ?? null]) ?? undefined;
+  const type = CompositeType.integerOf([ctx.target.last?.before ?? null]);
+  const storage = type === null ? undefined : TYPE_MAP[type];
   return width === undefined
-    ? BitUtils.singleBitWrite(base, start, ctx.generatedValue, type)
-    : BitUtils.multiBitWrite(base, start, width, ctx.generatedValue, type);
+    ? BitUtils.singleBitWrite(base, start, ctx.generatedValue, storage)
+    : BitUtils.multiBitWrite(base, start, width, ctx.generatedValue, storage);
 }
 
 /**

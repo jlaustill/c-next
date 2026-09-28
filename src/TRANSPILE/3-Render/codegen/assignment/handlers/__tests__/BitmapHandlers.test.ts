@@ -111,6 +111,7 @@ describe("BitmapHandlers", () => {
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]);
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["StatusFlags", "uint8_t"]]),
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
         ]),
@@ -129,6 +130,7 @@ describe("BitmapHandlers", () => {
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]);
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["StatusFlags", "uint8_t"]]),
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Active", { offset: 3, width: 1 }]])],
         ]),
@@ -147,6 +149,7 @@ describe("BitmapHandlers", () => {
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]);
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["StatusFlags", "uint8_t"]]),
         bitmapFields: new Map([["StatusFlags", new Map()]]),
       });
       const ctx = createMockContext({
@@ -182,6 +185,7 @@ describe("BitmapHandlers", () => {
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]);
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["StatusFlags", "uint8_t"]]),
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Mode", { offset: 4, width: 3 }]])],
         ]),
@@ -204,6 +208,7 @@ describe("BitmapHandlers", () => {
         ["config", { bitmapTypeName: "Config", baseType: "u8" }],
       ]);
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["Config", "uint8_t"]]),
         bitmapFields: new Map([
           ["Config", new Map([["Priority", { offset: 0, width: 2 }]])],
         ]),
@@ -216,6 +221,28 @@ describe("BitmapHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("0x3");
+    });
+
+    it("shifts in 32 bits when the bitmap is backed by 32 (#1668)", () => {
+      HandlerTestUtils.declareTypes(state, [
+        ["color", { bitmapTypeName: "Rgb", baseType: "u32" }],
+      ]);
+      HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["Rgb", "uint32_t"]]),
+        bitmapFields: new Map([
+          ["Rgb", new Map([["Red", { offset: 16, width: 8 }]])],
+        ]),
+      });
+      const ctx = createMockContext({
+        identifiers: ["color", "Red"],
+        generatedValue: "64",
+      });
+
+      const result = getHandler()!(ctx);
+
+      expect(result).toBe(
+        "color = (color & ~((uint32_t)0xFFU << 16)) | ((64 & (uint32_t)0xFFU) << 16);",
+      );
     });
   });
 
@@ -233,6 +260,7 @@ describe("BitmapHandlers", () => {
         generateExpression: vi.fn().mockReturnValue("i"),
       });
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["StatusFlags", "uint8_t"]]),
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Active", { offset: 0, width: 1 }]])],
         ]),
@@ -260,6 +288,7 @@ describe("BitmapHandlers", () => {
         ["device", { baseType: "Device" }],
       ]);
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["StatusFlags", "uint8_t"]]),
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Active", { offset: 2, width: 1 }]])],
         ]),
@@ -287,6 +316,7 @@ describe("BitmapHandlers", () => {
 
     it("generates register member bitmap field assignment", () => {
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["MotorCtrl", "uint8_t"]]),
         bitmapFields: new Map([
           ["MotorCtrl", new Map([["Running", { offset: 0, width: 1 }]])],
         ]),
@@ -301,6 +331,25 @@ describe("BitmapHandlers", () => {
       expect(result).toContain("MOTOR__CTRL =");
       expect(result).toContain("& ~(1U << 0)");
     });
+
+    it("writes a write-only member without reading it (#1776)", () => {
+      HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["MotorCtrl", "uint8_t"]]),
+        bitmapFields: new Map([
+          ["MotorCtrl", new Map([["Running", { offset: 0, width: 1 }]])],
+        ]),
+        registerMemberTypes: new Map([["MOTOR__CTRL", "MotorCtrl"]]),
+        registerMemberAccess: new Map([["MOTOR__CTRL", "wo"]]),
+      });
+      const ctx = createMockContext({
+        identifiers: ["MOTOR", "CTRL", "Running"],
+      });
+
+      const result = getHandler()!(ctx);
+
+      // The scoped spelling already wrote plainly; this one read the member
+      expect(result).toBe("MOTOR__CTRL = (uint8_t)(1U << 0);");
+    });
   });
 
   describe("handleScopedRegisterMemberBitmapField (SCOPED_REGISTER_MEMBER_BITMAP_FIELD)", () => {
@@ -312,6 +361,7 @@ describe("BitmapHandlers", () => {
     it("generates this-prefixed scoped register bitmap field", () => {
       enterScope(state, "Motor");
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["ICR1Bits", "uint8_t"]]),
         bitmapFields: new Map([
           ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
         ]),
@@ -332,6 +382,7 @@ describe("BitmapHandlers", () => {
     it("generates scope-prefixed register bitmap field", () => {
       HandlerTestUtils.setupMockGenerator(state, {});
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["ICR1Bits", "uint8_t"]]),
         bitmapFields: new Map([
           ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
         ]),
@@ -357,6 +408,7 @@ describe("BitmapHandlers", () => {
     it("generates write-only pattern for wo register", () => {
       enterScope(state, "Motor");
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["SetBits", "uint8_t"]]),
         bitmapFields: new Map([
           ["SetBits", new Map([["LED", { offset: 0, width: 1 }]])],
         ]),
@@ -378,6 +430,7 @@ describe("BitmapHandlers", () => {
     it("generates write-only pattern for w1s register", () => {
       enterScope(state, "Motor");
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["SetBits", "uint8_t"]]),
         bitmapFields: new Map([
           ["SetBits", new Map([["LED", { offset: 3, width: 1 }]])],
         ]),
@@ -398,6 +451,7 @@ describe("BitmapHandlers", () => {
     it("generates write-only pattern for w1c register", () => {
       enterScope(state, "Motor");
       HandlerTestUtils.setupMockSymbols(state, {
+        bitmapBackingType: new Map([["ClearBits", "uint8_t"]]),
         bitmapFields: new Map([
           ["ClearBits", new Map([["LED", { offset: 5, width: 1 }]])],
         ]),
