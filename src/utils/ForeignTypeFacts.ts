@@ -115,6 +115,25 @@ class ForeignTypeFacts {
     return lookup.getCSymbol(name) ?? lookup.getCppSymbol(name);
   }
 
+  /**
+   * Whether a header type names a struct, a union or an opaque type, its
+   * typedefs followed: `widget_t` names `struct _widget_t`, whose fields are
+   * recorded under the tag. A pointer typedef names none. The positive
+   * question E0358 asks of a header type (#1760 second review).
+   */
+  static isStructType(
+    name: string,
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+  ): boolean {
+    const element = ForeignTypeFacts.elementOf(name, lookup, target)?.element;
+    return (
+      element?.typeName !== null &&
+      element?.typeName !== undefined &&
+      ForeignTypeFacts.isStruct(lookup, element.typeName)
+    );
+  }
+
   /** A header struct, or an opaque (incomplete) one -- the one predicate */
   private static isStruct(lookup: IForeignSymbolLookup, type: string): boolean {
     return (

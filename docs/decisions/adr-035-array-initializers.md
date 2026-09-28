@@ -245,6 +245,13 @@ holding the declaration, so nothing crosses an include and the imported
 columns are `off`. (A dimension named by a const from an include is sized
 through the program's const table; the count itself is local.)
 
+This table covers a declaration's initializer. A whole array is also taken at a
+field, at an assignment target, and at a parameter, and a struct initializer
+there is E0866 as well. Whether that field is an array is read from its
+struct, which an include can declare. Those positions are ADR-014's rule, and
+their imported cells are ADR-014's to declare and occupy (#1760 review,
+2026-09-28).
+
 ## References
 
 - [MISRA C:2023 Rule 9.3 - MathWorks](https://www.mathworks.com/help/bugfinder/ref/misrac2023rule9.3.html)

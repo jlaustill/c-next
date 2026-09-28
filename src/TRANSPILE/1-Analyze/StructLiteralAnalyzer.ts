@@ -1,5 +1,6 @@
 /**
- * ADR-014 struct initializers: E0357.
+ * ADR-014 struct initializers: E0357, E0358, and E0866 where a whole array is
+ * taken.
  *
  * #1322. Two throws in `CodeGenerator._resolveStructInitializerTypeName`, both
  * reported as `1:0`, and one of them fired on valid code (#1277).
@@ -77,6 +78,21 @@ class StructLiteralListener extends CNextListener {
         "E0357",
         "Cannot infer struct type: nothing here says which struct this is",
         "Put the initializer where a type is declared -- a variable, an assignment target, a field, an argument, or a return (ADR-014).",
+      );
+      return;
+    }
+
+    // ADR-014: an array's whole initializer is ADR-035's list (E0866). A
+    // declaration's is checked by that rule; a field, an assignment target
+    // or a parameter that is an array is checked here (#1760 second review:
+    // each typed the element, so the struct form passed for an array of
+    // structs and was E0358's for an array of scalars).
+    if (StructInitializerType.takesWholeArray(ctx, this.context)) {
+      this.report(
+        ctx,
+        "E0866",
+        `An array must be given a list, not '${ctx.getText()}'`,
+        "Write the elements out in brackets, or set them one at a time (ADR-035).",
       );
       return;
     }

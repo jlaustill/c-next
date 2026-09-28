@@ -1,0 +1,8 @@
+11:30 error[E0866]: An array must be given a list, not '{word:1,f:0}'
+       help: Write the elements out in brackets, or set them one at a time (ADR-035).
+15:28 error[E0866]: An array must be given a list, not '{word:1,f:0}'
+       help: Write the elements out in brackets, or set them one at a time (ADR-035).
+19:29 error[E0866]: An array must be given a list, not '{word:1,f:0}'
+       help: Write the elements out in brackets, or set them one at a time (ADR-035).
+22:33 error[E0866]: An array must be given a list, not '{word:1,f:0}'
+       help: Write the elements out in brackets, or set them one at a time (ADR-035).

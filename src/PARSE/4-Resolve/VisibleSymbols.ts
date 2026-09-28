@@ -51,6 +51,12 @@ interface IMergeAccumulator {
   readonly registerMemberOffsets: Map<string, string>;
   readonly registerMemberCTypes: Map<string, string>;
   readonly bitmapBitWidth: Map<string, number>;
+  readonly structFields: Map<string, Map<string, string>>;
+  readonly structFieldArrays: Map<string, Set<string>>;
+  readonly structFieldDimensions: Map<
+    string,
+    Map<string, ReadonlyArray<number | string>>
+  >;
 }
 
 class VisibleSymbols {
@@ -100,6 +106,16 @@ class VisibleSymbols {
     const mergedRegisterBaseAddresses = new Map(base.registerBaseAddresses);
     const mergedRegisterMemberOffsets = new Map(base.registerMemberOffsets);
     const mergedRegisterMemberCTypes = new Map(base.registerMemberCTypes);
+    const mergedStructFields = VisibleSymbols._copyNestedMap(base.structFields);
+    const mergedStructFieldArrays = new Map(
+      [...base.structFieldArrays].map(([name, fields]) => [
+        name,
+        new Set(fields),
+      ]),
+    );
+    const mergedStructFieldDimensions = VisibleSymbols._copyNestedMap(
+      base.structFieldDimensions,
+    );
 
     // Merge in external enum info, function return types, scopes and visibility
     for (const external of externalSources) {
@@ -122,6 +138,9 @@ class VisibleSymbols {
         registerBaseAddresses: mergedRegisterBaseAddresses,
         registerMemberOffsets: mergedRegisterMemberOffsets,
         registerMemberCTypes: mergedRegisterMemberCTypes,
+        structFields: mergedStructFields,
+        structFieldArrays: mergedStructFieldArrays,
+        structFieldDimensions: mergedStructFieldDimensions,
       });
     }
 
@@ -146,6 +165,9 @@ class VisibleSymbols {
       registerBaseAddresses: mergedRegisterBaseAddresses,
       registerMemberOffsets: mergedRegisterMemberOffsets,
       registerMemberCTypes: mergedRegisterMemberCTypes,
+      structFields: mergedStructFields,
+      structFieldArrays: mergedStructFieldArrays,
+      structFieldDimensions: mergedStructFieldDimensions,
     };
   }
 
@@ -209,6 +231,25 @@ class VisibleSymbols {
     VisibleSymbols._mergePreferringLocal(
       external.functionReturnTypes,
       into.functionReturnTypes,
+    );
+    // A struct's fields travel with its name on the same terms (#1760 second
+    // review): only the name crossed, so a field of an included struct had no
+    // type, and `{ f: { A: 1 } }` for an included struct's bitmap field
+    // reached C as a designated initializer on a scalar.
+    VisibleSymbols._mergePreferringLocal(
+      external.structFields,
+      into.structFields,
+      cloneMap,
+    );
+    VisibleSymbols._mergePreferringLocal(
+      external.structFieldArrays,
+      into.structFieldArrays,
+      (fields) => new Set(fields),
+    );
+    VisibleSymbols._mergePreferringLocal(
+      external.structFieldDimensions,
+      into.structFieldDimensions,
+      cloneMap,
     );
 
     // #1322: a register crosses on the same terms as every kind above. It never

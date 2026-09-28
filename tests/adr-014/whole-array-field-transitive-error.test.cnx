@@ -1,0 +1,24 @@
+// test-error
+// test-adr: 014
+// #1760 second review: an array's whole initializer is ADR-035's list
+// (E0866) wherever a whole array is taken, and whether a field is an array is
+// read from its struct, declared here two includes away, through a helper. `Batch.items` is an array
+// of `Cfg`, so a single `Cfg` initializer for it is E0866 in each context
+// (it had been emitted as one struct, which C rejects). The list beside
+// them is the control, and stays silent.
+#include "lib/struct-init-chain.cnx"
+
+Batch atFileScope <- { items: { word: 1, f: 0 }, n: 1 };
+Batch control <- { items: [{ word: 1, f: 0 }, { word: 2, f: 1 }], n: 2 };
+
+void f() {
+    Batch local <- { items: { word: 1, f: 0 }, n: 1 };
+}
+
+scope S {
+    Batch member <- { items: { word: 1, f: 0 }, n: 1 };
+
+    public void method() {
+        Batch inside <- { items: { word: 1, f: 0 }, n: 1 };
+    }
+}

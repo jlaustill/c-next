@@ -1,0 +1,10 @@
+23:20 error[E0866]: An array must be given a list, not '{a:1}'
+       help: Write the elements out in brackets, or set them one at a time (ADR-035).
+24:19 error[E0866]: An array must be given a list, not '{a:1}'
+       help: Write the elements out in brackets, or set them one at a time (ADR-035).
+26:10 error[E0866]: An array must be given a list, not '{a:3}'
+       help: Write the elements out in brackets, or set them one at a time (ADR-035).
+28:9 error[E0866]: An array must be given a list, not '{a:1}'
+       help: Write the elements out in brackets, or set them one at a time (ADR-035).
+29:9 error[E0866]: An array must be given a list, not '{a:1}'
+       help: Write the elements out in brackets, or set them one at a time (ADR-035).

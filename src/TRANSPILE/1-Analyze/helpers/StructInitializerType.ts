@@ -26,6 +26,24 @@ import TypeText from "./TypeText";
 import invariant from "../../../utils/invariant";
 import type IAnalysisContext from "../types/IAnalysisContext";
 
+/** What an establishing position gives the value under it */
+interface IPositionType {
+  /** The type's spelling -- a field's or parameter's element type; null
+   * when the position cannot name one */
+  readonly typeText: string | null;
+  /** Whether the position takes a whole array (#1760 second review: only a
+   * declaration's spelling carried its dimensions) */
+  readonly isArray: boolean;
+  /** A declaration, whose whole-array initializer ADR-035's rule checks */
+  readonly isDeclaration: boolean;
+}
+
+const NO_TYPE: IPositionType = {
+  typeText: null,
+  isArray: false,
+  isDeclaration: false,
+};
+
 class StructInitializerType {
   /** The struct's C name, or null when nothing establishes one. */
   static of(
@@ -72,12 +90,16 @@ class StructInitializerType {
    */
   /**
    * #1802: the type a struct initializer gives a value to, when that type is
-   * known not to be a struct. That is a primitive or a string, a bitmap or an
-   * enum this file sees, or a header's scalar. Null when it is a struct, or
-   * when this pass cannot say. An element of an array's list is checked at
-   * the element's type, while an array's whole initializer is E0866's. Each
-   * question is its type's one home: the typer's category, the file's
-   * declared sets, and the header facts.
+   * not a struct. Null when it is a struct, or when this pass does not know
+   * the type. An element of an array's list is checked at the element's
+   * type, while an array's whole initializer is E0866's.
+   *
+   * The positive question, asked of each type's one home (#1760 second
+   * review): a bitmap first, since `DeclaredTypeFacts.isStruct` counts it
+   * struct-like (#551); then a C-Next struct, and a header's struct, union
+   * or opaque type. Any other type this pass knows is not a struct. Asking
+   * "known NOT to be a struct" let a header's pointer or function-pointer
+   * typedef and an ADR-029 function type through, since none has a category.
    */
   static nonStructTarget(
     init: Parser.StructInitializerContext,
@@ -86,42 +108,56 @@ class StructInitializerType {
     const established = StructInitializerType.establish(init, context);
     const typeText = established.typeText;
     if (typeText === null) return null;
+    if (established.isArray && !established.inList) return null;
     const typeName = TypeText.withoutDimensions(typeText);
-    if (typeName !== typeText && !established.inList) return null;
-    if (
-      OperandTyper.categoryOf(typeName) !== "none" ||
-      TypeCheckUtils.isSizedStringName(typeName)
-    ) {
-      return { typeName, isBitmap: false };
-    }
     const symbols = context.symbols;
-    const named = FunctionReference.candidatesForTypeText(
+    const candidates = FunctionReference.candidatesForTypeText(
       typeName,
       OperandTyper.scopePathAt(init, context),
-    ).find(
-      (c) =>
-        DeclaredTypeFacts.isBitmap(symbols, c) ||
-        DeclaredTypeFacts.isEnum(symbols, c) ||
-        symbols.knownStructs.has(c) ||
-        symbols.structFields.has(c),
     );
-    if (named !== undefined) {
-      if (DeclaredTypeFacts.isBitmap(symbols, named)) {
-        return { typeName, isBitmap: true };
-      }
-      return DeclaredTypeFacts.isEnum(symbols, named)
-        ? { typeName, isBitmap: false }
-        : null;
+    if (candidates.some((c) => DeclaredTypeFacts.isBitmap(symbols, c))) {
+      return { typeName, isBitmap: true };
     }
-    // A header's type: a struct keeps category "none", a scalar has one
-    const foreign = ForeignTypeFacts.operandType(
-      typeName,
-      context.symbolTable,
-      OperandTyper.target(context),
-    );
-    return foreign !== null && foreign.category !== "none"
+    const isStruct =
+      candidates.some((c) =>
+        DeclaredTypeFacts.isStruct(symbols, context.symbolTable, c),
+      ) ||
+      ForeignTypeFacts.isStructType(
+        typeName,
+        context.symbolTable,
+        OperandTyper.target(context),
+      );
+    if (isStruct) return null;
+    return StructInitializerType.isKnownType(typeName, candidates, context)
       ? { typeName, isBitmap: false }
       : null;
+  }
+
+  /**
+   * Whether this pass knows a type that is not a struct: a primitive or a
+   * string, an enum or an ADR-029 function type this file sees, or a type a
+   * header declares.
+   */
+  private static isKnownType(
+    typeName: string,
+    candidates: readonly string[],
+    context: IAnalysisContext,
+  ): boolean {
+    const symbols = context.symbols;
+    return (
+      OperandTyper.categoryOf(typeName) !== "none" ||
+      TypeCheckUtils.isSizedStringName(typeName) ||
+      candidates.some(
+        (c) =>
+          DeclaredTypeFacts.isEnum(symbols, c) ||
+          symbols.functionReturnTypes.has(c),
+      ) ||
+      ForeignTypeFacts.isForeignType(
+        typeName,
+        context.symbolTable,
+        OperandTyper.target(context),
+      )
+    );
   }
 
   static hasEstablishingPosition(
@@ -195,20 +231,37 @@ class StructInitializerType {
     const established = StructInitializerType.establish(value, context);
     const typeText = established.typeText;
     if (typeText === null) return null;
-    const element = TypeText.withoutDimensions(typeText);
-    return element !== typeText && !established.inList ? null : element;
+    if (established.isArray && !established.inList) return null;
+    return TypeText.withoutDimensions(typeText);
   }
 
   /**
-   * The one walk up from a value: the type its nearest establishing
-   * position gives, and whether an array's list stood between the two. An
-   * element of `[{ a: 1 }, 2]` is typed by the element, not the array
-   * (#1802).
+   * Whether a struct initializer stands where a whole array is taken, other
+   * than a declaration's initializer, which ADR-035's rule checks itself: a
+   * field, an assignment target or a parameter that is an array. ADR-014:
+   * an array's whole initializer is ADR-035's list (E0866). #1760 second
+   * review: these positions typed the element, so the initializer was
+   * E0358's -- or, for an array of structs, emitted as one struct.
+   */
+  static takesWholeArray(
+    init: Parser.StructInitializerContext,
+    context: IAnalysisContext,
+  ): boolean {
+    const established = StructInitializerType.establish(init, context);
+    return (
+      established.isArray && !established.inList && !established.isDeclaration
+    );
+  }
+
+  /**
+   * The one walk up from a value: what its nearest establishing position
+   * gives, and whether an array's list stood between the two. An element of
+   * `[{ a: 1 }, 2]` is typed by the element, not the array (#1802).
    */
   private static establish(
     value: ParserRuleContext,
     context: IAnalysisContext,
-  ): { readonly typeText: string | null; readonly inList: boolean } {
+  ): IPositionType & { readonly inList: boolean } {
     let inList = false;
     let child: ParserRuleContext = value;
     let cursor: ParserRuleContext | null = value.parent;
@@ -218,49 +271,69 @@ class StructInitializerType {
         child,
         context,
       );
-      if (established !== undefined) return { typeText: established, inList };
+      if (established !== undefined) return { ...established, inList };
       if (cursor instanceof Parser.ArrayInitializerContext) inList = true;
       child = cursor;
       cursor = cursor.parent;
     }
-    return { typeText: null, inList };
+    return { ...NO_TYPE, inList };
   }
 
   /**
-   * What one ancestor says: a type text, null for "nothing can reach here",
-   * or undefined for "not an establishing node -- keep climbing".
+   * What one ancestor says, `NO_TYPE` for "nothing can reach here", or
+   * undefined for "not an establishing node -- keep climbing".
    */
   private static typeEstablishedBy(
     cursor: ParserRuleContext,
     child: ParserRuleContext,
     context: IAnalysisContext,
-  ): string | null | undefined {
+  ): IPositionType | undefined {
     const position = StructInitializerType.positionOf(cursor);
     if (position === "neither") return undefined;
-    if (position === "subscript") return null; // no struct is expected there
+    if (position === "subscript") return NO_TYPE; // no struct is expected there
     if (
       cursor instanceof Parser.VariableDeclarationContext ||
       cursor instanceof Parser.ForVarDeclContext
     ) {
-      return cursor.type()?.getText() ?? null;
+      const typeText = cursor.type()?.getText() ?? null;
+      const postfixDimensions =
+        cursor instanceof Parser.ForVarDeclContext &&
+        cursor.arrayDimension().length > 0;
+      return {
+        typeText,
+        isArray:
+          postfixDimensions ||
+          (typeText !== null &&
+            TypeText.withoutDimensions(typeText) !== typeText),
+        isDeclaration: true,
+      };
     }
     if (cursor instanceof Parser.FieldInitializerContext) {
-      return StructInitializerType.fieldType(cursor, context);
+      return StructInitializerType.fieldPosition(cursor, context);
     }
     if (cursor instanceof Parser.AssignmentStatementContext) {
-      return (
-        OperandTyper.typeOfTarget(cursor.assignmentTarget(), context)
-          ?.typeName ?? null
+      const target = OperandTyper.typeOfTarget(
+        cursor.assignmentTarget(),
+        context,
       );
+      return {
+        typeText: target?.typeName ?? null,
+        isArray: (target?.dimensions.length ?? 0) > 0,
+        isDeclaration: false,
+      };
     }
     if (cursor instanceof Parser.ReturnStatementContext) {
-      return StructInitializerType.enclosingReturnType(cursor);
+      return {
+        typeText: StructInitializerType.enclosingReturnType(cursor),
+        isArray: false,
+        isDeclaration: false,
+      };
     }
     invariant(
       cursor instanceof Parser.ArgumentListContext,
       "positionOf supplies only the positions typed above",
     );
-    return StructInitializerType.parameterType(cursor, child, context);
+    return StructInitializerType.parameterPosition(cursor, child, context);
   }
 
   /** The declared type of the field an enclosing initializer is setting. */
@@ -268,15 +341,26 @@ class StructInitializerType {
     field: Parser.FieldInitializerContext,
     context: IAnalysisContext,
   ): string | null {
+    return StructInitializerType.fieldPosition(field, context).typeText;
+  }
+
+  /** The field an enclosing initializer is setting: its type, and whether
+   * it is an array */
+  private static fieldPosition(
+    field: Parser.FieldInitializerContext,
+    context: IAnalysisContext,
+  ): IPositionType {
     const outer = field.parent?.parent;
-    if (!(outer instanceof Parser.StructInitializerContext)) return null;
+    if (!(outer instanceof Parser.StructInitializerContext)) return NO_TYPE;
     const structName = StructInitializerType.of(outer, context);
-    if (structName === null) return null;
-    return (
-      context.symbols.structFields
-        .get(structName)
-        ?.get(field.IDENTIFIER().getText()) ?? null
-    );
+    if (structName === null) return NO_TYPE;
+    const name = field.IDENTIFIER().getText();
+    return {
+      typeText: context.symbols.structFields.get(structName)?.get(name) ?? null,
+      isArray:
+        context.symbols.structFieldArrays.get(structName)?.has(name) ?? false,
+      isDeclaration: false,
+    };
   }
 
   private static enclosingReturnType(
@@ -289,12 +373,12 @@ class StructInitializerType {
     return cursor?.type().getText() ?? null;
   }
 
-  /** The type of the parameter an argument is passed to, if the callee is known. */
-  private static parameterType(
+  /** The parameter an argument is passed to, if the callee is known */
+  private static parameterPosition(
     args: Parser.ArgumentListContext,
     argument: ParserRuleContext,
     context: IAnalysisContext,
-  ): string | null {
+  ): IPositionType {
     // `indexOf` needs the array's own element type; an argument that is not
     // an expression is not in the list at all.
     const index =
@@ -303,7 +387,7 @@ class StructInitializerType {
         : -1;
     const postfix = args.parent?.parent;
     if (index < 0 || !(postfix instanceof Parser.PostfixExpressionContext)) {
-      return null;
+      return NO_TYPE;
     }
     const callee = FunctionReference.ofCall(
       postfix,
@@ -311,7 +395,13 @@ class StructInitializerType {
       context,
     );
     const param = callee?.parameters[index];
-    return param === undefined ? null : TypeResolver.getTypeName(param.type);
+    return param === undefined
+      ? NO_TYPE
+      : {
+          typeText: TypeResolver.getTypeName(param.type),
+          isArray: param.isArray,
+          isDeclaration: false,
+        };
   }
 }
 

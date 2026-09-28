@@ -298,7 +298,7 @@ Rectangle r <- {
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | ~~E0356~~ | _Retired._ Was: a struct initializer writes a type where the position already declares one. The syntax it rejected is removed, so it is a parse error — `tests/adr-014/struct-written-type-rejected-error.test.cnx` |                                                                               |
 | E0357     | A struct initializer writes no type and stands where no position declares one                                                                                                                                       | `tests/adr-014/struct-no-type-error.test.cnx`                                 |
-| E0358     | A struct initializer stands where the position gives a type that is not a struct: a primitive, a string, a bitmap, an enum, or a C header's scalar                                                                  | `tests/bugs/issue-1802-struct-initializer-target/non-struct-targets.test.cnx` |
+| E0358     | A struct initializer stands where the position gives a type that is not a struct: a primitive, a string, a bitmap, an enum, a function type, or a C header's scalar, pointer or function pointer                    | `tests/bugs/issue-1802-struct-initializer-target/non-struct-targets.test.cnx` |
 | E0508     | A C++ class with a constructor is initialized where no statement can follow it                                                                                                                                      | `tests/external-types/cpp-class-scope-member-error.test.cnx`                  |
 
 A struct literal has no type of its own, and the position it stands in gives it
@@ -313,10 +313,14 @@ expression statement. E0357's help therefore does not offer "write the type" as
 a remedy: it would name the other error.
 
 **Only a struct takes `{ field: value }`.** Where the position gives a type
-that is not a struct -- a primitive, a string, a bitmap, an enum, or a C
-header's scalar -- the initializer is E0358. That holds in every position on the
+that is not a struct, the initializer is E0358. That covers a primitive, a
+string, a bitmap, an enum, an ADR-029 function type, and a C header's scalar,
+pointer or function pointer. A header's struct and union take it, including a
+typedef whose struct is named by its tag. That holds in every position on the
 list above, and for an element of an array's list, which is typed by the
-element. An array's whole initializer is ADR-035's list (E0866). A bitmap's
+element. An array's whole initializer is ADR-035's list (E0866), wherever a
+whole array is taken: a declaration, a field, an assignment target, and a
+parameter (#1760 review, 2026-09-28). A bitmap's
 value is its backing integer (ADR-034), wherever it is written. Owner ruling,
 2026-09-28: _"a bitmap should be defined the exact same way it is anywhere else,
 being inside a struct changes nothing"_. The brace form had emitted a designated

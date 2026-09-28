@@ -8,6 +8,9 @@
 
 Flags atFileScope <- { A: 1 };
 Cfg control <- { word: 1, f: 3 };
+// #1760 second review: a field of an included struct is typed too, so a
+// bitmap field takes its integer here as it does at a declaration
+Cfg nested <- { word: 1, f: { A: 1 } };
 
 void f() {
     Flags local <- { A: 1 };

@@ -16,8 +16,64 @@ import TypeResolver from "../../../utils/TypeResolver";
 import TestSymbolUtils from "../../3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import TestMembers from "../../../transpiler/types/__testUtils__/testMembers";
+import CNextSourceParser from "../../2-Parse/CNextSourceParser";
+import CNextResolver from "../../3-Declare/cnext/index";
+import SymbolRegistry from "../../3-Declare/SymbolRegistry";
+
+/** What a file declares, as 1.3 converts it */
+const declared = (source: string, path: string) =>
+  TSymbolInfoAdapter.convert(
+    CNextResolver.resolve(
+      CNextSourceParser.parse(source).tree,
+      path,
+      new SymbolRegistry(),
+    ).symbols,
+  );
 
 describe("VisibleSymbols", () => {
+  // #1760 second review: only a struct's NAME crossed, so a field of an
+  // included struct had no type and no position could type its initializer
+  describe("mergeExternalSymbols — struct fields", () => {
+    const lib = declared(
+      "struct Batch {\n    u32[2] items;\n    u8 n;\n}\n",
+      "lib.cnx",
+    );
+
+    it("carries a struct's fields, array fields and dimensions across", () => {
+      const merged = VisibleSymbols.mergeExternalSymbols(
+        declared("u32 x <- 1;\n", "main.cnx"),
+        [lib],
+      );
+
+      expect(merged.structFields.get("Batch")?.get("n")).toBe("u8");
+      expect(merged.structFieldArrays.get("Batch")?.has("items")).toBe(true);
+      expect(merged.structFieldDimensions.get("Batch")?.get("items")).toEqual([
+        2,
+      ]);
+    });
+
+    it("keeps the local struct when both files declare one", () => {
+      const merged = VisibleSymbols.mergeExternalSymbols(
+        declared("struct Batch {\n    u16 only;\n}\n", "main.cnx"),
+        [lib],
+      );
+
+      expect(merged.structFields.get("Batch")?.has("only")).toBe(true);
+      expect(merged.structFields.get("Batch")?.has("n")).toBe(false);
+    });
+
+    it("does not alias the included file's field sets", () => {
+      const merged = VisibleSymbols.mergeExternalSymbols(
+        declared("u32 x <- 1;\n", "main.cnx"),
+        [lib],
+      );
+
+      expect(merged.structFieldArrays.get("Batch")).not.toBe(
+        lib.structFieldArrays.get("Batch"),
+      );
+    });
+  });
+
   describe("mergeExternalSymbols — bitmap detail maps", () => {
     const makeBitmap = (
       name: string,

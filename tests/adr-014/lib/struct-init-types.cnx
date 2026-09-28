@@ -8,3 +8,8 @@ struct Cfg {
     u32 word;
     Flags f;
 }
+
+struct Batch {
+    Cfg[2] items;
+    u32 n;
+}

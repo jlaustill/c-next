@@ -1,0 +1,31 @@
+// test-error
+// #1760 second review: ADR-014 makes an array's whole initializer ADR-035's
+// list (E0866), and only a declaration asked it. A field, an assignment
+// target and a parameter typed the element instead, so the struct form was
+// E0358's for an array of scalars and, for an array of structs, was emitted
+// as one struct at exit 0. The list in a field is the control.
+struct S {
+    u32 a;
+}
+
+struct D {
+    S[2] items;
+    u32 n;
+}
+
+struct B {
+    u8[4] data;
+}
+
+void take(u8[4] buf) {}
+
+void positions() {
+    D d <- { items: { a: 1 }, n: 1 };
+    B b <- { data: { a: 1 } };
+    S[2] sa;
+    sa <- { a: 3 };
+    u8[4] x;
+    x <- { a: 1 };
+    take({ a: 1 });
+    D listed <- { items: [{ a: 1 }, { a: 2 }], n: 2 };
+}

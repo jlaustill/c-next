@@ -148,4 +148,72 @@ describe("StructLiteralAnalyzer (E0358)", () => {
       ),
     ).toEqual(["E0358 2"]);
   });
+  // #1760 second review: the question is "is this a struct?", so a type
+  // with no category -- a pointer or function-pointer typedef, an ADR-029
+  // function type -- is rejected, while a union and a typedef whose struct
+  // is recorded under its tag are not
+  it("asks whether a header's type is a struct, typedefs followed", () => {
+    const table = header(
+      [
+        "struct Obj;",
+        "typedef struct Obj *Handle;",
+        "typedef void (*cb_t)(void);",
+        "typedef union { int i; float f; } Num;",
+        "typedef struct _Tagged { int a; } Tagged;",
+      ].join("\n"),
+    );
+    expect(
+      codes(
+        [
+          "void f() {",
+          "    Handle h <- { a: 1 };",
+          "    cb_t c <- { a: 1 };",
+          "    Num n <- { i: 1 };",
+          "    Tagged t <- { a: 1 };",
+          "}",
+        ].join("\n"),
+        table,
+      ),
+    ).toEqual(["E0358 2", "E0358 3"]);
+  });
+
+  it("rejects an ADR-029 function type", () => {
+    expect(
+      codes("void handler() {\n}\nvoid f() {\n    handler h <- { a: 1 };\n}"),
+    ).toEqual(["E0358 4"]);
+  });
+
+  it("stays silent on a type it does not know", () => {
+    expect(codes("void f() {\n    Mystery m <- { a: 1 };\n}")).toEqual([]);
+  });
+});
+
+// #1760 second review: ADR-014 makes an array's whole initializer ADR-035's
+// list, E0866, at every position -- only a declaration asked
+describe("StructLiteralAnalyzer (E0866 at a whole-array position)", () => {
+  const types = [
+    "struct S { u32 a; }",
+    "struct D { S[2] items; u32 n; }",
+    "struct B { u8[4] data; }",
+    "void take(u8[4] buf) {\n}",
+  ].join("\n");
+  const codes = (body: string) =>
+    errors(`${types}\nvoid f() {\n${body}\n}`).map((e) => e.code);
+
+  it.each([
+    ["an array of structs as a field", "    D d <- { items: { a: 1 }, n: 1 };"],
+    ["an array of scalars as a field", "    B b <- { data: { a: 1 } };"],
+    ["an assignment target", "    S[2] sa;\n    sa <- { a: 3 };"],
+    ["an array parameter", "    take({ a: 1 });"],
+  ])("rejects a struct initializer at %s", (_label, body) => {
+    expect(codes(body)).toEqual(["E0866"]);
+  });
+
+  it.each([
+    ["a list in a field", "    D d <- { items: [{ a: 1 }, { a: 2 }], n: 1 };"],
+    ["an element of a list", "    S[2] sa <- [{ a: 1 }, { a: 2 }];"],
+    ["a declaration, which ADR-035's rule checks", "    S[2] sa <- { a: 1 };"],
+  ])("stays silent on %s", (_label, body) => {
+    expect(codes(body)).toEqual([]);
+  });
 });
