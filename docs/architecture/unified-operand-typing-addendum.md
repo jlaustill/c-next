@@ -11,7 +11,7 @@
 >    - a named enum is its own essential category, and so are character and Boolean;
 >    - MISRA's exception that `+`/`+=` may combine a character with a signed or unsigned operand is kept;
 >    - this overrides §A4's default, which left enum and character with no category.
-> 3. **The AVR miscompiles are fixed in this PR**: row A (masks shifted 16 or more places on a 16-bit `unsigned int`), row H (`case -32768`) and #1147's AVR arm. What remains on AVR is marked `// test-target-xfail: atmega328p … #<issue>`, each failure naming its issue.
+> 3. **The AVR miscompiles are fixed in this PR**: row A (masks shifted 16 or more places on a 16-bit `unsigned int`) and #1147's AVR arm. Row H (`case -32768`) was deferred to #1780 by a later ruling (2026-09-27). It carries no marker, because avr-g++ accepts it and no cell fails. What remains on AVR is marked `// test-target-xfail: atmega328p … #<issue>`, each failure naming its issue.
 > 4. **The cross compile uses the real target libraries**, which overrides §A6.3's prototype-only headers:
 >    - newlib and its C++ headers for Cortex-M, and avr-libc for AVR;
 >    - CI installs them;

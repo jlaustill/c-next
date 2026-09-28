@@ -30,12 +30,12 @@ one.
 | Layer                   | Modules |
 | ----------------------- | ------: |
 | `src/TRANSPILE/`        |      63 |
-| `src/PARSE/`            |      19 |
+| `src/PARSE/`            |      20 |
 | `src/utils/`            |      12 |
 | `src/transpiler/`       |       3 |
 | `src/transpiler/types/` |       2 |
 | `src/transpiler/logic/` |       1 |
-| **total**               | **100** |
+| **total**               | **101** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -63,6 +63,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/PARSE/3-Declare/cnext/utils/DimensionResolver.ts`          | grammar           |
 | `src/PARSE/3-Declare/cnext/utils/TypeUtils.ts`                  | grammar           |
 | `src/PARSE/3-Declare/cpp/index.ts`                              | grammar           |
+| `src/PARSE/3-Declare/cpp/utils/DeclaratorUtils.ts`              | grammar           |
 | `src/PARSE/3-Declare/TypeBinding.ts`                            | grammar           |
 | `src/TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts`           | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ArrayIndexBoundsAnalyzer.ts`           | antlr4ng, grammar |
@@ -93,7 +94,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/1-Analyze/helpers/EnclosingFunction.ts`          | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/helpers/FunctionReference.ts`          | grammar           |
 | `src/TRANSPILE/1-Analyze/helpers/IncludeDirective.ts`           | grammar           |
-| `src/TRANSPILE/1-Analyze/helpers/RegisterMemberReference.ts`    | antlr4ng          |
+| `src/TRANSPILE/1-Analyze/helpers/RegisterMemberReference.ts`    | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/helpers/SafeDivision.ts`               | grammar           |
 | `src/TRANSPILE/1-Analyze/helpers/StructInitializerType.ts`      | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/IdentifierSyntaxAnalyzer.ts`           | antlr4ng, grammar |
@@ -146,4 +147,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/ParserUtils.ts`                                      | antlr4ng, grammar |
 | `src/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-100 module(s).
+101 module(s).
