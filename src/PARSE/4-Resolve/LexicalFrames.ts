@@ -137,7 +137,7 @@ class LexicalFrames {
       const settled = LexicalFrames.settleDeclaration(
         item.declaration,
         isScopeType,
-        (name) => constantAt(name, item.declaration.span),
+        constantAt,
       );
       settledOf.set(item.declaration, settled);
       declarations.push(settled);
@@ -150,14 +150,29 @@ class LexicalFrames {
     });
   }
 
+  /**
+   * #1760 review: a declaration's own dimensions come before its name, so
+   * they see the enclosing binding (`u8[N] N`). Its initializer comes after
+   * the name and sees the new one, as C scopes it and as emission binds it,
+   * so a const that names itself has no value; whether it is allowed at all
+   * is #1643's. Folding both at the name's start gave `const u16 N <- N + 1`
+   * the value 5 while the C read the uninitialized local.
+   */
   private static settleDeclaration(
     declaration: ILocalDeclaration,
     isScopeType: (qualifiedName: string) => boolean,
-    constantOf: (name: string) => IFoldedConstant | undefined,
+    constantAt: (name: string, at: TPosition) => IFoldedConstant | undefined,
   ): ILocalDeclaration {
+    const nameStart = declaration.span;
+    const nameEnd = {
+      line: declaration.span.endLine,
+      column: declaration.span.endColumn,
+    };
     const arrayDimensions = declaration.arrayDimensions.map((dimension) =>
       typeof dimension === "string" && dimension !== ""
-        ? (ConstantFold.value(dimension, constantOf) ?? dimension)
+        ? (ConstantFold.value(dimension, (name) =>
+            constantAt(name, nameStart),
+          ) ?? dimension)
         : dimension,
     );
     const type = DeferredTypes.settleType(declaration.type, isScopeType);
@@ -165,8 +180,9 @@ class LexicalFrames {
       declaration.isConst &&
       declaration.initialValue !== null &&
       arrayDimensions.length === 0
-        ? (ConstantFold.declared(declaration.initialValue, type, constantOf) ??
-          null)
+        ? (ConstantFold.declared(declaration.initialValue, type, (name) =>
+            constantAt(name, nameEnd),
+          ) ?? null)
         : null;
     return Object.freeze({
       ...declaration,
