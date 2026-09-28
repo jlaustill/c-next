@@ -1,3 +1,6 @@
+> **A design record, not the current state.** Written at `1ca1d67eb`, before
+> implementation. Its citations and descriptions of the code are that commit's.
+
 > **Later rulings (owner, 2026-09-26, after this addendum was written) override it where they differ:**
 >
 > 1. **ADR-049 governs targets.** The addendum's R5, which rejects only a program that reaches a C/C++ header, is superseded:
@@ -8,7 +11,7 @@
 >    - a named enum is its own essential category, and so are character and Boolean;
 >    - MISRA's exception that `+`/`+=` may combine a character with a signed or unsigned operand is kept;
 >    - this overrides §A4's default, which left enum and character with no category.
-> 3. **The AVR miscompiles are fixed in this PR**: row A (masks shifted 16 or more places on a 16-bit `unsigned int`), row H (`case -32768`) and #1147's AVR arm. `test-target-xfail: avr` marks only what remains.
+> 3. **The AVR miscompiles are fixed in this PR**: row A (masks shifted 16 or more places on a 16-bit `unsigned int`), row H (`case -32768`) and #1147's AVR arm. What remains on AVR is marked `// test-target-xfail: atmega328p … #<issue>`, each failure naming its issue.
 > 4. **The cross compile uses the real target libraries**, which overrides §A6.3's prototype-only headers:
 >    - newlib and its C++ headers for Cortex-M, and avr-libc for AVR;
 >    - CI installs them;

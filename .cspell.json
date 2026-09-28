@@ -439,6 +439,7 @@
     "Rossum",
     "RPAREN",
     "rshift",
+    "rstrip",
     "RTIC",
     "rustc",
     "rvalue",

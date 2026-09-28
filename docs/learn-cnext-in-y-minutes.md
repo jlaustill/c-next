@@ -8,6 +8,14 @@ contributors:
 C-Next is a safer C for embedded systems. It transpiles to clean, readable C.
 
 ```c
+// Every program names its one target (ADR-049), and a #pragma comes before
+// any declaration, so it opens the file:
+#pragma target teensy41         // a catalog name; `cnext --help` lists them
+// ...or describe it inline, one #pragma per field, every field given:
+// #pragma word_size 32
+// #pragma ldrex_strex true      (and the rest of the target description)
+// (--target on the command line, or "target" in cnext.config.json, also work)
+
 // Single-line comments work as you expect
 /* Multi-line comments too */
 
@@ -494,11 +502,8 @@ const f32 PI <- 3.14159;
 #define ARDUINO
 #define DEBUG
 
-// #pragma names the program's one target (ADR-049), before any declaration:
-#pragma target teensy41         // a catalog name; `cnext --help` lists them
-// ...or describes it inline, one #pragma per field, every field given:
-// #pragma word_size 32
-// #pragma ldrex_strex true      // and the rest of the target description
+// #pragma target is at the top of this file: a directive comes before any
+// declaration
 
 #ifdef ARDUINO
 // Arduino-specific code

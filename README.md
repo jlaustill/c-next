@@ -15,6 +15,8 @@ A safer C for embedded systems development. Transpiles to clean, readable C.
 ## Quick Example
 
 ```cnx
+#pragma target teensy41
+
 // Register binding with type-safe access
 register GPIO7 @ 0x42004000 {
     DR:         u32 rw @ 0x00,
@@ -40,7 +42,7 @@ Generates clean C:
 uint32_t LED_BIT = 3U;
 
 void LED__toggle(void) {
-    GPIO7__DR_TOGGLE = (1U << LED_BIT);
+    GPIO7__DR_TOGGLE = ((uint32_t)1U << LED_BIT);
 }
 ```
 
@@ -160,6 +162,8 @@ cnext examples/teensy4/blink.cnx --cpp
 # Target platform (ADR-049). Every program names exactly one target: a
 # `#pragma target` in the source, this option, "target" in cnext.config.json,
 # or a PlatformIO environment's board. `cnext --help` lists the known targets.
+# Upgrading: a program that names none is now error E0515, so an existing
+# project adds one of these -- "target" in cnext.config.json covers every file.
 cnext examples/teensy4/blink.cnx --target teensy41
 
 # Separate output directories for code and headers
@@ -179,8 +183,11 @@ C-Next supports gradual migration from existing C/C++ codebases. Convert files o
 **Step 1:** Convert a leaf file to C-Next and transpile it:
 
 ```bash
-cnext led.cnx    # Generates led.h and led.c
+cnext led.cnx --target teensy41   # Generates led.h and led.c
 ```
+
+Every program names its target (ADR-049): `--target`, `#pragma target` in the file,
+`"target"` in `cnext.config.json`, or a PlatformIO environment's board.
 
 **Step 2:** Include the generated header in your existing code:
 
@@ -197,7 +204,7 @@ int main() {
 **Step 3:** Run the transpiler on your C/C++ entry point to auto-discover and re-transpile all C-Next dependencies:
 
 ```bash
-cnext main.cpp --cpp   # Discovers led.cnx via header marker, transpiles it
+cnext main.cpp --cpp --target teensy41   # Discovers led.cnx via header marker, transpiles it
 ```
 
 > `--cpp` (or `cppRequired: true` in `cnext.config.json`) is required whenever your `.cnx`

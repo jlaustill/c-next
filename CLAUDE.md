@@ -183,20 +183,20 @@ When in doubt: **ASK.** Syntax changes require ADR discussion and user approval.
 
 ## Quick Reference
 
-| Task                   | Command                                 |
-| ---------------------- | --------------------------------------- |
-| Build transpiler       | `npm run build`                         |
-| Integration tests      | `npm test` or `npm run test:q` (quiet)  |
-| Single test            | `npm test -- tests/dir/file.test.cnx`   |
-| Unit tests             | `npm run unit`                          |
-| Coverage               | `npm run unit:coverage`                 |
-| C static analysis      | `npm run validate:c`                    |
-| All tests + checks     | `npm run test:all`                      |
-| **Everything CI runs** | **`npm run test:gate`**                 |
-| Local transpiler       | `npx tsx src/index.ts <file.cnx>`       |
-| C++ mode               | `npx tsx src/index.ts <file.cnx> --cpp` |
-| Generate snapshots     | `npm test -- <path> --update`           |
-| ANTLR regenerate       | `npm run antlr`                         |
+| Task                   | Command                                               |
+| ---------------------- | ----------------------------------------------------- |
+| Build transpiler       | `npm run build`                                       |
+| Integration tests      | `npm test` or `npm run test:q` (quiet)                |
+| Single test            | `npm test -- tests/dir/file.test.cnx`                 |
+| Unit tests             | `npm run unit`                                        |
+| Coverage               | `npm run unit:coverage`                               |
+| C static analysis      | `npm run validate:c`                                  |
+| All tests + checks     | `npm run test:all`                                    |
+| **Everything CI runs** | **`npm run test:gate`**                               |
+| Local transpiler       | `npx tsx src/index.ts <file.cnx> --target host`       |
+| C++ mode               | `npx tsx src/index.ts <file.cnx> --cpp --target host` |
+| Generate snapshots     | `npm test -- <path> --update`                         |
+| ANTLR regenerate       | `npm run antlr`                                       |
 
 **GitHub CLI**: `gh issue view` may fail — use `gh api repos/jlaustill/c-next/issues/<number>` instead. `gh pr edit` fails here on a Projects-classic GraphQL deprecation — use `gh api -X PATCH repos/jlaustill/c-next/pulls/<n> -F body=@<file>`, then re-read the body to confirm; it errors on stderr, so an `&&` chain hides it and the body silently keeps its old text. The project board (`/issue-check`
 Phase 1d) needs `gh auth refresh -s read:project`; **writing** a board field needs

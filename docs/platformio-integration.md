@@ -25,7 +25,7 @@ root. `--pio-install` writes a working default; the fields you'll touch most:
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `include`     | Extra directories searched for C/C++ headers. **Must cover every C/C++ header you `#include`** (e.g. `.pio/libdeps` for PlatformIO libraries, `include/`). Also how E0507 sees that a header is C++ (below). |
 | `headerOut`   | Directory for generated headers (e.g. `include`).                                                                                                                                                            |
-| `target`      | Target platform for ISR/atomic codegen (e.g. `teensy41`, `cortex-m0`).                                                                                                                                       |
+| `target`      | The program's target when its source names none (ADR-049), e.g. `teensy41`. A PlatformIO board can name it instead (below).                                                                                  |
 | `debugMode`   | Generate panic-on-overflow helpers.                                                                                                                                                                          |
 | `noCache`     | Disable the `.cnx/` symbol cache.                                                                                                                                                                            |
 | `cppRequired` | Emit C++ (`.cpp`/`.hpp`) instead of C. Required for any project that includes C++ headers — see below.                                                                                                       |
@@ -63,7 +63,12 @@ usually need not name it: when no `#pragma target` and no `--target` (or config
   `cnext.config.json`. `cnext --help` lists the known targets.
 
 The run prints the target it used and where it came from, e.g.
-`Target: teensy41 (platformio)`.
+`Target: teensy41 (platformio)`, and `pio run` shows that line.
+
+**Upgrading:** re-run `cnext --pio-install` after upgrading C-Next. It rewrites
+`cnext_build.py`. A script written before the target was required passes no
+`--pio-env`, so in a project whose environments name different targets and that
+sets no `default_envs`, every build fails with E0511.
 
 ## C vs C++ Output
 
@@ -186,4 +191,7 @@ If you prefer manual control, you can also run the transpiler explicitly:
 ```bash
 # Transpile from entry point (includes are followed automatically)
 cnext src/main.cnx
+
+# For one environment's board, as cnext_build.py does
+cnext src/main.cnx --pio-env teensy41
 ```

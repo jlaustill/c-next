@@ -223,12 +223,12 @@ include-visibility is not derivable for a C or C++ name.
 
 ### Essential Type Safety (MISRA C:2012)
 
-| Code  | Message                                                                                                | Help                                                                                         | Source                                        |
-| ----- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| E0805 | Shift operator used on a signed integer type (MISRA C:2012 Rule 10.1)                                  | Shift an unsigned value; signed shifts are UB / implementation-defined in C                  | `TRANSPILE/1-Analyze/ShiftAnalyzer.ts`        |
-| E0806 | Compound assignment used on a `bool` (MISRA C:2012 Rule 10.1)                                          | Only `<-` is valid on a bool; flip a flag with `flag <- !flag`                               | `logic/analysis/BooleanOperandAnalyzer.ts`    |
-| E0807 | Arithmetic, bitwise, shift or relational operator applied to a `bool` operand (MISRA C:2012 Rule 10.1) | A bool is not a number; combine flags with `&&` / `\|\|` / `!`, compare them with `=` / `!=` | `logic/analysis/BooleanOperandAnalyzer.ts`    |
-| E0810 | Binary operator combines operands of different essential type categories (Rule 10.4)                   | Reinterpret one operand's bits to match the other with bit indexing, e.g. `value[0, 32]`     | `logic/analysis/MixedTypeCategoryAnalyzer.ts` |
+| Code  | Message                                                                                                             | Help                                                                                                                                                  | Source                                             |
+| ----- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| E0805 | Shift operator used on a signed integer type (MISRA C:2012 Rule 10.1)                                               | Shift an unsigned value; signed shifts are UB / implementation-defined in C                                                                           | `TRANSPILE/1-Analyze/ShiftAnalyzer.ts`             |
+| E0806 | Compound assignment used on a `bool` (MISRA C:2012 Rule 10.1)                                                       | Only `<-` is valid on a bool; flip a flag with `flag <- !flag`                                                                                        | `logic/analysis/BooleanOperandAnalyzer.ts`         |
+| E0807 | Arithmetic, bitwise, shift or relational operator applied to a `bool` operand (MISRA C:2012 Rule 10.1)              | A bool is not a number; combine flags with `&&` / `\|\|` / `!`, compare them with `=` / `!=`                                                          | `logic/analysis/BooleanOperandAnalyzer.ts`         |
+| E0810 | Operands of different essential type categories: a binary operator's, or a conditional's two value arms (Rule 10.4) | Integer and floating: cast the integer, e.g. `(f32)value`. Signed and unsigned: reinterpret one operand's bits with bit indexing, e.g. `value[0, 32]` | `TRANSPILE/1-Analyze/MixedTypeCategoryAnalyzer.ts` |
 
 ### Array Index Type Safety
 

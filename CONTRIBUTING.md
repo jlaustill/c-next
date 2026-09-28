@@ -334,11 +334,12 @@ npm test -- tests/postfix-chains/basic-chaining.test.cnx
 npm run test:update                      # every snapshot, tests/bugs/ included
 npm run test:update -- tests/my-feature/ # or narrow it to one directory
 
-# Transpile single test file (without running full test validation)
-cnext tests/my-feature/basic.test.cnx
+# Transpile single test file (without running full test validation).
+# Every program names its target (ADR-049); the harness passes host.
+cnext tests/my-feature/basic.test.cnx --target host
 
 # Verify output matches expected
-diff tests/my-feature/basic.c tests/my-feature/basic.expected.c
+diff tests/my-feature/basic.test.c tests/my-feature/basic.expected.c
 ```
 
 **Snapshots are only ever rewritten by `--update`.** A plain `npm test` regenerates the

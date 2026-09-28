@@ -49,7 +49,7 @@ bool err2 <- safe_mod(result, 10, divisor, result);  // pass current value as de
 - Shifting a **signed** value (`i8`/`i16`/`i32`/`i64`) is a compile error (`E0805`, MISRA 10.1) — left-shift of a signed value is UB and right-shift is implementation-defined in C, so C-Next forbids it. Bitwise `& | ^ ~` _are_ allowed on signed values (two's-complement, same as C).
 - The shift amount must be **non-negative** and **less than the operand's bit width** (MISRA 12.2): `x << -1` and `u8val << 8` are both compile errors. Widen first: `u16 wide <- val; u16 r <- wide << 8;`.
 
-**Binary operands must share an essential type category** (MISRA 10.4): mixing signed and unsigned operands — e.g. `u32 a + i32 b` — is a compile error (`E0810`). Integer **literals are exempt** (contextually typed, so `a + 5` is fine), and same-category widening is allowed (`u8 + u32`). To combine across categories, reinterpret one operand's bits to the other's with bit indexing: `a + b[0, 32]` (ADR-024 / ADR-007).
+**Binary operands must share an essential type category** (MISRA 10.4). Signed, unsigned and floating are different categories, so `u32 a + i32 b` and `u32 i * f32 k` are compile errors (`E0810`), as are a comparison that mixes them (`i < k`) and a conditional whose value arms do (`(c = true) ? i : k`). An **integer literal** takes the other operand's category, so `a + 5` and `k * 3` are fine. A **float literal** does not, so `i * 2.5` is an error. Same-category widening is allowed (`u8 + u32`). To combine integer and floating, cast the integer: `(f32)i * k`. To combine signed and unsigned, reinterpret one operand's bits with bit indexing: `a + b[0, 32]` (ADR-024 / ADR-007).
 
 ## Types
 

@@ -9,9 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Targets (ADR-049, Issue #1668).** A program names exactly one target: `#pragma target <name>`, `--target <name>`, `"target"` in `cnext.config.json`, or the board of the PlatformIO environment being built. `targets/targets.cnx` is the catalog (`cnext --help` lists it). A platform it does not name can be described inline, one `#pragma` per field (E0512–E0514). The run prints `Target: <name> (<source>)`.
 - Return values of non-void functions must now be used or explicitly discarded with `(void) f(...)` — new error **E0708** (ADR-070, Issue #847). This is a **breaking change**: 61 call sites across the test suite and examples were migrated.
 
 ### Changed
+
+- **A program that names no target is error E0515** (ADR-049, Issue #1668). This is a
+  **breaking change** for every existing project. The migration is one line:
+  `"target": "<name>"` in `cnext.config.json` covers every file. `#pragma target <name>`
+  in the entry file or `--target <name>` also work, and an unknown name is E0510.
+
+  A PlatformIO project whose boards map to known targets needs no line, but should
+  **re-run `cnext --pio-install`**. The regenerated `cnext_build.py` passes each build's
+  environment (`--pio-env`) and shows the target and any warnings in `pio run`. A script
+  written before this passes no environment. A project whose environments name different
+  targets, and that sets no `default_envs`, then fails every build with E0511.
+
+- **Mixed integer and floating arithmetic is error E0810** (ADR-024, MISRA C:2012
+  Rule 10.4, Issue #1668). This is a **breaking change**. `u32 i <- 3; f32 x <- i * 2.5;`
+  used to evaluate to 6.0, because the integer operand chose integer arithmetic. Write
+  the conversion where it happens: `(f32)i * 2.5`. The rule covers compound assignment,
+  comparisons and a conditional's value arms. Its categories are MISRA's: signed,
+  unsigned, floating, Boolean and character, and each named enum is its own.
 
 - A generated `#include` now names its target **relative to the header output
   directory**, so that directory alone is sufficient on the C compiler's search

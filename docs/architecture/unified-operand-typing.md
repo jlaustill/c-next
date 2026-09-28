@@ -1,5 +1,10 @@
 # Unified operand typing for #1668: final design (synthesis)
 
+> **A design record, not the current state.** Written at `da2f84918`, before
+> implementation. Its `file:line` citations, counts and descriptions of the code
+> are that commit's. The addendum's later rulings override it where they differ,
+> and the decisions themselves are ADR-024's and ADR-049's.
+
 **Baseline.** Branch `fix/1668-reject-mixed-int-float-arithmetic` at `da2f84918`. Its `src/` is identical to `4b896bb42`. `main` is `f8651d55d`. This design changes no repository file.
 
 **Evidence tags.**

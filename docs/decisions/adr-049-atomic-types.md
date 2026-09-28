@@ -571,16 +571,11 @@ counter +<- 1;  // Generates the LDREX/STREX loop
 - It must be complete, under the same rule as a catalog entry.
 - It cannot be combined with `#pragma target`.
 
-A partial description is an error that lists the missing fields:
+A partial description is an error that lists the missing fields. For a file whose only description pragma is `#pragma word_size 32`:
 
 ```
-error[E0514]: Incomplete target description
-  --> myfile.cnx:1
-   |
- 1 | #pragma word_size 32
-   |
-   | missing: ldrex_strex, basepri, char_bits, ...
-   | Either use '#pragma target <name>' or give every field.
+Error: myfile.cnx:1:0 error[E0514]: incomplete target description
+       help: missing: ldrex_strex, basepri, char_bits, char_signed, short_bits, int_bits, long_bits, long_long_bits, size_t_bits, pointer_bits, float_bits, double_bits, long_double_bits, big_endian, external_identifier_chars, internal_identifier_chars. Either use '#pragma target <name>' or give every field (ADR-049).
 ```
 
 #### One target per program

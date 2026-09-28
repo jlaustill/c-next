@@ -36,7 +36,7 @@ interface ITranspilerConfig {
   /** ADR-044: When true, generate panic-on-overflow helpers instead of clamp */
   debugMode?: boolean;
 
-  /** ADR-049: Target platform for atomic code generation */
+  /** ADR-049: the program's target, when its source names none */
   target?: string;
 
   /**
