@@ -163,7 +163,7 @@ describe("generated file banner", () => {
       "c",
     );
     expect(text).toContain(" * Requires: C99.");
-    expect(text).toContain("critical section requires one of:");
+    expect(text).toContain("interrupt masking requires one of:");
     // The ARM arm's inline assembly is NOT claimed unconditionally: it lives
     // inside `#if defined(__arm__)`, so an AVR or CMSIS build compiles none of
     // it. Reported in review of #1153, where this banner and the

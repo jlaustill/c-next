@@ -88,7 +88,8 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
   "critical-arm-gnu": {
     key: "critical-arm-gnu",
     modes: ["c", "cpp"],
-    feature: "critical section",
+    // #1146: a critical block and an atomic read-modify-write both mask
+    feature: "interrupt masking",
     standard: "C99",
     compiler: null,
     extensions: ["GNU inline assembly", "__attribute__((always_inline))"],
@@ -96,7 +97,9 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     condition: "defined(__arm__) || defined(__ARM_ARCH)",
     reason:
       '__asm volatile ("MRS %0, primask"), __attribute__((always_inline))',
-    incurredBy: "a critical block",
+    // #1146: an atomic read-modify-write masks through the same wrappers
+    incurredBy:
+      "a critical block, or an atomic read-modify-write on a target without LDREX/STREX",
     probe: /MRS %0, primask/,
     adr: "ADR-050",
     misra: ["1.2", "Dir 4.3", "20.8", "20.9", "20.14"],
@@ -105,7 +108,8 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
   "critical-arduino": {
     key: "critical-arduino",
     modes: ["c", "cpp"],
-    feature: "critical section",
+    // #1146: a critical block and an atomic read-modify-write both mask
+    feature: "interrupt masking",
     standard: "C99",
     compiler: null,
     // The Arduino `#if` is nested INSIDE the ARM arm, so an ARM+Arduino target
@@ -116,7 +120,9 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     platformLib: "ARMv7-M core + Arduino core",
     condition: "defined(__arm__) && defined(ARDUINO)",
     reason: "noInterrupts()",
-    incurredBy: "a critical block",
+    // #1146: an atomic read-modify-write masks through the same wrappers
+    incurredBy:
+      "a critical block, or an atomic read-modify-write on a target without LDREX/STREX",
     probe: /noInterrupts\(\)/,
     adr: "ADR-050",
     misra: ["Dir 4.9", "20.8", "20.9", "20.14"],
@@ -125,7 +131,8 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
   "critical-avr-libc": {
     key: "critical-avr-libc",
     modes: ["c", "cpp"],
-    feature: "critical section",
+    // #1146: a critical block and an atomic read-modify-write both mask
+    feature: "interrupt masking",
     standard: "C99",
     compiler: null,
     // Issue #1147: the arm includes <avr/io.h> and <avr/interrupt.h>, which
@@ -134,7 +141,9 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     extensions: [],
     condition: "defined(__AVR__)",
     reason: "SREG, cli()",
-    incurredBy: "a critical block",
+    // #1146: an atomic read-modify-write masks through the same wrappers
+    incurredBy:
+      "a critical block, or an atomic read-modify-write on a target without LDREX/STREX",
     probe: /return SREG;/,
     adr: "ADR-050",
     misra: ["Dir 4.9", "20.8", "20.9", "20.14"],
@@ -143,7 +152,8 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
   "critical-cmsis-fallback": {
     key: "critical-cmsis-fallback",
     modes: ["c", "cpp"],
-    feature: "critical section",
+    // #1146: a critical block and an atomic read-modify-write both mask
+    feature: "interrupt masking",
     standard: "C99",
     compiler: null,
     extensions: [],
@@ -151,7 +161,9 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     platformLib: "CMSIS",
     condition: "neither ARM nor AVR",
     reason: "__disable_irq(), __get_PRIMASK(), __set_PRIMASK()",
-    incurredBy: "a critical block",
+    // #1146: an atomic read-modify-write masks through the same wrappers
+    incurredBy:
+      "a critical block, or an atomic read-modify-write on a target without LDREX/STREX",
     probe: /\{ __disable_irq\(\); \}/,
     adr: "ADR-050",
     misra: ["Dir 4.9", "20.8", "20.9", "20.14"],
@@ -170,25 +182,6 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     incurredBy:
       "compound assignment to an atomic variable on a target with LDREX/STREX",
     probe: /__(?:LDREX|STREX)[BHW]\b/,
-    adr: "ADR-049",
-    misra: ["Dir 4.9"],
-  },
-
-  "atomic-primask-cmsis": {
-    key: "atomic-primask-cmsis",
-    modes: ["c", "cpp"],
-    feature: "atomic read-modify-write",
-    standard: "C99",
-    compiler: null,
-    extensions: [],
-    platformLib: "CMSIS",
-    // Issue #1146: unlike the critical-section arms, this path emits raw CMSIS
-    // names with no #if guard, so it is unconditional rather than per-target.
-    condition: null,
-    reason: "__get_PRIMASK(), __disable_irq(), __set_PRIMASK()",
-    incurredBy:
-      "compound assignment to an atomic variable on a target without LDREX/STREX",
-    probe: /uint32_t __primask = __get_PRIMASK\(\);/,
     adr: "ADR-049",
     misra: ["Dir 4.9"],
   },

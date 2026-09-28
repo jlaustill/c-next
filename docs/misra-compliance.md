@@ -23,17 +23,17 @@ Generated from the transpiler's requirements registry by
 contains, which is why they may read as deviations where a hand-written
 assessment claimed N/A.
 
-| guideline | bears on                                   | emitted constructs                                                                                                                                                      |
-| --------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.1       | baseline, float bit indexing               | `<stdint.h> fixed-width types, // comments, mixed declarations`; `nullptr, static_cast, reinterpret_cast`; `_Static_assert`                                             |
-| 1.2       | critical section, struct initializer       | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `(T){ ... } in C++`                                                                               |
-| 20.8      | critical section                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()`              |
-| 20.9      | critical section                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()`              |
-| 20.14     | critical section                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()`              |
-| 21.6      | overflow panic (--debug)                   | `fprintf(stderr, ...), abort()`                                                                                                                                         |
-| 21.8      | overflow panic (--debug)                   | `fprintf(stderr, ...), abort()`                                                                                                                                         |
-| Dir 4.3   | critical section                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`                                                                                                    |
-| Dir 4.9   | critical section, atomic read-modify-write | `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()`; `__LDREXB/H/W, __STREXB/H/W`; `__get_PRIMASK(), __disable_irq(), __set_PRIMASK()` |
+| guideline | bears on                                    | emitted constructs                                                                                                                                         |
+| --------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.1       | baseline, float bit indexing                | `<stdint.h> fixed-width types, // comments, mixed declarations`; `nullptr, static_cast, reinterpret_cast`; `_Static_assert`                                |
+| 1.2       | interrupt masking, struct initializer       | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `(T){ ... } in C++`                                                                  |
+| 20.8      | interrupt masking                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()` |
+| 20.9      | interrupt masking                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()` |
+| 20.14     | interrupt masking                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()` |
+| 21.6      | overflow panic (--debug)                    | `fprintf(stderr, ...), abort()`                                                                                                                            |
+| 21.8      | overflow panic (--debug)                    | `fprintf(stderr, ...), abort()`                                                                                                                            |
+| Dir 4.3   | interrupt masking                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`                                                                                       |
+| Dir 4.9   | interrupt masking, atomic read-modify-write | `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()`; `__LDREXB/H/W, __STREXB/H/W`                                         |
 
 <!-- END GENERATED: toolchain-guidelines -->
 

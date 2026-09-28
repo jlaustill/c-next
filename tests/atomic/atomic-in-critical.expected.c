@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  * Requires: C99.
  * atomic read-modify-write requires CMSIS + ARMv7-M.
- * critical section requires one of: ARMv7-M core + Arduino core, ARMv7-M core, avr-libc, CMSIS (by target).
+ * interrupt masking requires one of: ARMv7-M core + Arduino core, ARMv7-M core, avr-libc, CMSIS (by target).
  */
 
 #include "atomic-in-critical.test.h"

@@ -162,17 +162,16 @@ describe("ResultPrinter toolchain requirements", () => {
     expect(output).toContain("(+2 more)");
   });
 
-  it("labels an unconditional alternative 'always'", () => {
-    // The two atomic paths share one feature but neither carries a compile-time
-    // condition: which is emitted is decided at transpile time by the target's
-    // LDREX/STREX support, not by the preprocessor.
+  it("prints an atomic read-modify-write's LDREX path as one requirement", () => {
+    // #1146: the masked path is the ADR-050 wrappers' now, whose arms are the
+    // critical section's alternatives, so LDREX/STREX has no alternative of
+    // its own feature to be listed beside
     output = print([
       { key: "baseline-c", sites: [] },
       { key: "atomic-ldrex-cmsis", sites: [] },
-      { key: "atomic-primask-cmsis", sites: [] },
     ]);
-    expect(output).toContain("one of, by target");
-    expect(output).toContain("always");
+    expect(output).not.toContain("one of, by target");
+    expect(output).toContain("CMSIS + ARMv7-M");
   });
 
   it("shows a bare path when a site has no line", () => {

@@ -1,0 +1,20 @@
+// #1146: an atomic read-modify-write on a target without LDREX/STREX masks
+// interrupts through the ADR-050 wrappers, as a critical block does, and so
+// takes their AVR arm (SREG and cli()). It emitted raw CMSIS calls with no
+// platform guard beside <cmsis_gcc.h>, which avr-libc does not provide, so
+// the C did not compile for AVR.
+#pragma target atmega328p
+
+atomic u16 ticks <- 0;
+u16 plain <- 0;
+
+void onTick() {
+    ticks +<- 1;
+    critical {
+        plain +<- 1;
+    }
+}
+
+u16 readTicks() {
+    return ticks;
+}

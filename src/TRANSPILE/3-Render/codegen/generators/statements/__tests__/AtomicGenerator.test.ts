@@ -243,14 +243,22 @@ describe("AtomicGenerator", () => {
         null,
       );
 
-      expect(result.code).toContain("uint32_t __primask = __get_PRIMASK();");
-      expect(result.code).toContain("__disable_irq();");
+      // #1146: the ADR-050 wrappers a critical block masks through, not raw
+      // CMSIS with no platform guard
+      expect(result.code).toContain(
+        "uint32_t __primask = __cnx_get_PRIMASK();",
+      );
+      expect(result.code).toContain("__cnx_disable_irq();");
       expect(result.code).toContain("counter += 1;");
-      expect(result.code).toContain("__set_PRIMASK(__primask);");
+      expect(result.code).toContain("__cnx_set_PRIMASK(__primask);");
       expect(result.effects).toContainEqual({
         type: "include",
-        header: "cmsis",
+        header: "irq_wrappers",
+        line: undefined,
       });
+      expect(result.effects).not.toContainEqual(
+        expect.objectContaining({ header: "cmsis" }),
+      );
     });
 
     it("generates PRIMASK wrapper with clamp helper for +=", () => {
@@ -355,8 +363,8 @@ describe("AtomicGenerator", () => {
         caps,
       );
 
-      expect(result.code).toContain("__get_PRIMASK()");
-      expect(result.code).toContain("__disable_irq()");
+      expect(result.code).toContain("__cnx_get_PRIMASK()");
+      expect(result.code).toContain("__cnx_disable_irq()");
     });
 
     it("falls back to PRIMASK for u64 (no LDREX support)", () => {
@@ -371,8 +379,8 @@ describe("AtomicGenerator", () => {
         caps,
       );
 
-      // u64 doesn't have LDREX support, should use PRIMASK
-      expect(result.code).toContain("__get_PRIMASK()");
+      // u64 doesn't have LDREX support, should mask interrupts
+      expect(result.code).toContain("__cnx_get_PRIMASK()");
     });
 
     it("includes clamp helper effect when using clamp behavior", () => {

@@ -13,6 +13,7 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import type ITargetDescription from "../../../../../transpiler/types/ITargetDescription";
 import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY";
+import InterruptMask from "../../helpers/InterruptMask";
 
 /**
  * Maps C-Next types to C types (for atomic operations)
@@ -126,10 +127,12 @@ function generateLdrexStrexLoop(
 }
 
 /**
- * Generate PRIMASK-based atomic wrapper.
- * Disables all interrupts during the RMW operation.
+ * Generate an interrupt-masked atomic read-modify-write: the ADR-050 masked
+ * region a `critical` block takes, through the same `__cnx_` IRQ wrappers
+ * (#1146: this emitted raw CMSIS with no platform guard, so AVR got CMSIS
+ * calls where `critical` got SREG).
  *
- * @returns Object with code and effects (includes cmsis header, may include helper)
+ * @returns Object with code and effects (the IRQ wrappers, may include helper)
  */
 function generatePrimaskWrapper(
   target: string,
@@ -140,17 +143,7 @@ function generatePrimaskWrapper(
 ): IGeneratorOutput {
   const effects: TGeneratorEffect[] = [];
 
-  // Mark that we need CMSIS headers, and record what this branch costs.
-  // Issue #1143: this branch emits raw CMSIS names with no #if guard and no
-  // __cnx_ indirection, unlike the ADR-050 critical-section wrappers -- see
-  // #1146. The requirement is recorded as unconditional because the emitted
-  // code is unconditional.
-  effects.push(
-    { type: "include", header: "cmsis" },
-    { type: "requires", key: "atomic-primask-cmsis", line: null },
-  );
-
-  // Generate the actual assignment operation inside the critical section
+  // Generate the actual assignment operation inside the masked region
   let assignment: string;
 
   // Saturate when the classifier chose a clamp helper
@@ -165,15 +158,8 @@ function generatePrimaskWrapper(
     assignment = `${target} ${cOp} ${value};`;
   }
 
-  // Generate PRIMASK save/restore wrapper
-  const code = `{
-    uint32_t __primask = __get_PRIMASK();
-    __disable_irq();
-    ${assignment}
-    __set_PRIMASK(__primask);
-}`;
-
-  return { code, effects };
+  const masked = InterruptMask.wrap(assignment, undefined);
+  return { code: masked.code, effects: [...effects, ...masked.effects] };
 }
 
 /**

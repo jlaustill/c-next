@@ -51,7 +51,7 @@ const ACCOUNTED_TOKENS: ReadonlyArray<{
   { pattern: /\bnoInterrupts\b/, keys: ["critical-arduino"] },
   {
     pattern: /\b__disable_irq\b/,
-    keys: ["critical-cmsis-fallback", "atomic-primask-cmsis"],
+    keys: ["critical-cmsis-fallback"],
   },
   { pattern: /\bfprintf\b/, keys: ["overflow-panic-hosted-libc"] },
   {
