@@ -69,11 +69,27 @@ describe("RunTarget.resolve", () => {
   });
 
   it("accepts files that name the same platform by different names", () => {
+    // #1760 review: named by the ENTRY, the last file in pipeline order --
+    // this said the helper's teensy41, a dependency's name and toolchain
     const target = resolve([
       file("helper.cnx", "teensy41"),
       file("main.cnx", "cortex-m7"),
     ]);
-    expect(target).toMatchObject({ kind: "resolved", name: "teensy41" });
+    expect(target).toMatchObject({ kind: "resolved", name: "cortex-m7" });
+  });
+
+  it("carries the entry's toolchain fields, not a dependency's", () => {
+    // cortex-m3 and teensy41 describe one platform, and differ in the
+    // optional fields that pick a compiler
+    const target = resolve([
+      file("helper.cnx", "cortex-m3"),
+      file("main.cnx", "teensy41"),
+    ]);
+    expect(target).toMatchObject({
+      kind: "resolved",
+      name: "teensy41",
+      description: catalog.get("teensy41"),
+    });
   });
 
   it("rejects files that name different platforms, at the second (E0511)", () => {

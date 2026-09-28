@@ -33,23 +33,10 @@ import type IPlatformIOProject from "../../transpiler/types/IPlatformIOProject";
 /** The name a run reports for a target described inline */
 const INLINE_NAME = "inline";
 
-/**
- * The description pragmas: every schema field but the catalog-only ones
- * (`name`, and the optional toolchain fields).
- */
-const DESCRIPTION_KEYS: readonly string[] = Object.entries(
-  TARGET_DESCRIPTION_FIELDS,
-)
-  .filter(([field, spec]) => field !== "name" && !spec.optional)
-  .map(([field]) => field);
+/** The description pragmas are the facts that define a platform */
+const DESCRIPTION_KEYS = TargetDescriptions.PLATFORM_FACTS;
 
 const PRAGMA_KEYS: readonly string[] = ["target", ...DESCRIPTION_KEYS];
-
-/** PlatformIO platforms whose boards are all one target */
-const PLATFORM_TARGETS: ReadonlyMap<string, string> = new Map([
-  ["atmelavr", "avr"],
-  ["native", "host"],
-]);
 
 /** A position in a file */
 interface ISite {
@@ -101,12 +88,18 @@ class RunTarget {
     if (errors.length > 0) {
       return { kind: "rejected", errors };
     }
-    if (first) {
+    // The files agree by description (E0511 above), but a name and the
+    // optional toolchain fields are one file's: the last to declare in
+    // pipeline order, which lists dependencies first -- the entry, whenever
+    // it declares. #1760 review: this reported the first file's, typically a
+    // dependency's.
+    const named = declared.at(-1);
+    if (named) {
       return {
         kind: "resolved",
-        name: first.name,
+        name: named.name,
         source: "pragma",
-        description: first.description,
+        description: named.description,
       };
     }
     if (option && fromOption) {
@@ -243,7 +236,9 @@ class RunTarget {
     if (env.board && catalog.has(env.board)) {
       return env.board;
     }
-    return env.platform ? PLATFORM_TARGETS.get(env.platform) : undefined;
+    return env.platform
+      ? TargetDescriptions.PLATFORM_TARGETS.get(env.platform)
+      : undefined;
   }
 
   /** A diagnostic about the run rather than a line: placed on the entry file */

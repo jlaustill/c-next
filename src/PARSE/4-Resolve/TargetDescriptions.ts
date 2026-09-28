@@ -49,6 +49,28 @@ interface ICollected {
 
 class TargetDescriptions {
   /**
+   * The facts that define a platform: every schema field but the name and
+   * the optional toolchain fields. Two descriptions are one platform when
+   * these agree (`equal`), and they are what a program's description
+   * pragmas give (#1760 review: RunTarget spelled this rule a second time).
+   */
+  static readonly PLATFORM_FACTS: readonly string[] = Object.entries(
+    TARGET_DESCRIPTION_FIELDS,
+  )
+    .filter(([field, spec]) => field !== "name" && !spec.optional)
+    .map(([field]) => field);
+
+  /**
+   * PlatformIO platforms whose boards are all one target, to its catalog
+   * name. `catalog()` checks each name is the catalog's, so renaming a row
+   * fails the installation rather than a user's build (#1760 review).
+   */
+  static readonly PLATFORM_TARGETS: ReadonlyMap<string, string> = new Map([
+    ["atmelavr", "avr"],
+    ["native", "host"],
+  ]);
+
+  /**
    * Check one description's fields. Returns the description, or every problem
    * with it -- never both.
    */
@@ -140,12 +162,10 @@ class TargetDescriptions {
    * meaning.
    */
   static equal(a: ITargetDescription, b: ITargetDescription): boolean {
-    return Object.entries(TARGET_DESCRIPTION_FIELDS).every(
-      ([field, spec]) =>
-        spec.optional ||
-        field === "name" ||
+    return TargetDescriptions.PLATFORM_FACTS.every(
+      (field) =>
         a[field as keyof ITargetDescription] ===
-          b[field as keyof ITargetDescription],
+        b[field as keyof ITargetDescription],
     );
   }
 
@@ -179,6 +199,14 @@ class TargetDescriptions {
       } else {
         errors.push(
           `line ${alias.line}: alias '${alias.name}' names '${alias.target}', which is not a ${DESCRIPTION_STRUCT}`,
+        );
+      }
+    }
+
+    for (const [platform, name] of TargetDescriptions.PLATFORM_TARGETS) {
+      if (!targets.has(name)) {
+        errors.push(
+          `PlatformIO platform '${platform}' maps to '${name}', which the catalog does not name`,
         );
       }
     }

@@ -424,3 +424,33 @@ describe("Transpiler.determineProjectRoot", () => {
     });
   });
 });
+
+// #1760 review: ADR-049's build-system rung reads the platformio.ini of the
+// project the run is anchored in, not one found again from a path
+describe("Transpiler's PlatformIO rung", () => {
+  const projectDir = join(process.cwd(), "test-pio-anchor-tmp");
+
+  beforeEach(() => {
+    mkdirSync(projectDir, { recursive: true });
+    writeFileSync(
+      join(projectDir, "platformio.ini"),
+      "[env:teensy41]\nplatform = teensy\nboard = teensy41\n",
+    );
+  });
+
+  afterEach(() => {
+    rmSync(projectDir, { recursive: true, force: true });
+  });
+
+  it("reads the anchored project's file for source with no path", async () => {
+    // The process's cwd is this repository, which has no platformio.ini: a
+    // second root finder, resolving "<string>" against it, found none (E0515)
+    const result = await new Transpiler({ input: "" }).transpile({
+      kind: "source",
+      source: "u8 value <- 1;\n",
+      workingDir: projectDir,
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.target).toEqual({ name: "teensy41", source: "platformio" });
+  });
+});

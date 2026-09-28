@@ -432,12 +432,11 @@ class TestUtils {
     const pin = CNextSourceParser.parse(source).targetDirectives.find(
       (directive) => directive.key === "target",
     )?.values[0];
-    // Compared as descriptions, as E0511 compares them: a program whose helper
-    // names teensy41 and whose entry names cortex-m7 has one target.
-    if (
-      pin !== undefined &&
-      TargetResolver.byName(pin) !== TargetResolver.byName(target.name)
-    ) {
+    // The run reports the ENTRY's declaration by name (#1760 review), and the
+    // fixture is the entry, so its pin is the name printed. This compared
+    // catalog objects by identity while its comment said "as descriptions",
+    // so it disagreed with E0511 for rows that share a platform.
+    if (pin !== undefined && pin !== target.name) {
       return `ran for target '${target.name}' (${target.source}), but the fixture pins '${pin}'`;
     }
     if (target.source === "option" && target.name !== "host") {

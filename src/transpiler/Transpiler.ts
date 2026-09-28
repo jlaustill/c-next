@@ -916,7 +916,7 @@ class Transpiler {
           registry: this.symbolRegistry,
           target: {
             option: this.config.target,
-            platformio: this._platformIOProject(declared.at(-1)?.file.path),
+            platformio: this._platformIOProject(),
             pioEnv: this.config.pioEnv || undefined,
             catalog: TargetCatalogFile.targets(),
             files: declared.map((entry) => ({
@@ -1963,19 +1963,13 @@ class Transpiler {
   }
 
   /**
-   * ADR-049's build-system rung: the platformio.ini of the project the entry
-   * file is in, found by the one project-root finder.
+   * ADR-049's build-system rung: the platformio.ini of the project the run is
+   * anchored in. #1760 review: this found the root again from the entry's
+   * path, and a source run with no path resolved "<string>" against the
+   * process's cwd, so it read another project's file, or none.
    */
-  private _platformIOProject(
-    entryPath: string | undefined,
-  ): IPlatformIOProject | null {
-    if (entryPath === undefined) {
-      return null;
-    }
-    const root = IncludeDiscovery.findProjectRoot(
-      dirname(resolve(entryPath)),
-      this.fs,
-    );
+  private _platformIOProject(): IPlatformIOProject | null {
+    const root = this.anchor.projectRoot;
     return root ? PlatformIOIni.read(root, this.fs) : null;
   }
 

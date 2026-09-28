@@ -219,3 +219,23 @@ describe("TestUtils.settleCell", () => {
     ).toMatchObject({ outcome: "failed" });
   });
 });
+
+describe("TestUtils.targetProblem", () => {
+  const pinned = "#pragma target cortex-m7\nvoid main() {}\n";
+
+  it("reports a run named other than the fixture's pin, even its alias", () => {
+    // teensy41 is an alias of cortex-m7: comparing catalog rows called them
+    // one target, while the run printed a name the fixture never asked for
+    expect(
+      TestUtils.targetProblem(pinned, { name: "teensy41", source: "pragma" }),
+    ).toBe(
+      "ran for target 'teensy41' (pragma), but the fixture pins 'cortex-m7'",
+    );
+  });
+
+  it("accepts a run named as the fixture pins it", () => {
+    expect(
+      TestUtils.targetProblem(pinned, { name: "cortex-m7", source: "pragma" }),
+    ).toBeNull();
+  });
+});

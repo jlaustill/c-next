@@ -33,6 +33,14 @@ describe("the shipped target catalog", () => {
 });
 
 describe("TargetDescriptions.catalog", () => {
+  // #1760 review: a PlatformIO platform's target is the catalog's name, so
+  // renaming the row fails the installation, not a user's build (E0510)
+  it("refuses a catalog that does not name a PlatformIO platform's target", () => {
+    expect(() =>
+      validate(catalogWith('name: "host"', 'name: "build-machine"')),
+    ).toThrow(/PlatformIO platform 'native' maps to 'host'/);
+  });
+
   it.each([
     ["an expression", "word_size: 32,", "word_size: 16 + 16,"],
     ["an identifier", "word_size: 32,", "word_size: TARGET_SCHEMA_VERSION,"],
