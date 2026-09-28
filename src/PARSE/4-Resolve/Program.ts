@@ -636,23 +636,31 @@ class Program {
    *
    * A const's initializer folds with the one evaluator, and each name in it
    * means what the binder says it means where the const is declared: the
-   * scope's own member, then a file-scope global (ADR-057). The fold repeats
-   * until nothing new folds, so neither declaration order nor file order
-   * decides whether `const B <- A * 2` has a value (#1668, C11).
+   * scope's own member, then a file-scope global (ADR-057). Neither
+   * declaration order nor file order decides whether `const B <- A * 2` has a
+   * value (#1668, C11).
    *
    * #1664 review: the fold used to look names up in a map of the consts that
    * had folded SO FAR. A scope's `N` that did not fold, or had not folded
    * yet, was absent from it, so the file-scope `N` answered in its place --
    * the value the binder, and the emitted `S__N`, never use. Bound by
    * declaration instead, an unfolded `N` leaves everything built on it
-   * unfolded, and a later one folds on the next round.
+   * unfolded until `N` folds.
+   *
+   * A worklist, not repeated rounds (#1760 second review): a const is tried
+   * again only when a const it waited on folds. A binding does not depend on
+   * the values, so that is the only event that can change its answer. The
+   * rounds retried every pending const each time, which is O(n^2) when
+   * consts are declared in reverse dependency order: 4000 of them took 6.3s
+   * against 1.7s in forward order.
    */
   private static deriveConstValues(
     settledByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
     declared: IBindingFacts,
   ): ReadonlyMap<string, number> {
     const values = new Map<string, number>();
-    let pending = [...settledByFile.values()]
+    const waitingOn = new Map<string, IVariableSymbol[]>();
+    const queue = [...settledByFile.values()]
       .flat()
       .filter(
         (symbol): symbol is IVariableSymbol =>
@@ -660,49 +668,56 @@ class Program {
           symbol.isConst &&
           symbol.initialValue !== undefined,
       );
-    let folded = true;
-    while (folded && pending.length > 0) {
-      folded = false;
-      const unresolved: IVariableSymbol[] = [];
-      for (const symbol of pending) {
-        const value = ConstantFold.declared(
-          symbol.initialValue!,
-          symbol.type,
-          Program.constantsIn(declared, symbol, values),
-        );
-        if (value === undefined) {
-          unresolved.push(symbol);
-          continue;
+    for (let symbol = queue.pop(); symbol; symbol = queue.pop()) {
+      const unfolded: string[] = [];
+      const value = ConstantFold.declared(
+        symbol.initialValue!,
+        symbol.type,
+        Program.constantsIn(declared, symbol, values, unfolded),
+      );
+      if (value === undefined) {
+        for (const cName of unfolded) {
+          waitingOn.set(cName, [...(waitingOn.get(cName) ?? []), symbol]);
         }
-        folded = true;
-        values.set(symbol.fullyQualifiedCName, value);
+        continue;
       }
-      pending = unresolved;
+      values.set(symbol.fullyQualifiedCName, value);
+      queue.push(...(waitingOn.get(symbol.fullyQualifiedCName) ?? []));
+      waitingOn.delete(symbol.fullyQualifiedCName);
     }
     return values;
   }
 
   /**
-   * A name's value as a declaration in `scopePath` sees it -- a file-scope or
-   * scope-level declaration, where no local can be in view.
+   * A name's value as `symbol`'s declaration sees it -- a file-scope or
+   * scope-level declaration, where no local can be in view -- from its own
+   * file. `unfolded` collects each const it binds that has not folded yet.
    */
   private static constantsIn(
     facts: IBindingFacts,
     symbol: TSymbol,
     values: ReadonlyMap<string, number>,
+    unfolded: string[] = [],
   ): (name: string) => IFoldedConstant | undefined {
-    return (name) =>
-      Program.constantOf(
-        Program.bindOutside(
-          facts,
-          symbol.sourceFile,
-          symbol.scopePath,
-          null,
-          name,
-        ),
-        values,
-        SETTLED,
+    return (name) => {
+      const binding = Program.bindOutside(
+        facts,
+        symbol.sourceFile,
+        symbol.scopePath,
+        null,
+        name,
       );
+      const folded = Program.constantOf(binding, values, SETTLED);
+      // A const not folded yet: the one event that can change this answer
+      if (
+        folded === undefined &&
+        binding?.kind === "variable" &&
+        binding.symbol.isConst
+      ) {
+        unfolded.push(binding.symbol.fullyQualifiedCName);
+      }
+      return folded;
+    };
   }
 
   /**

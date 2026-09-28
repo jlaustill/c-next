@@ -96,15 +96,42 @@ class LexicalFrames {
     const path = [root];
     let current = root;
     for (;;) {
-      const child = current.children.find((candidate) =>
-        LexicalFrames.contains(candidate.span, at),
-      );
+      const child = LexicalFrames.childAt(current, at);
       if (!child) {
         return path;
       }
       path.push(child);
       current = child;
     }
+  }
+
+  /**
+   * The child frame containing `at`, if one does. Children are in source
+   * order and never overlap, so the only candidate is the last that starts
+   * at or before `at`, found by binary search. #1760 second review: a
+   * linear scan here ran for every binding, so a file of N functions took
+   * O(N^2) -- 2000 functions compiled in 15s against main's 5s.
+   */
+  private static childAt(
+    frame: ILexicalFrame,
+    at: TPosition,
+  ): ILexicalFrame | undefined {
+    const children = frame.children;
+    let low = 0;
+    let high = children.length - 1;
+    let candidate: ILexicalFrame | undefined;
+    while (low <= high) {
+      const middle = (low + high) >> 1;
+      if (LexicalFrames.compare(children[middle].span, at) <= 0) {
+        candidate = children[middle];
+        low = middle + 1;
+      } else {
+        high = middle - 1;
+      }
+    }
+    return candidate !== undefined && LexicalFrames.contains(candidate.span, at)
+      ? candidate
+      : undefined;
   }
 
   private static settleFrame(

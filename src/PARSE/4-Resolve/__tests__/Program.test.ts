@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import ConstantFold from "../../../utils/ConstantFold";
 import parse from "../../3-Declare/cnext/__tests__/testHelpers";
 import CNextResolver from "../../3-Declare/cnext/index";
 import Program from "../Program";
@@ -311,6 +312,39 @@ describe("Program", () => {
         program.constantAt("use.cnx", "SIZE", { line: 1, column: 0 }),
       ).toEqual({ value: 4, typeName: "u32" });
     });
+
+    // #1760 second review: the fold repeated rounds over every pending
+    // const, O(n^2) in reverse dependency order. The guard counts attempts.
+    it.each([
+      [
+        "dependency",
+        (i: number, _n: number) => (i === 0 ? "1" : `C${i - 1} + 1`),
+      ],
+      [
+        "reverse dependency",
+        (i: number, n: number) => (i === n - 1 ? "1" : `C${i + 1} + 1`),
+      ],
+    ])(
+      "folds a chain of consts in %s order with a linear number of attempts",
+      (_order, initializer) => {
+        const n = 200;
+        const source = Array.from(
+          { length: n },
+          (_, i) => `const u32 C${i} <- ${initializer(i, n)};`,
+        ).join("\n");
+        const attempts = vi.spyOn(ConstantFold, "declared");
+        try {
+          const program = Program.build([declare(source, "lib.cnx")]);
+          expect(
+            program.constantAt("lib.cnx", "C0", { line: n + 1, column: 0 })
+              ?.value,
+          ).toBeGreaterThan(0);
+          expect(attempts.mock.calls.length).toBeLessThanOrEqual(2 * n);
+        } finally {
+          attempts.mockRestore();
+        }
+      },
+    );
 
     it("reads no const from a file it does not include (#1738)", () => {
       const lib = declare(`const u32 SIZE <- 4;`, "lib.cnx");

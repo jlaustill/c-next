@@ -8,6 +8,8 @@ import CNextResolver from "../../3-Declare/cnext/index";
 import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 import Program from "../Program";
 import type ILexicalFrame from "../../../transpiler/types/ILexicalFrame";
+import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import LexicalFrames from "../LexicalFrames";
 
 /** Build a program from path -> source, in dependency order */
 function build(files: Record<string, string>) {
@@ -493,5 +495,54 @@ scope Lib {
     expect(
       program.lexicalDeclarationAt("a.cnx", "p", at(source, "p.x"))?.type,
     ).toEqual({ kind: "struct", name: "Lib__Point" });
+  });
+});
+
+// #1760 second review: finding the frame at a position scanned a frame's
+// children linearly, once per binding, so a file of N functions compiled in
+// O(N^2). The guard counts the children read, not the time taken.
+describe("LexicalFrames.frameAt's cost", () => {
+  const frame = (
+    kind: ILexicalFrame["kind"],
+    line: number,
+    endLine: number,
+    children: ReadonlyArray<ILexicalFrame> = [],
+  ): ILexicalFrame => ({
+    kind,
+    span: TestSourceSpan.at(line, 0, endLine, 1),
+    scopePath: "",
+    functionCName: null,
+    declarations: [],
+    children,
+  });
+
+  const COUNT = 4096;
+  const functions = Array.from({ length: COUNT }, (_, i) =>
+    frame("function", 10 * i + 1, 10 * i + 5),
+  );
+  let reads = 0;
+  const counted = new Proxy(functions, {
+    get(target, key, receiver) {
+      if (typeof key === "string" && /^\d+$/.test(key)) reads += 1;
+      return Reflect.get(target, key, receiver);
+    },
+  });
+  const root = frame("file", 1, 10 * COUNT + 1, counted);
+
+  it("reads a logarithmic number of children to find the one containing a position", () => {
+    reads = 0;
+    const found = LexicalFrames.frameAt(root, {
+      line: 10 * 4000 + 2,
+      column: 0,
+    });
+    expect(found).toBe(functions[4000]);
+    // log2(4096) is 12; a scan would read about 4000
+    expect(reads).toBeLessThanOrEqual(2 * 12 + 2);
+  });
+
+  it("answers the file frame between two children", () => {
+    expect(
+      LexicalFrames.frameAt(root, { line: 10 * 2000 + 7, column: 0 }),
+    ).toBe(root);
   });
 });
