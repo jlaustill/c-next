@@ -380,6 +380,7 @@ describe("BitAccessHandlers", () => {
             },
             subscript: "bit_single",
             after: null,
+            property: null,
           },
         },
       };

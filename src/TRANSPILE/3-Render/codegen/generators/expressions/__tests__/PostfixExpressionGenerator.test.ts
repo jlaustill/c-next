@@ -27,6 +27,7 @@ import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
 import TranspileState from "../../../../../TranspileState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import PROPERTY_NAMES from "../../../../../../utils/constants/PROPERTY_NAMES";
 
 // ========================================================================
 // Test Helpers - Mock Symbols
@@ -258,8 +259,12 @@ function typed(
 }
 
 /** The typer's step for a member read from `before`, giving `after` */
-function memberStep(before: IOperandType, after: IOperandType | null) {
-  return { before, subscript: null, after };
+function memberStep(
+  before: IOperandType | null,
+  after: IOperandType | null,
+  property: string | null = null,
+) {
+  return { before, subscript: null, after, property };
 }
 
 function createMockPostfixOp(options?: {
@@ -362,15 +367,6 @@ function createMockPostfixExpressionContext(
  * primary renders as via `createMockOrchestrator({ generatePrimaryExpr })` --
  * so the binding happens here rather than at eighty-two call sites.
  */
-/** The properties ADR-058 and ADR-045 define, which read a measured value */
-const PROPERTIES = new Set([
-  "bit_length",
-  "byte_length",
-  "element_count",
-  "char_count",
-  "capacity",
-  "size",
-]);
 
 /**
  * #1668 review: a declared type as the typer gives it -- what a property of
@@ -398,16 +394,23 @@ function operandOfDeclared(info: TTypeInfo): IOperandType {
 function withPropertySteps(
   ops: readonly TPlannedPostfixOp[],
   root: TTypeInfo | undefined,
+  rootedAt: string | undefined,
 ): TPlannedPostfixOp[] {
   let current: IOperandType | null = root ? operandOfDeclared(root) : null;
-  return ops.map((op) => {
+  // A `this.`/`global.` root consumes its first `.name`, which the typer
+  // gives no step: a member lookup, never a property (#212)
+  const consumed = rootedAt === "this" || rootedAt === "global" ? 0 : -1;
+  return ops.map((op, index) => {
     if (op.kind === "member") {
       if (op.step !== null) {
         current = op.step.after;
         return op;
       }
-      if (PROPERTIES.has(op.name) && current !== null) {
-        return { ...op, step: memberStep(current, null) };
+      if (index !== consumed && PROPERTY_NAMES.has(op.name)) {
+        // The typer's answer for these cases: the name reads the property.
+        // A root the case does not type is measured as unknown, which is
+        // what the render invariants below are asked about
+        return { ...op, step: memberStep(current, null, op.name) };
       }
       current = null;
       return op;
@@ -453,17 +456,19 @@ function runPostfix(
       // Issue #1094's fold is configured per case as the orchestrator's
       // `tryEvaluateConstant`, so it is bound here for the same reason the
       // primary is.
-      ops: withPropertySteps(plan.ops, declared).map((op) => {
-        if (op.kind !== "subscript") return op;
-        const widthText = (op as { widthText?: string }).widthText ?? "";
-        return {
-          ...op,
-          foldWidth: () =>
-            orchestrator.tryEvaluateConstant({
-              getText: () => widthText,
-            } as unknown as Parser.ExpressionContext),
-        };
-      }),
+      ops: withPropertySteps(plan.ops, declared, plan.rootIdentifier).map(
+        (op) => {
+          if (op.kind !== "subscript") return op;
+          const widthText = (op as { widthText?: string }).widthText ?? "";
+          return {
+            ...op,
+            foldWidth: () =>
+              orchestrator.tryEvaluateConstant({
+                getText: () => widthText,
+              } as unknown as Parser.ExpressionContext),
+          };
+        },
+      ),
     },
     input,
     state,

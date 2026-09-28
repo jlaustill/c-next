@@ -336,15 +336,15 @@ const handleMemberOp = (
     return;
   }
 
-  // Issue #212: Check if 'length' is a scope variable before treating as property
-  if (handleThisScopeLength(memberName, tracking, ctx.state)) {
-    return;
-  }
-
-  // Handle property access (.length, .capacity, .size)
+  // Property access (.bit_length, .capacity, ...). #1760 review: whether the
+  // name reads the property or a field named like it is the typer's, on the
+  // step -- so `this.length` naming a scope member (#212) and a struct's
+  // `length` field are members, with no special case for either
+  const property = step?.property ?? null;
   if (
+    property !== null &&
     tryPropertyAccess(
-      memberName,
+      property,
       step?.before ?? null,
       tracking,
       ctx.rootIdentifier,
@@ -420,32 +420,6 @@ const handleGlobalPrefix = (
     tracking.isRegisterChain = true;
   }
 
-  return true;
-};
-
-/**
- * Handle `this.length` when length is a scope member variable.
- * Returns true if handled (caller should skip).
- */
-const handleThisScopeLength = (
-  memberName: string,
-  tracking: ITrackingState,
-  state: IGeneratorState,
-): boolean => {
-  if (tracking.result !== "__THIS_SCOPE__" || memberName !== "length") {
-    return false;
-  }
-  // #1322: `this` outside a scope is E0431 in 2.1.
-  const members = state.scopeMembers.get(state.currentScopePath);
-  if (!members?.has("length")) {
-    return false;
-  }
-
-  tracking.result = QualifiedNameGenerator.forMember(
-    state.currentScopePath,
-    memberName,
-  );
-  tracking.resolvedIdentifier = tracking.result;
   return true;
 };
 

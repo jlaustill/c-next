@@ -1,0 +1,42 @@
+// test-execution
+// #1760 review: a field named like a property is a field (ADR-058:
+// `struct Packet { u32 length; }` is "perfectly fine", and a chain that
+// resolves as a whole is a member access). Each read below was rejected as a
+// property -- E0886 for `.length`, E0887 for `.size` and `.capacity`, E0867
+// for `.bit_length` -- including a header struct's, whose fields the program
+// cannot rename. The string and the array are controls: their properties
+// are still properties.
+#include "cbuf.h"
+
+struct Buf {
+    u32 length;
+    u32 size;
+    u32 capacity;
+    u32 bit_length;
+}
+
+Buf b;
+Buf[2] pair;
+
+u32 main() {
+    b.length <- 3;
+    b.size <- 4;
+    b.capacity <- 7;
+    b.bit_length <- 8;
+    pair[1].size <- 9;
+    u32 total <- b.length + b.size + b.capacity + b.bit_length;
+    if (total != 22) return 1;
+    if (pair[1].size != 9) return 2;
+    u32 hs <- cbuf.size;
+    u32 hl <- cbuf.length;
+    if (hs != 5) return 3;
+    if (hl != 6) return 4;
+    string<8> name <- "abc";
+    u32 chars <- name.char_count;
+    u32 room <- name.capacity;
+    u32 slots <- pair.element_count;
+    if (chars != 3) return 5;
+    if (room != 8) return 6;
+    if (slots != 2) return 7;
+    return 0;
+}

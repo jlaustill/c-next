@@ -70,8 +70,13 @@ class LengthPropertyListener extends CNextListener {
     const ops = ctx.postfixOp();
     const last = ops.at(-1);
     if (last === undefined || last.DOT() === null) return;
-    const property = last.IDENTIFIER()?.getText();
-    if (property === undefined || !PROPERTY_NAMES.has(property)) return;
+    // Only a property's name can read one; the rest need no typing
+    if (!PROPERTY_NAMES.has(last.IDENTIFIER()?.getText() ?? "")) return;
+    // #1760 review: whether the name reads the property or a field named
+    // like it is the typer's, on the step (ADR-058: a field is a field)
+    const step = OperandTyper.chainOf(ctx, this.context).steps.at(-1);
+    const property = step?.property ?? null;
+    if (property === null) return;
 
     if (LengthPropertyListener.subjectIsArgs(ctx, ops)) {
       if (property !== "element_count") {
@@ -89,8 +94,7 @@ class LengthPropertyListener extends CNextListener {
     // A scope variable may be called `length` (#212): `this.length` binds
     // the member at the chain's root, so there is no property step and no
     // subject, and no property rule applies.
-    const subject =
-      OperandTyper.chainOf(ctx, this.context).steps.at(-1)?.before ?? null;
+    const subject = step?.before ?? null;
     if (subject === null) return; // unresolved -- another diagnostic's to report
 
     this.check(last, property, subject);

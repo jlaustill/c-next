@@ -107,7 +107,10 @@ function typedLast(
   };
   return {
     ...ctx,
-    target: { ...ctx.target, last: { before, subscript, after: null } },
+    target: {
+      ...ctx.target,
+      last: { before, subscript, after: null, property: null },
+    },
   };
 }
 

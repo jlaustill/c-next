@@ -310,10 +310,18 @@ class OperandTyper {
     for (const op of start.ops) {
       const before = current.k === "value" ? current.t : null;
       const { next, subscript } = OperandTyper.applyOp(current, op, ctx);
+      const member = op.DOT() === null ? null : op.IDENTIFIER()?.getText();
       steps.push({
         before,
         subscript,
         after: next.k === "value" ? next.t : null,
+        property:
+          before !== null &&
+          member !== undefined &&
+          member !== null &&
+          OperandTyper.readsProperty(before, member, ctx)
+            ? member
+            : null,
       });
       current = next;
     }
@@ -1169,6 +1177,43 @@ class OperandTyper {
     }
   }
 
+  /**
+   * Whether `.member` on a value of type `t` reads an ADR-058/ADR-045
+   * property rather than a field. A field named like a property is a field
+   * -- ADR-058's `struct Packet { u32 length; }` is "perfectly fine", and a
+   * chain that resolves as a whole is a member access -- so only a property
+   * name the value's type declares no field of reads the property. The one
+   * answer: the typer records it on the chain step, and 2.1's property rules
+   * and render read the step (#1760 review: each decided by the name alone).
+   */
+  private static readsProperty(
+    t: IOperandType,
+    member: string,
+    ctx: ITypingContext,
+  ): boolean {
+    return (
+      PROPERTY_NAMES.has(member) && !OperandTyper.declaresField(t, member, ctx)
+    );
+  }
+
+  /** Whether a value's type declares the field: a struct's, bitmap's or header's */
+  private static declaresField(
+    t: IOperandType,
+    member: string,
+    ctx: ITypingContext,
+  ): boolean {
+    if (t.dimensions.length > 0) return false;
+    if (t.bitmapTypeName !== null) {
+      return (
+        ctx.symbols.bitmapFields.get(t.bitmapTypeName)?.has(member) ?? false
+      );
+    }
+    if (t.typeName === null) return false;
+    const struct = ctx.program.symbolByCName(t.typeName);
+    if (struct?.kind === "struct") return struct.fields.has(member);
+    return ctx.symbolTable.getStructFieldInfo(t.typeName, member) !== undefined;
+  }
+
   /** A field of a struct, a bitmap field, or a property (untyped here) */
   private static fieldOf(
     t: IOperandType,
@@ -1177,7 +1222,7 @@ class OperandTyper {
   ): TChainValue {
     if (
       // ADR-058/ADR-045 properties: typed by their own rules, never as a member
-      PROPERTY_NAMES.has(member) ||
+      OperandTyper.readsProperty(t, member, ctx) ||
       t.typeName === null ||
       t.dimensions.length > 0
     ) {

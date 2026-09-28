@@ -880,3 +880,41 @@ extern Frame frame;`,
     ]);
   });
 });
+
+// #1760 review: whether `.name` reads a property or a field named like one is
+// the typer's, recorded on the step for 2.1 and render (ADR-058)
+describe("OperandTyper.chainOf: a field named like a property", () => {
+  function lastStep(body: string, table: SymbolTable, decls = "") {
+    const { node, ctx } = initializerOf(`${decls}${inMain(body)}`, "r", table);
+    const postfix = ExpressionUnwrapper.getPostfixExpression(node);
+    expect(postfix).not.toBeNull();
+    return OperandTyper.chainOf(postfix!, ctx).steps.at(-1);
+  }
+
+  it("types a C-Next struct's field as the field", () => {
+    const step = lastStep(
+      "u32 r <- b.length;",
+      new SymbolTable(),
+      "struct Buf {\n    u32 length;\n}\nBuf b;\n",
+    );
+    expect(step?.property).toBeNull();
+    expect(step?.after).toMatchObject({ typeName: "u32" });
+  });
+
+  it("types a header struct's field as the field", () => {
+    const c = header(`#include <stdint.h>
+typedef struct { uint32_t size; } cbuf_t;
+extern cbuf_t cbuf;`);
+    const step = lastStep("u32 r <- cbuf.size;", c);
+    expect(step?.property).toBeNull();
+    expect(step?.after).toMatchObject({ typeName: "u32" });
+  });
+
+  it("reads the property of a value that declares no such field", () => {
+    const step = lastStep(
+      'string<8> name <- "ab";\nu32 r <- name.char_count;',
+      new SymbolTable(),
+    );
+    expect(step?.property).toBe("char_count");
+  });
+});

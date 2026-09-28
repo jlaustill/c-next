@@ -103,4 +103,24 @@ describe("LengthPropertyAnalyzer", () => {
     // step. Guessing here would be a second diagnostic for one mistake.
     expect(errors(inMain("", "undeclared.element_count"))).toEqual([]);
   });
+
+  // #1760 review: ADR-058 -- a field named like a property is a field
+  it("reads a struct's field named like a property as the field", () => {
+    const decls =
+      "struct Buf {\n    u32 length;\n    u32 size;\n    u32 capacity;\n    u32 bit_length;\n}\nBuf b;";
+    for (const field of ["length", "size", "capacity", "bit_length"]) {
+      expect(errors(inMain(decls, `b.${field}`))).toEqual([]);
+    }
+  });
+
+  it("still reads a property a struct declares no field of", () => {
+    // The control: the same struct without the field is asked the property
+    const decls = "struct Buf {\n    u32 count;\n}\nBuf b;";
+    expect(errors(inMain(decls, "b.size")).map((e) => e.code)).toEqual([
+      "E0887",
+    ]);
+    expect(errors(inMain(decls, "b.length")).map((e) => e.code)).toEqual([
+      "E0886",
+    ]);
+  });
 });

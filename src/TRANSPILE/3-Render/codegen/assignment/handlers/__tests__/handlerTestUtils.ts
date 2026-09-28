@@ -293,6 +293,7 @@ function bitWriteOf(
       before: baseType === null ? null : operandOf(baseType, integer, signed),
       subscript: lastIndexCount === 2 ? "bit_range" : "bit_single",
       after: null,
+      property: null,
     },
   };
 }
