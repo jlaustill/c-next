@@ -1,0 +1,29 @@
+// test-execution
+// #1760 review: `.bit_length` and `.byte_length` of an array whose dimension
+// is a C macro were emitted as a literal 0, behind a comment naming the
+// dimension; `.element_count` already kept the macro. The product is C's to
+// fold now, in every dimension. The fixed-size array is the control, whose
+// lengths were already folded.
+#include "sizes.h"
+
+u8[BUF_SIZE] buf;
+u16[2][BUF_SIZE] grid;
+u8[4] fixed;
+
+u32 main() {
+    u32 bits <- buf.bit_length;
+    u32 bytes <- buf.byte_length;
+    u32 gridBits <- grid.bit_length;
+    u32 gridBytes <- grid.byte_length;
+    u32 rowBits <- grid[0].bit_length;
+    u32 count <- buf.element_count;
+    u32 fixedBits <- fixed.bit_length;
+    if (bits != 48) return 1;
+    if (bytes != 6) return 2;
+    if (gridBits != 192) return 3;
+    if (gridBytes != 24) return 4;
+    if (rowBits != 96) return 5;
+    if (count != 6) return 6;
+    if (fixedBits != 32) return 7;
+    return 0;
+}

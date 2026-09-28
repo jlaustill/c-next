@@ -548,23 +548,6 @@ const getNumericBitWidth = (
   return bitWidth;
 };
 
-/**
- * Product of the dimensions, or the first one that does not fold (a C
- * macro), which the C compiler must size.
- */
-const dimensionsProduct = (
-  dimensions: readonly (number | string)[],
-): { product: number } | { dynamicDim: string } => {
-  let product = 1;
-  for (const dim of dimensions) {
-    if (typeof dim !== "number") {
-      return { dynamicDim: dim };
-    }
-    product *= dim;
-  }
-  return { product };
-};
-
 /** The bits one element of the measured value holds; 0 if not known */
 const elementBitWidth = (
   measured: IOperandType,
@@ -584,10 +567,19 @@ const elementBitWidth = (
     : getNumericBitWidth(measured.typeName, input);
 };
 
-/** The measured value's `.bit_length`: every element's bits, together */
-const measuredBitLength = (
+/**
+ * The measured value's length in units of `unitBits` -- 1 for `.bit_length`,
+ * 8 for `.byte_length`: every element's bits, together. A dimension that
+ * does not fold (a C macro) leaves the product for the C compiler to fold,
+ * as `.element_count` leaves the macro (#1760 review: this emitted a
+ * literal 0 behind a comment naming the dimension). The product is taken in
+ * `uint32_t`, as a folded one is read: in `unsigned int` it would wrap past
+ * 65535 where that is 16 bits (AVR).
+ */
+const measuredLength = (
   ctx: IPropertyContext,
   input: IGeneratorInput,
+  unitBits: 1 | 8,
 ): string => {
   const measured = ctx.measured;
   invariant(
@@ -599,11 +591,16 @@ const measuredBitLength = (
     element > 0,
     `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for unsupported type '${measured.typeName ?? "unknown"}'.`,
   );
-  const dimensions = dimensionsProduct(measured.dimensions);
-  if ("dynamicDim" in dimensions) {
-    return `/* .bit_length: dynamic dimension ${dimensions.dynamicDim} */0`;
+  const perElement = element / unitBits;
+  const dimensions = measured.dimensions;
+  if (dimensions.every((dim) => typeof dim === "number")) {
+    const product = dimensions.reduce<number>((all, dim) => all * dim, 1);
+    return String(product * perElement);
   }
-  return String(dimensions.product * element);
+  const factors = dimensions.map((dim) =>
+    typeof dim === "number" ? `${dim}U` : `(${dim})`,
+  );
+  return `((uint32_t)${[...factors, `${perElement}U`].join(" * ")})`;
 };
 
 /**
@@ -620,22 +617,7 @@ const generateBitLengthProperty = (
     !(state.mainArgsName && ctx.rootIdentifier === state.mainArgsName),
     `E0867 rejects this in pass 2.1 -- .bit_length is not supported on 'args' parameter. Use .element_count for argc.`,
   );
-  return measuredBitLength(ctx, input);
-};
-
-/**
- * The `.byte_length` for a thing whose `.bit_length` has already been rendered.
- *
- * "Bits to bytes" has two representations and one decision behind them: a bit
- * length that folded to a literal divides by eight, and one that stayed an
- * expression renames the property it reads.
- */
-const bytesFromBitLength = (bitLength: string): string => {
-  const bitValue = Number.parseInt(bitLength, 10);
-  if (!Number.isNaN(bitValue)) {
-    return String(bitValue / 8);
-  }
-  return bitLength.replace(".bit_length", ".byte_length");
+  return measuredLength(ctx, input, 1);
 };
 
 /**
@@ -652,7 +634,7 @@ const generateByteLengthProperty = (
     !(state.mainArgsName && ctx.rootIdentifier === state.mainArgsName),
     `E0867 rejects this in pass 2.1 -- .byte_length is not supported on 'args' parameter. Use .element_count for argc.`,
   );
-  return bytesFromBitLength(measuredBitLength(ctx, input));
+  return measuredLength(ctx, input, 8);
 };
 
 /**

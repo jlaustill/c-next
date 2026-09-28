@@ -2346,31 +2346,40 @@ describe("PostfixExpressionGenerator", () => {
   });
 
   describe("explicit length edge cases (ADR-058)", () => {
-    it("returns dynamic dimension comment for array with C macro size", () => {
-      const typeRegistry = new Map<string, TTypeInfo>([
-        [
-          "arr",
-          {
-            baseType: "u32",
-            bitWidth: 32,
-            isArray: true,
-            arrayDimensions: ["BUFFER_SIZE" as unknown as number], // C macro
-            isConst: false,
-          },
-        ],
-      ]);
-      const ctx = createMockPostfixExpressionContext("arr", [
-        createMockPostfixOp({ identifier: "bit_length" }),
-      ]);
-      const input = createMockInput({ typeRegistry });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "arr",
-      });
+    // #1760 review: this returned a literal 0 behind a comment naming the
+    // dimension; the product is now C's to fold, in uint32_t
+    it.each([
+      ["bit_length", ["BUFFER_SIZE"], "((uint32_t)(BUFFER_SIZE) * 32U)"],
+      ["byte_length", ["BUFFER_SIZE"], "((uint32_t)(BUFFER_SIZE) * 4U)"],
+      ["bit_length", [2, "N"], "((uint32_t)2U * (N) * 32U)"],
+    ])(
+      "returns the C product for .%s of an array sized %j",
+      (property, dimensions, expected) => {
+        const typeRegistry = new Map<string, TTypeInfo>([
+          [
+            "arr",
+            {
+              baseType: "u32",
+              bitWidth: 32,
+              isArray: true,
+              arrayDimensions: dimensions as unknown as number[], // C macros
+              isConst: false,
+            },
+          ],
+        ]);
+        const ctx = createMockPostfixExpressionContext("arr", [
+          createMockPostfixOp({ identifier: property as string }),
+        ]);
+        const input = createMockInput({ typeRegistry });
+        const state = createMockState();
+        const orchestrator = createMockOrchestrator({
+          generatePrimaryExpr: () => "arr",
+        });
 
-      const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toContain("dynamic dimension BUFFER_SIZE");
-    });
+        const result = runPostfix(ctx, input, state, orchestrator);
+        expect(result.code).toBe(expected);
+      },
+    );
 
     it("returns C macro name for element_count with dynamic dimension", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
