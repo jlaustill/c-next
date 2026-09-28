@@ -1,5 +1,5 @@
 // test-c-only
-// test-target-xfail: host atmega328p #1147
+// test-target-xfail: host #1147
 u8[64] buffer;
 
 u32 writeIdx <- 0;

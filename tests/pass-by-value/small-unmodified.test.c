@@ -31,6 +31,9 @@ __attribute__((always_inline)) static inline void __cnx_disable_irq(void) {
 #endif
 #elif defined(__AVR__)
 // AVR Arduino: use SREG for interrupt state
+// SREG is declared by avr-libc's <avr/io.h>, cli() by its <avr/interrupt.h>
+#include <avr/io.h>
+#include <avr/interrupt.h>
 // Note: Uses PRIMASK naming for API consistency across platforms (AVR has no PRIMASK)
 // Returns uint8_t which is implicitly widened to uint32_t at call sites - this is intentional
 static inline uint8_t __cnx_get_PRIMASK(void) { return SREG; }
@@ -68,7 +71,7 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 
 // test-c-only
 // test-execution
-// test-target-xfail: host atmega328p #1147
+// test-target-xfail: host #1147
 // Issue #269: Pass-by-value for small unmodified parameters
 // Tests that unmodified small primitive types pass by value,
 // while modified parameters still pass by pointer.

@@ -1,5 +1,5 @@
 // test-c-only
-// test-target-xfail: host atmega328p #1147
+// test-target-xfail: host #1147
 // ADR-050: Critical section with conditional
 // Tests: if/else inside critical section
 u32 counter <- 0;

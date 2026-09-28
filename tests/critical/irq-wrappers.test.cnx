@@ -1,5 +1,5 @@
 // test-c-only
-// test-target-xfail: host atmega328p #1147
+// test-target-xfail: host #1147
 // Test: Critical blocks should use __cnx_ wrappers instead of direct intrinsic calls
 // This avoids macro collisions with platform headers (e.g., Teensy's imxrt.h)
 // See GitHub issue #473

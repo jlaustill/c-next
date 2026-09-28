@@ -1,6 +1,6 @@
 // test-c-only
 // test-execution
-// test-target-xfail: host atmega328p #1147
+// test-target-xfail: host #1147
 // Tests: Comprehensive enum scenarios - global, scope, cross-scope, loops, atomic, critical
 
 // === GLOBAL ENUM ===

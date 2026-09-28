@@ -1,6 +1,6 @@
 // test-c-only
 // test-execution
-// test-target-xfail: host atmega328p #1147
+// test-target-xfail: host #1147
 // Tests: Issue #565 edge cases - comprehensive coverage for reassignment const inference
 // Covers: nested conditionals, switch, do-while, critical, compound assignments,
 // this.method calls, nested calls, multiple params

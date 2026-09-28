@@ -1,5 +1,5 @@
 // test-c-only
-// test-target-xfail: host atmega328p #1147
+// test-target-xfail: host #1147
 // Coverage: Section 7.7 - Nested critical sections
 // Tests: critical sections nested inside other critical sections
 // Note: Nested critical is valid syntax - inner critical is redundant but allowed

@@ -31,6 +31,9 @@ __attribute__((always_inline)) static inline void __cnx_disable_irq(void) {
 #endif
 #elif defined(__AVR__)
 // AVR Arduino: use SREG for interrupt state
+// SREG is declared by avr-libc's <avr/io.h>, cli() by its <avr/interrupt.h>
+#include <avr/io.h>
+#include <avr/interrupt.h>
 // Note: Uses PRIMASK naming for API consistency across platforms (AVR has no PRIMASK)
 // Returns uint8_t which is implicitly widened to uint32_t at call sites - this is intentional
 static inline uint8_t __cnx_get_PRIMASK(void) { return SREG; }
@@ -67,7 +70,7 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 }
 
 // test-c-only
-// test-target-xfail: host atmega328p #1147
+// test-target-xfail: host #1147
 // Test: ADR-016 + ADR-050 Critical sections inside scope methods
 // Verifies that critical { } blocks work correctly inside scope methods
 // Tests: public method with critical, private method with critical, this. inside critical, global. inside critical

@@ -128,8 +128,8 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     feature: "critical section",
     standard: "C99",
     compiler: null,
-    // Issue #1147: neither <avr/io.h> nor <avr/interrupt.h> is emitted, so
-    // this arm does not currently compile standalone.
+    // Issue #1147: the arm includes <avr/io.h> and <avr/interrupt.h>, which
+    // avr-libc provides.
     platformLib: "avr-libc",
     extensions: [],
     condition: "defined(__AVR__)",
