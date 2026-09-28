@@ -7,7 +7,6 @@ import { describe, it, expect, beforeEach } from "vitest";
 import ArgumentGenerator from "../ArgumentGenerator";
 import TranspileState from "../../../../TranspileState";
 import IArgumentGeneratorCallbacks from "../types/IArgumentGeneratorCallbacks";
-import enterScope from "../../../../../transpiler/__tests__/enterScope";
 import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 
 let state = new TranspileState();
@@ -55,6 +54,7 @@ describe("ArgumentGenerator", () => {
 
         const result = ArgumentGenerator.handleIdentifierArg(
           "cfg",
+          "cfg",
           declared.get("cfg"),
           state,
         );
@@ -73,6 +73,7 @@ describe("ArgumentGenerator", () => {
 
         const result = ArgumentGenerator.handleIdentifierArg(
           "buffer",
+          "buffer",
           declared.get("buffer"),
           state,
         );
@@ -90,6 +91,7 @@ describe("ArgumentGenerator", () => {
         });
 
         const result = ArgumentGenerator.handleIdentifierArg(
+          "globalArr",
           "globalArr",
           declared.get("globalArr"),
           state,
@@ -115,6 +117,7 @@ describe("ArgumentGenerator", () => {
 
         const result = ArgumentGenerator.handleIdentifierArg(
           "name",
+          "name",
           declared.get("name"),
           state,
         );
@@ -123,30 +126,61 @@ describe("ArgumentGenerator", () => {
     });
 
     describe("scope members", () => {
-      it("prefixes scope member and adds & in C mode", () => {
+      // #1760 review: the qualified name is the binder's answer, which the
+      // walker passes as `emitted`; this no longer consults scope members
+      it("adds & to the bound scope member in C mode", () => {
         state.cppMode = false;
-        enterScope(state, "LED");
-        state.setScopeMembers("LED", new Set(["brightness"]));
 
         const result = ArgumentGenerator.handleIdentifierArg(
           "brightness",
+          "LED__brightness",
           declared.get("brightness"),
           state,
         );
         expect(result).toBe("&LED__brightness");
       });
 
-      it("prefixes scope member without & in C++ mode", () => {
+      it("passes the bound scope member without & in C++ mode", () => {
         state.cppMode = true;
-        enterScope(state, "LED");
-        state.setScopeMembers("LED", new Set(["brightness"]));
 
         const result = ArgumentGenerator.handleIdentifierArg(
           "brightness",
+          "LED__brightness",
           declared.get("brightness"),
           state,
         );
         expect(result).toBe("LED__brightness");
+      });
+    });
+
+    describe("shadowing locals", () => {
+      it("passes a shadowing local's own name, not the global's", () => {
+        state.cppMode = false;
+
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "x",
+          "g__x",
+          declared.get("x"),
+          state,
+        );
+        expect(result).toBe("&g__x");
+      });
+
+      it("passes a shadowing local array by its own name", () => {
+        declare("buf", {
+          baseType: "u8",
+          bitWidth: 8,
+          isArray: true,
+          isConst: false,
+        });
+
+        const result = ArgumentGenerator.handleIdentifierArg(
+          "buf",
+          "main__buf",
+          declared.get("buf"),
+          state,
+        );
+        expect(result).toBe("main__buf");
       });
     });
 
@@ -155,6 +189,7 @@ describe("ArgumentGenerator", () => {
         state.cppMode = false;
 
         const result = ArgumentGenerator.handleIdentifierArg(
+          "value",
           "value",
           declared.get("value"),
           state,
@@ -166,6 +201,7 @@ describe("ArgumentGenerator", () => {
         state.cppMode = true;
 
         const result = ArgumentGenerator.handleIdentifierArg(
+          "value",
           "value",
           declared.get("value"),
           state,
@@ -469,7 +505,7 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.generateArg(
-        "value",
+        { id: "value", emitted: "value" },
         declared.get("value"),
         "u8",
         callbacks,
@@ -493,7 +529,7 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.generateArg(
-        "cfg",
+        { id: "cfg", emitted: "cfg" },
         declared.get("cfg"),
         "Config",
         callbacks,

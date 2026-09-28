@@ -1135,7 +1135,7 @@ class CodeGenWalker {
     ctx: Parser.ExpressionContext,
     targetParamBaseType?: string,
   ): string {
-    const simpleId = ExpressionUnwrapper.getSimpleIdentifier(ctx);
+    const simpleId = this.boundArgumentName(ctx);
     const declared = this.nameTypeOf(ctx);
     // #1445: thunks closing over `ctx`. `ArgumentGenerator` never read a
     // member off the node -- it threaded it through five callbacks and four
@@ -1154,6 +1154,31 @@ class CodeGenWalker {
         isStringSubscriptAccess: () => this.isStringSubscriptAccess(ctx),
       },
       this.host.state,
+    );
+  }
+
+  /**
+   * A bare-name argument as written, and the C name the one binder gives it
+   * (#1760 review): the same answer a read and an assignment target take,
+   * through `TypeValidator.resolveBareIdentifier`.
+   */
+  private boundArgumentName(
+    ctx: Parser.ExpressionContext,
+  ): { readonly id: string; readonly emitted: string } | null {
+    const id = ExpressionUnwrapper.getSimpleIdentifier(ctx);
+    if (id === null) return null;
+    return { id, emitted: this.boundName(id, ParserUtils.getPosition(ctx)) };
+  }
+
+  /** The C name a bare identifier at `at` is emitted under (ADR-057) */
+  private boundName(id: string, at: ISourcePosition): string {
+    return (
+      TypeValidator.resolveBareIdentifier(
+        id,
+        at,
+        (name: string) => this.host.isKnownStruct(name),
+        this.host.state,
+      ) ?? id
     );
   }
 
@@ -4247,26 +4272,15 @@ class CodeGenWalker {
     const name = ctx.IDENTIFIER().getText();
 
     // #1668: what each argument NAMES, by the one binder -- a scope member
-    // is emitted by its C name, a shadowing local by its ADR-057 name. This
-    // asked whether the name was registered, which stood in for "not a
-    // scope member" only because members were registered qualified.
-    const args = argListCtx.IDENTIFIER().map((argNode) => {
-      const argName = argNode.getText();
-      const typing = this.host.state.typingContext();
-      const binding = typing.program.bindValue(
-        typing.sourceFile,
-        null,
-        argName,
-        { line: argNode.symbol.line, column: argNode.symbol.column },
-      );
-      if (binding?.kind === "variable") {
-        return binding.symbol.fullyQualifiedCName;
-      }
-      if (binding?.kind === "local") {
-        return this.host.state.emittedLocalName(argName);
-      }
-      return argName;
-    });
+    // is emitted by its C name, a shadowing local by its ADR-057 name. It is
+    // the same answer a function argument takes (#1760 review): this was a
+    // second spelling of that decision beside ArgumentGenerator's own.
+    const args = argListCtx.IDENTIFIER().map((argNode) =>
+      this.boundName(argNode.getText(), {
+        line: argNode.symbol.line,
+        column: argNode.symbol.column,
+      }),
+    );
 
     // Track as local variable if inside function body
     if (this.host.state.inFunctionBody) {

@@ -1,0 +1,73 @@
+// test-execution
+// #1760 review (critical): a local passed by reference is passed as the local.
+// The argument was emitted from the source name, or a scope member of that
+// name, without asking which declaration the name binds -- so a local that
+// shadows a global or a scope member passed the global or the member, and
+// the call wrote it. Each shadowed call is beside the same call unshadowed.
+u32 x <- 100;
+u8[4] buf <- [1, 2, 3, 4];
+
+void bump(u32 v) {
+    v <- v + 1;
+}
+
+u8 first(u8[4] b) {
+    return b[0];
+}
+
+scope Sc {
+    u32 m <- 500;
+    u8[4] mb <- [5, 6, 7, 8];
+
+    public u32 shadowed() {
+        u32 m <- 5;
+        global.bump(m);
+        return m;
+    }
+
+    public u32 control() {
+        global.bump(m);
+        return m;
+    }
+
+    public u8 shadowedArray() {
+        u8[4] mb <- [9, 9, 9, 9];
+        return global.first(mb);
+    }
+
+    public u8 controlArray() {
+        return global.first(mb);
+    }
+}
+
+u32 local() {
+    u32 x <- 7;
+    bump(x);
+    return x;
+}
+
+u8 localArray() {
+    u8[4] buf <- [7, 7, 7, 7];
+    return first(buf);
+}
+
+u32 main() {
+    u32 s <- Sc.shadowed();
+    if (s != 6) return 1;
+    u32 l <- local();
+    if (l != 8) return 2;
+    if (x != 100) return 3;
+    u32 c <- Sc.control();
+    if (c != 501) return 4;
+    bump(x);
+    if (x != 101) return 5;
+    u8 a <- localArray();
+    if (a != 7) return 6;
+    u8 sa <- Sc.shadowedArray();
+    if (sa != 9) return 7;
+    u8 ca <- Sc.controlArray();
+    if (ca != 5) return 8;
+    u8 g <- first(buf);
+    if (g != 1) return 9;
+    return 0;
+}
