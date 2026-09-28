@@ -93,12 +93,12 @@ typedef uint32_t SysTick__ControlBits;
 
 
 void SysTick__init(void) {
-    SysTick__Regs__CTRL = (SysTick__Regs__CTRL & ~(1U << 0)) | (0U << 0);
+    SysTick__Regs__CTRL = (SysTick__Regs__CTRL & ~((uint32_t)1U << 0)) | ((uint32_t)0U << 0);
     SysTick__Regs__LOAD = 15999;
     SysTick__Regs__VAL = 0;
-    SysTick__Regs__CTRL = (SysTick__Regs__CTRL & ~(1U << 2)) | (1U << 2);
-    SysTick__Regs__CTRL = (SysTick__Regs__CTRL & ~(1U << 1)) | (1U << 1);
-    SysTick__Regs__CTRL = (SysTick__Regs__CTRL & ~(1U << 0)) | (1U << 0);
+    SysTick__Regs__CTRL = (SysTick__Regs__CTRL & ~((uint32_t)1U << 2)) | ((uint32_t)1U << 2);
+    SysTick__Regs__CTRL = (SysTick__Regs__CTRL & ~((uint32_t)1U << 1)) | ((uint32_t)1U << 1);
+    SysTick__Regs__CTRL = (SysTick__Regs__CTRL & ~((uint32_t)1U << 0)) | ((uint32_t)1U << 0);
 }
 
 // =============================================================================
@@ -121,19 +121,19 @@ void SysTick__init(void) {
 /* Scope: LED */
 
 void LED__init(void) {
-    RCC__RCC__AHB1ENR = (RCC__RCC__AHB1ENR & ~(1U << 0)) | (1U << 0);
-    STM32F446__GPIOA__ModeRegister = (STM32F446__GPIOA__ModeRegister & ~(((1U << 2) - 1) << 10)) | (((uint8_t)STM32F446__GPIOMode__OUTPUT & ((1U << 2) - 1)) << 10);
-    STM32F446__GPIOA__OutputTypeRegister = (STM32F446__GPIOA__OutputTypeRegister & ~(1U << 5)) | (((bool)STM32F446__GPIOOutputType__PUSH_PULL ? 1U : 0U) << 5);
-    STM32F446__GPIOA__OutputSpeedRegister = (STM32F446__GPIOA__OutputSpeedRegister & ~(((1U << 2) - 1) << 10)) | (((uint8_t)STM32F446__GPIOSpeed__MEDIUM & ((1U << 2) - 1)) << 10);
-    STM32F446__GPIOA__PullUpDownRegister = (STM32F446__GPIOA__PullUpDownRegister & ~(((1U << 2) - 1) << 10)) | (((uint8_t)STM32F446__GPIOPull__NO_PULL & ((1U << 2) - 1)) << 10);
+    RCC__RCC__AHB1ENR = (RCC__RCC__AHB1ENR & ~((uint32_t)1U << 0)) | ((uint32_t)1U << 0);
+    STM32F446__GPIOA__ModeRegister = (STM32F446__GPIOA__ModeRegister & ~((uint32_t)0x3U << 10)) | (((uint8_t)STM32F446__GPIOMode__OUTPUT & (uint32_t)0x3U) << 10);
+    STM32F446__GPIOA__OutputTypeRegister = (STM32F446__GPIOA__OutputTypeRegister & ~((uint32_t)1U << 5)) | ((uint32_t)((bool)STM32F446__GPIOOutputType__PUSH_PULL ? 1U : 0U) << 5);
+    STM32F446__GPIOA__OutputSpeedRegister = (STM32F446__GPIOA__OutputSpeedRegister & ~((uint32_t)0x3U << 10)) | (((uint8_t)STM32F446__GPIOSpeed__MEDIUM & (uint32_t)0x3U) << 10);
+    STM32F446__GPIOA__PullUpDownRegister = (STM32F446__GPIOA__PullUpDownRegister & ~((uint32_t)0x3U << 10)) | (((uint8_t)STM32F446__GPIOPull__NO_PULL & (uint32_t)0x3U) << 10);
 }
 
 void LED__on(void) {
-    STM32F446__GPIOA__BitSetReset = (1U << 5);
+    STM32F446__GPIOA__BitSetReset = ((uint32_t)1U << 5);
 }
 
 void LED__off(void) {
-    STM32F446__GPIOA__BitSetReset = (1U << 21);
+    STM32F446__GPIOA__BitSetReset = ((uint32_t)1U << 21);
 }
 
 void LED__toggle(void) {
@@ -168,7 +168,9 @@ void SysTick_Handler(void) {
     do {
         uint32_t __old = __LDREXW(&tick_count);
         uint32_t __new = cnx_clamp_add_u32(__old, 1U);
-        if (__STREXW(__new, &tick_count) == 0) break;
+        if (__STREXW(__new, &tick_count) == 0) {
+            break;
+        }
     } while (1);
 }
 
