@@ -62,6 +62,34 @@ describe("Program", () => {
     },
   });
 
+  // #1760 review: a file the program does not hold is a caller's bug. The
+  // binding accessors used to fall back to "no locals" for one, which loses
+  // every shadowing decision with no error, while lexicalFrameAt asserted.
+  describe("a file the program does not hold", () => {
+    const at = { line: 1, column: 0 };
+
+    it("is an internal error for every lexical accessor", () => {
+      const program = Program.build([declare("u32 x <- 1;", "a.cnx")]);
+      expect(() => program.bindValue("nope.cnx", null, "x", at)).toThrow(
+        "nope.cnx is a file of this program",
+      );
+      expect(() => program.lexicalDeclarationAt("nope.cnx", "x", at)).toThrow(
+        "nope.cnx is a file of this program",
+      );
+      expect(() => program.lexicalFrameAt("nope.cnx", at)).toThrow(
+        "nope.cnx is a file of this program",
+      );
+    });
+
+    it("still answers for a file it holds", () => {
+      const program = Program.build([declare("u32 x <- 1;", "a.cnx")]);
+      expect(program.bindValue("a.cnx", null, "x", at)).toMatchObject({
+        kind: "variable",
+      });
+      expect(program.lexicalDeclarationAt("a.cnx", "x", at)).toBeNull();
+    });
+  });
+
   describe("the copy a scope holds", () => {
     it("settles a scope member's parameter type, not just the file's own list", () => {
       // `IScopeSymbol.functions` is type-bearing, and it was excluded from the

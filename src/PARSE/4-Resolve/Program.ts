@@ -273,7 +273,8 @@ class Program {
         at: TPosition,
       ): ILocalDeclaration | null => {
         const root = framesByFile.get(sourceFile);
-        return root ? LexicalFrames.declarationAt(root, name, at) : null;
+        invariant(root, `${sourceFile} is a file of this program`);
+        return LexicalFrames.declarationAt(root, name, at);
       },
       bindValue: (
         sourceFile: string,
@@ -727,13 +728,6 @@ class Program {
   }
 
   /**
-   * The canonical-identity index.
-   *
-   * First declaration wins, matching the run-wide symbol table's own
-   * precedence. A genuine clash is a diagnostic 2.1 owns, not a silent
-   * overwrite here.
-   */
-  /**
    * #1668: what a value name means at a position -- the one place a spelling
    * becomes a declaration.
    *
@@ -751,12 +745,14 @@ class Program {
     name: string,
     at: TPosition,
   ): TValueBinding | null {
+    // #1760 review: a file this program does not hold is a caller's bug, not
+    // a file with no locals -- falling back would lose every shadowing
+    // decision silently, where lexicalFrameAt already asserts
     const frames = facts.framesByFile.get(sourceFile);
-    const scopePath = frames ? LexicalFrames.frameAt(frames, at).scopePath : "";
+    invariant(frames, `${sourceFile} is a file of this program`);
+    const scopePath = LexicalFrames.frameAt(frames, at).scopePath;
     const local =
-      frames && root === null
-        ? LexicalFrames.declarationAt(frames, name, at)
-        : null;
+      root === null ? LexicalFrames.declarationAt(frames, name, at) : null;
     if (local) {
       return { kind: "local", declaration: local, scopePath };
     }
@@ -800,6 +796,13 @@ class Program {
     return member() ?? variable(name) ?? scope() ?? foreign();
   }
 
+  /**
+   * The canonical-identity index.
+   *
+   * First declaration wins, matching the run-wide symbol table's own
+   * precedence. A genuine clash is a diagnostic 2.1 owns, not a silent
+   * overwrite here.
+   */
   private static indexByCName(
     symbolsByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
   ): Map<string, TSymbol> {
