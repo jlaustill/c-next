@@ -1,0 +1,8 @@
+// Helper (not a test): a struct declared inside a scope, for the #1661
+// cross-file fixture length-property-scope-struct-imported-error.
+
+scope L {
+    public struct Cfg {
+        u8[4] data;
+    }
+}

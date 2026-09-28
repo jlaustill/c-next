@@ -1,0 +1,23 @@
+// test-error
+// test-adr: 058
+// #1661: `.length` on a field of a struct declared INSIDE a scope. The subject
+// (`this.cfg.data`) must type for E0886 to fire; when it did not, the program
+// reached render's internal invariant and failed uncoded at 1:0. Its
+// file-scope control is length-property-top-level-struct-field-error.
+
+scope S {
+    struct Cfg {
+        u8[4] data;
+    }
+    Cfg cfg;
+
+    // THE ASSERTION.
+    public u32 n() {
+        return this.cfg.data.length;
+    }
+
+    // NEGATIVE CONTROL -- the right property on the same field stays silent.
+    public u32 ok() {
+        return this.cfg.data.element_count;
+    }
+}

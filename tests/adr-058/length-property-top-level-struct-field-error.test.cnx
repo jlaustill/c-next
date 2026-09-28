@@ -1,0 +1,17 @@
+// test-error
+// test-adr: 058
+// #1661 control: length-property-scope-struct-field-error with the struct at
+// file scope, which always reported E0886 at the use. A mutation that loses
+// only scope-declared struct fields must leave this green.
+
+struct Cfg {
+    u8[4] data;
+}
+
+scope S {
+    Cfg cfg;
+
+    public u32 n() {
+        return this.cfg.data.length;
+    }
+}
