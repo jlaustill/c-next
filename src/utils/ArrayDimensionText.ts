@@ -11,7 +11,7 @@
  *
  * TypeResolver's readings are not merely different, they are wrong: a 16-byte
  * array read as dimension 0, and `8+1` read as 8. Both now use this, which
- * folds through `LiteralUtils.parseIntegerLiteral` so every integer notation
+ * folds through `LiteralUtils.exactIntegerLiteral` so every integer notation
  * resolves, and otherwise keeps the source text rather than truncating it.
  *
  * This is the string-level counterpart to `ArrayDimensionParser`, which works
@@ -79,7 +79,7 @@ class ArrayDimensionText {
       }
 
       const content = text.slice(open + 1, close).trim();
-      const literal = LiteralUtils.parseIntegerLiteral(content);
+      const literal = LiteralUtils.exactIntegerLiteral(content);
       dimensions.push(literal ?? content);
       cursor = close + 1;
     }

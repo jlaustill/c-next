@@ -226,6 +226,41 @@ describe("ArrayDimensionParser", () => {
       });
     });
 
+    // #1760 review: a literal or a result a double cannot hold exactly
+    describe("values past 2^53", () => {
+      it.each([
+        ["a literal", "9007199254740993", undefined],
+        [
+          "a difference of literals",
+          "9007199254740993-9007199254740992",
+          undefined,
+        ],
+        ["a product that leaves the range", "4294967296*4294967296", undefined],
+        [
+          "a sizeof product that leaves the range",
+          "sizeof(u64)*9007199254740991",
+          undefined,
+        ],
+        [
+          "a sizeof sum that leaves the range",
+          "sizeof(u8)+9007199254740991",
+          undefined,
+        ],
+        ["a control in the range", "9007199254740991-9007199254740990", 1],
+        [
+          "a sizeof control in the range",
+          "sizeof(u64)*1125899906842623",
+          9007199254740984,
+        ],
+      ])("gives %s no value", (_label, text, expected) => {
+        expect(
+          ArrayDimensionParser.parseText(text as string, {
+            typeWidths: TYPE_WIDTH,
+          }),
+        ).toBe(expected);
+      });
+    });
+
     describe("sizeof addition", () => {
       it("evaluates sizeof(u32)+4", () => {
         const expr = getExpression("u8 x <- sizeof(u32)+4;");

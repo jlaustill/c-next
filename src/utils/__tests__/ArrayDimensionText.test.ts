@@ -29,6 +29,8 @@ describe("ArrayDimensionText", () => {
       ["an arithmetic expression", "u8[8+1]", ["8+1"]],
       ["a spaced arithmetic expression", "u8[SIZE + 1]", ["SIZE + 1"]],
       ["a literal with a C suffix", "u8[8ul]", ["8ul"]],
+      // #1760 review: 2^53 + 1 has no exact double; its text is its value
+      ["a literal past 2^53", "u8[9007199254740993]", ["9007199254740993"]],
     ])(
       "keeps %s as source text rather than truncating it",
       (_label, source, expected) => {

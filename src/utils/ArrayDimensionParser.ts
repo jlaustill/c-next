@@ -94,7 +94,7 @@ class ArrayDimensionParser {
     options?: IConstantEvalOptions,
   ): number | undefined {
     // Try integer literal first (most common case)
-    const literalValue = LiteralUtils.parseIntegerLiteral(text);
+    const literalValue = LiteralUtils.exactIntegerLiteral(text);
     if (literalValue !== undefined) {
       return literalValue;
     }
@@ -179,7 +179,7 @@ class ArrayDimensionParser {
     value: number,
     operands: readonly IFoldedConstant[],
   ): boolean {
-    if (!Number.isSafeInteger(value)) return false;
+    if (!LiteralUtils.isExactInteger(value)) return false;
     return operands.every((operand) => {
       if (operand.typeName === null) return true;
       const range = TypeCheckUtils.integerRange(operand.typeName);
@@ -192,8 +192,8 @@ class ArrayDimensionParser {
   /**
    * Resolve one operand of a constant expression.
    *
-   * An operand is either an integer literal in any notation that
-   * `LiteralUtils.parseIntegerLiteral` accepts (decimal, hex, binary) or the
+   * An operand is either an exact integer literal in any notation that
+   * `LiteralUtils.exactIntegerLiteral` accepts (decimal, hex, binary) or the
    * name of a known const. Resolving both operand kinds in one place is what
    * lets `8+1`, `SIZE+1` and `SIZE+OFFSET` fold by the same rule.
    */
@@ -201,7 +201,7 @@ class ArrayDimensionParser {
     text: string,
     options?: IConstantEvalOptions,
   ): IFoldedConstant | undefined {
-    const literal = LiteralUtils.parseIntegerLiteral(text);
+    const literal = LiteralUtils.exactIntegerLiteral(text);
     if (literal !== undefined) {
       return { value: literal, typeName: null };
     }
@@ -231,20 +231,22 @@ class ArrayDimensionParser {
     const mulMatch = this.SIZEOF_MUL_RE.exec(text);
     if (mulMatch) {
       const bitWidth = typeWidths[mulMatch[1]];
-      const multiplier = Number.parseInt(mulMatch[2], 10);
-      if (bitWidth && !Number.isNaN(multiplier)) {
-        return (bitWidth / 8) * multiplier;
-      }
+      const multiplier = LiteralUtils.exactIntegerLiteral(mulMatch[2]);
+      const value =
+        bitWidth && multiplier !== undefined
+          ? (bitWidth / 8) * multiplier
+          : undefined;
+      return LiteralUtils.isExactInteger(value) ? value : undefined;
     }
 
     // Try sizeof(type) + N
     const addMatch = this.SIZEOF_ADD_RE.exec(text);
     if (addMatch) {
       const bitWidth = typeWidths[addMatch[1]];
-      const addend = Number.parseInt(addMatch[2], 10);
-      if (bitWidth && !Number.isNaN(addend)) {
-        return bitWidth / 8 + addend;
-      }
+      const addend = LiteralUtils.exactIntegerLiteral(addMatch[2]);
+      const value =
+        bitWidth && addend !== undefined ? bitWidth / 8 + addend : undefined;
+      return LiteralUtils.isExactInteger(value) ? value : undefined;
     }
 
     return undefined;

@@ -167,6 +167,24 @@ class LiteralUtils {
   }
 
   /**
+   * Whether a folded value is exact (#1760 review). A double holds every
+   * integer up to 2^53 - 1 and rounds past it, so `9007199254740993` parses
+   * to 2^53. A fold that computed with the rounded value folded
+   * `BIG - 9007199254740992` to 0, a false E0800, where C computes 1. Every
+   * fold asks this of each literal it reads and each value it computes, and
+   * gives no value otherwise: an unknown is never reported against.
+   */
+  static isExactInteger(value: number | undefined): value is number {
+    return value !== undefined && Number.isSafeInteger(value);
+  }
+
+  /** An integer literal's value for a fold, when that value is exact */
+  static exactIntegerLiteral(text: string): number | undefined {
+    const value = LiteralUtils.parseIntegerLiteral(text);
+    return LiteralUtils.isExactInteger(value) ? value : undefined;
+  }
+
+  /**
    * The value of an integer literal as written in C-Next source, with any
    * width suffix (`9u8`, `3i32`): decimal, hex or binary. Null for anything
    * else, and for a leading-zero literal (`010`), which the emitted C reads as

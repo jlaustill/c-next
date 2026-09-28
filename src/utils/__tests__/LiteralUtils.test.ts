@@ -607,6 +607,30 @@ describe("LiteralUtils", () => {
     });
   });
 
+  // #1760 review: a fold has a value only when a double holds it exactly
+  describe("exactIntegerLiteral", () => {
+    it.each([
+      ["9007199254740991", 9007199254740991],
+      ["-9007199254740991", -9007199254740991],
+      ["0x1FFFFFFFFFFFFF", 9007199254740991],
+      // 2^53 + 1 parses to 2^53, and 2^53 is the first value it could be
+      ["9007199254740993", undefined],
+      ["9007199254740992", undefined],
+      ["0xFFFFFFFFFFFFFFFF", undefined],
+      ["N", undefined],
+    ])("reads %j as %j", (text, value) => {
+      expect(LiteralUtils.exactIntegerLiteral(text)).toBe(value);
+    });
+
+    it("says a computed value is exact only in the safe range", () => {
+      expect(LiteralUtils.isExactInteger(2 ** 53 - 1)).toBe(true);
+      expect(LiteralUtils.isExactInteger(2 ** 53)).toBe(false);
+      expect(LiteralUtils.isExactInteger(Number.NaN)).toBe(false);
+      expect(LiteralUtils.isExactInteger(1.5)).toBe(false);
+      expect(LiteralUtils.isExactInteger(undefined)).toBe(false);
+    });
+  });
+
   // #1668: the one reading of an integer literal's value as written
   describe("integerValue", () => {
     it.each([

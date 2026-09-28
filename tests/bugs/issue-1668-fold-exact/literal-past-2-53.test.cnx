@@ -1,0 +1,32 @@
+// test-execution
+// #1760 review: a fold has a value only when every literal and every step
+// is exact. 9007199254740993 (2^53 + 1) has no double of its own, so a fold
+// that read it as one gave 2^53: D folded to 0 (a false E0800), and s was
+// emitted as 0. C computes both as 1. The safe-range lines are controls
+// that still fold: E sizes `one`, and small is emitted as 1.
+const u64 BIG <- 9007199254740993;
+const u64 SMALL <- 9007199254740991;
+
+u64 divide(u64 x) {
+    const u64 D <- BIG - 9007199254740992;
+    return x / D;
+}
+
+u64 divideSmall(u64 x) {
+    const u64 E <- SMALL - 9007199254740990;
+    u8[E] one <- [0*];
+    one[0] <- 1;
+    return x / E * one[0];
+}
+
+i32 main() {
+    i64 s <- 9007199254740993 - 9007199254740992;
+    i64 small <- 9007199254740991 - 9007199254740990;
+    u64 q <- divide(7);
+    u64 qs <- divideSmall(9);
+    if (q != 7) return 1;
+    if (s != 1) return 2;
+    if (small != 1) return 3;
+    if (qs != 9) return 4;
+    return 0;
+}

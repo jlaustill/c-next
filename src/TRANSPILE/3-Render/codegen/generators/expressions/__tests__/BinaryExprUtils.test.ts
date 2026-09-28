@@ -78,6 +78,34 @@ describe("BinaryExprUtils", () => {
       expect(BinaryExprUtils.tryFoldConstants(["17", "5"], ["%"])).toBe(2);
     });
 
+    // #1760 review: C computes 1; the rounded literal gave 0
+    it("does not fold a literal past 2^53", () => {
+      expect(
+        BinaryExprUtils.tryFoldConstants(
+          ["9007199254740993", "9007199254740992"],
+          ["-"],
+        ),
+      ).toBeUndefined();
+      expect(
+        BinaryExprUtils.tryFoldConstants(
+          ["9007199254740991", "9007199254740990"],
+          ["-"],
+        ),
+      ).toBe(1);
+    });
+
+    it("does not fold when a step leaves the exact range", () => {
+      expect(
+        BinaryExprUtils.tryFoldConstants(
+          ["4294967296", "4294967296", "4294967296"],
+          ["*", "/"],
+        ),
+      ).toBeUndefined();
+      expect(
+        BinaryExprUtils.tryFoldConstants(["4294967296", "2097151"], ["*"]),
+      ).toBe(9007194959773696);
+    });
+
     it("folds mixed operations left-to-right", () => {
       expect(
         BinaryExprUtils.tryFoldConstants(["2", "3", "4"], ["+", "*"]),
