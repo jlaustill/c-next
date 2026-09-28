@@ -1,0 +1,15 @@
+// test-execution
+// #1760 review: a call to a scope function named like a property, `size`,
+// was read as the property on main: `Internal: .size is read from a
+// string`. The typer decides a member step once (ADR-058), so it is a call.
+scope S {
+    public u32 size() {
+        return 7;
+    }
+}
+
+u32 main() {
+    u32 n <- S.size();
+    if (n != 7) return 1;
+    return 0;
+}
