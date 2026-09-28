@@ -1,0 +1,2 @@
+// The file-scope `N` both scope files include
+const u32 N <- 8;

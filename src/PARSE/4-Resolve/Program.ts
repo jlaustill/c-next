@@ -145,9 +145,12 @@ class Program {
     // const values resolve dimensions, and the finished symbols answer
     // everything else. Written inline this read as one function with six
     // nested loops, which is both hard to follow and hard to change one part of.
+    // Each file's include closure, derived once: the scope types it can see
+    // and the declarations it can bind are both read from it
+    const visibleFiles = Program.visibleFiles(files, visibility);
     const isScopeTypeVisibleFrom = Program.scopeTypeVisibility(
       files,
-      visibility,
+      visibleFiles,
     );
     // Opacity is a fact of the headers alone, so it is ready before the settle,
     // which stamps each opaque parameter with it (#1722).
@@ -170,6 +173,7 @@ class Program {
       symbolsByCName: Program.indexByCName(settledByFile),
       registry,
       foreignNames,
+      visibleFiles,
     };
     const derivedConsts = Program.deriveConstValues(settledByFile, declared);
     const symbolsByFile = Program.resolveDimensions(
@@ -201,6 +205,7 @@ class Program {
       symbolsByCName,
       registry,
       foreignNames,
+      visibleFiles,
     };
     const knownEnums = Program.deriveKnownEnums(symbolsByFile);
     const externalStructFields =
@@ -514,6 +519,31 @@ class Program {
   }
 
   /**
+   * Each file's include closure -- the files whose declarations it can see,
+   * itself among them -- over the graph discovery resolved (#1435), derived
+   * once. The scope-type visibility and the binder both read it (#1760
+   * second review: the binder read the run-wide index instead).
+   */
+  private static visibleFiles(
+    files: ReadonlyArray<IFileSymbols>,
+    visibility: IVisibilityInput,
+  ): Map<string, ReadonlySet<string>> {
+    return new Map(
+      files.map((file) => [
+        file.sourceFile,
+        new Set([
+          file.sourceFile,
+          ...TransitiveEnumCollector.collect(
+            file.sourceFile,
+            visibility.cnextIncludesByFile,
+            NO_VIEWS,
+          ).paths,
+        ]),
+      ]),
+    );
+  }
+
+  /**
    * ADR-057: the scope types each file can SEE -- the ones it declares, and the
    * ones every file in its include closure declares.
    *
@@ -530,7 +560,7 @@ class Program {
    */
   private static scopeTypeVisibility(
     files: ReadonlyArray<IFileSymbols>,
-    visibility: IVisibilityInput,
+    visibleFiles: ReadonlyMap<string, ReadonlySet<string>>,
   ): (sourceFile: string, qualifiedName: string) => boolean {
     const declaredBy = new Map(
       files.map((file) => [file.sourceFile, file.declaredScopeTypes]),
@@ -538,12 +568,7 @@ class Program {
     const visibleBy = new Map<string, ReadonlySet<string>>();
     for (const file of files) {
       const visible = new Set(file.declaredScopeTypes);
-      const closure = TransitiveEnumCollector.collect(
-        file.sourceFile,
-        visibility.cnextIncludesByFile,
-        NO_VIEWS,
-      ).paths;
-      for (const included of closure) {
+      for (const included of visibleFiles.get(file.sourceFile) ?? []) {
         for (const scopeType of declaredBy.get(included) ?? EMPTY_NAMES) {
           visible.add(scopeType);
         }
@@ -643,7 +668,7 @@ class Program {
         const value = ConstantFold.declared(
           symbol.initialValue!,
           symbol.type,
-          Program.constantsIn(declared, symbol.scopePath, values),
+          Program.constantsIn(declared, symbol, values),
         );
         if (value === undefined) {
           unresolved.push(symbol);
@@ -663,12 +688,18 @@ class Program {
    */
   private static constantsIn(
     facts: IBindingFacts,
-    scopePath: string,
+    symbol: TSymbol,
     values: ReadonlyMap<string, number>,
   ): (name: string) => IFoldedConstant | undefined {
     return (name) =>
       Program.constantOf(
-        Program.bindOutside(facts, scopePath, null, name),
+        Program.bindOutside(
+          facts,
+          symbol.sourceFile,
+          symbol.scopePath,
+          null,
+          name,
+        ),
         values,
         SETTLED,
       );
@@ -719,7 +750,7 @@ class Program {
         settled.map((symbol) =>
           Program.withResolvedDimensions(
             symbol,
-            Program.constantsIn(declared, symbol.scopePath, values),
+            Program.constantsIn(declared, symbol, values),
           ),
         ),
       );
@@ -756,7 +787,7 @@ class Program {
     if (local) {
       return { kind: "local", declaration: local, scopePath };
     }
-    return Program.bindOutside(facts, scopePath, root, name);
+    return Program.bindOutside(facts, sourceFile, scopePath, root, name);
   }
 
   /**
@@ -766,12 +797,23 @@ class Program {
    */
   private static bindOutside(
     facts: IBindingFacts,
+    sourceFile: string,
     scopePath: string,
     root: TChainRoot,
     name: string,
   ): TValueBinding | null {
-    const declared = (cName: string): TValueBinding | null => {
+    // A declaration in a file `sourceFile` cannot see binds nothing there
+    // (#1760 second review): a reopened scope's member from an un-included
+    // sibling beat the visible global, and sized `u8[N]` by it
+    const visible = facts.visibleFiles.get(sourceFile);
+    const visibleSymbol = (cName: string): TSymbol | undefined => {
       const symbol = facts.symbolsByCName.get(cName);
+      return symbol !== undefined && visible?.has(symbol.sourceFile)
+        ? symbol
+        : undefined;
+    };
+    const declared = (cName: string): TValueBinding | null => {
+      const symbol = visibleSymbol(cName);
       if (symbol?.kind === "variable") return { kind: "variable", symbol };
       if (symbol?.kind === "function") return { kind: "function", symbol };
       return null;
@@ -788,7 +830,8 @@ class Program {
     // of the name; the step used to accept variables alone, so a scope
     // function let the global answer while emission wrote the function.
     const memberCName = ScopeUtils.getTranspiledCName({ name, scopePath });
-    const isMember = scopePath !== "" && facts.symbolsByCName.has(memberCName);
+    const isMember =
+      scopePath !== "" && visibleSymbol(memberCName) !== undefined;
     if (root === "this") {
       return isMember ? declared(memberCName) : null;
     }

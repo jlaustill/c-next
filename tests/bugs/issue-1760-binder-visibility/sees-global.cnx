@@ -1,0 +1,11 @@
+// This file sees the global `N` and not `S.N`, which only a sibling declares,
+// so its bare `N` is the global: `loc` has 8 elements (#1760 second review).
+#include "global-n.cnx"
+
+scope S {
+    public u32 sized() {
+        u8[N] loc <- [0*];
+        loc[7] <- 7;
+        return loc[7];
+    }
+}

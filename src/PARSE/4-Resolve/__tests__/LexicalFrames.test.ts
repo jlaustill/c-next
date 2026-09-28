@@ -334,6 +334,60 @@ scope S {
   });
 });
 
+// #1760 second review: the member and global steps looked names up in the
+// whole run, so a reopened scope's member from a file this one never
+// includes beat the global it does include
+describe("binding against the include closure", () => {
+  const files = {
+    "a.cnx": "scope S {\n    public const u32 N <- 2;\n}",
+    "c.cnx": "const u32 N <- 8;",
+    "b.cnx": [
+      '#include "c.cnx"',
+      "scope S {",
+      "    u8[N] buf;",
+      "    public u32 g() {",
+      "        u32 v <- N;",
+      "        return v;",
+      "    }",
+      "}",
+    ].join("\n"),
+    "d.cnx": [
+      '#include "a.cnx"',
+      '#include "c.cnx"',
+      "scope S {",
+      "    public u32 h() {",
+      "        u32 w <- N;",
+      "        return w;",
+      "    }",
+      "}",
+    ].join("\n"),
+  };
+
+  it("binds the visible global where the member's file is not included", () => {
+    const program = build(files);
+    const use = at(files["b.cnx"], "N;");
+    expect(program.bindValue("b.cnx", null, "N", use)).toMatchObject({
+      kind: "variable",
+      symbol: { fullyQualifiedCName: "N" },
+    });
+    expect(program.constantAt("b.cnx", "N", use)?.value).toBe(8);
+    // A declaration folds against what its own file sees, too
+    expect(program.symbolByCName("S__buf")).toMatchObject({
+      arrayDimensions: [8],
+    });
+  });
+
+  it("still binds the member where its file is included", () => {
+    const program = build(files);
+    const use = at(files["d.cnx"], "N;");
+    expect(program.bindValue("d.cnx", null, "N", use)).toMatchObject({
+      kind: "variable",
+      symbol: { fullyQualifiedCName: "S__N" },
+    });
+    expect(program.constantAt("d.cnx", "N", use)?.value).toBe(2);
+  });
+});
+
 describe("settling (1.4)", () => {
   it("folds a const local, and a dimension that names it", () => {
     const source = `const u32 BASE <- 4;

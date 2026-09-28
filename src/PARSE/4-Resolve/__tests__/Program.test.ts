@@ -296,6 +296,23 @@ describe("Program", () => {
     it("reads a const declared in another file", () => {
       // #1220: the case where a per-file answer was wrong. `SIZE` is declared
       // in one file and asked about from another.
+      // #1760 second review: a file sees a const its include closure
+      // declares, so the program states the include, as the one it models
+      // would.
+      const lib = declare(`const u32 SIZE <- 4;`, "lib.cnx");
+      const use = declare(`u32 unrelated <- 1;`, "use.cnx");
+
+      const program = Program.build(
+        [lib, use],
+        including({ "use.cnx": ["lib.cnx"] }),
+      );
+
+      expect(
+        program.constantAt("use.cnx", "SIZE", { line: 1, column: 0 }),
+      ).toEqual({ value: 4, typeName: "u32" });
+    });
+
+    it("reads no const from a file it does not include (#1738)", () => {
       const lib = declare(`const u32 SIZE <- 4;`, "lib.cnx");
       const use = declare(`u32 unrelated <- 1;`, "use.cnx");
 
@@ -303,7 +320,7 @@ describe("Program", () => {
 
       expect(
         program.constantAt("use.cnx", "SIZE", { line: 1, column: 0 }),
-      ).toEqual({ value: 4, typeName: "u32" });
+      ).toBeNull();
     });
 
     it("keys a scope's const by its declaration, never by a bare name two scopes share (#1322, #1538)", () => {
@@ -370,11 +387,30 @@ describe("Program", () => {
       const lib = declare(`const u32 SIZE <- 4;`, "lib.cnx");
       const use = declare(`u32[SIZE] buffer;`, "use.cnx");
 
+      const program = Program.build(
+        [lib, use],
+        including({ "use.cnx": ["lib.cnx"] }),
+      );
+
+      const buffer = find(program.symbolsInFile("use.cnx"), "buffer");
+      expect(SymbolGuards.isVariable(buffer)).toBe(true);
+      if (SymbolGuards.isVariable(buffer)) {
+        expect(buffer.arrayDimensions).toEqual([4]);
+      }
+    });
+
+    it("leaves a dimension naming a const in a file it does not include (#1738)", () => {
+      // #1760 second review: the run-wide lookup sized this 4, over whatever
+      // the file itself could see -- a header macro, in #1738's case
+      const lib = declare(`const u32 SIZE <- 4;`, "lib.cnx");
+      const use = declare(`u32[SIZE] buffer;`, "use.cnx");
+
       const program = Program.build([lib, use]);
 
       const buffer = find(program.symbolsInFile("use.cnx"), "buffer");
+      expect(SymbolGuards.isVariable(buffer)).toBe(true);
       if (SymbolGuards.isVariable(buffer)) {
-        expect(buffer.arrayDimensions).toEqual([4]);
+        expect(buffer.arrayDimensions).toEqual(["SIZE"]);
       }
     });
 

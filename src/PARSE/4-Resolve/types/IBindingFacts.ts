@@ -17,6 +17,13 @@ interface IBindingFacts {
   readonly symbolsByCName: ReadonlyMap<string, TSymbol>;
   readonly registry: SymbolRegistry | null;
   readonly foreignNames: ReadonlySet<string>;
+  /**
+   * The files each file can see: itself and its include closure. A scope
+   * member or global declared anywhere else binds nothing there (#1760
+   * second review: the run-wide index let a sibling's scope member beat a
+   * visible global).
+   */
+  readonly visibleFiles: ReadonlyMap<string, ReadonlySet<string>>;
 }
 
 export default IBindingFacts;

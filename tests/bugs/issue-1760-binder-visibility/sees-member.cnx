@@ -1,0 +1,11 @@
+// The control: this file sees `S.N`, so the enclosing scope's member wins over
+// the global, as ADR-057 orders them.
+#include "scope-member.cnx"
+#include "global-n.cnx"
+
+scope S {
+    public u32 count() {
+        u8[N] held <- [0*];
+        return held.element_count;
+    }
+}
