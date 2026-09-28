@@ -10,7 +10,7 @@ import DeclaredTypeInfo from "./2-Plan/DeclaredTypeInfo";
 import TParameterInfo from "../transpiler/types/TParameterInfo";
 import ICallbackTypeInfo from "../transpiler/types/ICallbackTypeInfo";
 import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
-import UNRESOLVED_DIMENSION from "../transpiler/constants/UNRESOLVED_DIMENSION";
+import ArrayDimensionText from "../utils/ArrayDimensionText";
 import type ICodeGenApi from "../transpiler/types/ICodeGenApi";
 import DeclaredTypeFacts from "../utils/DeclaredTypeFacts";
 import DeclaredPointer from "../utils/DeclaredPointer";
@@ -1230,9 +1230,8 @@ class TranspileState {
     //
     // UNRESOLVED_DIMENSION holds the slot and reads as "size unknown";
     // TypeValidator.checkArrayBounds skips it because it is not > 0.
-    const dims = fieldInfo.dimensions?.map((d) =>
-      typeof d === "number" ? d : UNRESOLVED_DIMENSION,
-    );
+    const dims =
+      fieldInfo.dimensions && ArrayDimensionText.numeric(fieldInfo.dimensions);
 
     return {
       baseType: fieldInfo.type,

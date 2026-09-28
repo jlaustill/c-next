@@ -18,7 +18,7 @@ import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import TypeResolver from "../../utils/TypeResolver";
 import TypeMapping from "../../utils/mapType";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
-import UNRESOLVED_DIMENSION from "../../transpiler/constants/UNRESOLVED_DIMENSION";
+import ArrayDimensionText from "../../utils/ArrayDimensionText";
 import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import type ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import type TOverflowBehavior from "../../transpiler/types/TOverflowBehavior";
@@ -133,7 +133,7 @@ class DeclaredTypeInfo {
     symbols: ICodeGenSymbols | null,
     symbolTable: SymbolTable,
   ): TTypeInfo {
-    const dimensions = DeclaredTypeInfo.dimensionsOf(d.arrayDimensions);
+    const dimensions = ArrayDimensionText.numeric(d.arrayDimensions);
     if (d.type.kind === "string") {
       // ADR-045: a string is its C buffer, one wider than its capacity
       return {
@@ -181,7 +181,7 @@ class DeclaredTypeInfo {
     symbols: ICodeGenSymbols | null,
     symbolTable: SymbolTable,
   ): TTypeInfo {
-    const dimensions = DeclaredTypeInfo.dimensionsOf(d.arrayDimensions);
+    const dimensions = ArrayDimensionText.numeric(d.arrayDimensions);
     const isArray = dimensions.length > 0;
     const capacity = d.type.kind === "string" ? d.type.capacity : undefined;
     // The bare `string` keyword resolves as a struct named `string`
@@ -214,17 +214,6 @@ class DeclaredTypeInfo {
       TypeResolver.getTypeName(type),
       symbolTable,
     );
-  }
-
-  /** One slot per written dimension; one that does not fold is unresolved */
-  private static dimensionsOf(
-    dimensions: ReadonlyArray<number | string>,
-  ): number[] {
-    return dimensions.map((d) => {
-      if (typeof d === "number") return d;
-      const parsed = Number.parseInt(d, 10);
-      return Number.isNaN(parsed) ? UNRESOLVED_DIMENSION : parsed;
-    });
   }
 }
 

@@ -279,6 +279,14 @@ describe("DeclaredTypeInfo.of, dimensions", () => {
       declaredAtR("void f() {\nu8[UNKNOWN][3] g;\nu8 r <- 1;\n}", "g"),
     ).toMatchObject({ arrayDimensions: [0, 3] });
   });
+
+  it("never reads a dimension's text for a number (#1760 review)", () => {
+    // parseInt read `2*BUF` as 2, which bounds-checked against a size the
+    // array does not have
+    expect(
+      declaredAtR("void f() {\nu8[2*BUF][3] g;\nu8 r <- 1;\n}", "g"),
+    ).toMatchObject({ arrayDimensions: [0, 3] });
+  });
 });
 
 describe("DeclaredTypeInfo.ofChain", () => {

@@ -42,6 +42,7 @@
  */
 
 import LiteralUtils from "./LiteralUtils.js";
+import UNRESOLVED_DIMENSION from "../transpiler/constants/UNRESOLVED_DIMENSION.js";
 
 class ArrayDimensionText {
   /**
@@ -85,6 +86,20 @@ class ArrayDimensionText {
     }
 
     return dimensions;
+  }
+
+  /**
+   * The numeric list a `TTypeInfo` carries: a folded size as it is, and
+   * anything else -- a name, an expression, an unsized `[]` --
+   * `UNRESOLVED_DIMENSION`, in its own slot. A string is never read for a
+   * number (#1760 review): `parseInt` read `2*BUF` as 2 and `0x10` as 0,
+   * and a subscript was bounds-checked against a size the array does not
+   * have. Only what 1.3 or 1.4 folded is a size.
+   */
+  static numeric(dimensions: ReadonlyArray<number | string>): number[] {
+    return dimensions.map((dimension) =>
+      typeof dimension === "number" ? dimension : UNRESOLVED_DIMENSION,
+    );
   }
 }
 

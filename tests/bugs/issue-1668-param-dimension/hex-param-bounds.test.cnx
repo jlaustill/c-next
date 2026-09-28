@@ -1,0 +1,12 @@
+// test-error
+// #1760 review: a parameter's dimension was read with parseInt, so `u8[0x10] p`
+// had no known size and `p[20]` wrote past it with no E0854. The index in
+// bounds beside it stays silent.
+void put(u8[0x10] p) {
+    p[15] <- 1;
+    p[20] <- 1;
+}
+
+i32 main() {
+    return 0;
+}

@@ -1,0 +1,14 @@
+// test-execution
+// #1760 review: the header declared `void put(uint8_t p[0]);` while the .c
+// defined `p[16]`. The prototype came from a dimension read with parseInt,
+// which gives 0 for `0x10`.
+void put(u8[0x10] p) {
+    p[5] <- 1;
+}
+
+i32 main() {
+    u8[16] a <- [0*];
+    put(a);
+    if (a[5] != 1) return 1;
+    return 0;
+}

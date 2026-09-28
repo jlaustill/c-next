@@ -14,6 +14,7 @@ import SymbolRegistry from "../../SymbolRegistry";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../transpiler/types/TVisibility";
 import ParserUtils from "../../../../utils/ParserUtils";
+import DimensionResolver from "../utils/DimensionResolver";
 
 class FunctionCollector {
   /**
@@ -141,25 +142,17 @@ class FunctionCollector {
       const cStyleDimensions = p.arrayDimension();
       const isArray = arrayTypeCtx !== null || cStyleDimensions.length > 0;
 
-      // Extract array dimensions from arrayType syntax (supports multi-dimensional)
-      const arrayDimensions: (number | string)[] = [];
-      if (arrayTypeCtx !== null) {
-        for (const dim of arrayTypeCtx.arrayTypeDimension()) {
-          const sizeExpr = dim.expression();
-          if (sizeExpr) {
-            const dimStr = sizeExpr.getText();
-            const dimNum = Number.parseInt(dimStr, 10);
-            // Convert numeric strings to numbers, keep others as strings
-            arrayDimensions.push(Number.isNaN(dimNum) ? dimStr : dimNum);
-          } else {
-            // Unbounded array dimension
-            arrayDimensions.push("");
-          }
-        }
-      }
-      for (const dim of cStyleDimensions) {
-        arrayDimensions.push(dim.expression()?.getText() ?? "");
-      }
+      // Each dimension folds as a declaration's does (#1760 review): parseInt
+      // read `2*BUF` as 2 and `0x10` as 0, so the prototype disagreed with
+      // the definition and a subscript was checked against the wrong size.
+      // An unsized `[]` keeps its slot as "".
+      const arrayDimensions: (number | string)[] = [
+        ...(arrayTypeCtx?.arrayTypeDimension() ?? []),
+        ...cStyleDimensions,
+      ].map((dim) => {
+        const sizeExpr = dim.expression();
+        return sizeExpr ? DimensionResolver.resolve(sizeExpr) : "";
+      });
 
       return {
         name,
