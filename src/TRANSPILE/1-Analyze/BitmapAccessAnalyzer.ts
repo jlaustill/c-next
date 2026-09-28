@@ -26,13 +26,13 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import PROPERTY_NAMES from "../../utils/constants/PROPERTY_NAMES";
 import ChainRoot from "../../utils/ChainRoot";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
+import ConstantExpression from "./helpers/ConstantExpression";
 import IBitmapAccessError from "./types/IBitmapAccessError";
 import type TAssignmentSite from "./types/TAssignmentSite";
 import TChainRoot from "../../transpiler/types/TChainRoot";
@@ -74,8 +74,10 @@ class BitmapAccessListener extends CNextListener {
     );
   };
 
-  /** Targets: `f.Mode <- 10;` and `this.SysTick.CTRL[0] <- true;`. */
-  /** A write, in a statement or a `for` header (#1726) */
+  /**
+   * Targets: `f.Mode <- 10;` and `this.SysTick.CTRL[0] <- true;` -- a write,
+   * in a statement or a `for` header (#1726).
+   */
   public checkSite(ctx: TAssignmentSite): void {
     const target = ctx.assignmentTarget();
     const ops = target.postfixTargetOp();
@@ -94,16 +96,16 @@ class BitmapAccessListener extends CNextListener {
     );
     if (bitmapAt === null) return;
 
-    // E0881: the value must fit the field it is written to.
+    // E0881: the value must fit the field it is written to. Folded by the
+    // one binder, so a const is its value (#1760 second review: reading the
+    // literal text let `f.Mode <- BIG` truncate silently).
     const layout = this.context.symbols.bitmapFields
       .get(bitmapAt.bitmap)
       ?.get(bitmapAt.field);
     if (layout === undefined) return;
-    const value = LiteralUtils.parseIntegerLiteral(
-      ctx.expression().getText().trim(),
-    );
+    const value = ConstantExpression.valueAt(ctx.expression(), this.context);
     const maximum = 2 ** layout.width - 1;
-    if (value === undefined || value <= maximum) return;
+    if (value === null || value <= maximum) return;
     this.report(
       ctx.expression(),
       "E0881",

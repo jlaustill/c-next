@@ -316,11 +316,11 @@ base: bare, `this.` and `global.`.
 
 ### Bitmap Access (ADR-034)
 
-| Code  | Message                                                   | Help                                                                  | Source                                        |
-| ----- | --------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------- |
-| E0881 | A literal too wide for the bitmap field it is assigned to | Widen the field in the bitmap declaration, or write a value that fits | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
-| E0882 | A member the bitmap does not declare                      | Use one of the bitmap's declared fields                               | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
-| E0883 | Bracket indexing on a bitmap                              | A bitmap is addressed by named field, not by bit index                | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
+| Code  | Message                                                                             | Help                                                                  | Source                                        |
+| ----- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------- |
+| E0881 | A constant value, a const included, too wide for the bitmap field it is assigned to | Widen the field in the bitmap declaration, or write a value that fits | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
+| E0882 | A member the bitmap does not declare                                                | Use one of the bitmap's declared fields                               | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
+| E0883 | Bracket indexing on a bitmap                                                        | A bitmap is addressed by named field, not by bit index                | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
 
 ### Safe Division Call Shape (ADR-051)
 

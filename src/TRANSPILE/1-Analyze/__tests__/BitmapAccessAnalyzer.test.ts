@@ -44,6 +44,30 @@ describe("BitmapAccessAnalyzer (E0881)", () => {
     );
   });
 
+  // #1760 second review: a const is its value, folded by the one binder,
+  // and a local const shadows a file-scope one where it is written
+  it("folds a const and a const expression, as the binder binds them", () => {
+    const found = errors(
+      [
+        FLAGS,
+        "Flags f;",
+        "const u8 BIG <- 20;",
+        "const u8 FITS <- 7;",
+        "void t() {",
+        "    f.Mode <- BIG;",
+        "    f.Mode <- FITS + 1;",
+        "    f.Mode <- FITS;",
+        "    const u8 BIG <- 3;",
+        "    f.Mode <- BIG;",
+        "}",
+      ].join("\n"),
+    );
+    expect(found.map((e) => [e.code, e.line, e.message])).toEqual([
+      ["E0881", 6, "Value 20 exceeds 3-bit field 'Mode' maximum of 7"],
+      ["E0881", 7, "Value 8 exceeds 3-bit field 'Mode' maximum of 7"],
+    ]);
+  });
+
   it("accepts the widest value the field holds, and declines a runtime one", () => {
     expect(
       errors(
