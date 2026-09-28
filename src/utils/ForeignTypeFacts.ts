@@ -104,16 +104,16 @@ class ForeignTypeFacts {
    * Both carry the same `kind` and `type` string for the shapes read here.
    */
   private static foreignSymbol(
-    symbolTable: SymbolTable,
+    lookup: IForeignSymbolLookup,
     name: string,
   ): TCSymbol | TCppSymbol | undefined {
-    return symbolTable.getCSymbol(name) ?? symbolTable.getCppSymbol(name);
+    return lookup.getCSymbol(name) ?? lookup.getCppSymbol(name);
   }
 
-  private static isStruct(symbolTable: SymbolTable, type: string): boolean {
+  /** A header struct, or an opaque (incomplete) one -- the one predicate */
+  private static isStruct(lookup: IForeignSymbolLookup, type: string): boolean {
     return (
-      symbolTable.isOpaqueType(type) ||
-      symbolTable.getStructFields(type) !== undefined
+      lookup.isOpaqueType(type) || lookup.getStructFields(type) !== undefined
     );
   }
 
@@ -210,7 +210,7 @@ class ForeignTypeFacts {
     lookup: IForeignSymbolLookup,
     target: ITargetDescription | null,
   ): IOperandType | null {
-    const symbol = lookup.getCSymbol(name) ?? lookup.getCppSymbol(name);
+    const symbol = ForeignTypeFacts.foreignSymbol(lookup, name);
     if (symbol?.kind !== "variable" || !symbol.type) return null;
     return ForeignTypeFacts.operandType(
       ForeignTypeFacts.inNamespaceOf(name, symbol.type, lookup),
@@ -288,7 +288,7 @@ class ForeignTypeFacts {
       if (result !== null) {
         return ForeignTypeFacts.operandType(result, lookup, target);
       }
-      const typedef = lookup.getCSymbol(type) ?? lookup.getCppSymbol(type);
+      const typedef = ForeignTypeFacts.foreignSymbol(lookup, type);
       if (typedef?.kind !== "type" || !typedef.type) return undefined;
       type = ForeignTypeFacts.spellingOf(typedef.type);
     }
@@ -426,10 +426,10 @@ class ForeignTypeFacts {
       return { element: { typeName, category: "enum", bitWidth: null } };
     }
     const tag = type.replace(/^struct /, "");
-    if (lookup.isOpaqueType(tag) || lookup.getStructFields(tag)) {
+    if (ForeignTypeFacts.isStruct(lookup, tag)) {
       return { element: { typeName: tag, category: "none", bitWidth: null } };
     }
-    const typedef = lookup.getCSymbol(type) ?? lookup.getCppSymbol(type);
+    const typedef = ForeignTypeFacts.foreignSymbol(lookup, type);
     if (typedef?.kind !== "type" || !typedef.type) return null;
     const dimensions =
       "arrayDimensions" in typedef ? (typedef.arrayDimensions ?? []) : [];
