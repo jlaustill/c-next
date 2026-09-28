@@ -44,6 +44,8 @@ interface IDeclarationContext {
   readonly span: ISourceSpan;
   readonly isTypedef: boolean;
   readonly isExtern: boolean;
+  /** A variable's or typedef's spelling keeps it, as a field's does */
+  readonly isVolatile: boolean;
   readonly symbols: TCSymbol[];
 }
 
@@ -123,6 +125,7 @@ class CResolver {
       span,
       isTypedef,
       isExtern,
+      isVolatile: DeclaratorUtils.isVolatile(declSpecs),
       symbols,
     };
 
@@ -272,11 +275,12 @@ class CResolver {
       const isFunction = DeclaratorUtils.declaratorIsFunction(declarator);
 
       if (ctx.isTypedef) {
-        const typedefType = CResolver.buildTypedefType(baseType, declarator);
+        const spelled = CResolver.qualified(baseType, ctx);
+        const typedefType = CResolver.buildTypedefType(spelled, declarator);
         // An array typedef (`typedef float vec3[3]`) keeps its dimensions;
         // a pointer or function-pointer typedef has none to keep
         const arrayDimensions =
-          typedefType === baseType && declarator
+          typedefType === spelled && declarator
             ? DeclaratorUtils.extractArrayDimensions(declarator)
             : [];
         ctx.symbols.push(
@@ -302,7 +306,7 @@ class CResolver {
         ctx.symbols.push(
           VariableCollector.collect(
             name,
-            baseType,
+            CResolver.qualified(baseType, ctx),
             declarator,
             ctx.sourceFile,
             ctx.span,
@@ -347,7 +351,7 @@ class CResolver {
       ctx.symbols.push(
         TypedefCollector.collect(
           lastTypedefName,
-          baseType,
+          CResolver.qualified(baseType, ctx),
           ctx.sourceFile,
           ctx.span,
         ),
@@ -356,13 +360,18 @@ class CResolver {
       ctx.symbols.push(
         VariableCollector.collectFromDeclSpecs(
           lastTypedefName,
-          baseType,
+          CResolver.qualified(baseType, ctx),
           ctx.sourceFile,
           ctx.span,
           ctx.isExtern,
         ),
       );
     }
+  }
+
+  /** A variable's or a typedef's recorded spelling: `volatile` kept */
+  private static qualified(baseType: string, ctx: IDeclarationContext): string {
+    return ctx.isVolatile ? `volatile ${baseType}` : baseType;
   }
 
   /**

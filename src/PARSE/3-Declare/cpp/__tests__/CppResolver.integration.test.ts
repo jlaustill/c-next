@@ -246,6 +246,18 @@ typedef struct opaque_t* handle_t;`;
       });
     });
 
+    // #1760 review: a C++ variable's spelling keeps `volatile` too
+    it("keeps volatile in a variable's spelling", () => {
+      const tree = TestHelpers.parseCpp(`extern volatile float cvf;`);
+      expect(tree).not.toBeNull();
+      const result = CppResolver.resolve(tree!, "test.hpp", symbolTable);
+      expect(result.symbols[0]).toMatchObject({
+        kind: "variable",
+        name: "cvf",
+        type: "volatile float",
+      });
+    });
+
     it("collects array variable", () => {
       const source = `int buffer[32];`;
       const tree = TestHelpers.parseCpp(source);

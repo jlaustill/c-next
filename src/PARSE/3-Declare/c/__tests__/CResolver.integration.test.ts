@@ -156,6 +156,30 @@ describe("CResolver - Variable Declarations", () => {
     expect(symbol.visibility).toBe("public");
   });
 
+  // #1760 review: the spelling keeps `volatile`, as a struct field's does, so
+  // the typer knows a read of it has a side effect
+  it("keeps volatile in a variable's and a typedef's spelling", () => {
+    const tree = TestHelpers.parseC(`extern volatile float vf;
+typedef volatile float vfloat_t;
+typedef volatile float vec3[3];
+extern float nf;`);
+    const result = CResolver.resolve(tree!, "test.h");
+    const typeOf = (name: string) => {
+      const symbol = result.symbols.find((s) => s.name === name);
+      return symbol && "type" in symbol ? symbol.type : undefined;
+    };
+    expect(typeOf("vf")).toBe("volatile float");
+    expect(typeOf("vfloat_t")).toBe("volatile float");
+    // An array typedef keeps its dimensions when it is volatile too
+    const vec3 = result.symbols.find((s) => s.name === "vec3");
+    expect(vec3).toMatchObject({
+      type: "volatile float",
+      arrayDimensions: [3],
+    });
+    // Control: a plain variable is unchanged
+    expect(typeOf("nf")).toBe("float");
+  });
+
   it("collects extern variable", () => {
     const tree = TestHelpers.parseC(`extern int globalValue;`);
     const result = CResolver.resolve(tree!, "test.h");

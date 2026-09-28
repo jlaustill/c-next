@@ -253,6 +253,7 @@ class CppResolver {
         span,
         ctx,
         anonymousClassSpec,
+        DeclaratorUtils.isVolatile(declSpecSeq),
       );
     }
   }
@@ -355,6 +356,7 @@ class CppResolver {
     span: ISourceSpan,
     ctx: ICppDeclarationContext,
     anonymousClassSpec: any,
+    isVolatile: boolean,
   ): void {
     const name = DeclaratorUtils.extractDeclaratorName(declarator);
     if (!name) return;
@@ -392,9 +394,10 @@ class CppResolver {
         ctx.symbols.push(funcSymbol);
       }
     } else {
+      // A variable's spelling keeps `volatile`, as a C one's does (#1760 review)
       const varSymbol = VariableCollector.collect(
         declarator,
-        baseType,
+        isVolatile ? `volatile ${baseType}` : baseType,
         ctx.sourceFile,
         span,
         ctx.currentNamespace,

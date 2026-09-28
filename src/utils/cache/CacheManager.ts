@@ -44,7 +44,10 @@ const defaultFs = NodeFileSystem.instance;
 // not with the keyword run into the tag. Same entry shape, different values.
 // Both changes took 12 on their own branches, so an entry either one wrote
 // under 12 lacks the other change: the merge takes 13.
-const CACHE_VERSION = 13;
+// 14: #1760 review -- a C variable's and a typedef's spelling keeps
+// `volatile`, so an entry written before reads as non-volatile under an
+// unchanged shape: a saturating cast of it would read it three times.
+const CACHE_VERSION = 14;
 
 const TRANSPILER_VERSION = packageJson.version;
 

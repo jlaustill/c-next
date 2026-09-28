@@ -6,6 +6,7 @@
 import { describe, it, expect } from "vitest";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import ForeignTypeFacts from "../ForeignTypeFacts";
+import ESourceLanguage from "../types/ESourceLanguage";
 import TargetCatalogFile from "../../transpiler/data/TargetCatalogFile";
 
 const lookup = new SymbolTable();
@@ -86,4 +87,28 @@ describe("ForeignTypeFacts.operandType (R4)", () => {
       ).toBeNull();
     },
   );
+});
+// #1760 review: a volatile header value's read is a side effect, whether the
+// qualifier is in the value's own spelling or a typedef it names
+describe("ForeignTypeFacts.operandType: volatile", () => {
+  const table = new SymbolTable();
+  table.addCSymbol({
+    sourceFile: "regs.h",
+    span: { line: 1, column: 0, endLine: 1, endColumn: 1 },
+    sourceLanguage: ESourceLanguage.C,
+    visibility: "public",
+    kind: "type",
+    name: "vfloat_t",
+    type: "volatile float",
+  });
+
+  it.each([
+    ["a volatile spelling", "volatile float", true],
+    ["a typedef of a volatile type", "vfloat_t", true],
+    ["a plain spelling", "float", false],
+  ])("gives %s a side effect: %s", (_why, spelling, expected) => {
+    expect(
+      ForeignTypeFacts.operandType(spelling, table, null)?.hasSideEffect,
+    ).toBe(expected);
+  });
 });

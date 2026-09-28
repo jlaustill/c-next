@@ -210,6 +210,18 @@ class DeclaratorUtils {
   /**
    * Check if declaration specifiers contain a specific storage class.
    */
+  /**
+   * Whether a declaration is `volatile` (#1760 review). The specifier list is
+   * read for its type specifiers alone, so a `volatile float` global was
+   * recorded as `float`, and the typer could not know that reading it has a
+   * side effect. A struct field's spelling keeps its qualifiers already.
+   */
+  static isVolatile(declSpecs: DeclarationSpecifiersContext): boolean {
+    return declSpecs
+      .declarationSpecifier()
+      .some((spec) => spec.typeQualifier()?.getText() === "volatile");
+  }
+
   static hasStorageClass(
     declSpecs: DeclarationSpecifiersContext,
     storage: string,

@@ -1639,7 +1639,7 @@ describe("CacheManager", () => {
       const content = mockFs.getWrittenContent("/project/.cnx/config.json");
       expect(content).toBeDefined();
       const newConfig = JSON.parse(content!);
-      expect(newConfig.version).toBe(13); // Current CACHE_VERSION (C pointer depth, then Issue #1668)
+      expect(newConfig.version).toBe(14); // Current CACHE_VERSION (C pointer depth, #1668, then #1760's volatile spellings)
     });
 
     it("should not cache files that do not exist in IFileSystem", async () => {

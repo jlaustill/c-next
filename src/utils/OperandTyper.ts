@@ -1216,7 +1216,12 @@ class OperandTyper {
       return {
         k: "value",
         register: false,
-        t: { ...foreign, hasSideEffect: t.hasSideEffect },
+        // A read of the field has the struct's side effect, or its own: a
+        // volatile field is one (#1760 review: the struct's replaced it)
+        t: {
+          ...foreign,
+          hasSideEffect: t.hasSideEffect || foreign.hasSideEffect,
+        },
       };
     }
     // A C++ class's member function, `dev.read()`: named `Dev::read`, as a

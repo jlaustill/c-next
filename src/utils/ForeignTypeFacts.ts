@@ -58,7 +58,9 @@ class ForeignTypeFacts {
     const symbol = ForeignTypeFacts.foreignSymbol(symbolTable, name);
     if (symbol?.kind !== "variable" || !symbol.type) return null;
 
-    const baseType = ForeignTypeFacts.stripOnePointer(symbol.type);
+    const baseType = ForeignTypeFacts.stripOnePointer(
+      ForeignTypeFacts.unqualified(symbol.type),
+    );
     if (ForeignTypeFacts.isStruct(symbolTable, baseType)) return baseType;
     // The struct question is asked once, above. A second helper used to ask
     // it again of the same type, an arm that could never answer.
@@ -176,7 +178,9 @@ class ForeignTypeFacts {
       enumTypeName: null,
       bitmapTypeName: null,
       overflow: null,
-      hasSideEffect: false,
+      // #1760 review: a volatile header value's read has a side effect, so a
+      // saturating cast of it reads it once, through its helper
+      hasSideEffect: walked?.volatile ?? false,
       form: { kind: "foreign", indeterminate: false },
       binding: null,
     };
@@ -382,8 +386,12 @@ class ForeignTypeFacts {
   ): {
     element: TForeignElement | null;
     dimensions: Array<number | string>;
+    volatile: boolean;
   } | null {
     const dimensions: Array<number | string> = [];
+    // Read before `spellingOf` strips it: a `volatile` at any hop -- the
+    // declaration's, or a typedef's -- makes each read a side effect
+    let volatile = ForeignTypeFacts.isVolatile(cType);
     let type = ForeignTypeFacts.spellingOf(cType);
     // An anonymous enum is named by the typedef that names it
     let typedefName = type;
@@ -396,11 +404,16 @@ class ForeignTypeFacts {
       );
       if (step === null) {
         // An array of something this cannot type is still an array
-        return dimensions.length > 0 ? { element: null, dimensions } : null;
+        return dimensions.length > 0
+          ? { element: null, dimensions, volatile }
+          : null;
       }
-      if ("element" in step) return { element: step.element, dimensions };
+      if ("element" in step) {
+        return { element: step.element, dimensions, volatile };
+      }
       dimensions.push(...step.dimensions);
       typedefName = type;
+      volatile ||= ForeignTypeFacts.isVolatile(step.aliases);
       type = ForeignTypeFacts.spellingOf(step.aliases);
     }
     return null;
@@ -535,6 +548,11 @@ class ForeignTypeFacts {
       category: "floating",
       bitWidth: null,
     };
+  }
+
+  /** Whether a C spelling is `volatile`-qualified */
+  private static isVolatile(cType: string): boolean {
+    return /\bvolatile\b/.test(cType);
   }
 
   private static unqualified(cType: string): string {

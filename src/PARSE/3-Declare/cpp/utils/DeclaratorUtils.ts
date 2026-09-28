@@ -8,6 +8,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import SymbolUtils from "../../SymbolUtils";
+import type { DeclSpecifierSeqContext } from "../../../2-Parse/cpp/grammar/CPP14Parser";
 import IExtractedParameter from "../../shared/IExtractedParameter";
 import ParameterExtractorUtils from "../../shared/ParameterExtractorUtils";
 
@@ -192,6 +193,25 @@ class DeclaratorUtils {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Whether a declaration is `volatile` (#1760 review): the type string below
+   * keeps simple type specifiers alone, so a `volatile float` variable was
+   * recorded as `float`, and the typer could not know that reading it has a
+   * side effect.
+   */
+  static isVolatile(declSpecSeq: DeclSpecifierSeqContext): boolean {
+    return declSpecSeq
+      .declSpecifier()
+      .some(
+        (spec) =>
+          spec
+            .typeSpecifier()
+            ?.trailingTypeSpecifier()
+            ?.cvQualifier()
+            ?.getText() === "volatile",
+      );
   }
 
   /**
