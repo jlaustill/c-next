@@ -44,6 +44,26 @@ describe("CppModeHelper", () => {
       );
     });
 
+    // #1760 review: `(float)x << 1` shifted a float, which C rejects
+    it.each([
+      ["a shift", "x << 1U", "(float)(x << 1U)"],
+      ["a ternary", "c ? a : b", "(float)(c ? a : b)"],
+      ["a value", "x", "(float)x"],
+      ["a unary operator", "-y", "(float)-y"],
+      ["a call's arguments", "f(a, b + 1)", "(float)f(a, b + 1)"],
+      ["a parenthesized operand", "(a + b)", "(float)(a + b)"],
+      ["a subscript", "arr[i + 1]", "(float)arr[i + 1]"],
+      ["a literal's space", "g(\"a b\", ' ')", "(float)g(\"a b\", ' ')"],
+    ])("casts the whole of %s", (_label, expr, expected) => {
+      expect(CppModeHelper.cast("float", expr, state)).toBe(expected);
+    });
+
+    it("reinterpretCast casts the whole of an expression too", () => {
+      expect(CppModeHelper.reinterpretCast("char*", "p + 1", state)).toBe(
+        "(char*)(p + 1)",
+      );
+    });
+
     it("reinterpretCast returns C-style cast", () => {
       expect(CppModeHelper.reinterpretCast("char*", "ptr", state)).toBe(
         "(char*)ptr",
