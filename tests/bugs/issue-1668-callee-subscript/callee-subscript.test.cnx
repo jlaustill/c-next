@@ -1,0 +1,16 @@
+// test-execution
+// #1760 review: a declaration is a pointer (#895) only when its initializer IS
+// a call of a C function returning one. `get_buf()[2]` is an element of that
+// pointer, a byte, but was declared `uint8_t*`: -Wint-conversion, an error
+// under -Werror and by default in GCC 14.
+#include "buf_source.h"
+
+u32 main() {
+    u8 x <- get_buf()[2];
+    if (x != 30) return 1;
+    u8 y <- global.get_buf()[3];
+    if (y != 40) return 2;
+    // Control: a whole call still declares the pointer it returns
+    u8 whole <- get_buf();
+    return 0;
+}

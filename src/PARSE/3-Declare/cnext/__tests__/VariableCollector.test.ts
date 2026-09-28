@@ -367,7 +367,16 @@ describe("VariableCollector", () => {
     it.each([
       ["a direct call", "u8 x <- make();", "make"],
       ["a global call", "u8 x <- global.make();", "make"],
-      ["a call with a member after it", "u8 x <- make().v;", "make"],
+      // #1760 review: the call must be the chain's last operation -- what
+      // follows it reads INTO the result, so the declaration is not the
+      // pointer the call returns
+      ["a call with a member after it", "u8 x <- make().v;", null],
+      ["a call with a subscript after it", "u8 x <- make()[2];", null],
+      [
+        "a global call with a subscript after it",
+        "u8 x <- global.make()[2];",
+        null,
+      ],
       ["not a lone call", "u8 x <- make() + 1;", null],
       ["a member's call", "u8 x <- s.make();", null],
       ["a name", "u8 x <- y;", null],

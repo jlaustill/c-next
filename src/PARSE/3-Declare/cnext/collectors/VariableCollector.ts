@@ -133,9 +133,9 @@ class VariableCollector {
    *
    * #1668: shared by a global or scope member (`collect`, below) and a local
    * or `for` variable (`LexicalScopeCollector`), so a declaration means the
-   * same thing wherever it is written. Array dimensions fold the file's
-   * global consts here; a name only a local const can fold stays its text,
-   * for 1.4 Resolve to fold in the lexical environment.
+   * same thing wherever it is written. No const folds here: a literal or
+   * `sizeof` dimension folds, and every name stays its text for 1.4 Resolve
+   * to fold in the declaration's lexical environment (#1664 box 7).
    */
   static declaredFacts(
     ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
@@ -223,7 +223,8 @@ class VariableCollector {
    * The function an initializer calls, when it is shaped `f(...)` or
    * `global.f(...)` -- source text, recorded on the declaration. Whether it
    * names a C function is `DeclaredPointer.of`'s question, asked of the
-   * headers once they are known.
+   * headers once they are known. The call is the chain's LAST operation
+   * (#1760 review): `f()[2]` is an element of what `f` returns, not it.
    */
   private static calleeOf(
     expr: Parser.ExpressionContext | null,
@@ -236,12 +237,12 @@ class VariableCollector {
     const ops = postfix.postfixOp();
     if (primary.GLOBAL()) {
       const member = ops[0]?.IDENTIFIER();
-      return member && VariableCollector.isCall(ops[1])
+      return member && ops.length === 2 && VariableCollector.isCall(ops[1])
         ? member.getText()
         : null;
     }
     const identifier = primary.IDENTIFIER();
-    return identifier && VariableCollector.isCall(ops[0])
+    return identifier && ops.length === 1 && VariableCollector.isCall(ops[0])
       ? identifier.getText()
       : null;
   }
