@@ -24,6 +24,7 @@ import IOrchestrator from "../IOrchestrator";
 import accessGenerators from "./AccessExprGenerator";
 import generateFunctionCall from "./CallExprGenerator";
 import memberAccessChain from "../../memberAccessChain";
+import type IRootHolding from "../../types/IRootHolding";
 import BitmapAccessHelper from "./BitmapAccessHelper";
 import BitRangeHelper from "../../helpers/BitRangeHelper";
 import FloatBitHelper from "../../helpers/FloatBitHelper";
@@ -137,9 +138,8 @@ const initializeTrackingState = (
  */
 interface IPostfixContext {
   rootIdentifier: string | undefined;
-  isStructParam: boolean;
-  /** Issue #895: Force pointer semantics for callback-compatible params */
-  forcePointerSemantics: boolean;
+  /** How the root is held (`memberAccessChain.rootHolding`) */
+  holding: IRootHolding;
   input: IGeneratorInput;
   state: IGeneratorState;
   orchestrator: IOrchestrator;
@@ -172,14 +172,19 @@ const generatePostfixExpression = (
 
   const ops = plan.ops;
 
-  // Check if this is a struct parameter - we may need to handle -> access
+  // How the root is held -- a struct parameter, or a local #895 made a
+  // pointer -- and so whether its members take `->` (the one answer the
+  // write path reads too)
   const rootIdentifier = plan.rootIdentifier;
   const paramInfo = rootIdentifier
     ? state.currentParameters.get(rootIdentifier)
     : null;
-  const isStructParam = paramInfo?.isStruct ?? false;
-  // Issue #895: Callback-compatible params need pointer semantics even in C++ mode
-  const forcePointerSemantics = paramInfo?.forcePointerSemantics ?? false;
+  const holding = memberAccessChain.rootHolding(
+    paramInfo ?? undefined,
+    rootIdentifier ? plan.base.rootTypeInfo : undefined,
+    orchestrator,
+  );
+  const { isStructParam, forcePointerSemantics } = holding;
 
   // Issue #1100: Subscripted parameters resolve through the normal primary
   // expression path (ParameterDereferenceResolver), same as any other
@@ -218,8 +223,7 @@ const generatePostfixExpression = (
 
   const postfixCtx: IPostfixContext = {
     rootIdentifier,
-    isStructParam,
-    forcePointerSemantics,
+    holding,
     input,
     state,
     orchestrator,
@@ -362,8 +366,7 @@ const handleMemberOp = (
       result: tracking.result,
       memberName,
       rootIdentifier: ctx.rootIdentifier,
-      isStructParam: ctx.isStructParam,
-      forcePointerSemantics: ctx.forcePointerSemantics,
+      holding: ctx.holding,
       isGlobalAccess: tracking.isGlobalAccess,
       isCppAccessChain: tracking.isCppAccessChain,
       typed: step?.before ?? null,
@@ -713,9 +716,8 @@ interface IMemberAccessContext {
   result: string;
   memberName: string;
   rootIdentifier: string | undefined;
-  isStructParam: boolean;
-  /** Issue #895: Force pointer semantics for callback-compatible params */
-  forcePointerSemantics: boolean;
+  /** How the root is held (`memberAccessChain.rootHolding`) */
+  holding: IRootHolding;
   isGlobalAccess: boolean;
   isCppAccessChain: boolean;
   /**
@@ -924,16 +926,17 @@ const tryStructParamAccess = (
   ctx: IMemberAccessContext,
   orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
-  if (!ctx.isStructParam || ctx.result !== ctx.rootIdentifier) {
+  const held = ctx.holding.isStructParam || ctx.holding.isPointerLocal;
+  if (!held || ctx.result !== ctx.rootIdentifier) {
     return null;
   }
 
-  // Issue #895: a callback-compatible param is a pointer even in C++ mode, so
-  // it takes -> there too -- decided by the helper, from the parameter.
-  const structParamSep = memberAccessChain.getStructParamSeparator({
-    cppMode: orchestrator.isCppMode(),
-    forcePointerSemantics: ctx.forcePointerSemantics,
-  });
+  // Issue #895: a callback-compatible param, and a local held through a
+  // pointer, take -> in C++ too -- decided by the helper, from the holding
+  const structParamSep = memberAccessChain.rootMemberSeparator(
+    ctx.holding,
+    orchestrator.isCppMode(),
+  );
 
   return advanceMemberAccess(ctx, structParamSep);
 };

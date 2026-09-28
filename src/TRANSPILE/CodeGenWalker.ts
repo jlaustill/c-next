@@ -105,6 +105,7 @@ import DeclaredPointer from "../utils/DeclaredPointer";
 import type IChainBase from "./2-Plan/types/IChainBase";
 import type TTypeInfo from "../transpiler/types/TTypeInfo";
 import memberAccessChain from "./3-Render/codegen/memberAccessChain";
+import type IRootHolding from "./3-Render/codegen/types/IRootHolding";
 import AssignmentHandlerRegistry from "./3-Render/codegen/assignment/index";
 import AssignmentClassifier from "./2-Plan/AssignmentClassifier";
 import AssignmentOperatorMapper from "./3-Render/codegen/helpers/AssignmentOperatorMapper";
@@ -1425,6 +1426,7 @@ class CodeGenWalker {
       firstId,
       hasGlobal,
       hasThis,
+      this.targetDeclaration(ctx).rootTypeInfo,
     );
 
     return PostfixChainBuilder.build(
@@ -1747,11 +1749,8 @@ class CodeGenWalker {
       isKnownScope: (name: string) => this.host.isKnownScope(name),
       isKnownRegister: (name: string) =>
         this.host.state.symbols!.knownRegisters.has(name),
-      getStructParamSeparator: (forcePointerSemantics: boolean) =>
-        memberAccessChain.getStructParamSeparator({
-          cppMode: this.host.state.cppMode,
-          forcePointerSemantics,
-        }),
+      rootMemberSeparator: (holding: IRootHolding) =>
+        memberAccessChain.rootMemberSeparator(holding, this.host.state.cppMode),
     };
   }
 
@@ -4901,13 +4900,17 @@ class CodeGenWalker {
     firstId: string,
     hasGlobal: boolean,
     hasThis: boolean,
+    rootTypeInfo: TTypeInfo | undefined,
   ): IPostfixChainDeps {
-    const paramInfo = this.host.state.currentParameters.get(firstId);
-    const isStructParam = paramInfo?.isStruct ?? false;
+    // How the root is held: the one answer the read path reads too (#1760
+    // review: a local #895 made a pointer took `.`)
+    const holding = memberAccessChain.rootHolding(
+      this.host.state.currentParameters.get(firstId),
+      rootTypeInfo,
+      this.host,
+    );
     const isCppAccess = hasGlobal && this.host.isCppScopeSymbol(firstId);
     const separatorDeps = this._buildMemberSeparatorDeps();
-    // Issue #895: Callback-compatible params need pointer semantics even in C++ mode
-    const forcePointerSemantics = paramInfo?.forcePointerSemantics ?? false;
 
     const separatorCtx: ISeparatorContext =
       MemberSeparatorResolver.buildContext(
@@ -4916,9 +4919,8 @@ class CodeGenWalker {
           hasGlobal,
           hasThis,
           currentScopePath: this.host.state.currentScopePath,
-          isStructParam,
+          holding,
           isCppAccess,
-          forcePointerSemantics,
         },
         separatorDeps,
       );

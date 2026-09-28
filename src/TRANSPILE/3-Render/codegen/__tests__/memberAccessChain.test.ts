@@ -64,3 +64,70 @@ describe("wrapStructParamValue", () => {
     ).toBe("my_config");
   });
 });
+
+// #1760 review: how a root is held, decided once for both member-access paths
+describe("memberAccessChain.rootHolding", () => {
+  const facts = {
+    isKnownStruct: (name: string) => name === "widget_t" || name === "Dev",
+    isHeldThroughPointer: (name: string) => name === "Dev",
+  };
+  const local = (baseType: string, isPointer: boolean) => ({
+    baseType,
+    bitWidth: 0,
+    isArray: false,
+    isConst: false,
+    isPointer,
+  });
+
+  it("answers a parameter from the parameter", () => {
+    expect(
+      memberAccessChain.rootHolding(
+        { isStruct: true, forcePointerSemantics: true },
+        local("widget_t", true),
+        facts,
+      ),
+    ).toEqual({
+      isStructParam: true,
+      forcePointerSemantics: true,
+      isPointerLocal: false,
+    });
+  });
+
+  it("holds a local #895 made a pointer to a struct through the pointer", () => {
+    expect(
+      memberAccessChain.rootHolding(undefined, local("widget_t", true), facts)
+        .isPointerLocal,
+    ).toBe(true);
+  });
+
+  it.each([
+    ["a struct held by value", local("widget_t", false)],
+    ["an opaque handle", local("Dev", true)],
+    ["a pointer to a non-struct", local("char", true)],
+    ["an untyped root", undefined],
+  ])("holds %s by nothing", (_label, rootTypeInfo) => {
+    expect(
+      memberAccessChain.rootHolding(undefined, rootTypeInfo, facts),
+    ).toEqual({
+      isStructParam: false,
+      forcePointerSemantics: false,
+      isPointerLocal: false,
+    });
+  });
+
+  it("gives a pointer local -> in C++ too, and a C++ reference .", () => {
+    const pointer = memberAccessChain.rootHolding(
+      undefined,
+      local("widget_t", true),
+      facts,
+    );
+    expect(memberAccessChain.rootMemberSeparator(pointer, true)).toBe("->");
+    const reference = memberAccessChain.rootHolding(
+      { isStruct: true, forcePointerSemantics: false },
+      undefined,
+      facts,
+    );
+    expect(memberAccessChain.rootMemberSeparator(reference, true)).toBe(".");
+    expect(memberAccessChain.rootMemberSeparator(reference, false)).toBe("->");
+  });
+});

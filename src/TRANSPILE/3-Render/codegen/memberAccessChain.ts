@@ -35,6 +35,64 @@
  * parse type at all.
  */
 
+import type TTypeInfo from "../../../transpiler/types/TTypeInfo";
+import type IRootHolding from "./types/IRootHolding";
+
+/** What `rootHolding` asks of the types a root may name */
+interface IRootHoldingFacts {
+  isKnownStruct(typeName: string): boolean;
+  isHeldThroughPointer(typeName: string): boolean;
+}
+
+/**
+ * How a chain's root is held: the ONE answer the read path and the write path
+ * read for its member separator and for a whole-value use. A struct parameter
+ * is a pointer in C and a reference in C++ (ADR-006), unless a callback
+ * typedef made it a pointer in both (#895). A local that `DeclaredPointer`
+ * made a pointer to a struct -- a C function's `T*` held as a declared `T`
+ * (#895) -- is a pointer in both. An opaque handle is never dereferenced.
+ * #1760 review: both paths asked the parameter alone, so such a local's
+ * members were written with `.` on a pointer, which C rejects.
+ */
+function rootHolding(
+  paramInfo:
+    | {
+        readonly isStruct?: boolean;
+        readonly forcePointerSemantics?: boolean;
+      }
+    | undefined,
+  rootTypeInfo: TTypeInfo | undefined,
+  facts: IRootHoldingFacts,
+): IRootHolding {
+  if (paramInfo !== undefined) {
+    return {
+      isStructParam: paramInfo.isStruct ?? false,
+      forcePointerSemantics: paramInfo.forcePointerSemantics ?? false,
+      isPointerLocal: false,
+    };
+  }
+  return {
+    isStructParam: false,
+    forcePointerSemantics: false,
+    isPointerLocal:
+      rootTypeInfo?.isPointer === true &&
+      facts.isKnownStruct(rootTypeInfo.baseType) &&
+      !facts.isHeldThroughPointer(rootTypeInfo.baseType),
+  };
+}
+
+/**
+ * The separator a held root's first member takes: `->` for a pointer local
+ * and for a parameter held through a pointer, `.` for a C++ reference
+ */
+function rootMemberSeparator(holding: IRootHolding, cppMode: boolean): string {
+  return getStructParamSeparator({
+    cppMode,
+    forcePointerSemantics:
+      holding.forcePointerSemantics || holding.isPointerLocal,
+  });
+}
+
 /**
  * Options for struct parameter access helpers.
  */
@@ -91,4 +149,6 @@ function wrapStructParamValue(
 export default {
   getStructParamSeparator,
   wrapStructParamValue,
+  rootHolding,
+  rootMemberSeparator,
 };
