@@ -5730,9 +5730,9 @@ class CodeGenWalker {
   //
   // `Transpiler` holds the walker, because the entry point it calls --
   // `generate(tree, …)` -- takes the parse tree and therefore lives here. The
-  // facts it reads afterwards are accumulated on the render side, so they are
-  // delegated rather than moved: they are answers ABOUT what was emitted,
-  // which is the host's business. Pass-by-value was a third, and is not
+  // two facts it reads afterwards are accumulated on the render side, so they
+  // are delegated rather than moved: they are answers ABOUT what was emitted,
+  // which is the host's business. Pass-by-value used to be a third, and is not
   // (#1671): 1.4 Resolve decides it, and `Transpiler` reads `Program`.
 
   getToolchainRequirements(

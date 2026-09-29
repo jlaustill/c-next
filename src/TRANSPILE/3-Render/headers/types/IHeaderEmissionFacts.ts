@@ -30,7 +30,7 @@ interface IHeaderEmissionFacts {
   readonly symbols: readonly IHeaderSymbol[];
   readonly filename: string;
   readonly options: IHeaderOptions;
-  readonly typeInput: IHeaderTypeInput | undefined;
+  readonly typeInput: IHeaderTypeInput;
   readonly passByValueParams: TPassByValueParams;
   readonly allKnownEnums: ReadonlySet<string>;
   readonly basename: string;

@@ -152,14 +152,10 @@ class Transpiler {
    * The run's own accumulations (#1452 box 1).
    *
    * These were a `TranspilerState` under `src/transpiler/state/`, which box 1
-   * deletes. They are not a pass's facts and never were -- they are what the
-   * ORCHESTRATOR accumulates while driving a run, written and read by this
-   * class alone, which is why inlining them removes an indirection rather than
-   * relocating a state container.
-   *
-   * #1671: two maps here were pass facts after all -- the per-file symbol view
-   * and pass-by-value, both decided by 1.4 Resolve. Header capture reads them
-   * from `Program`, the first layer that can own them, instead of a copy.
+   * deletes. What remains is not a pass's facts (#1671 moved out the two that
+   * were, both 1.4 Resolve's) -- it is what the ORCHESTRATOR accumulates while
+   * driving a run, written and read by this class alone, which is why inlining
+   * it removed an indirection rather than relocating a state container.
    *
    * `userIncludes` is keyed by source path, and by `${path}\u0000c-headers`
    * for the #424 C-header half. The NUL separator is deliberate: no filesystem
@@ -1341,7 +1337,11 @@ class Transpiler {
       // warm (reads from state populated above), but do not render it here.
       // HeaderRenderer renders every file's header in one step, after
       // this per-file loop finishes -- headerCode is filled in there.
-      const headerFacts = this._captureHeaderEmissionFacts(file);
+      const headerFacts = this._captureHeaderEmissionFacts(
+        file,
+        program,
+        symbolInfo,
+      );
       if (headerFacts) {
         this.headerEmissionFactsByPath.set(sourcePath, headerFacts);
       }
@@ -3133,6 +3133,8 @@ class Transpiler {
    */
   private _captureHeaderEmissionFacts(
     file: IPipelineFile,
+    program: IProgram,
+    typeInput: ICodeGenSymbols,
   ): IHeaderEmissionFacts | null {
     const sourcePath = file.path;
     // Issues #1161/#1164: the same predicate decides whether this header is
@@ -3154,16 +3156,9 @@ class Transpiler {
       ext,
     );
 
-    // #1452: asserted, not defaulted -- see `_transpileFile`, the one caller.
-    invariant(
-      this.program,
-      "1.4 Resolve built Program before header capture read its facts",
-    );
-    const program = this.program;
-
     // #1671: both decided by 1.4 Resolve, the first layer that can see every
-    // file. Read from `Program`; they used to be copied onto this class first.
-    const typeInput = this._requireSymbolInfo(sourcePath);
+    // file. `typeInput` is the view `generate()` received, so the `.h` and the
+    // `.c` are built from one object; neither is copied onto this class.
     const passByValueParams = program.passByValueParams();
     const cnxIncludes = this.userIncludes.get(sourcePath) ?? [];
     // Issue #424: a dimension that is not a number is a macro the header names
