@@ -1654,7 +1654,7 @@ describe("Transpiler coverage integration tests", () => {
 
   // #1319: the cache-hit guard. On a warm cache the header is never parsed, so
   // the rejections inside parseHeaderFile/parseCHeader never run -- which is
-  // why `tryRestoreFromCache` carries its own check ("Issue #211: Still check
+  // why `_restoreCachedHeader` carries its own check ("Issue #211: Still check
   // for C++ syntax even on cache hit"). Every other E0507 test uses
   // `noCache: true` and therefore cannot reach it: the guard was real,
   // reachable and completely untested, which is a guard you cannot fail.

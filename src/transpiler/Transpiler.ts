@@ -13,6 +13,7 @@ import PlatformIOIni from "./data/PlatformIOIni";
 import type IPlatformIOProject from "./types/IPlatformIOProject";
 import type TRunTarget from "./types/TRunTarget";
 import { join, basename, dirname, resolve, relative, sep } from "node:path";
+import { availableParallelism } from "node:os";
 import type IConflict from "./types/IConflict";
 
 import IFileSystem from "./types/IFileSystem";
@@ -30,7 +31,6 @@ import AutoConstRule from "../utils/AutoConstRule";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
-import TJsonValue from "../utils/types/TJsonValue";
 import PublicInterface from "../TRANSPILE/2-Plan/PublicInterface";
 import HeaderGenerator from "../TRANSPILE/3-Render/headers/HeaderGenerator";
 import HeaderRenderer from "../TRANSPILE/3-Render/headers/HeaderRenderer";
@@ -91,6 +91,7 @@ import Diagnostics from "../TRANSPILE/1-Analyze/Diagnostics";
 import type IDiagnostics from "./types/IDiagnostics";
 import type ICodeGenSymbols from "./types/ICodeGenSymbols";
 import CacheManager from "../utils/cache/CacheManager";
+import ConcurrencyLimit from "../utils/ConcurrencyLimit";
 import detectCppSyntax from "./logic/detectCppSyntax";
 import detectAssemblySyntax from "./logic/detectAssemblySyntax";
 import ExternalDeclarationOracle from "./logic/preprocessor/ExternalDeclarationOracle";
@@ -99,6 +100,38 @@ import type IRecordedRequirement from "./types/IRecordedRequirement";
 import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../utils/RequirementAggregator";
 import TargetCatalogFile from "./data/TargetCatalogFile";
+
+/** A header's cache entry, as `CacheManager` returns it. */
+type TCachedHeader = NonNullable<ReturnType<CacheManager["getSymbols"]>>;
+
+/** A cache entry's symbols, once validated. */
+type TCachedSymbols = NonNullable<ReturnType<typeof CachedSymbolReader.read>>;
+
+/** Runs a preprocessor call within the run's process limit. */
+type TPreprocessLimit = ReturnType<typeof ConcurrencyLimit.create>;
+
+/**
+ * #1817: one header, settled before any of its symbols is written.
+ *
+ * `usable` is whether it preprocessed cleanly, which is what makes it macro
+ * context for a later header's retry. A header whose preparation threw is not.
+ */
+type THeaderPreparation = {
+  readonly file: IDiscoveredFile;
+  readonly usable: boolean;
+} & (
+  | {
+      readonly kind: "cached";
+      readonly entry: TCachedHeader;
+      readonly symbols: TCachedSymbols;
+    }
+  | {
+      readonly kind: "content";
+      readonly content: string;
+      readonly preprocessError?: string;
+    }
+  | { readonly kind: "failed"; readonly error: unknown }
+);
 
 /**
  * Unified transpiler
@@ -1388,7 +1421,7 @@ class Transpiler {
    *
    * Dropping it reddens 0 of 1248 fixtures. It seeds the resolver's `visited`
    * set, and the set is empty at the call site: the only production writer is
-   * `doCollectHeaderSymbols`, which is Stage 2, and the caller is discovery.
+   * `_collectHeaderSymbols`, which is Stage 2, and the caller is discovery.
    * `isHeaderProcessed` has no production caller at all -- tests are its only
    * readers, which is why knip and `unused-code:check` stay green over it
    * (#1418).
@@ -1604,25 +1637,20 @@ class Transpiler {
   /**
    * Stage 2: Collect symbols from all C/C++ headers
    * Issue #945: Made async for preprocessing support.
+   *
+   * #1817: in two steps. `_prepareHeaders` settles every header's content
+   * first and writes nothing. The preprocessor runs are independent, except a
+   * retry, which waits for the headers before it. Symbols are then written
+   * here, in header order, because what the symbol table holds depends on it.
    */
   private async _collectAllHeaderSymbols(
     input: IPipelineInput,
     result: ITranspilerResult,
   ): Promise<void> {
-    const precedingHeaders: string[] = [];
-    for (const file of input.headerFiles) {
-      const searchPaths = input.headerSearchPaths.get(file.path);
-      invariant(
-        searchPaths !== undefined,
-        `discovery records the search path of every header it resolves (missing ${file.path})`,
-      );
-      let usable = false;
+    const prepared = await this._prepareHeaders(input);
+    for (const header of prepared) {
       try {
-        usable = await this.doCollectHeaderSymbols(
-          file,
-          searchPaths,
-          precedingHeaders,
-        );
+        this._collectHeaderSymbols(header);
         result.filesProcessed++;
       } catch (err) {
         // Issue #1319: this catch exists to tolerate third-party headers that
@@ -1635,14 +1663,74 @@ class Transpiler {
         if (Transpiler.isDiagnostic(err)) {
           throw err;
         }
-        this.warnings.push(`Failed to process header ${file.path}: ${err}`);
+        this.warnings.push(
+          `Failed to process header ${header.file.path}: ${err}`,
+        );
       }
-      // Offer this header as macro context to headers processed after it, but
-      // only if it itself preprocessed cleanly — an unpreprocessable predecessor
-      // would otherwise make every dependent's -imacros retry fail.
-      if (usable) {
-        precedingHeaders.push(file.path);
+    }
+  }
+
+  /**
+   * #1817: every header's content, settled before any symbol is written.
+   *
+   * A header's first preprocessor run depends on nothing but the header, so
+   * they all start at once, at most `availableParallelism()` at a time. Only a
+   * retry depends on other headers: every earlier one that preprocessed
+   * cleanly, including one that did so only through its own retry. So each
+   * header is handed the headers before it, and waits for them only if it has
+   * to retry.
+   */
+  private _prepareHeaders(
+    input: IPipelineInput,
+  ): Promise<THeaderPreparation[]> {
+    const limit = ConcurrencyLimit.create(availableParallelism());
+    const prepared: Promise<THeaderPreparation>[] = [];
+    for (const file of input.headerFiles) {
+      const searchPaths = input.headerSearchPaths.get(file.path);
+      invariant(
+        searchPaths !== undefined,
+        `discovery records the search path of every header it resolves (missing ${file.path})`,
+      );
+      // A copy: the headers before this one. The live array would come to
+      // hold this header too, and a retry would wait for itself.
+      prepared.push(
+        this._prepareHeader(file, searchPaths, [...prepared], limit),
+      );
+    }
+    return Promise.all(prepared);
+  }
+
+  /**
+   * #1817: one header's cache entry or content. It never rejects: a failure is
+   * returned as `failed` and re-thrown by `_collectHeaderSymbols` in header
+   * order, where the #1319 catch decides whether it is a diagnostic.
+   */
+  private async _prepareHeader(
+    file: IDiscoveredFile,
+    searchPaths: readonly string[],
+    earlier: readonly Promise<THeaderPreparation>[],
+    limit: TPreprocessLimit,
+  ): Promise<THeaderPreparation> {
+    try {
+      const cached = this._readCachedHeader(file);
+      if (cached) {
+        return {
+          file,
+          kind: "cached",
+          ...cached,
+          usable: !cached.entry.preprocessFailed,
+        };
       }
+      // Issue #945: Preprocess header to evaluate #if/#ifdef directives
+      const content = await this.getHeaderContent(
+        file,
+        searchPaths,
+        earlier,
+        limit,
+      );
+      return { file, kind: "content", ...content };
+    } catch (error) {
+      return { file, kind: "failed", usable: false, error };
     }
   }
 
@@ -2552,33 +2640,34 @@ class Transpiler {
   // ===========================================================================
 
   /**
-   * Stage 2: Collect symbols from a single C/C++ header
+   * Stage 2: Collect symbols from a single prepared C/C++ header, in header order
    * Issue #592: Recursive include processing moved to IncludeResolver.resolveHeadersTransitively()
    * Issue #945: Added preprocessing support for conditional compilation
-   * SonarCloud S3776: Refactored to use helper methods for reduced complexity.
+   * #1817: synchronous. Its content was settled by `_prepareHeaders`; this is
+   * every write the header makes, which is why the order is kept here.
    */
-  private async doCollectHeaderSymbols(
-    file: IDiscoveredFile,
-    searchPaths: readonly string[],
-    precedingHeaders: readonly string[] = [],
-  ): Promise<boolean> {
+  private _collectHeaderSymbols(header: THeaderPreparation): void {
+    const file = header.file;
     // Track as processed (for cycle detection)
-    const absolutePath = resolve(file.path);
-    this.processedHeaders.add(absolutePath);
+    this.processedHeaders.add(resolve(file.path));
 
-    // Check cache first
-    const restored = this.tryRestoreFromCache(file);
-    if (restored) {
-      return restored.usable; // Cache hit - skip full parsing
+    if (header.kind === "failed") {
+      throw header.error;
     }
-
-    // Issue #945: Preprocess header to evaluate #if/#ifdef directives
-    const { content, usable } = await this.getHeaderContent(
-      file,
-      searchPaths,
-      precedingHeaders,
-    );
-    this.parseHeaderFile(file, content);
+    if (header.kind === "cached") {
+      this._restoreCachedHeader(file, header.entry, header.symbols);
+      return; // Cache hit - skip full parsing
+    }
+    if (!header.usable) {
+      // Fell back to raw content, so it was not offered as macro context to
+      // the headers after it. Flag that TU-level external-declaration recovery
+      // is warranted (Issue #985).
+      this.anyHeaderPreprocessFailed = true;
+      this.warnings.push(
+        `Preprocessing failed for ${file.path}: ${header.preprocessError}. Using raw content.`,
+      );
+    }
+    this.parseHeaderFile(file, header.content);
 
     // Debug: Show symbols found
     if (this.config.debugMode) {
@@ -2595,35 +2684,57 @@ class Transpiler {
       this.cacheManager.setSymbolsFromTable(
         file.path,
         this.codeGenerator.transpileState.symbolTable,
-        !usable,
+        !header.usable,
       );
     }
-
-    return usable;
   }
 
   /**
-   * Try to restore symbols from cache. Returns the restored header's usability
-   * (whether it preprocessed cleanly) on a cache hit, or null on a miss.
-   * SonarCloud S3776: Extracted from doCollectHeaderSymbols().
+   * A header's cache entry, read and validated but not restored, or null on a
+   * miss. #1817: split from the restore, so the cache decision is made before
+   * any symbol is written.
    */
-  private tryRestoreFromCache(
+  private _readCachedHeader(
     file: IDiscoveredFile,
-  ): { usable: boolean } | null {
+  ): { entry: TCachedHeader; symbols: TCachedSymbols } | null {
     if (!this.cacheManager?.isValid(file.path)) {
       return null;
     }
 
-    const cached = this.cacheManager.getSymbols(file.path);
-    if (!cached) {
+    const entry = this.cacheManager.getSymbols(file.path);
+    if (!entry) {
       return null;
     }
 
     // Issue #1225: a cache entry that does not validate is a miss, not a
     // degraded hit. Returning null re-parses the header instead of continuing
-    // with symbols we could not verify.
-    if (!this.restoreCachedSymbols(cached.symbols)) {
-      return null;
+    // with symbols we could not verify. Every symbol is validated here, before
+    // any is added, so a rejected entry cannot leave half its symbols behind.
+    const symbols = CachedSymbolReader.read(entry.symbols);
+    return symbols === null ? null : { entry, symbols };
+  }
+
+  /**
+   * Issue #1225: revive a validated cache entry into the symbol table.
+   *
+   * This used to rebuild each symbol field by field from a flat
+   * `ISerializedSymbol` -- the legacy model ADR-055 Phase 7 removed everywhere
+   * else -- behind an `as TCSymbol` cast the union could not check. That cast
+   * is what let #1214's dropped `isConst` compile, and the same shape dropped
+   * `pointerTypedefs` here. The symbols now come back as themselves, so there
+   * is nothing to convert and nothing to forget.
+   */
+  private _restoreCachedHeader(
+    file: IDiscoveredFile,
+    cached: TCachedHeader,
+    symbols: TCachedSymbols,
+  ): void {
+    for (const symbol of symbols) {
+      if (symbol.sourceLanguage === ESourceLanguage.C) {
+        this.codeGenerator.transpileState.symbolTable.addCSymbol(symbol);
+      } else {
+        this.codeGenerator.transpileState.symbolTable.addCppSymbol(symbol);
+      }
     }
 
     this.codeGenerator.transpileState.symbolTable.restoreStructFields(
@@ -2652,8 +2763,6 @@ class Transpiler {
     if (cached.preprocessFailed) {
       this.anyHeaderPreprocessFailed = true;
     }
-
-    return { usable: !cached.preprocessFailed };
   }
 
   /**
@@ -2667,8 +2776,9 @@ class Transpiler {
   private async getHeaderContent(
     file: IDiscoveredFile,
     searchPaths: readonly string[],
-    precedingHeaders: readonly string[] = [],
-  ): Promise<{ content: string; usable: boolean }> {
+    earlier: readonly Promise<THeaderPreparation>[],
+    limit: TPreprocessLimit,
+  ): Promise<{ content: string; usable: boolean; preprocessError?: string }> {
     const rawContent = this.fs.readFile(file.path);
 
     // Check if preprocessing is disabled
@@ -2691,11 +2801,13 @@ class Transpiler {
     // Preprocess the header file
     // #1723: along the path this header was found on, so a header that
     // includes a sibling library's header preprocesses as it resolved.
-    const result = await this.anchor.preprocessor.preprocess(file.path, {
-      defines: { ...this.anchor.defines },
-      includePaths: [...searchPaths],
-      keepLineDirectives: false, // We don't need line mappings for symbol collection
-    });
+    const result = await limit(() =>
+      this.anchor.preprocessor.preprocess(file.path, {
+        defines: { ...this.anchor.defines },
+        includePaths: [...searchPaths],
+        keepLineDirectives: false, // We don't need line mappings for symbol collection
+      }),
+    );
 
     if (!result.success) {
       // Some headers cannot be preprocessed standalone: they require a
@@ -2703,26 +2815,31 @@ class Transpiler {
       // define INC_FREERTOS_H and its attribute macros, and enforces this with
       // its own #error). Retry importing the macros of the headers collected
       // before this one (only those that themselves preprocessed cleanly, so one
-      // unpreprocessable predecessor can't defeat the retry).
+      // unpreprocessable predecessor can't defeat the retry). #1817: the only
+      // step that waits on other headers.
+      const precedingHeaders = (await Promise.all(earlier))
+        .filter((header) => header.usable)
+        .map((header) => header.file.path);
       if (precedingHeaders.length > 0) {
-        const retry = await this.anchor.preprocessor.preprocess(file.path, {
-          defines: { ...this.anchor.defines },
-          includePaths: [...searchPaths],
-          keepLineDirectives: false,
-          imacros: [...precedingHeaders],
-        });
+        const retry = await limit(() =>
+          this.anchor.preprocessor.preprocess(file.path, {
+            defines: { ...this.anchor.defines },
+            includePaths: [...searchPaths],
+            keepLineDirectives: false,
+            imacros: precedingHeaders,
+          }),
+        );
         if (retry.success) {
           return { content: retry.content, usable: true };
         }
       }
-      // Fall back to raw content. Mark not-usable so this header is not offered
-      // as macro context to headers processed after it, and flag that TU-level
-      // external-declaration recovery is warranted (Issue #985).
-      this.anyHeaderPreprocessFailed = true;
-      this.warnings.push(
-        `Preprocessing failed for ${file.path}: ${result.error}. Using raw content.`,
-      );
-      return { content: rawContent, usable: false };
+      // Fall back to raw content, not usable. The warning and the #985 flag are
+      // written by `_collectHeaderSymbols`, in header order.
+      return {
+        content: rawContent,
+        usable: false,
+        preprocessError: result.error,
+      };
     }
 
     return { content: result.content, usable: true };
@@ -2757,38 +2874,6 @@ class Transpiler {
   }
 
   /**
-   * Issue #1225: revive cached symbols into the symbol table.
-   *
-   * This used to rebuild each symbol field by field from a flat
-   * `ISerializedSymbol` -- the legacy model ADR-055 Phase 7 removed everywhere
-   * else -- behind an `as TCSymbol` cast the union could not check. That cast
-   * is what let #1214's dropped `isConst` compile, and the same shape dropped
-   * `pointerTypedefs` here. The symbols now come back as themselves, so there
-   * is nothing to convert and nothing to forget.
-   *
-   * @returns false if the entry failed validation, so the caller re-parses
-   *   rather than continuing with symbols it could not verify.
-   */
-  private restoreCachedSymbols(encoded: TJsonValue[]): boolean {
-    // Validation happens for every symbol before any is added, so a rejected
-    // entry cannot leave half its symbols in the table.
-    const symbols = CachedSymbolReader.read(encoded);
-    if (symbols === null) {
-      return false;
-    }
-
-    for (const symbol of symbols) {
-      if (symbol.sourceLanguage === ESourceLanguage.C) {
-        this.codeGenerator.transpileState.symbolTable.addCSymbol(symbol);
-      } else {
-        this.codeGenerator.transpileState.symbolTable.addCppSymbol(symbol);
-      }
-    }
-
-    return true;
-  }
-
-  /**
    * Issue #1319: E0507 -- C++ met in a run that did not declare C++.
    *
    * This is the whole of what "detection" is for now. It used to raise a latch
@@ -2816,7 +2901,8 @@ class Transpiler {
 
   /**
    * Reject undeclared C++ reached through a header's type or content.
-   * SonarCloud S3776: Extracted from doCollectHeaderSymbols().
+   * SonarCloud S3776: Extracted from the Stage 2 per-header method, now
+   * `_collectHeaderSymbols` (#1817).
    *
    * Issue #1319: when C++ IS declared there is nothing to check, so the file
    * read below is skipped entirely rather than performed and discarded.
@@ -2841,7 +2927,8 @@ class Transpiler {
 
   /**
    * Parse a header file based on its type.
-   * SonarCloud S3776: Extracted from doCollectHeaderSymbols().
+   * SonarCloud S3776: Extracted from the Stage 2 per-header method, now
+   * `_collectHeaderSymbols` (#1817).
    */
   private parseHeaderFile(file: IDiscoveredFile, content: string): void {
     if (file.type === EFileType.CHeader) {
