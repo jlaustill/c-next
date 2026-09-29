@@ -814,19 +814,6 @@ describe("CodeGenWalker", () => {
       });
     });
 
-    describe("isParameterPassByValue()", () => {
-      it("should check pass-by-value for primitive parameters", () => {
-        const { generator } = createMinimalGenerator(`
-          void test(u32 value) { }
-        `);
-
-        // Pass-by-value analysis is done during generation
-        // Check pass-by-value map exists
-        const passByValue = generator.getPassByValueParams();
-        expect(passByValue).toBeInstanceOf(Map);
-      });
-    });
-
     describe("markParameterModified() / isCalleeParameterModified()", () => {
       it("should track parameter modifications", () => {
         const { host } = createMinimalGenerator(`
@@ -871,17 +858,6 @@ describe("CodeGenWalker", () => {
 
         const unmodifiedParams = generator.getFunctionUnmodifiedParams();
         expect(unmodifiedParams).toBeInstanceOf(Map);
-      });
-    });
-
-    describe("getPassByValueParams()", () => {
-      it("should return pass-by-value parameters", () => {
-        const { generator } = createMinimalGenerator(`
-          void test(u32 value) { }
-        `);
-
-        const passByValue = generator.getPassByValueParams();
-        expect(passByValue).toBeInstanceOf(Map);
       });
     });
   });

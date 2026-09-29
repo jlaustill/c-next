@@ -91,7 +91,6 @@ import Diagnostics from "../TRANSPILE/1-Analyze/Diagnostics";
 import type IDiagnostics from "./types/IDiagnostics";
 import type ICodeGenSymbols from "./types/ICodeGenSymbols";
 import CacheManager from "../utils/cache/CacheManager";
-import MapUtils from "../utils/MapUtils";
 import detectCppSyntax from "./logic/detectCppSyntax";
 import detectAssemblySyntax from "./logic/detectAssemblySyntax";
 import ExternalDeclarationOracle from "./logic/preprocessor/ExternalDeclarationOracle";
@@ -158,19 +157,14 @@ class Transpiler {
    * class alone, which is why inlining them removes an indirection rather than
    * relocating a state container.
    *
+   * #1671: two maps here were pass facts after all -- the per-file symbol view
+   * and pass-by-value, both decided by 1.4 Resolve. Header capture reads them
+   * from `Program`, the first layer that can own them, instead of a copy.
+   *
    * `userIncludes` is keyed by source path, and by `${path}\u0000c-headers`
    * for the #424 C-header half. The NUL separator is deliberate: no filesystem
    * path contains one, so the two keyspaces cannot collide.
    */
-  private readonly symbolCollectors = new Map<string, ICodeGenSymbols>();
-
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly perFilePassByValueParams = new Map<
-    string,
-    ReadonlyMap<string, ReadonlySet<string>>
-  >();
-
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private readonly userIncludes = new Map<string, string[]>();
 
   /**
@@ -1341,13 +1335,6 @@ class Transpiler {
         IncludeExtractor.collectCHeaderIncludes(tree),
       );
 
-      // Get pass-by-value params (snapshot before next file clears it)
-      const passByValue = this.codeGenerator.getPassByValueParams();
-      const passByValueCopy = MapUtils.deepCopyStringSetMap(passByValue);
-
-      // Directly update state (no contribution round-trip)
-      this.symbolCollectors.set(sourcePath, symbolInfo);
-      this.perFilePassByValueParams.set(sourcePath, passByValueCopy);
       this.userIncludes.set(sourcePath, [...userIncludes]);
 
       // #1323: resolve this file's header-render input while its state is
@@ -1522,8 +1509,6 @@ class Transpiler {
       await this.cacheManager.initialize();
     }
     // Issue #587: Reset accumulated state for new run
-    this.symbolCollectors.clear();
-    this.perFilePassByValueParams.clear();
     this.userIncludes.clear();
     this.headerIncludeDirectivesByFile.clear();
     this.processedHeaders.clear();
@@ -3169,10 +3154,17 @@ class Transpiler {
       ext,
     );
 
-    const typeInput = this.symbolCollectors.get(sourcePath);
-    const passByValueParams =
-      this.perFilePassByValueParams.get(sourcePath) ??
-      new Map<string, Set<string>>();
+    // #1452: asserted, not defaulted -- see `_transpileFile`, the one caller.
+    invariant(
+      this.program,
+      "1.4 Resolve built Program before header capture read its facts",
+    );
+    const program = this.program;
+
+    // #1671: both decided by 1.4 Resolve, the first layer that can see every
+    // file. Read from `Program`; they used to be copied onto this class first.
+    const typeInput = this._requireSymbolInfo(sourcePath);
+    const passByValueParams = program.passByValueParams();
     const cnxIncludes = this.userIncludes.get(sourcePath) ?? [];
     // Issue #424: a dimension that is not a number is a macro the header names
     // but does not define, so the header must carry its source include.
@@ -3192,7 +3184,7 @@ class Transpiler {
     // put every dependency first, and a dependency cycle (#1167) made the order
     // -- and so the answer -- arbitrary. `Program` is complete before any file
     // is rendered, so this cannot depend on where in the run it is asked.
-    const allKnownEnums = this.program?.knownEnums() ?? new Set<string>();
+    const allKnownEnums = program.knownEnums();
 
     // #1511: which types a header declares comes from the artifact. The
     // include ORDER stays here -- it decides which header wins, and that is not
@@ -3200,21 +3192,18 @@ class Transpiler {
     const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
       this._includeDirectivesSpelledBy(sourcePath),
       {
-        typesDeclaredIn: (file: string) =>
-          this.program?.typesDeclaredIn(file) ?? new Set<string>(),
+        typesDeclaredIn: (file: string) => program.typesDeclaredIn(file),
       },
     );
 
     // ADR-029: Convert callback types to header format
     const callbackTypesForHeader = this._buildCallbackTypesForHeader();
 
-    const typeInputWithSymbolTable = typeInput
-      ? {
-          ...typeInput,
-          symbolTable: this.codeGenerator.transpileState.symbolTable,
-          callbackTypes: callbackTypesForHeader,
-        }
-      : undefined;
+    const typeInputWithSymbolTable = {
+      ...typeInput,
+      symbolTable: this.codeGenerator.transpileState.symbolTable,
+      callbackTypes: callbackTypesForHeader,
+    };
 
     const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
     const headerSymbols = this.convertToHeaderSymbols(
