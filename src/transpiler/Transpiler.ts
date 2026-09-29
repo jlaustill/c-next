@@ -492,7 +492,7 @@ class Transpiler {
     try {
       await this._initializeRun();
 
-      const pipelineInput = await this.discoverIncludes(input);
+      const pipelineInput = this.discoverIncludes(input);
       if (pipelineInput.cnextFiles.length === 0) {
         return this._finalizeResult(result, "No C-Next source files found");
       }
@@ -542,9 +542,7 @@ class Transpiler {
    * Header directive storage happens via IncludeResolver.resolve() for both
    * C headers and cnext includes (Issue #854).
    */
-  private async discoverIncludes(
-    input: TTranspileInput,
-  ): Promise<IPipelineInput> {
+  private discoverIncludes(input: TTranspileInput): IPipelineInput {
     if (input.kind === "files") {
       this.anchor = this._anchorAt(this.config.input, this.anchor);
       return this._discoverFromFiles();
@@ -2346,7 +2344,7 @@ class Transpiler {
    * This ensures headers are found based on what the source actually
    * includes, not by blindly scanning include directories.
    */
-  private async _discoverFromFiles(): Promise<IPipelineInput> {
+  private _discoverFromFiles(): IPipelineInput {
     const entryPath = resolve(this.config.input);
 
     // Check if this is a C/C++ entry point
