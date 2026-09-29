@@ -28,7 +28,7 @@ import { describe, it, expect } from "vitest";
 const SOURCE = readFileSync(join(__dirname, "..", "Transpiler.ts"), "utf-8");
 
 /** Calls that can now raise a C-Next diagnostic rather than a parse failure. */
-const DIAGNOSTIC_RAISING = ["parseCHeader(", "doCollectHeaderSymbols("];
+const DIAGNOSTIC_RAISING = ["parseCHeader(", "_collectHeaderSymbols("];
 
 interface ICatchSite {
   readonly tryBody: string;
@@ -83,11 +83,13 @@ describe("diagnostics propagate past tolerance catches (#1319)", () => {
     DIAGNOSTIC_RAISING.some((call) => s.tryBody.includes(call)),
   );
 
-  it("finds the catches that wrap a diagnostic-raising call", () => {
-    // Negative control. If the scan or the call names drift, `guarding` goes
-    // empty and the assertion below passes over nothing -- the same silent
-    // shape (#1143) this file exists to prevent one level down.
-    expect(guarding.length).toBeGreaterThanOrEqual(2);
+  it.each(DIAGNOSTIC_RAISING)("finds a catch that wraps %s", (call) => {
+    // Negative control, one per name. If the scan or a call name drifts, that
+    // name's catch drops out and the assertion below passes over one fewer
+    // site -- the same silent shape (#1143) this file exists to prevent. A
+    // single count could not see one name drop while another still matched;
+    // #1817's rename of the Stage 2 method is the case it would have missed.
+    expect(guarding.some((s) => s.tryBody.includes(call))).toBe(true);
   });
 
   it("every one of them re-throws a deliberate diagnostic", () => {

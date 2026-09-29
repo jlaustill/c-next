@@ -249,7 +249,7 @@ property of how the table is USED, and the admission test asks what a module
 computes and with how many files open. Every write is one file's declarations —
 four collectors under `3-Declare/`, plus five sites in the orchestrator that
 drives them per file (`_publishResolvedFile`, `_collectExternalDeclarations`,
-`restoreCachedSymbols`, `parsePureCHeader`, `parseCppHeader`). Each is
+`_restoreCachedHeader`, `parsePureCHeader`, `parseCppHeader`). Each is
 computable with one parse tree open. The accumulation across files is
 `Transpiler`'s loop, not the table's doing.
 

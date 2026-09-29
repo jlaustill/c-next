@@ -25,6 +25,8 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
+import CacheManager from "../../utils/cache/CacheManager";
+import CachedSymbolReader from "../../utils/cache/CachedSymbolReader";
 
 const EXTERNAL_HPP = `#ifndef CNX_CACHE_PARITY_EXTERNAL_HPP
 #define CNX_CACHE_PARITY_EXTERNAL_HPP
@@ -134,5 +136,68 @@ describe("cache parity (integration, #1225)", () => {
     // The guess this issue is named for: an incomplete struct where the truth
     // is a pointer to opaque_t.
     expect(header).not.toContain("typedef struct handle_t handle_t;");
+  });
+
+  // #1817: an entry that is current (its key still matches the file) but
+  // unusable is a miss, and the header is parsed again -- two separate checks,
+  // one per way an entry can be unusable, and neither was reached by a test.
+  // Each rewrites external.hpp's entry through the cache's own API, then
+  // asserts the entry now takes the branch it is meant to reach.
+  type TEntry = NonNullable<ReturnType<CacheManager["getSymbols"]>>;
+
+  /**
+   * The output with external.hpp parsed afresh: its entry is dropped first, so
+   * this run writes a new one. Each test starts here, so none depends on the
+   * entry an earlier test left behind.
+   */
+  async function coldOutput(): Promise<TGenerated> {
+    const cache = new CacheManager(dir);
+    await cache.initialize();
+    cache.invalidate(join(dir, "external.hpp"));
+    await cache.flush();
+    return transpileOnce();
+  }
+
+  async function rewriteEntry(
+    rewrite: (cache: CacheManager, path: string, entry: TEntry) => void,
+  ): Promise<CacheManager> {
+    const path = join(dir, "external.hpp");
+    const cache = new CacheManager(dir);
+    await cache.initialize();
+    const entry = cache.getSymbols(path);
+    expect(entry, "the run before left a usable entry").not.toBeNull();
+    rewrite(cache, path, entry!);
+    await cache.flush();
+    return cache;
+  }
+
+  it("parses the header again when its entry's struct state cannot be read", async () => {
+    const expected = await coldOutput();
+    const cache = await rewriteEntry((c, path, entry) =>
+      c.setSymbols(path, entry.symbols, entry.structFields, {
+        structState: { opaqueTypes: 5 } as never,
+      }),
+    );
+    expect(cache.isValid(join(dir, "external.hpp"))).toBe(true);
+    expect(cache.getSymbols(join(dir, "external.hpp"))).toBeNull();
+
+    expect(await transpileOnce()).toEqual(expected);
+  });
+
+  it("parses the header again when its entry's symbols do not validate", async () => {
+    const expected = await coldOutput();
+    const cache = await rewriteEntry((c, path, entry) =>
+      c.setSymbols(path, [{ kind: "not-a-symbol" }], entry.structFields, {
+        structState: entry.structState,
+        needsStructKeyword: entry.needsStructKeyword,
+        enumBitWidth: entry.enumBitWidth,
+        preprocessFailed: entry.preprocessFailed,
+      }),
+    );
+    const rewritten = cache.getSymbols(join(dir, "external.hpp"));
+    expect(rewritten).not.toBeNull();
+    expect(CachedSymbolReader.read(rewritten!.symbols)).toBeNull();
+
+    expect(await transpileOnce()).toEqual(expected);
   });
 });

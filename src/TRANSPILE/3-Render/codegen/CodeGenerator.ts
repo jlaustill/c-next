@@ -741,17 +741,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #269: Get all pass-by-value parameters.
-   * Returns a Map from function name to Set of parameter names that should be pass-by-value.
-   * Used by HeaderGenerator to ensure header and implementation signatures match.
-   */
-  getPassByValueParams(): ReadonlyMap<string, ReadonlySet<string>> {
-    // #1511: the artifact's answer, so the `.h` this feeds and the `.c` this
-    // class emits cannot disagree -- they now read one derivation.
-    return this.state.program?.passByValueParams() ?? new Map();
-  }
-
-  /**
    * Clear parameter tracking when leaving a function.
    * Issue #793: Delegates to FunctionContextManager.
    */

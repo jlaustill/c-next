@@ -77,7 +77,7 @@ class CachedSymbolReader {
    * truthiness check and was handed straight to `new Set(...)` / `new Map(...)`.
    * Both failure modes that follow are real:
    *
-   * - `{ opaqueTypes: 5 }` makes `new Map(5)` throw out of `tryRestoreFromCache`,
+   * - `{ opaqueTypes: 5 }` makes `new Map(5)` throw out of `_restoreCachedHeader`,
    *   aborting the transpile instead of reading as a miss.
    * - a *missing key* makes `new Set(undefined)` an empty Set, silently — which
    *   is #1225's own failure mode (a warm build that never heard of a fact the
