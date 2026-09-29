@@ -17,6 +17,8 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
+import NodeFileSystem from "../NodeFileSystem";
+import type IFileSystem from "../types/IFileSystem";
 import Preprocessor from "../logic/preprocessor/Preprocessor";
 
 // No conditional of its own, so it is used as written, and it is usable.
@@ -113,5 +115,84 @@ describe("header preprocessing retry (#1817)", () => {
     expect(failed).toHaveLength(2);
     expect(failed[0]).toContain(join(dir, "x.h"));
     expect(failed[1]).toContain(join(dir, "y.h"));
+  });
+});
+
+/**
+ * #1817: a header's content is read while every header is prepared, and its
+ * symbols are written later, in header order. A read that fails is carried to
+ * that point and becomes the same warning it always was, in the header's place,
+ * without stopping the headers after it.
+ */
+describe("a header whose content cannot be read (#1817)", () => {
+  let dir: string;
+
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), "cnext-unreadable-"));
+    writeFileSync(join(dir, "before.h"), "int before_fn(int x);\n");
+    writeFileSync(join(dir, "broken.h"), "int broken_fn(int x);\n");
+    writeFileSync(join(dir, "after.h"), "int after_fn(int x);\n");
+    writeFileSync(
+      join(dir, "main.cnx"),
+      `#include "before.h"
+#include "broken.h"
+#include "after.h"
+
+void run() {
+    i32 r <- global.after_fn(1);
+}
+`,
+    );
+  });
+
+  afterAll(() => {
+    if (dir) rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("is a warning in its place, and the headers after it are still collected", async () => {
+    let brokenReads = 0;
+    const real = new NodeFileSystem();
+    const fs: IFileSystem = new Proxy(real, {
+      get(target, key, receiver) {
+        if (key === "readFile") {
+          return (path: string): string => {
+            // Discovery reads it first, to find its includes, and that read
+            // succeeds. The read made while headers are prepared fails.
+            brokenReads += path.endsWith("broken.h") ? 1 : 0;
+            if (path.endsWith("broken.h") && brokenReads > 1) {
+              throw new Error("simulated read failure");
+            }
+            return target.readFile(path);
+          };
+        }
+        const value: unknown = Reflect.get(target, key, receiver);
+        return typeof value === "function"
+          ? (value as (...args: unknown[]) => unknown).bind(target)
+          : value;
+      },
+    });
+
+    const result = await new Transpiler(
+      {
+        input: join(dir, "main.cnx"),
+        includeDirs: [dir],
+        outDir: join(dir, "out"),
+        noCache: true,
+        preprocess: false,
+        target: "host",
+      },
+      fs,
+    ).transpile({ kind: "files" });
+
+    expect(brokenReads).toBe(2);
+    expect(
+      result.warnings.filter((w) => w.startsWith("Failed to process header")),
+    ).toEqual([
+      `Failed to process header ${join(dir, "broken.h")}: Error: simulated read failure`,
+    ]);
+    // after.h comes after the failure, and `after_fn` resolves only if it was
+    // collected.
+    expect(result.errors).toEqual([]);
+    expect(result.success).toBe(true);
   });
 });
