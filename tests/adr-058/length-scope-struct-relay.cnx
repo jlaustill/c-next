@@ -1,0 +1,7 @@
+// Helper (not a test): puts length-scope-struct.cnx two hops away, covering
+// the `imported transitive` column for #1661. It declares something of its
+// own so a header is written for it (#1234).
+
+#include "length-scope-struct.cnx"
+
+const u32 LENGTH_SCOPE_STRUCT_RELAY_MARKER <- 2;
