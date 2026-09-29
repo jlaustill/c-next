@@ -1,8 +1,12 @@
 17:28 error[E0886]: '.length' is deprecated
        help: Use .char_count for a string's length, .element_count for an array's, or .bit_length / .byte_length for a width (ADR-058).
-21:22 error[E0886]: '.length' is deprecated
+26:22 error[E0886]: '.length' is deprecated
        help: Use .char_count for a string's length, .element_count for an array's, or .bit_length / .byte_length for a width (ADR-058).
-35:34 error[E0886]: '.length' is deprecated
+40:34 error[E0886]: '.length' is deprecated
        help: Use .char_count for a string's length, .element_count for an array's, or .bit_length / .byte_length for a width (ADR-058).
-38:28 error[E0886]: '.length' is deprecated
+43:28 error[E0886]: '.length' is deprecated
        help: Use .char_count for a string's length, .element_count for an array's, or .bit_length / .byte_length for a width (ADR-058).
+48:39 error[E0867]: .char_count is only available on strings, not on 'u8[4]'
+       help: Use .element_count for an array's length, or .bit_length for a scalar's width.
+51:28 error[E0867]: .char_count is only available on strings, not on 'u8[4]'
+       help: Use .element_count for an array's length, or .bit_length for a scalar's width.

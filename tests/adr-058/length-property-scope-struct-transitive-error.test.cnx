@@ -16,6 +16,11 @@ u32 okGlobal <- shared.data.element_count;
 // ASSERTION -- global variable context.
 u32 badGlobal <- shared.data.length;
 
+// NEGATIVE CONTROL -- top-level function context.
+u32 okFunction() {
+    return shared.data.element_count;
+}
+
 // ASSERTION -- top-level function context.
 u32 badFunction() {
     return shared.data.length;
@@ -36,5 +41,13 @@ scope S {
 
     public u32 n() {
         return this.cfg.data.length;
+    }
+
+    // ASSERTIONS -- E0867, which needs the subject's TYPE, not only its
+    // presence: scope member, then scope method.
+    u32 badShapeMember <- this.cfg.data.char_count;
+
+    public u32 badShape() {
+        return this.cfg.data.char_count;
     }
 }

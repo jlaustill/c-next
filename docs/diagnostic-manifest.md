@@ -199,8 +199,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-058/length-property-imported-transitive-error.test.cnx                                 | E0867               |
 | tests/adr-058/length-property-in-scope-error.test.cnx                                            | E0867               |
 | tests/adr-058/length-property-scope-struct-field-error.test.cnx                                  | E0886               |
-| tests/adr-058/length-property-scope-struct-imported-error.test.cnx                               | E0886               |
-| tests/adr-058/length-property-scope-struct-transitive-error.test.cnx                             | E0886               |
+| tests/adr-058/length-property-scope-struct-imported-error.test.cnx                               | E0867, E0886        |
+| tests/adr-058/length-property-scope-struct-transitive-error.test.cnx                             | E0867, E0886        |
 | tests/adr-058/length-property-top-level-struct-field-error.test.cnx                              | E0886               |
 | tests/adr-058/length-property-wrong-type-error.test.cnx                                          | E0867               |
 | tests/adr-068/forever-disguised-dowhile.test.cnx                                                 | E0707               |
