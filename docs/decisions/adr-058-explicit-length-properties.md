@@ -476,10 +476,10 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 
 ## Diagnostics
 
-| Code  | Reported when                                                | Asserted by                                         |
-| ----- | ------------------------------------------------------------ | --------------------------------------------------- |
-| E0867 | A shape property is asked of a subject that cannot answer it | `tests/explicit-length/`, `tests/adr-058/`          |
-| E0886 | `.length` is used at all                                     | `tests/adr-058/length-property-deprecated.test.cnx` |
+| Code  | Reported when                                                | Asserted by                                |
+| ----- | ------------------------------------------------------------ | ------------------------------------------ |
+| E0867 | A shape property is asked of a subject that cannot answer it | `tests/explicit-length/`, `tests/adr-058/` |
+| E0886 | `.length` is used at all                                     | `tests/adr-058/`                           |
 
 `.length` is rejected by NAME and needs no subject: naming a different thing on
 a string, an array and a scalar is what these four properties replaced.
@@ -494,7 +494,8 @@ it.
 Declared for the rule #1322 moved out of codegen: a length property may only be
 asked of a type that can answer it -- `.element_count` of an array,
 `.char_count` of a string, `.bit_length` and `.byte_length` of a type with a
-known width.
+known width. E0886's fixtures occupy the same cells: `.length` can be written
+wherever a shape property can.
 
 <!-- MATRIX-SEVERITY -->
 
@@ -505,13 +506,13 @@ known width.
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
 | top-level function | imported direct     | error    |
-| scope method       | imported direct     | off      |
+| scope method       | imported direct     | error    |
 | global variable    | imported direct     | error    |
-| scope member       | imported direct     | off      |
+| scope member       | imported direct     | error    |
 | top-level function | imported transitive | error    |
-| scope method       | imported transitive | off      |
+| scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
-| scope member       | imported transitive | off      |
+| scope member       | imported transitive | error    |
 
 A length property is an EXPRESSION, so it reaches an initializer as well as a
 function body -- all four same-file contexts, probed rather than assumed.
@@ -519,8 +520,9 @@ function body -- all four same-file contexts, probed rather than assumed.
 The imported columns matter because the rule asks the SUBJECT's type, and the
 subject may be declared in another file. A check reading only the file in front
 of it finds no type for it, and an unknown type never rejects -- so the rule
-would go quiet across an include rather than fail. The scope contexts are `off`
-in those columns as a stated obligation, not a claim they cannot exist.
+would go quiet across an include rather than fail. A struct declared inside a
+scope is a type like any other: a scope member and a scope method can hold one,
+declared in this file or across an include, so every cell is `error`.
 
 **A divergence this matrix does not cover.** The property table above gives
 structs `.bit_length`, `.byte_length` and `.element_count`, and the transpiler

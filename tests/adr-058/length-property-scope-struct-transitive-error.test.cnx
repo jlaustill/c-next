@@ -1,0 +1,53 @@
+// test-error
+// test-adr: 058
+// #1661 across TWO include hops -- matrix cells: imported transitive, in all four
+// contexts. The struct is declared inside a scope two includes away, so the
+// subject's type is found only through the include. When it was not, `.length`
+// reached render's internal invariant and failed uncoded at 1:0 instead of
+// E0886 -- in every context, including the two that pass in the same file.
+
+#include "length-scope-struct-relay.cnx"
+
+L.Cfg shared;
+
+// NEGATIVE CONTROL -- the right property on the imported field stays silent.
+u32 okGlobal <- shared.data.element_count;
+
+// ASSERTION -- global variable context.
+u32 badGlobal <- shared.data.length;
+
+// NEGATIVE CONTROL -- top-level function context.
+u32 okFunction() {
+    return shared.data.element_count;
+}
+
+// ASSERTION -- top-level function context.
+u32 badFunction() {
+    return shared.data.length;
+}
+
+scope S {
+    L.Cfg cfg;
+
+    // NEGATIVE CONTROLS.
+    u32 okMember <- this.cfg.data.element_count;
+
+    public u32 ok() {
+        return this.cfg.data.element_count;
+    }
+
+    // ASSERTIONS -- scope member, then scope method.
+    u32 badMember <- this.cfg.data.length;
+
+    public u32 n() {
+        return this.cfg.data.length;
+    }
+
+    // ASSERTIONS -- E0867, which needs the subject's TYPE, not only its
+    // presence: scope member, then scope method.
+    u32 badShapeMember <- this.cfg.data.char_count;
+
+    public u32 badShape() {
+        return this.cfg.data.char_count;
+    }
+}
