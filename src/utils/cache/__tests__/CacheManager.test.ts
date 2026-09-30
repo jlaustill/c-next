@@ -658,8 +658,7 @@ describe("CacheManager", () => {
     });
 
     it("should not write when cache is not dirty", async () => {
-      // flat-cache v6 uses filename without extension
-      const symbolsPath = join(testDir, ".cnx", "cache", "symbols");
+      const symbolsPath = join(testDir, ".cnx", "cache", "symbols.json");
 
       // Flush without any changes
       await cacheManager.flush();
@@ -679,16 +678,14 @@ describe("CacheManager", () => {
       );
       await cacheManager.flush();
 
-      // flat-cache v6 uses filename without extension
-      const symbolsPath = join(testDir, ".cnx", "cache", "symbols");
+      const symbolsPath = join(testDir, ".cnx", "cache", "symbols.json");
       expect(existsSync(symbolsPath)).toBe(true);
     });
 
     it("should clear dirty flag after flush", async () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
-      // flat-cache v6 uses filename without extension
-      const symbolsPath = join(testDir, ".cnx", "cache", "symbols");
+      const symbolsPath = join(testDir, ".cnx", "cache", "symbols.json");
 
       storeSymbols(testFile, [], new Map());
       await cacheManager.flush();
@@ -1640,7 +1637,7 @@ describe("CacheManager", () => {
       const content = mockFs.getWrittenContent("/project/.cnx/config.json");
       expect(content).toBeDefined();
       const newConfig = JSON.parse(content!);
-      expect(newConfig.version).toBe(15); // Current CACHE_VERSION (C pointer depth, #1668, #1760's volatile spellings, then field declarators)
+      expect(newConfig.version).toBe(16); // Current CACHE_VERSION (C pointer depth, #1668, #1760's volatile spellings, field declarators, then #1653's plain-JSON symbols.json)
     });
 
     it("should not cache files that do not exist in IFileSystem", async () => {

@@ -9,6 +9,7 @@ import PathResolver from "../PathResolver";
 import IDiscoveredFile from "../types/IDiscoveredFile";
 import EFileType from "../types/EFileType";
 import NodeFileSystem from "../../NodeFileSystem";
+import MockFileSystem from "../../__tests__/MockFileSystem";
 
 describe("PathResolver", () => {
   const testDir = join(process.cwd(), "test-path-resolver-tmp");
@@ -479,6 +480,30 @@ describe("PathResolver", () => {
       const result = resolver.getHeaderOutputPath(file, ".hpp");
 
       expect(result).toBe(join(headerDir, "main.hpp"));
+    });
+  });
+
+  describe("naming decides nothing on disk (#1653, #1451 box 1)", () => {
+    it("computes output and header paths without creating a directory", () => {
+      const fs = new MockFileSystem()
+        .addDirectory("/proj/src")
+        .addFile("/proj/src/sub/main.cnx", "");
+      const resolver = new PathResolver(
+        {
+          inputs: ["/proj/src"],
+          outDir: "/proj/out",
+          headerOutDir: "/proj/inc",
+        },
+        fs,
+      );
+      const file = createFile("/proj/src/sub/main.cnx");
+
+      expect(resolver.getOutputPath(file, ".c")).toBe("/proj/out/sub/main.c");
+      expect(resolver.getHeaderOutputPath(file, ".h")).toBe(
+        "/proj/inc/sub/main.h",
+      );
+      // 3.1 Write creates a directory when it writes into it; naming never does.
+      expect(fs.getMkdirLog()).toEqual([]);
     });
   });
 });

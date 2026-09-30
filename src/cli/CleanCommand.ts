@@ -4,10 +4,10 @@
  */
 
 import { basename, dirname, join, resolve } from "node:path";
-import { unlinkSync } from "node:fs";
 import InputExpansion from "../transpiler/data/InputExpansion";
 import PathResolver from "../transpiler/data/PathResolver";
 import NodeFileSystem from "../transpiler/NodeFileSystem";
+import Write from "../WRITE/1-Write/Write";
 
 /**
  * Command to clean generated output files
@@ -120,15 +120,15 @@ class CleanCommand {
    * @returns true if file was deleted, false otherwise
    */
   private static deleteIfExists(filePath: string): boolean {
+    // A file that is not there is not an error for our purposes.
+    if (!NodeFileSystem.instance.exists(filePath)) {
+      return false;
+    }
     try {
-      unlinkSync(filePath);
+      Write.remove(NodeFileSystem.instance, filePath);
       console.log(`  Deleted: ${filePath}`);
       return true;
     } catch (err: unknown) {
-      // ENOENT means file doesn't exist - not an error for our purposes
-      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-        return false;
-      }
       console.error(`  Failed to delete ${filePath}: ${err}`);
       return false;
     }

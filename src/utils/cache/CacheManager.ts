@@ -1,19 +1,18 @@
 /**
  * CacheManager
  *
- * Manages persistent cache for parsed C/C++ header symbols using flat-cache.
+ * Manages persistent cache for parsed C/C++ header symbols, read through the
+ * port and written by 3.1 Write (#1653).
  * Cache is stored in .cnx/ directory (similar to .git/).
  *
  * Cache structure:
  *   .cnx/
  *     config.json     - Cache metadata (version, timestamps)
  *     cache/
- *       symbols.json  - Cached symbols per file (managed by flat-cache)
+ *       symbols.json  - Cached symbols per file, one JSON object keyed by path
  */
 
-import { existsSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import { FlatCache, create as createFlatCache } from "flat-cache";
 import CacheKeyGenerator from "./CacheKeyGenerator";
 import JsonCodec from "./JsonCodec";
 import CachedSymbolReader from "./CachedSymbolReader";
@@ -27,6 +26,7 @@ import TJsonValue from "../types/TJsonValue";
 import IFileSystem from "../../transpiler/types/IFileSystem";
 import packageJson from "../../../package.json" with { type: "json" };
 import ESourceLanguage from "../types/ESourceLanguage";
+import Write from "../../WRITE/1-Write/Write";
 
 /** Current cache format version - increment when serialization format changes */
 // Bump when the ENTRY shape changes in a way no fingerprint can see -- the
@@ -45,7 +45,9 @@ import ESourceLanguage from "../types/ESourceLanguage";
 // unchanged shape: a saturating cast of it would read it three times.
 // 15: #1760 review -- a C struct field records its declarator's type
 // (`uint8_t*`, `float (*)(void)`), where it recorded its specifiers alone.
-const CACHE_VERSION = 15;
+// 16: #1653 -- the entries are plain JSON in `symbols.json`, read through the
+// port; flat-cache wrote `flatted` to `symbols`, which invalidation removes.
+const CACHE_VERSION = 16;
 
 const TRANSPILER_VERSION = packageJson.version;
 
@@ -76,8 +78,11 @@ class CacheManager {
   private readonly configPath: string;
   private readonly fs: IFileSystem;
 
-  /** flat-cache instance for symbol storage */
-  private cache: FlatCache | null = null;
+  /** Cached entries by file path; null until `initialize` or `invalidateAll` */
+  private cache: Map<string, unknown> | null = null;
+
+  /** Where the entries persist */
+  private readonly symbolsPath: string;
 
   /** Whether the cache has been modified and needs flushing */
   private dirty = false;
@@ -87,6 +92,7 @@ class CacheManager {
     this.cacheDir = join(projectRoot, ".cnx");
     this.cacheSubdir = join(this.cacheDir, "cache");
     this.configPath = join(this.cacheDir, "config.json");
+    this.symbolsPath = join(this.cacheSubdir, "symbols.json");
   }
 
   /**
@@ -94,43 +100,30 @@ class CacheManager {
    */
   async initialize(): Promise<void> {
     // Create .cnx directory structure
-    if (!this.fs.exists(this.cacheDir)) {
-      this.fs.mkdir(this.cacheDir, { recursive: true });
-    }
-
-    if (!this.fs.exists(this.cacheSubdir)) {
-      this.fs.mkdir(this.cacheSubdir, { recursive: true });
-    }
+    Write.directory(this.fs, this.cacheDir);
+    Write.directory(this.fs, this.cacheSubdir);
 
     // Load or create config
     const config = this.loadOrCreateConfig();
 
     // Check if cache should be invalidated
     if (this.shouldInvalidateCache(config)) {
-      // Remove old cache file if it exists
-      // Note: flat-cache manages the actual file, so we use existsSync/unlinkSync here
-      const oldCacheFile = join(this.cacheSubdir, "symbols");
-      if (existsSync(oldCacheFile)) {
+      // Remove the file flat-cache wrote before #1653, if one is left
+      const legacyCacheFile = join(this.cacheSubdir, "symbols");
+      if (this.fs.exists(legacyCacheFile)) {
         try {
-          unlinkSync(oldCacheFile);
+          Write.remove(this.fs, legacyCacheFile);
         } catch {
           // Ignore if we can't delete
         }
       }
-      // Create fresh cache
-      this.cache = createFlatCache({
-        cacheId: "symbols",
-        cacheDir: this.cacheSubdir,
-      });
+      // Start fresh; the next flush replaces symbols.json
+      this.cache = new Map();
       this.saveConfig();
       return;
     }
 
-    // Load existing cache - create also loads if file exists
-    this.cache = createFlatCache({
-      cacheId: "symbols",
-      cacheDir: this.cacheSubdir,
-    });
+    this.cache = this.readEntries();
 
     // Issue #1225: drop anything written in an older entry shape
     this.discardOutdatedEntries();
@@ -142,7 +135,7 @@ class CacheManager {
   isValid(filePath: string): boolean {
     if (!this.cache) return false;
 
-    const entry = this.cache.getKey(filePath);
+    const entry = this.cache.get(filePath);
     if (!entry) {
       return false;
     }
@@ -170,7 +163,7 @@ class CacheManager {
   } | null {
     if (!this.cache) return null;
 
-    const entry = this.cache.getKey(filePath);
+    const entry = this.cache.get(filePath);
     if (!entry) {
       return null;
     }
@@ -283,7 +276,7 @@ class CacheManager {
       preprocessFailed: options.preprocessFailed,
     };
 
-    this.cache.setKey(filePath, entry);
+    this.cache.set(filePath, entry);
     this.dirty = true;
   }
 
@@ -413,7 +406,7 @@ class CacheManager {
   invalidate(filePath: string): void {
     if (!this.cache) return;
 
-    this.cache.removeKey(filePath);
+    this.cache.delete(filePath);
     this.dirty = true;
   }
 
@@ -421,16 +414,7 @@ class CacheManager {
    * Invalidate all cached entries
    */
   invalidateAll(): void {
-    if (this.cache) {
-      // Clear all entries
-      this.cache.clear();
-    } else {
-      // Create fresh cache if not initialized
-      this.cache = createFlatCache({
-        cacheId: "symbols",
-        cacheDir: this.cacheSubdir,
-      });
-    }
+    this.cache = new Map();
     this.dirty = true;
   }
 
@@ -442,8 +426,32 @@ class CacheManager {
       return;
     }
 
-    this.cache.save();
+    Write.file(
+      this.fs,
+      this.symbolsPath,
+      JSON.stringify(Object.fromEntries(this.cache)),
+    );
     this.dirty = false;
+  }
+
+  /**
+   * The entries `symbols.json` holds, or none when there is no file or it does
+   * not parse as an object: a cache that cannot be read is re-derived, never
+   * trusted.
+   */
+  private readEntries(): Map<string, unknown> {
+    if (!this.fs.exists(this.symbolsPath)) {
+      return new Map();
+    }
+    try {
+      const parsed: unknown = JSON.parse(this.fs.readFile(this.symbolsPath));
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return new Map(Object.entries(parsed));
+      }
+    } catch {
+      // Unreadable: fall through to an empty cache
+    }
+    return new Map();
   }
 
   /**
@@ -489,7 +497,7 @@ class CacheManager {
       structStateShape: STRUCT_STATE_SHAPE,
     };
 
-    this.fs.writeFile(this.configPath, JSON.stringify(configToSave, null, 2));
+    Write.file(this.fs, this.configPath, JSON.stringify(configToSave, null, 2));
   }
 
   /**
@@ -527,15 +535,14 @@ class CacheManager {
   private discardOutdatedEntries(): void {
     if (!this.cache) return;
 
-    const allEntries = this.cache.all();
-    for (const [key, value] of Object.entries(allEntries)) {
+    for (const [key, value] of [...this.cache]) {
       const data = value as Record<string, unknown>;
 
       if (typeof data.cacheKey === "string") {
         continue;
       }
 
-      this.cache.removeKey(key);
+      this.cache.delete(key);
       this.dirty = true;
     }
   }

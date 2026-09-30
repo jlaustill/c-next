@@ -100,14 +100,7 @@ class PathResolver {
     if (relativePath) {
       // File is under an input directory - preserve structure
       const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ext);
-      const outputPath = join(this.config.outDir, outputRelative);
-
-      const outputDir = dirname(outputPath);
-      if (!this.fs.exists(outputDir)) {
-        this.fs.mkdir(outputDir, { recursive: true });
-      }
-
-      return outputPath;
+      return join(this.config.outDir, outputRelative);
     }
 
     // Fallback: output next to the source file (not in outDir)
@@ -130,14 +123,7 @@ class PathResolver {
    * @returns The full header output path
    */
   getHeaderOutputPath(file: IDiscoveredFile, ext: THeaderExtension): string {
-    const outputPath = this.headerPathFor(file.path, ext);
-
-    const outputDir = dirname(outputPath);
-    if (!this.fs.exists(outputDir)) {
-      this.fs.mkdir(outputDir, { recursive: true });
-    }
-
-    return outputPath;
+    return this.headerPathFor(file.path, ext);
   }
 
   /**

@@ -94,6 +94,23 @@ describe("ConfigLoader", () => {
       expect(config.target).toBe("from-cnext");
     });
 
+    it("skips an empty config file and keeps searching upward", () => {
+      // cosmiconfig's default (ignoreEmptySearchPlaces), kept by #1653's
+      // replacement: an empty file is not a config, so the search continues.
+      const subDir = join(tempDir, "app");
+      mkdirSync(subDir, { recursive: true });
+      writeFileSync(join(subDir, "cnext.config.json"), "  \n");
+      writeFileSync(
+        join(tempDir, ".cnextrc"),
+        JSON.stringify({ target: "found-above-the-empty-one" }),
+      );
+
+      const config = ConfigLoader.load(subDir);
+
+      expect(config.target).toBe("found-above-the-empty-one");
+      expect(config._path).toBe(join(tempDir, ".cnextrc"));
+    });
+
     it("searches up the directory tree", () => {
       // Create nested directory structure
       const subDir = join(tempDir, "src", "components");

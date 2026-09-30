@@ -5,7 +5,7 @@
  */
 
 import { dirname, resolve } from "node:path";
-import { existsSync, statSync } from "node:fs";
+import NodeFileSystem from "../transpiler/NodeFileSystem";
 import ArgParser from "./ArgParser";
 import ConfigLoader from "./ConfigLoader";
 import ConfigPrinter from "./ConfigPrinter";
@@ -82,12 +82,12 @@ class Cli {
     }
 
     const resolvedInput = resolve(config.input);
-    if (!existsSync(resolvedInput)) {
+    if (!NodeFileSystem.instance.exists(resolvedInput)) {
       console.error(`Error: Input not found: ${config.input}`);
       return { shouldRun: false, exitCode: 1 };
     }
 
-    if (statSync(resolvedInput).isDirectory()) {
+    if (NodeFileSystem.instance.isDirectory(resolvedInput)) {
       console.error(
         "Error: Directory input not supported. Specify an entry point file.",
       );

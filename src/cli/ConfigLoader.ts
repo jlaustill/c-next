@@ -1,12 +1,18 @@
 /**
  * ConfigLoader
- * Loads configuration from project config files using cosmiconfig
+ * Loads configuration from project config files, read through the port.
  */
 
-import { cosmiconfigSync } from "cosmiconfig";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import IFileConfig from "./types/IFileConfig";
 import PathNormalizer from "./PathNormalizer";
+import NodeFileSystem from "../transpiler/NodeFileSystem";
+
+/**
+ * Searched in this order in each directory. `cnext --help` documents these
+ * three names and JSON as the only format.
+ */
+const SEARCH_PLACES = ["cnext.config.json", ".cnext.json", ".cnextrc"];
 
 /**
  * Load configuration from project directory
@@ -18,36 +24,67 @@ class ConfigLoader {
    * @returns Loaded configuration (empty object if no config found)
    */
   static load(startDir: string): IFileConfig {
-    const explorer = cosmiconfigSync("cnext", {
-      searchPlaces: ["cnext.config.json", ".cnext.json", ".cnextrc"],
-      loaders: {
-        ".cnextrc": (_filepath: string, content: string) => JSON.parse(content),
-      },
-      // Search up to filesystem root
-      stopDir: "/",
-    });
+    const found = ConfigLoader.find(resolve(startDir));
+    if (!found) {
+      return {}; // No config found
+    }
 
+    let config: unknown;
     try {
-      const result = explorer.search(startDir);
-      if (result?.config) {
-        const config = result.config as IFileConfig;
-        config._path = result.filepath;
-        return ConfigLoader.anchorPaths(config, dirname(result.filepath));
-      }
+      config = JSON.parse(found.content);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`Warning: Failed to parse config: ${message}`);
       return {};
     }
+    if (!config || typeof config !== "object") {
+      return {};
+    }
 
-    return {}; // No config found
+    const fileConfig = config as IFileConfig;
+    fileConfig._path = found.path;
+    return ConfigLoader.anchorPaths(fileConfig, dirname(found.path));
+  }
+
+  /**
+   * #1653: the first non-empty config file, from `startDir` up to the root.
+   *
+   * This replaces cosmiconfig, for two reasons. First, cosmiconfig read the
+   * disk itself, outside the injected port, where no gate could see it. Second,
+   * it read more than `cnext --help` documents. With `stopDir` set, cosmiconfig
+   * 9 switches to its "global" strategy, so after the upward walk it also
+   * searched the OS config directory for `config`, `config.json`,
+   * `config.yaml`, `config.js`, `config.ts` and more, and a JavaScript one
+   * would be executed. Only the documented search remains: the three names,
+   * JSON, and the upward walk.
+   *
+   * An empty file is skipped and the search continues, as cosmiconfig's
+   * default `ignoreEmptySearchPlaces` did.
+   */
+  private static find(
+    startDir: string,
+  ): { path: string; content: string } | null {
+    const fs = NodeFileSystem.instance;
+    for (let dir = startDir; ; dir = dirname(dir)) {
+      for (const place of SEARCH_PLACES) {
+        const path = join(dir, place);
+        if (!fs.isFile(path)) continue;
+        const content = fs.readFile(path);
+        if (content.trim() !== "") {
+          return { path, content };
+        }
+      }
+      if (dirname(dir) === dir) {
+        return null;
+      }
+    }
   }
 
   /**
    * Issue #1547: anchor every path a config file declares to that config file's
    * own directory.
    *
-   * cosmiconfig searches UPWARD from the start directory, so the config that is
+   * The search goes UPWARD from the start directory, so the config that is
    * found is routinely not in the directory the user is standing in. A relative
    * path read out of it and left relative is therefore resolved against the CWD
    * by whoever consumes it, which makes the destination slide with the shell:

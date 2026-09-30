@@ -99,6 +99,7 @@ import type IRecordedRequirement from "./types/IRecordedRequirement";
 import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../utils/RequirementAggregator";
 import TargetCatalogFile from "./data/TargetCatalogFile";
+import Write from "../WRITE/1-Write/Write";
 
 /** A header's cache entry, as `CacheManager` returns it. */
 type TCachedHeader = NonNullable<ReturnType<CacheManager["getSymbols"]>>;
@@ -704,7 +705,7 @@ class Transpiler {
     // header is (#1233)
     if (result.success && input.writeOutputToDisk) {
       for (const write of pendingWrites) {
-        this.fs.writeFile(write.path, write.content);
+        Write.file(this.fs, write.path, write.content);
       }
       // Stage 6: Write the Stage 5.5 headers (only to disk in files mode)
       this._generateAllHeadersFromPipeline(
@@ -1620,11 +1621,11 @@ class Transpiler {
    * Ensure output directories exist
    */
   private _ensureOutputDirectories(): void {
-    if (this.config.outDir && !this.fs.exists(this.config.outDir)) {
-      this.fs.mkdir(this.config.outDir, { recursive: true });
+    if (this.config.outDir) {
+      Write.directory(this.fs, this.config.outDir);
     }
-    if (this.config.headerOutDir && !this.fs.exists(this.config.headerOutDir)) {
-      this.fs.mkdir(this.config.headerOutDir, { recursive: true });
+    if (this.config.headerOutDir) {
+      Write.directory(this.fs, this.config.headerOutDir);
     }
   }
 
@@ -2185,7 +2186,7 @@ class Transpiler {
           file.discoveredFile,
           this.outputExtensions.header,
         );
-        this.fs.writeFile(headerPath, headerContent);
+        Write.file(this.fs, headerPath, headerContent);
         result.outputFiles.push(headerPath);
       }
     }
