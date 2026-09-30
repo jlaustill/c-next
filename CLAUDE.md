@@ -376,6 +376,10 @@ which must stay update-free to remain a gate. It fails when a listed fixture los
 green). Growth never fails it. Removing a diagnostic on purpose means deleting its row in
 the same commit. Regenerate with `npm run diagnostics:manifest`.
 
+**`docs/error-codes.md` is read in code order**: `error-codes:check` fails a new code placed
+in its thematic section out of sequence. Add it after the highest code, under its own
+heading.
+
 **C vs C++ const linkage**: C const at file scope has external linkage; C++ const has internal linkage (needs `extern`). `TranspileState.cppMode` controls this.
 
 ---
@@ -805,6 +809,17 @@ foo.expected.error    # Expected error (if test-error)
   unrelated-looking reason, because the mutation _and_ the change under test had both
   vanished. Commit before mutating, or `cp` the file aside and copy it back, then grep for
   the mutation marker to confirm it is gone
+- **Full-suite mutation or before-fix runs**: `git clone --local` into scratch and check out
+  the SHA. Not `git archive`, since unit tests run `git ls-files`, and never a worktree.
+  Parallel runs each keep their logs inside their own clone
+- **2.1 stops at a file's first failing analyzer stage**: a `test-error` fixture cannot
+  assert that a later-stage diagnostic stays silent (a false E0854 beside an E0892 never
+  runs). Put that guard across an include, where the includer is analyzed on its own
+  (#1824 review)
+- **Match an invariant's test on text only that invariant produces**: two invariants that
+  share a message prefix let `toThrow(prefix)` pass with either one removed (#1824 review)
+- **Counting fixtures**: `git ls-files 'tests/**/*.test.cnx'` misses the top-level
+  `tests/*.test.cnx`. Add that pattern, or read the harness's `Passed:` line
 - **A mutation must imitate the defect, not fit the guard.** Both are green-to-red, and
   only one is evidence. Twice in #1657 a guard was re-aimed and "mutation-checked" with a
   probe written to match its own pattern: the `isScopeType` guard kept the STATIC spelling
@@ -882,6 +897,9 @@ buffer[0] = (uint8_t)(magic);
   that 2.1 has already accepted; whether one is allowed is 2.1's decision (see
   "Enum `expectedType` Contexts")
 - **Struct access**: Track `currentStructType` through member chains
+- **A declaration renders through three plans**: a statement's (`planVariableDecl`), a
+  scope member's (the scope-variable plan) and a struct field's. A change to declaration
+  rendering is checked in all three (#1824 review)
 - **C++ mode**: Parameter signatures are rendered by `ParameterSignatureBuilder.build()` for both `.c` and `.h` generation — shared from the builder inwards; what reaches it is still derived once per path (#1639). Use `CppModeHelper` for mode-specific logic
 - **Handler state**: reach it through the context you were handed —
   `IAssignmentContext.state` in a handler, `IOrchestrator.state` in a generator,
