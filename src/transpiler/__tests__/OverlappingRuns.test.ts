@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
 import Preprocessor from "../logic/preprocessor/Preprocessor";
+import NodeFileSystem from "../NodeFileSystem";
 
 /**
  * Issue #1721: two runs on ONE instance, the second requested while the first
@@ -67,11 +68,14 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
 
   /** Each input's result on a fresh instance: the answer overlap must not change. */
   async function alone(input: ReturnType<typeof second>) {
-    return new Transpiler({
-      target: "host",
-      input: "",
-      noCache: true,
-    }).transpile(input);
+    return new Transpiler(
+      {
+        target: "host",
+        input: "",
+        noCache: true,
+      },
+      NodeFileSystem.instance,
+    ).transpile(input);
   }
 
   /** Holds every header preprocess until `release()` is called. */
@@ -95,11 +99,14 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
 
   async function overlapped(board: boolean) {
     const release = holdPreprocessor();
-    const transpiler = new Transpiler({
-      target: "host",
-      input: "",
-      noCache: true,
-    });
+    const transpiler = new Transpiler(
+      {
+        target: "host",
+        input: "",
+        noCache: true,
+      },
+      NodeFileSystem.instance,
+    );
     const firstRun = transpiler.transpile(first(board));
     // Let the first run reach the held preprocessor.
     await new Promise((resolve) => setImmediate(resolve));
@@ -150,7 +157,10 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
       target: "host",
       headerOutDir: join(tempDir, "include"),
     };
-    const firstAlone = await new Transpiler(config).transpile(parked);
+    const firstAlone = await new Transpiler(
+      config,
+      NodeFileSystem.instance,
+    ).transpile(parked);
     // The self-check: the rewrite is observable here, so losing it shows.
     expect(firstAlone.errors).toEqual([]);
     expect(firstAlone.files[0]?.code).not.toContain(
@@ -158,7 +168,7 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
     );
 
     const release = holdPreprocessor();
-    const transpiler = new Transpiler(config);
+    const transpiler = new Transpiler(config, NodeFileSystem.instance);
     const firstRun = transpiler.transpile(parked);
     await new Promise((resolve) => setImmediate(resolve));
     const secondRun = transpiler.transpile(second());
@@ -171,11 +181,14 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
   });
 
   it("control: the same runs one after the other on one instance", async () => {
-    const transpiler = new Transpiler({
-      target: "host",
-      input: "",
-      noCache: true,
-    });
+    const transpiler = new Transpiler(
+      {
+        target: "host",
+        input: "",
+        noCache: true,
+      },
+      NodeFileSystem.instance,
+    );
     const firstResult = await transpiler.transpile(first(true));
     const secondResult = await transpiler.transpile(second());
 

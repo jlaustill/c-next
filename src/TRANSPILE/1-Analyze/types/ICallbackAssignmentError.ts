@@ -7,7 +7,7 @@
  * - E0880: a function that is itself a callback type placed into a slot of
  *   another callback type (nominal typing)
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface ICallbackAssignmentError extends IBaseAnalysisError {}
 

@@ -19,6 +19,7 @@ import { join } from "node:path";
 
 import Transpiler from "../../src/transpiler/Transpiler";
 import TestUtils from "../test-utils";
+import NodeFileSystem from "../../src/transpiler/NodeFileSystem";
 
 /** Throwaway output directory; the matrix cares about provenance, not files. */
 function scratchDir(): string {
@@ -38,11 +39,14 @@ async function forFixture(fixturePath: string): Promise<Map<string, number[]>> {
   let result;
   try {
     const source = readFileSync(fixturePath, "utf-8");
-    const transpiler = new Transpiler({
-      input: fixturePath,
-      outDir: scratchDir(),
-      target: TestUtils.harnessTarget(source),
-    });
+    const transpiler = new Transpiler(
+      {
+        input: fixturePath,
+        outDir: scratchDir(),
+        target: TestUtils.harnessTarget(source),
+      },
+      NodeFileSystem.instance,
+    );
     result = await transpiler.transpile({
       kind: "source",
       source,

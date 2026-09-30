@@ -1,7 +1,7 @@
 import IHeaderSymbol from "./IHeaderSymbol";
 import IHeaderOptions from "../../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "../generators/IHeaderTypeInput";
-import TPassByValueParams from "../../../../transpiler/types/TPassByValueParams";
+import TPassByValueParams from "./TPassByValueParams";
 
 /**
  * The fully-resolved input to one file's header render call

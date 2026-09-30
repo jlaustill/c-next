@@ -19,6 +19,7 @@ import TestSymbolUtils from "../cnext/__tests__/testSymbolUtils";
 import TVisibility from "../../../transpiler/types/TVisibility";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import TestEnumMembers from "../../../transpiler/types/__testUtils__/testEnumMembers";
+import NodeFileSystem from "../../../transpiler/NodeFileSystem";
 
 describe("SymbolTable", () => {
   let symbolTable: SymbolTable;
@@ -666,7 +667,10 @@ describe("SymbolTable", () => {
     const LONG_SCOPE = "TemperatureSensorController";
 
     // A real catalog row, budget 31: C99's guarantee
-    const targetCaps = TargetResolver.byName("cortex-m7")!;
+    const targetCaps = TargetResolver.byName(
+      "cortex-m7",
+      NodeFileSystem.instance,
+    )!;
 
     /** A scope member variable, public unless told otherwise. */
     function scopeVariable(

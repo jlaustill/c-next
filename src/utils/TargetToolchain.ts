@@ -13,7 +13,7 @@
  * compiled by the machine's own `gcc`, whatever triple the row records.
  */
 
-import type IGccToolchain from "../transpiler/types/IGccToolchain";
+import type IGccToolchain from "./types/IGccToolchain";
 import type ITargetDescription from "../transpiler/types/ITargetDescription";
 
 /** The build machine's row in the target catalog */

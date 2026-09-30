@@ -13,7 +13,13 @@ import {
   mkdirSync,
   readdirSync,
   realpathSync,
+  renameSync,
+  unlinkSync,
+  mkdtempSync,
+  rmSync,
 } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import IFileSystem from "./types/IFileSystem";
 
 /**
@@ -48,6 +54,33 @@ class NodeFileSystem implements IFileSystem {
 
   mkdir(path: string, options?: { recursive?: boolean }): void {
     mkdirSync(path, options);
+  }
+
+  unlink(path: string): void {
+    unlinkSync(path);
+  }
+
+  rename(from: string, to: string): void {
+    renameSync(from, to);
+  }
+
+  async withTempFile<T>(
+    name: string,
+    content: string,
+    use: (path: string) => Promise<T>,
+  ): Promise<T> {
+    const dir = mkdtempSync(join(tmpdir(), "cnext-"));
+    try {
+      const path = join(dir, name);
+      writeFileSync(path, content, "utf-8");
+      return await use(path);
+    } finally {
+      try {
+        rmSync(dir, { recursive: true, force: true });
+      } catch {
+        // A directory we cannot remove is left for the OS to reclaim.
+      }
+    }
   }
 
   readdir(path: string): string[] {

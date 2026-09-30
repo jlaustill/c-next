@@ -9,6 +9,7 @@ import ResultPrinter from "../ResultPrinter";
 import ICliConfig from "../types/ICliConfig";
 import InputExpansion from "../../transpiler/data/InputExpansion";
 import * as fs from "node:fs";
+import { dirname, resolve } from "node:path";
 
 // Mock dependencies
 vi.mock("../../transpiler/Transpiler");
@@ -21,6 +22,7 @@ vi.mock("node:fs", async () => {
     existsSync: vi.fn(),
     statSync: vi.fn(),
     renameSync: vi.fn(),
+    mkdirSync: vi.fn(),
   };
 });
 
@@ -146,7 +148,16 @@ describe("Runner", () => {
         "process.exit(0)",
       );
 
-      expect(fs.renameSync).toHaveBeenCalled();
+      // #1653: 3.1 Write creates the destination's directory, then moves the
+      // file into it. Mocked, or the test makes a real ./output/ (#1826 review).
+      const explicit = resolve("output/result.c");
+      expect(fs.mkdirSync).toHaveBeenCalledWith(dirname(explicit), {
+        recursive: true,
+      });
+      expect(fs.renameSync).toHaveBeenCalledWith(
+        "/project/output/main.c",
+        explicit,
+      );
     });
 
     it("passes all config options to Transpiler", async () => {

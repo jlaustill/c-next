@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import IncludeDiscovery from "../IncludeDiscovery";
 import IFileSystem from "../../types/IFileSystem";
+import NodeFileSystem from "../../NodeFileSystem";
 
 describe("IncludeDiscovery", () => {
   // #1640: NOT under `src/`. A test that writes into the tree another
@@ -53,7 +54,10 @@ describe("IncludeDiscovery", () => {
       writeFileSync(join(testDir, source), source2);
       mkdirSync(join(testDir, "src"), { recursive: true });
 
-      const result = IncludeDiscovery.findProjectRoot(join(testDir, "src"));
+      const result = IncludeDiscovery.findProjectRoot(
+        join(testDir, "src"),
+        NodeFileSystem.instance,
+      );
 
       expect(result).toBe(resolve(testDir));
     });
@@ -64,6 +68,7 @@ describe("IncludeDiscovery", () => {
 
       const result = IncludeDiscovery.findProjectRoot(
         join(testDir, "src", "modules"),
+        NodeFileSystem.instance,
       );
 
       expect(result).toBe(resolve(testDir));
@@ -74,7 +79,10 @@ describe("IncludeDiscovery", () => {
       writeFileSync(join(testDir, "cnext.config.json"), "{}");
       mkdirSync(join(testDir, "src"), { recursive: true });
 
-      const result = IncludeDiscovery.findProjectRoot(join(testDir, "src"));
+      const result = IncludeDiscovery.findProjectRoot(
+        join(testDir, "src"),
+        NodeFileSystem.instance,
+      );
 
       // Should find testDir since platformio.ini is checked first
       expect(result).toBe(resolve(testDir));
@@ -87,7 +95,10 @@ describe("IncludeDiscovery", () => {
       writeFileSync(join(testDir, "platformio.ini"), "[env]");
       writeFileSync(join(innerDir, "cnext.config.json"), "{}");
 
-      const result = IncludeDiscovery.findProjectRoot(innerDir);
+      const result = IncludeDiscovery.findProjectRoot(
+        innerDir,
+        NodeFileSystem.instance,
+      );
 
       expect(result).toBe(resolve(innerDir));
     });
@@ -104,6 +115,9 @@ describe("IncludeDiscovery", () => {
         writeFile: () => {},
         readdir: () => [],
         mkdir: () => {},
+        unlink: () => {},
+        rename: () => {},
+        withTempFile: () => Promise.reject(new Error("not used by this test")),
         stat: () => ({ mtimeMs: 0 }),
       };
 
@@ -124,6 +138,9 @@ describe("IncludeDiscovery", () => {
         writeFile: () => {},
         readdir: () => [],
         mkdir: () => {},
+        unlink: () => {},
+        rename: () => {},
+        withTempFile: () => Promise.reject(new Error("not used by this test")),
         stat: () => ({ mtimeMs: 0 }),
       };
 
@@ -307,17 +324,21 @@ describe("IncludeDiscovery", () => {
     });
 
     it("resolves include in search path", () => {
-      const result = IncludeDiscovery.resolveInclude("types.h", [
-        join(testDir, "include"),
-      ]);
+      const result = IncludeDiscovery.resolveInclude(
+        "types.h",
+        [join(testDir, "include")],
+        NodeFileSystem.instance,
+      );
 
       expect(result).toBe(join(testDir, "include", "types.h"));
     });
 
     it("returns null when include not found", () => {
-      const result = IncludeDiscovery.resolveInclude("nonexistent.h", [
-        join(testDir, "include"),
-      ]);
+      const result = IncludeDiscovery.resolveInclude(
+        "nonexistent.h",
+        [join(testDir, "include")],
+        NodeFileSystem.instance,
+      );
 
       expect(result).toBeNull();
     });
@@ -327,10 +348,11 @@ describe("IncludeDiscovery", () => {
       mkdirSync(secondDir, { recursive: true });
       writeFileSync(join(secondDir, "types.h"), "// second");
 
-      const result = IncludeDiscovery.resolveInclude("types.h", [
-        join(testDir, "include"),
-        secondDir,
-      ]);
+      const result = IncludeDiscovery.resolveInclude(
+        "types.h",
+        [join(testDir, "include"), secondDir],
+        NodeFileSystem.instance,
+      );
 
       // Should find in first search path
       expect(result).toBe(join(testDir, "include", "types.h"));
@@ -340,9 +362,11 @@ describe("IncludeDiscovery", () => {
       mkdirSync(join(testDir, "include", "nested"), { recursive: true });
       writeFileSync(join(testDir, "include", "nested", "deep.h"), "// deep");
 
-      const result = IncludeDiscovery.resolveInclude("nested/deep.h", [
-        join(testDir, "include"),
-      ]);
+      const result = IncludeDiscovery.resolveInclude(
+        "nested/deep.h",
+        [join(testDir, "include")],
+        NodeFileSystem.instance,
+      );
 
       expect(result).toBe(join(testDir, "include", "nested", "deep.h"));
     });
@@ -350,7 +374,11 @@ describe("IncludeDiscovery", () => {
     it("handles absolute paths directly", () => {
       const absolutePath = join(testDir, "include", "types.h");
 
-      const result = IncludeDiscovery.resolveInclude(absolutePath, []);
+      const result = IncludeDiscovery.resolveInclude(
+        absolutePath,
+        [],
+        NodeFileSystem.instance,
+      );
 
       expect(result).toBe(absolutePath);
     });
@@ -358,7 +386,11 @@ describe("IncludeDiscovery", () => {
     it("returns null for non-existent absolute path", () => {
       const absolutePath = join(testDir, "include", "nonexistent.h");
 
-      const result = IncludeDiscovery.resolveInclude(absolutePath, []);
+      const result = IncludeDiscovery.resolveInclude(
+        absolutePath,
+        [],
+        NodeFileSystem.instance,
+      );
 
       expect(result).toBeNull();
     });
@@ -366,9 +398,11 @@ describe("IncludeDiscovery", () => {
     it("skips directories (only returns files)", () => {
       mkdirSync(join(testDir, "include", "subdir"), { recursive: true });
 
-      const result = IncludeDiscovery.resolveInclude("subdir", [
-        join(testDir, "include"),
-      ]);
+      const result = IncludeDiscovery.resolveInclude(
+        "subdir",
+        [join(testDir, "include")],
+        NodeFileSystem.instance,
+      );
 
       expect(result).toBeNull();
     });
@@ -384,6 +418,7 @@ describe("IncludeDiscovery", () => {
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       expect(paths).toContain(resolve(testDir));
@@ -397,6 +432,7 @@ describe("IncludeDiscovery", () => {
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       expect(paths).toContain(join(testDir, "include"));
@@ -410,6 +446,7 @@ describe("IncludeDiscovery", () => {
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       const uniquePaths = new Set(paths);
@@ -426,6 +463,7 @@ describe("IncludeDiscovery", () => {
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       expect(
@@ -447,6 +485,7 @@ lib_extra_dirs = extra_libs
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       expect(paths.some((p) => p.includes("extra_libs"))).toBe(true);
@@ -464,6 +503,7 @@ lib_extra_dirs = extra_libs
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       expect(paths.some((p) => p.endsWith("crlf_libs"))).toBe(true);
@@ -491,6 +531,7 @@ lib_extra_dirs =
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       expect(paths.some((p) => p.includes("libs_one"))).toBe(true);
@@ -514,6 +555,7 @@ build_flags = not_a_lib_dir
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       expect(paths.some((p) => p.includes("libs_one"))).toBe(true);
@@ -537,6 +579,7 @@ lib_extra_dirs =
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       expect(paths.some((p) => p.includes("lib=v2"))).toBe(true);
@@ -558,6 +601,7 @@ lib_extra_dirs = lib1, lib2
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       expect(paths.some((p) => p.includes("lib1"))).toBe(true);
@@ -578,6 +622,7 @@ lib_extra_dirs = extra ; this is a comment
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       expect(paths.some((p) => p.includes("extra"))).toBe(true);
@@ -597,6 +642,7 @@ lib_extra_dirs = "quoted lib"
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       expect(paths.some((p) => p.includes("quoted lib"))).toBe(true);
@@ -609,6 +655,7 @@ lib_extra_dirs = "quoted lib"
         writeFileSync(join(testDir, "platformio.ini"), ini);
         return IncludeDiscovery.discoverIncludePaths(
           join(testDir, "src", "main.cnx"),
+          NodeFileSystem.instance,
         );
       };
 
@@ -637,6 +684,7 @@ lib_extra_dirs = "quoted lib"
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       expect(paths.some((p) => p.includes("Library1"))).toBe(true);
@@ -652,6 +700,7 @@ lib_extra_dirs = "quoted lib"
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       expect(paths.some((p) => p.endsWith("src") && p.includes("MyLib"))).toBe(
@@ -668,6 +717,7 @@ lib_extra_dirs = "quoted lib"
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       expect(
@@ -691,6 +741,7 @@ lib_extra_dirs = "quoted lib"
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       expect(paths.some((p) => p.includes("EspLib"))).toBe(true);
@@ -722,6 +773,7 @@ lib_extra_dirs = "quoted lib"
 
         const paths = IncludeDiscovery.discoverIncludePaths(
           join(testDir, "src", "main.cnx"),
+          NodeFileSystem.instance,
         );
 
         expect(paths.some((p) => p.includes("MyLib"))).toBe(true);
@@ -746,6 +798,7 @@ lib_extra_dirs = "quoted lib"
 
         const paths = IncludeDiscovery.discoverIncludePaths(
           join(testDir, "src", "main.cnx"),
+          NodeFileSystem.instance,
         );
 
         expect(
@@ -770,6 +823,7 @@ lib_extra_dirs = "quoted lib"
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       // Should not throw
@@ -783,6 +837,7 @@ lib_extra_dirs = "quoted lib"
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       // Should not throw
@@ -802,6 +857,7 @@ lib_extra_dirs = nonexistent_dir
 
       const paths = IncludeDiscovery.discoverIncludePaths(
         join(testDir, "src", "main.cnx"),
+        NodeFileSystem.instance,
       );
 
       // Should not include nonexistent dir
@@ -822,6 +878,7 @@ lib_extra_dirs = nonexistent_dir
 
         const paths = IncludeDiscovery.discoverIncludePaths(
           join(testDir, "src", "main.cnx"),
+          NodeFileSystem.instance,
         );
 
         // Should not throw, just skip Arduino discovery

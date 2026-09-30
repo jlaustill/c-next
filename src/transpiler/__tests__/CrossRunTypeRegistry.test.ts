@@ -33,6 +33,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
+import NodeFileSystem from "../NodeFileSystem";
 
 /** A run whose last generated file declares a function-local `u8 idx`. */
 const SHADOWS_IDX_AS_U8 = `u32 shadowFn(u32 n) {
@@ -67,13 +68,16 @@ describe("the type registry does not survive a run (#1432)", () => {
   });
 
   const newTranspiler = (): Transpiler =>
-    new Transpiler({
-      input: "",
-      includeDirs: [dir],
-      outDir: "",
-      headerOutDir: "",
-      target: "host",
-    });
+    new Transpiler(
+      {
+        input: "",
+        includeDirs: [dir],
+        outDir: "",
+        headerOutDir: "",
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
 
   const subscriptRun = async (
     transpiler: Transpiler,

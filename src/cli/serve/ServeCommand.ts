@@ -16,6 +16,7 @@ import ConfigLoader from "../ConfigLoader";
 import Transpiler from "../../transpiler/Transpiler";
 import parseWithSymbols from "../../lib/parseWithSymbols";
 import parseCHeader from "../../lib/parseCHeader";
+import NodeFileSystem from "../../transpiler/NodeFileSystem";
 
 /**
  * Method handler type (async to support Transpiler.transpile)
@@ -245,14 +246,17 @@ class ServeCommand {
 
     const config = ConfigLoader.load(workspacePath);
 
-    ServeCommand.transpiler = new Transpiler({
-      input: "",
-      includeDirs: config.include ?? [],
-      cppRequired: config.cppRequired ?? false,
-      target: config.target ?? "",
-      debugMode: config.debugMode ?? false,
-      noCache: config.noCache ?? false,
-    });
+    ServeCommand.transpiler = new Transpiler(
+      {
+        input: "",
+        includeDirs: config.include ?? [],
+        cppRequired: config.cppRequired ?? false,
+        target: config.target ?? "",
+        debugMode: config.debugMode ?? false,
+        noCache: config.noCache ?? false,
+      },
+      NodeFileSystem.instance,
+    );
 
     ServeCommand.log(
       `initialized (cppRequired=${config.cppRequired ?? false}, includeDirs=${(config.include ?? []).length})`,

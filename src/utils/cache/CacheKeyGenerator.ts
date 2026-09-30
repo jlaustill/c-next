@@ -1,8 +1,4 @@
 import IFileSystem from "../../transpiler/types/IFileSystem";
-import NodeFileSystem from "../../transpiler/NodeFileSystem";
-
-/** Default file system instance (singleton for performance) */
-const defaultFs = NodeFileSystem.instance;
 
 /**
  * Generates and validates cache keys for files.
@@ -15,10 +11,10 @@ class CacheKeyGenerator {
   /**
    * Generate a cache key for a file.
    * @param filePath Absolute path to the file
-   * @param fs File system abstraction (defaults to NodeFileSystem)
+   * @param fs File system abstraction
    * @returns Cache key string (format: "mtime:<timestamp>")
    */
-  static generate(filePath: string, fs: IFileSystem = defaultFs): string {
+  static generate(filePath: string, fs: IFileSystem): string {
     const stats = fs.stat(filePath);
     return `mtime:${stats.mtimeMs}`;
   }
@@ -27,13 +23,13 @@ class CacheKeyGenerator {
    * Check if a file's current state matches a cached key.
    * @param filePath Absolute path to the file
    * @param cachedKey The key stored in cache
-   * @param fs File system abstraction (defaults to NodeFileSystem)
+   * @param fs File system abstraction
    * @returns true if file is unchanged
    */
   static isValid(
     filePath: string,
     cachedKey: string,
-    fs: IFileSystem = defaultFs,
+    fs: IFileSystem,
   ): boolean {
     try {
       return CacheKeyGenerator.generate(filePath, fs) === cachedKey;

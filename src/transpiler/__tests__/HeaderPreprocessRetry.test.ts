@@ -64,7 +64,7 @@ void run() {
 
 describe("header preprocessing retry (#1817)", () => {
   let dir: string;
-  const available = new Preprocessor().isAvailable();
+  const available = new Preprocessor(NodeFileSystem.instance).isAvailable();
 
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-retry-"));
@@ -81,13 +81,16 @@ describe("header preprocessing retry (#1817)", () => {
   });
 
   async function preprocessWarnings(): Promise<string[]> {
-    const transpiler = new Transpiler({
-      input: join(dir, "main.cnx"),
-      includeDirs: [dir],
-      outDir: join(dir, "out"),
-      noCache: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(dir, "main.cnx"),
+        includeDirs: [dir],
+        outDir: join(dir, "out"),
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
     const result = await transpiler.transpile({ kind: "files" });
     return result.warnings.filter((w) => w.startsWith("Preprocessing failed"));
   }

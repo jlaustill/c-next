@@ -17,6 +17,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
+import NodeFileSystem from "../NodeFileSystem";
 
 const COLORS = `enum EColor { RED, GREEN, BLUE }
 `;
@@ -38,12 +39,15 @@ describe("search path parity", () => {
   });
 
   function run(entry: string) {
-    return new Transpiler({
-      target: "host",
-      input: entry,
-      outDir: join(project, "build"),
-      noCache: true,
-    }).transpile({ kind: "files" });
+    return new Transpiler(
+      {
+        target: "host",
+        input: entry,
+        outDir: join(project, "build"),
+        noCache: true,
+      },
+      NodeFileSystem.instance,
+    ).transpile({ kind: "files" });
   }
 
   describe("a C/C++ entry point's search path (#1706)", () => {

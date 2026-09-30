@@ -1,6 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it } from "vitest";
 import includeGenerators from "../IncludeGenerator";
-import CnxFileResolver from "../../../../../../transpiler/data/CnxFileResolver";
 
 const {
   transformIncludeDirective,
@@ -9,20 +8,7 @@ const {
   processPreprocessorDirective,
 } = includeGenerators;
 
-// Mock CnxFileResolver for file system operations
-vi.mock("../../../../../../transpiler/data/CnxFileResolver", () => ({
-  default: {
-    findCnxFile: vi.fn(),
-    getRelativePathFromInputs: vi.fn(),
-    cnxFileExists: vi.fn(),
-  },
-}));
-
 describe("IncludeGenerator", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   describe("transformIncludeDirective - angle brackets", () => {
     // Issue #1467: `rewrites` is PathResolver's answer, arriving already
     // resolved. These tests assert that it is USED and that the fallback is
@@ -123,8 +109,6 @@ describe("IncludeGenerator", () => {
 
   describe("transformIncludeDirective - quotes", () => {
     it("transforms quoted .cnx include to .h", () => {
-      vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(true);
-
       const result = transformIncludeDirective('#include "helper.cnx"', {
         headerExtension: ".h",
         sourcePath: "/project/src/main.cnx",
@@ -135,8 +119,6 @@ describe("IncludeGenerator", () => {
     });
 
     it("transforms quoted include with relative path", () => {
-      vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(true);
-
       const result = transformIncludeDirective('#include "../lib/utils.cnx"', {
         headerExtension: ".h",
         sourcePath: "/project/src/main.cnx",
@@ -146,7 +128,7 @@ describe("IncludeGenerator", () => {
       expect(result).toBe('#include "../lib/utils.h"');
     });
 
-    it("skips validation when sourcePath is null", () => {
+    it("rewrites a quoted .cnx include when there is no sourcePath", () => {
       const result = transformIncludeDirective('#include "file.cnx"', {
         headerExtension: ".h",
         sourcePath: null,
@@ -154,7 +136,6 @@ describe("IncludeGenerator", () => {
       });
 
       expect(result).toBe('#include "file.h"');
-      expect(CnxFileResolver.cnxFileExists).not.toHaveBeenCalled();
     });
 
     // #1322: three cases pinning the `Included C-Next file not found` throw
@@ -164,8 +145,6 @@ describe("IncludeGenerator", () => {
     // Transformation no longer consults the file system at all.
 
     it("transforms quoted .cnx include to .hpp in C++ mode", () => {
-      vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(true);
-
       const result = transformIncludeDirective('#include "helper.cnx"', {
         sourcePath: "/project/src/main.cnx",
         headerExtension: ".hpp",
@@ -176,8 +155,6 @@ describe("IncludeGenerator", () => {
     });
 
     it("transforms quoted include with relative path to .hpp in C++ mode", () => {
-      vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(true);
-
       const result = transformIncludeDirective('#include "../lib/utils.cnx"', {
         sourcePath: "/project/src/main.cnx",
         headerExtension: ".hpp",
@@ -396,8 +373,6 @@ describe("IncludeGenerator", () => {
     });
 
     it("handles .cnx extension variations in quotes", () => {
-      vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(true);
-
       const result = transformIncludeDirective('#include "file.cnx"', {
         headerExtension: ".h",
         sourcePath: "/project/main.cnx",
@@ -424,8 +399,6 @@ describe("IncludeGenerator", () => {
     });
 
     it("handles special characters in file names", () => {
-      vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(true);
-
       const result = transformIncludeDirective('#include "file-name_v2.cnx"', {
         headerExtension: ".h",
         sourcePath: "/project/main.cnx",

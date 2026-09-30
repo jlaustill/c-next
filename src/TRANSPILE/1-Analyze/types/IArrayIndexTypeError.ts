@@ -6,7 +6,7 @@
  * - E0851: Floating-point type used as subscript index
  * - E0852: Other non-integer type used as subscript index
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IArrayIndexTypeError extends IBaseAnalysisError {
   actualType: string;

@@ -4,7 +4,7 @@
  * Error codes:
  * - E0431: `this` can only be used inside a scope
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IThisOutsideScopeError extends IBaseAnalysisError {}
 

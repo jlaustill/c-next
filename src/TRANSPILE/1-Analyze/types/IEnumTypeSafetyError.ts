@@ -9,7 +9,7 @@
  *   check produced were one decision with three fallbacks.
  * - E0434: the two operands of a comparison are not the same enum type.
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IEnumTypeSafetyError extends IBaseAnalysisError {}
 

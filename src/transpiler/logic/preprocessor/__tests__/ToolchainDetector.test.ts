@@ -17,6 +17,7 @@ vi.mock("node:fs", () => ({
 
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import NodeFileSystem from "../../../NodeFileSystem";
 
 describe("ToolchainDetector", () => {
   beforeEach(() => {
@@ -33,7 +34,7 @@ describe("ToolchainDetector", () => {
         throw new Error("not found");
       });
 
-      const result = ToolchainDetector.detect();
+      const result = ToolchainDetector.detect(NodeFileSystem.instance);
       expect(result).toBeNull();
     });
 
@@ -52,7 +53,7 @@ describe("ToolchainDetector", () => {
       });
       vi.mocked(existsSync).mockReturnValue(true);
 
-      const result = ToolchainDetector.detect();
+      const result = ToolchainDetector.detect(NodeFileSystem.instance);
 
       expect(result).not.toBeNull();
       expect(result!.name).toBe("arm-none-eabi-gcc");
@@ -80,7 +81,7 @@ describe("ToolchainDetector", () => {
       });
       vi.mocked(existsSync).mockReturnValue(true);
 
-      const result = ToolchainDetector.detect();
+      const result = ToolchainDetector.detect(NodeFileSystem.instance);
 
       expect(result).not.toBeNull();
       expect(result!.name).toBe("clang");
@@ -107,7 +108,7 @@ describe("ToolchainDetector", () => {
       });
       vi.mocked(existsSync).mockReturnValue(true);
 
-      const result = ToolchainDetector.detect();
+      const result = ToolchainDetector.detect(NodeFileSystem.instance);
 
       expect(result).not.toBeNull();
       expect(result!.name).toBe("gcc");
@@ -134,7 +135,7 @@ describe("ToolchainDetector", () => {
       });
       vi.mocked(existsSync).mockReturnValue(true);
 
-      const result = ToolchainDetector.detect();
+      const result = ToolchainDetector.detect(NodeFileSystem.instance);
 
       expect(result!.cxx).toBe("/usr/bin/gcc");
     });
@@ -148,7 +149,7 @@ describe("ToolchainDetector", () => {
       });
       vi.mocked(existsSync).mockReturnValue(false);
 
-      const result = ToolchainDetector.detect();
+      const result = ToolchainDetector.detect(NodeFileSystem.instance);
       expect(result).toBeNull();
     });
   });
@@ -159,7 +160,7 @@ describe("ToolchainDetector", () => {
         throw new Error("not found");
       });
 
-      const result = ToolchainDetector.detectAll();
+      const result = ToolchainDetector.detectAll(NodeFileSystem.instance);
       expect(result).toEqual([]);
     });
 
@@ -190,7 +191,7 @@ describe("ToolchainDetector", () => {
       });
       vi.mocked(existsSync).mockReturnValue(true);
 
-      const result = ToolchainDetector.detectAll();
+      const result = ToolchainDetector.detectAll(NodeFileSystem.instance);
 
       expect(result).toHaveLength(3);
       expect(result.map((t) => t.name)).toEqual([
@@ -269,7 +270,10 @@ End of search list.
     it("returns empty array when platformio.ini does not exist", () => {
       vi.mocked(existsSync).mockReturnValue(false);
 
-      const paths = ToolchainDetector.getPlatformIOIncludePaths("/project");
+      const paths = ToolchainDetector.getPlatformIOIncludePaths(
+        "/project",
+        NodeFileSystem.instance,
+      );
       expect(paths).toEqual([]);
     });
 
@@ -283,7 +287,10 @@ End of search list.
         }),
       );
 
-      const paths = ToolchainDetector.getPlatformIOIncludePaths("/project");
+      const paths = ToolchainDetector.getPlatformIOIncludePaths(
+        "/project",
+        NodeFileSystem.instance,
+      );
 
       expect(paths).toEqual(["/path/to/include", "/another/path"]);
     });
@@ -294,7 +301,10 @@ End of search list.
         throw new Error("pio not found");
       });
 
-      const paths = ToolchainDetector.getPlatformIOIncludePaths("/project");
+      const paths = ToolchainDetector.getPlatformIOIncludePaths(
+        "/project",
+        NodeFileSystem.instance,
+      );
       expect(paths).toEqual([]);
     });
 
@@ -311,7 +321,10 @@ End of search list.
         }),
       );
 
-      const paths = ToolchainDetector.getPlatformIOIncludePaths("/project");
+      const paths = ToolchainDetector.getPlatformIOIncludePaths(
+        "/project",
+        NodeFileSystem.instance,
+      );
 
       expect(paths).toContain("/esp32/include");
       expect(paths).toContain("/stm32/include");
@@ -327,7 +340,10 @@ End of search list.
         }),
       );
 
-      const paths = ToolchainDetector.getPlatformIOIncludePaths("/project");
+      const paths = ToolchainDetector.getPlatformIOIncludePaths(
+        "/project",
+        NodeFileSystem.instance,
+      );
       expect(paths).toEqual([]);
     });
   });
@@ -345,7 +361,7 @@ End of search list.
       });
       vi.mocked(existsSync).mockReturnValue(true);
 
-      const result = ToolchainDetector.detect();
+      const result = ToolchainDetector.detect(NodeFileSystem.instance);
 
       expect(result!.version).toBe("gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0");
     });
@@ -362,7 +378,7 @@ End of search list.
       });
       vi.mocked(existsSync).mockReturnValue(true);
 
-      const result = ToolchainDetector.detect();
+      const result = ToolchainDetector.detect(NodeFileSystem.instance);
 
       expect(result!.version).toBeUndefined();
     });

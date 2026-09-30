@@ -2,10 +2,6 @@ import { dirname, resolve, join, isAbsolute } from "node:path";
 
 import PlatformIOIni from "./PlatformIOIni";
 import IFileSystem from "../types/IFileSystem";
-import NodeFileSystem from "../NodeFileSystem";
-
-/** Default file system instance (singleton for performance) */
-const defaultFs = NodeFileSystem.instance;
 
 /**
  * Auto-discovery of include paths for C-Next compilation
@@ -24,13 +20,10 @@ class IncludeDiscovery {
    * Discover include paths for a file
    *
    * @param inputFile - Path to .cnx file being compiled
-   * @param fs - File system abstraction (defaults to NodeFileSystem)
+   * @param fs - File system abstraction
    * @returns Array of include directory paths
    */
-  static discoverIncludePaths(
-    inputFile: string,
-    fs: IFileSystem = defaultFs,
-  ): string[] {
+  static discoverIncludePaths(inputFile: string, fs: IFileSystem): string[] {
     const paths: string[] = [];
 
     // Tier 1: File's own directory (highest priority)
@@ -248,13 +241,10 @@ class IncludeDiscovery {
    * so the list's order decides nothing.
    *
    * @param startDir - Directory to start search from
-   * @param fs - File system abstraction (defaults to NodeFileSystem)
+   * @param fs - File system abstraction
    * @returns Project root path or null if not found
    */
-  static findProjectRoot(
-    startDir: string,
-    fs: IFileSystem = defaultFs,
-  ): string | null {
+  static findProjectRoot(startDir: string, fs: IFileSystem): string | null {
     const markers = [
       "cnext.config.json",
       ".cnext.json",
@@ -426,13 +416,13 @@ class IncludeDiscovery {
    *
    * @param includePath - The include path from #include directive
    * @param searchPaths - Directories to search in
-   * @param fs - File system abstraction (defaults to NodeFileSystem)
+   * @param fs - File system abstraction
    * @returns Resolved absolute path or null if not found
    */
   static resolveInclude(
     includePath: string,
     searchPaths: string[],
-    fs: IFileSystem = defaultFs,
+    fs: IFileSystem,
   ): string | null {
     // If already absolute, check if it exists
     if (isAbsolute(includePath)) {

@@ -150,7 +150,7 @@ const ARTIFACTS: ReadonlyArray<readonly [string, string]> = [
   ["src/transpiler/types/ILexicalFrame.ts", "ILexicalFrame"],
   ["src/transpiler/types/ILocalDeclaration.ts", "ILocalDeclaration"],
   ["src/transpiler/types/ICodeGenSymbols.ts", "ICodeGenSymbols"],
-  ["src/transpiler/types/ICodeGenApi.ts", "ICodeGenApi"],
+  ["src/TRANSPILE/types/ICodeGenApi.ts", "ICodeGenApi"],
   ["src/transpiler/types/symbols/TSymbol.ts", "TSymbol"],
   ["src/PARSE/4-Resolve/Program.ts", "Program"],
   ["src/PARSE/4-Resolve/VisibleSymbols.ts", "VisibleSymbols"],

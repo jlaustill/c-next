@@ -1,4 +1,4 @@
-import type IComplianceAnnotation from "../../transpiler/types/IComplianceAnnotation";
+import type IComplianceAnnotation from "./types/IComplianceAnnotation";
 
 /**
  * 2.2 Plan -- which safety-standard rule shaped a construct, and how that is

@@ -10,7 +10,7 @@
  * category." Combining a signed and an unsigned value implicitly relies on the
  * usual arithmetic conversions, whose result can be surprising (ADR-024).
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IMixedTypeCategoryError extends IBaseAnalysisError {}
 

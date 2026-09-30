@@ -13,7 +13,7 @@ import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";
 import CHeaderGenerator from "./CHeaderGenerator";
 import CppHeaderGenerator from "./CppHeaderGenerator";
-import TPassByValueParams from "../../../transpiler/types/TPassByValueParams";
+import TPassByValueParams from "./types/TPassByValueParams";
 
 /**
  * Facade that delegates header generation to the appropriate generator

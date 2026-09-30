@@ -22,10 +22,10 @@
 import type IRunTargetInputs from "./IRunTargetInputs";
 import type IDiscoveryFacts from "./IDiscoveryFacts";
 import type IForeignSymbols from "./IForeignSymbols";
-import type IModificationFacts from "./IModificationFacts";
-import type IStructFieldInfo from "./symbols/IStructFieldInfo";
+import type IModificationFacts from "../../../transpiler/types/IModificationFacts";
+import type IStructFieldInfo from "../../../transpiler/types/symbols/IStructFieldInfo";
 import type IVisibilityInput from "./IVisibilityInput";
-import type SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
+import type SymbolRegistry from "../../3-Declare/SymbolRegistry";
 
 interface IProgramInputs {
   /** Struct fields the C and C++ headers contributed, by type name. */

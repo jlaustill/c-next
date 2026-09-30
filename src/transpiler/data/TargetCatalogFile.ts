@@ -4,43 +4,57 @@
  * Found by walking up from this module to `targets/targets.cnx`, which reaches
  * it from the TypeScript source (tsx, vitest), from the `dist/` bundle, and
  * from an installed package alike -- the catalog sits at the package root in
- * all three. Read with `node:fs` rather than the run's `IFileSystem`: the
- * catalog belongs to the compiler, not to the program being compiled, and a
- * run on an in-memory file system still needs it.
+ * all three. Read through the port the run is handed, like every other file
+ * (#1653): a port models the whole filesystem, the compiler's installation
+ * included, so a test double that stands in for one seeds the catalog, as
+ * `MockFileSystem` does.
  *
- * Read and validated once per process, on first use.
+ * Read and validated once per port, on first use.
  */
-import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import TargetCatalogParser from "../../PARSE/2-Parse/TargetCatalogParser";
 import TargetDescriptions from "../../PARSE/4-Resolve/TargetDescriptions";
 import type ITargetDescription from "../types/ITargetDescription";
+import type IFileSystem from "../types/IFileSystem";
 
 const CATALOG = join("targets", "targets.cnx");
 
 class TargetCatalogFile {
-  private static loaded: ReadonlyMap<string, ITargetDescription> | null = null;
+  /**
+   * Per port, not per process: a single slot would hand every later port the
+   * first port's answer, so a run's catalog would depend on who asked first.
+   */
+  private static readonly loaded = new WeakMap<
+    IFileSystem,
+    ReadonlyMap<string, ITargetDescription>
+  >();
 
-  /** Every target name, aliases included, to the description it denotes */
-  static targets(): ReadonlyMap<string, ITargetDescription> {
-    if (!TargetCatalogFile.loaded) {
-      const path = TargetCatalogFile.locate();
-      TargetCatalogFile.loaded = TargetDescriptions.catalog(
-        TargetCatalogParser.parse(readFileSync(path, "utf8")),
+  /**
+   * Every target name, aliases included, to the description it denotes.
+   * Read once per port. The catalog is an installation file, so a port that
+   * models the filesystem models the installation too.
+   */
+  static targets(fs: IFileSystem): ReadonlyMap<string, ITargetDescription> {
+    let catalog = TargetCatalogFile.loaded.get(fs);
+    if (!catalog) {
+      const path = TargetCatalogFile.locate(fs);
+      catalog = TargetDescriptions.catalog(
+        TargetCatalogParser.parse(fs.readFile(path)),
         path,
       );
+      TargetCatalogFile.loaded.set(fs, catalog);
     }
-    return TargetCatalogFile.loaded;
+    return catalog;
   }
 
   /** The catalog's path; throws if the installation has none */
-  static locate(): string {
+  static locate(fs: IFileSystem): string {
     let dir = dirname(fileURLToPath(import.meta.url));
     while (true) {
       const candidate = join(dir, CATALOG);
-      if (existsSync(candidate)) {
+      if (fs.exists(candidate)) {
         return candidate;
       }
       const parent = dirname(dir);

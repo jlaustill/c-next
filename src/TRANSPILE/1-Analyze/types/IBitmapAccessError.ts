@@ -6,7 +6,7 @@
  * - E0882: a member that the bitmap does not declare
  * - E0883: bracket indexing where ADR-034 requires a named field
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IBitmapAccessError extends IBaseAnalysisError {}
 

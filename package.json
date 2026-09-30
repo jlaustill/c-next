@@ -101,7 +101,8 @@
     "plugin:build": "npm --prefix prettier-plugin run build",
     "move:modules": "tsx scripts/move-modules.ts",
     "typedef-const:parity": "tsx scripts/typedef-const-parity.ts",
-    "typedef-const:parity:check": "tsx scripts/typedef-const-parity.ts check"
+    "typedef-const:parity:check": "tsx scripts/typedef-const-parity.ts check",
+    "destinations:check": "tsx scripts/module-destinations.ts"
   },
   "keywords": [
     "c",
@@ -155,8 +156,6 @@
   "dependencies": {
     "@n1ru4l/toposort": "^0.0.1",
     "antlr4ng": "^3.0.16",
-    "cosmiconfig": "^9.0.0",
-    "flat-cache": "^6.1.20",
     "immer": "^11.1.4",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",

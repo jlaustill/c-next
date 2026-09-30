@@ -7,6 +7,8 @@ import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import ConfigLoader from "../ConfigLoader";
+import MockFileSystem from "../../transpiler/__tests__/MockFileSystem";
+import IFileSystem from "../../transpiler/types/IFileSystem";
 
 describe("ConfigLoader", () => {
   let tempDir: string;
@@ -94,6 +96,23 @@ describe("ConfigLoader", () => {
       expect(config.target).toBe("from-cnext");
     });
 
+    it("skips an empty config file and keeps searching upward", () => {
+      // cosmiconfig's default (ignoreEmptySearchPlaces), kept by #1653's
+      // replacement: an empty file is not a config, so the search continues.
+      const subDir = join(tempDir, "app");
+      mkdirSync(subDir, { recursive: true });
+      writeFileSync(join(subDir, "cnext.config.json"), "  \n");
+      writeFileSync(
+        join(tempDir, ".cnextrc"),
+        JSON.stringify({ target: "found-above-the-empty-one" }),
+      );
+
+      const config = ConfigLoader.load(subDir);
+
+      expect(config.target).toBe("found-above-the-empty-one");
+      expect(config._path).toBe(join(tempDir, ".cnextrc"));
+    });
+
     it("searches up the directory tree", () => {
       // Create nested directory structure
       const subDir = join(tempDir, "src", "components");
@@ -111,6 +130,49 @@ describe("ConfigLoader", () => {
       expect(config.target).toBe("found-in-parent");
       expect(config._path).toBe(join(tempDir, "cnext.config.json"));
     });
+
+    // #1826 review: cosmiconfig skipped a config it could not read and kept
+    // searching; the replacement let EACCES escape and abort the run.
+    it("skips an unreadable config with a warning and keeps searching upward", () => {
+      const fs = new MockFileSystem()
+        .addFile("/p/app/cnext.config.json", "{}")
+        .addFile("/p/.cnextrc", JSON.stringify({ target: "from-parent" }));
+      const unreadable: IFileSystem = Object.assign(Object.create(fs), {
+        readFile: (path: string) => {
+          if (path === "/p/app/cnext.config.json") {
+            throw Object.assign(new Error("EACCES: permission denied"), {
+              code: "EACCES",
+            });
+          }
+          return fs.readFile(path);
+        },
+      });
+      const warn = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      const config = ConfigLoader.load("/p/app", unreadable);
+
+      expect(config.target).toBe("from-parent");
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "Failed to read config /p/app/cnext.config.json",
+        ),
+      );
+      warn.mockRestore();
+    });
+
+    it.each([["42"], ['"x"'], ["true"], ["[]"]])(
+      "warns and ignores a config that parses to %s, which is not a JSON object",
+      (content) => {
+        const fs = new MockFileSystem().addFile("/p/.cnextrc", content);
+        const warn = vi.spyOn(console, "error").mockImplementation(() => {});
+
+        expect(ConfigLoader.load("/p", fs)).toEqual({});
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining("/p/.cnextrc is not a JSON object"),
+        );
+        warn.mockRestore();
+      },
+    );
 
     it("returns empty object and logs warning for invalid JSON", () => {
       writeFileSync(join(tempDir, "cnext.config.json"), "{ invalid json }");

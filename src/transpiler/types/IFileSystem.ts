@@ -6,9 +6,10 @@
  * instead of requiring actual file I/O during unit tests.
  *
  * Design notes:
- * - All methods are synchronous (matching current Node.js fs usage patterns)
- * - File deletion (unlink/rmSync) intentionally omitted - not needed for transpilation
- * - Add async variants if performance optimization requires it in the future
+ * - Every method is synchronous except `withTempFile`, which awaits the
+ *   callback it is handed
+ * - Deletion and rename are here because the host routes through the port too
+ *   (#1653, carrying #1451 box 3): only `NodeFileSystem` imports `node:fs`
  */
 
 interface IFileSystem {
@@ -44,6 +45,38 @@ interface IFileSystem {
    * Create a directory (and parent directories if recursive is true).
    */
   mkdir(path: string, options?: { recursive?: boolean }): void;
+
+  /**
+   * Delete a file.
+   * @throws Error if the file doesn't exist or can't be deleted
+   */
+  unlink(path: string): void;
+
+  /**
+   * Move a file to a new path.
+   * @throws Error if the source doesn't exist or the move fails
+   */
+  rename(from: string, to: string): void;
+
+  /**
+   * Run `use` on a file holding `content`, named `name`, in a fresh directory
+   * under the system's temporary directory. The directory is removed when `use`
+   * settles, whether it resolves or throws, and a failure to remove it is
+   * ignored.
+   *
+   * For a file an external tool must read from disk (#1653). The directory holds
+   * nothing else, which matters: a C preprocessor searches the including file's
+   * own directory first for a quoted include, so an empty directory adds nothing
+   * to that search. Reading the same content on stdin would search the process's
+   * working directory instead, which was measured on gcc and clang (#1653).
+   * This is scratch, not output: 3.1 Write owns output, and this directory is
+   * gone before the call returns.
+   */
+  withTempFile<T>(
+    name: string,
+    content: string,
+    use: (path: string) => Promise<T>,
+  ): Promise<T>;
 
   /**
    * Read directory contents.

@@ -72,6 +72,7 @@ run_check "Static Analysis" "gh:pagination:check"        npm run gh:pagination:c
 run_check "Static Analysis" "parse-tree:check"           npm run parse-tree:check
 run_check "Static Analysis" "unused-code:check"          npm run unused-code:check
 run_check "Static Analysis" "typedef-const:parity:check" npm run typedef-const:parity:check
+run_check "Static Analysis" "destinations:check"         npm run destinations:check
 run_check "Static Analysis" "gate:roster:check"         npm run gate:roster:check
 
 echo -e "\n${YELLOW}Build${NC}"

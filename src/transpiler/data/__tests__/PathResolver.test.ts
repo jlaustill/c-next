@@ -8,6 +8,8 @@ import { join, relative, resolve } from "node:path";
 import PathResolver from "../PathResolver";
 import IDiscoveredFile from "../types/IDiscoveredFile";
 import EFileType from "../types/EFileType";
+import NodeFileSystem from "../../NodeFileSystem";
+import MockFileSystem from "../../__tests__/MockFileSystem";
 
 describe("PathResolver", () => {
   const testDir = join(process.cwd(), "test-path-resolver-tmp");
@@ -39,10 +41,13 @@ describe("PathResolver", () => {
 
   describe("getRelativePathFromInputs", () => {
     it("returns relative path for file under input directory", () => {
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       const filePath = join(srcDir, "main.cnx");
       writeFileSync(filePath, "");
@@ -51,10 +56,13 @@ describe("PathResolver", () => {
     });
 
     it("returns relative path preserving subdirectory structure", () => {
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       const filePath = join(srcDir, "subdir", "utils.cnx");
       writeFileSync(filePath, "");
@@ -65,10 +73,13 @@ describe("PathResolver", () => {
     });
 
     it("returns null for file not under any input directory", () => {
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       const filePath = "/some/other/path/file.cnx";
 
@@ -79,10 +90,13 @@ describe("PathResolver", () => {
       const singleFile = join(srcDir, "single.cnx");
       writeFileSync(singleFile, "");
 
-      const resolver = new PathResolver({
-        inputs: [singleFile], // File, not directory
-        outDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [singleFile], // File, not directory
+          outDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       // File inputs don't establish relative structure
       expect(resolver.getRelativePathFromInputs(singleFile)).toBeNull();
@@ -91,10 +105,13 @@ describe("PathResolver", () => {
 
   describe("getSourceRelativePath", () => {
     it("returns relative path when file is under input", () => {
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       const filePath = join(srcDir, "subdir", "utils.cnx");
       writeFileSync(filePath, "");
@@ -105,10 +122,13 @@ describe("PathResolver", () => {
     });
 
     it("returns basename when file is not under any input", () => {
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       const filePath = "/some/other/path/file.cnx";
 
@@ -118,10 +138,13 @@ describe("PathResolver", () => {
 
   describe("getOutputPath", () => {
     it("generates .c output path in outDir", () => {
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       const filePath = join(srcDir, "main.cnx");
       writeFileSync(filePath, "");
@@ -133,10 +156,13 @@ describe("PathResolver", () => {
     });
 
     it("generates .cpp output path when cppMode is true", () => {
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       const filePath = join(srcDir, "main.cnx");
       writeFileSync(filePath, "");
@@ -148,10 +174,13 @@ describe("PathResolver", () => {
     });
 
     it("preserves directory structure in output", () => {
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       const filePath = join(srcDir, "subdir", "utils.cnx");
       writeFileSync(filePath, "");
@@ -166,10 +195,13 @@ describe("PathResolver", () => {
       const otherDir = join(testDir, "other");
       mkdirSync(otherDir, { recursive: true });
 
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       const filePath = join(otherDir, "external.cnx");
       writeFileSync(filePath, "");
@@ -183,10 +215,13 @@ describe("PathResolver", () => {
 
   describe("getHeaderOutputPath", () => {
     it("generates .h path in outDir when no headerOutDir", () => {
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       const filePath = join(srcDir, "main.cnx");
       writeFileSync(filePath, "");
@@ -198,11 +233,14 @@ describe("PathResolver", () => {
     });
 
     it("generates .h path in headerOutDir when specified", () => {
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-        headerOutDir: headerDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+          headerOutDir: headerDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       const filePath = join(srcDir, "main.cnx");
       writeFileSync(filePath, "");
@@ -214,11 +252,14 @@ describe("PathResolver", () => {
     });
 
     it("preserves directory structure in header output", () => {
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-        headerOutDir: headerDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+          headerOutDir: headerDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       const filePath = join(srcDir, "subdir", "utils.cnx");
       writeFileSync(filePath, "");
@@ -233,11 +274,14 @@ describe("PathResolver", () => {
       const otherDir = join(testDir, "other");
       mkdirSync(otherDir, { recursive: true });
 
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-        // No headerOutDir specified
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+          // No headerOutDir specified
+        },
+        NodeFileSystem.instance,
+      );
 
       const filePath = join(otherDir, "external.cnx");
       writeFileSync(filePath, "");
@@ -260,11 +304,14 @@ describe("PathResolver", () => {
      * come from `--header-out`, and a flag is relative to the shell.
      */
     it("keeps structure relative to the CWD when no projectRoot is given", () => {
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-        headerOutDir: headerDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+          headerOutDir: headerDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       // Create file in testDir (not under srcDir input, but under the CWD)
       const filePath = join(testDir, "standalone.cnx");
@@ -293,12 +340,15 @@ describe("PathResolver", () => {
         const filePath = join(libDir, "util.cnx");
         writeFileSync(filePath, "");
 
-        const resolver = new PathResolver({
-          inputs: [srcDir],
-          outDir,
-          headerOutDir: headerDir,
-          projectRoot: testDir,
-        });
+        const resolver = new PathResolver(
+          {
+            inputs: [srcDir],
+            outDir,
+            headerOutDir: headerDir,
+            projectRoot: testDir,
+          },
+          NodeFileSystem.instance,
+        );
 
         const result = resolver.getHeaderOutputPath(createFile(filePath), ".h");
 
@@ -312,12 +362,15 @@ describe("PathResolver", () => {
         writeFileSync(filePath, "");
 
         const build = () =>
-          new PathResolver({
-            inputs: [srcDir],
-            outDir,
-            headerOutDir: headerDir,
-            projectRoot: testDir,
-          }).getHeaderOutputPath(createFile(filePath), ".h");
+          new PathResolver(
+            {
+              inputs: [srcDir],
+              outDir,
+              headerOutDir: headerDir,
+              projectRoot: testDir,
+            },
+            NodeFileSystem.instance,
+          ).getHeaderOutputPath(createFile(filePath), ".h");
 
         const originalCwd = process.cwd();
         try {
@@ -343,12 +396,15 @@ describe("PathResolver", () => {
         writeFileSync(filePath, "");
 
         const build = () =>
-          new PathResolver({
-            inputs: [srcDir],
-            outDir,
-            headerOutDir: headerDir,
-            projectRoot: testDir,
-          }).getHeaderIncludePath(filePath, ".h");
+          new PathResolver(
+            {
+              inputs: [srcDir],
+              outDir,
+              headerOutDir: headerDir,
+              projectRoot: testDir,
+            },
+            NodeFileSystem.instance,
+          ).getHeaderIncludePath(filePath, ".h");
 
         const originalCwd = process.cwd();
         try {
@@ -370,12 +426,15 @@ describe("PathResolver", () => {
         const filePath = join(outsideDir, "stray.cnx");
         writeFileSync(filePath, "");
 
-        const resolver = new PathResolver({
-          inputs: [srcDir],
-          outDir,
-          headerOutDir: headerDir,
-          projectRoot: testDir,
-        });
+        const resolver = new PathResolver(
+          {
+            inputs: [srcDir],
+            outDir,
+            headerOutDir: headerDir,
+            projectRoot: testDir,
+          },
+          NodeFileSystem.instance,
+        );
 
         const result = resolver.getHeaderOutputPath(createFile(filePath), ".h");
 
@@ -387,10 +446,13 @@ describe("PathResolver", () => {
 
     // Issue #933: Test C++ mode header extension
     it("generates .hpp path in C++ mode", () => {
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       const filePath = join(srcDir, "main.cnx");
       writeFileSync(filePath, "");
@@ -402,11 +464,14 @@ describe("PathResolver", () => {
     });
 
     it("generates .hpp path in headerOutDir in C++ mode", () => {
-      const resolver = new PathResolver({
-        inputs: [srcDir],
-        outDir,
-        headerOutDir: headerDir,
-      });
+      const resolver = new PathResolver(
+        {
+          inputs: [srcDir],
+          outDir,
+          headerOutDir: headerDir,
+        },
+        NodeFileSystem.instance,
+      );
 
       const filePath = join(srcDir, "main.cnx");
       writeFileSync(filePath, "");
@@ -415,6 +480,30 @@ describe("PathResolver", () => {
       const result = resolver.getHeaderOutputPath(file, ".hpp");
 
       expect(result).toBe(join(headerDir, "main.hpp"));
+    });
+  });
+
+  describe("naming decides nothing on disk (#1653, #1451 box 1)", () => {
+    it("computes output and header paths without creating a directory", () => {
+      const fs = new MockFileSystem()
+        .addDirectory("/proj/src")
+        .addFile("/proj/src/sub/main.cnx", "");
+      const resolver = new PathResolver(
+        {
+          inputs: ["/proj/src"],
+          outDir: "/proj/out",
+          headerOutDir: "/proj/inc",
+        },
+        fs,
+      );
+      const file = createFile("/proj/src/sub/main.cnx");
+
+      expect(resolver.getOutputPath(file, ".c")).toBe("/proj/out/sub/main.c");
+      expect(resolver.getHeaderOutputPath(file, ".h")).toBe(
+        "/proj/inc/sub/main.h",
+      );
+      // 3.1 Write creates a directory when it writes into it; naming never does.
+      expect(fs.getMkdirLog()).toEqual([]);
     });
   });
 });

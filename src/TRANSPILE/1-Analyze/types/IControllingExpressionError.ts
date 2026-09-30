@@ -5,7 +5,7 @@
  * - E0701: a controlling expression is not an explicit comparison
  * - E0702: a controlling expression calls a function
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IControllingExpressionError extends IBaseAnalysisError {}
 

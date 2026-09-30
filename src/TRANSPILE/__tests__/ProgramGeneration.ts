@@ -7,6 +7,7 @@ import TargetCatalogFile from "../../transpiler/data/TargetCatalogFile";
 import TargetResolver from "../../utils/TargetResolver";
 import invariant from "../../utils/invariant";
 import type CodeGenWalker from "../CodeGenWalker";
+import NodeFileSystem from "../../transpiler/NodeFileSystem";
 
 /**
  * Generate with the whole-program artifact in place.
@@ -35,7 +36,8 @@ class ProgramGeneration {
     // ADR-049: the orchestrator always decides a target before codegen; a
     // test that does not care about one gets the build machine's.
     const targetDescription =
-      options?.targetDescription ?? TargetResolver.byName("host");
+      options?.targetDescription ??
+      TargetResolver.byName("host", NodeFileSystem.instance);
     invariant(targetDescription !== undefined, "the catalog defines `host`");
     const sourcePath = options?.sourcePath ?? "test.cnx";
     const state = generator.transpileState;
@@ -51,7 +53,7 @@ class ProgramGeneration {
       registry,
       target: {
         option: targetDescription.name,
-        catalog: TargetCatalogFile.targets(),
+        catalog: TargetCatalogFile.targets(NodeFileSystem.instance),
         files: [{ sourcePath, directives: [] }],
       },
     });

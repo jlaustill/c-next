@@ -7,7 +7,7 @@
  * - E0713: duplicate case value
  * - E0714: the clauses do not cover the enum's variants exactly
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface ISwitchStatementError extends IBaseAnalysisError {}
 

@@ -6,7 +6,7 @@
  * - E0504: a `.cnx` exists where the included header does; use it instead
  * - E0506: an included C-Next file does not exist
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IIncludeDirectiveError extends IBaseAnalysisError {}
 

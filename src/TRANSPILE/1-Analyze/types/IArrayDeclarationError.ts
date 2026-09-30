@@ -9,7 +9,7 @@
  * - E0876: the fill-all form on an array whose size is inferred
  * - E0892: an array dimension with no size and nothing to count it from
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IArrayDeclarationError extends IBaseAnalysisError {}
 

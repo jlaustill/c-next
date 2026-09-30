@@ -15,9 +15,9 @@
  * This is the pure parse layer: a database string in, `{ includePaths, defines,
  * compiler }` out. No filesystem access — the loader layer reads the file.
  */
-import { readFileSync } from "node:fs";
 import { resolve, isAbsolute } from "node:path";
 import ICompileCommandsResult from "./types/ICompileCommandsResult";
+import IFileSystem from "../../types/IFileSystem";
 
 /** One compile_commands.json entry (clang spec: `command` OR `arguments`). */
 interface ICompileCommandsEntry {
@@ -66,9 +66,9 @@ class CompileCommandsReader {
    * is missing or malformed, so callers can fall back to configured includes
    * rather than fail — a missing compile database is a normal, non-fatal state.
    */
-  static load(path: string): ICompileCommandsResult | null {
+  static load(path: string, fs: IFileSystem): ICompileCommandsResult | null {
     try {
-      return CompileCommandsReader.parse(readFileSync(path, "utf8"));
+      return CompileCommandsReader.parse(fs.readFile(path));
     } catch {
       return null;
     }

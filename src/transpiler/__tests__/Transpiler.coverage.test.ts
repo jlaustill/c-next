@@ -15,6 +15,7 @@ import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import MockFileSystem from "./MockFileSystem";
+import NodeFileSystem from "../NodeFileSystem";
 
 describe("Transpiler coverage tests", () => {
   let mockFs: MockFileSystem;
@@ -1541,14 +1542,17 @@ describe("Transpiler coverage integration tests", () => {
     );
     writeFileSync(join(srcDir, "helper.cnx"), "void helper() { }");
 
-    const transpiler = new Transpiler({
-      input: join(srcDir, "main.cnx"),
-      outDir: testDir,
-      // Without this the generated header lands in process.cwd().
-      headerOutDir: testDir,
-      noCache: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(srcDir, "main.cnx"),
+        outDir: testDir,
+        // Without this the generated header lands in process.cwd().
+        headerOutDir: testDir,
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
 
     const result = await transpiler.transpile({ kind: "files" });
 
@@ -1595,14 +1599,14 @@ describe("Transpiler coverage integration tests", () => {
     };
 
     // First run - populates cache
-    const transpiler1 = new Transpiler(config);
+    const transpiler1 = new Transpiler(config, NodeFileSystem.instance);
     const result1 = await transpiler1.transpile({ kind: "files" });
     expect(result1.success).toBe(true);
     // First run should detect C++ and output .cpp
     expect(result1.outputFiles.some((f) => f.endsWith(".cpp"))).toBe(true);
 
     // Second run - should use cache and still detect C++ (lines 543-547)
-    const transpiler2 = new Transpiler(config);
+    const transpiler2 = new Transpiler(config, NodeFileSystem.instance);
     const result2 = await transpiler2.transpile({ kind: "files" });
     expect(result2.success).toBe(true);
     // Should still output .cpp from cache hit path
@@ -1640,13 +1644,13 @@ describe("Transpiler coverage integration tests", () => {
     };
 
     // First run - populates cache
-    const transpiler1 = new Transpiler(config);
+    const transpiler1 = new Transpiler(config, NodeFileSystem.instance);
     const result1 = await transpiler1.transpile({ kind: "files" });
     expect(result1.success).toBe(true);
     expect(result1.outputFiles.some((f) => f.endsWith(".cpp"))).toBe(true);
 
     // Second run - should use cache and still detect C++ from .hpp (lines 548-550)
-    const transpiler2 = new Transpiler(config);
+    const transpiler2 = new Transpiler(config, NodeFileSystem.instance);
     const result2 = await transpiler2.transpile({ kind: "files" });
     expect(result2.success).toBe(true);
     expect(result2.outputFiles.some((f) => f.endsWith(".cpp"))).toBe(true);
@@ -1677,15 +1681,20 @@ describe("Transpiler coverage integration tests", () => {
     };
 
     // Warm the cache with C++ declared, so the header parses and is cached.
-    const warm = await new Transpiler({
-      ...base,
-      cppRequired: true,
-    }).transpile({ kind: "files" });
+    const warm = await new Transpiler(
+      {
+        ...base,
+        cppRequired: true,
+      },
+      NodeFileSystem.instance,
+    ).transpile({ kind: "files" });
     expect(warm.success).toBe(true);
 
     // Now run again WITHOUT declaring C++. The header is served from cache and
     // never re-parsed, so only the cache-hit guard can catch it.
-    return new Transpiler(base).transpile({ kind: "files" });
+    return new Transpiler(base, NodeFileSystem.instance).transpile({
+      kind: "files",
+    });
   };
 
   it("rejects a cached .hpp when C++ is no longer declared (#1319)", async () => {
@@ -1734,15 +1743,18 @@ describe("Transpiler coverage integration tests", () => {
     `,
     );
 
-    const transpiler = new Transpiler({
-      input: join(testDir, "main.cnx"),
-      includeDirs: [testDir],
-      outDir: testDir,
-      // Without this the generated header lands in process.cwd().
-      headerOutDir: testDir,
-      noCache: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(testDir, "main.cnx"),
+        includeDirs: [testDir],
+        outDir: testDir,
+        // Without this the generated header lands in process.cwd().
+        headerOutDir: testDir,
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
 
     const result = await transpiler.transpile({ kind: "files" });
 
@@ -1773,12 +1785,12 @@ describe("Transpiler coverage integration tests", () => {
     };
 
     // First run - should populate cache
-    const transpiler1 = new Transpiler(config);
+    const transpiler1 = new Transpiler(config, NodeFileSystem.instance);
     const result1 = await transpiler1.transpile({ kind: "files" });
     expect(result1.success).toBe(true);
 
     // Second run - should use cache
-    const transpiler2 = new Transpiler(config);
+    const transpiler2 = new Transpiler(config, NodeFileSystem.instance);
     const result2 = await transpiler2.transpile({ kind: "files" });
     expect(result2.success).toBe(true);
   });
@@ -1799,13 +1811,16 @@ describe("Transpiler coverage integration tests", () => {
     `,
     );
 
-    const transpiler = new Transpiler({
-      input: join(srcDir, "lib.cnx"),
-      outDir: buildDir,
-      headerOutDir: includeDir,
-      noCache: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(srcDir, "lib.cnx"),
+        outDir: buildDir,
+        headerOutDir: includeDir,
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
 
     const result = await transpiler.transpile({ kind: "files" });
 
@@ -1846,16 +1861,19 @@ describe("Transpiler coverage integration tests", () => {
     `,
     );
 
-    const transpiler = new Transpiler({
-      input: join(srcDir, "main.cnx"),
-      includeDirs: [includeDir],
-      preprocess: false, // Explicitly disable preprocessing
-      // Without these the generated .c/.h land in process.cwd().
-      outDir: testDir,
-      headerOutDir: testDir,
-      noCache: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(srcDir, "main.cnx"),
+        includeDirs: [includeDir],
+        preprocess: false, // Explicitly disable preprocessing
+        // Without these the generated .c/.h land in process.cwd().
+        outDir: testDir,
+        headerOutDir: testDir,
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
 
     const result = await transpiler.transpile({ kind: "files" });
     expect(result.success).toBe(true);
@@ -1886,15 +1904,18 @@ describe("Transpiler coverage integration tests", () => {
     `,
     );
 
-    const transpiler = new Transpiler({
-      input: join(srcDir, "main.cnx"),
-      includeDirs: [includeDir],
-      // Without these the generated .c/.h land in process.cwd().
-      outDir: testDir,
-      headerOutDir: testDir,
-      noCache: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(srcDir, "main.cnx"),
+        includeDirs: [includeDir],
+        // Without these the generated .c/.h land in process.cwd().
+        outDir: testDir,
+        headerOutDir: testDir,
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
 
     const result = await transpiler.transpile({ kind: "files" });
     expect(result.success).toBe(true);
@@ -1942,15 +1963,18 @@ describe("Transpiler coverage integration tests", () => {
     `,
     );
 
-    const transpiler = new Transpiler({
-      input: join(srcDir, "main.cnx"),
-      includeDirs: [includeDir],
-      // Without these the generated .c/.h land in process.cwd().
-      outDir: testDir,
-      headerOutDir: testDir,
-      noCache: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(srcDir, "main.cnx"),
+        includeDirs: [includeDir],
+        // Without these the generated .c/.h land in process.cwd().
+        outDir: testDir,
+        headerOutDir: testDir,
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
 
     const result = await transpiler.transpile({ kind: "files" });
     expect(result.success).toBe(true);
@@ -1987,15 +2011,18 @@ describe("Transpiler coverage integration tests", () => {
     `,
     );
 
-    const transpiler = new Transpiler({
-      input: join(srcDir, "main.cnx"),
-      includeDirs: [includeDir],
-      // Without these the generated .c/.h land in process.cwd().
-      outDir: testDir,
-      headerOutDir: testDir,
-      noCache: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(srcDir, "main.cnx"),
+        includeDirs: [includeDir],
+        // Without these the generated .c/.h land in process.cwd().
+        outDir: testDir,
+        headerOutDir: testDir,
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
 
     // Should succeed even if preprocessing fails (falls back to raw content)
     const result = await transpiler.transpile({ kind: "files" });

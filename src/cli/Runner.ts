@@ -4,12 +4,13 @@
  */
 
 import { basename, dirname, resolve } from "node:path";
-import { existsSync, statSync, renameSync } from "node:fs";
 import Transpiler from "../transpiler/Transpiler";
 import ICliConfig from "./types/ICliConfig";
 import ResultPrinter from "./ResultPrinter";
 import ITranspilerResult from "../transpiler/types/ITranspilerResult";
 import InputExpansion from "../transpiler/data/InputExpansion";
+import NodeFileSystem from "../transpiler/NodeFileSystem";
+import Write from "../WRITE/1-Write/Write";
 
 /** Result of determining output path */
 interface IOutputPathResult {
@@ -32,20 +33,23 @@ class Runner {
       resolvedInput,
     );
 
-    const pipeline = new Transpiler({
-      input: resolvedInput,
-      includeDirs: config.includeDirs,
-      outDir,
-      headerOutDir: config.headerOutDir,
-      preprocess: config.preprocess,
-      defines: config.defines,
-      cppRequired: config.cppRequired,
-      noCache: config.noCache,
-      parseOnly: config.parseOnly,
-      target: config.target,
-      pioEnv: config.pioEnv,
-      debugMode: config.debugMode,
-    });
+    const pipeline = new Transpiler(
+      {
+        input: resolvedInput,
+        includeDirs: config.includeDirs,
+        outDir,
+        headerOutDir: config.headerOutDir,
+        preprocess: config.preprocess,
+        defines: config.defines,
+        cppRequired: config.cppRequired,
+        noCache: config.noCache,
+        parseOnly: config.parseOnly,
+        target: config.target,
+        pioEnv: config.pioEnv,
+        debugMode: config.debugMode,
+      },
+      NodeFileSystem.instance,
+    );
 
     if (InputExpansion.isCppEntryPoint(resolvedInput)) {
       console.log(`Scanning ${basename(resolvedInput)} for C-Next includes...`);
@@ -77,12 +81,11 @@ class Runner {
     const isExplicitFile =
       /\.(c|cpp)$/.test(config.outputPath) && !config.outputPath.endsWith("/");
 
-    const stats = existsSync(config.outputPath)
-      ? statSync(config.outputPath)
-      : null;
-
     // Directory path
-    if (stats?.isDirectory() || config.outputPath.endsWith("/")) {
+    if (
+      NodeFileSystem.instance.isDirectory(config.outputPath) ||
+      config.outputPath.endsWith("/")
+    ) {
       return { outDir: config.outputPath, explicitOutputFile: null };
     }
 
@@ -115,7 +118,7 @@ class Runner {
 
     const generatedFile = result.outputFiles[0];
     if (generatedFile !== explicitOutputFile) {
-      renameSync(generatedFile, explicitOutputFile);
+      Write.move(NodeFileSystem.instance, generatedFile, explicitOutputFile);
       result.outputFiles[0] = explicitOutputFile;
     }
   }

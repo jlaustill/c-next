@@ -16,6 +16,7 @@ import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
 import MockFileSystem from "./MockFileSystem";
+import NodeFileSystem from "../NodeFileSystem";
 
 const COLORS = `enum EColor { RED, GREEN, BLUE }
 `;
@@ -48,12 +49,15 @@ describe("include-graph visibility (Issue #1435)", () => {
       const mainPath = join(project, "src", "main.cnx");
       writeFileSync(mainPath, MAIN_USES_ENUM);
       // An explicit outDir: without one the run writes into the cwd (#1705).
-      const result = await new Transpiler({
-        target: "host",
-        input: mainPath,
-        outDir: join(project, "build"),
-        noCache: true,
-      }).transpile({ kind: "files" });
+      const result = await new Transpiler(
+        {
+          target: "host",
+          input: mainPath,
+          outDir: join(project, "build"),
+          noCache: true,
+        },
+        NodeFileSystem.instance,
+      ).transpile({ kind: "files" });
       return {
         result,
         main: result.files.find((f) => f.sourcePath === mainPath),
@@ -87,11 +91,14 @@ describe("include-graph visibility (Issue #1435)", () => {
       const mainPath = join(project, "src", "main.cnx");
 
       // Exactly how `ServeCommand` (the editor preview) calls it.
-      const result = await new Transpiler({
-        target: "host",
-        input: "",
-        noCache: true,
-      }).transpile({
+      const result = await new Transpiler(
+        {
+          target: "host",
+          input: "",
+          noCache: true,
+        },
+        NodeFileSystem.instance,
+      ).transpile({
         kind: "source",
         source: MAIN_USES_ENUM,
         sourcePath: mainPath,
@@ -109,11 +116,14 @@ describe("include-graph visibility (Issue #1435)", () => {
       writeFileSync(join(lib, "colors.cnx"), COLORS);
 
       for (const sourcePath of [undefined, ""]) {
-        const result = await new Transpiler({
-          target: "host",
-          input: "",
-          noCache: true,
-        }).transpile({
+        const result = await new Transpiler(
+          {
+            target: "host",
+            input: "",
+            noCache: true,
+          },
+          NodeFileSystem.instance,
+        ).transpile({
           kind: "source",
           source: MAIN_USES_ENUM,
           workingDir: project,
@@ -164,18 +174,24 @@ void setup() {
         outDir: join(project, "build"),
         noCache: true,
       };
-      const files = await new Transpiler({
-        target: "host",
-        ...config,
-        input: path,
-      }).transpile({
+      const files = await new Transpiler(
+        {
+          target: "host",
+          ...config,
+          input: path,
+        },
+        NodeFileSystem.instance,
+      ).transpile({
         kind: "files",
       });
-      const source = await new Transpiler({
-        target: "host",
-        ...config,
-        input: "",
-      }).transpile({
+      const source = await new Transpiler(
+        {
+          target: "host",
+          ...config,
+          input: "",
+        },
+        NodeFileSystem.instance,
+      ).transpile({
         kind: "source",
         source: text,
         workingDir: join(project, "src"),
@@ -299,11 +315,14 @@ void main() {
     });
 
     function transpile(where: { workingDir?: string; sourcePath?: string }) {
-      return new Transpiler({
-        target: "host",
-        input: "",
-        noCache: true,
-      }).transpile({
+      return new Transpiler(
+        {
+          target: "host",
+          input: "",
+          noCache: true,
+        },
+        NodeFileSystem.instance,
+      ).transpile({
         kind: "source",
         source: QUOTED,
         ...where,
@@ -434,11 +453,14 @@ void main() {
         join(project, "a.cnx"),
         `${included}\n\nu8 fa() {\n    return 1;\n}\n`,
       );
-      return new Transpiler({
-        target: "host",
-        input: "",
-        noCache: true,
-      }).transpile({
+      return new Transpiler(
+        {
+          target: "host",
+          input: "",
+          noCache: true,
+        },
+        NodeFileSystem.instance,
+      ).transpile({
         kind: "source",
         source: ROOT,
         sourcePath: join(project, "main.cnx"),
@@ -495,17 +517,23 @@ void main() {
         sourcePath: join(project, "main.cnx"),
       };
 
-      const fromInput = await new Transpiler({
-        target: "host",
-        input: "",
-        noCache: true,
-      }).transpile({ ...input, includeDirs: dirs });
-      const fromConfig = await new Transpiler({
-        target: "host",
-        input: "",
-        noCache: true,
-        includeDirs: dirs,
-      }).transpile(input);
+      const fromInput = await new Transpiler(
+        {
+          target: "host",
+          input: "",
+          noCache: true,
+        },
+        NodeFileSystem.instance,
+      ).transpile({ ...input, includeDirs: dirs });
+      const fromConfig = await new Transpiler(
+        {
+          target: "host",
+          input: "",
+          noCache: true,
+          includeDirs: dirs,
+        },
+        NodeFileSystem.instance,
+      ).transpile(input);
 
       for (const result of [fromInput, fromConfig]) {
         expect(result.errors).toEqual([]);
@@ -560,12 +588,15 @@ scope M {
       const mainPath = join(project, "src", "main.cnx");
       writeFileSync(mainPath, MAIN);
 
-      const result = await new Transpiler({
-        target: "host",
-        input: mainPath,
-        outDir: join(project, "src"),
-        noCache: true,
-      }).transpile({ kind: "files" });
+      const result = await new Transpiler(
+        {
+          target: "host",
+          input: mainPath,
+          outDir: join(project, "src"),
+          noCache: true,
+        },
+        NodeFileSystem.instance,
+      ).transpile({ kind: "files" });
 
       expect(result.errors).toEqual([]);
       const byPath = (p: string) =>
@@ -581,11 +612,14 @@ scope M {
     it("in source mode, the root's header keeps its own spelling", async () => {
       const mainPath = join(project, "src", "main.cnx");
 
-      const result = await new Transpiler({
-        target: "host",
-        input: "",
-        noCache: true,
-      }).transpile({ kind: "source", source: MAIN, sourcePath: mainPath });
+      const result = await new Transpiler(
+        {
+          target: "host",
+          input: "",
+          noCache: true,
+        },
+        NodeFileSystem.instance,
+      ).transpile({ kind: "source", source: MAIN, sourcePath: mainPath });
 
       expect(result.errors).toEqual([]);
       const header = includesOf(result.files[0]?.headerCode);

@@ -242,9 +242,11 @@ depending on where the IMPORTER sits, so `../../utils` from one directory and `.
 from another cannot both be right under one regex.
 
 **Moving modules**: `npm run move:modules` (dry run) / `-- --apply`. The manifest in
-`scripts/move-modules.ts` records every move WITH the reason for its destination, so the
+`scripts/move-modules/MOVES.ts` records every move WITH the reason for its destination, so the
 move is reviewable in the diff rather than a tool call nobody can inspect afterwards. It is
-idempotent — add entries and re-run.
+idempotent — add entries and re-run. It is read as a sequence: an entry a later entry moves
+on from is superseded (`MovePlan`), so a module moved back is not moved out again, and
+`move-plan.test.ts` fails if the committed manifest has anything left to move (#1826 review).
 
 `move:modules` rewrites the importers **ts-morph can see**, which is the root tsconfig's
 program — not `scripts/`. It reports importers outside that program by name after
@@ -300,14 +302,14 @@ update step: an `--update` inside it could not fail on a mismatch. `npm run test
 regenerates every snapshot, `tests/bugs/` included (#1142); `npm run test:bugs:update` narrows
 it to the regression fixtures.
 
-**`test:all` is four checks of thirty-five — run `npm run test:gate` before pushing.**
-`test:all` is `build && unit && test:q && validate:c`. CI runs thirty-one more with no local
+**`test:all` is four checks of thirty-six — run `npm run test:gate` before pushing.**
+`test:all` is `build && unit && test:q && validate:c`. CI runs thirty-two more with no local
 alias: the whole **`Static Analysis`** job (`prettier:check`, `plugin:test`, `test:hooks`,
 `cspell:check`, `oxlint:check`, `knip`, `depcruise`, `lint:test-location`,
 `analyze:duplication`, `docs:toolchain:check`, `coverage:matrix:check`,
 `diagnostics:manifest:check`, `error-codes:check`, `docs:throw-citations:check`, `scope-joins:check`,
 `adr:independence:check`, `gh:pagination:check`, `parse-tree:check`, `unused-code:check`,
-`typedef-const:parity:check`,
+`typedef-const:parity:check`, `destinations:check`,
 `gate:roster:check`), plus `typecheck`, `typecheck` for
 `prettier-plugin`, `typecheck` for `scripts` (`typecheck:scripts`), `test:cli`, `cli smoke`,
 `coverage:grammar:check`, `format:fidelity`, `headers:standalone:check`, `re-run warm`, and the

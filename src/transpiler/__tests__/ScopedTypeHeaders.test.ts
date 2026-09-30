@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
+import NodeFileSystem from "../NodeFileSystem";
 
 describe("a scoped type in a generated header", () => {
   let project: string;
@@ -32,12 +33,15 @@ describe("a scoped type in a generated header", () => {
     for (const [name, text] of Object.entries(files)) {
       writeFileSync(join(project, name), text);
     }
-    const result = await new Transpiler({
-      target: "host",
-      input: join(project, entry),
-      outDir: project,
-      noCache: true,
-    }).transpile({ kind: "files" });
+    const result = await new Transpiler(
+      {
+        target: "host",
+        input: join(project, entry),
+        outDir: project,
+        noCache: true,
+      },
+      NodeFileSystem.instance,
+    ).transpile({ kind: "files" });
     expect(result.errors).toEqual([]);
     return (
       result.files.find((f) => f.sourcePath === join(project, entry))

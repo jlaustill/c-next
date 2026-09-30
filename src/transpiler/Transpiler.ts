@@ -17,7 +17,6 @@ import { availableParallelism } from "node:os";
 import type IConflict from "./types/IConflict";
 
 import IFileSystem from "./types/IFileSystem";
-import NodeFileSystem from "./NodeFileSystem";
 
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import CNextSourceParser from "../PARSE/2-Parse/CNextSourceParser";
@@ -100,6 +99,7 @@ import type IRecordedRequirement from "./types/IRecordedRequirement";
 import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../utils/RequirementAggregator";
 import TargetCatalogFile from "./data/TargetCatalogFile";
+import Write from "../WRITE/1-Write/Write";
 
 /** A header's cache entry, as `CacheManager` returns it. */
 type TCachedHeader = NonNullable<ReturnType<CacheManager["getSymbols"]>>;
@@ -349,9 +349,9 @@ class Transpiler {
   /** File system abstraction for testability */
   private readonly fs: IFileSystem;
 
-  constructor(config: ITranspilerConfig, fs?: IFileSystem) {
-    // Use injected file system or default to Node.js implementation
-    this.fs = fs ?? new NodeFileSystem();
+  constructor(config: ITranspilerConfig, fs: IFileSystem) {
+    // The port the host injected; the pipeline never defaults one (#1653)
+    this.fs = fs;
     // Apply defaults
     this.config = {
       input: config.input,
@@ -456,7 +456,10 @@ class Transpiler {
     previous: IRunAnchor | null,
   ): Pick<IRunAnchor, "includeDirs" | "defines" | "compiler" | "preprocessor"> {
     const db = projectRoot
-      ? CompileCommandsReader.load(join(projectRoot, "compile_commands.json"))
+      ? CompileCommandsReader.load(
+          join(projectRoot, "compile_commands.json"),
+          this.fs,
+        )
       : null;
     const includeDirs = [...this.config.includeDirs];
     const seen = new Set(includeDirs);
@@ -474,7 +477,10 @@ class Transpiler {
       preprocessor:
         previous?.compiler === compiler
           ? previous.preprocessor
-          : new Preprocessor(Transpiler._toolchainForCompileDb(db)),
+          : new Preprocessor(
+              this.fs,
+              Transpiler._toolchainForCompileDb(db, this.fs),
+            ),
     };
   }
 
@@ -486,10 +492,11 @@ class Transpiler {
    */
   private static _toolchainForCompileDb(
     db: ICompileCommandsResult | null,
+    fs: IFileSystem,
   ): IToolchain | undefined {
     if (process.env.CNEXT_CROSS_COMPILER) return undefined;
     if (!db?.compiler) return undefined;
-    return ToolchainDetector.fromPath(db.compiler) ?? undefined;
+    return ToolchainDetector.fromPath(db.compiler, fs) ?? undefined;
   }
 
   // ===========================================================================
@@ -698,7 +705,7 @@ class Transpiler {
     // header is (#1233)
     if (result.success && input.writeOutputToDisk) {
       for (const write of pendingWrites) {
-        this.fs.writeFile(write.path, write.content);
+        Write.file(this.fs, write.path, write.content);
       }
       // Stage 6: Write the Stage 5.5 headers (only to disk in files mode)
       this._generateAllHeadersFromPipeline(
@@ -939,7 +946,7 @@ class Transpiler {
             option: this.config.target,
             platformio: this._platformIOProject(),
             pioEnv: this.config.pioEnv || undefined,
-            catalog: TargetCatalogFile.targets(),
+            catalog: TargetCatalogFile.targets(this.fs),
             files: declared.map((entry) => ({
               sourcePath: entry.file.path,
               directives: entry.parsed.targetDirectives,
@@ -1614,11 +1621,11 @@ class Transpiler {
    * Ensure output directories exist
    */
   private _ensureOutputDirectories(): void {
-    if (this.config.outDir && !this.fs.exists(this.config.outDir)) {
-      this.fs.mkdir(this.config.outDir, { recursive: true });
+    if (this.config.outDir) {
+      Write.directory(this.fs, this.config.outDir);
     }
-    if (this.config.headerOutDir && !this.fs.exists(this.config.headerOutDir)) {
-      this.fs.mkdir(this.config.headerOutDir, { recursive: true });
+    if (this.config.headerOutDir) {
+      Write.directory(this.fs, this.config.headerOutDir);
     }
   }
 
@@ -2179,7 +2186,7 @@ class Transpiler {
           file.discoveredFile,
           this.outputExtensions.header,
         );
-        this.fs.writeFile(headerPath, headerContent);
+        Write.file(this.fs, headerPath, headerContent);
         result.outputFiles.push(headerPath);
       }
     }

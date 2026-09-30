@@ -20,6 +20,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import enterScope from "../../transpiler/__tests__/enterScope";
+import NodeFileSystem from "../../transpiler/NodeFileSystem";
 
 /** Repo root, for the source-scanning guard in `scopeTypePredicate`. */
 const repoRootForGuard = join(
@@ -87,7 +88,10 @@ describe("TranspileState", () => {
     });
 
     it("holds the target description it is reset with", () => {
-      const target = TargetResolver.byName("cortex-m7")!;
+      const target = TargetResolver.byName(
+        "cortex-m7",
+        NodeFileSystem.instance,
+      )!;
 
       state.reset(target);
 

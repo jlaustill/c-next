@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
+import NodeFileSystem from "../NodeFileSystem";
 
 const DEV_H = `#ifndef DEV_H
 #define DEV_H
@@ -74,17 +75,23 @@ describe("a header reached through another file's include (#1725)", () => {
     const main = mainIncluding(aSpelling);
     writeFileSync(mainPath, main);
 
-    const files = await new Transpiler({
-      target: "host",
-      input: mainPath,
-      outDir: join(project, mainDir),
-      noCache: true,
-    }).transpile({ kind: "files" });
-    const source = await new Transpiler({
-      target: "host",
-      input: "",
-      noCache: true,
-    }).transpile({ kind: "source", source: main, sourcePath: mainPath });
+    const files = await new Transpiler(
+      {
+        target: "host",
+        input: mainPath,
+        outDir: join(project, mainDir),
+        noCache: true,
+      },
+      NodeFileSystem.instance,
+    ).transpile({ kind: "files" });
+    const source = await new Transpiler(
+      {
+        target: "host",
+        input: "",
+        noCache: true,
+      },
+      NodeFileSystem.instance,
+    ).transpile({ kind: "source", source: main, sourcePath: mainPath });
     expect(files.errors).toEqual([]);
     expect(source.errors).toEqual([]);
     const headerOf = (result: typeof files, dir: string, name: string) =>

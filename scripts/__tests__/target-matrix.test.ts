@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import TargetMatrix from "../TargetMatrix";
 import TestUtils from "../test-utils";
-import type IGccToolchain from "../../src/transpiler/types/IGccToolchain";
+import type IGccToolchain from "../../src/utils/types/IGccToolchain";
 
 const gccAvailable = spawnSync("gcc", ["--version"]).status === 0;
 

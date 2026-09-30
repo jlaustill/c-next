@@ -8,6 +8,8 @@
 
 import { dirname, basename } from "node:path";
 import IFileSystem from "../types/IFileSystem";
+import NodeFileSystem from "../NodeFileSystem";
+import TargetCatalogFile from "../data/TargetCatalogFile";
 
 /**
  * Mock file system for testing
@@ -27,6 +29,25 @@ class MockFileSystem implements IFileSystem {
 
   /** Track mkdir operations for assertions */
   private readonly mkdirLog: Array<{ path: string; recursive?: boolean }> = [];
+
+  /**
+   * A filesystem the compiler is installed on. The target catalog is an
+   * installation file read through the port (#1653), so a double that lacks it
+   * models a broken installation, not an empty project.
+   */
+  constructor() {
+    try {
+      const catalog = TargetCatalogFile.locate(NodeFileSystem.instance);
+      this.files.set(catalog, NodeFileSystem.instance.readFile(catalog));
+    } catch (err) {
+      // Name the real cause rather than let "the compiler installation is
+      // broken" suggest one (#1826 review).
+      throw new Error(
+        `MockFileSystem seeds the target catalog from the real disk and could not (${String(err)}). A test that mocks node:fs must keep existsSync and readFileSync real.`,
+        { cause: err },
+      );
+    }
+  }
 
   /**
    * Normalize path by removing trailing slashes (except for root "/")
@@ -146,6 +167,45 @@ class MockFileSystem implements IFileSystem {
     const normalized = this.normalizePath(path);
     this.directories.add(normalized);
     this.mkdirLog.push({ path: normalized, recursive: options?.recursive });
+  }
+
+  unlink(path: string): void {
+    const normalized = this.normalizePath(path);
+    if (!this.files.delete(normalized)) {
+      throw new Error(`ENOENT: no such file or directory, unlink '${path}'`);
+    }
+    this.fileMtimes.delete(normalized);
+  }
+
+  rename(from: string, to: string): void {
+    const source = this.normalizePath(from);
+    const content = this.files.get(source);
+    if (content === undefined) {
+      throw new Error(`ENOENT: no such file or directory, rename '${from}'`);
+    }
+    this.files.delete(source);
+    this.files.set(this.normalizePath(to), content);
+  }
+
+  /** Temporary directories handed out, for naming the next one */
+  private tempDirCount = 0;
+
+  async withTempFile<T>(
+    name: string,
+    content: string,
+    use: (path: string) => Promise<T>,
+  ): Promise<T> {
+    this.tempDirCount += 1;
+    const dir = `/tmp/cnext-mock-${this.tempDirCount}`;
+    const path = `${dir}/${name}`;
+    this.directories.add(dir);
+    this.files.set(path, content);
+    try {
+      return await use(path);
+    } finally {
+      this.files.delete(path);
+      this.directories.delete(dir);
+    }
   }
 
   readdir(path: string): string[] {

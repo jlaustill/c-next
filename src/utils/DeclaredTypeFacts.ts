@@ -32,9 +32,9 @@
  * nor a bitmap, which is a string capacity in one caller and a primitive width
  * in the others.
  */
-import type IDeclaredTypeFacts from "../transpiler/types/IDeclaredTypeFacts";
-import type IDeclaredTypeSets from "../transpiler/types/IDeclaredTypeSets";
-import type IStructFieldLookup from "../transpiler/types/IStructFieldLookup";
+import type IDeclaredTypeFacts from "./types/IDeclaredTypeFacts";
+import type IDeclaredTypeSets from "./types/IDeclaredTypeSets";
+import type IStructFieldLookup from "./types/IStructFieldLookup";
 
 class DeclaredTypeFacts {
   /**

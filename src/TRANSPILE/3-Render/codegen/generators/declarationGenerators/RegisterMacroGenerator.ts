@@ -6,7 +6,7 @@
  * orchestrator and do both, which put the grammar in the render layer to
  * obtain four strings per member.
  */
-import IPlannedRegisterMember from "../../../../../transpiler/types/IPlannedRegisterMember";
+import IPlannedRegisterMember from "../../types/IPlannedRegisterMember";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 /**

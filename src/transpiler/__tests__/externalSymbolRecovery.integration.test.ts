@@ -18,6 +18,7 @@ import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import Preprocessor from "../logic/preprocessor/Preprocessor";
 import detectCppSyntax from "../logic/detectCppSyntax";
+import NodeFileSystem from "../NodeFileSystem";
 
 const GUARD_H = `#define WIDGET_GUARD 1
 #define WIDGET_FEATURE 1
@@ -69,7 +70,7 @@ scope Demo {
 
 describe("external-symbol recovery (integration)", () => {
   let dir: string;
-  const available = new Preprocessor().isAvailable();
+  const available = new Preprocessor(NodeFileSystem.instance).isAvailable();
 
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-recovery-"));
@@ -88,14 +89,17 @@ describe("external-symbol recovery (integration)", () => {
     // PASS, so a missing toolchain looked like a green test (S8968).
     if (!available) ctx.skip();
 
-    const transpiler = new Transpiler({
-      input: join(dir, "main.cnx"),
-      includeDirs: [dir],
-      outDir: join(dir, "out"),
-      cppRequired: true,
-      noCache: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(dir, "main.cnx"),
+        includeDirs: [dir],
+        outDir: join(dir, "out"),
+        cppRequired: true,
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
 
     const result = await transpiler.transpile({ kind: "files" });
 
@@ -133,14 +137,17 @@ describe("external-symbol recovery (integration)", () => {
     // it — otherwise recovered structs escape init checking that cleanly
     // preprocessed structs get. Regression: the snapshot must be taken AFTER the
     // recovery pass, not before it.
-    const transpiler = new Transpiler({
-      input: join(dir, "main.cnx"),
-      includeDirs: [dir],
-      outDir: join(dir, "out"),
-      cppRequired: true,
-      noCache: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(dir, "main.cnx"),
+        includeDirs: [dir],
+        outDir: join(dir, "out"),
+        cppRequired: true,
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
 
     const result = await transpiler.transpile({ kind: "files" });
     expect(result.success).toBe(true);
@@ -170,13 +177,16 @@ describe("external-symbol recovery (integration)", () => {
 
       // Caching ON (noCache defaults to false).
       const run = async () =>
-        new Transpiler({
-          input: join(cacheDir, "main.cnx"),
-          includeDirs: [cacheDir],
-          outDir: join(cacheDir, "out"),
-          cppRequired: true,
-          target: "host",
-        }).transpile({ kind: "files" });
+        new Transpiler(
+          {
+            input: join(cacheDir, "main.cnx"),
+            includeDirs: [cacheDir],
+            outDir: join(cacheDir, "out"),
+            cppRequired: true,
+            target: "host",
+          },
+          NodeFileSystem.instance,
+        ).transpile({ kind: "files" });
 
       // Cold cache: populates .cnx/ with the degraded header symbols.
       const cold = await run();
@@ -212,12 +222,15 @@ describe("external-symbol recovery (integration)", () => {
         join(cleanDir, "main.cnx"),
         `scope Demo {\n  void run() {\n    i32 x <- 1;\n  }\n}\n`,
       );
-      const transpiler = new Transpiler({
-        input: join(cleanDir, "main.cnx"),
-        outDir: join(cleanDir, "out"),
-        noCache: true,
-        target: "host",
-      });
+      const transpiler = new Transpiler(
+        {
+          input: join(cleanDir, "main.cnx"),
+          outDir: join(cleanDir, "out"),
+          noCache: true,
+          target: "host",
+        },
+        NodeFileSystem.instance,
+      );
       const result = await transpiler.transpile({ kind: "files" });
       expect(result.success).toBe(true);
     } finally {
@@ -272,7 +285,7 @@ void main() { }
 
 describe("diagnostics on a recovery slice (#1319, integration)", () => {
   let dir: string;
-  const available = new Preprocessor().isAvailable();
+  const available = new Preprocessor(NodeFileSystem.instance).isAvailable();
 
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-recovery-e0507-"));
@@ -287,14 +300,17 @@ describe("diagnostics on a recovery slice (#1319, integration)", () => {
   });
 
   const run = async (cppRequired: boolean) =>
-    new Transpiler({
-      input: join(dir, "main.cnx"),
-      includeDirs: [dir],
-      outDir: join(dir, "out"),
-      cppRequired,
-      noCache: true,
-      target: "host",
-    }).transpile({ kind: "files" });
+    new Transpiler(
+      {
+        input: join(dir, "main.cnx"),
+        includeDirs: [dir],
+        outDir: join(dir, "out"),
+        cppRequired,
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    ).transpile({ kind: "files" });
 
   it("no header looks like C++ before preprocessing", async (ctx) => {
     if (!available) ctx.skip();

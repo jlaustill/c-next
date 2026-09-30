@@ -22,7 +22,7 @@ import TargetDescriptions from "./TargetDescriptions";
 import DeclarationSite from "../../utils/DeclarationSite";
 import TARGET_DESCRIPTION_FIELDS from "../../transpiler/constants/TARGET_DESCRIPTION_FIELDS";
 import type ITranspileError from "../../lib/types/ITranspileError";
-import type IRunTargetInputs from "../../transpiler/types/IRunTargetInputs";
+import type IRunTargetInputs from "./types/IRunTargetInputs";
 import type ITargetDescription from "../../transpiler/types/ITargetDescription";
 import type ITargetDirective from "../../transpiler/types/ITargetDirective";
 import type TRunTarget from "../../transpiler/types/TRunTarget";

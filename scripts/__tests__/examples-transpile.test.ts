@@ -17,6 +17,7 @@ import { join, dirname, relative, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import Transpiler from "../../src/transpiler/Transpiler";
 import FileScanner from "../utils/FileScanner";
+import NodeFileSystem from "../../src/transpiler/NodeFileSystem";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const examplesDir = join(repoRoot, "examples");
@@ -71,11 +72,14 @@ describe("examples transpile and compile cleanly (Issue #1048)", () => {
       // neither of which it affects (#1489).
       // ADR-049: every program names a target. An example that pins one
       // keeps it -- source outranks the option (#1668).
-      const pipeline = new Transpiler({
-        input: file,
-        outDir,
-        target: "host",
-      });
+      const pipeline = new Transpiler(
+        {
+          input: file,
+          outDir,
+          target: "host",
+        },
+        NodeFileSystem.instance,
+      );
 
       const result = await pipeline.transpile({ kind: "files" });
 

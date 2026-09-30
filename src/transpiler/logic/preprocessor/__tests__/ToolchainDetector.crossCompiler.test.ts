@@ -14,6 +14,7 @@ vi.mock("node:fs", () => ({ existsSync: vi.fn() }));
 
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import NodeFileSystem from "../../../NodeFileSystem";
 
 describe("ToolchainDetector.fromPath", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -28,7 +29,10 @@ describe("ToolchainDetector.fromPath", () => {
     });
     vi.mocked(existsSync).mockReturnValue(true);
 
-    const tc = ToolchainDetector.fromPath("xtensa-esp32s3-elf-gcc");
+    const tc = ToolchainDetector.fromPath(
+      "xtensa-esp32s3-elf-gcc",
+      NodeFileSystem.instance,
+    );
 
     expect(tc).not.toBeNull();
     expect(tc!.cpp).toBe("/opt/xt/bin/xtensa-esp32s3-elf-gcc");
@@ -40,7 +44,10 @@ describe("ToolchainDetector.fromPath", () => {
     vi.mocked(existsSync).mockReturnValue(true);
     vi.mocked(execSync).mockReturnValue("gcc 13\n");
 
-    const tc = ToolchainDetector.fromPath("/usr/bin/xtensa-esp32s3-elf-gcc");
+    const tc = ToolchainDetector.fromPath(
+      "/usr/bin/xtensa-esp32s3-elf-gcc",
+      NodeFileSystem.instance,
+    );
 
     expect(tc!.cpp).toBe("/usr/bin/xtensa-esp32s3-elf-gcc");
   });
@@ -48,7 +55,9 @@ describe("ToolchainDetector.fromPath", () => {
   it("returns null when the compiler path does not exist", () => {
     vi.mocked(existsSync).mockReturnValue(false);
 
-    expect(ToolchainDetector.fromPath("/nope/xtensa-gcc")).toBeNull();
+    expect(
+      ToolchainDetector.fromPath("/nope/xtensa-gcc", NodeFileSystem.instance),
+    ).toBeNull();
   });
 });
 
@@ -66,7 +75,7 @@ describe("ToolchainDetector.detect with CNEXT_CROSS_COMPILER", () => {
     vi.mocked(existsSync).mockReturnValue(true);
     vi.mocked(execSync).mockReturnValue("xtensa gcc 12.2\n");
 
-    const tc = ToolchainDetector.detect();
+    const tc = ToolchainDetector.detect(NodeFileSystem.instance);
 
     expect(tc).not.toBeNull();
     expect(tc!.cpp).toBe("/opt/xt/bin/xtensa-esp32s3-elf-gcc");

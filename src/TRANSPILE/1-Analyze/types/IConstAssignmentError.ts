@@ -6,7 +6,7 @@
  *   variable or parameter
  * - E0878: a `const` value passed to a function's non-const parameter
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IConstAssignmentError extends IBaseAnalysisError {}
 

@@ -13,6 +13,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import ExternalDeclarationOracle from "../ExternalDeclarationOracle";
 import Preprocessor from "../Preprocessor";
+import NodeFileSystem from "../../../NodeFileSystem";
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const FIXTURES = join(currentDir, "fixtures", "oracle");
@@ -23,7 +24,7 @@ function allContent(perFile: Map<string, string>): string {
 
 describe("ExternalDeclarationOracle", () => {
   it("recovers a declaration only valid after its predecessor header", async () => {
-    const preprocessor = new Preprocessor();
+    const preprocessor = new Preprocessor(NodeFileSystem.instance);
     if (!preprocessor.isAvailable()) return; // no toolchain in this env
 
     const recovery = await ExternalDeclarationOracle.recover(
@@ -39,7 +40,7 @@ describe("ExternalDeclarationOracle", () => {
   });
 
   it("buckets each header's declarations under its own path", async () => {
-    const preprocessor = new Preprocessor();
+    const preprocessor = new Preprocessor(NodeFileSystem.instance);
     if (!preprocessor.isAvailable()) return;
 
     const recovery = await ExternalDeclarationOracle.recover(
@@ -56,7 +57,7 @@ describe("ExternalDeclarationOracle", () => {
   });
 
   it("collects function-like macro names consumed by a normal preprocess", async () => {
-    const preprocessor = new Preprocessor();
+    const preprocessor = new Preprocessor(NodeFileSystem.instance);
     if (!preprocessor.isAvailable()) return;
 
     const recovery = await ExternalDeclarationOracle.recover(
@@ -69,7 +70,7 @@ describe("ExternalDeclarationOracle", () => {
   });
 
   it("does not surface names that are not declared anywhere", async () => {
-    const preprocessor = new Preprocessor();
+    const preprocessor = new Preprocessor(NodeFileSystem.instance);
     if (!preprocessor.isAvailable()) return;
 
     const recovery = await ExternalDeclarationOracle.recover(
@@ -85,7 +86,7 @@ describe("ExternalDeclarationOracle", () => {
   });
 
   it("drops a header that cannot preprocess and keeps the rest", async () => {
-    const preprocessor = new Preprocessor();
+    const preprocessor = new Preprocessor(NodeFileSystem.instance);
     if (!preprocessor.isAvailable()) return;
 
     const recovery = await ExternalDeclarationOracle.recover(
@@ -104,7 +105,7 @@ describe("ExternalDeclarationOracle", () => {
   });
 
   it("keeps searching after dropping more than half the includes", async () => {
-    const preprocessor = new Preprocessor();
+    const preprocessor = new Preprocessor(NodeFileSystem.instance);
     if (!preprocessor.isAvailable()) return;
 
     // Three of five includes are individually unpreprocessable. Dropping them
@@ -128,7 +129,7 @@ describe("ExternalDeclarationOracle", () => {
   });
 
   it("returns null for no includes", async () => {
-    const preprocessor = new Preprocessor();
+    const preprocessor = new Preprocessor(NodeFileSystem.instance);
     const recovery = await ExternalDeclarationOracle.recover(
       [],
       preprocessor,
@@ -138,7 +139,7 @@ describe("ExternalDeclarationOracle", () => {
   });
 
   it("returns null when no header can preprocess", async () => {
-    const preprocessor = new Preprocessor();
+    const preprocessor = new Preprocessor(NodeFileSystem.instance);
     if (!preprocessor.isAvailable()) return;
 
     // The only include does not exist; after it is dropped nothing remains, so

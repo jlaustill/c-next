@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
 import ITranspilerConfig from "../types/ITranspilerConfig";
+import NodeFileSystem from "../NodeFileSystem";
 
 /**
  * #1301 review: the parse cache must be released when a run ENDS, not merely when
@@ -88,7 +89,7 @@ describe("#1301: the retained-parse cache is released at end of run", () => {
       headerOutDir: tempDir,
       target: "host",
     };
-    return new Transpiler(config);
+    return new Transpiler(config, NodeFileSystem.instance);
   }
 
   it("holds nothing after a successful run", async () => {

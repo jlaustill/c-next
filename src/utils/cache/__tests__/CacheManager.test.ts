@@ -28,6 +28,7 @@ import TTypeUtils from "../../TTypeUtils";
 import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
 import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import NodeFileSystem from "../../../transpiler/NodeFileSystem";
 
 describe("CacheManager", () => {
   let testDir: string;
@@ -112,7 +113,7 @@ describe("CacheManager", () => {
       `cache-manager-test-${Date.now()}-${Math.random()}`,
     );
     mkdirSync(testDir, { recursive: true });
-    cacheManager = new CacheManager(testDir);
+    cacheManager = new CacheManager(testDir, NodeFileSystem.instance);
   });
 
   afterEach(() => {
@@ -160,7 +161,7 @@ describe("CacheManager", () => {
       await cacheManager.flush();
 
       // Create new manager and reinitialize
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       // Data should still be there
@@ -189,7 +190,7 @@ describe("CacheManager", () => {
       writeFileSync(configPath, JSON.stringify(config));
 
       // Reinitialize - should detect version mismatch and invalidate
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       // Cache should be empty
@@ -220,7 +221,7 @@ describe("CacheManager", () => {
       config.structStateShape = "opaqueTypes";
       writeFileSync(configPath, JSON.stringify(config));
 
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       expect(newManager.getSymbols(testFile)).toBeNull();
@@ -262,7 +263,7 @@ describe("CacheManager", () => {
       writeFileSync(configPath, JSON.stringify(config));
 
       // Reinitialize - should detect version mismatch and invalidate
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       // Cache should be empty
@@ -399,7 +400,7 @@ describe("CacheManager", () => {
       await cacheManager.flush();
 
       // Create new manager and reload
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       const cached = newManager.getSymbols(testFile);
@@ -463,7 +464,7 @@ describe("CacheManager", () => {
       await cacheManager.flush();
 
       // Reload
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       const cached = newManager.getSymbols(testFile);
@@ -532,7 +533,7 @@ describe("CacheManager", () => {
       await cacheManager.flush();
 
       // Reload
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       const cached = newManager.getSymbols(testFile);
@@ -657,8 +658,7 @@ describe("CacheManager", () => {
     });
 
     it("should not write when cache is not dirty", async () => {
-      // flat-cache v6 uses filename without extension
-      const symbolsPath = join(testDir, ".cnx", "cache", "symbols");
+      const symbolsPath = join(testDir, ".cnx", "cache", "symbols.json");
 
       // Flush without any changes
       await cacheManager.flush();
@@ -678,16 +678,14 @@ describe("CacheManager", () => {
       );
       await cacheManager.flush();
 
-      // flat-cache v6 uses filename without extension
-      const symbolsPath = join(testDir, ".cnx", "cache", "symbols");
+      const symbolsPath = join(testDir, ".cnx", "cache", "symbols.json");
       expect(existsSync(symbolsPath)).toBe(true);
     });
 
     it("should clear dirty flag after flush", async () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
-      // flat-cache v6 uses filename without extension
-      const symbolsPath = join(testDir, ".cnx", "cache", "symbols");
+      const symbolsPath = join(testDir, ".cnx", "cache", "symbols.json");
 
       storeSymbols(testFile, [], new Map());
       await cacheManager.flush();
@@ -730,7 +728,7 @@ describe("CacheManager", () => {
       writeFileSync(join(cacheDir, "symbols.json"), "invalid json");
 
       // Reinitialize - should handle gracefully
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       // Should have empty cache, not throw
@@ -739,12 +737,73 @@ describe("CacheManager", () => {
   });
 
   describe("cache persistence", () => {
-    // Note: Migration from old mtime-based format to cacheKey format is handled
-    // by CacheManager.migrateOldEntries(). However, testing this directly is
-    // impractical because flat-cache v6 uses its own serialization format (flatted).
-    // The migration code exists for users upgrading from older C-Next versions
-    // where the cache file was manually written as JSON. New installs use
-    // flat-cache's internal format from the start.
+    // #1653: nothing tested discardOutdatedEntries. Disabling it left all 117
+    // cache tests green. Two outdated entries in a row are the case a
+    // delete-during-iteration bug would get wrong: it would skip the second.
+    // #1826 review: symbols.json is plain JSON now, so an entry can be edited
+    // into anything. A null one threw out of initialize() on every later run.
+    // #1653: CACHE_VERSION 16 moved the entries from flat-cache's `symbols`
+    // (flatted) to `symbols.json`. Invalidation removes the old file, so an
+    // upgrade does not leave it behind.
+    it("removes flat-cache's legacy symbols file when it invalidates", async () => {
+      // An upgrade: a version-15 config beside the file flat-cache wrote.
+      const fs = new MockFileSystem()
+        .addFile("/proj/.cnx/config.json", JSON.stringify({ version: 15 }))
+        .addFile("/proj/.cnx/cache/symbols", '[{"flatted":"legacy"}]');
+
+      await new CacheManager("/proj", fs).initialize();
+
+      expect(fs.exists("/proj/.cnx/cache/symbols")).toBe(false);
+    });
+
+    it("treats an entry that is not an object as outdated rather than throwing", async () => {
+      const fs = new MockFileSystem();
+      await new CacheManager("/proj", fs).initialize();
+      fs.addFile(
+        "/proj/.cnx/cache/symbols.json",
+        JSON.stringify({
+          "/proj/nul.h": null,
+          "/proj/str.h": "not an entry",
+          "/proj/kept.h": { cacheKey: "mtime:1", symbols: [] },
+        }),
+      );
+
+      const manager = new CacheManager("/proj", fs);
+      await expect(manager.initialize()).resolves.toBeUndefined();
+      expect(manager.isValid("/proj/nul.h")).toBe(false);
+      await manager.flush();
+
+      expect(
+        Object.keys(JSON.parse(fs.readFile("/proj/.cnx/cache/symbols.json"))),
+      ).toEqual(["/proj/kept.h"]);
+    });
+
+    it("drops every entry written without a cacheKey on load, and keeps the rest", async () => {
+      const fs = new MockFileSystem();
+      await new CacheManager("/proj", fs).initialize();
+      fs.addFile(
+        "/proj/.cnx/cache/symbols.json",
+        JSON.stringify({
+          "/proj/old-a.h": { symbols: [] },
+          "/proj/old-b.h": { symbols: [] },
+          "/proj/kept.h": { cacheKey: "mtime:1", symbols: [] },
+        }),
+      );
+
+      const manager = new CacheManager("/proj", fs);
+      await manager.initialize();
+      await manager.flush();
+
+      const kept = Object.keys(
+        JSON.parse(fs.readFile("/proj/.cnx/cache/symbols.json")),
+      );
+      expect(kept).toEqual(["/proj/kept.h"]);
+    });
+
+    // Entries in an older shape -- no cacheKey, or not an object at all -- are
+    // dropped on load by discardOutdatedEntries; the two tests above pin it.
+    // Since #1653 symbols.json is plain JSON read through the port, so they can
+    // write the file directly.
 
     it("should persist and reload cache entries correctly", async () => {
       await cacheManager.initialize();
@@ -761,7 +820,7 @@ describe("CacheManager", () => {
       await cacheManager.flush();
 
       // Reload with new manager - entry should be accessible
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       // Entry should be accessible
@@ -837,7 +896,7 @@ describe("CacheManager", () => {
       storeSymbols(testFile, symbols, new Map());
       await cacheManager.flush();
 
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
       const restored = readSymbols(newManager.getSymbols(testFile)!.symbols);
 
@@ -882,7 +941,7 @@ describe("CacheManager", () => {
       storeSymbols(testFile, symbols, new Map());
       await cacheManager.flush();
 
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
       const restored = readSymbols(newManager.getSymbols(testFile)!.symbols);
 
@@ -929,7 +988,7 @@ describe("CacheManager", () => {
       storeSymbols(testFile, symbols, new Map());
       await cacheManager.flush();
 
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
       const restored = readSymbols(newManager.getSymbols(testFile)!.symbols);
 
@@ -1379,7 +1438,7 @@ describe("CacheManager", () => {
       await cacheManager.flush();
 
       // Reload with new manager
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       // Verify all data persisted
@@ -1526,14 +1585,10 @@ describe("CacheManager", () => {
   });
 
   describe("with MockFileSystem (IFileSystem integration)", () => {
-    // Note: CacheManager now uses flat-cache for symbol storage, which manages
-    // its own file I/O. IFileSystem is used only for:
-    // - Directory existence checks and creation
-    // - Config file operations (read/write config.json)
-    // - Cache key validation (via CacheKeyGenerator)
-    //
-    // Tests that depend on symbol cache file contents are skipped because
-    // flat-cache writes directly to the real filesystem.
+    // Since #1653 CacheManager does all of its file I/O through IFileSystem:
+    // it reads config.json and symbols.json through the port and writes both
+    // through 3.1 Write. So a MockFileSystem sees everything, symbols.json
+    // included, and tests here may assert on its contents.
 
     let mockFs: MockFileSystem;
     let cacheManager: CacheManager;
@@ -1600,7 +1655,7 @@ describe("CacheManager", () => {
 
       storeMockSymbols("/project/test.h", [symbol]);
 
-      // Symbols are stored in flat-cache memory before flush
+      // Symbols are held in memory until flush
       const cached = cacheManager.getSymbols("/project/test.h");
       expect(cached).not.toBeNull();
       expect(readSymbols(cached!.symbols)).toHaveLength(1);
@@ -1639,7 +1694,7 @@ describe("CacheManager", () => {
       const content = mockFs.getWrittenContent("/project/.cnx/config.json");
       expect(content).toBeDefined();
       const newConfig = JSON.parse(content!);
-      expect(newConfig.version).toBe(15); // Current CACHE_VERSION (C pointer depth, #1668, #1760's volatile spellings, then field declarators)
+      expect(newConfig.version).toBe(16); // Current CACHE_VERSION (C pointer depth, #1668, #1760's volatile spellings, field declarators, then #1653's plain-JSON symbols.json)
     });
 
     it("should not cache files that do not exist in IFileSystem", async () => {

@@ -8,9 +8,6 @@ import ISourceMapping from "../types/ISourceMapping";
 
 // We need to define our mock functions before vi.mock calls
 const mockExec = vi.fn();
-const mockWriteFile = vi.fn().mockResolvedValue(undefined);
-const mockMkdtemp = vi.fn().mockResolvedValue("/tmp/cnext-abc123");
-const mockRm = vi.fn().mockResolvedValue(undefined);
 const mockDetect = vi.fn().mockReturnValue(null);
 const mockGetDefaultIncludePaths = vi.fn().mockReturnValue([]);
 
@@ -54,13 +51,6 @@ vi.mock("node:child_process", () => ({
   },
 }));
 
-// Mock fs/promises
-vi.mock("node:fs/promises", () => ({
-  writeFile: (...args: unknown[]) => mockWriteFile(...args),
-  mkdtemp: (...args: unknown[]) => mockMkdtemp(...args),
-  rm: (...args: unknown[]) => mockRm(...args),
-}));
-
 // Mock ToolchainDetector
 vi.mock("../ToolchainDetector", () => ({
   default: {
@@ -71,6 +61,9 @@ vi.mock("../ToolchainDetector", () => ({
 
 // Import after mocks are set up
 import Preprocessor from "../Preprocessor";
+import NodeFileSystem from "../../../NodeFileSystem";
+import MockFileSystem from "../../../__tests__/MockFileSystem";
+import { basename, dirname } from "node:path";
 
 describe("Preprocessor", () => {
   const mockToolchain: IToolchain = {
@@ -87,9 +80,6 @@ describe("Preprocessor", () => {
     mockDetect.mockReturnValue(null);
     mockGetDefaultIncludePaths.mockReturnValue([]);
     mockExec.mockReturnValue({ stdout: "", stderr: "" });
-    mockWriteFile.mockResolvedValue(undefined);
-    mockMkdtemp.mockResolvedValue("/tmp/cnext-abc123");
-    mockRm.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -98,7 +88,10 @@ describe("Preprocessor", () => {
 
   describe("constructor", () => {
     it("uses provided toolchain", () => {
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
 
       expect(preprocessor.isAvailable()).toBe(true);
       expect(preprocessor.getToolchain()).toEqual(mockToolchain);
@@ -108,7 +101,7 @@ describe("Preprocessor", () => {
       mockDetect.mockReturnValue(mockToolchain);
       mockGetDefaultIncludePaths.mockReturnValue(["/usr/include"]);
 
-      const preprocessor = new Preprocessor();
+      const preprocessor = new Preprocessor(NodeFileSystem.instance);
 
       expect(mockDetect).toHaveBeenCalled();
       expect(mockGetDefaultIncludePaths).toHaveBeenCalledWith(mockToolchain);
@@ -118,7 +111,7 @@ describe("Preprocessor", () => {
     it("handles no available toolchain", () => {
       mockDetect.mockReturnValue(null);
 
-      const preprocessor = new Preprocessor();
+      const preprocessor = new Preprocessor(NodeFileSystem.instance);
 
       expect(preprocessor.isAvailable()).toBe(false);
       expect(preprocessor.getToolchain()).toBeNull();
@@ -127,26 +120,32 @@ describe("Preprocessor", () => {
 
   describe("isAvailable", () => {
     it("returns true when toolchain is set", () => {
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       expect(preprocessor.isAvailable()).toBe(true);
     });
 
     it("returns false when no toolchain", () => {
       mockDetect.mockReturnValue(null);
-      const preprocessor = new Preprocessor();
+      const preprocessor = new Preprocessor(NodeFileSystem.instance);
       expect(preprocessor.isAvailable()).toBe(false);
     });
   });
 
   describe("getToolchain", () => {
     it("returns the toolchain", () => {
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       expect(preprocessor.getToolchain()).toEqual(mockToolchain);
     });
 
     it("returns null when no toolchain", () => {
       mockDetect.mockReturnValue(null);
-      const preprocessor = new Preprocessor();
+      const preprocessor = new Preprocessor(NodeFileSystem.instance);
       expect(preprocessor.getToolchain()).toBeNull();
     });
   });
@@ -154,7 +153,7 @@ describe("Preprocessor", () => {
   describe("preprocess", () => {
     it("returns error when no toolchain available", async () => {
       mockDetect.mockReturnValue(null);
-      const preprocessor = new Preprocessor();
+      const preprocessor = new Preprocessor(NodeFileSystem.instance);
 
       const result = await preprocessor.preprocess("/path/to/file.h");
 
@@ -171,7 +170,10 @@ describe("Preprocessor", () => {
         stderr: "",
       });
 
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       await preprocessor.preprocess("/path/to/file.h");
 
       expect(mockExec).toHaveBeenCalled();
@@ -189,7 +191,10 @@ describe("Preprocessor", () => {
         stderr: "",
       });
 
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       await preprocessor.preprocess("/path/to/file.h", {
         includePaths: ["/custom/include", "/another/path"],
       });
@@ -205,7 +210,10 @@ describe("Preprocessor", () => {
         stderr: "",
       });
 
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       await preprocessor.preprocess("/path/to/file.h", {
         defines: {
           DEBUG: true,
@@ -223,7 +231,10 @@ describe("Preprocessor", () => {
     it("passes defines with shell metacharacters as a single argv element", async () => {
       mockExec.mockReturnValue({ stdout: "content", stderr: "" });
 
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       // A board-name macro whose value contains spaces and parentheses — valid
       // for the compiler, but would break /bin/sh if the command were routed
       // through a shell (Issue: cnext preprocessor must invoke via argv).
@@ -245,7 +256,10 @@ describe("Preprocessor", () => {
         stderr: "",
       });
 
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       const result = await preprocessor.preprocess("/path/to/file.h");
 
       expect(result.success).toBe(true);
@@ -268,7 +282,10 @@ int y = 10;
         stderr: "",
       });
 
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       const result = await preprocessor.preprocess("/path/to/test.h");
 
       expect(result.success).toBe(true);
@@ -292,7 +309,10 @@ int y = 10;
         stderr: "",
       });
 
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       const result = await preprocessor.preprocess("/path/to/test.h", {
         keepLineDirectives: false,
       });
@@ -310,7 +330,10 @@ int y = 10;
         stderr: "",
       });
 
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       await preprocessor.preprocess("/path/to/file.h", {
         keepLineDirectives: false,
       });
@@ -325,7 +348,10 @@ int y = 10;
       (error as any).stderr = "file.h:5: error: unknown type";
       mockExec.mockReturnValue(Promise.reject(error));
 
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       const result = await preprocessor.preprocess("/path/to/file.h");
 
       expect(result.success).toBe(false);
@@ -341,7 +367,10 @@ int y = 10;
         stderr: "warning: implicit declaration\n",
       });
 
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       const result = await preprocessor.preprocess("/path/to/file.h");
 
       expect(result.success).toBe(true);
@@ -354,64 +383,66 @@ int y = 10;
   });
 
   describe("preprocessString", () => {
-    it("creates temp file and preprocesses", async () => {
-      mockExec.mockReturnValue({
-        stdout: "processed",
-        stderr: "",
+    // #1653: the temporary file is the port's, so these use a MockFileSystem
+    // and look at what cpp is handed rather than at node:fs calls.
+    function handedToCpp(fs: MockFileSystem) {
+      const seen: { input: string; content: string; neighbors: string[] }[] =
+        [];
+      mockExec.mockImplementation((_file: string, args: string[]) => {
+        const input = args.at(-1) ?? "";
+        seen.push({
+          input,
+          content: fs.readFile(input),
+          neighbors: fs.readdir(dirname(input)),
+        });
+        return { stdout: "processed", stderr: "" };
       });
+      return seen;
+    }
 
-      const preprocessor = new Preprocessor(mockToolchain);
+    it("hands cpp a file holding the content, alone in its directory", async () => {
+      const fs = new MockFileSystem();
+      const seen = handedToCpp(fs);
+      const preprocessor = new Preprocessor(fs, mockToolchain);
+
       const result = await preprocessor.preprocessString(
         "#define FOO 1\nint x = FOO;",
         "test.h",
       );
 
-      expect(mockMkdtemp).toHaveBeenCalled();
-      expect(mockWriteFile).toHaveBeenCalledWith(
-        "/tmp/cnext-abc123/test.h",
-        "#define FOO 1\nint x = FOO;",
-        "utf-8",
-      );
+      expect(seen).toHaveLength(1);
+      expect(basename(seen[0].input)).toBe("test.h");
+      expect(seen[0].content).toBe("#define FOO 1\nint x = FOO;");
+      // Nothing else in the directory: cpp searches it first for a quoted
+      // include, and on stdin it would search the working directory instead.
+      expect(seen[0].neighbors).toEqual(["test.h"]);
       expect(result.originalFile).toBe("test.h");
     });
 
-    it("cleans up temp directory after success", async () => {
-      mockExec.mockReturnValue({
-        stdout: "processed",
-        stderr: "",
-      });
+    it("removes the temporary directory after success", async () => {
+      const fs = new MockFileSystem();
+      const seen = handedToCpp(fs);
+      const preprocessor = new Preprocessor(fs, mockToolchain);
 
-      const preprocessor = new Preprocessor(mockToolchain);
       await preprocessor.preprocessString("content", "test.h");
 
-      expect(mockRm).toHaveBeenCalledWith("/tmp/cnext-abc123", {
-        recursive: true,
-      });
+      expect(fs.exists(dirname(seen[0].input))).toBe(false);
     });
 
-    it("cleans up temp directory after failure", async () => {
-      mockExec.mockReturnValue(Promise.reject(new Error("failed")));
-
-      const preprocessor = new Preprocessor(mockToolchain);
-      await preprocessor.preprocessString("content", "test.h");
-
-      expect(mockRm).toHaveBeenCalledWith("/tmp/cnext-abc123", {
-        recursive: true,
+    it("removes the temporary directory after failure", async () => {
+      const fs = new MockFileSystem();
+      let input = "";
+      mockExec.mockImplementation((_file: string, args: string[]) => {
+        input = args.at(-1) ?? "";
+        return Promise.reject(new Error("failed"));
       });
-    });
+      const preprocessor = new Preprocessor(fs, mockToolchain);
 
-    it("ignores cleanup errors", async () => {
-      mockExec.mockReturnValue({
-        stdout: "processed",
-        stderr: "",
-      });
-      mockRm.mockRejectedValue(new Error("cleanup failed"));
-
-      const preprocessor = new Preprocessor(mockToolchain);
-
-      // Should not throw
       const result = await preprocessor.preprocessString("content", "test.h");
-      expect(result.success).toBe(true);
+
+      expect(result.success).toBe(false);
+      expect(input).not.toBe("");
+      expect(fs.exists(dirname(input))).toBe(false);
     });
   });
 
@@ -487,7 +518,10 @@ int y;
         stderr: "",
       });
 
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       const result = await preprocessor.preprocess("/test.h");
 
       expect(result.sourceMappings).toContainEqual({
@@ -506,7 +540,10 @@ int x;
         stderr: "",
       });
 
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       const result = await preprocessor.preprocess("/test.h");
 
       expect(result.sourceMappings).toContainEqual({
@@ -525,7 +562,10 @@ int x;
         stderr: "",
       });
 
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       const result = await preprocessor.preprocess("/test.h");
 
       expect(result.sourceMappings).toContainEqual({
@@ -547,7 +587,10 @@ line10
         stderr: "",
       });
 
-      const preprocessor = new Preprocessor(mockToolchain);
+      const preprocessor = new Preprocessor(
+        NodeFileSystem.instance,
+        mockToolchain,
+      );
       const result = await preprocessor.preprocess("/test.h");
 
       // Line numbers increment after each content line

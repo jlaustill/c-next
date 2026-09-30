@@ -22,7 +22,7 @@
 
 import { describe, it, expect } from "vitest";
 import DeclaredTypeFacts from "../DeclaredTypeFacts";
-import type IDeclaredTypeSets from "../../transpiler/types/IDeclaredTypeSets";
+import type IDeclaredTypeSets from "../types/IDeclaredTypeSets";
 
 function sets(
   structs: string[] = [],

@@ -6,7 +6,7 @@
  * - E0873: a shift amount that is negative or not below the operand's width
  *   (MISRA C:2012 Rule 12.2)
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IShiftError extends IBaseAnalysisError {}
 

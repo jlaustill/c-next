@@ -1,7 +1,7 @@
 import ECommentType from "../../transpiler/types/ECommentType";
 import CommentScanner from "../../PARSE/2-Parse/CommentScanner";
 import IComment from "../../transpiler/types/IComment";
-import ICommentError from "../../transpiler/types/ICommentError";
+import ICommentError from "./types/ICommentError";
 
 /**
  * Validates comments against MISRA C:2012 Rules 3.1 and 3.2 (ADR-043).

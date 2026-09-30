@@ -7,10 +7,6 @@ import { extname, resolve } from "node:path";
 import EFileType from "./types/EFileType";
 import IDiscoveredFile from "./types/IDiscoveredFile";
 import IFileSystem from "../types/IFileSystem";
-import NodeFileSystem from "../NodeFileSystem";
-
-/** Default file system instance (singleton for performance) */
-const defaultFs = NodeFileSystem.instance;
 
 /**
  * Default extensions for each file type
@@ -50,11 +46,11 @@ class FileDiscovery {
    * Discover a single file
    *
    * @param filePath - Path to the file
-   * @param fs - File system abstraction (defaults to NodeFileSystem)
+   * @param fs - File system abstraction
    */
   static discoverFile(
     filePath: string,
-    fs: IFileSystem = defaultFs,
+    fs: IFileSystem,
   ): IDiscoveredFile | null {
     const resolvedPath = resolve(filePath);
 
@@ -73,11 +69,11 @@ class FileDiscovery {
    * Discover multiple specific files
    *
    * @param filePaths - Paths to the files
-   * @param fs - File system abstraction (defaults to NodeFileSystem)
+   * @param fs - File system abstraction
    */
   static discoverFiles(
     filePaths: string[],
-    fs: IFileSystem = defaultFs,
+    fs: IFileSystem,
   ): IDiscoveredFile[] {
     const files: IDiscoveredFile[] = [];
 

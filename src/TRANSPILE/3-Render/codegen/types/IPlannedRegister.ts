@@ -1,4 +1,4 @@
-import type IPlannedRegisterMember from "../../../../transpiler/types/IPlannedRegisterMember";
+import type IPlannedRegisterMember from "./IPlannedRegisterMember";
 
 /**
  * An ADR-004 register binding, decided.

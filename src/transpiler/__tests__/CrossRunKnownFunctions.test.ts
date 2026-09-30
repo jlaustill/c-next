@@ -30,6 +30,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
+import NodeFileSystem from "../NodeFileSystem";
 
 /** Declares `sharedHelper`, so generating it records the name. */
 const DECLARES_SHARED_HELPER = `u32 sharedHelper() {
@@ -61,13 +62,16 @@ describe("knownFunctions does not survive a run (#1430)", () => {
   });
 
   const newTranspiler = (): Transpiler =>
-    new Transpiler({
-      input: "",
-      includeDirs: [dir],
-      outDir: "",
-      headerOutDir: "",
-      target: "host",
-    });
+    new Transpiler(
+      {
+        input: "",
+        includeDirs: [dir],
+        outDir: "",
+        headerOutDir: "",
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
 
   const borrowRun = async (
     transpiler: Transpiler,

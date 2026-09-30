@@ -10,10 +10,6 @@ import type IHeaderRoot from "./types/IHeaderRoot";
 import EFileType from "./types/EFileType";
 import DependencyGraph from "./DependencyGraph";
 import IFileSystem from "../types/IFileSystem";
-import NodeFileSystem from "../NodeFileSystem";
-
-/** Default file system instance (singleton for performance) */
-const defaultFs = NodeFileSystem.instance;
 
 /**
  * Result of resolving includes from source content
@@ -148,7 +144,7 @@ class IncludeResolver {
   constructor(
     private readonly searchPaths: string[],
     headerExtension: THeaderExtension,
-    fs: IFileSystem = defaultFs,
+    fs: IFileSystem,
     headerIncludePathFor: ((cnxPath: string) => string | null) | null = null,
     quotedIncludeDirectory: string | null = null,
   ) {
@@ -427,21 +423,21 @@ class IncludeResolver {
    */
   static resolveHeadersTransitively(
     roots: ReadonlyArray<IHeaderRoot>,
-    options?: {
+    options: {
       /** Callback for debug logging */
       onDebug?: (message: string) => void;
       /** Set of already-processed paths to skip */
       processedPaths?: Set<string>;
-      /** File system abstraction (defaults to NodeFileSystem) */
-      fs?: IFileSystem;
+      /** File system abstraction: the port the host injected */
+      fs: IFileSystem;
     },
   ): {
     headers: IDiscoveredFile[];
     searchPaths: ReadonlyMap<string, readonly string[]>;
     warnings: string[];
   } {
-    const fs = options?.fs ?? defaultFs;
-    const visited = new Set<string>(options?.processedPaths);
+    const fs = options.fs;
+    const visited = new Set<string>(options.processedPaths);
     const warnings: string[] = [];
     const depGraph = new DependencyGraph();
     const fileByPath = new Map<string, IDiscoveredFile>();
@@ -460,7 +456,7 @@ class IncludeResolver {
         file,
         fs,
         warnings,
-        options?.onDebug,
+        options.onDebug,
       );
       if (!content) return;
 
@@ -471,8 +467,8 @@ class IncludeResolver {
       const includes = IncludeDiscovery.extractIncludesWithInfo(content);
       const searchPaths = [dirname(absolutePath), ...rootSearchPaths];
 
-      options?.onDebug?.(`Processing includes in ${file.path}:`);
-      options?.onDebug?.(`  Search paths: ${searchPaths.join(", ")}`);
+      options.onDebug?.(`Processing includes in ${file.path}:`);
+      options.onDebug?.(`  Search paths: ${searchPaths.join(", ")}`);
 
       for (const includeInfo of includes) {
         const resolved = IncludeDiscovery.resolveInclude(
@@ -481,7 +477,7 @@ class IncludeResolver {
           fs,
         );
 
-        options?.onDebug?.(
+        options.onDebug?.(
           `  #include "${includeInfo.path}" → ${resolved ?? "NOT FOUND"}`,
         );
 
@@ -501,9 +497,7 @@ class IncludeResolver {
         const includedPath = resolve(includedFile!.path);
         depGraph.addDependency(absolutePath, includedPath);
 
-        options?.onDebug?.(
-          `    → Recursively processing ${includedFile!.path}`,
-        );
+        options.onDebug?.(`    → Recursively processing ${includedFile!.path}`);
         processHeader(includedFile!, rootSearchPaths);
       }
     };
@@ -545,16 +539,16 @@ class IncludeResolver {
    * @param sourceDir - Directory containing the source file
    * @param includeDirs - Include directories from config
    * @param additionalIncludeDirs - Extra include directories (e.g., from API options)
-   * @param projectRoot - Optional project root for common directory discovery
-   * @param fs - File system abstraction (defaults to NodeFileSystem)
+   * @param projectRoot - Project root for common directory discovery, or undefined
+   * @param fs - File system abstraction
    * @returns Array of search paths in priority order
    */
   static buildSearchPaths(
     sourceDir: string,
     includeDirs: string[],
-    additionalIncludeDirs: string[] = [],
-    projectRoot?: string,
-    fs: IFileSystem = defaultFs,
+    additionalIncludeDirs: string[],
+    projectRoot: string | undefined,
+    fs: IFileSystem,
   ): string[] {
     const paths: string[] = [];
 

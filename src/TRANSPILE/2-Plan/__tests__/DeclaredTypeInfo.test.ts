@@ -13,6 +13,7 @@ import TargetCatalogFile from "../../../transpiler/data/TargetCatalogFile";
 import CResolver from "../../../PARSE/3-Declare/c/index";
 import OperandTyper from "../../../utils/OperandTyper";
 import testAnalysisContextFor from "../../1-Analyze/__tests__/testAnalysisContextFor";
+import NodeFileSystem from "../../../transpiler/NodeFileSystem";
 
 /** `name`'s declared type where `r` is declared in `source` */
 function declaredAtR(source: string, name: string, root: "this" | null = null) {
@@ -211,11 +212,15 @@ extern int n;
       line: 2,
       column: 0,
     });
-    const avr = TargetCatalogFile.targets().get("atmega328p")!;
+    const avr = TargetCatalogFile.targets(NodeFileSystem.instance).get(
+      "atmega328p",
+    )!;
     expect(
       DeclaredTypeInfo.of(binding, context.symbols, table, avr),
     ).toMatchObject({ baseType: "f32" });
-    const host = TargetCatalogFile.targets().get("host")!;
+    const host = TargetCatalogFile.targets(NodeFileSystem.instance).get(
+      "host",
+    )!;
     expect(
       DeclaredTypeInfo.of(binding, context.symbols, table, host),
     ).toMatchObject({ baseType: "f64" });

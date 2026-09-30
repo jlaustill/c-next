@@ -27,7 +27,7 @@ import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type IPlannedRegister from "../../../types/IPlannedRegister";
-import type IPlannedRegisterMember from "../../../../../../transpiler/types/IPlannedRegisterMember";
+import type IPlannedRegisterMember from "../../../types/IPlannedRegisterMember";
 
 // ========================================================================
 // Test Helpers

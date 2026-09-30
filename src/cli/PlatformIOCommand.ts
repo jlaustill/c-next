@@ -4,7 +4,8 @@
  */
 
 import { resolve } from "node:path";
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import NodeFileSystem from "../transpiler/NodeFileSystem";
+import Write from "../WRITE/1-Write/Write";
 import IFileConfig from "./types/IFileConfig";
 
 /**
@@ -23,7 +24,7 @@ function getPioProjectPaths(): IPioProjectPaths {
   const pioIniPath = resolve(process.cwd(), "platformio.ini");
   const scriptPath = resolve(process.cwd(), "cnext_build.py");
 
-  if (!existsSync(pioIniPath)) {
+  if (!NodeFileSystem.instance.exists(pioIniPath)) {
     console.error("Error: platformio.ini not found in current directory");
     console.error("Run this command from your PlatformIO project root");
     process.exit(1);
@@ -125,11 +126,11 @@ def transpile_cnext():
 transpile_cnext()
 `;
 
-    writeFileSync(scriptPath, buildScript, "utf-8");
+    Write.file(NodeFileSystem.instance, scriptPath, buildScript);
     console.log(`✓ Created: ${scriptPath}`);
 
     // Read platformio.ini
-    let pioIni = readFileSync(pioIniPath, "utf-8");
+    let pioIni = NodeFileSystem.instance.readFile(pioIniPath);
 
     // Check if extra_scripts is already present
     if (pioIni.includes("cnext_build.py")) {
@@ -152,7 +153,7 @@ transpile_cnext()
       );
     }
 
-    writeFileSync(pioIniPath, pioIni, "utf-8");
+    Write.file(NodeFileSystem.instance, pioIniPath, pioIni);
     console.log(`✓ Modified: ${pioIniPath}`);
 
     // Setup cnext.config.json for PlatformIO
@@ -183,9 +184,9 @@ transpile_cnext()
 
     let config: IFileConfig = {};
 
-    if (existsSync(configPath)) {
+    if (NodeFileSystem.instance.exists(configPath)) {
       try {
-        const content = readFileSync(configPath, "utf-8");
+        const content = NodeFileSystem.instance.readFile(configPath);
         config = JSON.parse(content) as IFileConfig;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -208,7 +209,11 @@ transpile_cnext()
     }
 
     // Write config (with pretty formatting)
-    writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+    Write.file(
+      NodeFileSystem.instance,
+      configPath,
+      JSON.stringify(config, null, 2) + "\n",
+    );
     console.log(`✓ Updated: ${configPath}`);
   }
 
@@ -222,9 +227,9 @@ transpile_cnext()
     let hasChanges = false;
 
     // Remove cnext_build.py if it exists
-    if (existsSync(scriptPath)) {
+    if (NodeFileSystem.instance.exists(scriptPath)) {
       try {
-        unlinkSync(scriptPath);
+        Write.remove(NodeFileSystem.instance, scriptPath);
         console.log(`✓ Removed: ${scriptPath}`);
         hasChanges = true;
       } catch (err) {
@@ -236,7 +241,7 @@ transpile_cnext()
     }
 
     // Read platformio.ini
-    let pioIni = readFileSync(pioIniPath, "utf-8");
+    let pioIni = NodeFileSystem.instance.readFile(pioIniPath);
 
     // Check if extra_scripts includes cnext_build.py
     if (pioIni.includes("cnext_build.py")) {
@@ -252,7 +257,7 @@ transpile_cnext()
       // Clean up multiple consecutive blank lines
       pioIni = pioIni.replaceAll(/\n\n\n+/g, "\n\n");
 
-      writeFileSync(pioIniPath, pioIni, "utf-8");
+      Write.file(NodeFileSystem.instance, pioIniPath, pioIni);
       console.log(`✓ Modified: ${pioIniPath}`);
       hasChanges = true;
     } else {
