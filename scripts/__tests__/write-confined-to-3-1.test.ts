@@ -17,7 +17,10 @@ import { describe, expect, it } from "vitest";
 import SourceScan from "../utils/SourceScan";
 
 const METHODS = ["writeFile", "mkdir", "unlink", "rename"] as const;
-const MUTATING = new RegExp(String.raw`\.(${METHODS.join("|")})\(`, "g");
+// `\b`, not `\(`: a method REFERENCE such as `paths.forEach(fs.unlink)`
+// mutates as surely as a call (#1826 review). `\b` still stops short of
+// `writeFileSync`/`mkdirSync`, whose names run on.
+const MUTATING = new RegExp(String.raw`\.(${METHODS.join("|")})\b`, "g");
 const WRITE_PASS = "src/WRITE/1-Write/";
 const PORT = "src/transpiler/NodeFileSystem.ts";
 
@@ -36,7 +39,7 @@ describe("3.1 Write owns every change to the filesystem", () => {
   it.each(METHODS)("3.1 does call %s, so the pattern can see it", (method) => {
     expect(
       hits.some(
-        (hit) => hit.file.startsWith(WRITE_PASS) && hit.text === `.${method}(`,
+        (hit) => hit.file.startsWith(WRITE_PASS) && hit.text === `.${method}`,
       ),
     ).toBe(true);
   });

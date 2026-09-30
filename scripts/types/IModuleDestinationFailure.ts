@@ -13,6 +13,8 @@ interface IModuleDestinationFailure {
   readonly subject: string;
   /** 1-based line in the map, or null when the subject is not a row. */
   readonly line: number | null;
+  /** For the ratchet: the module count against what `AWAITING_ROWS` holds. */
+  readonly detail?: string;
 }
 
 export default IModuleDestinationFailure;

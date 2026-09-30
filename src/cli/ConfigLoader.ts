@@ -7,6 +7,7 @@ import { dirname, isAbsolute, join, resolve } from "node:path";
 import IFileConfig from "./types/IFileConfig";
 import PathNormalizer from "./PathNormalizer";
 import NodeFileSystem from "../transpiler/NodeFileSystem";
+import IFileSystem from "../transpiler/types/IFileSystem";
 
 /**
  * Searched in this order in each directory. `cnext --help` documents these
@@ -23,8 +24,11 @@ class ConfigLoader {
    * @param startDir - Directory to start searching from
    * @returns Loaded configuration (empty object if no config found)
    */
-  static load(startDir: string): IFileConfig {
-    const found = ConfigLoader.find(resolve(startDir));
+  static load(
+    startDir: string,
+    fs: IFileSystem = NodeFileSystem.instance,
+  ): IFileConfig {
+    const found = ConfigLoader.find(resolve(startDir), fs);
     if (!found) {
       return {}; // No config found
     }
@@ -37,7 +41,10 @@ class ConfigLoader {
       console.error(`Warning: Failed to parse config: ${message}`);
       return {};
     }
-    if (!config || typeof config !== "object") {
+    if (!config || typeof config !== "object" || Array.isArray(config)) {
+      console.error(
+        `Warning: Config ${found.path} is not a JSON object; ignored`,
+      );
       return {};
     }
 
@@ -59,24 +66,36 @@ class ConfigLoader {
    * JSON, and the upward walk.
    *
    * An empty file is skipped and the search continues, as cosmiconfig's
-   * default `ignoreEmptySearchPlaces` did.
+   * default `ignoreEmptySearchPlaces` did. So is a file that cannot be read,
+   * as cosmiconfig skipped EACCES, now with a warning (#1826 review: letting
+   * the error escape aborted every run under an unreadable ancestor config).
    */
   private static find(
     startDir: string,
+    fs: IFileSystem,
   ): { path: string; content: string } | null {
-    const fs = NodeFileSystem.instance;
     for (let dir = startDir; ; dir = dirname(dir)) {
       for (const place of SEARCH_PLACES) {
-        const path = join(dir, place);
-        if (!fs.isFile(path)) continue;
-        const content = fs.readFile(path);
-        if (content.trim() !== "") {
-          return { path, content };
+        const content = ConfigLoader.readConfig(join(dir, place), fs);
+        if (content !== null && content.trim() !== "") {
+          return { path: join(dir, place), content };
         }
       }
       if (dirname(dir) === dir) {
         return null;
       }
+    }
+  }
+
+  /** A config file's text, or null when there is none or it cannot be read. */
+  private static readConfig(path: string, fs: IFileSystem): string | null {
+    if (!fs.isFile(path)) return null;
+    try {
+      return fs.readFile(path);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`Warning: Failed to read config ${path}: ${message}`);
+      return null;
     }
   }
 

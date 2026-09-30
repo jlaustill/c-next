@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
-import { join, sep } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import FileScanner from "./FileScanner";
 import ISourceHit from "../types/ISourceHit";
 
-const rootDir = join(__dirname, "..", "..");
+const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const srcDir = join(rootDir, "src");
 
 /**
@@ -14,10 +15,27 @@ const srcDir = join(rootDir, "src");
  * `write-confined-to-3-1.test.ts` (#1653 moved it here rather than copy it).
  */
 class SourceScan {
-  /** Every source file under `src/`, excluding tests. */
+  /**
+   * The one definition of "a non-test module under `src/`" (#1826 review), for
+   * a repository-relative path with `/` separators: TypeScript under `src/`,
+   * outside `__tests__/` and `__testUtils__/`, and not a `*.test.ts`. The same
+   * split `.dependency-cruiser.cjs` makes. `destinations:check` counts its
+   * population with it, and the scans here read theirs through it.
+   */
+  static isModule(path: string): boolean {
+    return (
+      path.startsWith("src/") &&
+      path.endsWith(".ts") &&
+      !path.includes("/__tests__/") &&
+      !path.includes("/__testUtils__/") &&
+      !path.endsWith(".test.ts")
+    );
+  }
+
+  /** Every non-test module under `src/`, as absolute paths. */
   static sourceFiles(): string[] {
-    return FileScanner.findFiles(srcDir, ".ts").filter(
-      (full) => !full.includes(`${sep}__tests__${sep}`),
+    return FileScanner.findFiles(srcDir, ".ts").filter((full) =>
+      SourceScan.isModule(relative(rootDir, full).split(sep).join("/")),
     );
   }
 

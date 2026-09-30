@@ -242,9 +242,11 @@ depending on where the IMPORTER sits, so `../../utils` from one directory and `.
 from another cannot both be right under one regex.
 
 **Moving modules**: `npm run move:modules` (dry run) / `-- --apply`. The manifest in
-`scripts/move-modules.ts` records every move WITH the reason for its destination, so the
+`scripts/move-modules/MOVES.ts` records every move WITH the reason for its destination, so the
 move is reviewable in the diff rather than a tool call nobody can inspect afterwards. It is
-idempotent — add entries and re-run.
+idempotent — add entries and re-run. It is read as a sequence: an entry a later entry moves
+on from is superseded (`MovePlan`), so a module moved back is not moved out again, and
+`move-plan.test.ts` fails if the committed manifest has anything left to move (#1826 review).
 
 `move:modules` rewrites the importers **ts-morph can see**, which is the root tsconfig's
 program — not `scripts/`. It reports importers outside that program by name after

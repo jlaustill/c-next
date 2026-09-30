@@ -5,12 +5,16 @@ import ModuleDestinations from "../module-destinations/ModuleDestinations";
 function check(
   markdown: string,
   files: readonly string[],
-  baseline: readonly string[] = [],
+  baseline: Readonly<Record<string, number>> = {},
 ) {
   return ModuleDestinations.checkOutcome(markdown, files, baseline);
 }
 
-function kinds(markdown: string, files: string[], baseline: string[] = []) {
+function kinds(
+  markdown: string,
+  files: string[],
+  baseline: Readonly<Record<string, number>> = {},
+) {
   return check(markdown, files, baseline).failures.map(
     (f) => `${f.kind} ${f.subject}`,
   );
@@ -124,33 +128,55 @@ describe("ModuleDestinations.checkOutcome", () => {
 
   it("does not fail on an awaiting row the baseline holds", () => {
     expect(
-      kinds(
-        AWAITING,
-        ["src/transpiler/data/IncludeResolver.ts"],
-        ["src/transpiler/data/**"],
-      ),
+      kinds(AWAITING, ["src/transpiler/data/IncludeResolver.ts"], {
+        "src/transpiler/data/**": 1,
+      }),
     ).toEqual([]);
   });
 
   it("fails when the awaiting set grows past the baseline", () => {
     expect(
-      kinds(AWAITING, ["src/transpiler/data/IncludeResolver.ts"], []),
+      kinds(AWAITING, ["src/transpiler/data/IncludeResolver.ts"], {}),
     ).toEqual(["awaiting-grew src/transpiler/data/**"]);
+  });
+
+  // #1826 review: the ratchet counted pattern strings, so a module landing
+  // under an awaiting glob passed undecided. It counts modules now.
+  it("fails when a module lands under an awaiting glob the baseline counted", () => {
+    expect(
+      kinds(
+        AWAITING,
+        [
+          "src/transpiler/data/IncludeResolver.ts",
+          "src/transpiler/data/Undecided.ts",
+        ],
+        { "src/transpiler/data/**": 1 },
+      ),
+    ).toEqual(["awaiting-grew src/transpiler/data/**"]);
+  });
+
+  it("fails when a module leaves an awaiting glob and the count is not lowered", () => {
+    expect(
+      kinds(AWAITING, ["src/transpiler/data/IncludeResolver.ts"], {
+        "src/transpiler/data/**": 2,
+      }),
+    ).toEqual(["baseline-stale src/transpiler/data/**"]);
   });
 
   it("fails on a baseline entry that is no longer an awaiting row", () => {
     expect(
-      kinds(
-        AWAITING,
-        ["src/transpiler/data/IncludeResolver.ts"],
-        ["src/transpiler/data/**", "src/transpiler/types/**"],
-      ),
+      kinds(AWAITING, ["src/transpiler/data/IncludeResolver.ts"], {
+        "src/transpiler/data/**": 1,
+        "src/transpiler/types/**": 1,
+      }),
     ).toEqual(["baseline-stale src/transpiler/types/**"]);
   });
 
   it("holds an awaiting row to the modules it names, like any other row", () => {
     expect(
-      kinds(AWAITING, ["src/transpiler/Other.ts"], ["src/transpiler/data/**"]),
+      kinds(AWAITING, ["src/transpiler/Other.ts"], {
+        "src/transpiler/data/**": 0,
+      }),
     ).toEqual([
       "no-row src/transpiler/Other.ts",
       "unmatched-row src/transpiler/data/**",
@@ -172,11 +198,9 @@ describe("ModuleDestinations.checkOutcome", () => {
       "| `src/utils/ChainRoot.ts` | `src/types/`, awaiting #1443 | moves |",
     ].join("\n");
     expect(
-      kinds(
-        markdown,
-        ["src/utils/ChainRoot.ts", "src/utils/Other.ts"],
-        ["src/utils/ChainRoot.ts"],
-      ),
+      kinds(markdown, ["src/utils/ChainRoot.ts", "src/utils/Other.ts"], {
+        "src/utils/ChainRoot.ts": 1,
+      }),
     ).toEqual(["conflicting-rows src/utils/ChainRoot.ts"]);
   });
 
@@ -196,7 +220,10 @@ describe("ModuleDestinations.checkOutcome", () => {
           "src/transpiler/types/IRunAnchor.ts",
           "src/transpiler/types/IShared.ts",
         ],
-        ["src/transpiler/types/**", "src/transpiler/types/IRunAnchor.ts"],
+        {
+          "src/transpiler/types/**": 2,
+          "src/transpiler/types/IRunAnchor.ts": 1,
+        },
       ),
     ).toEqual(["conflicting-rows src/transpiler/types/IRunAnchor.ts"]);
   });
@@ -211,11 +238,10 @@ describe("ModuleDestinations.checkOutcome", () => {
       "| `src/transpiler/data/FileDiscovery.ts` | `src/PARSE/1-Discover/`, awaiting #1444 | its own why |",
     ].join("\n");
     expect(
-      kinds(
-        markdown,
-        ["src/transpiler/data/FileDiscovery.ts"],
-        ["src/transpiler/data/**", "src/transpiler/data/FileDiscovery.ts"],
-      ),
+      kinds(markdown, ["src/transpiler/data/FileDiscovery.ts"], {
+        "src/transpiler/data/**": 1,
+        "src/transpiler/data/FileDiscovery.ts": 1,
+      }),
     ).toEqual([]);
   });
 
@@ -255,6 +281,22 @@ describe("ModuleDestinations.checkOutcome", () => {
     ]);
   });
 
+  it("fails on an awaiting row in a table with no destination column", () => {
+    // #1826 review: a header reading `Destination pass` sent this row down the
+    // placed path, where it counted as placed and escaped the ratchet.
+    const markdown = [
+      "## Elsewhere",
+      "",
+      "| module | Destination pass | why |",
+      "| --- | --- | --- |",
+      "| `src/z/a.ts` | `src/z/`, awaiting #99 | later |",
+    ].join("\n");
+    expect(kinds(markdown, ["src/z/a.ts"])).toEqual([
+      "unresolvable-row src/z/a.ts",
+      "no-row src/z/a.ts",
+    ]);
+  });
+
   it("reports the line a failing row sits on", () => {
     const outcome = check(PLAN, ["src/TRANSPILE/2-Plan/helpers/One.ts"]);
     expect(outcome.failures.map((f) => f.line)).toEqual([5]);
@@ -268,7 +310,7 @@ describe("ModuleDestinations.checkOutcome", () => {
         "src/TRANSPILE/2-Plan/helpers/One.ts",
         "src/transpiler/data/IncludeResolver.ts",
       ],
-      ["src/transpiler/data/**"],
+      { "src/transpiler/data/**": 1 },
     );
     expect([outcome.modules, outcome.rows, outcome.awaiting]).toEqual([
       3, 3, 1,

@@ -36,8 +36,17 @@ class MockFileSystem implements IFileSystem {
    * models a broken installation, not an empty project.
    */
   constructor() {
-    const catalog = TargetCatalogFile.locate(NodeFileSystem.instance);
-    this.files.set(catalog, NodeFileSystem.instance.readFile(catalog));
+    try {
+      const catalog = TargetCatalogFile.locate(NodeFileSystem.instance);
+      this.files.set(catalog, NodeFileSystem.instance.readFile(catalog));
+    } catch (err) {
+      // Name the real cause rather than let "the compiler installation is
+      // broken" suggest one (#1826 review).
+      throw new Error(
+        `MockFileSystem seeds the target catalog from the real disk and could not (${String(err)}). A test that mocks node:fs must keep existsSync and readFileSync real.`,
+        { cause: err },
+      );
+    }
   }
 
   /**

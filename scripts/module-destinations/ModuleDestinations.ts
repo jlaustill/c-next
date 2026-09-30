@@ -3,6 +3,7 @@ import { matchesGlob } from "node:path";
 import IModuleDestinationFailure from "../types/IModuleDestinationFailure";
 import IModuleDestinationRow from "../types/IModuleDestinationRow";
 import IModuleDestinationsOutcome from "../types/IModuleDestinationsOutcome";
+import SourceScan from "../utils/SourceScan";
 
 /** One pattern of one row, kept with the line it came from. */
 interface IPlacedPattern {
@@ -42,27 +43,15 @@ class ModuleDestinations {
   private static readonly SPAN = /`([^`]+)`/g;
   private static readonly AWAITING = /awaiting #(\d+)/;
 
-  /**
-   * The modules a row must place: non-test TypeScript under `src/`. Test
-   * support is `__tests__/`, `__testUtils__/` and `*.test.ts`, the same split
-   * `.dependency-cruiser.cjs` makes; nothing outside tests imports a
-   * `__testUtils__/` module.
-   */
+  /** The modules a row must place, by `SourceScan.isModule`. */
   static population(files: readonly string[]): string[] {
-    return files.filter(
-      (file) =>
-        file.startsWith("src/") &&
-        file.endsWith(".ts") &&
-        !file.includes("/__tests__/") &&
-        !file.includes("/__testUtils__/") &&
-        !file.endsWith(".test.ts"),
-    );
+    return files.filter((file) => SourceScan.isModule(file));
   }
 
   static checkOutcome(
     markdown: string,
     files: readonly string[],
-    baseline: readonly string[],
+    baseline: Readonly<Record<string, number>>,
   ): IModuleDestinationsOutcome {
     const modules = ModuleDestinations.population(files);
     const { rows, unresolvable } = ModuleDestinations.parse(markdown);
@@ -89,22 +78,11 @@ class ModuleDestinations {
         line: p.line,
       }));
 
-    const allowed = new Set(baseline);
-    const current = new Set(awaiting.map((p) => p.pattern));
-    const grew: IModuleDestinationFailure[] = awaiting
-      .filter((p) => !allowed.has(p.pattern))
-      .map((p) => ({
-        kind: "awaiting-grew",
-        subject: p.pattern,
-        line: p.line,
-      }));
-    const stale: IModuleDestinationFailure[] = baseline
-      .filter((pattern) => !current.has(pattern))
-      .map((pattern) => ({
-        kind: "baseline-stale",
-        subject: pattern,
-        line: null,
-      }));
+    const { grew, stale } = ModuleDestinations.ratchet(
+      awaiting,
+      modules,
+      baseline,
+    );
 
     return {
       failures: [
@@ -119,6 +97,52 @@ class ModuleDestinations {
       rows: rows.length,
       awaiting: rows.filter((row) => row.awaiting !== null).length,
     };
+  }
+
+  /**
+   * The `awaiting` ratchet, counted in MODULES (#1826 review). Counting pattern
+   * strings let a module land under an `awaiting` glob undecided: the pattern
+   * was already allowed, and the glob placed it. A pattern whose count rises
+   * has grown; one whose count falls, or that is no longer an `awaiting` row,
+   * holds an allowance nothing uses and must be lowered in the same commit.
+   */
+  private static ratchet(
+    awaiting: readonly IPlacedPattern[],
+    modules: readonly string[],
+    baseline: Readonly<Record<string, number>>,
+  ): {
+    grew: IModuleDestinationFailure[];
+    stale: IModuleDestinationFailure[];
+  } {
+    const counts = new Map(
+      awaiting.map((p) => [
+        p.pattern,
+        modules.filter((module) => matchesGlob(module, p.pattern)).length,
+      ]),
+    );
+    const grew: IModuleDestinationFailure[] = awaiting
+      .filter(
+        (p) =>
+          !(p.pattern in baseline) ||
+          (counts.get(p.pattern) ?? 0) > baseline[p.pattern],
+      )
+      .map((p) => ({
+        kind: "awaiting-grew",
+        subject: p.pattern,
+        line: p.line,
+        detail: `${counts.get(p.pattern)} module(s); AWAITING_ROWS holds ${baseline[p.pattern] ?? "none"}`,
+      }));
+    const stale: IModuleDestinationFailure[] = Object.entries(baseline)
+      .filter(([pattern, allowed]) => (counts.get(pattern) ?? -1) < allowed)
+      .map(([pattern, allowed]) => ({
+        kind: "baseline-stale",
+        subject: pattern,
+        line: null,
+        detail: counts.has(pattern)
+          ? `${counts.get(pattern)} module(s); AWAITING_ROWS holds ${allowed}`
+          : "no longer an `awaiting` row",
+      }));
+    return { grew, stale };
   }
 
   /** Every placement row in the map, and the rows that resolve to no path. */
@@ -177,11 +201,34 @@ class ModuleDestinations {
       const line = index + 1;
       const row =
         destination === -1
-          ? ModuleDestinations.placedRow(cells[0], base, line)
+          ? (ModuleDestinations.undeclaredAwaiting(cells, line) ??
+            ModuleDestinations.placedRow(cells[0], base, line))
           : ModuleDestinations.destinationRow(cells, destination, line);
       if ("kind" in row) into.unresolvable.push(row);
       else into.rows.push(row);
     }
+  }
+
+  /**
+   * An `awaiting #NNNN` in a table with no `destination` column (#1826 review).
+   * Read as placed, it would escape the ratchet, so it fails instead: the
+   * header decides which reading applies, and this one is ambiguous.
+   */
+  private static undeclaredAwaiting(
+    cells: readonly string[],
+    line: number,
+  ): IModuleDestinationFailure | null {
+    if (
+      !cells.slice(1).some((cell) => ModuleDestinations.AWAITING.test(cell))
+    ) {
+      return null;
+    }
+    return {
+      kind: "unresolvable-row",
+      subject: ModuleDestinations.spans(cells[0])[0] ?? cells[0],
+      line,
+      detail: "reads `awaiting #N` in a table with no `destination` column",
+    };
   }
 
   /** A `module | why` row: each path is relative to the section's directory. */

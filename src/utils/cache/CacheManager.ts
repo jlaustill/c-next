@@ -538,9 +538,13 @@ class CacheManager {
     // Deleting from a Map while iterating it is defined: an entry removed
     // before it is reached is not visited, and the current one may go.
     for (const [key, value] of this.cache) {
-      const data = value as Record<string, unknown>;
-
-      if (typeof data.cacheKey === "string") {
+      // Anything but an object carrying a string cacheKey is outdated,
+      // including null: the file is plain JSON and can hold anything (#1826).
+      if (
+        value !== null &&
+        typeof value === "object" &&
+        typeof (value as Record<string, unknown>).cacheKey === "string"
+      ) {
         continue;
       }
 

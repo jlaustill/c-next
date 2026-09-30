@@ -128,7 +128,7 @@ describe("IncludeGenerator", () => {
       expect(result).toBe('#include "../lib/utils.h"');
     });
 
-    it("skips validation when sourcePath is null", () => {
+    it("rewrites a quoted .cnx include when there is no sourcePath", () => {
       const result = transformIncludeDirective('#include "file.cnx"', {
         headerExtension: ".h",
         sourcePath: null,

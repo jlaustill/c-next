@@ -163,7 +163,7 @@ as a module anywhere: `EmissionPlan`, `ComplianceAnnotations`, `HeaderTypeNames`
 `git log --diff-filter=A --follow` gives each an add commit at its path. None
 has a rename, except that `IChainBase` was renamed once inside this directory,
 from `ITargetDeclaration` (`763583912`). The rest were moved in by
-`scripts/move-modules.ts`. Its `because` strings argue why each module left
+`scripts/move-modules/MOVES.ts`. Its `because` strings argue why each module left
 where it was. The rows above state what each module owns now, which is a
 different claim.
 
@@ -321,7 +321,7 @@ replaces them rather than receiving them.
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `src/TRANSPILE/3-Render/**` | the render pass: every module turns settled decisions into text, a property `render-decides-nothing.test.ts` gates |
 
-The manifest entry in `scripts/move-modules.ts` carries the reason; the short
+The manifest entry in `scripts/move-modules/MOVES.ts` carries the reason; the short
 form is that the admission test places a module in the pass that computes what
 it holds, and every module here exists to turn settled decisions into text.
 
@@ -450,7 +450,7 @@ them is here.
 ## Moving modules
 
 `npm run move:modules` dry-runs the move described by the manifest in
-`scripts/move-modules.ts`; `-- --apply` performs it. The manifest carries the
+`scripts/move-modules/MOVES.ts`; `-- --apply` performs it. The manifest carries the
 reason for each destination, so this document and the move stay one decision
 rather than two. A pass card adds entries there and rows here.
 

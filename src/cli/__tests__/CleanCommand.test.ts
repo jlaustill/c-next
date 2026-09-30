@@ -120,15 +120,15 @@ describe("CleanCommand", () => {
         "/project/src/main.cnx",
       ]);
 
-      // Mock unlinkSync to throw ENOENT (file doesn't exist)
-      const enoentError = new Error("ENOENT") as NodeJS.ErrnoException;
-      enoentError.code = "ENOENT";
-      vi.mocked(fs.unlinkSync).mockImplementation(() => {
-        throw enoentError;
-      });
+      // #1653: a file that is not there is asked about through the port and
+      // never deleted, so nothing errors (#1826 review: this test used to reach
+      // the error branch through an ENOENT from unlinkSync).
+      vi.mocked(fs.existsSync).mockReturnValue(false);
 
       CleanCommand.execute("/project/src/", "/project/build/", undefined);
 
+      expect(fs.unlinkSync).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
       expect(consoleLogSpy).toHaveBeenCalledWith(
         "No generated files found to delete.",
       );

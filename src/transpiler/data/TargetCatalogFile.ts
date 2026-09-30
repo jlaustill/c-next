@@ -4,11 +4,12 @@
  * Found by walking up from this module to `targets/targets.cnx`, which reaches
  * it from the TypeScript source (tsx, vitest), from the `dist/` bundle, and
  * from an installed package alike -- the catalog sits at the package root in
- * all three. Read with `node:fs` rather than the run's `IFileSystem`: the
- * catalog belongs to the compiler, not to the program being compiled, and a
- * run on an in-memory file system still needs it.
+ * all three. Read through the port the run is handed, like every other file
+ * (#1653): a port models the whole filesystem, the compiler's installation
+ * included, so a test double that stands in for one seeds the catalog, as
+ * `MockFileSystem` does.
  *
- * Read and validated once per process, on first use.
+ * Read and validated once per port, on first use.
  */
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

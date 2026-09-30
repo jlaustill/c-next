@@ -11,7 +11,9 @@ import IFileSystem from "../../transpiler/types/IFileSystem";
  * port directly, since reading changes nothing. A path is decided before it
  * arrives: naming an output never creates its directory, and writing it does.
  * `write-confined-to-3-1.test.ts` holds that no other module calls the port's
- * mutating methods.
+ * mutating methods. The one exception is the port's own `withTempFile`: a
+ * scratch file an external tool reads, removed before the call returns, so
+ * not output (see `IFileSystem`).
  */
 class Write {
   /** Write `content` to `path`, creating its directory first. */

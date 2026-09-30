@@ -6,10 +6,10 @@
  * instead of requiring actual file I/O during unit tests.
  *
  * Design notes:
- * - All methods are synchronous (matching current Node.js fs usage patterns)
+ * - Every method is synchronous except `withTempFile`, which awaits the
+ *   callback it is handed
  * - Deletion and rename are here because the host routes through the port too
  *   (#1653, carrying #1451 box 3): only `NodeFileSystem` imports `node:fs`
- * - Add async variants if performance optimization requires it in the future
  */
 
 interface IFileSystem {

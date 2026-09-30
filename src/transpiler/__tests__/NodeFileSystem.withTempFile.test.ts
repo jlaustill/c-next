@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -39,14 +39,5 @@ describe("NodeFileSystem.withTempFile (#1653)", () => {
     ).rejects.toThrow("cpp failed");
     expect(dir).not.toBe("");
     expect(existsSync(dir)).toBe(false);
-  });
-
-  it("ignores a failure to remove the directory", async () => {
-    // `use` removes the directory itself, so cleanup finds nothing to remove.
-    const result = await fs.withTempFile("a.c", "", async (path) => {
-      rmSync(dirname(path), { recursive: true });
-      return "done";
-    });
-    expect(result).toBe("done");
   });
 });

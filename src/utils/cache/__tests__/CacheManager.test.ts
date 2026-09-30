@@ -740,6 +740,30 @@ describe("CacheManager", () => {
     // #1653: nothing tested discardOutdatedEntries. Disabling it left all 117
     // cache tests green. Two outdated entries in a row are the case a
     // delete-during-iteration bug would get wrong: it would skip the second.
+    // #1826 review: symbols.json is plain JSON now, so an entry can be edited
+    // into anything. A null one threw out of initialize() on every later run.
+    it("treats an entry that is not an object as outdated rather than throwing", async () => {
+      const fs = new MockFileSystem();
+      await new CacheManager("/proj", fs).initialize();
+      fs.addFile(
+        "/proj/.cnx/cache/symbols.json",
+        JSON.stringify({
+          "/proj/nul.h": null,
+          "/proj/str.h": "not an entry",
+          "/proj/kept.h": { cacheKey: "mtime:1", symbols: [] },
+        }),
+      );
+
+      const manager = new CacheManager("/proj", fs);
+      await expect(manager.initialize()).resolves.toBeUndefined();
+      expect(manager.isValid("/proj/nul.h")).toBe(false);
+      await manager.flush();
+
+      expect(
+        Object.keys(JSON.parse(fs.readFile("/proj/.cnx/cache/symbols.json"))),
+      ).toEqual(["/proj/kept.h"]);
+    });
+
     it("drops every entry written without a cacheKey on load, and keeps the rest", async () => {
       const fs = new MockFileSystem();
       await new CacheManager("/proj", fs).initialize();
@@ -762,12 +786,10 @@ describe("CacheManager", () => {
       expect(kept).toEqual(["/proj/kept.h"]);
     });
 
-    // Note: Migration from old mtime-based format to cacheKey format is handled
-    // by CacheManager.migrateOldEntries(). However, testing this directly is
-    // impractical because flat-cache v6 uses its own serialization format (flatted).
-    // The migration code exists for users upgrading from older C-Next versions
-    // where the cache file was manually written as JSON. New installs use
-    // flat-cache's internal format from the start.
+    // Entries in an older shape -- no cacheKey, or not an object at all -- are
+    // dropped on load by discardOutdatedEntries; the two tests above pin it.
+    // Since #1653 symbols.json is plain JSON read through the port, so they can
+    // write the file directly.
 
     it("should persist and reload cache entries correctly", async () => {
       await cacheManager.initialize();
@@ -1549,14 +1571,10 @@ describe("CacheManager", () => {
   });
 
   describe("with MockFileSystem (IFileSystem integration)", () => {
-    // Note: CacheManager now uses flat-cache for symbol storage, which manages
-    // its own file I/O. IFileSystem is used only for:
-    // - Directory existence checks and creation
-    // - Config file operations (read/write config.json)
-    // - Cache key validation (via CacheKeyGenerator)
-    //
-    // Tests that depend on symbol cache file contents are skipped because
-    // flat-cache writes directly to the real filesystem.
+    // Since #1653 CacheManager does all of its file I/O through IFileSystem:
+    // it reads config.json and symbols.json through the port and writes both
+    // through 3.1 Write. So a MockFileSystem sees everything, symbols.json
+    // included, and tests here may assert on its contents.
 
     let mockFs: MockFileSystem;
     let cacheManager: CacheManager;
@@ -1623,7 +1641,7 @@ describe("CacheManager", () => {
 
       storeMockSymbols("/project/test.h", [symbol]);
 
-      // Symbols are stored in flat-cache memory before flush
+      // Symbols are held in memory until flush
       const cached = cacheManager.getSymbols("/project/test.h");
       expect(cached).not.toBeNull();
       expect(readSymbols(cached!.symbols)).toHaveLength(1);

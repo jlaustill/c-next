@@ -27,8 +27,8 @@ const HINTS: Record<IModuleDestinationFailure["kind"], string> = {
   "unmatched-row":
     "this row matches no module: it moved or was deleted, so update or remove the row",
   "awaiting-grew":
-    "a new `awaiting` row: the set may not grow (ruling 17) -- decide a real destination",
-  "baseline-stale": `no longer an \`awaiting\` row: delete it from scripts/module-destinations/AWAITING_ROWS.ts`,
+    "the `awaiting` set grew, a new row or a module under an existing one (ruling 17): decide a real destination",
+  "baseline-stale": `AWAITING_ROWS.ts allows more than the map now awaits: lower the count, or delete the entry`,
 };
 
 // The working tree, not `git ls-files`: the index cannot see a module that is
@@ -51,7 +51,7 @@ for (const failure of outcome.failures) {
       ? ""
       : `${ModuleDestinations.MAP_PATH}:${failure.line}  `;
   console.log(
-    `${chalk.red("error")}  ${where}${failure.kind}  ${failure.subject}\n       ${HINTS[failure.kind]}`,
+    `${chalk.red("error")}  ${where}${failure.kind}  ${failure.subject}${failure.detail ? ` (${failure.detail})` : ""}\n       ${HINTS[failure.kind]}`,
   );
 }
 

@@ -350,7 +350,7 @@ class Transpiler {
   private readonly fs: IFileSystem;
 
   constructor(config: ITranspilerConfig, fs: IFileSystem) {
-    // Use injected file system or default to Node.js implementation
+    // The port the host injected; the pipeline never defaults one (#1653)
     this.fs = fs;
     // Apply defaults
     this.config = {

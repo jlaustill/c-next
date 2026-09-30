@@ -2,53 +2,54 @@
  * The `awaiting #NNNN` rows `docs/architecture/module-destinations.md` may hold
  * (#1653, owner ruling 17: the set may not grow).
  *
- * An `awaiting` row is allowed, never a failure as such. What fails is a row
- * this list does not hold, and an entry here the map no longer reads as
- * `awaiting` -- so when a module moves, its entry leaves this list in the same
- * commit, and the allowance cannot be reused. Entries are the row's module
- * paths exactly as the map spells them.
+ * An `awaiting` row is allowed, never a failure as such. Each entry is a row's
+ * path, spelled as the map spells it, and the number of modules it covers. A
+ * count that rises fails: a module landed under a glob undecided. A count that
+ * falls, or an entry the map no longer reads as `awaiting`, fails too, so an
+ * allowance cannot outlive its modules (#1826 review: the ratchet used to count
+ * pattern strings, which a glob row made blind).
  */
-const AWAITING_ROWS: readonly string[] = [
-  "src/TRANSPILE/2-Plan/TransitiveModificationPropagator.ts",
-  "src/TRANSPILE/2-Plan/types/IModificationCollector.ts",
-  "src/transpiler/data/CNextMarkerDetector.ts",
-  "src/transpiler/data/CppEntryPointScanner.ts",
-  "src/transpiler/data/DependencyGraph.ts",
-  "src/transpiler/data/FileDiscovery.ts",
-  "src/transpiler/data/IncludeDiscovery.ts",
-  "src/transpiler/data/IncludeResolver.ts",
-  "src/transpiler/data/InputExpansion.ts",
-  "src/transpiler/data/PathResolver.ts",
-  "src/transpiler/data/PlatformIOIni.ts",
-  "src/transpiler/data/TargetCatalogFile.ts",
-  "src/transpiler/data/types/**",
-  "src/transpiler/data/IncludeRewriter.ts",
-  "src/transpiler/logic/preprocessor/**",
-  "src/utils/cache/**",
-  "src/transpiler/logic/IncludeExtractor.ts",
-  "src/transpiler/logic/detectCppSyntax.ts",
-  "src/transpiler/logic/detectAssemblySyntax.ts",
-  "src/transpiler/NodeFileSystem.ts",
-  "src/transpiler/Transpiler.ts",
-  "src/transpiler/ModificationFacts.ts",
-  "src/transpiler/CallbackCompatibility.ts",
-  "src/transpiler/types/**",
-  "src/transpiler/constants/BITMAP_BACKING_TYPE.ts",
-  "src/transpiler/constants/BITMAP_SIZE.ts",
-  "src/transpiler/constants/SMALL_PRIMITIVES.ts",
-  "src/transpiler/constants/TARGET_DESCRIPTION_FIELDS.ts",
-  "src/transpiler/constants/BUILTIN_TYPE_NAMES.ts",
-  "src/transpiler/constants/REJECTED_KEYWORDS.ts",
-  "src/transpiler/constants/SYSTEM_INCLUDE_TARGETS.ts",
-  "src/transpiler/constants/LANGUAGE_STANDARD_FAMILY.ts",
-  "src/transpiler/constants/LANGUAGE_STANDARD_ORDER.ts",
-  "src/transpiler/constants/STRUCT_POINTER_C_FUNCTIONS.ts",
-  "src/transpiler/constants/TOOLCHAIN_REQUIREMENTS.ts",
-  "src/transpiler/constants/TYPE_WIDTH.ts",
-  "src/transpiler/constants/UNRESOLVED_DIMENSION.ts",
-  "src/transpiler/constants/UNSET_SOURCE_SPAN.ts",
-  "src/index.ts",
-  "src/tests/utils/FunctionUtils.ts",
-];
+const AWAITING_ROWS: Readonly<Record<string, number>> = {
+  "src/TRANSPILE/2-Plan/TransitiveModificationPropagator.ts": 1,
+  "src/TRANSPILE/2-Plan/types/IModificationCollector.ts": 1,
+  "src/transpiler/data/CNextMarkerDetector.ts": 1,
+  "src/transpiler/data/CppEntryPointScanner.ts": 1,
+  "src/transpiler/data/DependencyGraph.ts": 1,
+  "src/transpiler/data/FileDiscovery.ts": 1,
+  "src/transpiler/data/IncludeDiscovery.ts": 1,
+  "src/transpiler/data/IncludeResolver.ts": 1,
+  "src/transpiler/data/InputExpansion.ts": 1,
+  "src/transpiler/data/PathResolver.ts": 1,
+  "src/transpiler/data/PlatformIOIni.ts": 1,
+  "src/transpiler/data/TargetCatalogFile.ts": 1,
+  "src/transpiler/data/types/**": 3,
+  "src/transpiler/data/IncludeRewriter.ts": 1,
+  "src/transpiler/logic/preprocessor/**": 9,
+  "src/utils/cache/**": 4,
+  "src/transpiler/logic/IncludeExtractor.ts": 1,
+  "src/transpiler/logic/detectCppSyntax.ts": 1,
+  "src/transpiler/logic/detectAssemblySyntax.ts": 1,
+  "src/transpiler/NodeFileSystem.ts": 1,
+  "src/transpiler/Transpiler.ts": 1,
+  "src/transpiler/ModificationFacts.ts": 1,
+  "src/transpiler/CallbackCompatibility.ts": 1,
+  "src/transpiler/types/**": 132,
+  "src/transpiler/constants/BITMAP_BACKING_TYPE.ts": 1,
+  "src/transpiler/constants/BITMAP_SIZE.ts": 1,
+  "src/transpiler/constants/SMALL_PRIMITIVES.ts": 1,
+  "src/transpiler/constants/TARGET_DESCRIPTION_FIELDS.ts": 1,
+  "src/transpiler/constants/BUILTIN_TYPE_NAMES.ts": 1,
+  "src/transpiler/constants/REJECTED_KEYWORDS.ts": 1,
+  "src/transpiler/constants/SYSTEM_INCLUDE_TARGETS.ts": 1,
+  "src/transpiler/constants/LANGUAGE_STANDARD_FAMILY.ts": 1,
+  "src/transpiler/constants/LANGUAGE_STANDARD_ORDER.ts": 1,
+  "src/transpiler/constants/STRUCT_POINTER_C_FUNCTIONS.ts": 1,
+  "src/transpiler/constants/TOOLCHAIN_REQUIREMENTS.ts": 1,
+  "src/transpiler/constants/TYPE_WIDTH.ts": 1,
+  "src/transpiler/constants/UNRESOLVED_DIMENSION.ts": 1,
+  "src/transpiler/constants/UNSET_SOURCE_SPAN.ts": 1,
+  "src/index.ts": 1,
+  "src/tests/utils/FunctionUtils.ts": 1,
+};
 
 export default AWAITING_ROWS;
