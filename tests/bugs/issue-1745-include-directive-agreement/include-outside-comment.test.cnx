@@ -1,0 +1,12 @@
+// test-execution
+// Issue #1745 (b), negative control: the same include as
+// commented-out-include-error, as a real directive, supplies `EGhost`.
+#include "ghost.cnx"
+
+i32 main() {
+    EGhost g <- EGhost.B;
+    if (g != EGhost.B) {
+        return 1;
+    }
+    return 0;
+}

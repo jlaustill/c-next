@@ -1,5 +1,8 @@
 import { dirname, resolve, join, isAbsolute } from "node:path";
 
+import { CharStream } from "antlr4ng";
+
+import { CNextLexer } from "../../PARSE/2-Parse/grammar/CNextLexer";
 import PlatformIOIni from "./PlatformIOIni";
 import IFileSystem from "../types/IFileSystem";
 
@@ -392,6 +395,10 @@ class IncludeDiscovery {
    * Issue #355: Returns whether each include is local ("...") or system (<...>)
    * so we can warn appropriately when local includes aren't found.
    *
+   * A text scan, for C and C++ headers. It does not know about comments, so
+   * it reads a directive inside one (#1829). A `.cnx` file's directives are
+   * read by `extractCNextIncludes`, which the grammar decides.
+   *
    * @param content - Source file content
    * @returns Array of include info objects
    */
@@ -409,6 +416,41 @@ class IncludeDiscovery {
     }
 
     return includes;
+  }
+
+  /**
+   * A `.cnx` file's #include directives, as the grammar reads them (#1745).
+   *
+   * The text scan above did not know about comments, while the parser's
+   * `INCLUDE_DIRECTIVE` token treats a comment as a hidden token. So discovery
+   * pulled in a file that a block comment had disabled, and missed a directive
+   * written after a comment on its line. Reading the parser's own token makes
+   * the two agree by construction rather than by what the fixtures exercise.
+   *
+   * It lexes rather than reading 1.2's artifact because discovery decides
+   * which files the run parses, so no parse exists yet when it asks. It is
+   * why this module appears in `docs/architecture/parse-tree-sites.md`.
+   *
+   * Each token's text is split by the scan above. The lexer has already
+   * validated it, so the scan's quirks (a whitespace run spanning lines, a
+   * mismatched closing delimiter) cannot arise.
+   *
+   * @param source - A `.cnx` file's text
+   */
+  static extractCNextIncludes(
+    source: string,
+  ): Array<{ path: string; isLocal: boolean }> {
+    const lexer = new CNextLexer(CharStream.fromString(source));
+    // 1.2 Parse reports a lexical error once, with its position. Here it
+    // would only print ANTLR's console default a second time.
+    lexer.removeErrorListeners();
+
+    return lexer
+      .getAllTokens()
+      .filter((token) => token.type === CNextLexer.INCLUDE_DIRECTIVE)
+      .flatMap((token) =>
+        IncludeDiscovery.extractIncludesWithInfo(token.text ?? ""),
+      );
   }
 
   /**

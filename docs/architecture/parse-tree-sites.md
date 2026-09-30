@@ -34,8 +34,9 @@ one.
 | `src/utils/`            |      12 |
 | `src/transpiler/`       |       3 |
 | `src/transpiler/types/` |       2 |
+| `src/transpiler/data/`  |       1 |
 | `src/transpiler/logic/` |       1 |
-| **total**               | **101** |
+| **total**               | **102** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -129,6 +130,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/2-Plan/StringLengthCounter.ts`                   | grammar           |
 | `src/TRANSPILE/CodeGenWalker.ts`                                | antlr4ng, grammar |
 | `src/transpiler/CallbackCompatibility.ts`                       | grammar           |
+| `src/transpiler/data/IncludeDiscovery.ts`                       | antlr4ng, grammar |
 | `src/transpiler/logic/IncludeExtractor.ts`                      | grammar           |
 | `src/transpiler/ModificationFacts.ts`                           | grammar           |
 | `src/transpiler/Transpiler.ts`                                  | grammar           |
@@ -147,4 +149,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/ParserUtils.ts`                                      | antlr4ng, grammar |
 | `src/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-101 module(s).
+102 module(s).
