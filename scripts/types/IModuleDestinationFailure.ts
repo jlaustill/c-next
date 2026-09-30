@@ -5,6 +5,7 @@ interface IModuleDestinationFailure {
   readonly kind:
     | "unresolvable-row"
     | "no-row"
+    | "conflicting-rows"
     | "unmatched-row"
     | "awaiting-grew"
     | "baseline-stale";

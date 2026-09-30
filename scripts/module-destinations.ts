@@ -22,6 +22,8 @@ const HINTS: Record<IModuleDestinationFailure["kind"], string> = {
     "the row names no path under src/: give its section a `src/.../` heading, or spell the path from src/",
   "no-row":
     "no row places this module: add one saying which pass owns it and why",
+  "conflicting-rows":
+    "one row places this module and another says it moves: keep the one that is true",
   "unmatched-row":
     "this row matches no module: it moved or was deleted, so update or remove the row",
   "awaiting-grew":

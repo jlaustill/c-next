@@ -40,6 +40,7 @@ describe("ModuleDestinations.population", () => {
         "src/a/Kept.ts",
         "src/index.ts",
         "src/a/__tests__/Helper.ts",
+        "src/a/__testUtils__/testMembers.ts",
         "src/a/Thing.test.ts",
         "src/a/Thing.mocked.test.ts",
         "src/a/fixtures/x.h",
@@ -154,6 +155,41 @@ describe("ModuleDestinations.checkOutcome", () => {
       "no-row src/transpiler/Other.ts",
       "unmatched-row src/transpiler/data/**",
     ]);
+  });
+
+  it("fails on a module one row places and another says is awaiting a move", () => {
+    const markdown = [
+      "## Layer-neutral — `src/utils/`",
+      "",
+      "| module | why |",
+      "| --- | --- |",
+      "| `**` | in place |",
+      "",
+      "## Awaiting a move",
+      "",
+      "| module | destination | why |",
+      "| --- | --- | --- |",
+      "| `src/utils/ChainRoot.ts` | `src/types/`, awaiting #1443 | moves |",
+    ].join("\n");
+    expect(
+      kinds(
+        markdown,
+        ["src/utils/ChainRoot.ts", "src/utils/Other.ts"],
+        ["src/utils/ChainRoot.ts"],
+      ),
+    ).toEqual(["conflicting-rows src/utils/ChainRoot.ts"]);
+  });
+
+  it("allows a specific row inside a glob row when both place the module", () => {
+    const markdown = [
+      "## Layer-neutral — `src/utils/`",
+      "",
+      "| module | why |",
+      "| --- | --- |",
+      "| `ChainRoot.ts` | the root of a chain |",
+      "| `**` | in place |",
+    ].join("\n");
+    expect(kinds(markdown, ["src/utils/ChainRoot.ts"])).toEqual([]);
   });
 
   it("skips outcome tables, whose modules no longer exist", () => {

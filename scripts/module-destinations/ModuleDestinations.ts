@@ -42,13 +42,19 @@ class ModuleDestinations {
   private static readonly SPAN = /`([^`]+)`/g;
   private static readonly AWAITING = /awaiting #(\d+)/;
 
-  /** The modules a row must place: non-test TypeScript under `src/`. */
+  /**
+   * The modules a row must place: non-test TypeScript under `src/`. Test
+   * support is `__tests__/`, `__testUtils__/` and `*.test.ts`, the same split
+   * `.dependency-cruiser.cjs` makes; nothing outside tests imports a
+   * `__testUtils__/` module.
+   */
   static population(files: readonly string[]): string[] {
     return files.filter(
       (file) =>
         file.startsWith("src/") &&
         file.endsWith(".ts") &&
         !file.includes("/__tests__/") &&
+        !file.includes("/__testUtils__/") &&
         !file.endsWith(".test.ts"),
     );
   }
@@ -68,6 +74,13 @@ class ModuleDestinations {
     const withoutRow: IModuleDestinationFailure[] = modules
       .filter((module) => !placed.some((p) => matchesGlob(module, p.pattern)))
       .map((module) => ({ kind: "no-row", subject: module, line: null }));
+    const conflicting: IModuleDestinationFailure[] = modules
+      .filter((module) => ModuleDestinations.destinationsOf(module, rows) > 1)
+      .map((module) => ({
+        kind: "conflicting-rows",
+        subject: module,
+        line: null,
+      }));
     const unmatched: IModuleDestinationFailure[] = placed
       .filter((p) => !modules.some((module) => matchesGlob(module, p.pattern)))
       .map((p) => ({
@@ -97,6 +110,7 @@ class ModuleDestinations {
       failures: [
         ...unresolvable,
         ...withoutRow,
+        ...conflicting,
         ...unmatched,
         ...grew,
         ...stale,
@@ -212,6 +226,24 @@ class ModuleDestinations {
       patterns,
       awaiting: awaiting === null ? null : Number(awaiting[1]),
     };
+  }
+
+  /**
+   * How many different answers the rows matching `module` give: placed where
+   * it is, or awaiting a particular card. A glob row and a specific row that
+   * both place a module agree; a row placing it and a row saying it moves do
+   * not, and neither may win silently.
+   */
+  private static destinationsOf(
+    module: string,
+    rows: readonly IModuleDestinationRow[],
+  ): number {
+    const answers = new Set(
+      rows
+        .filter((row) => row.patterns.some((p) => matchesGlob(module, p)))
+        .map((row) => row.awaiting ?? "placed"),
+    );
+    return answers.size;
   }
 
   private static patternsOf(
