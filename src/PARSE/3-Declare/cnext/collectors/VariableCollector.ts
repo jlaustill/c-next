@@ -188,17 +188,28 @@ class VariableCollector {
     const initExpr = ctx.expression();
     const arrayDimensions: (number | string)[] = [];
 
+    // #1822 (ADR-035): only a one-dimensional array's size is counted from its
+    // list. An empty dimension anywhere else is E0892, and counting the OUTER
+    // list for it invented a size that another file then bounds-checked
+    // against (`u8[2][] m` read as [2][2] for rows of three).
+    const dimensionCount =
+      (arrayTypeCtx?.arrayTypeDimension().length ?? 0) + arrayDims.length;
+    const countedFrom = dimensionCount === 1 ? initExpr : null;
+
     // Collect dimensions from arrayType syntax (u16[8] arr, u16[4][4] arr, u16[] arr)
     if (hasArrayTypeSyntax) {
       arrayDimensions.push(
-        ...VariableCollector.collectArrayTypeDimensions(arrayTypeCtx, initExpr),
+        ...VariableCollector.collectArrayTypeDimensions(
+          arrayTypeCtx,
+          countedFrom,
+        ),
       );
     }
 
     // Collect additional dimensions from arrayDimension syntax
     if (arrayDims.length > 0) {
       arrayDimensions.push(
-        ...VariableCollector.collectArrayDimensions(arrayDims, initExpr),
+        ...VariableCollector.collectArrayDimensions(arrayDims, countedFrom),
       );
     }
 

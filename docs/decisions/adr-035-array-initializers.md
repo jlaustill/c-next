@@ -109,6 +109,13 @@ When `[]` used without size, count initializer elements:
 u8[] data <- [1, 2, 3];  // u8[3] data
 ```
 
+Only a one-dimensional array may omit its size: `u8[] data <- [1, 2, 3]` is
+`u8[3]`. A multi-dimensional array states every dimension. C-Next arrays
+always have a size, so a `[]` with nothing to count is rejected (E0892): any
+dimension of a multi-dimensional array (`u8[][3]`, `u8[2][]`, `u8[][]`), a
+one-dimensional array with no initializer (`u8[] buffer;`), and a struct field
+(`u8[] payload;`). An array parameter is ADR-036's rule (E0875).
+
 ### Generated C
 
 ```c
@@ -202,10 +209,11 @@ u8[5] data <- [1, 2, 3, 0, 0];  // OK: all elements explicit
 
 ## Diagnostics
 
-| Code  | Reported when                                                                           | Asserted by                               |
-| ----- | --------------------------------------------------------------------------------------- | ----------------------------------------- |
-| E0866 | An array's initializer is not a list, or a level of it has the wrong number of elements | `tests/adr-035/array-init-error.test.cnx` |
-| E0876 | The fill-all form `[v*]` initializes an array whose size is inferred (`u8[]`)           | `tests/adr-035/array-init-error.test.cnx` |
+| Code  | Reported when                                                                                                                                                    | Asserted by                                                                                       |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| E0866 | An array's initializer is not a list, or a level of it has the wrong number of elements                                                                          | `tests/adr-035/array-init-error.test.cnx`                                                         |
+| E0876 | The fill-all form `[v*]` initializes an array whose size is inferred (`u8[]`)                                                                                    | `tests/adr-035/array-init-error.test.cnx`                                                         |
+| E0892 | A dimension has no size and nothing to count it from: any dimension of a multi-dimensional array, a one-dimensional array with no initializer, or a struct field | `tests/adr-035/empty-dimension-error.test.cnx`, `tests/adr-035/empty-dimension-included.test.cnx` |
 
 The count is checked at every nesting level against the dimension it fills:
 `u8[2][2] m <- [[1, 2, 3], [4, 5]]` is rejected on the inner list. Until #1322

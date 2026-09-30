@@ -1,0 +1,2 @@
+tests/adr-035/empty-dimension-lib.cnx:2:5 error[E0892]: Array 'rows' leaves dimension 2 without a size
+       help: Write the size. Only a one-dimensional array initialized by a list may leave it out, and its size is the number of elements (ADR-035).

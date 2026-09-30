@@ -1,0 +1,59 @@
+// test-error
+// test-adr: 035
+// ADR-035, E0892 (#1822): every array dimension states its size, except the
+// single dimension of a one-dimensional variable initialized by a list (or,
+// for u8, a string literal), whose size is the number of elements.
+//
+// Before #1822 each form below exited 0: a multi-dimensional `[]` took the
+// OUTER list's count for every empty dimension (`u8[2][]` became [2][2] for
+// rows of three, and `inner[1][2]` was a false E0854), render emitted the
+// counted size as the whole suffix (`u8[][3]` became `n[2]` in the .c against
+// `n[2][3]` in the .h), `u8[] x;` was a scalar in the .h and a one-element
+// array in the .c, and a `[]` struct field was emitted as a scalar.
+
+struct Packet {
+    // ASSERTION 1 -- a field has no initializer to count.
+    u8[] payload;
+    // ASSERTION 2 -- nor does a multi-dimensional one.
+    u8[][4] rows;
+    u8 kind;
+}
+
+// NEGATIVE CONTROLS -- a counted one-dimensional size, from a list and from a
+// string literal, and a multi-dimensional array that states every size.
+u8[] okCounted <- [1, 2, 3];
+u8[] okText <- "Hi";
+u8[2][3] okStated <- [[1, 2, 3], [4, 5, 6]];
+
+// ASSERTION 3 -- the outer dimension empty.
+u8[][3] outer <- [[1, 2, 3], [4, 5, 6]];
+
+// ASSERTION 4 -- an inner dimension empty.
+u8[2][] inner <- [[1, 2, 3], [4, 5, 6]];
+
+// ASSERTION 5 -- both empty: one diagnostic per dimension.
+u8[][] both <- [[1, 2, 3], [4, 5, 6]];
+
+// ASSERTION 6 -- one dimension, but nothing to count it from.
+u8[] nothing;
+
+u8 readInner() {
+    // Not an E0854: `inner`'s second dimension is unknown, not 2.
+    return inner[1][2];
+}
+
+void main() {
+    // ASSERTION 7 -- a function local.
+    u8[][2] localRows <- [[7, 8], [9, 10]];
+    u8[] localCounted <- [1, 2];
+}
+
+scope Table {
+    // ASSERTION 8 -- a scope member.
+    u8[][2] memberRows <- [[1, 2], [3, 4]];
+
+    public void fill() {
+        // ASSERTION 9 -- a scope-method local.
+        u8[2][] methodRows <- [[1, 2], [3, 4]];
+    }
+}
