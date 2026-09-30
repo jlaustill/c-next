@@ -8,9 +8,6 @@ import ISourceMapping from "../types/ISourceMapping";
 
 // We need to define our mock functions before vi.mock calls
 const mockExec = vi.fn();
-const mockWriteFile = vi.fn().mockResolvedValue(undefined);
-const mockMkdtemp = vi.fn().mockResolvedValue("/tmp/cnext-abc123");
-const mockRm = vi.fn().mockResolvedValue(undefined);
 const mockDetect = vi.fn().mockReturnValue(null);
 const mockGetDefaultIncludePaths = vi.fn().mockReturnValue([]);
 
@@ -54,13 +51,6 @@ vi.mock("node:child_process", () => ({
   },
 }));
 
-// Mock fs/promises
-vi.mock("node:fs/promises", () => ({
-  writeFile: (...args: unknown[]) => mockWriteFile(...args),
-  mkdtemp: (...args: unknown[]) => mockMkdtemp(...args),
-  rm: (...args: unknown[]) => mockRm(...args),
-}));
-
 // Mock ToolchainDetector
 vi.mock("../ToolchainDetector", () => ({
   default: {
@@ -72,6 +62,8 @@ vi.mock("../ToolchainDetector", () => ({
 // Import after mocks are set up
 import Preprocessor from "../Preprocessor";
 import NodeFileSystem from "../../../NodeFileSystem";
+import MockFileSystem from "../../../__tests__/MockFileSystem";
+import { basename, dirname } from "node:path";
 
 describe("Preprocessor", () => {
   const mockToolchain: IToolchain = {
@@ -88,9 +80,6 @@ describe("Preprocessor", () => {
     mockDetect.mockReturnValue(null);
     mockGetDefaultIncludePaths.mockReturnValue([]);
     mockExec.mockReturnValue({ stdout: "", stderr: "" });
-    mockWriteFile.mockResolvedValue(undefined);
-    mockMkdtemp.mockResolvedValue("/tmp/cnext-abc123");
-    mockRm.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -394,76 +383,66 @@ int y = 10;
   });
 
   describe("preprocessString", () => {
-    it("creates temp file and preprocesses", async () => {
-      mockExec.mockReturnValue({
-        stdout: "processed",
-        stderr: "",
+    // #1653: the temporary file is the port's, so these use a MockFileSystem
+    // and look at what cpp is handed rather than at node:fs calls.
+    function handedToCpp(fs: MockFileSystem) {
+      const seen: { input: string; content: string; neighbours: string[] }[] =
+        [];
+      mockExec.mockImplementation((_file: string, args: string[]) => {
+        const input = args.at(-1) ?? "";
+        seen.push({
+          input,
+          content: fs.readFile(input),
+          neighbours: fs.readdir(dirname(input)),
+        });
+        return { stdout: "processed", stderr: "" };
       });
+      return seen;
+    }
 
-      const preprocessor = new Preprocessor(
-        NodeFileSystem.instance,
-        mockToolchain,
-      );
+    it("hands cpp a file holding the content, alone in its directory", async () => {
+      const fs = new MockFileSystem();
+      const seen = handedToCpp(fs);
+      const preprocessor = new Preprocessor(fs, mockToolchain);
+
       const result = await preprocessor.preprocessString(
         "#define FOO 1\nint x = FOO;",
         "test.h",
       );
 
-      expect(mockMkdtemp).toHaveBeenCalled();
-      expect(mockWriteFile).toHaveBeenCalledWith(
-        "/tmp/cnext-abc123/test.h",
-        "#define FOO 1\nint x = FOO;",
-        "utf-8",
-      );
+      expect(seen).toHaveLength(1);
+      expect(basename(seen[0].input)).toBe("test.h");
+      expect(seen[0].content).toBe("#define FOO 1\nint x = FOO;");
+      // Nothing else in the directory: cpp searches it first for a quoted
+      // include, and on stdin it would search the working directory instead.
+      expect(seen[0].neighbours).toEqual(["test.h"]);
       expect(result.originalFile).toBe("test.h");
     });
 
-    it("cleans up temp directory after success", async () => {
-      mockExec.mockReturnValue({
-        stdout: "processed",
-        stderr: "",
-      });
+    it("removes the temporary directory after success", async () => {
+      const fs = new MockFileSystem();
+      const seen = handedToCpp(fs);
+      const preprocessor = new Preprocessor(fs, mockToolchain);
 
-      const preprocessor = new Preprocessor(
-        NodeFileSystem.instance,
-        mockToolchain,
-      );
       await preprocessor.preprocessString("content", "test.h");
 
-      expect(mockRm).toHaveBeenCalledWith("/tmp/cnext-abc123", {
-        recursive: true,
-      });
+      expect(fs.exists(dirname(seen[0].input))).toBe(false);
     });
 
-    it("cleans up temp directory after failure", async () => {
-      mockExec.mockReturnValue(Promise.reject(new Error("failed")));
-
-      const preprocessor = new Preprocessor(
-        NodeFileSystem.instance,
-        mockToolchain,
-      );
-      await preprocessor.preprocessString("content", "test.h");
-
-      expect(mockRm).toHaveBeenCalledWith("/tmp/cnext-abc123", {
-        recursive: true,
+    it("removes the temporary directory after failure", async () => {
+      const fs = new MockFileSystem();
+      let input = "";
+      mockExec.mockImplementation((_file: string, args: string[]) => {
+        input = args.at(-1) ?? "";
+        return Promise.reject(new Error("failed"));
       });
-    });
+      const preprocessor = new Preprocessor(fs, mockToolchain);
 
-    it("ignores cleanup errors", async () => {
-      mockExec.mockReturnValue({
-        stdout: "processed",
-        stderr: "",
-      });
-      mockRm.mockRejectedValue(new Error("cleanup failed"));
-
-      const preprocessor = new Preprocessor(
-        NodeFileSystem.instance,
-        mockToolchain,
-      );
-
-      // Should not throw
       const result = await preprocessor.preprocessString("content", "test.h");
-      expect(result.success).toBe(true);
+
+      expect(result.success).toBe(false);
+      expect(input).not.toBe("");
+      expect(fs.exists(dirname(input))).toBe(false);
     });
   });
 

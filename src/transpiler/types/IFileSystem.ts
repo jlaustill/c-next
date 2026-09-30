@@ -59,6 +59,26 @@ interface IFileSystem {
   rename(from: string, to: string): void;
 
   /**
+   * Run `use` on a file holding `content`, named `name`, in a fresh directory
+   * under the system's temporary directory. The directory is removed when `use`
+   * settles, whether it resolves or throws, and a failure to remove it is
+   * ignored.
+   *
+   * For a file an external tool must read from disk (#1653). The directory holds
+   * nothing else, which matters: a C preprocessor searches the including file's
+   * own directory first for a quoted include, so an empty directory adds nothing
+   * to that search. Reading the same content on stdin would search the process's
+   * working directory instead, which was measured on gcc and clang (#1653).
+   * This is scratch, not output: 3.1 Write owns output, and this directory is
+   * gone before the call returns.
+   */
+  withTempFile<T>(
+    name: string,
+    content: string,
+    use: (path: string) => Promise<T>,
+  ): Promise<T>;
+
+  /**
    * Read directory contents.
    * @returns Array of entry names (not full paths)
    * @throws Error if directory doesn't exist or can't be read

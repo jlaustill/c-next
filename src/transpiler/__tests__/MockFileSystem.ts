@@ -178,6 +178,27 @@ class MockFileSystem implements IFileSystem {
     this.files.set(this.normalizePath(to), content);
   }
 
+  /** Temporary directories handed out, for naming the next one */
+  private tempDirCount = 0;
+
+  async withTempFile<T>(
+    name: string,
+    content: string,
+    use: (path: string) => Promise<T>,
+  ): Promise<T> {
+    this.tempDirCount += 1;
+    const dir = `/tmp/cnext-mock-${this.tempDirCount}`;
+    const path = `${dir}/${name}`;
+    this.directories.add(dir);
+    this.files.set(path, content);
+    try {
+      return await use(path);
+    } finally {
+      this.files.delete(path);
+      this.directories.delete(dir);
+    }
+  }
+
   readdir(path: string): string[] {
     const normalized = this.normalizePath(path);
     if (!this.directories.has(normalized)) {

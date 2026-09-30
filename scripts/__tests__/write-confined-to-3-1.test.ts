@@ -7,6 +7,10 @@
  * rule can see a method call. This holds the rest: outside `src/WRITE/1-Write/`
  * and the port itself, nothing calls `writeFile`, `mkdir`, `unlink` or
  * `rename`. Reads stay free, since reading changes nothing.
+ *
+ * The port's `withTempFile` is not on the list. It is scratch, not output: a
+ * file an external tool must read from disk (the preprocessor), in a directory
+ * removed before the call returns.
  */
 import { describe, expect, it } from "vitest";
 

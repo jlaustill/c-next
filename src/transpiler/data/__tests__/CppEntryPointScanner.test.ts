@@ -28,6 +28,7 @@ describe("CppEntryPointScanner", () => {
       mkdir: () => {},
       unlink: () => {},
       rename: () => {},
+      withTempFile: () => Promise.reject(new Error("not used by this test")),
       readdir: () => [],
       stat: () => ({ mtimeMs: Date.now() }),
     };

@@ -5,9 +5,7 @@
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { writeFile, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, basename, dirname } from "node:path";
+import { basename, dirname } from "node:path";
 import IToolchain from "./types/IToolchain";
 import IPreprocessResult from "./types/IPreprocessResult";
 import ISourceMapping from "./types/ISourceMapping";
@@ -25,7 +23,10 @@ class Preprocessor {
 
   private readonly defaultIncludePaths: string[] = [];
 
+  private readonly fs: IFileSystem;
+
   constructor(fs: IFileSystem, toolchain?: IToolchain) {
+    this.fs = fs;
     this.toolchain = toolchain ?? ToolchainDetector.detect(fs);
 
     if (this.toolchain) {
@@ -100,40 +101,25 @@ class Preprocessor {
   }
 
   /**
-   * Preprocess content from a string (creates temp file)
+   * Preprocess content from a string, through a temporary file the port owns.
+   *
+   * Not stdin (#1653, measured on gcc and clang): on stdin a quoted `#include`
+   * is searched for first in the process's working directory, so a header
+   * there would shadow the one the search paths name. A temporary file in an
+   * otherwise empty directory keeps the resolution this always had.
    */
   async preprocessString(
     content: string,
     filename: string,
     options: IPreprocessOptions = {},
   ): Promise<IPreprocessResult> {
-    let tempDir: string | null = null;
-
-    try {
-      // Create temp directory
-      tempDir = await mkdtemp(join(tmpdir(), "cnext-"));
-      const tempFile = join(tempDir, basename(filename));
-
-      // Write content to temp file
-      await writeFile(tempFile, content, "utf-8");
-
-      // Preprocess
-      const result = await this.preprocess(tempFile, options);
-
-      // Update the original file reference
-      result.originalFile = filename;
-
-      return result;
-    } finally {
-      // Clean up temp directory
-      if (tempDir) {
-        try {
-          await rm(tempDir, { recursive: true });
-        } catch {
-          // Ignore cleanup errors
-        }
-      }
-    }
+    const result = await this.fs.withTempFile(
+      basename(filename),
+      content,
+      (tempFile) => this.preprocess(tempFile, options),
+    );
+    result.originalFile = filename;
+    return result;
   }
 
   /**
