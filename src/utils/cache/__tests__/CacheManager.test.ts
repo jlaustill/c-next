@@ -742,6 +742,20 @@ describe("CacheManager", () => {
     // delete-during-iteration bug would get wrong: it would skip the second.
     // #1826 review: symbols.json is plain JSON now, so an entry can be edited
     // into anything. A null one threw out of initialize() on every later run.
+    // #1653: CACHE_VERSION 16 moved the entries from flat-cache's `symbols`
+    // (flatted) to `symbols.json`. Invalidation removes the old file, so an
+    // upgrade does not leave it behind.
+    it("removes flat-cache's legacy symbols file when it invalidates", async () => {
+      // An upgrade: a version-15 config beside the file flat-cache wrote.
+      const fs = new MockFileSystem()
+        .addFile("/proj/.cnx/config.json", JSON.stringify({ version: 15 }))
+        .addFile("/proj/.cnx/cache/symbols", '[{"flatted":"legacy"}]');
+
+      await new CacheManager("/proj", fs).initialize();
+
+      expect(fs.exists("/proj/.cnx/cache/symbols")).toBe(false);
+    });
+
     it("treats an entry that is not an object as outdated rather than throwing", async () => {
       const fs = new MockFileSystem();
       await new CacheManager("/proj", fs).initialize();
