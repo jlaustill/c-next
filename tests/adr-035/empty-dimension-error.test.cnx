@@ -38,7 +38,8 @@ u8[][] both <- [[1, 2, 3], [4, 5, 6]];
 u8[] nothing;
 
 u8 readInner() {
-    // Not an E0854: `inner`'s second dimension is unknown, not 2.
+    // Inert here: 2.1 stops at E0892 before bounds checks run. The
+    // no-false-E0854 guard is empty-dimension-included, across an include.
     return inner[1][2];
 }
 

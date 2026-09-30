@@ -131,7 +131,7 @@ class ArrayDeclarationListener extends CNextListener {
         dim,
         "E0892",
         `Array '${name}' leaves dimension ${index + 1} without a size`,
-        "Write the size. Only a one-dimensional array initialized by a list may leave it out, and its size is the number of elements (ADR-035).",
+        "Write the size. Only a one-dimensional array initialized by a list (or, for u8, a string literal) may leave it out, and its size is the number of elements (ADR-035).",
       );
       reported = true;
     });

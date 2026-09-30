@@ -123,7 +123,7 @@ describe("ArrayInitHelper", () => {
 
       expect(() =>
         ArrayInitHelper.processArrayInit("arr", true, null, callbacks, state),
-      ).toThrow("an inferred size is its declaration's");
+      ).toThrow("a declaration fact that never reached render");
     });
 
     it("asserts, since #1322, that a short initializer never reaches emission (E0866 owns it)", () => {

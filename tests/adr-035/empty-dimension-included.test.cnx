@@ -9,3 +9,10 @@
 u8 readRows() {
     return rows[1][2];
 }
+
+u8 readRowsBit() {
+    // Legal only while `rows` keeps both dimensions (a bit of an element):
+    // dropping the unsized one is a false E0856, inventing it a false E0854.
+    u8 bit <- rows[1][2][0];
+    return bit;
+}

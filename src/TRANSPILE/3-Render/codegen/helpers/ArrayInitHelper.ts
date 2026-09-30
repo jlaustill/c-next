@@ -130,18 +130,31 @@ class ArrayInitHelper {
       `an inferred array size comes from a list -- E0876 rejects the fill-all ` +
         `form [${state.lastArrayFillValue}*] on '${name}' in pass 2.1, before this runs`,
     );
+    ArrayInitHelper.assertInferredSize(name, declaredSize, state);
+    return `[${declaredSize}]`;
+  }
+
+  /**
+   * The rendered list has exactly the elements 1.3 counted for an omitted
+   * size. Every declaration renderer that emits an inferred size asks this,
+   * right after rendering the list (#1824 review: the scope-member renderer
+   * had no check at all).
+   */
+  static assertInferredSize(
+    name: string,
+    declaredSize: number | null,
+    state: TranspileState,
+  ): asserts declaredSize is number {
     invariant(
       declaredSize !== null,
-      `an inferred size is its declaration's -- 1.3 counts '${name}''s list, ` +
-        `so none here is a declaration fact that never reached render`,
+      `an inferred size is its declaration's count, and '${name}' has none ` +
+        `here -- a declaration fact that never reached render`,
     );
     invariant(
       state.lastArrayInitCount === declaredSize,
       `an inferred size is its declaration's -- 1.3 counted [${declaredSize}] ` +
         `for '${name}' but ${state.lastArrayInitCount} element(s) rendered`,
     );
-
-    return `[${declaredSize}]`;
   }
 
   /**

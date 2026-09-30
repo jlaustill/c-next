@@ -248,9 +248,10 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | -      | -          | n/a         | n/a        |
 | scope method       | ok        | -      | -          | n/a         | n/a        |
 
-1 linked fixture with no derivable context:
+2 linked fixtures with no derivable context:
 
 - `adr-035/empty-dimension-included.test.cnx`
+- `adr-035/inferred-size-render.test.cnx`
 
 ## ADR-036
 

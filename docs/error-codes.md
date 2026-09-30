@@ -347,9 +347,9 @@ base: bare, `this.` and `global.`.
 
 ### Array Size (ADR-035)
 
-| Code  | Message                                                      | Help                                                                                          | Source                                            |
-| ----- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| E0892 | Array dimension without a size, and nothing to count it from | Write the size; only a one-dimensional array initialized by a list may leave it out (ADR-035) | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts` |
+| Code  | Message                                                      | Help                                                                                                                           | Source                                            |
+| ----- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| E0892 | Array dimension without a size, and nothing to count it from | Write the size; only a one-dimensional array initialized by a list (or, for `u8`, a string literal) may leave it out (ADR-035) | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts` |
 
 ## E09xx — NULL Safety (ADR-046)
 
