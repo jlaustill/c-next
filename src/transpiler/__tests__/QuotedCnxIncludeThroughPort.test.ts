@@ -1,7 +1,7 @@
 /**
  * #1137: a quoted `.cnx` include is checked through the injected port, never
- * the real disk. `5737557be` fixed it; these pin the fix. `CnxFileResolver`
- * called `existsSync` directly, so a dependency that exists only in a
+ * the real disk. `5737557be` fixed it; these pin the fix. The resolver #1137
+ * deleted called `existsSync` directly, so a dependency that exists only in a
  * `MockFileSystem` read as missing (E0506) at code generation.
  */
 import { describe, expect, it } from "vitest";
