@@ -737,6 +737,31 @@ describe("CacheManager", () => {
   });
 
   describe("cache persistence", () => {
+    // #1653: nothing tested discardOutdatedEntries. Disabling it left all 117
+    // cache tests green. Two outdated entries in a row are the case a
+    // delete-during-iteration bug would get wrong: it would skip the second.
+    it("drops every entry written without a cacheKey on load, and keeps the rest", async () => {
+      const fs = new MockFileSystem();
+      await new CacheManager("/proj", fs).initialize();
+      fs.addFile(
+        "/proj/.cnx/cache/symbols.json",
+        JSON.stringify({
+          "/proj/old-a.h": { symbols: [] },
+          "/proj/old-b.h": { symbols: [] },
+          "/proj/kept.h": { cacheKey: "mtime:1", symbols: [] },
+        }),
+      );
+
+      const manager = new CacheManager("/proj", fs);
+      await manager.initialize();
+      await manager.flush();
+
+      const kept = Object.keys(
+        JSON.parse(fs.readFile("/proj/.cnx/cache/symbols.json")),
+      );
+      expect(kept).toEqual(["/proj/kept.h"]);
+    });
+
     // Note: Migration from old mtime-based format to cacheKey format is handled
     // by CacheManager.migrateOldEntries(). However, testing this directly is
     // impractical because flat-cache v6 uses its own serialization format (flatted).

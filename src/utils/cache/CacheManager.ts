@@ -535,7 +535,9 @@ class CacheManager {
   private discardOutdatedEntries(): void {
     if (!this.cache) return;
 
-    for (const [key, value] of [...this.cache]) {
+    // Deleting from a Map while iterating it is defined: an entry removed
+    // before it is reached is not visited, and the current one may go.
+    for (const [key, value] of this.cache) {
       const data = value as Record<string, unknown>;
 
       if (typeof data.cacheKey === "string") {
