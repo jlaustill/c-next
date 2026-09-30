@@ -5,6 +5,33 @@ import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TypeResolver from "../../../../utils/TypeResolver";
 
 describe("VariableCollector", () => {
+  describe("omitted sizes (#1822, #1824 review)", () => {
+    const dimensionsOf = (code: string) =>
+      VariableCollector.collect(
+        parse(code).declaration(0)!.variableDeclaration()!,
+        "test.cnx",
+        "",
+        "public",
+      ).arrayDimensions;
+
+    it("counts a u8 string literal as its bytes and the terminator (ADR-035)", () => {
+      expect(dimensionsOf('u8[] msg <- "Hi";')).toEqual([3]);
+    });
+
+    it("keeps an uncounted dimension as unknown, so the array keeps its rank", () => {
+      // Dropping it made `u8[2][] rows` one-dimensional, and an includer's
+      // `rows[1][2][0]` a false E0856.
+      expect(dimensionsOf("u8[2][] rows <- [[1, 2, 3], [4, 5, 6]];")).toEqual([
+        2,
+        "",
+      ]);
+    });
+
+    it("keeps a C-style empty dimension as unknown too", () => {
+      expect(dimensionsOf("u8 legacy[];")).toEqual([""]);
+    });
+  });
+
   describe("basic variable extraction", () => {
     it("collects a simple variable declaration", () => {
       const code = `
