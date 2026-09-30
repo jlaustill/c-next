@@ -1,6 +1,6 @@
 /**
  * ADR-035 array initializers and ADR-036 declaration shape:
- * E0866, E0874, E0875, E0876.
+ * E0866, E0874, E0875, E0876, E0892.
  *
  * #1322. Five throws in `output/` -- `VariableDeclHelper` for a C-style
  * declaration, two in `CodeGenerator` for a C-style and an unbounded
@@ -92,9 +92,51 @@ class ArrayDeclarationListener extends CNextListener {
 
     const arrayType = typeCtx.arrayType();
     const expression = ctx.expression();
+    const dims = [...(arrayType?.arrayTypeDimension() ?? []), ...trailing];
+    if (this.checkEmptyDimensions(dims, identifier.getText(), !!expression)) {
+      return;
+    }
     if (!arrayType || !expression) return;
     this.checkInitializer(arrayType, expression);
   };
+
+  override enterStructMember = (ctx: Parser.StructMemberContext): void => {
+    const dims = [
+      ...(ctx.type().arrayType()?.arrayTypeDimension() ?? []),
+      ...ctx.arrayDimension(),
+    ];
+    this.checkEmptyDimensions(dims, ctx.IDENTIFIER().getText(), false);
+  };
+
+  /**
+   * #1822 (ADR-035): every dimension states its size, except the single
+   * dimension of a one-dimensional variable initialized by a list -- or, for
+   * `u8`, a string literal -- whose size is the number of elements. Which
+   * initializer is accepted is E0866's; this asks only whether there is one
+   * to count. Returns whether anything was reported.
+   */
+  private checkEmptyDimensions(
+    dims: readonly (
+      | Parser.ArrayDimensionContext
+      | Parser.ArrayTypeDimensionContext
+    )[],
+    name: string,
+    hasInitializer: boolean,
+  ): boolean {
+    if (dims.length === 1 && hasInitializer) return false;
+    let reported = false;
+    dims.forEach((dim, index) => {
+      if (dim.expression() !== null) return;
+      this.report(
+        dim,
+        "E0892",
+        `Array '${name}' leaves dimension ${index + 1} without a size`,
+        "Write the size. Only a one-dimensional array initialized by a list (or, for u8, a string literal) may leave it out, and its size is the number of elements (ADR-035).",
+      );
+      reported = true;
+    });
+    return reported;
+  }
 
   override enterParameter = (ctx: Parser.ParameterContext): void => {
     // `main(string args[])` is the language's own form for the command-line

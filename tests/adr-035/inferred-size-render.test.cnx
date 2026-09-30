@@ -1,0 +1,47 @@
+// test-execution
+// test-adr: 035
+// ADR-035 (#1664 box 3, #1824 review): an omitted size is the declaration's
+// count, stated in the .h and the .c alike -- from a list, and from a u8
+// string literal (its bytes and the terminator) -- at file scope and as a
+// scope member.
+//
+// Before the review fixes, `u8[] msg <- "Hi"` was `extern uint8_t msg;` in the
+// .h against `uint8_t msg[] = "Hi";` in the .c (gcc: conflicting types), and
+// `msg[1]` read BIT 1 of that scalar. A scope member's .c left `[]` for the C
+// compiler to count, against the .h's stated size.
+
+u8[] msg <- "Hi";
+u8[] counted <- [10, 20, 30];
+
+scope Table {
+    public u8[] row <- [1, 2, 3, 4];
+    public u8[] text <- "abc";
+}
+
+u32 main() {
+    if (msg[1] != 105) {
+        return 1;
+    }
+    if (msg[2] != 0) {
+        return 2;
+    }
+    if (msg.element_count != 3) {
+        return 3;
+    }
+    if (counted[2] != 30) {
+        return 4;
+    }
+    if (Table.row[3] != 4) {
+        return 5;
+    }
+    if (Table.row.element_count != 4) {
+        return 6;
+    }
+    if (Table.text[2] != 99) {
+        return 7;
+    }
+    if (Table.text.element_count != 4) {
+        return 8;
+    }
+    return 0;
+}

@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 15      |
 | E06xx     | Sizeof Expressions      | 2       |
 | E07xx     | Control Flow            | 12      |
-| E08xx     | Arithmetic/Array Safety | 51      |
+| E08xx     | Arithmetic/Array Safety | 52      |
 | E09xx     | NULL Safety             | 8       |
-| **Total** |                         | **115** |
+| **Total** |                         | **116** |
 
 ---
 
@@ -344,6 +344,12 @@ base: bare, `this.` and `global.`.
 | E0889 | Both `atomic` and `volatile` on one declaration                   | `atomic` already implies `volatile`; choose one                       | `TRANSPILE/1-Analyze/DeclarationModifierAnalyzer.ts` |
 | E0890 | A read-modify-write target has a side effect                      | Store the index in a variable first; a bit write evaluates it twice   | `TRANSPILE/1-Analyze/BitAccessAnalyzer.ts`           |
 | E0891 | Implicit conversion from a floating value to an integer (ADR-024) | Write the conversion as a cast, which saturates: `(u32)value`         | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`   |
+
+### Array Size (ADR-035)
+
+| Code  | Message                                                      | Help                                                                                                                           | Source                                            |
+| ----- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| E0892 | Array dimension without a size, and nothing to count it from | Write the size; only a one-dimensional array initialized by a list (or, for `u8`, a string literal) may leave it out (ADR-035) | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts` |
 
 ## E09xx — NULL Safety (ADR-046)
 

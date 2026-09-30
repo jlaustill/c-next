@@ -399,7 +399,7 @@ function runAnalyzers(
     },
     {
       label:
-        "array declarations and initializers (ADR-035/036, E0866/E0874-E0876)",
+        "array declarations and initializers (ADR-035/036, E0866/E0874-E0876/E0892)",
       run: () => new ArrayDeclarationAnalyzer(context).analyze(tree),
     },
     {

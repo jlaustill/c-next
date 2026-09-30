@@ -224,6 +224,21 @@ describe("CodeGenWalker Coverage Tests", () => {
   // ==========================================================================
   // resolveIdentifier with scope members
   // ==========================================================================
+  describe("omitted sizes render the declaration's count (#1664 box 3)", () => {
+    it("states a scope member's and a string literal's size, as the .h does", () => {
+      const { code } = setupGenerator(`
+        u8[] msg <- "Hi";
+        scope Table {
+          public u8[] row <- [1, 2, 3, 4];
+          public u8[] text <- "abc";
+        }
+      `);
+      expect(code).toContain('uint8_t msg[3] = "Hi";');
+      expect(code).toContain("uint8_t Table__row[4] = {1U, 2U, 3U, 4U};");
+      expect(code).toContain('uint8_t Table__text[4] = "abc";');
+    });
+  });
+
   describe("resolveIdentifier() with scope members", () => {
     it("should resolve identifier to scope-prefixed name when inside scope", () => {
       // Generate code with a scope to populate scopeMembers

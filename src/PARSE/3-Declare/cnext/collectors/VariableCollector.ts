@@ -52,13 +52,13 @@ class VariableCollector {
   }
 
   /**
-   * Resolve a single array dimension to a number or string.
-   * Returns undefined if the dimension cannot be resolved.
+   * Resolve a single array dimension to a number or string ("" when it is
+   * omitted and there is nothing to count it from).
    */
   private static resolveDimension(
     dim: Parser.ArrayDimensionContext,
     initExpr: Parser.ExpressionContext | null,
-  ): number | string | undefined {
+  ): number | string {
     const sizeExpr = dim.expression();
 
     // A literal folds here; a const or a C macro keeps its text (#455), and
@@ -68,11 +68,22 @@ class VariableCollector {
     }
 
     // Issue #636: Empty dimension [] - infer size from array initializer
-    if (initExpr) {
-      return ArrayInitializerUtils.getInferredSize(initExpr);
-    }
+    return VariableCollector.omittedSize(initExpr);
+  }
 
-    return undefined;
+  /**
+   * #1822: an omitted size, counted from a one-dimensional declaration's list
+   * or string literal. With nothing to count it is E0892, and it is recorded
+   * as "" -- unknown, as a C macro dimension is -- so the array keeps its
+   * rank: dropping it made `u8[2][] rows` one-dimensional, and an includer's
+   * `rows[1][2][0]` a false E0856 (#1824 review).
+   */
+  private static omittedSize(
+    countedFrom: Parser.ExpressionContext | null,
+  ): number | string {
+    return (
+      (countedFrom && ArrayInitializerUtils.getInferredSize(countedFrom)) ?? ""
+    );
   }
 
   /**
@@ -85,10 +96,7 @@ class VariableCollector {
     const dimensions: (number | string)[] = [];
 
     for (const dim of arrayDims) {
-      const resolved = VariableCollector.resolveDimension(dim, initExpr);
-      if (resolved !== undefined) {
-        dimensions.push(resolved);
-      }
+      dimensions.push(VariableCollector.resolveDimension(dim, initExpr));
     }
 
     return dimensions;
@@ -108,12 +116,7 @@ class VariableCollector {
 
       if (!sizeExpr) {
         // Issue #636: Empty dimension [] - infer size from array initializer
-        if (initExpr) {
-          const inferredSize = ArrayInitializerUtils.getInferredSize(initExpr);
-          if (inferredSize !== undefined) {
-            dimensions.push(inferredSize);
-          }
-        }
+        dimensions.push(VariableCollector.omittedSize(initExpr));
         continue;
       }
 
@@ -188,17 +191,28 @@ class VariableCollector {
     const initExpr = ctx.expression();
     const arrayDimensions: (number | string)[] = [];
 
+    // #1822 (ADR-035): only a one-dimensional array's size is counted from its
+    // list. An empty dimension anywhere else is E0892, and counting the OUTER
+    // list for it invented a size that another file then bounds-checked
+    // against (`u8[2][] m` read as [2][2] for rows of three).
+    const dimensionCount =
+      (arrayTypeCtx?.arrayTypeDimension().length ?? 0) + arrayDims.length;
+    const countedFrom = dimensionCount === 1 ? initExpr : null;
+
     // Collect dimensions from arrayType syntax (u16[8] arr, u16[4][4] arr, u16[] arr)
     if (hasArrayTypeSyntax) {
       arrayDimensions.push(
-        ...VariableCollector.collectArrayTypeDimensions(arrayTypeCtx, initExpr),
+        ...VariableCollector.collectArrayTypeDimensions(
+          arrayTypeCtx,
+          countedFrom,
+        ),
       );
     }
 
     // Collect additional dimensions from arrayDimension syntax
     if (arrayDims.length > 0) {
       arrayDimensions.push(
-        ...VariableCollector.collectArrayDimensions(arrayDims, initExpr),
+        ...VariableCollector.collectArrayDimensions(arrayDims, countedFrom),
       );
     }
 

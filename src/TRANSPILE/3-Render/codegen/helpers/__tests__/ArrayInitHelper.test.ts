@@ -58,7 +58,7 @@ describe("ArrayInitHelper", () => {
       const result = ArrayInitHelper.processArrayInit(
         "arr",
         true, // hasEmptyArrayDim
-        null, // no declared size
+        3, // #1664 box 3: the size 1.3 counted, the one the `.h` states
         callbacks,
         state,
       );
@@ -89,6 +89,41 @@ describe("ArrayInitHelper", () => {
           state,
         ),
       ).toThrow("E0876 rejects the fill-all form");
+    });
+
+    it("takes an inferred size from the declaration, and asserts the rendered list agrees (#1664 box 3)", () => {
+      // The `.h` is written from the size 1.3 counted. Render used to count
+      // the elements it had just rendered -- a second derivation that emitted
+      // `n[2]` against the header's `n[2][3]` for `u8[][3] n` (#1822).
+      const callbacks = {
+        state: new TranspileState(),
+        generateExpression: vi.fn(() => {
+          state.lastArrayInitCount = 3;
+          return "{1, 2, 3}";
+        }),
+        getTypeName: vi.fn(() => "u8"),
+        generateArrayDimensions: vi.fn(() => ""),
+      };
+
+      expect(() =>
+        ArrayInitHelper.processArrayInit("arr", true, 4, callbacks, state),
+      ).toThrow("1.3 counted [4] for 'arr' but 3 element(s) rendered");
+    });
+
+    it("asserts that an inferred size reaches render with the declaration's count (#1664 box 3)", () => {
+      const callbacks = {
+        state: new TranspileState(),
+        generateExpression: vi.fn(() => {
+          state.lastArrayInitCount = 3;
+          return "{1, 2, 3}";
+        }),
+        getTypeName: vi.fn(() => "u8"),
+        generateArrayDimensions: vi.fn(() => ""),
+      };
+
+      expect(() =>
+        ArrayInitHelper.processArrayInit("arr", true, null, callbacks, state),
+      ).toThrow("a declaration fact that never reached render");
     });
 
     it("asserts, since #1322, that a short initializer never reaches emission (E0866 owns it)", () => {

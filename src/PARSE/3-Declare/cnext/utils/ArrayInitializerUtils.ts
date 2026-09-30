@@ -5,6 +5,7 @@
  */
 
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
+import StringUtils from "../../../../utils/StringUtils";
 
 class ArrayInitializerUtils {
   /**
@@ -105,10 +106,20 @@ class ArrayInitializerUtils {
    * Returns the element count if the expression is a list-style array initializer,
    * or undefined if no array initializer found or if it uses fill-all syntax.
    *
+   * ADR-035: a string literal initializes a `u8` array with its bytes and the
+   * terminator (`u8[] message <- "Hello"` is `u8[6]`). Uncounted, the `.h`
+   * stated a scalar against the `.c`'s `uint8_t message[] = "Hello"` (#1824
+   * review); whether the element type allows a literal is E0866's.
+   *
    * @param expr The expression context
    * @returns The inferred size, or undefined
    */
   static getInferredSize(expr: Parser.ExpressionContext): number | undefined {
+    const text = expr.getText();
+    if (text.length >= 2 && text.startsWith('"') && text.endsWith('"')) {
+      return StringUtils.literalLength(text) + 1;
+    }
+
     const arrayInit = this.findArrayInitializer(expr);
     if (!arrayInit) return undefined;
 

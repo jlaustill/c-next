@@ -582,7 +582,7 @@ describe("StringDeclHelper", () => {
       // test noticing. The realistic input carries the const the caller
       // resolved.
       const code = StringDeclHelper.generateStringDecl(
-        { kind: "unsized", initText: '"Hello World"' },
+        { kind: "unsized", initText: '"Hello World"', declaredCapacity: 11 },
         "message",
         { ...NO_MODS, const: "const " },
         true,
@@ -594,7 +594,7 @@ describe("StringDeclHelper", () => {
 
     it("carries atomic and volatile onto the unsized arm (#1642)", () => {
       const code = StringDeclHelper.generateStringDecl(
-        { kind: "unsized", initText: '"v"' },
+        { kind: "unsized", initText: '"v"', declaredCapacity: 1 },
         "flag",
         { extern: "", const: "const ", atomic: "", volatile: "volatile " },
         true,
@@ -610,7 +610,7 @@ describe("StringDeclHelper", () => {
     it("refuses a non-const unsized string rather than emitting one", () => {
       expect(() =>
         StringDeclHelper.generateStringDecl(
-          { kind: "unsized", initText: '"x"' },
+          { kind: "unsized", initText: '"x"', declaredCapacity: 1 },
           "loose",
           NO_MODS,
           true,
@@ -622,7 +622,7 @@ describe("StringDeclHelper", () => {
     it("asserts the invariant for non-const unsized string", () => {
       expect(() =>
         StringDeclHelper.generateStringDecl(
-          { kind: "unsized", initText: '"x"' },
+          { kind: "unsized", initText: '"x"', declaredCapacity: 1 },
           "bad",
           { ...NO_MODS, const: "const " },
           false,
@@ -631,10 +631,24 @@ describe("StringDeclHelper", () => {
       ).toThrow("a non-const string states its capacity");
     });
 
+    it("takes the capacity from the declaration, and asserts the literal agrees (#1664 box 3)", () => {
+      // The `.h` is written from the capacity 1.3 counted; render counting
+      // the literal again was a second derivation of the same fact.
+      expect(() =>
+        StringDeclHelper.generateStringDecl(
+          { kind: "unsized", initText: '"abc"', declaredCapacity: 5 },
+          "s",
+          { ...NO_MODS, const: "const " },
+          true,
+          state,
+        ),
+      ).toThrow("1.3 counted 5 for 's' but the literal has 3 character(s)");
+    });
+
     it("asserts the invariant for unsized const string without initializer", () => {
       expect(() =>
         StringDeclHelper.generateStringDecl(
-          { kind: "unsized", initText: null },
+          { kind: "unsized", initText: null, declaredCapacity: null },
           "bad",
           { ...NO_MODS, const: "const " },
           true,
@@ -646,7 +660,7 @@ describe("StringDeclHelper", () => {
     it("asserts the invariant for unsized const string with non-literal", () => {
       expect(() =>
         StringDeclHelper.generateStringDecl(
-          { kind: "unsized", initText: "someVar" },
+          { kind: "unsized", initText: "someVar", declaredCapacity: null },
           "bad",
           { ...NO_MODS, const: "const " },
           true,

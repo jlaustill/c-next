@@ -65,6 +65,7 @@ import IPlannedIf from "./3-Render/codegen/types/IPlannedIf";
 import IPlannedLoop from "./3-Render/codegen/types/IPlannedLoop";
 import TPlannedReturn from "./3-Render/codegen/types/TPlannedReturn";
 import VariableModifierBuilder from "./3-Render/codegen/helpers/VariableModifierBuilder";
+import ArrayInitHelper from "./3-Render/codegen/helpers/ArrayInitHelper";
 import generateCriticalStatement from "./3-Render/codegen/generators/statements/CriticalGenerator";
 import generateSwitchStatement from "./3-Render/codegen/generators/statements/SwitchGenerator";
 import type IPlannedSwitch from "./3-Render/codegen/types/IPlannedSwitch";
@@ -3488,7 +3489,7 @@ class CodeGenWalker {
       renderType: () => this.generateType(varDecl.type()),
       renderArrayTypeDimensions: () =>
         ArrayDimensionUtils.renderArrayTypeDimensions(
-          this.planArrayTypeDimensions(arrayTypeCtx),
+          this.planArrayTypeDimensions(arrayTypeCtx, varDecl),
         ),
       renderCStyleDimensions:
         arrayDims.length > 0
@@ -3521,11 +3522,30 @@ class CodeGenWalker {
     const initializer = varDecl.expression();
     if (initializer) {
       const typeName = this.generateType(varDecl.type());
-      return this.host.state.withExpectedType(typeName, () =>
-        this.host.state.withDeclarationInit(
+      const state = this.host.state;
+      state.resetArrayInitTracking();
+      const rendered = state.withExpectedType(typeName, () =>
+        state.withDeclarationInit(
           () => ` = ${this.generateExpression(initializer)}`,
         ),
       );
+      // #1824 review: an omitted size is emitted from 1.3's count (the
+      // planner), so the list rendered here must have exactly that many
+      // elements -- the same check the statement renderer makes.
+      const omitsSize =
+        varDecl
+          .type()
+          .arrayType()
+          ?.arrayTypeDimension()
+          .some((dim) => !dim.expression()) ?? false;
+      if (omitsSize && state.wasArrayInit()) {
+        ArrayInitHelper.assertInferredSize(
+          varDecl.IDENTIFIER().getText(),
+          this.countedSize(varDecl),
+          state,
+        );
+      }
+      return rendered;
     }
     // ADR-015: Zero initialization for uninitialized scope variables
     return ` = ${this.getZeroInitializer(varDecl.type(), isArray)}`;
@@ -3626,12 +3646,17 @@ class CodeGenWalker {
    */
   planArrayTypeDimensions(
     ctx: Parser.ArrayTypeContext | null,
+    declaration: Parser.VariableDeclarationContext | null = null,
   ): readonly IPlannedDimension[] | null {
     if (ctx === null) return null;
 
     return ctx.arrayTypeDimension().map((dimension) => {
       const expression = dimension.expression();
-      if (!expression) return { renderSize: null };
+      // #1664 box 3: an omitted size is the declaration's count, the number
+      // the `.h` states, for every declaration renderer that asks here.
+      if (!expression) {
+        return { renderSize: () => String(this.omittedSizeOf(declaration)) };
+      }
 
       return {
         renderSize: () => {
@@ -4220,6 +4245,7 @@ class CodeGenWalker {
 
     // ADR-045: string types have their own three forms
     const stringPlan = this.planStringDecl(
+      ctx,
       typeCtx,
       ctx.expression() ?? null,
       ctx.arrayDimension(),
@@ -4361,20 +4387,31 @@ class CodeGenWalker {
     const hasEmptyArrayTypeDimension = typeDims.some(
       (dim) => !dim.expression(),
     );
+    const hasEmptyDimension =
+      arrayDims.some((dim) => !dim.expression()) || hasEmptyArrayTypeDimension;
     const initializer = ctx.expression();
+    // #1822: the inferred path emits its one counted size as the whole suffix,
+    // which is right only for a one-dimensional array. E0892 rejects every
+    // other empty dimension in pass 2.1.
+    invariant(
+      !hasEmptyDimension || typeDims.length + arrayDims.length === 1,
+      `an array that omits a size is one-dimensional -- E0892 rejects '${ctx.IDENTIFIER().getText()}' in pass 2.1, before this runs`,
+    );
 
     return {
       isArray: true,
-      hasEmptyDimension:
-        arrayDims.some((dim) => !dim.expression()) ||
-        hasEmptyArrayTypeDimension,
+      hasEmptyDimension,
       hasEmptyArrayTypeDimension,
       // #1644: one evaluator, and one FUNCTION -- the type's dimensions and the
       // trailing ones are the same question asked of two lists. They were two
       // methods that had to be kept in step by hand, and the comment saying so
       // is what this deletes.
-      declaredSize:
-        this.foldFirstDimension(typeDims) ?? this.foldFirstDimension(arrayDims),
+      // #1664 box 3: an inferred size is the declaration's, not a count of
+      // what render is about to emit.
+      declaredSize: hasEmptyDimension
+        ? this.countedSize(ctx)
+        : (this.foldFirstDimension(typeDims) ??
+          this.foldFirstDimension(arrayDims)),
       // One renderer for the type's dimensions, not two. This used to call a
       // private twin of `ArrayDimensionUtils.renderArrayTypeDimensions` that
       // re-derived the same rule -- fold a constant, else generate, `[]` when
@@ -4383,7 +4420,7 @@ class CodeGenWalker {
       // house rule names. Still eager: the util calls each `renderSize` inside
       // its `map`, so dimension effects are raised exactly where they were.
       arrayTypeDimensions: ArrayDimensionUtils.renderArrayTypeDimensions(
-        this.planArrayTypeDimensions(arrayTypeCtx),
+        this.planArrayTypeDimensions(arrayTypeCtx, ctx),
       ),
       renderCStyleDimensions: () => this.generateArrayDimensions(arrayDims),
       init: initializer
@@ -4394,6 +4431,48 @@ class CodeGenWalker {
           }
         : null,
     };
+  }
+
+  /**
+   * #1664 box 3: what this declaration says, as 1.3 recorded it and 1.4
+   * settled it -- the facts the `.h` is written from. The name binds to its
+   * own declaration from the end of the name on (LexicalFrames), so asking
+   * there reads this declaration, never one it shadows.
+   */
+  private declaredHere(
+    ctx: Parser.VariableDeclarationContext,
+  ): TTypeInfo | undefined {
+    const name = ctx.IDENTIFIER().symbol;
+    const text = name.text ?? "";
+    return this.host.state.declarationTypeInfo(null, text, {
+      line: name.line,
+      column: name.column + text.length,
+    });
+  }
+
+  /**
+   * The size 1.3 counted for this declaration's one omitted dimension, or
+   * null when there is none to read: only a one-dimensional declaration is
+   * counted (E0892), and an uncounted size is `UNRESOLVED_DIMENSION`, 0.
+   */
+  private countedSize(ctx: Parser.VariableDeclarationContext): number | null {
+    const rank =
+      (ctx.type().arrayType()?.arrayTypeDimension().length ?? 0) +
+      ctx.arrayDimension().length;
+    const size = this.declaredHere(ctx)?.arrayDimensions?.[0];
+    return rank === 1 && size !== undefined && size > 0 ? size : null;
+  }
+
+  /** An omitted size as rendered: the declaration's count, asserted. */
+  private omittedSizeOf(
+    declaration: Parser.VariableDeclarationContext | null,
+  ): number {
+    const size = declaration === null ? null : this.countedSize(declaration);
+    invariant(
+      size !== null,
+      `an omitted array size is counted from a one-dimensional declaration's list or string literal -- E0892 rejects '${declaration?.IDENTIFIER().getText() ?? "a struct field"}' in pass 2.1, before this runs`,
+    );
+    return size;
   }
 
   /**
@@ -4461,6 +4540,7 @@ class CodeGenWalker {
    * #1643.)
    */
   private planStringDecl(
+    ctx: Parser.VariableDeclarationContext,
     typeCtx: Parser.TypeContext,
     expression: Parser.ExpressionContext | null,
     trailingDims: Parser.ArrayDimensionContext[],
@@ -4472,6 +4552,7 @@ class CodeGenWalker {
       // ADR-045: a sized string is copied and measured with <string.h>
       this.host.state.requireInclude("string");
       return this.planStringArray(
+        ctx,
         arrayTypeCtx,
         arrayStringCtx,
         expression,
@@ -4486,8 +4567,13 @@ class CodeGenWalker {
 
     const intLiteral = stringCtx.INTEGER_LITERAL();
     if (!intLiteral) {
-      // Unsized string - requires const and a literal to infer from
-      return { kind: "unsized", initText: expression?.getText() ?? null };
+      // Unsized string - requires const and a literal to infer from. Its
+      // capacity is the declaration's (#1664 box 3).
+      return {
+        kind: "unsized",
+        initText: expression?.getText() ?? null,
+        declaredCapacity: this.declaredHere(ctx)?.stringCapacity ?? null,
+      };
     }
 
     // ADR-045: a sized string is copied and measured with <string.h>
@@ -4529,6 +4615,7 @@ class CodeGenWalker {
    * Issue #1029: `string<32>[4] items`.
    */
   private planStringArray(
+    ctx: Parser.VariableDeclarationContext,
     arrayTypeCtx: Parser.ArrayTypeContext,
     stringCtx: Parser.StringTypeContext,
     expression: Parser.ExpressionContext | null,
@@ -4544,27 +4631,13 @@ class CodeGenWalker {
     }
 
     const dims = arrayTypeCtx.arrayTypeDimension();
-    let dimensions = "";
-    for (const dim of dims) {
-      const sizeExpr = dim.expression();
-      if (sizeExpr) {
-        // Issue #1127: fold a compile-time constant rather than emitting its
-        // source text. `string<32>[COUNT] items` produced
-        // `char items[COUNT][33] = {0}` -- a variably-modified type, which C
-        // rejects here outright ("variable-sized object may not be
-        // initialized") and which CLAUDE.md rules out.
-        const folded = ArrayDimensionParser.parseSingleDimension(
-          sizeExpr,
-          dimensionEvalOptions(
-            this.transpileState,
-            ParserUtils.getPosition(sizeExpr),
-          ),
-        );
-        dimensions += `[${folded ?? sizeExpr.getText()}]`;
-      } else {
-        dimensions += "[]";
-      }
-    }
+    // The one planner every declaration renders its type's dimensions with
+    // (#1824 review). This arm had its own loop: the same fold (Issue #1127:
+    // `string<32>[COUNT] items` must not be a VLA), a raw-text fallback, and,
+    // until #1664 box 3, `[]` for an omitted size, left to C to count.
+    let dimensions = ArrayDimensionUtils.renderArrayTypeDimensions(
+      this.planArrayTypeDimensions(arrayTypeCtx, ctx),
+    );
 
     // Any trailing dimensions from the variable declaration. Unconditional on
     // this arm -- every string array emits its dimensions, initializer or not
@@ -4578,7 +4651,10 @@ class CodeGenWalker {
       // #1644: the SAME call the loop above renders the declarator with. The
       // size used to expand a fill-all must equal the size emitted in `[...]`,
       // or the array is the declared length with the wrong contents.
-      declaredSize: this.foldFirstDimension(dims),
+      // An omitted size is the declaration's count; a written one folds.
+      declaredSize: dims[0]?.expression()
+        ? this.foldFirstDimension(dims)
+        : this.countedSize(ctx),
       renderInit: expression ? () => this.generateExpression(expression) : null,
     };
   }

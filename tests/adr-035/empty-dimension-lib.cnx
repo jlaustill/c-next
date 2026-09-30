@@ -1,0 +1,2 @@
+// Helper for empty-dimension-included: an inner dimension left empty.
+u8[2][] rows <- [[1, 2, 3], [4, 5, 6]];

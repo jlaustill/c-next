@@ -7,6 +7,7 @@
  * - E0874: a C-style array declaration or parameter (dimensions after the name)
  * - E0875: an unbounded array parameter
  * - E0876: the fill-all form on an array whose size is inferred
+ * - E0892: an array dimension with no size and nothing to count it from
  */
 import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
 

@@ -151,4 +151,42 @@ describe("ArrayDeclarationAnalyzer", () => {
       expect(found[0].message).toContain("[0*]");
     });
   });
+
+  describe("E0892 -- a dimension with no size and nothing to count (#1822)", () => {
+    it("reports every empty dimension of a multi-dimensional array, at its bracket", () => {
+      const found = errors("u8[][] m <- [[1, 2, 3], [4, 5, 6]];");
+      expect(found.map((e) => [e.code, e.column])).toEqual([
+        ["E0892", 2],
+        ["E0892", 4],
+      ]);
+      expect(found[1].message).toBe(
+        "Array 'm' leaves dimension 2 without a size",
+      );
+    });
+
+    it("stops at E0892, so the fill-all rule does not also fire", () => {
+      // Without the early return, checkInitializer would add E0876 here.
+      expect(errors("u8[][3] m <- [0*];").map((e) => e.code)).toEqual([
+        "E0892",
+      ]);
+    });
+
+    it("rejects a one-dimensional [] with no initializer to count", () => {
+      const found = errors("u8[] nothing;");
+      expect(found.map((e) => e.code)).toEqual(["E0892"]);
+      expect(found[0].message).toContain("'nothing' leaves dimension 1");
+    });
+
+    it("rejects [] on a struct field, in the type and after the name", () => {
+      const found = errors("struct S {\n    u8[] a;\n    u8 b[];\n}");
+      expect(found.map((e) => [e.code, e.line])).toEqual([
+        ["E0892", 2],
+        ["E0892", 3],
+      ]);
+    });
+
+    it("accepts a one-dimensional size counted from a list or a u8 string literal", () => {
+      expect(errors('u8[] a <- [1, 2, 3];\nu8[] s <- "Hi";')).toEqual([]);
+    });
+  });
 });

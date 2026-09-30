@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-458 fixture(s) assert a diagnostic; 443 carry a code.
+460 fixture(s) assert a diagnostic; 445 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -163,6 +163,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-034/bitmap-error-overflow.test.cnx                                                     | E0881               |
 | tests/adr-034/bitmap-unknown-field-error.test.cnx                                                | E0882               |
 | tests/adr-035/array-init-error.test.cnx                                                          | E0866, E0876        |
+| tests/adr-035/empty-dimension-error.test.cnx                                                     | E0892               |
+| tests/adr-035/empty-dimension-included.test.cnx                                                  | E0892               |
 | tests/adr-036/array-bounds-uncovered-arms-error.test.cnx                                         | E0854               |
 | tests/adr-036/array-shape-uncovered-arms-error.test.cnx                                          | E0874, E0875        |
 | tests/adr-036/bounds-error.test.cnx                                                              | E0854               |
