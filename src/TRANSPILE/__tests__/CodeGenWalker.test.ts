@@ -18,6 +18,7 @@ import TParameterInfo from "../../transpiler/types/TParameterInfo";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import DeferredTypes from "../../PARSE/4-Resolve/DeferredTypes";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
+import NodeFileSystem from "../../transpiler/NodeFileSystem";
 
 /**
  * Both symbol passes, the way the pipeline runs them.
@@ -1057,7 +1058,10 @@ describe("CodeGenWalker", () => {
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
       const symbols = TSymbolInfoAdapter.convert(declareAndResolve(tree));
-      const teensy41 = TargetResolver.byName("teensy41")!;
+      const teensy41 = TargetResolver.byName(
+        "teensy41",
+        NodeFileSystem.instance,
+      )!;
 
       generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,

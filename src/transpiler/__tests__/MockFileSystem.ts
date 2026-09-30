@@ -8,6 +8,8 @@
 
 import { dirname, basename } from "node:path";
 import IFileSystem from "../types/IFileSystem";
+import NodeFileSystem from "../NodeFileSystem";
+import TargetCatalogFile from "../data/TargetCatalogFile";
 
 /**
  * Mock file system for testing
@@ -27,6 +29,16 @@ class MockFileSystem implements IFileSystem {
 
   /** Track mkdir operations for assertions */
   private readonly mkdirLog: Array<{ path: string; recursive?: boolean }> = [];
+
+  /**
+   * A filesystem the compiler is installed on. The target catalog is an
+   * installation file read through the port (#1653), so a double that lacks it
+   * models a broken installation, not an empty project.
+   */
+  constructor() {
+    const catalog = TargetCatalogFile.locate(NodeFileSystem.instance);
+    this.files.set(catalog, NodeFileSystem.instance.readFile(catalog));
+  }
 
   /**
    * Normalize path by removing trailing slashes (except for root "/")

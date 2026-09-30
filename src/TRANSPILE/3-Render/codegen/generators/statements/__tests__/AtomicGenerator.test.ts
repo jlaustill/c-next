@@ -9,6 +9,7 @@ import atomicGenerators from "../AtomicGenerator";
 import TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
 import type ITargetDescription from "../../../../../../transpiler/types/ITargetDescription";
 import TargetResolver from "../../../../../../utils/TargetResolver";
+import NodeFileSystem from "../../../../../../transpiler/NodeFileSystem";
 
 const {
   generateAtomicRMW,
@@ -36,7 +37,10 @@ function createTypeInfo(
 
 /** A catalog target with, or without, LDREX/STREX */
 function createCapabilities(hasLdrexStrex: boolean): ITargetDescription {
-  return TargetResolver.byName(hasLdrexStrex ? "cortex-m7" : "cortex-m0")!;
+  return TargetResolver.byName(
+    hasLdrexStrex ? "cortex-m7" : "cortex-m0",
+    NodeFileSystem.instance,
+  )!;
 }
 
 // ============================================================================

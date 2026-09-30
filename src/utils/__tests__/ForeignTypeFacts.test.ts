@@ -8,6 +8,7 @@ import ESourceLanguage from "../types/ESourceLanguage";
 import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
 import ForeignTypeFacts from "../ForeignTypeFacts";
 import TargetCatalogFile from "../../transpiler/data/TargetCatalogFile";
+import NodeFileSystem from "../../transpiler/NodeFileSystem";
 
 const C_HEADER = {
   sourceFile: "api.h",
@@ -101,7 +102,9 @@ describe("ForeignTypeFacts", () => {
     // #1760 review: one answer for a header value's floating type, the typer's
     it("types a double by the target's data model", () => {
       cVariable("probe", "double");
-      const avr = TargetCatalogFile.targets().get("atmega328p")!;
+      const avr = TargetCatalogFile.targets(NodeFileSystem.instance).get(
+        "atmega328p",
+      )!;
       expect(ForeignTypeFacts.variableType(symbolTable, "probe", avr)).toBe(
         "f32",
       );

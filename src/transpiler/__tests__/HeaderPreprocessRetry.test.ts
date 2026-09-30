@@ -64,7 +64,7 @@ void run() {
 
 describe("header preprocessing retry (#1817)", () => {
   let dir: string;
-  const available = new Preprocessor().isAvailable();
+  const available = new Preprocessor(NodeFileSystem.instance).isAvailable();
 
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-retry-"));

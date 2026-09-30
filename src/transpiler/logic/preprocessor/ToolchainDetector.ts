@@ -4,9 +4,9 @@
  */
 
 import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
 import { basename, join } from "node:path";
 import IToolchain from "./types/IToolchain";
+import IFileSystem from "../../types/IFileSystem";
 
 /**
  * Detects available C/C++ toolchains
@@ -16,27 +16,27 @@ class ToolchainDetector {
    * Detect the best available toolchain
    * Priority: ARM cross-compiler > clang > gcc
    */
-  static detect(): IToolchain | null {
+  static detect(fs: IFileSystem): IToolchain | null {
     // Explicit override: a project can name the compiler that owns its target
     // headers (e.g. a cross-compiler such as xtensa-esp32s3-elf-gcc) via
     // CNEXT_CROSS_COMPILER. Host gcc/clang lack a cross target's system headers
     // and predefined macros, so their preprocessing of target headers fails.
     const override = process.env.CNEXT_CROSS_COMPILER;
     if (override) {
-      const overridden = ToolchainDetector.fromPath(override);
+      const overridden = ToolchainDetector.fromPath(override, fs);
       if (overridden) return overridden;
     }
 
     // Try ARM cross-compiler first (for embedded)
-    const arm = this.detectArmToolchain();
+    const arm = this.detectArmToolchain(fs);
     if (arm) return arm;
 
     // Try clang
-    const clang = this.detectClang();
+    const clang = this.detectClang(fs);
     if (clang) return clang;
 
     // Try gcc
-    const gcc = this.detectGcc();
+    const gcc = this.detectGcc(fs);
     if (gcc) return gcc;
 
     return null;
@@ -45,16 +45,16 @@ class ToolchainDetector {
   /**
    * Detect all available toolchains
    */
-  static detectAll(): IToolchain[] {
+  static detectAll(fs: IFileSystem): IToolchain[] {
     const toolchains: IToolchain[] = [];
 
-    const arm = this.detectArmToolchain();
+    const arm = this.detectArmToolchain(fs);
     if (arm) toolchains.push(arm);
 
-    const clang = this.detectClang();
+    const clang = this.detectClang(fs);
     if (clang) toolchains.push(clang);
 
-    const gcc = this.detectGcc();
+    const gcc = this.detectGcc(fs);
     if (gcc) toolchains.push(gcc);
 
     return toolchains;
@@ -66,12 +66,12 @@ class ToolchainDetector {
    * CNEXT_CROSS_COMPILER override so a project can preprocess its target headers with the compiler
    * that owns them.
    */
-  static fromPath(compiler: string): IToolchain | null {
+  static fromPath(compiler: string, fs: IFileSystem): IToolchain | null {
     let cc: string | null;
     if (compiler.includes("/")) {
-      cc = existsSync(compiler) ? compiler : null;
+      cc = fs.exists(compiler) ? compiler : null;
     } else {
-      cc = this.findExecutable(compiler);
+      cc = this.findExecutable(compiler, fs);
     }
     if (!cc) return null;
 
@@ -79,7 +79,7 @@ class ToolchainDetector {
     // preprocessing; cxx is derived for completeness).
     const cxxCandidate = cc.replace(/gcc(\.exe)?$/, "g++$1");
     const cxx =
-      cxxCandidate !== cc && existsSync(cxxCandidate) ? cxxCandidate : cc;
+      cxxCandidate !== cc && fs.exists(cxxCandidate) ? cxxCandidate : cc;
 
     return {
       name: basename(cc),
@@ -94,11 +94,11 @@ class ToolchainDetector {
   /**
    * Detect ARM cross-compiler (arm-none-eabi-gcc)
    */
-  private static detectArmToolchain(): IToolchain | null {
-    const cc = this.findExecutable("arm-none-eabi-gcc");
+  private static detectArmToolchain(fs: IFileSystem): IToolchain | null {
+    const cc = this.findExecutable("arm-none-eabi-gcc", fs);
     if (!cc) return null;
 
-    const cxx = this.findExecutable("arm-none-eabi-g++") ?? cc;
+    const cxx = this.findExecutable("arm-none-eabi-g++", fs) ?? cc;
     const version = this.getVersion(cc);
 
     return {
@@ -115,11 +115,11 @@ class ToolchainDetector {
   /**
    * Detect clang
    */
-  private static detectClang(): IToolchain | null {
-    const cc = this.findExecutable("clang");
+  private static detectClang(fs: IFileSystem): IToolchain | null {
+    const cc = this.findExecutable("clang", fs);
     if (!cc) return null;
 
-    const cxx = this.findExecutable("clang++") ?? cc;
+    const cxx = this.findExecutable("clang++", fs) ?? cc;
     const version = this.getVersion(cc);
 
     return {
@@ -135,11 +135,11 @@ class ToolchainDetector {
   /**
    * Detect GCC
    */
-  private static detectGcc(): IToolchain | null {
-    const cc = this.findExecutable("gcc");
+  private static detectGcc(fs: IFileSystem): IToolchain | null {
+    const cc = this.findExecutable("gcc", fs);
     if (!cc) return null;
 
-    const cxx = this.findExecutable("g++") ?? cc;
+    const cxx = this.findExecutable("g++", fs) ?? cc;
     const version = this.getVersion(cc);
 
     return {
@@ -155,14 +155,14 @@ class ToolchainDetector {
   /**
    * Find an executable in PATH
    */
-  private static findExecutable(name: string): string | null {
+  private static findExecutable(name: string, fs: IFileSystem): string | null {
     try {
       const result = execSync(`which ${name}`, {
         encoding: "utf-8",
         stdio: ["pipe", "pipe", "pipe"],
       }).trim();
 
-      if (result && existsSync(result)) {
+      if (result && fs.exists(result)) {
         return result;
       }
     } catch {
@@ -227,11 +227,14 @@ class ToolchainDetector {
    * Parse PlatformIO environment for include paths
    * Looks for platformio.ini in project root
    */
-  static getPlatformIOIncludePaths(projectRoot: string): string[] {
+  static getPlatformIOIncludePaths(
+    projectRoot: string,
+    fs: IFileSystem,
+  ): string[] {
     const paths: string[] = [];
     const pioIniPath = join(projectRoot, "platformio.ini");
 
-    if (!existsSync(pioIniPath)) {
+    if (!fs.exists(pioIniPath)) {
       return paths;
     }
 

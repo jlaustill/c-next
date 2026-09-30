@@ -13,6 +13,7 @@ import IPreprocessResult from "./types/IPreprocessResult";
 import ISourceMapping from "./types/ISourceMapping";
 import IPreprocessOptions from "./types/IPreprocessOptions";
 import ToolchainDetector from "./ToolchainDetector";
+import IFileSystem from "../../types/IFileSystem";
 
 const execFileAsync = promisify(execFile);
 
@@ -24,8 +25,8 @@ class Preprocessor {
 
   private readonly defaultIncludePaths: string[] = [];
 
-  constructor(toolchain?: IToolchain) {
-    this.toolchain = toolchain ?? ToolchainDetector.detect();
+  constructor(fs: IFileSystem, toolchain?: IToolchain) {
+    this.toolchain = toolchain ?? ToolchainDetector.detect(fs);
 
     if (this.toolchain) {
       this.defaultIncludePaths = ToolchainDetector.getDefaultIncludePaths(

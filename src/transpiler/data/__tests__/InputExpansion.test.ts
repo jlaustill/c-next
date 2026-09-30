@@ -16,6 +16,7 @@ vi.mock("node:fs", () => ({
 }));
 
 import { existsSync, statSync } from "node:fs";
+import NodeFileSystem from "../../NodeFileSystem";
 
 const mockExistsSync = vi.mocked(existsSync);
 const mockStatSync = vi.mocked(statSync);
@@ -50,7 +51,10 @@ describe("InputExpansion", () => {
       const filePath = "/project/main.cnx";
       mockFile(filePath);
 
-      const result = InputExpansion.expandInputs([filePath]);
+      const result = InputExpansion.expandInputs(
+        [filePath],
+        NodeFileSystem.instance,
+      );
 
       expect(result).toHaveLength(1);
       expect(result[0]).toBe(resolve(filePath));
@@ -60,7 +64,10 @@ describe("InputExpansion", () => {
       const filePath = "/project/main.cnext";
       mockFile(filePath);
 
-      const result = InputExpansion.expandInputs([filePath]);
+      const result = InputExpansion.expandInputs(
+        [filePath],
+        NodeFileSystem.instance,
+      );
 
       expect(result).toHaveLength(1);
       expect(result[0]).toBe(resolve(filePath));
@@ -69,16 +76,22 @@ describe("InputExpansion", () => {
     it("throws error for non-existent file", () => {
       mockExistsSync.mockReturnValue(false);
 
-      expect(() => InputExpansion.expandInputs(["/nonexistent.cnx"])).toThrow(
-        "Input not found: /nonexistent.cnx",
-      );
+      expect(() =>
+        InputExpansion.expandInputs(
+          ["/nonexistent.cnx"],
+          NodeFileSystem.instance,
+        ),
+      ).toThrow("Input not found: /nonexistent.cnx");
     });
 
     it("removes duplicate files", () => {
       const filePath = "/project/main.cnx";
       mockFile(filePath);
 
-      const result = InputExpansion.expandInputs([filePath, filePath]);
+      const result = InputExpansion.expandInputs(
+        [filePath, filePath],
+        NodeFileSystem.instance,
+      );
 
       expect(result).toHaveLength(1);
     });
@@ -90,10 +103,10 @@ describe("InputExpansion", () => {
         isDirectory: () => false,
       } as ReturnType<typeof statSync>);
 
-      const result = InputExpansion.expandInputs([
-        "/project/a.cnx",
-        "/project/b.cnx",
-      ]);
+      const result = InputExpansion.expandInputs(
+        ["/project/a.cnx", "/project/b.cnx"],
+        NodeFileSystem.instance,
+      );
 
       expect(result).toHaveLength(2);
     });

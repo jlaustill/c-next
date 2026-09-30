@@ -14,6 +14,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import CompileCommandsReader from "../CompileCommandsReader";
+import NodeFileSystem from "../../../NodeFileSystem";
 
 describe("CompileCommandsReader.parse", () => {
   it("extracts include paths from -I arguments, resolving relative to the entry directory", () => {
@@ -185,6 +186,7 @@ describe("CompileCommandsReader.load", () => {
 
       const result = CompileCommandsReader.load(
         join(dir, "compile_commands.json"),
+        NodeFileSystem.instance,
       );
 
       expect(result).not.toBeNull();
@@ -198,7 +200,10 @@ describe("CompileCommandsReader.load", () => {
 
   it("returns null for a missing file (caller falls back to config)", () => {
     expect(
-      CompileCommandsReader.load("/no/such/dir/compile_commands.json"),
+      CompileCommandsReader.load(
+        "/no/such/dir/compile_commands.json",
+        NodeFileSystem.instance,
+      ),
     ).toBeNull();
   });
 
@@ -207,7 +212,10 @@ describe("CompileCommandsReader.load", () => {
     try {
       writeFileSync(join(dir, "compile_commands.json"), "{ not valid json ");
       expect(
-        CompileCommandsReader.load(join(dir, "compile_commands.json")),
+        CompileCommandsReader.load(
+          join(dir, "compile_commands.json"),
+          NodeFileSystem.instance,
+        ),
       ).toBeNull();
     } finally {
       rmSync(dir, { recursive: true, force: true });

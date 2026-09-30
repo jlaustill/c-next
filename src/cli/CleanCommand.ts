@@ -19,7 +19,10 @@ class CleanCommand {
    */
   private static discoverCnxFiles(input: string): string[] | null {
     try {
-      const cnxFiles = InputExpansion.expandInputs([input]);
+      const cnxFiles = InputExpansion.expandInputs(
+        [input],
+        NodeFileSystem.instance,
+      );
       if (cnxFiles.length === 0) {
         console.log("No .cnx files found. Nothing to clean.");
         return null;

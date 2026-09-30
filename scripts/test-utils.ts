@@ -37,6 +37,7 @@ import RunTarget from "../src/PARSE/4-Resolve/RunTarget";
 import type ITargetCell from "./types/ITargetCell";
 import type ITargetXfail from "./types/ITargetXfail";
 import type ITranspileCell from "./types/ITranspileCell";
+import NodeFileSystem from "../src/transpiler/NodeFileSystem";
 
 // Project root for CLI invocation (this file is in /workspace/scripts/)
 const PROJECT_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -1274,7 +1275,9 @@ class TestUtils {
 
   /** The catalog row a target name resolves to, aliases included */
   private static catalogName(target: string): string {
-    return TargetResolver.byName(target)?.name ?? target;
+    return (
+      TargetResolver.byName(target, NodeFileSystem.instance)?.name ?? target
+    );
   }
 
   /**
@@ -1312,7 +1315,10 @@ class TestUtils {
         return usage;
       }
       for (const target of targets) {
-        const description = TargetResolver.byName(target);
+        const description = TargetResolver.byName(
+          target,
+          NodeFileSystem.instance,
+        );
         if (description === undefined) {
           return `\`// test-target-xfail: ${argument}\` names '${target}', which is not a catalog target`;
         }

@@ -6,9 +6,10 @@ import { describe, expect, it } from "vitest";
 import TargetToolchain from "../TargetToolchain";
 import TargetResolver from "../TargetResolver";
 import type ITargetDescription from "../../transpiler/types/ITargetDescription";
+import NodeFileSystem from "../../transpiler/NodeFileSystem";
 
 function row(name: string): ITargetDescription {
-  const description = TargetResolver.byName(name);
+  const description = TargetResolver.byName(name, NodeFileSystem.instance);
   expect(description).toBeDefined();
   return description!;
 }

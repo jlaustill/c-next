@@ -11,8 +11,12 @@ import { join } from "node:path";
 import TargetCatalogFile from "../data/TargetCatalogFile";
 import Transpiler from "../Transpiler";
 import NodeFileSystem from "../NodeFileSystem";
+import MockFileSystem from "./MockFileSystem";
 
-const SHIPPED = readFileSync(TargetCatalogFile.locate(), "utf8");
+const SHIPPED = readFileSync(
+  TargetCatalogFile.locate(NodeFileSystem.instance),
+  "utf8",
+);
 
 describe("the shipped target catalog", () => {
   it("is a C-Next program whose C a compiler accepts", async () => {
@@ -47,5 +51,20 @@ describe("the shipped target catalog", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("TargetCatalogFile reads the catalog through the port it is handed", () => {
+  it("answers each port for itself, whichever port asked first", () => {
+    const installed = new MockFileSystem();
+    expect(TargetCatalogFile.targets(installed).has("host")).toBe(true);
+
+    // A port with no installation on it must not inherit the answer the first
+    // port loaded: a single cache slot would make the catalog depend on order.
+    const broken = new MockFileSystem();
+    broken.unlink(TargetCatalogFile.locate(installed));
+    expect(() => TargetCatalogFile.targets(broken)).toThrow(
+      "the compiler installation is broken",
+    );
   });
 });

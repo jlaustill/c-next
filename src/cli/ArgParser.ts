@@ -7,6 +7,7 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import ConfigPrinter from "./ConfigPrinter";
 import TargetResolver from "../utils/TargetResolver";
+import NodeFileSystem from "../transpiler/NodeFileSystem";
 import IParsedArgs from "./types/IParsedArgs";
 
 /**
@@ -158,7 +159,7 @@ A safer C for embedded systems development.`,
   cnext src/main.cnx                        # Entry point (follows includes)
   cnext main.cnx -o build/main.c            # Explicit output path
 
-Target platforms: ${TargetResolver.names().join(", ")}
+Target platforms: ${TargetResolver.names(NodeFileSystem.instance).join(", ")}
 
 Config files (searched in order, JSON format):
   cnext.config.json, .cnext.json, .cnextrc

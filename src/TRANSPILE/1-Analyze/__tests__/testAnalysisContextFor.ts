@@ -8,6 +8,7 @@ import TargetCatalogFile from "../../../transpiler/data/TargetCatalogFile";
 import invariant from "../../../utils/invariant";
 import type IAnalysisContext from "../types/IAnalysisContext";
 import type ILexicalFrame from "../../../transpiler/types/ILexicalFrame";
+import NodeFileSystem from "../../../transpiler/NodeFileSystem";
 
 /** Where a test's source is taken to live */
 const TEST_SOURCE = "test.cnx";
@@ -86,7 +87,7 @@ function testAnalysisContextFor(
       headerStructFields: symbolTable.getAllStructFields(),
       target: {
         option: "host",
-        catalog: TargetCatalogFile.targets(),
+        catalog: TargetCatalogFile.targets(NodeFileSystem.instance),
         files: files.map((file) => ({
           sourcePath: file.path,
           directives: file.parsed.targetDirectives,

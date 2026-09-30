@@ -10,8 +10,12 @@ import { readFileSync } from "node:fs";
 import TargetDescriptions from "../TargetDescriptions";
 import TargetCatalogParser from "../../2-Parse/TargetCatalogParser";
 import TargetCatalogFile from "../../../transpiler/data/TargetCatalogFile";
+import NodeFileSystem from "../../../transpiler/NodeFileSystem";
 
-const SHIPPED = readFileSync(TargetCatalogFile.locate(), "utf8");
+const SHIPPED = readFileSync(
+  TargetCatalogFile.locate(NodeFileSystem.instance),
+  "utf8",
+);
 
 /** The shipped catalog with its first `from` replaced by `to` */
 function catalogWith(from: string, to: string): string {
@@ -25,7 +29,7 @@ function validate(text: string) {
 
 describe("the shipped target catalog", () => {
   it("validates", () => {
-    const targets = TargetCatalogFile.targets();
+    const targets = TargetCatalogFile.targets(NodeFileSystem.instance);
     expect([...targets.keys()]).toEqual(
       expect.arrayContaining(["cortex-m7", "teensy41", "cortex-m0+", "host"]),
     );
@@ -167,14 +171,18 @@ describe("TargetDescriptions.catalog", () => {
 
 describe("TargetDescriptions.check", () => {
   it("accepts a complete description and returns it", () => {
-    const host = TargetCatalogFile.targets().get("host")!;
+    const host = TargetCatalogFile.targets(NodeFileSystem.instance).get(
+      "host",
+    )!;
     const result = TargetDescriptions.check(new Map(Object.entries(host)));
     expect(result).toEqual({ description: host });
   });
 
   it("lets the toolchain fields be left out", () => {
     const fields = new Map(
-      Object.entries(TargetCatalogFile.targets().get("cortex-m7")!),
+      Object.entries(
+        TargetCatalogFile.targets(NodeFileSystem.instance).get("cortex-m7")!,
+      ),
     );
     expect(fields.delete("toolchain_triple")).toBe(true);
     expect(fields.delete("toolchain_cpu")).toBe(true);

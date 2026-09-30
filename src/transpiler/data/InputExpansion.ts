@@ -1,5 +1,5 @@
 import { resolve, extname, basename } from "node:path";
-import { existsSync } from "node:fs";
+import IFileSystem from "../types/IFileSystem";
 
 /**
  * Input expansion for C-Next CLI
@@ -21,13 +21,13 @@ class InputExpansion {
    * @param inputs - Array of file paths
    * @returns Array of .cnx file paths
    */
-  static expandInputs(inputs: string[]): string[] {
+  static expandInputs(inputs: string[], fs: IFileSystem): string[] {
     const files: string[] = [];
 
     for (const input of inputs) {
       const resolvedPath = resolve(input);
 
-      if (!existsSync(resolvedPath)) {
+      if (!fs.exists(resolvedPath)) {
         throw new Error(`Input not found: ${input}`);
       }
 

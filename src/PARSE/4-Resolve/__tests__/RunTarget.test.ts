@@ -8,8 +8,9 @@ import TargetCatalogFile from "../../../transpiler/data/TargetCatalogFile";
 import type ITargetDirective from "../../../transpiler/types/ITargetDirective";
 import type ITargetDescription from "../../../transpiler/types/ITargetDescription";
 import type IPlatformIOProject from "../../../transpiler/types/IPlatformIOProject";
+import NodeFileSystem from "../../../transpiler/NodeFileSystem";
 
-const catalog = TargetCatalogFile.targets();
+const catalog = TargetCatalogFile.targets(NodeFileSystem.instance);
 
 /** A file that declares `#pragma target <name>` at `line`, or nothing */
 function file(sourcePath: string, name?: string, line = 1) {

@@ -455,7 +455,10 @@ class Transpiler {
     previous: IRunAnchor | null,
   ): Pick<IRunAnchor, "includeDirs" | "defines" | "compiler" | "preprocessor"> {
     const db = projectRoot
-      ? CompileCommandsReader.load(join(projectRoot, "compile_commands.json"))
+      ? CompileCommandsReader.load(
+          join(projectRoot, "compile_commands.json"),
+          this.fs,
+        )
       : null;
     const includeDirs = [...this.config.includeDirs];
     const seen = new Set(includeDirs);
@@ -473,7 +476,10 @@ class Transpiler {
       preprocessor:
         previous?.compiler === compiler
           ? previous.preprocessor
-          : new Preprocessor(Transpiler._toolchainForCompileDb(db)),
+          : new Preprocessor(
+              this.fs,
+              Transpiler._toolchainForCompileDb(db, this.fs),
+            ),
     };
   }
 
@@ -485,10 +491,11 @@ class Transpiler {
    */
   private static _toolchainForCompileDb(
     db: ICompileCommandsResult | null,
+    fs: IFileSystem,
   ): IToolchain | undefined {
     if (process.env.CNEXT_CROSS_COMPILER) return undefined;
     if (!db?.compiler) return undefined;
-    return ToolchainDetector.fromPath(db.compiler) ?? undefined;
+    return ToolchainDetector.fromPath(db.compiler, fs) ?? undefined;
   }
 
   // ===========================================================================
@@ -938,7 +945,7 @@ class Transpiler {
             option: this.config.target,
             platformio: this._platformIOProject(),
             pioEnv: this.config.pioEnv || undefined,
-            catalog: TargetCatalogFile.targets(),
+            catalog: TargetCatalogFile.targets(this.fs),
             files: declared.map((entry) => ({
               sourcePath: entry.file.path,
               directives: entry.parsed.targetDirectives,

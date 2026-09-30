@@ -41,7 +41,7 @@ scope Demo {
 
 describe("compile_commands.json auto-discovery (integration)", () => {
   let dir: string;
-  const available = new Preprocessor().isAvailable();
+  const available = new Preprocessor(NodeFileSystem.instance).isAvailable();
 
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-cc-discovery-"));

@@ -35,6 +35,7 @@ import type IGccToolchain from "../src/transpiler/types/IGccToolchain";
 import type ITargetDescription from "../src/transpiler/types/ITargetDescription";
 import type IValidationResult from "./types/IValidationResult";
 import type TTestMode from "./types/TTestMode";
+import NodeFileSystem from "../src/transpiler/NodeFileSystem";
 
 class TargetMatrix {
   /** The build machine: the one target a fixture is executed on */
@@ -69,7 +70,7 @@ class TargetMatrix {
    * `toolchainForInline`.
    */
   static toolchainFor(target: string): IGccToolchain | string {
-    const description = TargetResolver.byName(target);
+    const description = TargetResolver.byName(target, NodeFileSystem.instance);
     if (description === undefined) {
       return `'${target}' is not a catalog target, so no toolchain is known for it`;
     }
@@ -88,7 +89,7 @@ class TargetMatrix {
   static toolchainForInline(
     files: readonly { readonly sourcePath: string; readonly source: string }[],
   ): IGccToolchain | string {
-    const catalog = TargetCatalogFile.targets();
+    const catalog = TargetCatalogFile.targets(NodeFileSystem.instance);
     const target = RunTarget.resolve({
       catalog,
       files: files.map((file) => ({
@@ -214,8 +215,8 @@ class TargetMatrix {
    */
   static catalogRows(): ITargetDescription[] {
     const rows = new Map<string, ITargetDescription>();
-    for (const name of TargetResolver.names()) {
-      const description = TargetResolver.byName(name);
+    for (const name of TargetResolver.names(NodeFileSystem.instance)) {
+      const description = TargetResolver.byName(name, NodeFileSystem.instance);
       if (
         description !== undefined &&
         typeof TargetToolchain.gccFor(description) !== "string"

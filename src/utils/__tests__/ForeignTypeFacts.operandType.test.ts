@@ -8,12 +8,13 @@ import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import ForeignTypeFacts from "../ForeignTypeFacts";
 import ESourceLanguage from "../types/ESourceLanguage";
 import TargetCatalogFile from "../../transpiler/data/TargetCatalogFile";
+import NodeFileSystem from "../../transpiler/NodeFileSystem";
 
 const lookup = new SymbolTable();
 const models = {
-  host: TargetCatalogFile.targets().get("host")!,
-  cortex: TargetCatalogFile.targets().get("cortex-m7")!,
-  avr: TargetCatalogFile.targets().get("atmega328p")!,
+  host: TargetCatalogFile.targets(NodeFileSystem.instance).get("host")!,
+  cortex: TargetCatalogFile.targets(NodeFileSystem.instance).get("cortex-m7")!,
+  avr: TargetCatalogFile.targets(NodeFileSystem.instance).get("atmega328p")!,
   none: null,
 };
 

@@ -70,7 +70,7 @@ scope Demo {
 
 describe("external-symbol recovery (integration)", () => {
   let dir: string;
-  const available = new Preprocessor().isAvailable();
+  const available = new Preprocessor(NodeFileSystem.instance).isAvailable();
 
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-recovery-"));
@@ -285,7 +285,7 @@ void main() { }
 
 describe("diagnostics on a recovery slice (#1319, integration)", () => {
   let dir: string;
-  const available = new Preprocessor().isAvailable();
+  const available = new Preprocessor(NodeFileSystem.instance).isAvailable();
 
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-recovery-e0507-"));
