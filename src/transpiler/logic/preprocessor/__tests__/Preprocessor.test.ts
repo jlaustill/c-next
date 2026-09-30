@@ -386,14 +386,14 @@ int y = 10;
     // #1653: the temporary file is the port's, so these use a MockFileSystem
     // and look at what cpp is handed rather than at node:fs calls.
     function handedToCpp(fs: MockFileSystem) {
-      const seen: { input: string; content: string; neighbours: string[] }[] =
+      const seen: { input: string; content: string; neighbors: string[] }[] =
         [];
       mockExec.mockImplementation((_file: string, args: string[]) => {
         const input = args.at(-1) ?? "";
         seen.push({
           input,
           content: fs.readFile(input),
-          neighbours: fs.readdir(dirname(input)),
+          neighbors: fs.readdir(dirname(input)),
         });
         return { stdout: "processed", stderr: "" };
       });
@@ -415,7 +415,7 @@ int y = 10;
       expect(seen[0].content).toBe("#define FOO 1\nint x = FOO;");
       // Nothing else in the directory: cpp searches it first for a quoted
       // include, and on stdin it would search the working directory instead.
-      expect(seen[0].neighbours).toEqual(["test.h"]);
+      expect(seen[0].neighbors).toEqual(["test.h"]);
       expect(result.originalFile).toBe("test.h");
     });
 

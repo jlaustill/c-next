@@ -14,13 +14,13 @@ describe("NodeFileSystem.withTempFile (#1653)", () => {
       async (path) => ({
         name: basename(path),
         content: readFileSync(path, "utf-8"),
-        neighbours: readdirSync(dirname(path)),
+        neighbors: readdirSync(dirname(path)),
       }),
     );
     expect(seen).toEqual({
       name: "tu.c",
       content: "#include <x.h>\n",
-      neighbours: ["tu.c"],
+      neighbors: ["tu.c"],
     });
   });
 

@@ -366,6 +366,47 @@ module.exports = {
       to: { path: "^src/TRANSPILE/1-Analyze/", reachable: true },
     },
     {
+      name: "node-fs-only-through-the-port",
+      severity: "error",
+      comment:
+        "#1653, carrying #1451 box 4: 3.1 Write owns the filesystem, and the " +
+        "port (`NodeFileSystem`) is the only module that imports node:fs. " +
+        "Owner ruling 2026-09-30 extends #1451 box 3 to cli/. " +
+        "`reachable: true`, so a module that reaches node:fs through a helper " +
+        "is caught as readily as one importing it directly; that is how the " +
+        "pipeline reached it through seven modules that defaulted the port. " +
+        "The host constructs the port, so it reaches node:fs through it by " +
+        "design and is exempt here; `host-reads-through-the-port` forbids it " +
+        "the direct import. When #1444 moves the port into src/PARSE/1-Discover/, " +
+        "its own import falls outside this exemption and the rule goes red " +
+        "until the exemption is re-keyed; layer-rules.test.ts checks that " +
+        "every pathNot still names a file, so a stale one cannot linger.",
+      from: {
+        path: "^src/",
+        pathNot: [
+          "(__tests__|__testUtils__)",
+          "^src/transpiler/NodeFileSystem\\.ts$",
+          "^src/cli/",
+          "^src/index\\.ts$",
+        ],
+      },
+      to: { path: "^(node:)?fs(/promises)?$", reachable: true },
+    },
+    {
+      name: "host-reads-through-the-port",
+      severity: "error",
+      comment:
+        "#1653: owner ruling 2026-09-30 puts cli/ under #1451 box 3, so the " +
+        "host uses the port it constructs rather than node:fs. A direct-edge " +
+        "rule, because the host necessarily REACHES node:fs through the port " +
+        "it builds; `node-fs-only-through-the-port` exempts it for that reason.",
+      from: {
+        path: "^src/(cli/|index\\.ts$)",
+        pathNot: "(__tests__|__testUtils__)",
+      },
+      to: { path: "^(node:)?fs(/promises)?$" },
+    },
+    {
       name: "parse-tree-confined-to-parser",
       comment:
         "#1317: docs/architecture/README.md makes the AST Tier 1 with a short " +

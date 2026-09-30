@@ -73,15 +73,14 @@ const LAYER_ROOTS = [
   "^src/PARSE/",
   "^src/TRANSPILE/",
   "^src/instrumentation/",
-  // 3.1 Write. A layer root with no modules yet, so it appears only inside
-  // `instrumentation-cannot-import-a-layer`'s alternation -- listed here so
-  // that rule is RECOGNIZED, and in `FORWARD_REFERENCES` so the dead-path
-  // assertion tolerates it. Two different questions about the same absence.
+  // 3.1 Write. It had no modules until #1653 created `WRITE/1-Write/Write.ts`,
+  // and was a forward reference until then (see `FORWARD_REFERENCES`).
   "^src/WRITE/",
 ];
 
 interface IRuleEnd {
   path?: string | string[];
+  pathNot?: string | string[];
   reachable?: boolean;
 }
 
@@ -91,12 +90,24 @@ interface IRule {
   to?: IRuleEnd;
 }
 
-const paths = (end: IRuleEnd | undefined): string[] => {
-  const value = end?.path;
+const asList = (value: string | string[] | undefined): string[] => {
   if (typeof value === "string") return [value];
   if (Array.isArray(value)) return value;
   return [];
 };
+
+const paths = (end: IRuleEnd | undefined): string[] => asList(end?.path);
+
+/**
+ * #1653, from #1451's measurement: an exemption names a path too. A `pathNot`
+ * left behind when its module moves passes silently -- it exempts nothing, and
+ * nothing reads it -- so the dead-path assertion reads both. Only there:
+ * whether a rule is a layering claim is a question about what it FORBIDS.
+ */
+const allPaths = (end: IRuleEnd | undefined): string[] => [
+  ...paths(end),
+  ...asList(end?.pathNot),
+];
 
 /**
  * A pattern's alternatives at paren depth 0, or `[pattern]` when it has none.
@@ -225,14 +236,13 @@ const allRules = (): IRule[] => {
 /**
  * Alternatives that name a path deliberately before it exists.
  *
- * `src/WRITE/` is 3.1 Write, the one pass with no modules yet: naming it in
- * `instrumentation-cannot-import-a-layer` is a forward reference, so the rule
- * already forbids the edge on the day that directory appears. Listed here
- * rather than tolerated by the gate being unable to see it -- an exemption that
- * is invisible is the shape this file exists to reject, and a list is a thing a
- * reviewer can disagree with.
+ * Listed rather than tolerated by the gate being unable to see them -- an
+ * exemption that is invisible is the shape this file exists to reject, and a
+ * list is a thing a reviewer can disagree with. Empty since #1653 created
+ * `src/WRITE/1-Write/`, the one it held; an entry that has come to exist
+ * fails `every forward reference is still ahead of the tree` below.
  */
-const FORWARD_REFERENCES = ["^src/WRITE/"];
+const FORWARD_REFERENCES: readonly string[] = [];
 
 const layerRules = (): IRule[] => {
   const config: unknown = require(CONFIG_PATH);
@@ -301,16 +311,31 @@ describe("dependency-cruiser layer rules (#1297)", () => {
    * legitimately name `node_modules`, a bare module specifier or a regex
    * alternation over non-paths.
    */
-  it("every rule's paths still match a file in the repo", () => {
-    const tracked = execFileSync("git", ["ls-files"], {
+  const trackedFiles = (): string[] =>
+    execFileSync("git", ["ls-files"], {
       cwd: join(__dirname, "..", ".."),
       encoding: "utf8",
     })
       .split("\n")
       .filter(Boolean);
 
+  it("every forward reference is still ahead of the tree", () => {
+    // A forward reference that now matches a file is an exemption nobody
+    // needs, and it would hide that path going dead again.
+    const tracked = trackedFiles();
+    const arrived = FORWARD_REFERENCES.filter((path) => {
+      const pattern = new RegExp(path);
+      return tracked.some((file) => pattern.test(file));
+    });
+
+    expect(arrived).toEqual([]);
+  });
+
+  it("every rule's paths still match a file in the repo", () => {
+    const tracked = trackedFiles();
+
     const dead = allRules().flatMap((rule) =>
-      [...paths(rule.from), ...paths(rule.to)]
+      [...allPaths(rule.from), ...allPaths(rule.to)]
         .flatMap(expandAlternations)
         .filter((path) => /^\^?(src|scripts)\//.test(path))
         .filter((path) => !FORWARD_REFERENCES.includes(path))

@@ -8,19 +8,15 @@
  *    harness transpiles each helper .cnx standalone as well, and that pass
  *    rewrites the dependency's header correctly, repairing the artifact before
  *    anything compares it.
- *  - MockFileSystem cannot host the fixture at all: .cnx include resolution
- *    calls existsSync directly rather than the injected IFileSystem (#1137),
- *    so a virtual dependency is reported as "Included C-Next file not found".
  *
- * That leaves a real temp directory plus the real Transpiler, which is what
- * the CLI does and therefore what users actually hit.
+ * It runs on MockFileSystem. It used to need a real temp directory, because
+ * .cnx include resolution called existsSync directly rather than the injected
+ * IFileSystem, so a virtual dependency read as "Included C-Next file not
+ * found". #1137 pins that it no longer does.
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { describe, it, expect, beforeAll } from "vitest";
 import Transpiler from "../Transpiler";
-import NodeFileSystem from "../NodeFileSystem";
+import MockFileSystem from "./MockFileSystem";
 
 // readValue never writes its parameter, so ADR-006 auto-const applies to it.
 // bump does write it, so it must stay non-const — together they prove the
@@ -52,35 +48,30 @@ u32 main() {
 `;
 
 describe("cross-file struct parameter (integration, #1139)", () => {
-  let dir: string;
   let header: string;
   let consumer: string;
   let definition: string;
 
   beforeAll(async () => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-1139-"));
-    writeFileSync(join(dir, "sensors.cnx"), SENSORS_CNX);
-    writeFileSync(join(dir, "consumer.cnx"), CONSUMER_CNX);
+    const fs = new MockFileSystem()
+      .addFile("/project/sensors.cnx", SENSORS_CNX)
+      .addFile("/project/consumer.cnx", CONSUMER_CNX);
 
     const transpiler = new Transpiler(
       {
-        input: join(dir, "consumer.cnx"),
-        outDir: join(dir, "out"),
+        input: "/project/consumer.cnx",
+        outDir: "/project/out",
         noCache: true,
         target: "host",
       },
-      NodeFileSystem.instance,
+      fs,
     );
     const result = await transpiler.transpile({ kind: "files" });
     expect(result.success).toBe(true);
 
-    header = readFileSync(join(dir, "out", "sensors.h"), "utf8");
-    consumer = readFileSync(join(dir, "out", "consumer.c"), "utf8");
-    definition = readFileSync(join(dir, "out", "sensors.c"), "utf8");
-  });
-
-  afterAll(() => {
-    if (dir) rmSync(dir, { recursive: true, force: true });
+    header = fs.readFile("/project/out/sensors.h");
+    consumer = fs.readFile("/project/out/consumer.c");
+    definition = fs.readFile("/project/out/sensors.c");
   });
 
   // Defect 1: headers were generated twice — once per file with that file's
