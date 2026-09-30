@@ -17,7 +17,6 @@ import { availableParallelism } from "node:os";
 import type IConflict from "./types/IConflict";
 
 import IFileSystem from "./types/IFileSystem";
-import NodeFileSystem from "./NodeFileSystem";
 
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import CNextSourceParser from "../PARSE/2-Parse/CNextSourceParser";
@@ -349,9 +348,9 @@ class Transpiler {
   /** File system abstraction for testability */
   private readonly fs: IFileSystem;
 
-  constructor(config: ITranspilerConfig, fs?: IFileSystem) {
+  constructor(config: ITranspilerConfig, fs: IFileSystem) {
     // Use injected file system or default to Node.js implementation
-    this.fs = fs ?? new NodeFileSystem();
+    this.fs = fs;
     // Apply defaults
     this.config = {
       input: config.input,

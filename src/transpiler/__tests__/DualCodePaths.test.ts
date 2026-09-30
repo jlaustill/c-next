@@ -14,6 +14,7 @@ import ITranspilerConfig from "../types/ITranspilerConfig";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import NodeFileSystem from "../NodeFileSystem";
 
 describe("Dual Code Paths (Issue #634)", () => {
   let tempDir: string;
@@ -34,7 +35,7 @@ describe("Dual Code Paths (Issue #634)", () => {
       headerOutDir: tempDir,
       target: "host",
     };
-    return new Transpiler(config);
+    return new Transpiler(config, NodeFileSystem.instance);
   }
 
   describe("Single file transpilation", () => {
@@ -452,14 +453,17 @@ void increment() {
       const mainPath = join(tempDir, "main.cnx");
       writeFileSync(mainPath, atomicMain);
       const configure = (input: string) =>
-        new Transpiler({
-          input,
-          includeDirs: [tempDir],
-          outDir: tempDir,
-          headerOutDir: tempDir,
-          target: "host",
-          ...(option ? { target: option } : {}),
-        });
+        new Transpiler(
+          {
+            input,
+            includeDirs: [tempDir],
+            outDir: tempDir,
+            headerOutDir: tempDir,
+            target: "host",
+            ...(option ? { target: option } : {}),
+          },
+          NodeFileSystem.instance,
+        );
       const files = await configure(mainPath).transpile({ kind: "files" });
       const source = await configure("").transpile({
         kind: "source",
@@ -503,12 +507,15 @@ void increment() {
       const mainPath = join(tempDir, "main.cnx");
       writeFileSync(mainPath, atomicMain);
       const withoutTarget = (input: string) =>
-        new Transpiler({
-          input,
-          includeDirs: [tempDir],
-          outDir: tempDir,
-          headerOutDir: tempDir,
-        });
+        new Transpiler(
+          {
+            input,
+            includeDirs: [tempDir],
+            outDir: tempDir,
+            headerOutDir: tempDir,
+          },
+          NodeFileSystem.instance,
+        );
       const files = await withoutTarget(mainPath).transpile({ kind: "files" });
       const source = await withoutTarget("").transpile({
         kind: "source",

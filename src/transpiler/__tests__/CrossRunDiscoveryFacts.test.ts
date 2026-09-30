@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
 import ITranspilerConfig from "../types/ITranspilerConfig";
+import NodeFileSystem from "../NodeFileSystem";
 
 /**
  * #1452: 1.1 Discover's include facts must not outlive the run that found them.
@@ -100,7 +101,7 @@ describe("#1452: discovery's include facts are released at end of run", () => {
       headerOutDir: tempDir,
       target: "host",
     };
-    return new Transpiler(config);
+    return new Transpiler(config, NodeFileSystem.instance);
   }
 
   it("answers for exactly the files the current run discovered", async () => {

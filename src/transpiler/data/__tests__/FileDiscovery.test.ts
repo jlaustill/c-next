@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import FileDiscovery from "../FileDiscovery";
 import EFileType from "../types/EFileType";
+import NodeFileSystem from "../../NodeFileSystem";
 
 describe("FileDiscovery", () => {
   // #1640: NOT under `src/`. A test that writes into the tree another
@@ -56,7 +57,10 @@ describe("FileDiscovery", () => {
 
   describe("discoverFile", () => {
     it("returns discovered file for existing file", () => {
-      const file = FileDiscovery.discoverFile(join(srcDir, "main.cnx"));
+      const file = FileDiscovery.discoverFile(
+        join(srcDir, "main.cnx"),
+        NodeFileSystem.instance,
+      );
 
       expect(file).not.toBeNull();
       expect(file!.path).toBe(resolve(srcDir, "main.cnx"));
@@ -64,21 +68,33 @@ describe("FileDiscovery", () => {
     });
 
     it("returns null for non-existing file", () => {
-      const file = FileDiscovery.discoverFile(join(srcDir, "nonexistent.cnx"));
+      const file = FileDiscovery.discoverFile(
+        join(srcDir, "nonexistent.cnx"),
+        NodeFileSystem.instance,
+      );
 
       expect(file).toBeNull();
     });
 
     it("returns null for directory path", () => {
-      const file = FileDiscovery.discoverFile(srcDir);
+      const file = FileDiscovery.discoverFile(srcDir, NodeFileSystem.instance);
 
       expect(file).toBeNull();
     });
 
     it("classifies file type correctly", () => {
-      const cnxFile = FileDiscovery.discoverFile(join(srcDir, "main.cnx"));
-      const hFile = FileDiscovery.discoverFile(join(includeDir, "types.h"));
-      const cppFile = FileDiscovery.discoverFile(join(srcDir, "impl.cpp"));
+      const cnxFile = FileDiscovery.discoverFile(
+        join(srcDir, "main.cnx"),
+        NodeFileSystem.instance,
+      );
+      const hFile = FileDiscovery.discoverFile(
+        join(includeDir, "types.h"),
+        NodeFileSystem.instance,
+      );
+      const cppFile = FileDiscovery.discoverFile(
+        join(srcDir, "impl.cpp"),
+        NodeFileSystem.instance,
+      );
 
       expect(cnxFile!.type).toBe(EFileType.CNext);
       expect(hFile!.type).toBe(EFileType.CHeader);
@@ -86,7 +102,10 @@ describe("FileDiscovery", () => {
     });
 
     it("resolves relative paths to absolute", () => {
-      const file = FileDiscovery.discoverFile(join(srcDir, "main.cnx"));
+      const file = FileDiscovery.discoverFile(
+        join(srcDir, "main.cnx"),
+        NodeFileSystem.instance,
+      );
 
       expect(file).not.toBeNull();
       expect(file!.path.startsWith("/")).toBe(true);
@@ -99,11 +118,14 @@ describe("FileDiscovery", () => {
 
   describe("discoverFiles", () => {
     it("discovers multiple existing files", () => {
-      const files = FileDiscovery.discoverFiles([
-        join(srcDir, "main.cnx"),
-        join(srcDir, "utils.cnx"),
-        join(includeDir, "types.h"),
-      ]);
+      const files = FileDiscovery.discoverFiles(
+        [
+          join(srcDir, "main.cnx"),
+          join(srcDir, "utils.cnx"),
+          join(includeDir, "types.h"),
+        ],
+        NodeFileSystem.instance,
+      );
 
       expect(files).toHaveLength(3);
     });
@@ -111,10 +133,10 @@ describe("FileDiscovery", () => {
     it("warns and skips non-existing files", () => {
       const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-      const files = FileDiscovery.discoverFiles([
-        join(srcDir, "main.cnx"),
-        join(srcDir, "nonexistent.cnx"),
-      ]);
+      const files = FileDiscovery.discoverFiles(
+        [join(srcDir, "main.cnx"), join(srcDir, "nonexistent.cnx")],
+        NodeFileSystem.instance,
+      );
 
       expect(files).toHaveLength(1);
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -123,7 +145,7 @@ describe("FileDiscovery", () => {
     });
 
     it("returns empty array for empty input", () => {
-      const files = FileDiscovery.discoverFiles([]);
+      const files = FileDiscovery.discoverFiles([], NodeFileSystem.instance);
 
       expect(files).toHaveLength(0);
     });
@@ -131,10 +153,10 @@ describe("FileDiscovery", () => {
     it("handles all non-existing files", () => {
       const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-      const files = FileDiscovery.discoverFiles([
-        join(srcDir, "nonexistent1.cnx"),
-        join(srcDir, "nonexistent2.cnx"),
-      ]);
+      const files = FileDiscovery.discoverFiles(
+        [join(srcDir, "nonexistent1.cnx"), join(srcDir, "nonexistent2.cnx")],
+        NodeFileSystem.instance,
+      );
 
       expect(files).toHaveLength(0);
       expect(consoleSpy).toHaveBeenCalledTimes(2);
@@ -147,14 +169,17 @@ describe("FileDiscovery", () => {
 
   describe("filterByType", () => {
     it("filters files by C-Next type", () => {
-      const allFiles = FileDiscovery.discoverFiles([
-        join(srcDir, "main.cnx"),
-        join(srcDir, "utils.cnx"),
-        join(srcDir, "legacy.cnext"),
-        join(srcDir, "impl.c"),
-        join(srcDir, "impl.cpp"),
-        join(includeDir, "types.h"),
-      ]);
+      const allFiles = FileDiscovery.discoverFiles(
+        [
+          join(srcDir, "main.cnx"),
+          join(srcDir, "utils.cnx"),
+          join(srcDir, "legacy.cnext"),
+          join(srcDir, "impl.c"),
+          join(srcDir, "impl.cpp"),
+          join(includeDir, "types.h"),
+        ],
+        NodeFileSystem.instance,
+      );
       const cnxFiles = FileDiscovery.filterByType(allFiles, EFileType.CNext);
 
       expect(cnxFiles.every((f) => f.type === EFileType.CNext)).toBe(true);
@@ -162,21 +187,24 @@ describe("FileDiscovery", () => {
     });
 
     it("filters files by C header type", () => {
-      const allFiles = FileDiscovery.discoverFiles([
-        join(srcDir, "main.cnx"),
-        join(includeDir, "types.h"),
-        join(includeDir, "utils.hpp"),
-      ]);
+      const allFiles = FileDiscovery.discoverFiles(
+        [
+          join(srcDir, "main.cnx"),
+          join(includeDir, "types.h"),
+          join(includeDir, "utils.hpp"),
+        ],
+        NodeFileSystem.instance,
+      );
       const hFiles = FileDiscovery.filterByType(allFiles, EFileType.CHeader);
 
       expect(hFiles.every((f) => f.type === EFileType.CHeader)).toBe(true);
     });
 
     it("returns empty array when no matches", () => {
-      const cnxFiles = FileDiscovery.discoverFiles([
-        join(srcDir, "main.cnx"),
-        join(srcDir, "utils.cnx"),
-      ]);
+      const cnxFiles = FileDiscovery.discoverFiles(
+        [join(srcDir, "main.cnx"), join(srcDir, "utils.cnx")],
+        NodeFileSystem.instance,
+      );
       const hFiles = FileDiscovery.filterByType(cnxFiles, EFileType.CHeader);
 
       expect(hFiles).toHaveLength(0);
@@ -189,13 +217,16 @@ describe("FileDiscovery", () => {
 
   describe("getCNextFiles", () => {
     it("returns only C-Next files", () => {
-      const allFiles = FileDiscovery.discoverFiles([
-        join(srcDir, "main.cnx"),
-        join(srcDir, "utils.cnx"),
-        join(srcDir, "legacy.cnext"),
-        join(srcDir, "impl.c"),
-        join(includeDir, "types.h"),
-      ]);
+      const allFiles = FileDiscovery.discoverFiles(
+        [
+          join(srcDir, "main.cnx"),
+          join(srcDir, "utils.cnx"),
+          join(srcDir, "legacy.cnext"),
+          join(srcDir, "impl.c"),
+          join(includeDir, "types.h"),
+        ],
+        NodeFileSystem.instance,
+      );
       const cnxFiles = FileDiscovery.getCNextFiles(allFiles);
 
       expect(cnxFiles.every((f) => f.type === EFileType.CNext)).toBe(true);
@@ -203,11 +234,14 @@ describe("FileDiscovery", () => {
     });
 
     it("includes both .cnx and .cnext files", () => {
-      const allFiles = FileDiscovery.discoverFiles([
-        join(srcDir, "main.cnx"),
-        join(srcDir, "utils.cnx"),
-        join(srcDir, "legacy.cnext"),
-      ]);
+      const allFiles = FileDiscovery.discoverFiles(
+        [
+          join(srcDir, "main.cnx"),
+          join(srcDir, "utils.cnx"),
+          join(srcDir, "legacy.cnext"),
+        ],
+        NodeFileSystem.instance,
+      );
       const cnxFiles = FileDiscovery.getCNextFiles(allFiles);
 
       // Should include both main.cnx and legacy.cnext
@@ -222,12 +256,15 @@ describe("FileDiscovery", () => {
 
   describe("getHeaderFiles", () => {
     it("returns C and C++ header files", () => {
-      const allFiles = FileDiscovery.discoverFiles([
-        join(includeDir, "types.h"),
-        join(includeDir, "utils.hpp"),
-        join(includeDir, "config.hxx"),
-        join(srcDir, "impl.c"),
-      ]);
+      const allFiles = FileDiscovery.discoverFiles(
+        [
+          join(includeDir, "types.h"),
+          join(includeDir, "utils.hpp"),
+          join(includeDir, "config.hxx"),
+          join(srcDir, "impl.c"),
+        ],
+        NodeFileSystem.instance,
+      );
       const headerFiles = FileDiscovery.getHeaderFiles(allFiles);
 
       expect(headerFiles.length).toBeGreaterThan(0);
@@ -239,11 +276,14 @@ describe("FileDiscovery", () => {
     });
 
     it("includes .h, .hpp, and .hxx files", () => {
-      const allFiles = FileDiscovery.discoverFiles([
-        join(includeDir, "types.h"),
-        join(includeDir, "utils.hpp"),
-        join(includeDir, "config.hxx"),
-      ]);
+      const allFiles = FileDiscovery.discoverFiles(
+        [
+          join(includeDir, "types.h"),
+          join(includeDir, "utils.hpp"),
+          join(includeDir, "config.hxx"),
+        ],
+        NodeFileSystem.instance,
+      );
       const headerFiles = FileDiscovery.getHeaderFiles(allFiles);
 
       expect(headerFiles.some((f) => f.extension === ".h")).toBe(true);
@@ -252,11 +292,14 @@ describe("FileDiscovery", () => {
     });
 
     it("excludes source files", () => {
-      const allFiles = FileDiscovery.discoverFiles([
-        join(srcDir, "impl.c"),
-        join(srcDir, "impl.cpp"),
-        join(includeDir, "types.h"),
-      ]);
+      const allFiles = FileDiscovery.discoverFiles(
+        [
+          join(srcDir, "impl.c"),
+          join(srcDir, "impl.cpp"),
+          join(includeDir, "types.h"),
+        ],
+        NodeFileSystem.instance,
+      );
       const headerFiles = FileDiscovery.getHeaderFiles(allFiles);
 
       expect(headerFiles.some((f) => f.extension === ".c")).toBe(false);

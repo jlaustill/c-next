@@ -23,6 +23,7 @@ import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
 import Preprocessor from "../logic/preprocessor/Preprocessor";
+import NodeFileSystem from "../NodeFileSystem";
 
 const MAIN = `#include <A.h>
 
@@ -59,15 +60,21 @@ describe("a C header's own includes (#1723)", () => {
   async function bothModes() {
     const main = join(project, "src", "main.cnx");
     writeFileSync(main, MAIN);
-    const files = await new Transpiler({
-      input: main,
-      outDir: join(project, "build"),
-      noCache: true,
-    }).transpile({ kind: "files" });
-    const source = await new Transpiler({
-      input: "",
-      noCache: true,
-    }).transpile({ kind: "source", source: MAIN, sourcePath: main });
+    const files = await new Transpiler(
+      {
+        input: main,
+        outDir: join(project, "build"),
+        noCache: true,
+      },
+      NodeFileSystem.instance,
+    ).transpile({ kind: "files" });
+    const source = await new Transpiler(
+      {
+        input: "",
+        noCache: true,
+      },
+      NodeFileSystem.instance,
+    ).transpile({ kind: "source", source: MAIN, sourcePath: main });
     return [files, source];
   }
 

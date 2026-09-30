@@ -28,6 +28,7 @@ import TTypeUtils from "../../TTypeUtils";
 import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
 import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import NodeFileSystem from "../../../transpiler/NodeFileSystem";
 
 describe("CacheManager", () => {
   let testDir: string;
@@ -112,7 +113,7 @@ describe("CacheManager", () => {
       `cache-manager-test-${Date.now()}-${Math.random()}`,
     );
     mkdirSync(testDir, { recursive: true });
-    cacheManager = new CacheManager(testDir);
+    cacheManager = new CacheManager(testDir, NodeFileSystem.instance);
   });
 
   afterEach(() => {
@@ -160,7 +161,7 @@ describe("CacheManager", () => {
       await cacheManager.flush();
 
       // Create new manager and reinitialize
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       // Data should still be there
@@ -189,7 +190,7 @@ describe("CacheManager", () => {
       writeFileSync(configPath, JSON.stringify(config));
 
       // Reinitialize - should detect version mismatch and invalidate
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       // Cache should be empty
@@ -220,7 +221,7 @@ describe("CacheManager", () => {
       config.structStateShape = "opaqueTypes";
       writeFileSync(configPath, JSON.stringify(config));
 
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       expect(newManager.getSymbols(testFile)).toBeNull();
@@ -262,7 +263,7 @@ describe("CacheManager", () => {
       writeFileSync(configPath, JSON.stringify(config));
 
       // Reinitialize - should detect version mismatch and invalidate
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       // Cache should be empty
@@ -399,7 +400,7 @@ describe("CacheManager", () => {
       await cacheManager.flush();
 
       // Create new manager and reload
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       const cached = newManager.getSymbols(testFile);
@@ -463,7 +464,7 @@ describe("CacheManager", () => {
       await cacheManager.flush();
 
       // Reload
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       const cached = newManager.getSymbols(testFile);
@@ -532,7 +533,7 @@ describe("CacheManager", () => {
       await cacheManager.flush();
 
       // Reload
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       const cached = newManager.getSymbols(testFile);
@@ -730,7 +731,7 @@ describe("CacheManager", () => {
       writeFileSync(join(cacheDir, "symbols.json"), "invalid json");
 
       // Reinitialize - should handle gracefully
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       // Should have empty cache, not throw
@@ -761,7 +762,7 @@ describe("CacheManager", () => {
       await cacheManager.flush();
 
       // Reload with new manager - entry should be accessible
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       // Entry should be accessible
@@ -837,7 +838,7 @@ describe("CacheManager", () => {
       storeSymbols(testFile, symbols, new Map());
       await cacheManager.flush();
 
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
       const restored = readSymbols(newManager.getSymbols(testFile)!.symbols);
 
@@ -882,7 +883,7 @@ describe("CacheManager", () => {
       storeSymbols(testFile, symbols, new Map());
       await cacheManager.flush();
 
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
       const restored = readSymbols(newManager.getSymbols(testFile)!.symbols);
 
@@ -929,7 +930,7 @@ describe("CacheManager", () => {
       storeSymbols(testFile, symbols, new Map());
       await cacheManager.flush();
 
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
       const restored = readSymbols(newManager.getSymbols(testFile)!.symbols);
 
@@ -1379,7 +1380,7 @@ describe("CacheManager", () => {
       await cacheManager.flush();
 
       // Reload with new manager
-      const newManager = new CacheManager(testDir);
+      const newManager = new CacheManager(testDir, NodeFileSystem.instance);
       await newManager.initialize();
 
       // Verify all data persisted

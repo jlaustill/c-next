@@ -26,6 +26,8 @@ describe("CppEntryPointScanner", () => {
       isFile: (path: string) => files.has(path),
       writeFile: () => {},
       mkdir: () => {},
+      unlink: () => {},
+      rename: () => {},
       readdir: () => [],
       stat: () => ({ mtimeMs: Date.now() }),
     };

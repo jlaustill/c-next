@@ -7,7 +7,8 @@
  *
  * Design notes:
  * - All methods are synchronous (matching current Node.js fs usage patterns)
- * - File deletion (unlink/rmSync) intentionally omitted - not needed for transpilation
+ * - Deletion and rename are here because the host routes through the port too
+ *   (#1653, carrying #1451 box 3): only `NodeFileSystem` imports `node:fs`
  * - Add async variants if performance optimization requires it in the future
  */
 
@@ -44,6 +45,18 @@ interface IFileSystem {
    * Create a directory (and parent directories if recursive is true).
    */
   mkdir(path: string, options?: { recursive?: boolean }): void;
+
+  /**
+   * Delete a file.
+   * @throws Error if the file doesn't exist or can't be deleted
+   */
+  unlink(path: string): void;
+
+  /**
+   * Move a file to a new path.
+   * @throws Error if the source doesn't exist or the move fails
+   */
+  rename(from: string, to: string): void;
 
   /**
    * Read directory contents.

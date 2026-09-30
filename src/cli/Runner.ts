@@ -10,6 +10,7 @@ import ICliConfig from "./types/ICliConfig";
 import ResultPrinter from "./ResultPrinter";
 import ITranspilerResult from "../transpiler/types/ITranspilerResult";
 import InputExpansion from "../transpiler/data/InputExpansion";
+import NodeFileSystem from "../transpiler/NodeFileSystem";
 
 /** Result of determining output path */
 interface IOutputPathResult {
@@ -32,20 +33,23 @@ class Runner {
       resolvedInput,
     );
 
-    const pipeline = new Transpiler({
-      input: resolvedInput,
-      includeDirs: config.includeDirs,
-      outDir,
-      headerOutDir: config.headerOutDir,
-      preprocess: config.preprocess,
-      defines: config.defines,
-      cppRequired: config.cppRequired,
-      noCache: config.noCache,
-      parseOnly: config.parseOnly,
-      target: config.target,
-      pioEnv: config.pioEnv,
-      debugMode: config.debugMode,
-    });
+    const pipeline = new Transpiler(
+      {
+        input: resolvedInput,
+        includeDirs: config.includeDirs,
+        outDir,
+        headerOutDir: config.headerOutDir,
+        preprocess: config.preprocess,
+        defines: config.defines,
+        cppRequired: config.cppRequired,
+        noCache: config.noCache,
+        parseOnly: config.parseOnly,
+        target: config.target,
+        pioEnv: config.pioEnv,
+        debugMode: config.debugMode,
+      },
+      NodeFileSystem.instance,
+    );
 
     if (InputExpansion.isCppEntryPoint(resolvedInput)) {
       console.log(`Scanning ${basename(resolvedInput)} for C-Next includes...`);

@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
+import NodeFileSystem from "../NodeFileSystem";
 
 describe("where a source run is anchored (#1719)", () => {
   let base: string;
@@ -64,11 +65,14 @@ u8 preferred() {
 
     /** The editor's call: an empty `input`, and the file it has open. */
     function preview(file: string, text: string) {
-      return new Transpiler({
-        target: "host",
-        input: "",
-        noCache: true,
-      }).transpile({
+      return new Transpiler(
+        {
+          target: "host",
+          input: "",
+          noCache: true,
+        },
+        NodeFileSystem.instance,
+      ).transpile({
         kind: "source",
         source: text,
         sourcePath: join(project, "src", file),
@@ -99,12 +103,15 @@ u8 preferred() {
 
     it("match what the CLI writes for the same file", async () => {
       const cli = await inDir(project, () =>
-        new Transpiler({
-          target: "host",
-          input: join(project, "src", "main.cnx"),
-          outDir: join(base, "out"),
-          noCache: true,
-        }).transpile({ kind: "files" }),
+        new Transpiler(
+          {
+            target: "host",
+            input: join(project, "src", "main.cnx"),
+            outDir: join(base, "out"),
+            noCache: true,
+          },
+          NodeFileSystem.instance,
+        ).transpile({ kind: "files" }),
       );
       const fromOutside = await inDir(join(base, "elsewhere"), () =>
         preview("main.cnx", MAIN),
@@ -139,12 +146,15 @@ u8 preferred() {
         ] as const) {
           const path = join(project, "src", file);
           const cli = await inDir(project, () =>
-            new Transpiler({
-              target: "host",
-              input: path,
-              outDir: join(base, "out"),
-              noCache: true,
-            }).transpile({ kind: "files" }),
+            new Transpiler(
+              {
+                target: "host",
+                input: path,
+                outDir: join(base, "out"),
+                noCache: true,
+              },
+              NodeFileSystem.instance,
+            ).transpile({ kind: "files" }),
           );
           const written = cli.files.find((f) => f.sourcePath === path);
           const previewed = await inDir(join(base, "elsewhere"), () =>
@@ -199,23 +209,29 @@ void main() {
     });
 
     it("reaches a source run, as it reaches the CLI", async () => {
-      const editor = await new Transpiler({
-        target: "host",
-        input: "",
-        noCache: true,
-      }).transpile({ kind: "source", source: MAIN, sourcePath: mainPath });
+      const editor = await new Transpiler(
+        {
+          target: "host",
+          input: "",
+          noCache: true,
+        },
+        NodeFileSystem.instance,
+      ).transpile({ kind: "source", source: MAIN, sourcePath: mainPath });
 
       expect(editor.errors).toEqual([]);
       expect(editor.files[0]?.code).toContain("EColor c = EColor__GREEN;");
     });
 
     it("control: the CLI shape", async () => {
-      const cli = await new Transpiler({
-        target: "host",
-        input: mainPath,
-        outDir: join(project, "build"),
-        noCache: true,
-      }).transpile({ kind: "files" });
+      const cli = await new Transpiler(
+        {
+          target: "host",
+          input: mainPath,
+          outDir: join(project, "build"),
+          noCache: true,
+        },
+        NodeFileSystem.instance,
+      ).transpile({ kind: "files" });
 
       expect(cli.errors).toEqual([]);
       expect(cli.files.find((f) => f.sourcePath === mainPath)?.code).toContain(

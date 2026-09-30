@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
+import NodeFileSystem from "../NodeFileSystem";
 
 /**
  * #1320: 2.1 Analyze decides "is this PROGRAM legal?" once, whole-program,
@@ -35,12 +36,15 @@ describe("a rejected program plans no file, including a clean one (#1320)", () =
         "u32 main() { return cleanFn(); }\n",
     );
 
-    const transpiler = new Transpiler({
-      input: join(dir, "entry.cnx"),
-      outDir: dir,
-      noCache: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(dir, "entry.cnx"),
+        outDir: dir,
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
     const result = await transpiler.transpile({ kind: "files" });
 
     expect(result.success).toBe(false);

@@ -16,6 +16,7 @@
  */
 import { describe, it, expect } from "vitest";
 import Transpiler from "../Transpiler";
+import NodeFileSystem from "../NodeFileSystem";
 
 /** The latch #985's recovery path is gated on, which is private. */
 function preprocessFailedFlag(transpiler: Transpiler): boolean {
@@ -31,7 +32,10 @@ i32 main() {
 
 describe("run-scoped warnings (#1662)", () => {
   it("reports each run's own warnings, not every earlier run's too", async () => {
-    const transpiler = new Transpiler({ input: "", noCache: true });
+    const transpiler = new Transpiler(
+      { input: "", noCache: true },
+      NodeFileSystem.instance,
+    );
     const run = async () =>
       (await transpiler.transpile({ kind: "source", source: SOURCE })).warnings
         .length;
@@ -56,7 +60,10 @@ describe("run-scoped warnings (#1662)", () => {
     // from a set one is to look. A stale `true` makes a clean run pay for #985
     // recovery it does not need AND admits recovered names that can silence a
     // diagnostic -- the shape #1177 hit with `externalDeclarationNames`.
-    const transpiler = new Transpiler({ input: "", noCache: true });
+    const transpiler = new Transpiler(
+      { input: "", noCache: true },
+      NodeFileSystem.instance,
+    );
 
     (
       transpiler as unknown as { anyHeaderPreprocessFailed: boolean }
@@ -69,7 +76,10 @@ describe("run-scoped warnings (#1662)", () => {
 
 /** The warning count a transpiler that has never run anything else reports. */
 async function freshCount(): Promise<number> {
-  const result = await new Transpiler({ input: "", noCache: true }).transpile({
+  const result = await new Transpiler(
+    { input: "", noCache: true },
+    NodeFileSystem.instance,
+  ).transpile({
     kind: "source",
     source: SOURCE,
   });

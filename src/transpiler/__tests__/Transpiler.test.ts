@@ -8,6 +8,7 @@ import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import MockFileSystem from "./MockFileSystem";
 import ParserUtils from "../../utils/ParserUtils";
+import NodeFileSystem from "../NodeFileSystem";
 
 describe("Transpiler", () => {
   describe("with MockFileSystem", () => {
@@ -598,12 +599,15 @@ describe("Transpiler", () => {
         const testFile = join(testDir, "simple.cnx");
         writeFileSync(testFile, "u32 getValue() { return 42; }");
 
-        const transpiler = new Transpiler({
-          input: testFile,
-          outDir: testDir,
-          noCache: true,
-          target: "host",
-        });
+        const transpiler = new Transpiler(
+          {
+            input: testFile,
+            outDir: testDir,
+            noCache: true,
+            target: "host",
+          },
+          NodeFileSystem.instance,
+        );
 
         const result = await transpiler.transpile({ kind: "files" });
 
@@ -634,12 +638,15 @@ describe("Transpiler", () => {
           `#include "can/config.cnx"\n#include "uart/config.cnx"\nu32 main() { return 0; }\n`,
         );
 
-        const transpiler = new Transpiler({
-          input: entry,
-          outDir: testDir,
-          noCache: true,
-          target: "host",
-        });
+        const transpiler = new Transpiler(
+          {
+            input: entry,
+            outDir: testDir,
+            noCache: true,
+            target: "host",
+          },
+          NodeFileSystem.instance,
+        );
 
         const result = await transpiler.transpile({ kind: "files" });
 
@@ -671,11 +678,14 @@ describe("Transpiler", () => {
         const testFile = join(testDir, "invalid.cnx");
         writeFileSync(testFile, "void foo( { }");
 
-        const transpiler = new Transpiler({
-          input: testFile,
-          noCache: true,
-          target: "host",
-        });
+        const transpiler = new Transpiler(
+          {
+            input: testFile,
+            noCache: true,
+            target: "host",
+          },
+          NodeFileSystem.instance,
+        );
 
         const result = await transpiler.transpile({ kind: "files" });
 
@@ -688,11 +698,14 @@ describe("Transpiler", () => {
         const testFile = join(testDir, "syntax-error.cnx");
         writeFileSync(testFile, "void foo() {\n  @@@invalid\n}");
 
-        const transpiler = new Transpiler({
-          input: testFile,
-          noCache: true,
-          target: "host",
-        });
+        const transpiler = new Transpiler(
+          {
+            input: testFile,
+            noCache: true,
+            target: "host",
+          },
+          NodeFileSystem.instance,
+        );
 
         const result = await transpiler.transpile({ kind: "files" });
 
@@ -706,11 +719,14 @@ describe("Transpiler", () => {
         const testFile = join(testDir, "multi-error.cnx");
         writeFileSync(testFile, "@@@ $$$ %%%");
 
-        const transpiler = new Transpiler({
-          input: testFile,
-          noCache: true,
-          target: "host",
-        });
+        const transpiler = new Transpiler(
+          {
+            input: testFile,
+            noCache: true,
+            target: "host",
+          },
+          NodeFileSystem.instance,
+        );
 
         const result = await transpiler.transpile({ kind: "files" });
 
@@ -723,12 +739,15 @@ describe("Transpiler", () => {
         const outputDir = join(testDir, "build");
         writeFileSync(testFile, "void main() { }");
 
-        const transpiler = new Transpiler({
-          input: testFile,
-          outDir: outputDir,
-          noCache: true,
-          target: "host",
-        });
+        const transpiler = new Transpiler(
+          {
+            input: testFile,
+            outDir: outputDir,
+            noCache: true,
+            target: "host",
+          },
+          NodeFileSystem.instance,
+        );
 
         const result = await transpiler.transpile({ kind: "files" });
 
@@ -747,12 +766,15 @@ describe("Transpiler", () => {
         `,
         );
 
-        const transpiler = new Transpiler({
-          input: testFile,
-          outDir: testDir,
-          noCache: true,
-          target: "host",
-        });
+        const transpiler = new Transpiler(
+          {
+            input: testFile,
+            outDir: testDir,
+            noCache: true,
+            target: "host",
+          },
+          NodeFileSystem.instance,
+        );
 
         const result = await transpiler.transpile({ kind: "files" });
 

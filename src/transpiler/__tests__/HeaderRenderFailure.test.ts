@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
 import HeaderGenerator from "../../TRANSPILE/3-Render/headers/HeaderGenerator";
+import NodeFileSystem from "../NodeFileSystem";
 
 /**
  * Issue #1323: `_renderHeaders` (Stage 5.5) promotes a header-render failure
@@ -50,12 +51,15 @@ describe("header render failure promotion (#1323)", () => {
       return HeaderGenerator.prototype.generate.apply(this, args);
     });
 
-    const transpiler = new Transpiler({
-      input: join(dir, "entry.cnx"),
-      outDir: dir,
-      noCache: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(dir, "entry.cnx"),
+        outDir: dir,
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
     const result = await transpiler.transpile({ kind: "files" });
 
     expect(result.success).toBe(false);

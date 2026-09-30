@@ -148,6 +148,24 @@ class MockFileSystem implements IFileSystem {
     this.mkdirLog.push({ path: normalized, recursive: options?.recursive });
   }
 
+  unlink(path: string): void {
+    const normalized = this.normalizePath(path);
+    if (!this.files.delete(normalized)) {
+      throw new Error(`ENOENT: no such file or directory, unlink '${path}'`);
+    }
+    this.fileMtimes.delete(normalized);
+  }
+
+  rename(from: string, to: string): void {
+    const source = this.normalizePath(from);
+    const content = this.files.get(source);
+    if (content === undefined) {
+      throw new Error(`ENOENT: no such file or directory, rename '${from}'`);
+    }
+    this.files.delete(source);
+    this.files.set(this.normalizePath(to), content);
+  }
+
   readdir(path: string): string[] {
     const normalized = this.normalizePath(path);
     if (!this.directories.has(normalized)) {

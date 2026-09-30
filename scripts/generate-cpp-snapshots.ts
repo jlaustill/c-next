@@ -28,6 +28,7 @@ import IncludeDiscovery from "../src/transpiler/data/IncludeDiscovery";
 import FileScanner from "./utils/FileScanner";
 import TestMarkers from "./TestMarkers";
 import chalk from "chalk";
+import NodeFileSystem from "../src/transpiler/NodeFileSystem";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -71,7 +72,11 @@ function resolveIncludePath(
   includeDirs: string[],
 ): string | null {
   const searchPaths = [sourceDir, ...includeDirs];
-  return IncludeDiscovery.resolveInclude(includePath, searchPaths);
+  return IncludeDiscovery.resolveInclude(
+    includePath,
+    searchPaths,
+    NodeFileSystem.instance,
+  );
 }
 
 /**
@@ -126,13 +131,16 @@ async function transpileAndWriteCppSnapshot(
   dryRun: boolean,
 ): Promise<IGenerationResult> {
   try {
-    const pipeline = new Transpiler({
-      input: cnxFile,
-      includeDirs,
-      noCache: true,
-      cppRequired: true,
-      target: TestUtils.harnessTarget(source),
-    });
+    const pipeline = new Transpiler(
+      {
+        input: cnxFile,
+        includeDirs,
+        noCache: true,
+        cppRequired: true,
+        target: TestUtils.harnessTarget(source),
+      },
+      NodeFileSystem.instance,
+    );
 
     // `transpile()` is the single entry point; `{ kind: "source" }` is its API
     // mode. This script named `inputs` and `transpileSource()`, neither of which

@@ -43,6 +43,7 @@ import Transpiler from "../src/transpiler/Transpiler";
 
 import FileScanner from "./utils/FileScanner";
 import TestUtils from "./test-utils";
+import NodeFileSystem from "../src/transpiler/NodeFileSystem";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const pluginPath = join(rootDir, "prettier-plugin/dist/index.js");
@@ -133,11 +134,14 @@ async function transpile(
   source: string,
   sourcePath: string,
 ): Promise<ITranspileOutcome> {
-  const transpiler = new Transpiler({
-    input: sourcePath,
-    includeDirs: [includeDir, dirname(sourcePath)],
-    target: TestUtils.harnessTarget(source),
-  });
+  const transpiler = new Transpiler(
+    {
+      input: sourcePath,
+      includeDirs: [includeDir, dirname(sourcePath)],
+      target: TestUtils.harnessTarget(source),
+    },
+    NodeFileSystem.instance,
+  );
   const result = await transpiler.transpile({
     kind: "source",
     source,

@@ -12,10 +12,6 @@ import IDiscoveredFile from "./types/IDiscoveredFile";
 import type TSourceExtension from "../types/TSourceExtension";
 import type THeaderExtension from "../types/THeaderExtension";
 import IFileSystem from "../types/IFileSystem";
-import NodeFileSystem from "../NodeFileSystem";
-
-/** Default file system instance (singleton for performance) */
-const defaultFs = NodeFileSystem.instance;
 
 /**
  * Configuration for PathResolver
@@ -45,7 +41,7 @@ class PathResolver {
   private readonly config: IPathResolverConfig;
   private readonly fs: IFileSystem;
 
-  constructor(config: IPathResolverConfig, fs: IFileSystem = defaultFs) {
+  constructor(config: IPathResolverConfig, fs: IFileSystem) {
     this.config = config;
     this.fs = fs;
   }

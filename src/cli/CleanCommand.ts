@@ -7,6 +7,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { unlinkSync } from "node:fs";
 import InputExpansion from "../transpiler/data/InputExpansion";
 import PathResolver from "../transpiler/data/PathResolver";
+import NodeFileSystem from "../transpiler/NodeFileSystem";
 
 /**
  * Command to clean generated output files
@@ -72,11 +73,14 @@ class CleanCommand {
       ? resolve(headerOutDir)
       : resolvedOutDir;
 
-    const pathResolver = new PathResolver({
-      inputs: [dirname(resolve(input))],
-      outDir,
-      headerOutDir,
-    });
+    const pathResolver = new PathResolver(
+      {
+        inputs: [dirname(resolve(input))],
+        outDir,
+        headerOutDir,
+      },
+      NodeFileSystem.instance,
+    );
 
     let deletedCount = 0;
 

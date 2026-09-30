@@ -27,6 +27,7 @@ import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import CacheManager from "../../utils/cache/CacheManager";
 import CachedSymbolReader from "../../utils/cache/CachedSymbolReader";
+import NodeFileSystem from "../NodeFileSystem";
 
 const EXTERNAL_HPP = `#ifndef CNX_CACHE_PARITY_EXTERNAL_HPP
 #define CNX_CACHE_PARITY_EXTERNAL_HPP
@@ -83,13 +84,16 @@ describe("cache parity (integration, #1225)", () => {
   });
 
   async function transpileOnce(): Promise<TGenerated> {
-    const transpiler = new Transpiler({
-      input: join(dir, "main.cnx"),
-      includeDirs: [dir],
-      outDir: join(dir, "out"),
-      cppRequired: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(dir, "main.cnx"),
+        includeDirs: [dir],
+        outDir: join(dir, "out"),
+        cppRequired: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
 
     const result = await transpiler.transpile({ kind: "files" });
     expect(result.success).toBe(true);
@@ -151,7 +155,7 @@ describe("cache parity (integration, #1225)", () => {
    * entry an earlier test left behind.
    */
   async function coldOutput(): Promise<TGenerated> {
-    const cache = new CacheManager(dir);
+    const cache = new CacheManager(dir, NodeFileSystem.instance);
     await cache.initialize();
     cache.invalidate(join(dir, "external.hpp"));
     await cache.flush();
@@ -162,7 +166,7 @@ describe("cache parity (integration, #1225)", () => {
     rewrite: (cache: CacheManager, path: string, entry: TEntry) => void,
   ): Promise<CacheManager> {
     const path = join(dir, "external.hpp");
-    const cache = new CacheManager(dir);
+    const cache = new CacheManager(dir, NodeFileSystem.instance);
     await cache.initialize();
     const entry = cache.getSymbols(path);
     expect(entry, "the run before left a usable entry").not.toBeNull();

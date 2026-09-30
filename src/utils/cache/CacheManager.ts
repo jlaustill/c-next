@@ -25,12 +25,8 @@ import IStructSymbolState from "../../transpiler/types/symbols/IStructSymbolStat
 import TJsonSafe from "../types/TJsonSafe";
 import TJsonValue from "../types/TJsonValue";
 import IFileSystem from "../../transpiler/types/IFileSystem";
-import NodeFileSystem from "../../transpiler/NodeFileSystem";
 import packageJson from "../../../package.json" with { type: "json" };
 import ESourceLanguage from "../types/ESourceLanguage";
-
-/** Default file system instance (singleton for performance) */
-const defaultFs = NodeFileSystem.instance;
 
 /** Current cache format version - increment when serialization format changes */
 // Bump when the ENTRY shape changes in a way no fingerprint can see -- the
@@ -86,7 +82,7 @@ class CacheManager {
   /** Whether the cache has been modified and needs flushing */
   private dirty = false;
 
-  constructor(projectRoot: string, fs: IFileSystem = defaultFs) {
+  constructor(projectRoot: string, fs: IFileSystem) {
     this.fs = fs;
     this.cacheDir = join(projectRoot, ".cnx");
     this.cacheSubdir = join(this.cacheDir, "cache");

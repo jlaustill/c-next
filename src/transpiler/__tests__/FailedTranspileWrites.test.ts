@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
+import NodeFileSystem from "../NodeFileSystem";
 
 /**
  * Issue #1233: a failed multi-file transpile still wrote the `.c` of every file
@@ -29,12 +30,15 @@ describe("a failed transpile writes no .c to disk (#1233)", () => {
   async function run(entryBody: string): Promise<boolean> {
     writeFileSync(join(dir, "good.cnx"), "u32 helper() { return 1; }\n");
     writeFileSync(join(dir, "entry.cnx"), entryBody);
-    const transpiler = new Transpiler({
-      input: join(dir, "entry.cnx"),
-      outDir: dir,
-      noCache: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(dir, "entry.cnx"),
+        outDir: dir,
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
     const result = await transpiler.transpile({ kind: "files" });
     return result.success;
   }

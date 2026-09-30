@@ -10,6 +10,7 @@ import { join } from "node:path";
 
 import TargetCatalogFile from "../data/TargetCatalogFile";
 import Transpiler from "../Transpiler";
+import NodeFileSystem from "../NodeFileSystem";
 
 const SHIPPED = readFileSync(TargetCatalogFile.locate(), "utf8");
 
@@ -19,13 +20,16 @@ describe("the shipped target catalog", () => {
     try {
       const sourcePath = join(dir, "targets.cnx");
       writeFileSync(sourcePath, SHIPPED);
-      const result = await new Transpiler({
-        input: sourcePath,
-        outDir: dir,
-        headerOutDir: dir,
-        noCache: true,
-        target: "host",
-      }).transpile({ kind: "source", source: SHIPPED, sourcePath });
+      const result = await new Transpiler(
+        {
+          input: sourcePath,
+          outDir: dir,
+          headerOutDir: dir,
+          noCache: true,
+          target: "host",
+        },
+        NodeFileSystem.instance,
+      ).transpile({ kind: "source", source: SHIPPED, sourcePath });
 
       expect(result.errors).toEqual([]);
       const file = result.files[0];

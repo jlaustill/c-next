@@ -6,6 +6,7 @@ import { describe, it, expect } from "vitest";
 import CNextSourceParser from "../../../../PARSE/2-Parse/CNextSourceParser";
 import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import Transpiler from "../../../../transpiler/Transpiler";
+import NodeFileSystem from "../../../../transpiler/NodeFileSystem";
 
 /**
  * Helper to parse C-Next source and get the first statement from main().
@@ -311,7 +312,10 @@ describe("ExpressionWalker - const inference integration", () => {
         caller(val);
       }
     `;
-    const transpiler = new Transpiler({ input: "", target: "host" });
+    const transpiler = new Transpiler(
+      { input: "", target: "host" },
+      NodeFileSystem.instance,
+    );
     const transpileResult = (
       await transpiler.transpile({ kind: "source", source: source })
     ).files[0];
@@ -341,7 +345,10 @@ describe("ExpressionWalker - const inference integration", () => {
         caller(val);
       }
     `;
-    const transpiler = new Transpiler({ input: "", target: "host" });
+    const transpiler = new Transpiler(
+      { input: "", target: "host" },
+      NodeFileSystem.instance,
+    );
     const transpileResult = (
       await transpiler.transpile({ kind: "source", source: source })
     ).files[0];
@@ -370,7 +377,10 @@ describe("ExpressionWalker - const inference integration", () => {
         caller(val);
       }
     `;
-    const transpiler = new Transpiler({ input: "", target: "host" });
+    const transpiler = new Transpiler(
+      { input: "", target: "host" },
+      NodeFileSystem.instance,
+    );
     const transpileResult = (
       await transpiler.transpile({ kind: "source", source: source })
     ).files[0];

@@ -23,6 +23,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import Preprocessor from "../logic/preprocessor/Preprocessor";
+import NodeFileSystem from "../NodeFileSystem";
 
 const WIDGET_H = `typedef struct { int mode; } widget_cfg_t;
 void widget_do(const widget_cfg_t *cfg);
@@ -72,13 +73,16 @@ describe("compile_commands.json auto-discovery (integration)", () => {
     if (!available) ctx.skip();
 
     // Note: NO includeDirs — the ext/ path exists solely in compile_commands.json.
-    const transpiler = new Transpiler({
-      input: join(dir, "main.cnx"),
-      outDir: join(dir, "out"),
-      cppRequired: true,
-      noCache: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(dir, "main.cnx"),
+        outDir: join(dir, "out"),
+        cppRequired: true,
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
 
     const result = await transpiler.transpile({ kind: "files" });
 

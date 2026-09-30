@@ -20,6 +20,7 @@ import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
+import NodeFileSystem from "../NodeFileSystem";
 
 // readValue never writes its parameter, so ADR-006 auto-const applies to it.
 // bump does write it, so it must stay non-const — together they prove the
@@ -61,12 +62,15 @@ describe("cross-file struct parameter (integration, #1139)", () => {
     writeFileSync(join(dir, "sensors.cnx"), SENSORS_CNX);
     writeFileSync(join(dir, "consumer.cnx"), CONSUMER_CNX);
 
-    const transpiler = new Transpiler({
-      input: join(dir, "consumer.cnx"),
-      outDir: join(dir, "out"),
-      noCache: true,
-      target: "host",
-    });
+    const transpiler = new Transpiler(
+      {
+        input: join(dir, "consumer.cnx"),
+        outDir: join(dir, "out"),
+        noCache: true,
+        target: "host",
+      },
+      NodeFileSystem.instance,
+    );
     const result = await transpiler.transpile({ kind: "files" });
     expect(result.success).toBe(true);
 

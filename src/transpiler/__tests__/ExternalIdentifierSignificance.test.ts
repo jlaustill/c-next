@@ -22,6 +22,7 @@ import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
 import type CodeGenWalker from "../../TRANSPILE/CodeGenWalker";
 import TargetResolver from "../../utils/TargetResolver";
+import NodeFileSystem from "../NodeFileSystem";
 
 /** Two members that are distinct at 31 characters but collide at 6. */
 const NARROW_COLLIDER = `scope Tiny {
@@ -65,15 +66,18 @@ describe("External identifier significance (#1307)", () => {
     const sourcePath = join(tempDir, "sample.cnx");
     writeFileSync(sourcePath, source);
     return {
-      transpiler: new Transpiler({
-        input: sourcePath,
-        includeDirs: [tempDir],
-        outDir: tempDir,
-        headerOutDir: tempDir,
-        noCache: true,
-        target: "host",
-        ...(target ? { target } : {}),
-      }),
+      transpiler: new Transpiler(
+        {
+          input: sourcePath,
+          includeDirs: [tempDir],
+          outDir: tempDir,
+          headerOutDir: tempDir,
+          noCache: true,
+          target: "host",
+          ...(target ? { target } : {}),
+        },
+        NodeFileSystem.instance,
+      ),
       sourcePath,
     };
   }

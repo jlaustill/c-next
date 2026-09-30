@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import IncludeResolver from "../IncludeResolver";
 import EFileType from "../types/EFileType";
+import NodeFileSystem from "../../NodeFileSystem";
 
 describe("IncludeResolver", () => {
   // #1640: NOT under `src/`. `HeaderOwnership.test.ts` walks the whole source
@@ -60,7 +61,11 @@ describe("IncludeResolver", () => {
 
   describe("resolve()", () => {
     it("should resolve local includes with quotes", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
       const content = '#include "types.h"\nvoid test() {}';
 
       const result = resolver.resolve(content);
@@ -71,7 +76,11 @@ describe("IncludeResolver", () => {
     });
 
     it("should resolve system includes with angle brackets", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
       const content = "#include <utils.h>\nvoid test() {}";
 
       const result = resolver.resolve(content);
@@ -82,7 +91,11 @@ describe("IncludeResolver", () => {
     });
 
     it("should resolve nested paths", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
       const content = '#include "nested/deep.h"';
 
       const result = resolver.resolve(content);
@@ -92,7 +105,11 @@ describe("IncludeResolver", () => {
     });
 
     it("should resolve multiple includes", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
       const content = '#include "types.h"\n#include "utils.h"';
 
       const result = resolver.resolve(content);
@@ -110,7 +127,11 @@ describe("IncludeResolver", () => {
       // Create same-named file in srcDir (should be found first)
       writeFileSync(join(srcDir, "types.h"), "// from srcDir");
 
-      const resolver = new IncludeResolver([srcDir, includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [srcDir, includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
       const content = '#include "types.h"';
 
       const result = resolver.resolve(content);
@@ -121,7 +142,11 @@ describe("IncludeResolver", () => {
 
     it("should fall back to later paths when not found in earlier ones", () => {
       // utils.h only exists in includeDir, not srcDir
-      const resolver = new IncludeResolver([srcDir, includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [srcDir, includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
       const content = '#include "utils.h"';
 
       const result = resolver.resolve(content);
@@ -137,7 +162,11 @@ describe("IncludeResolver", () => {
 
   describe("warnings", () => {
     it("should warn for unresolved local includes", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
       const content = '#include "nonexistent.h"';
 
       const result = resolver.resolve(content, "test.cnx");
@@ -149,7 +178,11 @@ describe("IncludeResolver", () => {
     });
 
     it("should NOT warn for unresolved system includes", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
       const content = "#include <stdio.h>"; // System header, won't be found
 
       const result = resolver.resolve(content);
@@ -159,7 +192,11 @@ describe("IncludeResolver", () => {
     });
 
     it("should include source file path in warning when provided", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
       const content = '#include "missing.h"';
 
       const result = resolver.resolve(content, "/path/to/source.cnx");
@@ -174,7 +211,11 @@ describe("IncludeResolver", () => {
 
   describe("deduplication", () => {
     it("should deduplicate headers included multiple times", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
       const content = '#include "types.h"\n#include "types.h"';
 
       const result = resolver.resolve(content);
@@ -183,7 +224,11 @@ describe("IncludeResolver", () => {
     });
 
     it("should track resolved paths across multiple resolve calls", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
 
       // First file includes types.h
       const result1 = resolver.resolve('#include "types.h"');
@@ -195,7 +240,11 @@ describe("IncludeResolver", () => {
     });
 
     it("should reset deduplication state with reset()", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
 
       resolver.resolve('#include "types.h"');
       resolver.reset();
@@ -205,7 +254,11 @@ describe("IncludeResolver", () => {
     });
 
     it("should allow adding already-resolved paths", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
       const alreadyResolved = join(includeDir, "types.h");
 
       resolver.addResolvedPaths([alreadyResolved]);
@@ -221,7 +274,11 @@ describe("IncludeResolver", () => {
 
   describe("file type categorization", () => {
     it("should categorize .h files as headers", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
       const content = '#include "types.h"';
 
       const result = resolver.resolve(content);
@@ -231,7 +288,11 @@ describe("IncludeResolver", () => {
     });
 
     it("should categorize .cnx files as C-Next includes", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
       const content = '#include "shared.cnx"';
 
       const result = resolver.resolve(content);
@@ -242,7 +303,11 @@ describe("IncludeResolver", () => {
     });
 
     it("should handle mixed header and C-Next includes", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
       const content = '#include "types.h"\n#include "shared.cnx"';
 
       const result = resolver.resolve(content);
@@ -269,7 +334,11 @@ describe("IncludeResolver", () => {
       ['#include "gone.h"', true],
       ["#include <gone.h>", true],
     ])("%s -> %s", (content, expected) => {
-      const result = new IncludeResolver([includeDir], ".h").resolve(content);
+      const result = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      ).resolve(content);
 
       expect(result.cnextIncludes).toHaveLength(0);
       expect(result.hasForeignInclude).toBe(expected);
@@ -282,7 +351,13 @@ describe("IncludeResolver", () => {
 
   describe("buildSearchPaths()", () => {
     it("should put source directory first", () => {
-      const paths = IncludeResolver.buildSearchPaths(srcDir, [includeDir]);
+      const paths = IncludeResolver.buildSearchPaths(
+        srcDir,
+        [includeDir],
+        [],
+        undefined,
+        NodeFileSystem.instance,
+      );
 
       expect(paths[0]).toBe(srcDir);
     });
@@ -295,6 +370,8 @@ describe("IncludeResolver", () => {
         srcDir,
         [includeDir],
         [extraDir],
+        undefined,
+        NodeFileSystem.instance,
       );
 
       const extraIndex = paths.indexOf(extraDir);
@@ -307,6 +384,9 @@ describe("IncludeResolver", () => {
       const paths = IncludeResolver.buildSearchPaths(
         srcDir,
         [srcDir, includeDir, srcDir], // duplicates
+        [],
+        undefined,
+        NodeFileSystem.instance,
       );
 
       const srcCount = paths.filter((p) => p === srcDir).length;
@@ -328,6 +408,7 @@ describe("IncludeResolver", () => {
         [],
         [],
         undefined,
+        NodeFileSystem.instance,
       );
 
       // Should just have the source dir (no project root found)
@@ -344,6 +425,7 @@ describe("IncludeResolver", () => {
         [],
         [],
         projectRoot,
+        NodeFileSystem.instance,
       );
 
       expect(paths).toContain(projectInclude);
@@ -356,7 +438,11 @@ describe("IncludeResolver", () => {
 
   describe("cppMode header directive extension", () => {
     it("should use .h extension for cnx includes in C mode (default)", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
       const content = '#include "shared.cnx"';
 
       const result = resolver.resolve(content);
@@ -383,7 +469,11 @@ describe("IncludeResolver", () => {
         '#include "types.h"',
       ],
     ])("%s", (_label, source, source2) => {
-      const resolver = new IncludeResolver([includeDir], ".hpp");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".hpp",
+        NodeFileSystem.instance,
+      );
       const content = source;
 
       const result = resolver.resolve(content);
@@ -414,7 +504,7 @@ describe("IncludeResolver", () => {
       const resolver = new IncludeResolver(
         [includeDir],
         ".h",
-        undefined,
+        NodeFileSystem.instance,
         () => "Display/shared.h",
       );
 
@@ -432,7 +522,7 @@ describe("IncludeResolver", () => {
       const resolver = new IncludeResolver(
         [includeDir],
         ".h",
-        undefined,
+        NodeFileSystem.instance,
         () => "Display/shared.h",
       );
 
@@ -447,7 +537,7 @@ describe("IncludeResolver", () => {
       const resolver = new IncludeResolver(
         [includeDir],
         ".h",
-        undefined,
+        NodeFileSystem.instance,
         () => null,
       );
 
@@ -459,7 +549,11 @@ describe("IncludeResolver", () => {
     });
 
     it("falls back when no owner is injected at all", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
 
       const result = resolver.resolve("#include <shared.cnx>");
 
@@ -471,7 +565,11 @@ describe("IncludeResolver", () => {
 
   describe("edge cases", () => {
     it("should handle empty content", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
 
       const result = resolver.resolve("");
 
@@ -481,7 +579,11 @@ describe("IncludeResolver", () => {
     });
 
     it("should handle content with no includes", () => {
-      const resolver = new IncludeResolver([includeDir], ".h");
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+      );
 
       const result = resolver.resolve("void main() { }");
 
@@ -491,7 +593,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should handle empty search paths", () => {
-      const resolver = new IncludeResolver([], ".h");
+      const resolver = new IncludeResolver([], ".h", NodeFileSystem.instance);
 
       const result = resolver.resolve('#include "types.h"');
 
@@ -527,6 +629,7 @@ describe("IncludeResolver", () => {
 
       const result = IncludeResolver.resolveHeadersTransitively(
         rootsAlong(rootHeaders, includeDir),
+        { fs: NodeFileSystem.instance },
       );
 
       expect(result.headers).toHaveLength(1);
@@ -554,6 +657,7 @@ describe("IncludeResolver", () => {
 
       const result = IncludeResolver.resolveHeadersTransitively(
         rootsAlong(rootHeaders, nestedDir),
+        { fs: NodeFileSystem.instance },
       );
 
       // Should have both headers, base.h first (dependency order)
@@ -579,6 +683,7 @@ describe("IncludeResolver", () => {
 
       const result = IncludeResolver.resolveHeadersTransitively(
         rootsAlong(rootHeaders, circularDir),
+        { fs: NodeFileSystem.instance },
       );
 
       // Should complete without hanging, include both headers once
@@ -607,6 +712,7 @@ describe("IncludeResolver", () => {
 
       const result = IncludeResolver.resolveHeadersTransitively(
         rootsAlong(rootHeaders, generatedDir),
+        { fs: NodeFileSystem.instance },
       );
 
       // Should only include user.h, skip generated.h
@@ -632,6 +738,7 @@ describe("IncludeResolver", () => {
 
       const result = IncludeResolver.resolveHeadersTransitively(
         rootsAlong(rootHeaders, warningDir),
+        { fs: NodeFileSystem.instance },
       );
 
       expect(result.headers).toHaveLength(1);
@@ -654,7 +761,7 @@ describe("IncludeResolver", () => {
 
       const result = IncludeResolver.resolveHeadersTransitively(
         rootsAlong(rootHeaders, processedDir),
-        { processedPaths: alreadyProcessed },
+        { processedPaths: alreadyProcessed, fs: NodeFileSystem.instance },
       );
 
       // Should skip the already-processed header
@@ -674,14 +781,16 @@ describe("IncludeResolver", () => {
         extension: ".h",
       };
 
-      const along = IncludeResolver.resolveHeadersTransitively([
-        { file: aHeader, searchPaths: [libA, libB] },
-      ]);
+      const along = IncludeResolver.resolveHeadersTransitively(
+        [{ file: aHeader, searchPaths: [libA, libB] }],
+        { fs: NodeFileSystem.instance },
+      );
       // Control: the same root on a path without libB, as every header was
       // searched before -- b.h is not found and is warned about.
-      const without = IncludeResolver.resolveHeadersTransitively([
-        { file: aHeader, searchPaths: [libA] },
-      ]);
+      const without = IncludeResolver.resolveHeadersTransitively(
+        [{ file: aHeader, searchPaths: [libA] }],
+        { fs: NodeFileSystem.instance },
+      );
 
       expect(along.headers.map((h) => h.path)).toEqual([
         join(libB, "b.h"),
@@ -708,10 +817,11 @@ describe("IncludeResolver", () => {
         [".h", '#include "shared.h"'],
         [".hpp", '#include "shared.hpp"'],
       ] as const) {
-        const result = new IncludeResolver([includeDir], ext).resolve(
-          source,
-          sourcePath,
-        );
+        const result = new IncludeResolver(
+          [includeDir],
+          ext,
+          NodeFileSystem.instance,
+        ).resolve(source, sourcePath);
 
         expect(result.cnextIncludes).toHaveLength(1);
         expect([...result.headerIncludeDirectives.values()]).toEqual([

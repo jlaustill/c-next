@@ -6,12 +6,16 @@
 
 import { describe, expect, it } from "vitest";
 import Transpiler from "../../../../transpiler/Transpiler";
+import NodeFileSystem from "../../../../transpiler/NodeFileSystem";
 
 /**
  * Helper to transpile C-Next source and return the C output
  */
 async function transpileSource(source: string): Promise<string> {
-  const transpiler = new Transpiler({ input: "", target: "host" });
+  const transpiler = new Transpiler(
+    { input: "", target: "host" },
+    NodeFileSystem.instance,
+  );
   const result = (
     await transpiler.transpile({ kind: "source", source: source })
   ).files[0];

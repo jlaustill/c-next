@@ -13,6 +13,8 @@ import {
   mkdirSync,
   readdirSync,
   realpathSync,
+  renameSync,
+  unlinkSync,
 } from "node:fs";
 import IFileSystem from "./types/IFileSystem";
 
@@ -48,6 +50,14 @@ class NodeFileSystem implements IFileSystem {
 
   mkdir(path: string, options?: { recursive?: boolean }): void {
     mkdirSync(path, options);
+  }
+
+  unlink(path: string): void {
+    unlinkSync(path);
+  }
+
+  rename(from: string, to: string): void {
+    renameSync(from, to);
   }
 
   readdir(path: string): string[] {

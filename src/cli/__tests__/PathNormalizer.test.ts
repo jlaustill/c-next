@@ -171,6 +171,8 @@ describe("PathNormalizer", () => {
         readFile: () => "",
         writeFile: () => {},
         mkdir: () => {},
+        unlink: () => {},
+        rename: () => {},
         isFile: () => false,
         stat: () => ({ mtimeMs: 0 }),
       };
@@ -254,6 +256,8 @@ describe("PathNormalizer", () => {
         readFile: () => "",
         writeFile: () => {},
         mkdir: () => {},
+        unlink: () => {},
+        rename: () => {},
         isFile: () => false,
         stat: () => ({ mtimeMs: 0 }),
       };
@@ -280,6 +284,8 @@ describe("PathNormalizer", () => {
         readFile: () => "",
         writeFile: () => {},
         mkdir: () => {},
+        unlink: () => {},
+        rename: () => {},
         isFile: () => false,
         stat: () => ({ mtimeMs: 0 }),
       };
@@ -316,6 +322,8 @@ describe("PathNormalizer", () => {
         readFile: () => "",
         writeFile: () => {},
         mkdir: () => {},
+        unlink: () => {},
+        rename: () => {},
         isFile: () => false,
         stat: () => ({ mtimeMs: 0 }),
       };
@@ -353,7 +361,10 @@ describe("PathNormalizer", () => {
         parseOnly: false,
       };
 
-      const result = PathNormalizer.normalizeConfig(config);
+      const result = PathNormalizer.normalizeConfig(
+        config,
+        NodeFileSystem.instance,
+      );
 
       expect(result.headerOutDir).toBeUndefined();
     });
@@ -392,7 +403,10 @@ describe("PathNormalizer", () => {
         debugMode: true,
       };
 
-      const result = PathNormalizer.normalizeConfig(config);
+      const result = PathNormalizer.normalizeConfig(
+        config,
+        NodeFileSystem.instance,
+      );
 
       expect(result.input).toBe("a.cnx");
       expect(result.defines).toEqual({ DEBUG: true });
