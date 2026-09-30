@@ -5,7 +5,7 @@
  * - E0884: the call does not take exactly four arguments
  * - E0885: the first argument is not a variable to receive the result
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface ISafeDivisionError extends IBaseAnalysisError {}
 

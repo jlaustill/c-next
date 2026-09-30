@@ -8,7 +8,7 @@
  */
 
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
-import type ITransitiveIncludes from "../../transpiler/types/ITransitiveIncludes";
+import type ITransitiveIncludes from "./types/ITransitiveIncludes";
 
 /**
  * Collects symbol information by traversing the include graph.

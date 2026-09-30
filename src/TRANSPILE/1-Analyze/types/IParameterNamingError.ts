@@ -2,7 +2,7 @@
  * Error reported when a function parameter has a reserved naming pattern
  * Issue #227: Parameters cannot start with their function name followed by underscore
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IParameterNamingError extends IBaseAnalysisError {
   /** Name of the parameter */

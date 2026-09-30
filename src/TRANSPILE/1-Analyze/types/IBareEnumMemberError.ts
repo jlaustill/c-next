@@ -4,7 +4,7 @@
  * Error codes:
  * - E0424: an enum member written bare where nothing names its enum
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IBareEnumMemberError extends IBaseAnalysisError {}
 

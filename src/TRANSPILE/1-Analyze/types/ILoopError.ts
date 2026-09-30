@@ -7,7 +7,7 @@
  * - E0707: a disguised infinite loop -- `for (;;)`, or an always-true
  *   literal condition
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface ILoopError extends IBaseAnalysisError {}
 

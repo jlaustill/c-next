@@ -7,7 +7,7 @@
  * - E0802: Modulo by literal zero
  * - E0803: Modulo by const that evaluates to zero
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IDivisionByZeroError extends IBaseAnalysisError {
   /** Operator used ('/' or '%') */

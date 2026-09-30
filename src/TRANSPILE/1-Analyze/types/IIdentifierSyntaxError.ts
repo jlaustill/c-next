@@ -1,4 +1,4 @@
-import type IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import type IBaseAnalysisError from "./IBaseAnalysisError";
 import type TIdentifierViolation from "./TIdentifierViolation";
 
 /**

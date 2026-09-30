@@ -15,7 +15,7 @@
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import INullCheckError from "../../transpiler/types/INullCheckError";
+import INullCheckError from "./types/INullCheckError";
 import ParserUtils from "../../utils/ParserUtils";
 import IncludeDirective from "./helpers/IncludeDirective";
 import BareIdentifier from "../../utils/BareIdentifier";

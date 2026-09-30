@@ -1,6 +1,6 @@
-import type ITargetDescription from "./ITargetDescription";
-import type ITargetDirective from "./ITargetDirective";
-import type IPlatformIOProject from "./IPlatformIOProject";
+import type ITargetDescription from "../../../transpiler/types/ITargetDescription";
+import type ITargetDirective from "../../../transpiler/types/ITargetDirective";
+import type IPlatformIOProject from "../../../transpiler/types/IPlatformIOProject";
 
 /**
  * ADR-049: what 1.4 Resolve settles the run's one target from.

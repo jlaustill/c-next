@@ -8,7 +8,7 @@
  * - E0508: a C++ class with a constructor is initialized where no statement
  *   can follow the declaration
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface ICppClassInitializerError extends IBaseAnalysisError {}
 

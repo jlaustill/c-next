@@ -18,7 +18,7 @@ import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ParameterInputAdapter from "../codegen/helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "../codegen/helpers/ParameterSignatureBuilder";
 import StructInitFunction from "../codegen/helpers/StructInitFunction";
-import TPassByValueParams from "../../../transpiler/types/TPassByValueParams";
+import TPassByValueParams from "./types/TPassByValueParams";
 
 /**
  * Abstract base class for header file generation

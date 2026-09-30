@@ -4,11 +4,11 @@
  */
 
 import { describe, expect, it } from "vitest";
-import IBaseAnalysisError from "../../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "../IBaseAnalysisError";
 import IFloatModuloError from "../IFloatModuloError";
 import IDivisionByZeroError from "../IDivisionByZeroError";
 import IFunctionCallError from "../IFunctionCallError";
-import INullCheckError from "../../../../transpiler/types/INullCheckError";
+import INullCheckError from "../INullCheckError";
 import IInitializationError from "../IInitializationError";
 import IParameterNamingError from "../IParameterNamingError";
 import IStructFieldError from "../IStructFieldError";

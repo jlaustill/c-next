@@ -8,7 +8,7 @@
  * - E0865: a substring's bounds exceed its source
  * - E0866: a string array's initializer does not match its declaration
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IStringDeclarationError extends IBaseAnalysisError {}
 

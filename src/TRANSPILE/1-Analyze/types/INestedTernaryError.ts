@@ -4,7 +4,7 @@
  * Error codes:
  * - E0710: nested ternary is not allowed
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface INestedTernaryError extends IBaseAnalysisError {}
 

@@ -8,7 +8,7 @@
  * - E0860: the span does not fit the buffer (bounds, alignment, sign)
  * - E0861: the SOURCE does not fit the slice (type, width, literal range)
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface ISliceAssignmentError extends IBaseAnalysisError {}
 

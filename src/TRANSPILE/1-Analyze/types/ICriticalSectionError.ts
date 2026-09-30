@@ -4,7 +4,7 @@
  * Error codes:
  * - E0853: returning from a critical section leaves interrupts disabled
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface ICriticalSectionError extends IBaseAnalysisError {}
 

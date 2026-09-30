@@ -871,6 +871,114 @@ const MOVES: readonly IMove[] = [
       "`char_count`; the typer lives in `utils/`, which may not reach " +
       "`1-Analyze/`.",
   },
+  {
+    from: "src/transpiler/types/IDiscoveryFacts.ts",
+    to: "src/PARSE/4-Resolve/types/IDiscoveryFacts.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `PARSE/4-Resolve/Program.ts`, plus `IProgramInputs`, which moves to the same place. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/IForeignSymbols.ts",
+    to: "src/PARSE/4-Resolve/types/IForeignSymbols.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `PARSE/4-Resolve/Program.ts`, plus `IProgramInputs`, which moves to the same place. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/IProgramInputs.ts",
+    to: "src/PARSE/4-Resolve/types/IProgramInputs.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `PARSE/4-Resolve/Program.ts`. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/IRunTargetInputs.ts",
+    to: "src/PARSE/4-Resolve/types/IRunTargetInputs.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `PARSE/4-Resolve/RunTarget.ts`, plus `IProgramInputs`, which moves to the same place. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/IVisibilityInput.ts",
+    to: "src/PARSE/4-Resolve/types/IVisibilityInput.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `PARSE/4-Resolve/Program.ts`, plus `IProgramInputs`, which moves to the same place. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/ITransitiveIncludes.ts",
+    to: "src/PARSE/4-Resolve/types/ITransitiveIncludes.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `PARSE/4-Resolve/TransitiveEnumCollector.ts`. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/IBaseAnalysisError.ts",
+    to: "src/TRANSPILE/1-Analyze/types/IBaseAnalysisError.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are 41 modules under `TRANSPILE/1-Analyze/types`, plus `INullCheckError`, which moves to the same place. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/ICommentError.ts",
+    to: "src/TRANSPILE/1-Analyze/types/ICommentError.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `TRANSPILE/1-Analyze/CommentExtractor.ts`. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/INullCheckError.ts",
+    to: "src/TRANSPILE/1-Analyze/types/INullCheckError.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `TRANSPILE/1-Analyze/NullCheckAnalyzer.ts`. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/IComplianceAnnotation.ts",
+    to: "src/TRANSPILE/2-Plan/types/IComplianceAnnotation.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `TRANSPILE/2-Plan/ComplianceAnnotations.ts`. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/TPassByValueParams.ts",
+    to: "src/TRANSPILE/3-Render/headers/types/TPassByValueParams.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are 3 modules under `TRANSPILE/3-Render/headers/types`. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/IHeaderRenderResult.ts",
+    to: "src/TRANSPILE/3-Render/headers/types/IHeaderRenderResult.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `TRANSPILE/3-Render/headers/HeaderRenderer.ts`. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/IPlannedRegisterMember.ts",
+    to: "src/TRANSPILE/3-Render/codegen/types/IPlannedRegisterMember.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are 2 modules under `TRANSPILE/3-Render/codegen/types`. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/IDeclaredTypeFacts.ts",
+    to: "src/utils/types/IDeclaredTypeFacts.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `utils/DeclaredTypeFacts.ts`. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/IDeclaredTypeSets.ts",
+    to: "src/utils/types/IDeclaredTypeSets.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `utils/DeclaredTypeFacts.ts`. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/IStructFieldLookup.ts",
+    to: "src/utils/types/IStructFieldLookup.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `utils/DeclaredTypeFacts.ts`. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/IGccToolchain.ts",
+    to: "src/utils/types/IGccToolchain.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `utils/TargetToolchain.ts`. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  {
+    from: "src/transpiler/types/ICodeGenApi.ts",
+    to: "src/TRANSPILE/types/ICodeGenApi.ts",
+    because:
+      '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `TRANSPILE/TranspileState.ts`. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */

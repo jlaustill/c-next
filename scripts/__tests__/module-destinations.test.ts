@@ -180,6 +180,45 @@ describe("ModuleDestinations.checkOutcome", () => {
     ).toEqual(["conflicting-rows src/utils/ChainRoot.ts"]);
   });
 
+  it("fails on two awaiting rows naming one card but different destinations", () => {
+    const markdown = [
+      "## Awaiting a move",
+      "",
+      "| module | destination | why |",
+      "| --- | --- | --- |",
+      "| `src/transpiler/types/**` | `src/types/`, awaiting #1443 | shared |",
+      "| `src/transpiler/types/IRunAnchor.ts` | `src/cli/`, awaiting #1443 | orchestrator |",
+    ].join("\n");
+    expect(
+      kinds(
+        markdown,
+        [
+          "src/transpiler/types/IRunAnchor.ts",
+          "src/transpiler/types/IShared.ts",
+        ],
+        ["src/transpiler/types/**", "src/transpiler/types/IRunAnchor.ts"],
+      ),
+    ).toEqual(["conflicting-rows src/transpiler/types/IRunAnchor.ts"]);
+  });
+
+  it("allows two awaiting rows that name the same card and destination", () => {
+    const markdown = [
+      "## Awaiting a move",
+      "",
+      "| module | destination | why |",
+      "| --- | --- | --- |",
+      "| `src/transpiler/data/**` | `src/PARSE/1-Discover/`, awaiting #1444 | discovery |",
+      "| `src/transpiler/data/FileDiscovery.ts` | `src/PARSE/1-Discover/`, awaiting #1444 | its own why |",
+    ].join("\n");
+    expect(
+      kinds(
+        markdown,
+        ["src/transpiler/data/FileDiscovery.ts"],
+        ["src/transpiler/data/**", "src/transpiler/data/FileDiscovery.ts"],
+      ),
+    ).toEqual([]);
+  });
+
   it("allows a specific row inside a glob row when both place the module", () => {
     const markdown = [
       "## Layer-neutral — `src/utils/`",

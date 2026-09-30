@@ -10,7 +10,7 @@
  * about RESOLUTION: the same name is an error when it came from a header and
  * fine when the author defined it (#1306 review).
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IFunctionCallError extends IBaseAnalysisError {
   /** Name of the function that was called */

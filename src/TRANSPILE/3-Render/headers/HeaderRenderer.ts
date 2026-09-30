@@ -27,7 +27,7 @@
  */
 import HeaderGenerator from "./HeaderGenerator";
 import IHeaderEmissionFacts from "./types/IHeaderEmissionFacts";
-import IHeaderRenderResult from "../../../transpiler/types/IHeaderRenderResult";
+import IHeaderRenderResult from "./types/IHeaderRenderResult";
 
 class HeaderRenderer {
   /**

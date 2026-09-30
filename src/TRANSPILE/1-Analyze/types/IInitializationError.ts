@@ -2,7 +2,7 @@
  * Initialization analysis error types
  * Used for Rust-style "use before initialization" detection
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 import IDeclarationInfo from "./IDeclarationInfo";
 
 /**

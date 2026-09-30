@@ -11,7 +11,7 @@ import TParameterInfo from "../transpiler/types/TParameterInfo";
 import ICallbackTypeInfo from "../transpiler/types/ICallbackTypeInfo";
 import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
 import ArrayDimensionText from "../utils/ArrayDimensionText";
-import type ICodeGenApi from "../transpiler/types/ICodeGenApi";
+import type ICodeGenApi from "./types/ICodeGenApi";
 import DeclaredTypeFacts from "../utils/DeclaredTypeFacts";
 import DeclaredPointer from "../utils/DeclaredPointer";
 import OutputExtensions from "../utils/OutputExtensions";

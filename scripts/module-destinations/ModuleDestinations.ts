@@ -200,7 +200,7 @@ class ModuleDestinations {
     }
     if (patterns.length === 0)
       return { kind: "unresolvable-row", subject: moduleCell, line };
-    return { line, patterns, awaiting: null };
+    return { line, patterns, awaiting: null, target: null };
   }
 
   /**
@@ -225,14 +225,21 @@ class ModuleDestinations {
       line,
       patterns,
       awaiting: awaiting === null ? null : Number(awaiting[1]),
+      target:
+        awaiting === null
+          ? null
+          : (ModuleDestinations.spans(target).find((span) =>
+              span.startsWith("src/"),
+            ) ?? null),
     };
   }
 
   /**
    * How many different answers the rows matching `module` give: placed where
-   * it is, or awaiting a particular card. A glob row and a specific row that
-   * both place a module agree; a row placing it and a row saying it moves do
-   * not, and neither may win silently.
+   * it is, or awaiting a particular card toward a particular destination. A
+   * glob row and a specific row that both place a module agree; a row placing
+   * it and a row saying it moves do not, nor do two rows awaiting one card
+   * toward different places, and none may win silently.
    */
   private static destinationsOf(
     module: string,
@@ -241,7 +248,11 @@ class ModuleDestinations {
     const answers = new Set(
       rows
         .filter((row) => row.patterns.some((p) => matchesGlob(module, p)))
-        .map((row) => row.awaiting ?? "placed"),
+        .map((row) =>
+          row.awaiting === null
+            ? "placed"
+            : `#${row.awaiting} -> ${row.target ?? "(no path)"}`,
+        ),
     );
     return answers.size;
   }

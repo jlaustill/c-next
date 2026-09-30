@@ -6,7 +6,7 @@
  * - E0436: a private member reached from outside its scope
  * - E0437: a global enum or register shadowed inside a scope, reached bare
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IScopeAccessError extends IBaseAnalysisError {}
 

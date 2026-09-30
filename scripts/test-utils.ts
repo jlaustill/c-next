@@ -31,7 +31,7 @@ import detectCppSyntax from "../src/transpiler/logic/detectCppSyntax";
 import TestMarkers from "./TestMarkers";
 import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
 import TargetResolver from "../src/utils/TargetResolver";
-import type IGccToolchain from "../src/transpiler/types/IGccToolchain";
+import type IGccToolchain from "../src/utils/types/IGccToolchain";
 import TargetMatrix from "./TargetMatrix";
 import RunTarget from "../src/PARSE/4-Resolve/RunTarget";
 import type ITargetCell from "./types/ITargetCell";

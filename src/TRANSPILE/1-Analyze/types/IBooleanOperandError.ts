@@ -9,7 +9,7 @@
  * type." A bool is permitted only for the logical operators (&&, ||, !), for
  * equality (=, !=), and as a controlling expression -- it is not a number.
  */
-import IBaseAnalysisError from "../../../transpiler/types/IBaseAnalysisError";
+import IBaseAnalysisError from "./IBaseAnalysisError";
 
 interface IBooleanOperandError extends IBaseAnalysisError {}
 
