@@ -66,6 +66,14 @@ type TPlannedStringDecl =
    * declaration and an initializer that is not a literal, and the latter is
    * read off this same text.
    */
-  | { readonly kind: "unsized"; readonly initText: string | null };
+  | {
+      readonly kind: "unsized";
+      readonly initText: string | null;
+      /**
+       * #1664 box 3: the capacity 1.3 counted and the `.h` states -- null
+       * only when the declaration has none, which E0862 rejects.
+       */
+      readonly declaredCapacity: number | null;
+    };
 
 export default TPlannedStringDecl;

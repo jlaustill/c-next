@@ -79,6 +79,7 @@ class StringDeclHelper {
       case "unsized":
         return StringDeclHelper._generateUnsizedStringDecl(
           plan.initText,
+          plan.declaredCapacity,
           name,
           modifiers,
           isConst,
@@ -402,6 +403,7 @@ class StringDeclHelper {
    */
   private static _generateUnsizedStringDecl(
     initText: string | null,
+    declaredCapacity: number | null,
     name: string,
     modifiers: IRenderedModifiers,
     isConst: boolean,
@@ -427,8 +429,15 @@ class StringDeclHelper {
       );
     }
 
-    // Infer capacity from literal length
-    const inferredCapacity = StringUtils.literalLength(initText);
+    // #1664 box 3: the capacity is the declaration's -- 1.3 counted it from
+    // this literal and the `.h` states it. Counting the literal again here was
+    // a second derivation; it survives as the check that the two agree.
+    const literalLength = StringUtils.literalLength(initText);
+    invariant(
+      declaredCapacity === literalLength,
+      `an unsized string's capacity is its declaration's -- 1.3 counted ` +
+        `${declaredCapacity} for '${name}' but the literal has ${literalLength} character(s)`,
+    );
 
     // #1642's open box. This arm hand-assembled `${extern}const `, dropping
     // `atomic`/`volatile` and hardcoding the `const` rather than reading the
@@ -454,7 +463,7 @@ class StringDeclHelper {
     );
 
     const prefix = VariableModifierBuilder.toPrefix(modifiers);
-    return `${prefix}char ${name}[${inferredCapacity + 1}] = ${initText};`;
+    return `${prefix}char ${name}[${declaredCapacity + 1}] = ${initText};`;
   }
 }
 

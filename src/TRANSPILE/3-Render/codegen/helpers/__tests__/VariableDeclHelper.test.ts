@@ -175,6 +175,8 @@ describe("VariableDeclHelper", () => {
           hasEmptyDimension: true,
           hasEmptyArrayTypeDimension: true,
           arrayTypeDimensions: "[]",
+          // #1664 box 3: the size 1.3 counted, which the plan now carries
+          declaredSize: 2,
           init: {
             renderExpression: arrayInitRender(2),
             renderTypeName: () => "u8",

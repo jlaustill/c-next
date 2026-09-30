@@ -4,7 +4,7 @@
  * Issue #644: Extracted from CodeGenerator to reduce file size.
  *
  * Handles:
- * - Array initializers with size inference: u8 data[] <- [1, 2, 3]
+ * - Array initializers with size inference: u8[] data <- [1, 2, 3]
  * - Fill-all syntax: u8 data[10] <- [0*]
  * - Array size validation
  *
@@ -83,7 +83,7 @@ class ArrayInitHelper {
     }
 
     const dimensionSuffix = hasEmptyArrayDim
-      ? ArrayInitHelper._processSizeInference(name, state)
+      ? ArrayInitHelper._processSizeInference(name, declaredSize, state)
       : ArrayInitHelper._processExplicitSize(declaredSize, callbacks, state);
 
     const finalInitValue = ArrayInitHelper._expandFillAllSyntax(
@@ -109,21 +109,39 @@ class ArrayInitHelper {
   }
 
   /**
-   * Process size inference for empty array dimension (u8 data[] <- [1, 2, 3])
+   * An inferred size (`u8[] data <- [1, 2, 3]`) is the declaration's: 1.3
+   * counted the list and 1.4 settled it, and the `.h` states that number.
+   *
+   * #1664 box 3: this used to count the elements it had just rendered -- a
+   * second derivation of one fact, which agreed with the header only while
+   * nothing else shaped the suffix. For `u8[][3] n` it emitted `n[2]` against
+   * the header's `n[2][3]` (#1822, now E0892 in pass 2.1). The rendered count
+   * survives as the check that the two still agree.
    */
   private static _processSizeInference(
     name: string,
+    declaredSize: number | null,
     state: TranspileState,
   ): string {
     // #1322: E0876 rejects the fill-all form on an inferred size in pass 2.1
-    // (ADR-035); the count below is the only size this path can infer.
+    // (ADR-035); an inferred size is counted from a list.
     invariant(
       state.lastArrayFillValue === undefined,
       `an inferred array size comes from a list -- E0876 rejects the fill-all ` +
         `form [${state.lastArrayFillValue}*] on '${name}' in pass 2.1, before this runs`,
     );
+    invariant(
+      declaredSize !== null,
+      `an inferred size is its declaration's -- 1.3 counts '${name}''s list, ` +
+        `so none here is a declaration fact that never reached render`,
+    );
+    invariant(
+      state.lastArrayInitCount === declaredSize,
+      `an inferred size is its declaration's -- 1.3 counted [${declaredSize}] ` +
+        `for '${name}' but ${state.lastArrayInitCount} element(s) rendered`,
+    );
 
-    return `[${state.lastArrayInitCount}]`;
+    return `[${declaredSize}]`;
   }
 
   /**
