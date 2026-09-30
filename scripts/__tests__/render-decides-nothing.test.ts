@@ -65,10 +65,9 @@
 import { readFileSync } from "node:fs";
 import { join, sep } from "node:path";
 
-import FileScanner from "../utils/FileScanner";
+import SourceScan from "../utils/SourceScan";
 
 const rootDir = join(__dirname, "..", "..");
-const srcDir = join(rootDir, "src");
 
 /**
  * The methods allowed to read the flags, and the reason each exists.
@@ -305,57 +304,9 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
   ],
 };
 
-interface IHit {
-  readonly file: string;
-  readonly offset: number;
-  readonly text: string;
-}
-
-/** Every source file under `src/`, excluding tests. */
-function sourceFiles(): string[] {
-  return FileScanner.findFiles(srcDir, ".ts").filter(
-    (full) => !full.includes(`${sep}__tests__${sep}`),
-  );
-}
-
-/**
- * True when the match sits on a line that is itself a comment.
- *
- * Recognizes the three openers this corpus uses: a JSDoc continuation, a line
- * comment, and a bare single-line block -- the last added in the #1583 review,
- * because `/* MISRA C:2012 Rule 8.4 applies here *\/` written as documentation
- * was classified as code and would have failed the authorship assertion. House
- * style is JSDoc, so it was latent rather than live, but this function's reach
- * widened from `output/` to all of `src/`, where the population it screens is
- * much less uniform.
- */
-function inComment(source: string, index: number): boolean {
-  const lineStart = source.lastIndexOf("\n", index) + 1;
-  const lineEnd = source.indexOf("\n", index);
-  const line = source.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);
-  return /^\s*(\*|\/\/|\/\*)/.test(line);
-}
-
-/** Every match of `pattern` under `src/`, excluding mentions in comments. */
-function scan(pattern: RegExp): IHit[] {
-  const hits: IHit[] = [];
-  for (const full of sourceFiles()) {
-    const source = readFileSync(full, "utf-8");
-    for (const match of source.matchAll(pattern)) {
-      if (inComment(source, match.index)) continue;
-      hits.push({
-        file: full.slice(rootDir.length + 1),
-        offset: match.index,
-        text: match[0],
-      });
-    }
-  }
-  return hits;
-}
-
 /** The distinct files a pattern matches in, sorted. */
 const filesMatching = (pattern: RegExp): string[] =>
-  [...new Set(scan(pattern).map((hit) => hit.file))].sort();
+  [...new Set(SourceScan.scan(pattern).map((hit) => hit.file))].sort();
 
 /** Render-pass files matching `pattern`, as `/`-separated paths below the pass. */
 const inRenderPass = (pattern: RegExp): string[] =>
@@ -389,7 +340,7 @@ describe("2.3 Render decides nothing (#1449)", () => {
   it("finds the reads at all", () => {
     // Guards the selector. If the regex stops matching, every assertion below
     // passes over an empty list -- #1297's shape, one level up.
-    expect(scan(FLAG_READ).length).toBeGreaterThan(0);
+    expect(SourceScan.scan(FLAG_READ).length).toBeGreaterThan(0);
   });
 
   it.each([
@@ -424,7 +375,7 @@ describe("2.3 Render decides nothing (#1449)", () => {
   it("reads them only inside a capture, never at an emission site", () => {
     // One shared list the two captures filter, rather than each scanning all
     // of `src/` (#1583 review).
-    const reads = scan(FLAG_READ);
+    const reads = SourceScan.scan(FLAG_READ);
     const outside: string[] = [];
 
     for (const capture of CAPTURES) {
