@@ -88,7 +88,9 @@ class CppEntryPointScanner {
       return;
     }
 
-    const includes = IncludeDiscovery.extractIncludesWithInfo(content);
+    // #1830 review: a `.cnx` file this reaches is read as the grammar reads
+    // it, so a commented-out include does not join the run through this route.
+    const includes = IncludeDiscovery.directivesOf(filePath, content);
     for (const includeInfo of includes) {
       this._processInclude(includeInfo, searchPaths, filePath);
     }

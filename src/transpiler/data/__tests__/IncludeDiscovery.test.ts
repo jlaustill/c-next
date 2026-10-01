@@ -336,6 +336,18 @@ describe("IncludeDiscovery", () => {
           ["b.h", false],
         ],
       ],
+      // The grammar's token runs to its closing delimiter, so the path is
+      // everything between: what 2.1 and the parser name too (#1830 review).
+      [
+        "a quote inside an angle include",
+        '#include <a"b.h>\n',
+        [['a"b.h', false]],
+      ],
+      [
+        "an angle inside a quoted include",
+        '#include "a>b.h"\n',
+        [["a>b.h", true]],
+      ],
     ])("reads %s", (_label, source, expected) => {
       const result = IncludeDiscovery.extractCNextIncludes(source as string);
       expect(result.map((r) => [r.path, r.isLocal])).toEqual(expected);
@@ -347,6 +359,7 @@ describe("IncludeDiscovery", () => {
       ["a doc comment", '/// #include "ghost.cnx"\n'],
       ["a hash on its own line", "#\ninclude <a.h>\n"],
       ["mismatched delimiters", '#include <a.h"\n'],
+      ["an empty path", "#include <>\n"],
     ])("reads no directive from %s", (_label, source) => {
       expect(IncludeDiscovery.extractCNextIncludes(source as string)).toEqual(
         [],
@@ -361,6 +374,29 @@ describe("IncludeDiscovery", () => {
       } finally {
         printed.mockRestore();
       }
+    });
+  });
+
+  // ==========================================================================
+  // directivesOf (#1830 review)
+  // ==========================================================================
+
+  describe("directivesOf", () => {
+    const COMMENTED = '/*\n#include "ghost.h"\n*/\n';
+
+    it.each([["lib.cnx"], ["lib.cnext"]])(
+      "reads %s as the grammar does",
+      (path) => {
+        expect(IncludeDiscovery.directivesOf(path, COMMENTED)).toEqual([]);
+      },
+    );
+
+    // Today's answer for a header, which #1829 changes: the text scan does not
+    // know C's comments yet. Pinned so the branch is watched, not to bless it.
+    it("reads a C header with the text scan (#1829)", () => {
+      expect(IncludeDiscovery.directivesOf("lib.h", COMMENTED)).toEqual([
+        { path: "ghost.h", isLocal: true },
+      ]);
     });
   });
 

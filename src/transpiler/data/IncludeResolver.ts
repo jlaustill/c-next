@@ -465,7 +465,7 @@ class IncludeResolver {
       fileByPath.set(absolutePath, file);
       searchPathsByHeader.set(file.path, rootSearchPaths);
 
-      const includes = IncludeDiscovery.extractIncludesWithInfo(content);
+      const includes = IncludeDiscovery.directivesOf(file.path, content);
       const searchPaths = [dirname(absolutePath), ...rootSearchPaths];
 
       options.onDebug?.(`Processing includes in ${file.path}:`);
