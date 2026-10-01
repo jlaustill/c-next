@@ -1790,7 +1790,17 @@ class Transpiler {
     const directives: string[] = [];
     for (const file of input.cnextFiles) {
       const source = file.source ?? this.readFileOrEmpty(file.path);
-      for (const directive of Transpiler.extractCIncludeDirectives(source)) {
+      // #1830 review: the directives 1.1 reads, so a commented-out header adds
+      // nothing to the recovered translation unit. The regex this replaces did
+      // not know about comments, missed `#include"x.h"`, which the grammar
+      // allows, and skipped `.cnx` but sent a `.cnext` include in as a header.
+      for (const include of IncludeDiscovery.extractCNextIncludes(source)) {
+        if (FileDiscovery.classifyFile(include.path).type === EFileType.CNext) {
+          continue;
+        }
+        const directive = include.isLocal
+          ? `"${include.path}"`
+          : `<${include.path}>`;
         if (!seen.has(directive)) {
           seen.add(directive);
           directives.push(directive);
@@ -1870,18 +1880,6 @@ class Transpiler {
         state.symbolTable.clearStructTagHasBody(tag);
       }
     }
-  }
-
-  /** Extract C header include directives (`<...>` / `"..."`, non-.cnx) in order. */
-  private static extractCIncludeDirectives(source: string): string[] {
-    const directives: string[] = [];
-    const re = /^[ \t]*#include\s+([<"][^>"]+[>"])/gm;
-    for (const match of source.matchAll(re)) {
-      const spec = match[1];
-      if (/\.cnx[>"]$/.test(spec)) continue; // C-Next include, not a C header
-      directives.push(spec);
-    }
-    return directives;
   }
 
   private readFileOrEmpty(path: string): string {

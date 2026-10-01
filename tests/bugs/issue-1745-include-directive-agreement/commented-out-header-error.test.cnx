@@ -1,0 +1,13 @@
+// test-error
+// Issue #1745 (b), with a C header: a commented-out `#include "hidden.h"`
+// was discovered, so `hidden_fn` read as declared and the run exited 0 with
+// C that calls it undeclared -- `gcc -Werror` rejects the implicit
+// declaration. The negative control is header-outside-comment.
+/*
+#include "hidden.h"
+*/
+
+i32 main() {
+    hidden_fn();
+    return 0;
+}

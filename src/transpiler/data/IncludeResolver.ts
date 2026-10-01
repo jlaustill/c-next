@@ -157,7 +157,8 @@ class IncludeResolver {
   /**
    * Extract includes from source content and resolve them to files
    *
-   * @param content - Source file content
+   * @param content - A `.cnx` file's content. Its directives are read as the
+   *   grammar reads them (#1745), so C header text does not belong here.
    * @param sourceFilePath - Optional path to source file (for error messages)
    * @returns Resolved includes categorized by type, plus warnings
    */
@@ -172,7 +173,7 @@ class IncludeResolver {
       hasForeignInclude: false,
     };
 
-    const includes = IncludeDiscovery.extractIncludesWithInfo(content);
+    const includes = IncludeDiscovery.extractCNextIncludes(content);
 
     for (const includeInfo of includes) {
       this._processInclude(includeInfo, sourceFilePath, result);
@@ -464,7 +465,7 @@ class IncludeResolver {
       fileByPath.set(absolutePath, file);
       searchPathsByHeader.set(file.path, rootSearchPaths);
 
-      const includes = IncludeDiscovery.extractIncludesWithInfo(content);
+      const includes = IncludeDiscovery.directivesOf(file.path, content);
       const searchPaths = [dirname(absolutePath), ...rootSearchPaths];
 
       options.onDebug?.(`Processing includes in ${file.path}:`);

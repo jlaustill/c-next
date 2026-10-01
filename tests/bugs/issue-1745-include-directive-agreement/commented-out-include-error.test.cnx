@@ -1,0 +1,14 @@
+// test-error
+// Issue #1745 (b): an include inside a block comment is not a directive, so
+// it must pull nothing into the run. 1.1 Discover's text scanner read it
+// anyway: ghost.cnx was opened, `EGhost` became visible, and the run exited 0
+// with C that uses `EGhost` and includes no ghost.h. The negative control is
+// include-outside-comment, the same include as a real directive.
+/*
+#include "ghost.cnx"
+*/
+
+i32 main() {
+    EGhost g <- EGhost.B;
+    return 0;
+}

@@ -1,6 +1,12 @@
 import { dirname, resolve, join, isAbsolute } from "node:path";
 
+import { CharStream } from "antlr4ng";
+
+import { CNextLexer } from "../../PARSE/2-Parse/grammar/CNextLexer";
+import invariant from "../../utils/invariant";
+import FileDiscovery from "./FileDiscovery";
 import PlatformIOIni from "./PlatformIOIni";
+import EFileType from "./types/EFileType";
 import IFileSystem from "../types/IFileSystem";
 
 /**
@@ -392,6 +398,11 @@ class IncludeDiscovery {
    * Issue #355: Returns whether each include is local ("...") or system (<...>)
    * so we can warn appropriately when local includes aren't found.
    *
+   * A text scan, for C and C++ headers. It does not know about comments, so
+   * it reads a directive inside one (#1829). A `.cnx` file's directives are
+   * read by `extractCNextIncludes`, which the grammar decides, and
+   * `directivesOf` is where a file on disk is given one or the other.
+   *
    * @param content - Source file content
    * @returns Array of include info objects
    */
@@ -409,6 +420,84 @@ class IncludeDiscovery {
     }
 
     return includes;
+  }
+
+  /**
+   * A `.cnx` file's #include directives, as the grammar reads them (#1745).
+   *
+   * The text scan above did not know about comments, while the parser's
+   * `INCLUDE_DIRECTIVE` token treats a comment as a hidden token. So discovery
+   * pulled in a file that a block comment had disabled, and missed a directive
+   * written after a comment on its line. Reading the parser's own token makes
+   * the two agree by construction rather than by what the fixtures exercise.
+   *
+   * It lexes rather than reading 1.2's artifact because discovery decides
+   * which files the run parses, so no parse exists yet when it asks. It is
+   * why this module appears in `docs/architecture/parse-tree-sites.md`.
+   *
+   * The path is everything between the token's delimiters. The grammar makes
+   * the closing delimiter the token's last character, so a `"` inside `<...>`
+   * belongs to the path, as the parser and 2.1 read it. Splitting the token
+   * with the scan above stopped at that quote and named a different file
+   * (#1830 review).
+   *
+   * @param source - A `.cnx` file's text
+   */
+  static extractCNextIncludes(
+    source: string,
+  ): Array<{ path: string; isLocal: boolean }> {
+    const lexer = new CNextLexer(CharStream.fromString(source));
+    // 1.2 Parse reports a lexical error once, with its position. Here it
+    // would only print ANTLR's console default a second time.
+    lexer.removeErrorListeners();
+
+    return lexer
+      .getAllTokens()
+      .filter((token) => token.type === CNextLexer.INCLUDE_DIRECTIVE)
+      .flatMap((token) => {
+        // A token the lexer produced always carries its text. The type allows
+        // none, and an empty default would drop the directive without a trace.
+        invariant(
+          token.text !== undefined,
+          "an INCLUDE_DIRECTIVE token carries its text",
+        );
+        return IncludeDiscovery._specOfToken(token.text);
+      });
+  }
+
+  /**
+   * One `INCLUDE_DIRECTIVE` token's path and delimiter. `#include <>` is a
+   * token too, and names nothing.
+   */
+  private static _specOfToken(
+    text: string,
+  ): Array<{ path: string; isLocal: boolean }> {
+    const open = text.search(/[<"]/);
+    const path = text.slice(open + 1, -1);
+    return path === "" ? [] : [{ path, isLocal: text[open] === '"' }];
+  }
+
+  /**
+   * A file's #include directives, read by the rules of its kind: a C-Next
+   * file's as the grammar reads them, anything else's by the text scan.
+   *
+   * The one place that choice is made for the readers that walk files on
+   * disk: the C/C++ entry-point scan and the transitive header walk. The
+   * #1830 review found the entry-point scan still reading a `.cnx` file it
+   * reached with the text scan, so a commented-out include joined the run
+   * through that route. #1829 changes the other branch.
+   *
+   * A file with no path to classify, a source run's in-memory root, never
+   * reaches here. The pipeline's own files are C-Next by construction and
+   * call `extractCNextIncludes` directly.
+   */
+  static directivesOf(
+    path: string,
+    content: string,
+  ): Array<{ path: string; isLocal: boolean }> {
+    return FileDiscovery.classifyFile(path).type === EFileType.CNext
+      ? IncludeDiscovery.extractCNextIncludes(content)
+      : IncludeDiscovery.extractIncludesWithInfo(content);
   }
 
   /**
