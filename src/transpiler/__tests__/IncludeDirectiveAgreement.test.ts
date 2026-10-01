@@ -23,7 +23,7 @@
  * reading with comment-blind scans after the first was fixed.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { basename, dirname, join } from "node:path";
@@ -31,6 +31,7 @@ import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
 import NodeFileSystem from "../NodeFileSystem";
+import ExternalDeclarationOracle from "../logic/preprocessor/ExternalDeclarationOracle";
 
 const COLORS = "enum EColor {\n    RED,\n    GREEN\n}\n";
 const GHOST = "enum EGhost {\n    A,\n    B\n}\n";
@@ -221,6 +222,35 @@ describe("1.1 Discover and the parser agree on a file's includes (#1745)", () =>
       expect(result.errors.map((e) => e.message).join("\n")).toContain(
         "error[E0422]: function 'hidden_fn' called before definition",
       );
+    });
+
+    it("is handed exactly the C includes the grammar reads", async () => {
+      // The unit's own input, asserted directly. A `.cnext` include is C-Next
+      // and stays out (the regex this replaced skipped `.cnx` only), an angle
+      // include keeps its form, and `#include"tight.h"` is a directive the
+      // grammar allows with no space, which the regex missed.
+      const recover = vi.spyOn(ExternalDeclarationOracle, "recover");
+      try {
+        await transpileMain(
+          '#include "broken.h"\n#include <stdint.h>\n#include"tight.h"\n' +
+            '#include "lib.cnext"\n/*\n#include "hidden.h"\n*/\n\n' +
+            USES_NOTHING,
+          {
+            ...HELPERS,
+            "tight.h": "void tight_fn(void);\n",
+            "lib.cnext": "enum ELib {\n    X\n}\n",
+          },
+        );
+
+        expect(recover).toHaveBeenCalledTimes(1);
+        expect(recover.mock.calls[0][0]).toEqual([
+          '"broken.h"',
+          "<stdint.h>",
+          '"tight.h"',
+        ]);
+      } finally {
+        recover.mockRestore();
+      }
     });
 
     it("control: the same header as a directive declares it", async () => {

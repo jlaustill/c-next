@@ -3,6 +3,7 @@ import { dirname, resolve, join, isAbsolute } from "node:path";
 import { CharStream } from "antlr4ng";
 
 import { CNextLexer } from "../../PARSE/2-Parse/grammar/CNextLexer";
+import invariant from "../../utils/invariant";
 import FileDiscovery from "./FileDiscovery";
 import PlatformIOIni from "./PlatformIOIni";
 import EFileType from "./types/EFileType";
@@ -453,7 +454,15 @@ class IncludeDiscovery {
     return lexer
       .getAllTokens()
       .filter((token) => token.type === CNextLexer.INCLUDE_DIRECTIVE)
-      .flatMap((token) => IncludeDiscovery._specOfToken(token.text ?? ""));
+      .flatMap((token) => {
+        // A token the lexer produced always carries its text. The type allows
+        // none, and an empty default would drop the directive without a trace.
+        invariant(
+          token.text !== undefined,
+          "an INCLUDE_DIRECTIVE token carries its text",
+        );
+        return IncludeDiscovery._specOfToken(token.text);
+      });
   }
 
   /**
