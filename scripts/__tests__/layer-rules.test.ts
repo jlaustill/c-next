@@ -280,6 +280,7 @@ describe("dependency-cruiser layer rules (#1297)", () => {
       "analyze-cannot-import-plan",
       "analyze-cannot-import-render",
       "analyzers-cannot-reach-codegen-state",
+      "artifact-types-name-no-discovery-module",
       "declare-cannot-import-resolve",
       "instrumentation-cannot-import-a-layer",
       "nothing-after-1-1-discovers",

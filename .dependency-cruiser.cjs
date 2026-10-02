@@ -146,6 +146,29 @@ module.exports = {
       },
     },
     {
+      name: "artifact-types-name-no-discovery-module",
+      comment:
+        "#1444 review. `nothing-after-1-1-discovers` lets a later pass read " +
+        "1.1's `types/`, and that is sound only if `types/` reaches nothing " +
+        "else in 1.1. It did not: `ISourceGraph` took the anchor's facts as a " +
+        "`Pick` of `IRunAnchor`, which names `PathResolver` and `Preprocessor`, " +
+        "so importing the artifact from a later pass gave 21 errors. A false " +
+        "positive is an invitation to widen the exemption. `IRunAnchor` is not " +
+        "the artifact: it describes the services 1.1 picks, and a later pass " +
+        "importing it is caught by the rule above through those services. " +
+        "`reachable` because a type reaches through another type.",
+      severity: "error",
+      from: {
+        path: "^src/PARSE/1-Discover/types/",
+        pathNot: ["__tests__", "^src/PARSE/1-Discover/types/IRunAnchor\\.ts$"],
+      },
+      to: {
+        path: "^src/PARSE/1-Discover/",
+        pathNot: "^src/PARSE/1-Discover/types/",
+        reachable: true,
+      },
+    },
+    {
       name: "declare-cannot-import-resolve",
       comment:
         "#1472/#1447: 1.3 Declare must not depend on 1.4 Resolve. Declare emits " +

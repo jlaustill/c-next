@@ -17,18 +17,36 @@
 
 import { extname } from "node:path";
 
+import EFileType from "../PARSE/1-Discover/types/EFileType";
 import type THeaderExtension from "../transpiler/types/THeaderExtension";
 import IncludeDirectiveText from "./IncludeDirectiveText";
+import invariant from "./invariant";
 
 class IncludeRewriter {
   /**
-   * Rewrite one directive that names C-Next source. A directive with no path
-   * is returned unchanged.
+   * Whether 1.1 Discover classified this directive as naming C-Next source.
+   * A directive with no path names nothing.
    *
-   * #1444, owner ruling 1: whether a directive names C-Next source is 1.1
-   * Discover's answer, recorded per directive, and the caller asks it before
-   * calling this. This used to classify the spelling itself, as the third
-   * copy of a decision 1.1 and 2.1 also made.
+   * #1444, owner ruling 1: the kind is 1.1's answer, recorded per directive.
+   * This is the one place a rewrite reads it, so the `.h`'s user includes
+   * (1.1) and the `.c`'s directives (2.3) follow it the same way. The PR
+   * review found the lookup written once in each caller, and the two copies
+   * had already diverged: render asserted the answer was there, and the
+   * resolver read a missing one as a C header.
+   */
+  static namesCNext(
+    includeText: string,
+    kinds: ReadonlyMap<string, EFileType>,
+  ): boolean {
+    return IncludeRewriter._cnextSpec(includeText, kinds) !== null;
+  }
+
+  /**
+   * Rewrite one directive by 1.1's kind: an include of C-Next source names its
+   * generated header, and any other directive is returned unchanged.
+   *
+   * It used to classify the spelling itself, as the third copy of a decision
+   * 1.1 and 2.1 also made.
    *
    * `rewrites` maps the author's spelling to the path the generated header is
    * reachable at, relative to the header output root. When it has no answer --
@@ -38,10 +56,11 @@ class IncludeRewriter {
    */
   static rewrite(
     includeText: string,
+    kinds: ReadonlyMap<string, EFileType>,
     rewrites: ReadonlyMap<string, string>,
     ext: THeaderExtension,
   ): string {
-    const spec = IncludeDirectiveText.split(includeText);
+    const spec = IncludeRewriter._cnextSpec(includeText, kinds);
     if (spec === null) return includeText;
     // The path is everything between the delimiters, and the closing one is
     // the token's last character, so only the path is replaced: the author's
@@ -52,6 +71,26 @@ class IncludeRewriter {
       IncludeRewriter._headerFor(spec.path, rewrites, ext) +
       includeText.slice(-1)
     );
+  }
+
+  /**
+   * What the directive names, when 1.1 classified it as C-Next source.
+   * Asserts 1.1 classified it at all: it lexed the same tokens 1.2 parsed
+   * (#1745), so every directive with a path has an answer.
+   */
+  private static _cnextSpec(
+    includeText: string,
+    kinds: ReadonlyMap<string, EFileType>,
+  ): { path: string; isLocal: boolean } | null {
+    const spec = IncludeDirectiveText.split(includeText);
+    if (spec === null) return null;
+    const directive = IncludeDirectiveText.join(spec);
+    const kind = kinds.get(directive);
+    invariant(
+      kind !== undefined,
+      `1.1 Discover classified every directive 1.2 parsed (missing ${directive})`,
+    );
+    return kind === EFileType.CNext ? spec : null;
   }
 
   /**

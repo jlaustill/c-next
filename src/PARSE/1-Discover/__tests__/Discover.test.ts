@@ -125,6 +125,20 @@ describe("Discover", () => {
     expect(Object.isFrozen(graph.anchor)).toBe(true);
   });
 
+  it("is frozen all the way down, not just the records (#1444 review)", () => {
+    const { graph } = discover(project());
+    const app = graph.cnextFiles.find(
+      (file) => file.path === "/proj/src/app.cnx",
+    );
+
+    expect(Object.isFrozen(app?.discoveredFile)).toBe(true);
+    expect(Object.isFrozen(app?.cnextIncludes)).toBe(true);
+    expect(Object.isFrozen(app?.cnextIncludes[0])).toBe(true);
+    expect(Object.isFrozen(graph.headerFiles[0])).toBe(true);
+    // The `RunAnchor`'s own object, which the next run at this anchor reuses
+    expect(Object.isFrozen(graph.anchor.defines)).toBe(true);
+  });
+
   it("has no files when the entry is not C-Next", () => {
     const fs = new MockFileSystem().addFile("/proj/src/readme.txt", "hello");
     const warnings: string[] = [];

@@ -1,7 +1,7 @@
 import type IDiscoveredFile from "./IDiscoveredFile";
 import type IPipelineFile from "./IPipelineFile";
 import type IPlatformIOProject from "../../../transpiler/types/IPlatformIOProject";
-import type IRunAnchor from "./IRunAnchor";
+import type IAnchorFacts from "./IAnchorFacts";
 import type IFileIncludes from "./IFileIncludes";
 
 /**
@@ -64,7 +64,7 @@ interface ISourceGraph {
    * so the libraries the run searches and the target it builds for come from
    * one version of the file.
    */
-  readonly anchor: Pick<IRunAnchor, "directory" | "projectRoot" | "defines"> & {
+  readonly anchor: IAnchorFacts & {
     readonly platformio: IPlatformIOProject | null;
   };
 

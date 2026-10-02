@@ -88,14 +88,14 @@ The layers no longer share one root: #1450 box 5 moved the render pass out of
 
 **Use the composable collectors** in `src/PARSE/3-Declare/cnext/`:
 
-- `CNextResolver.resolve(tree, file)` → `TSymbol[]` (discriminated union)
-- `TSymbolAdapter.toISymbols(tSymbols, symbolTable)` → `ISymbol[]` (for SymbolTable)
-- `TSymbolInfoAdapter.convert(tSymbols)` → `ISymbolInfo` (for CodeGenerator)
+- `CNextResolver.resolve(tree, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
+- `TSymbolInfoAdapter.convert(tSymbols)` → `ICodeGenSymbols` (for codegen)
 
 **Do NOT use** the deleted legacy collectors:
 
 - ~~`SymbolCollector`~~ (was in TRANSPILE/3-Render/codegen/)
 - ~~`CNextSymbolCollector`~~ (was in transpiler/logic/symbols/)
+- ~~`TSymbolAdapter`~~ (removed in symbol-resolution Phase 7)
 
 **TypeUtils.getTypeName()** must preserve string capacity (return `string<32>` not `string`) for CodeGenerator validation.
 

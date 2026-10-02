@@ -5,13 +5,13 @@ import EFileType from "./EFileType";
  */
 interface IDiscoveredFile {
   /** Absolute path to the file */
-  path: string;
+  readonly path: string;
 
   /** File type */
-  type: EFileType;
+  readonly type: EFileType;
 
   /** File extension */
-  extension: string;
+  readonly extension: string;
 }
 
 export default IDiscoveredFile;

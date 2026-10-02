@@ -777,8 +777,7 @@ class Transpiler {
         readonly parsed: IParsedFile;
         readonly fileSymbols: IFileSymbols;
       } {
-    const content = file.source ?? this.fs.readFile(file.path);
-    const parsed = CNextSourceParser.parse(content);
+    const parsed = CNextSourceParser.parse(file.source);
 
     // Parse errors — return them with original line/column and sourcePath.
     // #1445: 1.2 carries its own errors, so the artifact is what comes back

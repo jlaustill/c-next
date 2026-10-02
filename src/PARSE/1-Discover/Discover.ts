@@ -149,19 +149,25 @@ class Discover {
   }
 
   /**
-   * The artifact, frozen: the record, its arrays and each file's record. Maps
-   * are typed read-only, as `Program`'s are.
+   * The artifact, frozen all the way down: the record, its arrays, each file's
+   * record and everything under it, and the anchor's facts. Maps are typed
+   * read-only, as `Program`'s are, and left as they are: freezing a `Map`
+   * stops nothing, since `set` writes no property.
+   *
+   * #1444 review: this froze two levels. `discoveredFile`, `cnextIncludes`,
+   * each header and `anchor.defines` still took writes, and two of those reached
+   * past the record written: `anchor.defines` is the `RunAnchor`'s own object,
+   * which the next run at that anchor reuses, and a file's `cnextIncludes`
+   * entry is the included file's own `discoveredFile`.
    */
   private _freeze(files: TDiscoveredFiles): ISourceGraph {
-    return Object.freeze({
-      cnextFiles: Object.freeze(
-        files.cnextFiles.map((file) => Object.freeze(file)),
-      ),
-      headerFiles: Object.freeze([...files.headerFiles]),
+    return Discover._frozen({
+      cnextFiles: files.cnextFiles,
+      headerFiles: files.headerFiles,
       headerSearchPaths: files.headerSearchPaths,
-      includeSearchPaths: Object.freeze([...files.includeSearchPaths]),
+      includeSearchPaths: files.includeSearchPaths,
       includes: this.includes,
-      anchor: Object.freeze({
+      anchor: {
         directory: this.anchor.directory,
         projectRoot: this.anchor.projectRoot,
         defines: this.anchor.defines,
@@ -171,9 +177,24 @@ class Discover {
         platformio: this.anchor.projectRoot
           ? PlatformIOIni.read(this.anchor.projectRoot, this.fs, process.env)
           : null,
-      }),
+      },
       writeOutputToDisk: files.writeOutputToDisk,
     });
+  }
+
+  /**
+   * Freeze plain objects and arrays all the way down, and leave each `Map` as
+   * it is. The graph holds no cycle: an include edge names the included
+   * file's `IDiscoveredFile`, which refers to nothing.
+   */
+  private static _frozen<T>(value: T): T {
+    if (typeof value !== "object" || value === null || value instanceof Map) {
+      return value;
+    }
+    for (const child of Object.values(value)) {
+      Discover._frozen(child);
+    }
+    return Object.freeze(value);
   }
 
   /**

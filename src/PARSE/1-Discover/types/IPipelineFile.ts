@@ -1,18 +1,23 @@
 import IDiscoveredFile from "./IDiscoveredFile";
 
 /**
- * A file descriptor for the unified transpilation pipeline.
+ * One C-Next file of the `SourceGraph` 1.1 Discover emits.
  *
- * Supports both disk-based files (kind: 'files') and in-memory sources
- * (kind: 'source'). The pipeline reads content via:
- *   file.source ?? this.fs.readFile(file.path)
+ * A files run and a source run build the same record: discovery read every
+ * file's text, or was handed the root's, and 1.2 parses exactly that.
  */
 interface IPipelineFile {
   /** Absolute path to the source file */
   readonly path: string;
 
-  /** In-memory source content (overrides disk read when set) */
-  readonly source?: string;
+  /**
+   * The text 1.1 Discover read for this file, or was handed for a source run's
+   * root, and the text 1.2 parses. Required: one read, so a save between the
+   * passes cannot give them different directives (#1835 review). #1444 review:
+   * it was optional, so a later stage could still read the file again through
+   * the port, and `Transpiler` did.
+   */
+  readonly source: string;
 
   /** The discovered file metadata (type, extension) */
   readonly discoveredFile: IDiscoveredFile;

@@ -151,7 +151,7 @@ describe("BitmapCollector", () => {
       );
 
       // With the new IScopeSymbol-based design, name is just "Flags" (not prefixed)
-      // The prefixing happens in TSymbolAdapter for backwards compatibility
+      // The scoped C name comes from ScopeUtils.getTranspiledCName, the one encoder
       expect(symbol.name).toBe("Flags");
     });
   });

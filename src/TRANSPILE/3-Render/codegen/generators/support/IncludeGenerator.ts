@@ -4,7 +4,6 @@
  */
 import IncludeRewriter from "../../../../../utils/IncludeRewriter";
 import EFileType from "../../../../../PARSE/1-Discover/types/EFileType";
-import IncludeDirectiveText from "../../../../../utils/IncludeDirectiveText";
 import type THeaderExtension from "../../../../../transpiler/types/THeaderExtension";
 import invariant from "../../../../../utils/invariant";
 import type IPlannedDirective from "../../types/IPlannedDirective";
@@ -79,21 +78,12 @@ const transformIncludeDirective = (
   includeText: string,
   options: IIncludeTransformOptions,
 ): string => {
-  const include = IncludeDirectiveText.split(includeText);
-  if (include === null) return includeText;
-  const directive = IncludeDirectiveText.join(include);
-  const kind = options.kinds.get(directive);
-  invariant(
-    kind !== undefined,
-    `1.1 Discover classified every directive 1.2 parsed (missing ${directive})`,
+  return IncludeRewriter.rewrite(
+    includeText,
+    options.kinds,
+    options.rewrites,
+    options.headerExtension,
   );
-  return kind === EFileType.CNext
-    ? IncludeRewriter.rewrite(
-        includeText,
-        options.rewrites,
-        options.headerExtension,
-      )
-    : includeText;
 };
 
 /**

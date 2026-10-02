@@ -249,21 +249,17 @@ class IncludeResolver {
     // include?" -- a substring test answered NO for `<utils.cnext>`. #1444:
     // and that predicate is the kind recorded above.
     for (const directive of directives) {
-      const include = IncludeDirectiveText.split(directive);
-      const kind =
-        include === null
-          ? EFileType.Unknown
-          : result.kinds.get(IncludeDirectiveText.join(include));
-      if (kind !== EFileType.CNext) {
-        result.cHeaderIncludes.push(directive);
-      } else {
+      if (IncludeRewriter.namesCNext(directive, result.kinds)) {
         result.userIncludes.push(
           IncludeRewriter.rewrite(
             directive,
+            result.kinds,
             result.cnextIncludeRewrites,
             this.headerExtension,
           ),
         );
+      } else {
+        result.cHeaderIncludes.push(directive);
       }
     }
 
