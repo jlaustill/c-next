@@ -22,6 +22,7 @@ import DefineDirectiveAnalyzer from "./DefineDirectiveAnalyzer";
 import IdentifierSyntaxAnalyzer from "./IdentifierSyntaxAnalyzer";
 import ParameterNamingAnalyzer from "./ParameterNamingAnalyzer";
 import StructFieldAnalyzer from "./StructFieldAnalyzer";
+import TypeDeclarationAnalyzer from "./TypeDeclarationAnalyzer";
 import InitializationAnalyzer from "./InitializationAnalyzer";
 import FunctionCallAnalyzer from "./FunctionCallAnalyzer";
 import UndeclaredTypeAnalyzer from "./UndeclaredTypeAnalyzer";
@@ -242,6 +243,14 @@ function runAnalyzers(
     {
       label: "struct fields (reserved field names like 'length')",
       run: () => new StructFieldAnalyzer().analyze(tree),
+    },
+    {
+      // #1531: before anything reads a bitmap's fields or an enum's values.
+      // A declaration whose own shape is wrong is the cause; a later step
+      // reading it would report a consequence.
+      label:
+        "declared type shape (ADR-034 bitmap width E0893, ADR-017 enum values E0894)",
+      run: () => new TypeDeclarationAnalyzer(context).analyze(),
     },
     {
       label: "initialization (Rust-style use-before-init)",

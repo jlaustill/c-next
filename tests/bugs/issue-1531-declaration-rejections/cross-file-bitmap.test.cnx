@@ -1,0 +1,18 @@
+// test-error
+// test-adr: 034
+// Issue #1531 / ADR-034: the cross-file half of E0893. A bitmap in an INCLUDED
+// file whose fields do not fill its width is rejected with the same coded
+// diagnostic, at the included file's own position.
+//
+// NEGATIVE CONTROL: EntryFlags below fills its width exactly and must stay
+// silent, so a check that fired on every bitmap reachable through an include
+// would fail here. Only the included bitmap is named in .expected.error.
+
+#include "bitmap-lib.cnx"
+
+bitmap8 EntryFlags {
+    On,
+    Level[7]
+}
+
+void main() {}

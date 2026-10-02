@@ -1,7 +1,20 @@
 // test-error
 // ADR-017: Type safety test - should fail
 // Error: Negative values not allowed in enum
+//
+// Issue #1531: 2.1 reports this as E0894 at the offending member. It used to
+// reach the user as `1:0 Code generation failed`, with no code, thrown from 1.3
+// Declare. A member of an enum declared inside a scope is asserted as well.
+//
+// NEGATIVE CONTROL: GOOD <- 0 is the boundary and must stay silent, so a check
+// that rejected zero, or every explicit value, would fail here.
 enum BadEnum {
     GOOD <- 0,
     BAD <- -1
+}
+
+scope Motor {
+    enum EMode {
+        OFF <- -2
+    }
 }

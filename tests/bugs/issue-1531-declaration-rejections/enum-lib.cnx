@@ -1,0 +1,11 @@
+// Helper for cross-file-enum.test.cnx (#1531). Declares an enum with a negative
+// member value. The rejection must fire for an INCLUDED file, at the included
+// file's own position -- 1.3 Declare threw for every file it read, and 2.1
+// Analyze reaches a file only if that file is analyzed.
+//
+// HIGH is reported too: it counts on from LOW, so its value is -2. The throw
+// this replaced stopped at LOW and never saw it.
+enum ELibLevel {
+    LOW <- -3,
+    HIGH
+}

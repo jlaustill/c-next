@@ -137,20 +137,23 @@ describe("EnumCollector", () => {
   });
 
   describe("validation", () => {
-    it("throws error for negative values", () => {
+    // #1531: that a value may not be negative is ADR-017's rule, and 2.1
+    // Analyze reports it (E0894). 1.3 records what was written, and counts on
+    // from it.
+    it("records a negative value as written, without judging it", () => {
       const code = `
         enum Invalid {
-          Bad <- -1
+          Bad <- -1,
+          Next
         }
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
 
-      expect(() =>
-        EnumCollector.collect(enumCtx, "test.cnx", "", "public"),
-      ).toThrow(
-        "Error: Negative values not allowed in enum (found -1 in Invalid.Bad)",
-      );
+      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
+
+      expect(symbol.members.get("Bad")!.value).toBe(-1);
+      expect(symbol.members.get("Next")!.value).toBe(0);
     });
   });
 

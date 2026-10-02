@@ -157,39 +157,28 @@ describe("BitmapCollector", () => {
   });
 
   describe("validation", () => {
-    it("throws error when total bits exceed bitmap size", () => {
-      const code = `
-        bitmap8 TooMany {
-          a[5],
-          b[5]
-        }
-      `;
-      const tree = parse(code);
-      const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
+    // #1531: whether the fields must fill the width is ADR-034's rule, and
+    // 2.1 Analyze reports it (E0893). 1.3 records what was written.
+    it.each([
+      { name: "TooMany", fields: "a[5], b[5]", widths: [5, 5] },
+      { name: "TooFew", fields: "a, b[3]", widths: [1, 3] },
+    ])(
+      "records $name's fields as written, without judging their total",
+      ({ name, fields, widths }) => {
+        const tree = parse(`bitmap8 ${name} { ${fields} }`);
+        const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
 
-      expect(() =>
-        BitmapCollector.collect(bitmapCtx, "test.cnx", "", "public"),
-      ).toThrow(
-        "Error: Bitmap 'TooMany' has 10 bits but bitmap8 requires exactly 8 bits",
-      );
-    });
+        const symbol = BitmapCollector.collect(
+          bitmapCtx,
+          "test.cnx",
+          "",
+          "public",
+        );
 
-    it("throws error when total bits are less than bitmap size", () => {
-      const code = `
-        bitmap8 TooFew {
-          a,
-          b[3]
-        }
-      `;
-      const tree = parse(code);
-      const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
-
-      expect(() =>
-        BitmapCollector.collect(bitmapCtx, "test.cnx", "", "public"),
-      ).toThrow(
-        "Error: Bitmap 'TooFew' has 4 bits but bitmap8 requires exactly 8 bits",
-      );
-    });
+        expect(symbol.bitWidth).toBe(8);
+        expect([...symbol.fields.values()].map((f) => f.width)).toEqual(widths);
+      },
+    );
   });
 
   describe("source line tracking", () => {

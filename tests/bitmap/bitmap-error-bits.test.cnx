@@ -1,9 +1,32 @@
 // test-error
 // ADR-034: Bitmap total bits validation error
 // This should fail because 1+1+3 = 5 bits, not 8
+//
+// Issue #1531: 2.1 reports this as E0893 at the bitmap's own declaration. It
+// used to reach the user as `1:0 Code generation failed`, with no code, thrown
+// from 1.3 Declare. Both directions are asserted -- too few bits (BadBitmap) and
+// too many (WideBitmap) -- and so is a bitmap declared inside a scope.
+//
+// NEGATIVE CONTROL: GoodBitmap fills its width exactly and must stay silent, so
+// a check that rejected every bitmap would fail here.
+bitmap8 GoodBitmap {
+    Low[4],
+    High[4]
+}
+
 bitmap8 BadBitmap {
     A, // 1 bit
     B, // 1 bit
     C[3] // 3 bits
 }
 // Total: 5 bits, but bitmap8 requires 8 bits
+
+bitmap16 WideBitmap {
+    Value[17]
+}
+
+scope Motor {
+    bitmap8 Flags {
+        Mode[3]
+    }
+}
