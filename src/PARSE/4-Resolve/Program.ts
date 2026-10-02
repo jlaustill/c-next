@@ -56,7 +56,6 @@ import type IModificationFacts from "../../transpiler/types/IModificationFacts";
 import type ICallGraphEntry from "../../transpiler/types/ICallGraphEntry";
 import type ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import type IDiscoveryFacts from "./types/IDiscoveryFacts";
-import type IResolvedInclude from "../../transpiler/types/IResolvedInclude";
 import type IProgramInputs from "./types/IProgramInputs";
 import type IVisibilityInput from "./types/IVisibilityInput";
 import TSymbolInfoAdapter from "../3-Declare/cnext/adapters/TSymbolInfoAdapter";
@@ -105,6 +104,7 @@ const NO_MODIFICATIONS: IModificationFacts = {
 const NO_DISCOVERY: IDiscoveryFacts = {
   cnxIncludeRewrites: new Map(),
   includeResolutions: new Map(),
+  cnextAlternatives: new Map(),
   quotedIncludeDirectories: new Map(),
 };
 
@@ -307,13 +307,21 @@ class Program {
       },
       includeResolutions: (
         sourceFile: string,
-      ): ReadonlyMap<string, IResolvedInclude> => {
+      ): ReadonlyMap<string, string | null> => {
         const resolutions = discovery.includeResolutions.get(sourceFile);
         invariant(
           resolutions !== undefined,
           `discovery records the include resolutions of every file it resolves (missing ${sourceFile})`,
         );
         return resolutions;
+      },
+      cnextAlternatives: (sourceFile: string): ReadonlyMap<string, string> => {
+        const alternatives = discovery.cnextAlternatives.get(sourceFile);
+        invariant(
+          alternatives !== undefined,
+          `discovery records the C-Next alternatives of every file it resolves (missing ${sourceFile})`,
+        );
+        return alternatives;
       },
       quotedIncludeDirectory: (sourceFile: string): string => {
         const directory = discovery.quotedIncludeDirectories.get(sourceFile);

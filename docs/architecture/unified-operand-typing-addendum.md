@@ -354,7 +354,7 @@ This reaches serve, which builds its Transpiler with `input: ""` (`ServeCommand.
 
 **The one fact behind "reaches a header".**
 
-- `IResolvedIncludes.hasForeignInclude` (`IncludeResolver.ts:41`, set at `:212` and `:253`) becomes `firstForeignInclude: {line, column} | null`.
+- `IResolvedIncludes.hasForeignInclude` (`IncludeResolver.ts:47`, set at `:295` and `:371`) becomes `firstForeignInclude: {line, column} | null`.
 - `extractIncludesWithInfo` (`IncludeDiscovery.ts:485-499`) carries the position from `_scanIncludeDirectives` (`:382`).
 - The readers at `Transpiler.ts:1423`, `:1432` and `:2169` compare it with `!== null`.
 - `IPipelineFile` gains `firstForeignInclude`, which is direct. `reachesForeignHeader` (`IPipelineFile.ts:38`) is unchanged, so E0426 and E0427 are unchanged.

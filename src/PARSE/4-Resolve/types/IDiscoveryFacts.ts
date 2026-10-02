@@ -1,11 +1,9 @@
-import type IResolvedInclude from "../../../transpiler/types/IResolvedInclude";
-
 /**
  * What 1.1 Discover learned about a file's includes, frozen into `Program`.
  *
  * ## Why these travel on the program artifact (#1452)
  *
- * All three are written during discovery and read two stages later, and none
+ * All four are written during discovery and read two stages later, and none
  * can be re-derived at the point of use -- which is what put them on a mutable
  * accumulator in the first place. A state container held them, and box 4 of
  * #1452 forbids a module reachable from the pipeline holding state written in
@@ -46,8 +44,8 @@ interface IDiscoveryFacts {
   readonly cnxIncludeRewrites: ReadonlyMap<string, ReadonlyMap<string, string>>;
 
   /**
-   * Per source file, what each `#include` directive resolved to, keyed by
-   * `IncludeDiscovery.directiveText` (#1672).
+   * Per source file, the file each `#include` directive resolved to, or null,
+   * keyed by `IncludeDiscovery.directiveText` (#1672).
    *
    * Recorded because 2.1's ADR-010 rules must report the answer discovery
    * gave, not one of their own. #1322 recorded the search path for them
@@ -59,8 +57,16 @@ interface IDiscoveryFacts {
    */
   readonly includeResolutions: ReadonlyMap<
     string,
-    ReadonlyMap<string, IResolvedInclude>
+    ReadonlyMap<string, string | null>
   >;
+
+  /**
+   * Per source file, ADR-010's E0504 question answered by the same rule: for
+   * each include of a header whose C-Next source the same form of include
+   * would find, that source's spelling, keyed like `includeResolutions`
+   * (#1672). An include with no entry has no such source.
+   */
+  readonly cnextAlternatives: ReadonlyMap<string, ReadonlyMap<string, string>>;
 
   /**
    * Per source file, the directory its quoted includes resolve from (#1435).

@@ -40,8 +40,8 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
 import invariant from "../../utils/invariant";
 import IncludeDiscovery from "../../transpiler/data/IncludeDiscovery";
-import type IResolvedInclude from "../../transpiler/types/IResolvedInclude";
 import IncludeDirective from "./helpers/IncludeDirective";
+import IIncludeContext from "./types/IIncludeContext";
 import IIncludeDirectiveError from "./types/IIncludeDirectiveError";
 
 /** Files that carry definitions; including one duplicates every symbol in it. */
@@ -59,9 +59,7 @@ const extensionOf = (path: string): string =>
 class IncludeDirectiveListener extends CNextListener {
   private readonly found: IIncludeDirectiveError[] = [];
 
-  public constructor(
-    private readonly resolutions: ReadonlyMap<string, IResolvedInclude>,
-  ) {
+  public constructor(private readonly context: IIncludeContext) {
     super();
   }
 
@@ -76,9 +74,15 @@ class IncludeDirectiveListener extends CNextListener {
     if (spec === null) return;
 
     if (this.checkImplementationFile(ctx, spec)) return;
-    const resolution = this.resolutionOf(spec);
-    if (this.checkMissingCnextFile(ctx, spec, resolution)) return;
-    this.checkCnextAlternative(ctx, spec, resolution);
+    const directive = IncludeDiscovery.directiveText(spec);
+    if (this.checkMissingCnextFile(ctx, spec, this.resolutionOf(directive))) {
+      return;
+    }
+    this.checkCnextAlternative(
+      ctx,
+      spec,
+      this.context.cnextAlternatives.get(directive),
+    );
   };
 
   /**
@@ -86,17 +90,13 @@ class IncludeDirectiveListener extends CNextListener {
    * directives with the grammar's own lexer (#1745), so every directive the
    * parser found has one.
    */
-  private resolutionOf(spec: {
-    path: string;
-    isLocal: boolean;
-  }): IResolvedInclude {
-    const directive = IncludeDiscovery.directiveText(spec);
-    const resolution = this.resolutions.get(directive);
+  private resolutionOf(directive: string): string | null {
+    const resolved = this.context.resolutions.get(directive);
     invariant(
-      resolution !== undefined,
+      resolved !== undefined,
       `1.1 Discover resolved every directive 1.2 parsed (missing ${directive})`,
     );
-    return resolution;
+    return resolved;
   }
 
   /** E0503: `#include "helper.c"` -- a definition, not an interface. */
@@ -124,10 +124,10 @@ class IncludeDirectiveListener extends CNextListener {
   private checkMissingCnextFile(
     ctx: Parser.IncludeDirectiveContext,
     spec: { path: string; isLocal: boolean },
-    resolution: IResolvedInclude,
+    resolved: string | null,
   ): boolean {
     if (!IncludeDiscovery.isQuotedCNext(spec)) return false;
-    if (resolution.file !== null) return false;
+    if (resolved !== null) return false;
     // The help names no absolute path on purpose. The throw this replaces put
     // the resolved path in its message; it had no fixture, and the first one
     // written for it embedded this machine's checkout directory in an
@@ -152,10 +152,9 @@ class IncludeDirectiveListener extends CNextListener {
   private checkCnextAlternative(
     ctx: Parser.IncludeDirectiveContext,
     spec: { path: string; isLocal: boolean },
-    resolution: IResolvedInclude,
+    cnxPath: string | undefined,
   ): void {
-    const cnxPath = resolution.cnextSource;
-    if (cnxPath === null) return;
+    if (cnxPath === undefined) return;
 
     const instead = IncludeDiscovery.directiveText({
       path: cnxPath,
@@ -183,9 +182,9 @@ class IncludeDirectiveListener extends CNextListener {
 class IncludeDirectiveAnalyzer {
   public analyze(
     tree: Parser.ProgramContext,
-    resolutions: ReadonlyMap<string, IResolvedInclude>,
+    context: IIncludeContext,
   ): IIncludeDirectiveError[] {
-    const listener = new IncludeDirectiveListener(resolutions);
+    const listener = new IncludeDirectiveListener(context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

@@ -9,7 +9,7 @@ import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import testAnalysisContextFor from "./testAnalysisContextFor";
-import type IResolvedInclude from "../../../transpiler/types/IResolvedInclude";
+import type IIncludeContext from "../types/IIncludeContext";
 
 /**
  * #1322 / #1672: discovery's answer, for a test that has no file.
@@ -20,9 +20,10 @@ import type IResolvedInclude from "../../../transpiler/types/IResolvedInclude";
  * source. That makes E0504 and E0506 silent here by construction, and it says
  * so, where an optional parameter would have made them silent by omission.
  */
-const NO_INCLUDES: ReadonlyMap<string, IResolvedInclude> = new Map([
-  ["#include <string.h>", { file: null, cnextSource: null }],
-]);
+const NO_INCLUDES: IIncludeContext = {
+  resolutions: new Map([["#include <string.h>", null]]),
+  cnextAlternatives: new Map(),
+};
 
 /**
  * Helper to parse C-Next code and return the AST plus its comments.

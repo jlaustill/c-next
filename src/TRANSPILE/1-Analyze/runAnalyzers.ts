@@ -64,7 +64,7 @@ import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
 import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../lib/types/ITranspileError";
 import IncludeDirectiveAnalyzer from "./IncludeDirectiveAnalyzer";
-import type IResolvedInclude from "../../transpiler/types/IResolvedInclude";
+import IIncludeContext from "./types/IIncludeContext";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
@@ -83,9 +83,8 @@ interface IAnalyzerOptions {
   readonly context: IAnalysisContext;
 
   /**
-   * #1672: what 1.1 Discover resolved each of this file's `#include`
-   * directives to, keyed by `IncludeDiscovery.directiveText`. ADR-010's rules
-   * read discovery's answer and ask the file system nothing, so the include
+   * #1672: 1.1 Discover's answers for this file's `#include` directives.
+   * ADR-010's rules read them and ask the file system nothing, so the include
    * they accept and the file the run discovered cannot differ.
    *
    * #1322 passed the include facts in rather than reading them off shared
@@ -98,7 +97,7 @@ interface IAnalyzerOptions {
    * cannot fire: a caller who forgot it would lose all three ADR-010 rules
    * with nothing failing.
    */
-  readonly includes: ReadonlyMap<string, IResolvedInclude>;
+  readonly includes: IIncludeContext;
 
   /**
    * #1322: whether this run emits C++.

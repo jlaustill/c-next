@@ -10,7 +10,6 @@ import type IHeaderRoot from "./types/IHeaderRoot";
 import EFileType from "./types/EFileType";
 import DependencyGraph from "./DependencyGraph";
 import IFileSystem from "../types/IFileSystem";
-import type IResolvedInclude from "../types/IResolvedInclude";
 
 /**
  * The header extensions ADR-010 admits, and the C-Next source each names:
@@ -84,11 +83,18 @@ interface IResolvedIncludes {
   writerRelativeIncludes: Map<string, string>;
 
   /**
-   * #1672: this resolver's answer for every directive it read, keyed by
-   * `IncludeDiscovery.directiveText`. 2.1's ADR-010 rules read it rather than
-   * resolving the include a second time.
+   * #1672: the file every directive this resolver read resolved to, or null,
+   * keyed by `IncludeDiscovery.directiveText`. 2.1's E0506 reads it rather
+   * than resolving the include a second time.
    */
-  resolutions: Map<string, IResolvedInclude>;
+  resolutions: Map<string, string | null>;
+
+  /**
+   * #1672: for each include of a header ADR-010 admits whose C-Next source
+   * the same form of include would find, that source's spelling (`ext.cnx`
+   * for `ext.h`), keyed like `resolutions`. 2.1's E0504 reads it.
+   */
+  cnextAlternatives: Map<string, string>;
 }
 
 /**
@@ -184,7 +190,8 @@ class IncludeResolver {
       headerIncludeDirectives: new Map<string, string>(),
       cnextIncludeRewrites: new Map<string, string>(),
       writerRelativeIncludes: new Map<string, string>(),
-      resolutions: new Map<string, IResolvedInclude>(),
+      resolutions: new Map<string, string | null>(),
+      cnextAlternatives: new Map<string, string>(),
       hasForeignInclude: false,
     };
 
@@ -206,10 +213,12 @@ class IncludeResolver {
     result: IResolvedIncludes,
   ): void {
     const resolved = this._resolveSpelling(includeInfo);
-    result.resolutions.set(IncludeDiscovery.directiveText(includeInfo), {
-      file: resolved,
-      cnextSource: this._cnextSourceOf(includeInfo),
-    });
+    const directive = IncludeDiscovery.directiveText(includeInfo);
+    result.resolutions.set(directive, resolved);
+    const alternative = this._cnextAlternativeOf(includeInfo);
+    if (alternative !== null) {
+      result.cnextAlternatives.set(directive, alternative);
+    }
 
     if (!resolved) {
       this._handleUnresolvedInclude(includeInfo, sourceFilePath, result);
@@ -237,7 +246,7 @@ class IncludeResolver {
    * when the same form of include would find it -- E0504's question, which
    * 2.1 reads rather than asks (#1672).
    */
-  private _cnextSourceOf(includeInfo: {
+  private _cnextAlternativeOf(includeInfo: {
     path: string;
     isLocal: boolean;
   }): string | null {

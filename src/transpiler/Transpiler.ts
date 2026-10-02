@@ -17,7 +17,6 @@ import { availableParallelism } from "node:os";
 import type IConflict from "./types/IConflict";
 
 import IFileSystem from "./types/IFileSystem";
-import type IResolvedInclude from "./types/IResolvedInclude";
 
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import CNextSourceParser from "../PARSE/2-Parse/CNextSourceParser";
@@ -301,7 +300,13 @@ class Transpiler {
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private readonly discoveredIncludeResolutions = new Map<
     string,
-    ReadonlyMap<string, IResolvedInclude>
+    ReadonlyMap<string, string | null>
+  >();
+
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  private readonly discoveredCnextAlternatives = new Map<
+    string,
+    ReadonlyMap<string, string>
   >();
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
@@ -940,6 +945,7 @@ class Transpiler {
           discovery: {
             cnxIncludeRewrites: this.discoveredCnxIncludeRewrites,
             includeResolutions: this.discoveredIncludeResolutions,
+            cnextAlternatives: this.discoveredCnextAlternatives,
             quotedIncludeDirectories: this.discoveredQuotedIncludeDirectories,
           },
           registry: this.symbolRegistry,
@@ -1162,7 +1168,10 @@ class Transpiler {
           reachesForeignHeader: file.reachesForeignHeader ?? true,
           sourceFile: sourcePath,
         },
-        includes: this.program.includeResolutions(sourcePath),
+        includes: {
+          resolutions: this.program.includeResolutions(sourcePath),
+          cnextAlternatives: this.program.cnextAlternatives(sourcePath),
+        },
       });
     } catch (err) {
       return [Transpiler._collectionError(err)];
@@ -1553,6 +1562,7 @@ class Transpiler {
     // directory (#1435) would answer where its invariant should fire.
     this.discoveredCnxIncludeRewrites.clear();
     this.discoveredIncludeResolutions.clear();
+    this.discoveredCnextAlternatives.clear();
     this.discoveredQuotedIncludeDirectories.clear();
     // #1662: both are run-scoped and both were initialized ONCE, in the
     // constructor, so neither was ever cleared. `warnings` is pushed to per run
@@ -2355,6 +2365,10 @@ class Transpiler {
     );
     // #1672: what each directive resolved to, which 2.1's ADR-010 rules read
     this.discoveredIncludeResolutions.set(cnxFile.path, resolved.resolutions);
+    this.discoveredCnextAlternatives.set(
+      cnxFile.path,
+      resolved.cnextAlternatives,
+    );
     // Issues #497/#854: how this file spells each header and .cnx it includes,
     // which is what its own generated header must say (#1435)
     this.headerIncludeDirectivesByFile.set(cnxFile.path, {

@@ -37,7 +37,7 @@ const analyze = (
   ).resolve(source);
   return new IncludeDirectiveAnalyzer().analyze(
     CNextSourceParser.parse(source).tree,
-    discovered.resolutions,
+    discovered,
   );
 };
 
@@ -206,7 +206,10 @@ describe("IncludeDirectiveAnalyzer (1.1's answer)", () => {
       '#include "helper.h"\n\nu8 main() {\n    return 0;\n}',
     );
     expect(() =>
-      new IncludeDirectiveAnalyzer().analyze(tree, new Map()),
+      new IncludeDirectiveAnalyzer().analyze(tree, {
+        resolutions: new Map(),
+        cnextAlternatives: new Map(),
+      }),
     ).toThrow("1.1 Discover resolved every directive 1.2 parsed");
   });
 });

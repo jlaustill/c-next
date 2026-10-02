@@ -11,7 +11,6 @@ import type TSymbol from "./symbols/TSymbol";
 import type IConflict from "./IConflict";
 import type ICallGraphEntry from "./ICallGraphEntry";
 import type ICodeGenSymbols from "./ICodeGenSymbols";
-import type IResolvedInclude from "./IResolvedInclude";
 
 /**
  * `Program` — the artifact 1.4 Resolve emits, and the only place a cross-file
@@ -235,13 +234,21 @@ interface IProgram {
   target(): TRunTarget;
 
   /**
-   * #1672: what 1.1 Discover resolved each `#include` directive of
-   * `sourceFile` to, keyed by `IncludeDiscovery.directiveText`. ADR-010's
-   * rules read this and ask the file system nothing, so the include 2.1
-   * accepts and the file the run discovered are one answer. Every file the run
-   * analyzes was discovered, so a missing entry is a defect.
+   * #1672: the file 1.1 Discover resolved each `#include` directive of
+   * `sourceFile` to, or null, keyed by `IncludeDiscovery.directiveText`.
+   * ADR-010's E0506 reads this and asks the file system nothing, so the
+   * include 2.1 accepts and the file the run discovered are one answer. Every
+   * file the run analyzes was discovered, so a missing entry is a defect.
    */
-  includeResolutions(sourceFile: string): ReadonlyMap<string, IResolvedInclude>;
+  includeResolutions(sourceFile: string): ReadonlyMap<string, string | null>;
+
+  /**
+   * #1672: for each include of a header in `sourceFile` whose C-Next source
+   * the same form of include would find, that source's spelling, keyed like
+   * `includeResolutions`. ADR-010's E0504 reads it; 1.1 answered it by the
+   * rule it resolves every include with.
+   */
+  cnextAlternatives(sourceFile: string): ReadonlyMap<string, string>;
 
   /**
    * #1435: the directory a quoted include from `sourceFile` resolves from, as

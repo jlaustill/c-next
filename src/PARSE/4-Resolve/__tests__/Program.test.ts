@@ -831,6 +831,7 @@ scope Gauge {
         "bindValue",
         "callGraph",
         "callbackCompatibleFunctions",
+        "cnextAlternatives",
         "cnxIncludeRewrites",
         "codeGenSymbolsFor",
         "conflicts",
