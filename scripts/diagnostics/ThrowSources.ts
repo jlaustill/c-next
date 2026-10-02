@@ -30,8 +30,8 @@ const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
  * The first line ANTLR writes into every file it generates. Keyed on the
  * generator's own mark, not on the `grammar/` directories that hold the output
  * today: a directory list is a second record of where the generator writes,
- * and a parser regenerated somewhere new would then join the corpus with its
- * 454 throws, or a hand-written file placed in `grammar/` would leave it.
+ * and a parser regenerated somewhere new would then join the corpus with every
+ * throw ANTLR wrote, or a hand-written file placed in `grammar/` would leave it.
  */
 const GENERATED_BY_ANTLR = /^\/\/ Generated from .* by ANTLR/;
 

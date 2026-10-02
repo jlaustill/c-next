@@ -920,7 +920,7 @@ buffer[0] = (uint8_t)(magic);
   still forbids is a SECOND container — another field holding per-file facts
   beside it
 
-### Assignment Classification (ADR-065)
+### Assignment Classification (`docs/architecture/codegen-decomposition.md`, formerly ADR-065)
 
 To add new patterns: (1) Add `AssignmentKind` enum, (2) Update `AssignmentClassifier`, (3) Create handler, (4) Register handler, (5) Update test count.
 
