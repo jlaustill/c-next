@@ -18,26 +18,17 @@
 import { extname } from "node:path";
 
 import type THeaderExtension from "../types/THeaderExtension";
-import FileDiscovery from "./FileDiscovery";
 import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
-import EFileType from "./types/EFileType";
 
 class IncludeRewriter {
   /**
-   * Extract the `.cnx` path an include directive names, as the author spelled
-   * it -- `<Display/utils.cnx>` gives `Display/utils.cnx`. Null when the
-   * directive does not name a `.cnx` file.
+   * Rewrite one directive that names C-Next source. A directive with no path
+   * is returned unchanged.
    *
-   * The spelling is the key `rewrites` is built with, so both must come from
-   * the same reading of the directive.
-   */
-  static cnxSpecOf(includeText: string): string | null {
-    return IncludeRewriter._cnextSpecOf(includeText)?.path ?? null;
-  }
-
-  /**
-   * Rewrite one directive. A directive that does not name a `.cnx` file is
-   * returned unchanged.
+   * #1444, owner ruling 1: whether a directive names C-Next source is 1.1
+   * Discover's answer, recorded per directive, and the caller asks it before
+   * calling this. This used to classify the spelling itself, as the third
+   * copy of a decision 1.1 and 2.1 also made.
    *
    * `rewrites` maps the author's spelling to the path the generated header is
    * reachable at, relative to the header output root. When it has no answer --
@@ -50,7 +41,7 @@ class IncludeRewriter {
     rewrites: ReadonlyMap<string, string>,
     ext: THeaderExtension,
   ): string {
-    const spec = IncludeRewriter._cnextSpecOf(includeText);
+    const spec = IncludeDirectiveText.split(includeText);
     if (spec === null) return includeText;
     // The path is everything between the delimiters, and the closing one is
     // the token's last character, so only the path is replaced: the author's
@@ -61,24 +52,6 @@ class IncludeRewriter {
       IncludeRewriter._headerFor(spec.path, rewrites, ext) +
       includeText.slice(-1)
     );
-  }
-
-  /**
-   * The C-Next source a directive names, with its form, or null.
-   *
-   * #1672: split by the one split of a directive's text and classified by
-   * `FileDiscovery`, the classification 1.1 resolves with. This held its own
-   * regexes and its own copy of the C-Next extensions, matched
-   * case-sensitively where discovery is not (#1833).
-   */
-  private static _cnextSpecOf(
-    includeText: string,
-  ): { path: string; isLocal: boolean } | null {
-    const spec = IncludeDirectiveText.split(includeText);
-    if (spec === null) return null;
-    return FileDiscovery.classifyFile(spec.path).type === EFileType.CNext
-      ? spec
-      : null;
   }
 
   /**

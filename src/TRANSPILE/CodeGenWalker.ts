@@ -23,6 +23,7 @@
  */
 import type ISubstringOps from "./3-Render/codegen/types/ISubstringOps";
 import type IChainStep from "../transpiler/types/IChainStep";
+import type EFileType from "../transpiler/data/types/EFileType";
 import type IStringConcatOps from "./3-Render/codegen/types/IStringConcatOps";
 import { basename } from "node:path";
 import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
@@ -1856,6 +1857,8 @@ class CodeGenWalker {
     AdrProvenance.beginFile(this.host.state.sourcePath);
     this.host.state.cnxIncludeRewrites =
       options?.cnxIncludeRewrites ?? new Map<string, string>();
+    this.host.state.includeKinds =
+      options?.includeKinds ?? new Map<string, EFileType>();
     this.host.state.cppMode = options?.cppMode ?? false;
     this.host.state.pendingTempDeclarations = [];
     this.host.state.tempVarCounter = 0;
@@ -2312,6 +2315,7 @@ class CodeGenWalker {
     return includeTransformIncludeDirective(includeText, {
       sourcePath: this.host.state.sourcePath,
       rewrites: this.host.state.cnxIncludeRewrites,
+      kinds: this.host.state.includeKinds,
       headerExtension: this.host.state.outputExtensions.header,
     });
   }

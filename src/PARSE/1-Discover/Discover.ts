@@ -494,6 +494,9 @@ class Discover {
         // #1672: what each directive resolved to, which 2.1's ADR-010 rules read
         resolutions: resolved.resolutions,
         cnextAlternatives: resolved.cnextAlternatives,
+        // #1444, owner ruling 1: what each directive's spelling names, which
+        // 2.1 and render read rather than classify
+        kinds: resolved.kinds,
         // #1435: the directory its quoted includes resolve from, which a
         // generated header spells them relative to (#1725)
         quotedIncludeDirectory: sourceDir,

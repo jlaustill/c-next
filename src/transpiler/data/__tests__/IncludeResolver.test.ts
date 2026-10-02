@@ -619,6 +619,22 @@ describe("IncludeResolver", () => {
       expect(result.cHeaderIncludes).toEqual([]);
     });
 
+    // #1444, owner ruling 1: the one classification of an include. Render
+    // and 2.1 read this map; `IncludeRewriter`'s own case-sensitive regexes
+    // once called `Utils.CNX` foreign while 1.1 pulled it into the run (#1833).
+    it.each([
+      ['#include "Utils.CNX"', EFileType.CNext],
+      ["#include <utils.Cnext>", EFileType.CNext],
+      ['#include "utils.h"', EFileType.CHeader],
+      ['#include "utils.cnx.h"', EFileType.CHeader],
+      ['#include "impl.c++"', EFileType.CppSource],
+      ["#include <notes.txt>", EFileType.Unknown],
+    ])("records %s as %s", (directive, kind) => {
+      const result = resolverFor(".h").resolve(directive);
+
+      expect([...result.kinds]).toEqual([[directive, kind]]);
+    });
+
     it("has neither for a file with no includes", () => {
       const result = resolverFor(".h").resolve("void main() { }");
 

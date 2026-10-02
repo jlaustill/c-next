@@ -3,6 +3,8 @@
  * Extracted from CodeGenerator.ts.
  */
 import IncludeRewriter from "../../../../../transpiler/data/IncludeRewriter";
+import EFileType from "../../../../../transpiler/data/types/EFileType";
+import IncludeDirectiveText from "../../../../../utils/IncludeDirectiveText";
 import type THeaderExtension from "../../../../../transpiler/types/THeaderExtension";
 import invariant from "../../../../../utils/invariant";
 import type IPlannedDirective from "../../types/IPlannedDirective";
@@ -35,6 +37,12 @@ interface IIncludeTransformOptions {
    * ever fed -- so the `.c` silently used the fallback while claiming not to.
    */
   rewrites: ReadonlyMap<string, string>;
+  /**
+   * #1444, owner ruling 1: the kind of file each directive names, as 1.1
+   * Discover classified it, keyed by `IncludeDirectiveText.join`. Whether a
+   * directive is a C-Next include is read here, never decided.
+   */
+  kinds: ReadonlyMap<string, EFileType>;
   /**
    * Issue #1319: the run's header extension (".h" or ".hpp"), not its mode.
    * Required -- it was `cppMode?: boolean` destructured with a `false` default
@@ -71,11 +79,21 @@ const transformIncludeDirective = (
   includeText: string,
   options: IIncludeTransformOptions,
 ): string => {
-  return IncludeRewriter.rewrite(
-    includeText,
-    options.rewrites,
-    options.headerExtension,
+  const include = IncludeDirectiveText.split(includeText);
+  if (include === null) return includeText;
+  const directive = IncludeDirectiveText.join(include);
+  const kind = options.kinds.get(directive);
+  invariant(
+    kind !== undefined,
+    `1.1 Discover classified every directive 1.2 parsed (missing ${directive})`,
   );
+  return kind === EFileType.CNext
+    ? IncludeRewriter.rewrite(
+        includeText,
+        options.rewrites,
+        options.headerExtension,
+      )
+    : includeText;
 };
 
 /**

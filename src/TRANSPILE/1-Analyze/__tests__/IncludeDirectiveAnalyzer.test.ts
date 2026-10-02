@@ -4,6 +4,7 @@ import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import IncludeResolver from "../../../transpiler/data/IncludeResolver";
 import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
 import IncludeDirectiveAnalyzer from "../IncludeDirectiveAnalyzer";
+import EFileType from "../../../transpiler/data/types/EFileType";
 
 /**
  * #1322. ADR-010's include rules -- E0503 (an implementation file), E0504 (a
@@ -52,25 +53,20 @@ describe("IncludeDirectiveAnalyzer (E0503)", () => {
     );
   });
 
-  it("rejects every implementation extension, in either form", () => {
-    const source = [
-      '#include "a.c"',
-      "#include <b.cpp>",
-      '#include "c.CC"',
-      "#include <d.cxx>",
-      '#include "e.c++"',
-      "",
-      "u8 main() {",
-      "    return 0;",
-      "}",
-    ].join("\n");
-    expect(analyze(source).map((e) => e.code)).toEqual([
-      "E0503",
-      "E0503",
-      "E0503",
-      "E0503",
-      "E0503",
-    ]);
+  // #1840: one row per extension, so removing one from 1.1's classification
+  // reddens exactly its row. `.c++` is C++ source by owner ruling 4 on #1444.
+  it.each([
+    ['#include "a.c"'],
+    ["#include <b.cpp>"],
+    ['#include "c.CC"'],
+    ["#include <d.cxx>"],
+    ['#include "e.c++"'],
+  ])("rejects %s, an implementation file", (directive) => {
+    expect(
+      analyze(`${directive}\n\nu8 main() {\n    return 0;\n}`).map(
+        (e) => e.code,
+      ),
+    ).toEqual(["E0503"]);
   });
 
   it("accepts headers and C-Next sources", () => {
@@ -209,7 +205,52 @@ describe("IncludeDirectiveAnalyzer (1.1's answer)", () => {
       new IncludeDirectiveAnalyzer().analyze(tree, {
         resolutions: new Map(),
         cnextAlternatives: new Map(),
+        kinds: new Map([['#include "helper.h"', EFileType.CHeader]]),
       }),
     ).toThrow("1.1 Discover resolved every directive 1.2 parsed");
+  });
+
+  it("never classifies a directive discovery did not classify (#1444)", () => {
+    const { tree } = CNextSourceParser.parse(
+      '#include "helper.h"\n\nu8 main() {\n    return 0;\n}',
+    );
+    expect(() =>
+      new IncludeDirectiveAnalyzer().analyze(tree, {
+        resolutions: new Map([['#include "helper.h"', null]]),
+        cnextAlternatives: new Map(),
+        kinds: new Map(),
+      }),
+    ).toThrow("1.1 Discover classified every directive 1.2 parsed");
+  });
+
+  // Owner ruling 1 on #1444: E0506 and E0503 read 1.1's kind. These hand the
+  // analyzer a kind its extension would not give, so an analyzer that
+  // classified the spelling itself goes red.
+  const answer = (directive: string, kind: EFileType) => ({
+    resolutions: new Map([[directive, null]]),
+    cnextAlternatives: new Map<string, string>(),
+    kinds: new Map([[directive, kind]]),
+  });
+  const reported = (directive: string, kind: EFileType): string[] =>
+    new IncludeDirectiveAnalyzer()
+      .analyze(
+        CNextSourceParser.parse(`${directive}\n\nu8 main() {\n    return 0;\n}`)
+          .tree,
+        answer(directive, kind),
+      )
+      .map((e) => e.code);
+
+  it("reports E0506 for a missing quoted include 1.1 classified as C-Next", () => {
+    expect(reported('#include "Gen.CNX"', EFileType.CNext)).toEqual(["E0506"]);
+  });
+
+  it("does not report E0506 when 1.1 did not classify the spelling as C-Next", () => {
+    expect(reported('#include "gen.cnx"', EFileType.CHeader)).toEqual([]);
+  });
+
+  it("reports E0503 for what 1.1 classified as source, whatever the spelling", () => {
+    expect(reported('#include "weird.inc"', EFileType.CSource)).toEqual([
+      "E0503",
+    ]);
   });
 });

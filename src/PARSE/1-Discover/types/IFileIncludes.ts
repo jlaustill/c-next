@@ -1,3 +1,5 @@
+import type EFileType from "../../../transpiler/data/types/EFileType";
+
 /**
  * What 1.1 Discover learned about one `.cnx` file's includes, while it
  * resolved them (#1444).
@@ -36,6 +38,14 @@ interface IFileIncludes {
    * entry has no such source.
    */
   readonly cnextAlternatives: ReadonlyMap<string, string>;
+
+  /**
+   * The kind of file each directive's spelling names, keyed like
+   * `resolutions` (#1444, owner ruling 1). The one classification of an
+   * include: 2.1's ADR-010 rules (E0503, E0506) and render read it, and no
+   * pass after 1.1 classifies a spelling itself.
+   */
+  readonly kinds: ReadonlyMap<string, EFileType>;
 
   /**
    * The directory this file's quoted includes resolve from (#1435): its own

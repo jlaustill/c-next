@@ -98,6 +98,14 @@ interface IResolvedIncludes {
   cnextAlternatives: Map<string, string>;
 
   /**
+   * The kind of file each directive's spelling names, by its extension, keyed
+   * like `resolutions` (#1444, owner ruling 1). The one classification of an
+   * include: 2.1's ADR-010 rules and render read it, and neither classifies a
+   * spelling itself. A directive 1.2 parsed always has an entry.
+   */
+  kinds: Map<string, EFileType>;
+
+  /**
    * The file's `.cnx` includes, each rendered as the include its generated
    * header carries: the author's directive with its path replaced by the
    * header `cnextIncludeRewrites` names, or by the extension swap when it
@@ -221,6 +229,7 @@ class IncludeResolver {
       writerRelativeIncludes: new Map<string, string>(),
       resolutions: new Map<string, string | null>(),
       cnextAlternatives: new Map<string, string>(),
+      kinds: new Map<string, EFileType>(),
       userIncludes: [],
       cHeaderIncludes: [],
       hasForeignInclude: false,
@@ -237,9 +246,15 @@ class IncludeResolver {
 
     // After every directive is resolved, so each `.cnx` include's header is
     // known. Issue #1467 review: one predicate for "is this a C-Next
-    // include?" -- a substring test answered NO for `<utils.cnext>`.
+    // include?" -- a substring test answered NO for `<utils.cnext>`. #1444:
+    // and that predicate is the kind recorded above.
     for (const directive of directives) {
-      if (IncludeRewriter.cnxSpecOf(directive) === null) {
+      const include = IncludeDirectiveText.split(directive);
+      const kind =
+        include === null
+          ? EFileType.Unknown
+          : result.kinds.get(IncludeDirectiveText.join(include));
+      if (kind !== EFileType.CNext) {
         result.cHeaderIncludes.push(directive);
       } else {
         result.userIncludes.push(
@@ -266,6 +281,10 @@ class IncludeResolver {
     const resolved = this._resolveSpelling(includeInfo);
     const directive = IncludeDirectiveText.join(includeInfo);
     result.resolutions.set(directive, resolved);
+    result.kinds.set(
+      directive,
+      FileDiscovery.classifyFile(includeInfo.path).type,
+    );
     const alternative = this._cnextAlternativeOf(includeInfo);
     if (alternative !== null) {
       result.cnextAlternatives.set(directive, alternative);

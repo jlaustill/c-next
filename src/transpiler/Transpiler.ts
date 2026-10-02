@@ -943,6 +943,7 @@ class Transpiler {
         includes: {
           resolutions: this._includesOf(sourcePath).resolutions,
           cnextAlternatives: this._includesOf(sourcePath).cnextAlternatives,
+          kinds: this._includesOf(sourcePath).kinds,
         },
       });
     } catch (err) {
@@ -1121,6 +1122,7 @@ class Transpiler {
         symbolInfo,
         sourceRelativePath,
         cnxIncludeRewrites: this._includesOf(sourcePath).cnxIncludeRewrites,
+        includeKinds: this._includesOf(sourcePath).kinds,
         // #1515: decided here, from the rule's owner. 1.3 Declare used to
         // answer this, which put an emission decision in the parse layer.
         hasPublicInterface: PublicInterface.existsIn(

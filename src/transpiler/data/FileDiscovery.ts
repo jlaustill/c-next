@@ -22,6 +22,9 @@ const EXTENSION_MAP: Record<string, EFileType> = {
   ".cpp": EFileType.CppSource,
   ".cxx": EFileType.CppSource,
   ".cc": EFileType.CppSource,
+  // #1840, owner ruling 4 on #1444: GCC treats `.c++` as C++ source, and the
+  // CLI already accepted it as a C++ entry point. E0503 reads this row too
+  ".c++": EFileType.CppSource,
 };
 
 /**

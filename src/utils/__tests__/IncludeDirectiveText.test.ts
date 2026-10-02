@@ -10,6 +10,11 @@ describe("IncludeDirectiveText", () => {
       // (#1830 review): the closing delimiter is the token's last character.
       ['#include <a"b.h>', { path: 'a"b.h', isLocal: false }],
       ["#include<stdint.h>", { path: "stdint.h", isLocal: false }],
+      ["#  include  <utils.cnx>", { path: "utils.cnx", isLocal: false }],
+      [
+        '#include "../common/types.cnx"',
+        { path: "../common/types.cnx", isLocal: true },
+      ],
     ])("splits %s into its path and form", (text, spec) => {
       expect(IncludeDirectiveText.split(text)).toEqual(spec);
     });

@@ -1,3 +1,4 @@
+import type EFileType from "../transpiler/data/types/EFileType";
 import type ITargetDescription from "../transpiler/types/ITargetDescription";
 import SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import ReservedCnxName from "../utils/ReservedCnxName";
@@ -52,6 +53,12 @@ class TranspileState {
    * described a resolution codegen was never given the data to perform.
    */
   cnxIncludeRewrites: ReadonlyMap<string, string> = new Map<string, string>();
+  /**
+   * #1444, owner ruling 1: the kind of file each `#include` directive of this
+   * file names, as 1.1 Discover classified it. Codegen rewrites a directive by
+   * this answer and classifies nothing itself.
+   */
+  includeKinds: ReadonlyMap<string, EFileType> = new Map<string, EFileType>();
   /** Issue #477: Current function return type for enum inference */
   currentFunctionReturnType: string | null = null;
   /** Debug mode generates panic-on-overflow helpers (ADR-044) */
@@ -1557,6 +1564,7 @@ class TranspileState {
     this.debugMode = false;
     this.selfIncludeAdded = false;
     this.cnxIncludeRewrites = new Map<string, string>();
+    this.includeKinds = new Map<string, EFileType>();
   }
 }
 
