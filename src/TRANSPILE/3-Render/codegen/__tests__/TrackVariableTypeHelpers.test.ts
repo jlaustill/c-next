@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 import Transpiler from "../../../../transpiler/Transpiler";
-import NodeFileSystem from "../../../../transpiler/NodeFileSystem";
+import NodeFileSystem from "../../../../PARSE/1-Discover/NodeFileSystem";
 
 /**
  * Helper to transpile C-Next source and return the C output

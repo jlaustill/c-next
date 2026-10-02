@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import PathNormalizer from "../PathNormalizer";
-import NodeFileSystem from "../../transpiler/NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 import IFileSystem from "../../transpiler/types/IFileSystem";
 import ICliConfig from "../types/ICliConfig";
 

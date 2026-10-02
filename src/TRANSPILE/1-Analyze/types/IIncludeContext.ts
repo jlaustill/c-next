@@ -1,8 +1,10 @@
+import type EFileType from "../../../PARSE/1-Discover/types/EFileType";
+
 /**
  * ADR-010 facts about the file under analysis: 1.1 Discover's answers, read
  * rather than re-derived (#1672).
  *
- * Both maps are keyed by `IncludeDiscovery.directiveText`. #1322 and #1435
+ * Every map is keyed by `IncludeDirectiveText.join`. #1322 and #1435
  * handed this pass discovery's INPUTS instead -- the search path, the
  * quoted-include directory and a file-exists oracle -- and it made its own
  * decision with them, along its own branch between the two forms. That
@@ -19,6 +21,14 @@ interface IIncludeContext {
    * entry has none.
    */
   readonly cnextAlternatives: ReadonlyMap<string, string>;
+
+  /**
+   * The kind of file each directive's spelling names (#1444, owner ruling 1):
+   * E0503's question and half of E0506's. 2.1 kept its own extension list for
+   * E0503 and asked discovery's classifier for E0506; the list had already
+   * diverged from discovery on `.c++` (#1840).
+   */
+  readonly kinds: ReadonlyMap<string, EFileType>;
 }
 
 export default IIncludeContext;

@@ -79,24 +79,23 @@ The layers no longer share one root: #1450 box 5 moved the render pass out of
 `src/transpiler/` to `src/TRANSPILE/3-Render/`, and #1322 moved analysis to
 `src/TRANSPILE/1-Analyze/`. What remains under `src/transpiler/`:
 
-- `src/transpiler/data/` — Discovery layer (FileDiscovery, IncludeResolver, DependencyGraph)
-- `src/transpiler/logic/` — Business logic (parser/, preprocessor/)
+- `src/PARSE/1-Discover/` — 1.1 Discover: emits the frozen `SourceGraph` (FileDiscovery, IncludeResolver, DependencyGraph, preprocessor/, the `NodeFileSystem` port). Was `src/transpiler/data/` and `logic/` until #1444
 - `src/TRANSPILE/3-Render/` — Generation (codegen/, headers/) — **outside `src/transpiler/`**
 - `src/transpiler/Transpiler.ts` — Orchestrator (coordinates all layers)
 - `src/utils/` — Shared utilities (constants/, cache/, types/)
 
 ### Symbol Resolution Architecture (ADR-055)
 
-**Use the composable collectors** in `src/transpiler/logic/symbols/cnext/`:
+**Use the composable collectors** in `src/PARSE/3-Declare/cnext/`:
 
-- `CNextResolver.resolve(tree, file)` → `TSymbol[]` (discriminated union)
-- `TSymbolAdapter.toISymbols(tSymbols, symbolTable)` → `ISymbol[]` (for SymbolTable)
-- `TSymbolInfoAdapter.convert(tSymbols)` → `ISymbolInfo` (for CodeGenerator)
+- `CNextResolver.resolve(tree, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
+- `TSymbolInfoAdapter.convert(tSymbols)` → `ICodeGenSymbols` (for codegen)
 
 **Do NOT use** the deleted legacy collectors:
 
 - ~~`SymbolCollector`~~ (was in TRANSPILE/3-Render/codegen/)
 - ~~`CNextSymbolCollector`~~ (was in transpiler/logic/symbols/)
+- ~~`TSymbolAdapter`~~ (removed in symbol-resolution Phase 7)
 
 **TypeUtils.getTypeName()** must preserve string capacity (return `string<32>` not `string`) for CodeGenerator validation.
 

@@ -16,7 +16,7 @@ import ConfigLoader from "../ConfigLoader";
 import Transpiler from "../../transpiler/Transpiler";
 import parseWithSymbols from "../../lib/parseWithSymbols";
 import parseCHeader from "../../lib/parseCHeader";
-import NodeFileSystem from "../../transpiler/NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /**
  * Method handler type (async to support Transpiler.transpile)

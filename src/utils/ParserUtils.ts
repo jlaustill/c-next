@@ -38,10 +38,12 @@ class ParserUtils {
    * Extract a full source span from a parser context.
    *
    * Takes the context STRUCTURALLY rather than as an ANTLR type, the same as
-   * `getPosition` above. That is not a style choice: `transpiler/data/` may
-   * import `utils/`, and `data-cannot-import-logic` is `reachable: true`, so an
-   * ANTLR import here would let `data/ -> utils/ -> logic/parser/` fail the
-   * layer gate from a module that never mentions the parser (#1297).
+   * `getPosition` above. It was not a style choice: `transpiler/data/` could
+   * import `utils/`, and `data-cannot-import-logic` was `reachable: true`, so an
+   * ANTLR import here would have let `data/ -> utils/ -> logic/parser/` fail the
+   * layer gate from a module that never mentions the parser (#1297). #1444
+   * moved both layers into 1.1 Discover and retired the rule. The structural
+   * type stays because it costs nothing and needs no grammar import.
    *
    * ANTLR's `stop` token is the LAST token of the rule, and its `column` is
    * where that token BEGINS. The exclusive end is therefore its column plus its

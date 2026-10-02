@@ -8,7 +8,7 @@ import { writeFileSync, unlinkSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import CacheKeyGenerator from "../CacheKeyGenerator";
-import NodeFileSystem from "../../../transpiler/NodeFileSystem";
+import NodeFileSystem from "../../../PARSE/1-Discover/NodeFileSystem";
 
 describe("CacheKeyGenerator", () => {
   let testDir: string;

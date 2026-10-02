@@ -34,31 +34,6 @@ module.exports = {
     // ==========================================================================
 
     {
-      name: "data-cannot-import-logic",
-      comment:
-        "Data layer must not depend on logic layer, through ANY number of " +
-        "hops. #1297: this matched only DIRECT edges, so a data/ module could " +
-        "reach logic/ through transpiler/types/ -- one import away, not " +
-        "hypothetical -- while the rule reported green.",
-      severity: "error",
-      from: { path: "^src/transpiler/data/" },
-      to: { path: "^src/transpiler/logic/", reachable: true },
-    },
-    {
-      name: "data-cannot-import-output",
-      comment:
-        "Data layer must not depend on output layer, through ANY number of " +
-        "hops. #1297: this matched only DIRECT edges, so a data/ module could " +
-        "reach output/ through transpiler/types/ -- one import away, not " +
-        "hypothetical -- while the rule reported green.",
-      severity: "error",
-      from: { path: "^src/transpiler/data/" },
-      to: {
-        path: "^src/TRANSPILE/3-Render/",
-        reachable: true,
-      },
-    },
-    {
       name: "collectors-build-names-from-scopes",
       comment:
         "#1285/#1357: qualified names are built from a scope REFERENCE, through " +
@@ -80,30 +55,11 @@ module.exports = {
         path: [
           "^src/PARSE/3-Declare/cnext/collectors/",
           "^src/PARSE/2-Parse/",
-          "^src/transpiler/logic/preprocessor/",
-          "^src/transpiler/data/",
+          "^src/PARSE/1-Discover/",
         ],
       },
       to: {
         path: "^src/utils/QualifiedCName\\.ts$",
-      },
-    },
-    {
-      name: "logic-cannot-import-output",
-      comment:
-        "Logic layer must not depend on output layer, through ANY number of " +
-        "hops. If you need shared types, move them to transpiler/types/. " +
-        "#1297: this matched only DIRECT edges, so logic/ -> state/ -> output/ " +
-        "satisfied it while violating what it says -- ten analyzers were " +
-        "transitively coupled to codegen's type vocabulary and CI reported the " +
-        "layering clean. `reachable` is what makes the rule enforce its own " +
-        "statement; without it the guard reports green on the case it exists " +
-        "to catch.",
-      severity: "error",
-      from: { path: "^src/transpiler/logic/" },
-      to: {
-        path: "^src/TRANSPILE/3-Render/",
-        reachable: true,
       },
     },
     {
@@ -165,6 +121,52 @@ module.exports = {
       severity: "error",
       from: { path: "^src/PARSE/", pathNot: "__tests__" },
       to: { path: "^src/TRANSPILE/", reachable: true },
+    },
+    {
+      name: "nothing-after-1-1-discovers",
+      comment:
+        "#1444 box 4. §1: 'After 1.1, nothing may discover a file.' No pass " +
+        "after 1.1 Discover reaches one of its modules, except the types of " +
+        "its artifact (`types/`): a later pass may read an earlier pass's " +
+        "artifact, and running its primitives again is the re-discovery " +
+        "#1435 and #1672 removed. The host roots (`cli/`, `lib/`) construct " +
+        "the port and the run, and are not passes. `reachable` because a " +
+        "helper is as good a route as a direct import: at `b000ecdd8` all 35 " +
+        "violations came from 5 direct edges, 2.1 and render reaching " +
+        "discovery's text and classification helpers.",
+      severity: "error",
+      from: {
+        path: "^src/(PARSE/[234]-|TRANSPILE/|WRITE/)",
+        pathNot: "__tests__",
+      },
+      to: {
+        path: "^src/PARSE/1-Discover/",
+        pathNot: "^src/PARSE/1-Discover/types/",
+        reachable: true,
+      },
+    },
+    {
+      name: "artifact-types-name-no-discovery-module",
+      comment:
+        "#1444 review. `nothing-after-1-1-discovers` lets a later pass read " +
+        "1.1's `types/`, and that is sound only if `types/` reaches nothing " +
+        "else in 1.1. It did not: `ISourceGraph` took the anchor's facts as a " +
+        "`Pick` of `IRunAnchor`, which names `PathResolver` and `Preprocessor`, " +
+        "so importing the artifact from a later pass gave 21 errors. A false " +
+        "positive is an invitation to widen the exemption. `IRunAnchor` is not " +
+        "the artifact: it describes the services 1.1 picks, and a later pass " +
+        "importing it is caught by the rule above through those services. " +
+        "`reachable` because a type reaches through another type.",
+      severity: "error",
+      from: {
+        path: "^src/PARSE/1-Discover/types/",
+        pathNot: ["__tests__", "^src/PARSE/1-Discover/types/IRunAnchor\\.ts$"],
+      },
+      to: {
+        path: "^src/PARSE/1-Discover/",
+        pathNot: "^src/PARSE/1-Discover/types/",
+        reachable: true,
+      },
     },
     {
       name: "declare-cannot-import-resolve",
@@ -321,16 +323,15 @@ module.exports = {
         "without this rule that paragraph is prose with nothing behind it. " +
         "`reachable` because the edge arrives through a helper as easily as " +
         "directly (#1297). " +
-        "The `to` names `transpiler/(data|logic)` as well, and the omission was " +
-        "real: `AdrProvenance` importing `transpiler/data/FileDiscovery` left " +
-        "depcruise at exit 0 while the comment above claimed NONE of the layers " +
-        "was reachable. 1.1 Discover and the logic layer are layers by " +
-        "CLAUDE.md's own table and by the `data-` and `logic-` rules beside " +
-        "this one, so a rule that says 'none' has to name them.",
+        "The `to` named `transpiler/(data|logic)` as well until #1444 moved " +
+        "them into `PARSE/1-Discover/`, and the omission had been real: " +
+        "`AdrProvenance` importing `transpiler/data/FileDiscovery` left " +
+        "depcruise at exit 0 while the comment above claimed NONE of the " +
+        "layers was reachable. `PARSE` names them now.",
       severity: "error",
       from: { path: "^src/instrumentation/", pathNot: "__tests__" },
       to: {
-        path: "^src/(PARSE|TRANSPILE|WRITE|transpiler/data|transpiler/logic)/",
+        path: "^src/(PARSE|TRANSPILE|WRITE)/",
         reachable: true,
       },
     },
@@ -377,15 +378,15 @@ module.exports = {
         "pipeline reached it through seven modules that defaulted the port. " +
         "The host constructs the port, so it reaches node:fs through it by " +
         "design and is exempt here; `host-reads-through-the-port` forbids it " +
-        "the direct import. When #1444 moves the port into src/PARSE/1-Discover/, " +
-        "its own import falls outside this exemption and the rule goes red " +
-        "until the exemption is re-keyed; layer-rules.test.ts checks that " +
-        "every pathNot still names a file, so a stale one cannot linger.",
+        "the direct import. #1444 moved the port into src/PARSE/1-Discover/ " +
+        "and re-keyed this exemption in the same commit; layer-rules.test.ts " +
+        "checks that every pathNot still names a file, so a stale one cannot " +
+        "linger.",
       from: {
         path: "^src/",
         pathNot: [
           "(__tests__|__testUtils__)",
-          "^src/transpiler/NodeFileSystem\\.ts$",
+          "^src/PARSE/1-Discover/NodeFileSystem\\.ts$",
           "^src/cli/",
           "^src/index\\.ts$",
         ],

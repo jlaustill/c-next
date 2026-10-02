@@ -4,9 +4,9 @@
  */
 
 import { basename, dirname, join, resolve } from "node:path";
-import InputExpansion from "../transpiler/data/InputExpansion";
-import PathResolver from "../transpiler/data/PathResolver";
-import NodeFileSystem from "../transpiler/NodeFileSystem";
+import InputExpansion from "../PARSE/1-Discover/InputExpansion";
+import PathResolver from "../PARSE/1-Discover/PathResolver";
+import NodeFileSystem from "../PARSE/1-Discover/NodeFileSystem";
 import Write from "../WRITE/1-Write/Write";
 
 /**

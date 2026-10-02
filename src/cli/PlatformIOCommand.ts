@@ -4,7 +4,7 @@
  */
 
 import { resolve } from "node:path";
-import NodeFileSystem from "../transpiler/NodeFileSystem";
+import NodeFileSystem from "../PARSE/1-Discover/NodeFileSystem";
 import Write from "../WRITE/1-Write/Write";
 import IFileConfig from "./types/IFileConfig";
 

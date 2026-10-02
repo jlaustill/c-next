@@ -15,14 +15,14 @@
  */
 
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
-import IncludeDiscovery from "../../../transpiler/data/IncludeDiscovery";
+import IncludeDirectiveText from "../../../utils/IncludeDirectiveText";
 
 class IncludeDirective {
   /** What a directive node includes, or null when it names nothing. */
   static of(
     ctx: Parser.IncludeDirectiveContext,
   ): { path: string; isLocal: boolean } | null {
-    return IncludeDiscovery.specOfDirective(ctx.getText());
+    return IncludeDirectiveText.split(ctx.getText());
   }
 
   /** Every header a program includes, in source order, by either form. */

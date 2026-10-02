@@ -20,7 +20,7 @@ import ITranspilerConfig from "../types/ITranspilerConfig";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import NodeFileSystem from "../NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 describe("Header emission decision (#1161, #1164)", () => {
   let tempDir: string;

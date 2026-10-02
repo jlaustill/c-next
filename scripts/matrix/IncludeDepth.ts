@@ -17,7 +17,7 @@ import { existsSync } from "node:fs";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import IncludeDiscovery from "../../src/transpiler/data/IncludeDiscovery";
+import IncludeDiscovery from "../../src/PARSE/1-Discover/IncludeDiscovery";
 
 /**
  * Resolve one include directive to a real `.cnx` file.

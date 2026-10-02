@@ -9,8 +9,8 @@ import { readFileSync } from "node:fs";
 
 import TargetDescriptions from "../TargetDescriptions";
 import TargetCatalogParser from "../../2-Parse/TargetCatalogParser";
-import TargetCatalogFile from "../../../transpiler/data/TargetCatalogFile";
-import NodeFileSystem from "../../../transpiler/NodeFileSystem";
+import TargetCatalogFile from "../../1-Discover/TargetCatalogFile";
+import NodeFileSystem from "../../1-Discover/NodeFileSystem";
 
 const SHIPPED = readFileSync(
   TargetCatalogFile.locate(NodeFileSystem.instance),

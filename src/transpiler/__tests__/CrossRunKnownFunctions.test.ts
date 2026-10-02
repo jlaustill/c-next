@@ -30,7 +30,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
-import NodeFileSystem from "../NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /** Declares `sharedHelper`, so generating it records the name. */
 const DECLARES_SHARED_HELPER = `u32 sharedHelper() {

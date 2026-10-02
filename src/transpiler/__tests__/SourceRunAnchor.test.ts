@@ -16,7 +16,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
-import NodeFileSystem from "../NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 describe("where a source run is anchored (#1719)", () => {
   let base: string;

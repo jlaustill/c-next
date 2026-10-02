@@ -3,11 +3,11 @@ import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import type SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import ModificationFacts from "../../transpiler/ModificationFacts";
 import Program from "../../PARSE/4-Resolve/Program";
-import TargetCatalogFile from "../../transpiler/data/TargetCatalogFile";
+import TargetCatalogFile from "../../PARSE/1-Discover/TargetCatalogFile";
 import TargetResolver from "../../utils/TargetResolver";
 import invariant from "../../utils/invariant";
 import type CodeGenWalker from "../CodeGenWalker";
-import NodeFileSystem from "../../transpiler/NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /**
  * Generate with the whole-program artifact in place.

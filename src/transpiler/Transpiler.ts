@@ -4,15 +4,13 @@
  *
  * A single file transpilation is just a project with one .cnx file.
  *
- * Architecture: transpile() is the single entry point. It discovers files
- * via discoverIncludes(), then delegates to _executePipeline(). There is
- * ONE pipeline for all transpilation.
+ * Architecture: transpile() is the single entry point. 1.1 Discover
+ * (`Discover.run`) emits the run's `SourceGraph`, then it delegates to
+ * _executePipeline(). There is ONE pipeline for all transpilation.
  */
 
-import PlatformIOIni from "./data/PlatformIOIni";
-import type IPlatformIOProject from "./types/IPlatformIOProject";
 import type TRunTarget from "./types/TRunTarget";
-import { join, basename, dirname, resolve, relative, sep } from "node:path";
+import { basename, resolve, relative, sep } from "node:path";
 import { availableParallelism } from "node:os";
 import type IConflict from "./types/IConflict";
 
@@ -40,7 +38,7 @@ import ExternalTypeHeaderBuilder from "../TRANSPILE/3-Render/headers/ExternalTyp
 import HeaderGeneratorUtils from "../TRANSPILE/3-Render/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "../TRANSPILE/3-Render/headers/types/IHeaderEmissionFacts";
 import IHeaderCallbackType from "./types/IHeaderCallbackType";
-import IncludeExtractor from "./logic/IncludeExtractor";
+import IncludeDirectiveText from "../utils/IncludeDirectiveText";
 import SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import type TranspileState from "../TRANSPILE/TranspileState";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
@@ -55,34 +53,23 @@ import CppResolver from "../PARSE/3-Declare/cpp/index";
 import HeaderSymbolAdapter from "../TRANSPILE/3-Render/headers/adapters/HeaderSymbolAdapter";
 import IHeaderSymbol from "../TRANSPILE/3-Render/headers/types/IHeaderSymbol";
 import TSymbol from "./types/symbols/TSymbol";
-import Preprocessor from "./logic/preprocessor/Preprocessor";
-import ToolchainDetector from "./logic/preprocessor/ToolchainDetector";
-import CompileCommandsReader from "./logic/preprocessor/CompileCommandsReader";
-import IToolchain from "./logic/preprocessor/types/IToolchain";
-import ICompileCommandsResult from "./logic/preprocessor/types/ICompileCommandsResult";
 
-import FileDiscovery from "./data/FileDiscovery";
-import EFileType from "./data/types/EFileType";
-import IDiscoveredFile from "./data/types/IDiscoveredFile";
-import type IHeaderRoot from "./data/types/IHeaderRoot";
-import IncludeDiscovery from "./data/IncludeDiscovery";
-import IncludeResolver from "./data/IncludeResolver";
-import DependencyGraph from "./data/DependencyGraph";
-import PathResolver from "./data/PathResolver";
+import EFileType from "../PARSE/1-Discover/types/EFileType";
+import IDiscoveredFile from "../PARSE/1-Discover/types/IDiscoveredFile";
 import OutputExtensions from "../utils/OutputExtensions";
 import DeclarationSite from "../utils/DeclarationSite";
 import type IOutputExtensions from "./types/IOutputExtensions";
-import InputExpansion from "./data/InputExpansion";
-import CppEntryPointScanner from "./data/CppEntryPointScanner";
 
 import ParserUtils from "../utils/ParserUtils";
 import ITranspilerConfig from "./types/ITranspilerConfig";
 import ITranspilerResult from "./types/ITranspilerResult";
 import IFileResult from "./types/IFileResult";
-import IInMemorySource from "./types/IInMemorySource";
-import type IRunAnchor from "./types/IRunAnchor";
-import IPipelineFile from "./types/IPipelineFile";
-import IPipelineInput from "./types/IPipelineInput";
+import type IRunAnchor from "../PARSE/1-Discover/types/IRunAnchor";
+import IPipelineFile from "../PARSE/1-Discover/types/IPipelineFile";
+import type ISourceGraph from "../PARSE/1-Discover/types/ISourceGraph";
+import type IFileIncludes from "../PARSE/1-Discover/types/IFileIncludes";
+import Discover from "../PARSE/1-Discover/Discover";
+import RunAnchor from "../PARSE/1-Discover/RunAnchor";
 import TTranspileInput from "./types/TTranspileInput";
 import ITranspileError from "../lib/types/ITranspileError";
 import runAnalyzers from "../TRANSPILE/1-Analyze/runAnalyzers";
@@ -91,14 +78,14 @@ import type IDiagnostics from "./types/IDiagnostics";
 import type ICodeGenSymbols from "./types/ICodeGenSymbols";
 import CacheManager from "../utils/cache/CacheManager";
 import ConcurrencyLimit from "../utils/ConcurrencyLimit";
-import detectCppSyntax from "./logic/detectCppSyntax";
-import detectAssemblySyntax from "./logic/detectAssemblySyntax";
-import ExternalDeclarationOracle from "./logic/preprocessor/ExternalDeclarationOracle";
+import detectCppSyntax from "../PARSE/1-Discover/detectCppSyntax";
+import detectAssemblySyntax from "../PARSE/1-Discover/detectAssemblySyntax";
+import ExternalDeclarationOracle from "../PARSE/1-Discover/preprocessor/ExternalDeclarationOracle";
 import TypedefParamParser from "../TRANSPILE/3-Render/codegen/helpers/TypedefParamParser";
 import type IRecordedRequirement from "./types/IRecordedRequirement";
 import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../utils/RequirementAggregator";
-import TargetCatalogFile from "./data/TargetCatalogFile";
+import TargetCatalogFile from "../PARSE/1-Discover/TargetCatalogFile";
 import Write from "../WRITE/1-Write/Write";
 
 /** A header's cache entry, as `CacheManager` returns it. */
@@ -180,44 +167,6 @@ class Transpiler {
    */
   private anyHeaderPreprocessFailed = false;
 
-  /** Issue #587: Encapsulated state for accumulated Maps/Sets */
-  /**
-   * The run's own accumulations (#1452 box 1).
-   *
-   * These were a `TranspilerState` under `src/transpiler/state/`, which box 1
-   * deletes. What remains is not a pass's facts (#1671 moved out the two that
-   * were, both 1.4 Resolve's) -- it is what the ORCHESTRATOR accumulates while
-   * driving a run, written and read by this class alone, which is why inlining
-   * it removed an indirection rather than relocating a state container.
-   *
-   * `userIncludes` is keyed by source path, and by `${path}\u0000c-headers`
-   * for the #424 C-header half. The NUL separator is deliberate: no filesystem
-   * path contains one, so the two keyspaces cannot collide.
-   */
-  private readonly userIncludes = new Map<string, string[]>();
-
-  /**
-   * #1435: per source file, how THAT file spells each header it includes
-   * (header path -> directive), in discovery order. A quoted spelling is
-   * relative to the file that wrote it, so it is a fact of the file, not of
-   * the run. One run-wide map, last writer wins, gave main.h lib/a.cnx's
-   * `"dev.h"` for a header main.cnx spells `"../lib/dev.h"`.
-   *
-   * #1725: and, for each of those spellings that is relative to its writer,
-   * the file it names -- so a file that reaches the header only through
-   * another can spell it relative to itself.
-   */
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly headerIncludeDirectivesByFile = new Map<
-    string,
-    {
-      readonly directives: ReadonlyMap<string, string>;
-      readonly writerRelative: ReadonlyMap<string, string>;
-    }
-  >();
-
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly processedHeaders = new Set<string>();
   /**
    * #1323: one file's fully-resolved header-render input, captured while its
    * `CodeGenState` was warm. `_renderHeaders` (Stage 5.5) reads this map ONCE,
@@ -281,47 +230,12 @@ class Transpiler {
    * says what is true: retention is the ORCHESTRATOR's bookkeeping, not
    * something a pass passes on.
    */
-  /**
-   * #1452: 1.1 Discover's include facts, accumulated here and handed to
-   * `Program.build` once. They used to live on `TranspilerState`, where they
-   * were written in Stage 1 and read in Stages 4d and 5 -- state written by one
-   * pass and read by another, which box 4 forbids.
-   *
-   * Written ONLY by `_resolveCnxIncludes` and read ONLY at the freeze,
-   * so no later pass can reach these; what the later passes read is
-   * `IProgram`, which holds these maps by reference and is built after the
-   * last write. See `IDiscoveryFacts` for the ordering that makes that legal.
-   */
-  private readonly discoveredCnxIncludeRewrites = new Map<
-    string,
-    Map<string, string>
-  >();
-
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly discoveredIncludeResolutions = new Map<
-    string,
-    ReadonlyMap<string, string | null>
-  >();
-
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly discoveredCnextAlternatives = new Map<
-    string,
-    ReadonlyMap<string, string>
-  >();
-
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly discoveredQuotedIncludeDirectories = new Map<
-    string,
-    string
-  >();
-
   private readonly retainedParses = new Map<string, IParsedFile>();
 
   /**
    * Settles when this instance's previous run has (#1721). A run starts by
-   * clearing the per-run fields above, and `Program.build` is handed the
-   * discovery maps by reference, so a second run must not start while the
-   * first is parked on an `await` -- which `ServeCommand` otherwise does: it
+   * clearing the per-run fields above, so a second run must not start while
+   * the first is parked on an `await` -- which `ServeCommand` otherwise does: it
    * holds one instance and dispatches each request without waiting for the
    * one before. Serialized here, once, rather than in each caller.
    */
@@ -332,26 +246,27 @@ class Transpiler {
    * Accumulates parameter modifications and param lists across all processed files.
    */
   /**
-   * Where the current run is anchored (#1719): its project root, the compile
-   * database that root names, the preprocessor that database picks, and the
-   * `PathResolver` (Issue #586) its `#include`s and output paths come from.
-   * Decided in Stage 1 from the run's own root -- `config.input` for a files
-   * run, where the text lives for a source run -- and kept while the root does
-   * not move. The constructor anchors at `config.input`, as every run once was.
+   * The services of the run's anchor (#1719): the preprocessor the project's
+   * compile database picks, and the `PathResolver` (Issue #586) its output
+   * paths come from. 1.1 Discover decides the anchor and returns it beside the
+   * `SourceGraph`; the next run hands it back, so a run anchored where the
+   * last one was keeps its compile database and toolchain probe.
+   *
+   * #1444: the anchor's FACTS -- project root, directory, defines -- are read
+   * from the run's `SourceGraph`, never from here. The constructor anchors at
+   * `config.input` only to find the cache's project root.
    */
   private anchor: IRunAnchor;
 
   /**
-   * Issue #1467: PathResolver's answer to "where is this .cnx's header
-   * reachable from?", bound to the run's header extension. Handed to
-   * IncludeResolver so the include text and the header's location are the
-   * same derivation rather than two that happen to agree.
+   * The artifact 1.1 Discover emitted for the current run (#1444).
+   *
+   * Held as `program` is, so a stage with no graph in hand reads it from
+   * here. Null outside a run: it holds every source text, and `ServeCommand`
+   * keeps one instance alive between requests, so it is released when the
+   * run ends, as the retained parses are.
    */
-  private readonly _headerIncludePathFor = (cnxPath: string): string | null =>
-    this.anchor.pathResolver.getHeaderIncludePath(
-      cnxPath,
-      this.outputExtensions.header,
-    );
+  private sourceGraph: ISourceGraph | null = null;
   /** File system abstraction for testability */
   private readonly fs: IFileSystem;
 
@@ -382,7 +297,7 @@ class Transpiler {
     this.codeGenerator = new CodeGenWalker();
     this.headerGenerator = new HeaderGenerator();
     this.warnings = [];
-    this.anchor = this._anchorAt(this.config.input, null);
+    this.anchor = RunAnchor.at(this.config.input, null, this.config, this.fs);
 
     // Initialize cache manager if caching is enabled and a project root was
     // found. Instance-scoped, not anchored per run: a source run reads no
@@ -392,117 +307,6 @@ class Transpiler {
       !this.config.noCache && this.anchor.projectRoot
         ? new CacheManager(this.anchor.projectRoot, this.fs)
         : null;
-  }
-
-  /**
-   * Anchor a run at `anchorPath` (#1719): everything that follows from where
-   * the run's root lives.
-   *
-   * Adopt the compiler's own view from the project's compile_commands.json, if
-   * present. Every build system (CMake, PlatformIO, Meson, Zephyr, bear-wrapped
-   * Make) emits this database; reading it — rather than mirroring framework
-   * include paths in cnext.config.json — lets cnext resolve external headers
-   * exactly as the compiler will, which is the same reason clangd reads it.
-   * The include paths + defines + compiler are the contract every build system
-   * converges on. (Issue #985 external-symbol recovery; unblocks ADR-062.)
-   *
-   * `previous` is kept for what the move does not change: the same anchor is
-   * the same answer, the same project root reads the same database, and the
-   * same compiler needs no second toolchain probe -- which shells out, so
-   * redoing it per editor request would be the costly part.
-   */
-  private _anchorAt(
-    anchorPath: string,
-    previous: IRunAnchor | null,
-  ): IRunAnchor {
-    const path = resolve(anchorPath);
-    if (previous?.path === path) {
-      return previous;
-    }
-    const projectRoot = this.determineProjectRoot(anchorPath);
-    const settled =
-      previous !== null && previous.projectRoot === projectRoot
-        ? previous
-        : this._compileDatabaseAt(projectRoot, previous);
-    const directory = dirname(path);
-    return {
-      path,
-      directory,
-      projectRoot,
-      includeDirs: settled.includeDirs,
-      defines: settled.defines,
-      compiler: settled.compiler,
-      preprocessor: settled.preprocessor,
-      // Issue #586: path resolution for output files
-      pathResolver: new PathResolver(
-        {
-          inputs: [directory],
-          outDir: this.config.outDir,
-          headerOutDir: this.config.headerOutDir,
-          // Issue #1547: the stable base for files outside the entry's
-          // directory. Same value `_guardIdentity` already measures
-          // include-guard identity against, so a file's guard and its header
-          // path can no longer disagree about where it sits purely because the
-          // shell moved.
-          projectRoot,
-        },
-        this.fs,
-      ),
-    };
-  }
-
-  /**
-   * What `projectRoot`'s compile_commands.json contributes: its include search
-   * paths after the caller's (so both preprocessing and include-tree resolution
-   * see what the compiler sees), its defines beneath the caller's, which win on
-   * conflict, and the preprocessor its compiler picks.
-   */
-  private _compileDatabaseAt(
-    projectRoot: string | undefined,
-    previous: IRunAnchor | null,
-  ): Pick<IRunAnchor, "includeDirs" | "defines" | "compiler" | "preprocessor"> {
-    const db = projectRoot
-      ? CompileCommandsReader.load(
-          join(projectRoot, "compile_commands.json"),
-          this.fs,
-        )
-      : null;
-    const includeDirs = [...this.config.includeDirs];
-    const seen = new Set(includeDirs);
-    for (const path of db?.includePaths ?? []) {
-      if (!seen.has(path)) {
-        seen.add(path);
-        includeDirs.push(path);
-      }
-    }
-    const compiler = db?.compiler ?? null;
-    return {
-      includeDirs,
-      defines: { ...db?.defines, ...this.config.defines },
-      compiler,
-      preprocessor:
-        previous?.compiler === compiler
-          ? previous.preprocessor
-          : new Preprocessor(
-              this.fs,
-              Transpiler._toolchainForCompileDb(db, this.fs),
-            ),
-    };
-  }
-
-  /**
-   * The toolchain to preprocess with, given a discovered compile database. An
-   * explicit CNEXT_CROSS_COMPILER override always wins (deferred to Preprocessor's
-   * own detection); otherwise adopt the database's compiler if it resolves, else
-   * fall back to auto-detection.
-   */
-  private static _toolchainForCompileDb(
-    db: ICompileCommandsResult | null,
-    fs: IFileSystem,
-  ): IToolchain | undefined {
-    if (process.env.CNEXT_CROSS_COMPILER) return undefined;
-    if (!db?.compiler) return undefined;
-    return ToolchainDetector.fromPath(db.compiler, fs) ?? undefined;
   }
 
   // ===========================================================================
@@ -538,7 +342,18 @@ class Transpiler {
     try {
       await this._initializeRun();
 
-      const pipelineInput = this.discoverIncludes(input);
+      // Stage 1: 1.1 Discover
+      const discovered = Discover.run(
+        input,
+        this.anchor,
+        this.config,
+        this.outputExtensions.header,
+        this.fs,
+        this.warnings,
+      );
+      this.anchor = discovered.anchor;
+      this.sourceGraph = discovered.graph;
+      const pipelineInput = discovered.graph;
       if (pipelineInput.cnextFiles.length === 0) {
         return this._finalizeResult(result, "No C-Next source files found");
       }
@@ -571,52 +386,12 @@ class Transpiler {
       // reddened nothing. Two sites for one invariant is the duplication CLAUDE.md
       // calls the worst anti-pattern, and the unreachable half is the #1143 shape.
       this.retainedParses.clear();
+      this.sourceGraph = null;
 
       // #1445 box 2: the walker holds the token stream and the comment scanner
       // over it on its own fields, which the map clear above cannot reach.
       this.codeGenerator.releaseParseState();
     }
-  }
-
-  /**
-   * Stage 1: Discover files and build pipeline input.
-   *
-   * Branches on input kind:
-   * - 'files': filesystem scan, dependency graph, topological sort
-   * - 'source': the same discovery, rooted at an in-memory string
-   *
-   * Header directive storage happens via IncludeResolver.resolve() for both
-   * C headers and cnext includes (Issue #854).
-   */
-  private discoverIncludes(input: TTranspileInput): IPipelineInput {
-    if (input.kind === "files") {
-      this.anchor = this._anchorAt(this.config.input, this.anchor);
-      return this._discoverFromFiles();
-    }
-    // #1435: ADR-010 resolves a quoted include from the file it appears in.
-    // Text given a path lives at that path, resolved exactly as the root's
-    // identity is (against the process's working directory), so where the
-    // root IS and where it resolves FROM cannot come apart. `workingDir` is
-    // where text with no path is resolved from. One directory, decided here,
-    // for discovery and for the 2.1 rules that ask where a quoted include is.
-    // An empty path is no path, and is decided so once for both fields.
-    const sourcePath = input.sourcePath === "" ? undefined : input.sourcePath;
-    const root: IInMemorySource = {
-      path: sourcePath ?? "<string>",
-      source: input.source,
-      directory: sourcePath
-        ? dirname(resolve(sourcePath))
-        : (input.workingDir ?? process.cwd()),
-    };
-    // #1719: and the run is anchored there too -- its project root, compile
-    // database, and the base its `#include`s and guards are measured from --
-    // never at `config.input`, which the editor leaves empty, so its preview
-    // was anchored at the parent of the process's cwd.
-    this.anchor = this._anchorAt(
-      join(root.directory, basename(root.path)),
-      this.anchor,
-    );
-    return this._discoverFromSource(root, input.includeDirs ?? []);
   }
 
   // ===========================================================================
@@ -626,7 +401,7 @@ class Transpiler {
   /**
    * The single unified pipeline for all transpilation.
    *
-   * transpile() delegates here after file discovery via discoverIncludes().
+   * transpile() delegates here with the `SourceGraph` 1.1 Discover emitted.
    *
    * Stage 2: Collect symbols from C/C++ headers (includes building analyzer context)
    * Stage 3: 1.3 Declare each C-Next file, then 1.4 Resolve the whole program --
@@ -639,7 +414,7 @@ class Transpiler {
    * Stage 6: Write the Stage 5.5 headers to disk (per-file)
    */
   private async _executePipeline(
-    input: IPipelineInput,
+    input: ISourceGraph,
     result: ITranspilerResult,
   ): Promise<void> {
     // Stage 2: Collect symbols from C/C++ headers and build analyzer context
@@ -727,7 +502,7 @@ class Transpiler {
    * its own errors; the first to fail ends the run, in this order.
    */
   private _passesProgramChecks(
-    input: IPipelineInput,
+    input: ISourceGraph,
     result: ITranspilerResult,
   ): boolean {
     return (
@@ -846,7 +621,7 @@ class Transpiler {
    * @returns true if successful, false if errors occurred
    */
   private _collectAllCNextSymbolsFromPipeline(
-    cnextFiles: IPipelineFile[],
+    cnextFiles: readonly IPipelineFile[],
     result: ITranspilerResult,
   ): boolean {
     // 1.3 Declare, every file. Per-file facts only: a file's symbols are
@@ -942,16 +717,12 @@ class Transpiler {
             ),
           },
           callbackCompatibleFunctions: callbackCompatible,
-          discovery: {
-            cnxIncludeRewrites: this.discoveredCnxIncludeRewrites,
-            includeResolutions: this.discoveredIncludeResolutions,
-            cnextAlternatives: this.discoveredCnextAlternatives,
-            quotedIncludeDirectories: this.discoveredQuotedIncludeDirectories,
-          },
           registry: this.symbolRegistry,
           target: {
             option: this.config.target,
-            platformio: this._platformIOProject(),
+            // ADR-049's build-system rung, read once by 1.1 from the text its
+            // include discovery used (#1444, owner ruling 3)
+            platformio: this._requireSourceGraph().anchor.platformio,
             pioEnv: this.config.pioEnv || undefined,
             catalog: TargetCatalogFile.targets(this.fs),
             files: declared.map((entry) => ({
@@ -1006,8 +777,7 @@ class Transpiler {
         readonly parsed: IParsedFile;
         readonly fileSymbols: IFileSymbols;
       } {
-    const content = file.source ?? this.fs.readFile(file.path);
-    const parsed = CNextSourceParser.parse(content);
+    const parsed = CNextSourceParser.parse(file.source);
 
     // Parse errors — return them with original line/column and sourcePath.
     // #1445: 1.2 carries its own errors, so the artifact is what comes back
@@ -1104,7 +874,7 @@ class Transpiler {
    * returned its parse-only result before reaching the analyzers, so running
    * them here would be new work on a path that asked for none.
    */
-  private _analyzeProgram(input: IPipelineInput): IDiagnostics {
+  private _analyzeProgram(input: ISourceGraph): IDiagnostics {
     const byFile = new Map<string, readonly ITranspileError[]>();
 
     if (this.config.parseOnly) {
@@ -1170,8 +940,9 @@ class Transpiler {
           sourceFile: sourcePath,
         },
         includes: {
-          resolutions: this.program.includeResolutions(sourcePath),
-          cnextAlternatives: this.program.cnextAlternatives(sourcePath),
+          resolutions: this._includesOf(sourcePath).resolutions,
+          cnextAlternatives: this._includesOf(sourcePath).cnextAlternatives,
+          kinds: this._includesOf(sourcePath).kinds,
         },
       });
     } catch (err) {
@@ -1349,7 +1120,8 @@ class Transpiler {
         cppMode: this.cppMode,
         symbolInfo,
         sourceRelativePath,
-        cnxIncludeRewrites: program.cnxIncludeRewrites(sourcePath),
+        cnxIncludeRewrites: this._includesOf(sourcePath).cnxIncludeRewrites,
+        includeKinds: this._includesOf(sourcePath).kinds,
         // #1515: decided here, from the rule's owner. 1.3 Declare used to
         // answer this, which put an emission decision in the parse layer.
         hasPublicInterface: PublicInterface.existsIn(
@@ -1358,21 +1130,6 @@ class Transpiler {
           ),
         ),
       });
-
-      // Collect user includes
-      const userIncludes = IncludeExtractor.collectUserIncludes(
-        tree,
-        this.outputExtensions.header,
-        program.cnxIncludeRewrites(sourcePath),
-      );
-      // Issue #424: kept separate — added to the header only when it names a
-      // macro that one of these supplies (see _headerNeedsMacroIncludes).
-      this.userIncludes.set(
-        `${sourcePath}\u0000c-headers`,
-        IncludeExtractor.collectCHeaderIncludes(tree),
-      );
-
-      this.userIncludes.set(sourcePath, [...userIncludes]);
 
       // #1323: resolve this file's header-render input while its state is
       // warm (reads from state populated above), but do not render it here.
@@ -1409,101 +1166,6 @@ class Transpiler {
     } catch (err) {
       return this.buildCatchResult(sourcePath, err);
     }
-  }
-
-  // ===========================================================================
-  // File Discovery
-  // ===========================================================================
-
-  /**
-   * Resolve C/C++ headers transitively, wired to this run.
-   *
-   * There were two call sites -- one per entry shape, source and disk -- and
-   * each built the same three-field options bag and pushed the warnings onto
-   * the same list, so how a run reaches the filesystem, which processed-path
-   * set it shares, and whether it logs was decided twice. This method made it
-   * one decision. Since #1435 source mode discovers through
-   * `_buildPipelineInput` too, so there is one call site; the options stay
-   * decided here, where the roots -- each with the search path of the `.cnx`
-   * that reached it (#1723) -- are the caller's only business.
-   *
-   * ## `processedPaths` is inert today, and stays
-   *
-   * Dropping it reddens 0 of 1248 fixtures. It seeds the resolver's `visited`
-   * set, and the set is empty at the call site: the only production writer is
-   * `_collectHeaderSymbols`, which is Stage 2, and the caller is discovery.
-   * `isHeaderProcessed` has no production caller at all -- tests are its only
-   * readers, which is why knip and `unused-code:check` stay green over it
-   * (#1418).
-   *
-   * Not deleted. It is a cycle guard that happens to be unreached on the order
-   * the pipeline runs in today, not one that cannot fire: a second discovery
-   * pass on a live instance would hand it a populated set. #1143 is this
-   * repository's record of what removing an unreached defense costs.
-   */
-  private _resolveHeadersTransitively(roots: ReadonlyArray<IHeaderRoot>): {
-    headers: IDiscoveredFile[];
-    searchPaths: ReadonlyMap<string, readonly string[]>;
-  } {
-    const resolved = IncludeResolver.resolveHeadersTransitively(roots, {
-      onDebug: this.config.debugMode
-        ? (msg) => console.log(`[DEBUG] ${msg}`)
-        : undefined,
-      processedPaths: this.processedHeaders,
-      fs: this.fs,
-    });
-    this.warnings.push(...resolved.warnings);
-    return resolved;
-  }
-
-  /**
-   * Stage 1 for a `{ kind: "source" }` run: the same discovery as files mode,
-   * rooted at text that is supplied rather than read.
-   *
-   * #1435: this resolved only the root itself and walked the rest with a
-   * second walker. That walker rebuilt each include's search path without the
-   * PlatformIO and Arduino tiers, read files around the injected filesystem,
-   * collected no header an include pulled in, and did not know the root was
-   * already in the run -- so a cyclic include enqueued the root a second time
-   * and declared it twice (E0203). Discovery is one loop now, and the root is
-   * in its graph from the start, so a back edge to it is an edge.
-   *
-   * @param callerIncludeDirs - The input's own include directories. They are
-   *   the run's, as `config.includeDirs` are: every file the root reaches
-   *   searches them, not the root alone.
-   */
-  private _discoverFromSource(
-    entry: IInMemorySource,
-    callerIncludeDirs: readonly string[],
-  ): IPipelineInput {
-    const root: IDiscoveredFile = {
-      path: entry.path,
-      type: EFileType.CNext,
-      extension: ".cnx",
-    };
-    const discovered = this._buildPipelineInput(
-      [root],
-      new Map([[resolve(entry.path), root]]),
-      entry,
-      callerIncludeDirs,
-    );
-
-    // The root is the one file this run generates; everything it reaches only
-    // contributes symbols. Source mode uses the basename for a self-include, to
-    // match files mode.
-    return {
-      ...discovered,
-      cnextFiles: discovered.cnextFiles.map((file) =>
-        file.path === entry.path
-          ? {
-              ...file,
-              source: entry.source,
-              sourceRelativePath: basename(entry.path),
-            }
-          : { ...file, symbolOnly: true },
-      ),
-      writeOutputToDisk: false,
-    };
   }
 
   // ===========================================================================
@@ -1550,21 +1212,6 @@ class Transpiler {
       await this.cacheManager.initialize();
     }
     // Issue #587: Reset accumulated state for new run
-    this.userIncludes.clear();
-    this.headerIncludeDirectivesByFile.clear();
-    this.processedHeaders.clear();
-    // #1452: 1.1 Discover's maps. `TranspilerState.reset()` cleared the first
-    // two alongside the five above, and re-writing that teardown as inline
-    // calls dropped them -- the drift this method's own SymbolTable comment
-    // below records, in the commit that recorded it. `Program.build` is handed
-    // all four by reference, so a retained entry answers for a file this run
-    // never saw: `IProgram` documents an empty rewrite map as a REAL answer,
-    // and a stale include resolution (#1672) or quoted-include directory
-    // (#1435) would answer where its invariant should fire.
-    this.discoveredCnxIncludeRewrites.clear();
-    this.discoveredIncludeResolutions.clear();
-    this.discoveredCnextAlternatives.clear();
-    this.discoveredQuotedIncludeDirectories.clear();
     // #1662: both are run-scoped and both were initialized ONCE, in the
     // constructor, so neither was ever cleared. `warnings` is pushed to per run
     // and copied onto every result, which made three runs of one source on one
@@ -1655,7 +1302,7 @@ class Transpiler {
    * here, in header order, because what the symbol table holds depends on it.
    */
   private async _collectAllHeaderSymbols(
-    input: IPipelineInput,
+    input: ISourceGraph,
     result: ITranspilerResult,
   ): Promise<void> {
     const prepared = await this._prepareHeaders(input);
@@ -1691,9 +1338,7 @@ class Transpiler {
    * header is handed the headers before it, and waits for them only if it has
    * to retry.
    */
-  private _prepareHeaders(
-    input: IPipelineInput,
-  ): Promise<THeaderPreparation[]> {
+  private _prepareHeaders(input: ISourceGraph): Promise<THeaderPreparation[]> {
     const limit = ConcurrencyLimit.create(availableParallelism());
     const prepared: Promise<THeaderPreparation>[] = [];
     for (const file of input.headerFiles) {
@@ -1754,7 +1399,7 @@ class Transpiler {
    * failure so clean projects pay nothing.
    */
   private async _collectExternalDeclarations(
-    input: IPipelineInput,
+    input: ISourceGraph,
   ): Promise<void> {
     if (!this.anyHeaderPreprocessFailed) return;
 
@@ -1768,7 +1413,7 @@ class Transpiler {
         // #1723: the translation unit holds every file's C includes, so it is
         // searched along every file's search path, not --include alone.
         includePaths: [...input.includeSearchPaths],
-        defines: { ...this.anchor.defines },
+        defines: { ...this._requireSourceGraph().anchor.defines },
       },
     );
     if (!recovery) return;
@@ -1789,17 +1434,19 @@ class Transpiler {
   }
 
   /** Every C header the .cnx files include, deduped in first-seen source order. */
-  private _collectCIncludeDirectives(input: IPipelineInput): string[] {
+  private _collectCIncludeDirectives(input: ISourceGraph): string[] {
     const seen = new Set<string>();
     const directives: string[] = [];
     for (const file of input.cnextFiles) {
-      const source = file.source ?? this.readFileOrEmpty(file.path);
       // #1830 review: the directives 1.1 reads, so a commented-out header adds
-      // nothing to the recovered translation unit. The regex this replaces did
+      // nothing to the recovered translation unit. The regex this replaced did
       // not know about comments, missed `#include"x.h"`, which the grammar
       // allows, and skipped `.cnx` but sent a `.cnext` include in as a header.
-      for (const include of IncludeDiscovery.extractCNextIncludes(source)) {
-        if (FileDiscovery.classifyFile(include.path).type === EFileType.CNext) {
+      // #1444: and read from 1.1's answer, rather than lexed and classified
+      // again here from the file's text.
+      for (const text of this._includesOf(file.path).cHeaderIncludes) {
+        const include = IncludeDirectiveText.split(text);
+        if (include === null) {
           continue;
         }
         const directive = include.isLocal
@@ -1886,14 +1533,6 @@ class Transpiler {
     }
   }
 
-  private readFileOrEmpty(path: string): string {
-    try {
-      return this.fs.readFile(path);
-    } catch {
-      return "";
-    }
-  }
-
   /**
    * Stage 4b: Reject two source files that would produce the same include guard.
    *
@@ -1908,7 +1547,7 @@ class Transpiler {
    * @returns true when every guard is unique
    */
   private _checkIncludeGuardCollisions(
-    cnextFiles: IPipelineFile[],
+    cnextFiles: readonly IPipelineFile[],
     result: ITranspilerResult,
   ): boolean {
     const sourceByGuard = new Map<string, string>();
@@ -2019,7 +1658,7 @@ class Transpiler {
    * @returns true when the run has a target
    */
   private _checkRunTarget(
-    input: IPipelineInput,
+    input: ISourceGraph,
     result: ITranspilerResult,
   ): boolean {
     invariant(this.program, "Stage 3 built the program");
@@ -2045,19 +1684,6 @@ class Transpiler {
     }
     result.success = false;
     return false;
-  }
-
-  /**
-   * ADR-049's build-system rung: the platformio.ini of the project the run is
-   * anchored in. #1760 review: this found the root again from the entry's
-   * path, and a source run with no path resolved "<string>" against the
-   * process's cwd, so it read another project's file, or none.
-   */
-  private _platformIOProject(): IPlatformIOProject | null {
-    const root = this.anchor.projectRoot;
-    // The build machine's environment too: PlatformIO appends its
-    // PLATFORMIO_DEFAULT_ENVS to default_envs (#1794)
-    return root ? PlatformIOIni.read(root, this.fs, process.env) : null;
   }
 
   /** The run's target; valid once Stage 3b has passed */
@@ -2173,7 +1799,7 @@ class Transpiler {
    * "second call" left to make by accident, only a wrong one to add back.
    */
   private _generateAllHeadersFromPipeline(
-    cnextFiles: IPipelineFile[],
+    cnextFiles: readonly IPipelineFile[],
     result: ITranspilerResult,
     renderedFiles: ReadonlyMap<string, IRenderedFile>,
   ): void {
@@ -2241,429 +1867,6 @@ class Transpiler {
   }
 
   // ===========================================================================
-  // File Discovery (Stage 1 for files mode)
-  // ===========================================================================
-
-  /**
-   * Collect the C/C++ headers a file includes.
-   *
-   * #1435: this skipped any header whose BASENAME matched a C-Next file of the
-   * run, a guess from when discovery scanned whole directories and every `.h`
-   * beside a `.cnx` was "likely generated output" (77d2a9903). A basename is
-   * not an identity -- the #1134 shape -- so `uart.cnx` wrapping ESP-IDF's
-   * `<driver/uart.h>` lost the vendor header and failed with E0422. A header
-   * the transpiler generated is identified by the marker it carries, and
-   * `IncludeResolver.resolveHeadersTransitively` already skips it on that.
-   *
-   * #1723: each header keeps the search path of the first file that reached
-   * it, and its own includes are searched along that path.
-   */
-  private _collectHeaders(
-    resolved: { headers: IDiscoveredFile[] },
-    searchPaths: readonly string[],
-    headerRoots: Map<string, IHeaderRoot>,
-  ): void {
-    for (const header of resolved.headers) {
-      if (!headerRoots.has(header.path)) {
-        headerRoots.set(header.path, { file: header, searchPaths });
-      }
-    }
-  }
-
-  /**
-   * Process C-Next includes from resolved includes.
-   * Issue #461: Collect included .cnx files for symbol resolution
-   * Issue #580: Track dependencies for topological sorting
-   *
-   * @returns this file's direct includes, each as the run's own entry for that
-   *   file (#1435), so 1.4's visibility closure keys on the same paths the
-   *   files were declared under.
-   */
-  private _processCnextIncludes(
-    resolved: { cnextIncludes: IDiscoveredFile[] },
-    cnxPath: string,
-    depGraph: DependencyGraph,
-    cnextFiles: IDiscoveredFile[],
-    fileByPath: Map<string, IDiscoveredFile>,
-  ): IDiscoveredFile[] {
-    const direct: IDiscoveredFile[] = [];
-    for (const cnxInclude of resolved.cnextIncludes) {
-      const includePath = resolve(cnxInclude.path);
-
-      depGraph.addDependency(cnxPath, includePath);
-
-      // Don't add if already in the list.
-      //
-      // Issue #1134: identity here is the RESOLVED PATH, never the basename.
-      // Keying on the basename made can/config.cnx and uart/config.cnx the same
-      // file, so the second was dropped from the compilation entirely — the
-      // transpiler exited 0 and emitted C-Next source syntax into the C output.
-      // `fileByPath` indexes `cnextFiles` by exactly that path, on every route.
-      const existing = fileByPath.get(includePath);
-      if (!existing) {
-        cnextFiles.push(cnxInclude);
-        fileByPath.set(includePath, cnxInclude);
-      }
-      direct.push(existing ?? cnxInclude);
-    }
-    return direct;
-  }
-
-  /**
-   * Resolve one `.cnx` file's includes -- the one place discovery decides such
-   * a file's text, its directory and its search path. What each directive
-   * resolved to is recorded, so 2.1's ADR-010 rules read that answer rather
-   * than resolve the include again (#1672), and the text read here is the
-   * text 1.2 parses, so the two cannot see different directives (#1835
-   * review). The search path is `_searchPathsFor`'s, which a C/C++ entry
-   * point's marker scan uses too (#1706).
-   *
-   * #1435: every file in a run comes through here, including the root of a
-   * source run, whose text is `inMemory.source` and whose directory is
-   * `inMemory.directory`. The search path is the same computation for every
-   * file: the directory, then the caller's include directories (a source
-   * run's own, which every file it reaches searches), then everything
-   * `discoverIncludePaths` finds from the file's directory (the project tiers,
-   * PlatformIO libdeps and Arduino libraries), then the configured ones. An
-   * in-memory root used to get a path without the PlatformIO and Arduino
-   * tiers, so the editor preview could not see a library the CLI compiled.
-   *
-   * @param tiersByDirectory - `discoverIncludePaths` answers, per directory,
-   *   for this discovery pass. It reads only the directory of the path it is
-   *   given, the filesystem and $HOME, none of which change within one pass,
-   *   so the files of one directory share one answer -- and a source run makes
-   *   this pass on every editor request.
-   * @returns the resolution, the search path it was made along -- which
-   *   the C headers this file reaches are searched along too (#1723) -- and
-   *   the text it was read from
-   */
-  private _resolveCnxIncludes(
-    cnxFile: IDiscoveredFile,
-    callerIncludeDirs: readonly string[],
-    tiersByDirectory: Map<string, readonly string[]>,
-    inMemory?: IInMemorySource,
-  ): {
-    readonly resolved: ReturnType<IncludeResolver["resolve"]>;
-    readonly searchPaths: readonly string[];
-    readonly content: string;
-  } {
-    const content = inMemory?.source ?? this.fs.readFile(cnxFile.path);
-    const sourceDir = inMemory?.directory ?? dirname(cnxFile.path);
-    const searchPaths = this._searchPathsFor(
-      join(sourceDir, basename(cnxFile.path)),
-      callerIncludeDirs,
-      tiersByDirectory,
-    );
-
-    const resolver = new IncludeResolver(
-      searchPaths,
-      this.outputExtensions.header,
-      this.fs,
-      this._headerIncludePathFor,
-      sourceDir,
-    );
-    const resolved = resolver.resolve(content, cnxFile.path);
-    // Issue #1467: one resolution, read later by both the .c and the .h
-    this.discoveredCnxIncludeRewrites.set(
-      cnxFile.path,
-      resolved.cnextIncludeRewrites,
-    );
-    // #1672: what each directive resolved to, which 2.1's ADR-010 rules read
-    this.discoveredIncludeResolutions.set(cnxFile.path, resolved.resolutions);
-    this.discoveredCnextAlternatives.set(
-      cnxFile.path,
-      resolved.cnextAlternatives,
-    );
-    // Issues #497/#854: how this file spells each header and .cnx it includes,
-    // which is what its own generated header must say (#1435)
-    this.headerIncludeDirectivesByFile.set(cnxFile.path, {
-      directives: resolved.headerIncludeDirectives,
-      writerRelative: resolved.writerRelativeIncludes,
-    });
-    // #1435: the directory its quoted includes resolve from, which a generated
-    // header spells them relative to (#1725)
-    this.discoveredQuotedIncludeDirectories.set(cnxFile.path, sourceDir);
-    this.warnings.push(...resolved.warnings);
-    return { resolved, searchPaths, content };
-  }
-
-  /**
-   * The search path a file's includes resolve along: its directory, then the
-   * caller's include directories, then everything `discoverIncludePaths`
-   * finds from that directory (the project tiers, PlatformIO libdeps and
-   * Arduino libraries), then the configured ones. The one computation for a
-   * `.cnx` file (#1435) and for a C/C++ entry point (#1706), which built a
-   * list of its own without the tiers.
-   *
-   * @param file - The file, or where an in-memory file lives
-   * @param tiersByDirectory - `discoverIncludePaths` answers, per directory,
-   *   for this discovery pass. It reads only the directory of the path it is
-   *   given, the filesystem and $HOME, none of which change within one pass,
-   *   so the files of one directory share one answer -- and a source run makes
-   *   this pass on every editor request.
-   */
-  private _searchPathsFor(
-    file: string,
-    callerIncludeDirs: readonly string[],
-    tiersByDirectory: Map<string, readonly string[]>,
-  ): string[] {
-    const directory = dirname(resolve(file));
-    let tiers = tiersByDirectory.get(directory);
-    if (tiers === undefined) {
-      tiers = IncludeDiscovery.discoverIncludePaths(file, this.fs);
-      tiersByDirectory.set(directory, tiers);
-    }
-    return IncludeResolver.buildSearchPaths(
-      dirname(file),
-      [...this.anchor.includeDirs],
-      [...callerIncludeDirs, ...tiers],
-      undefined,
-      this.fs,
-    );
-  }
-
-  /**
-   * Sort files topologically and convert paths to IDiscoveredFile array.
-   */
-  private _sortFilesByDependency(
-    depGraph: DependencyGraph,
-    fileByPath: Map<string, IDiscoveredFile>,
-  ): IDiscoveredFile[] {
-    const sortedPaths = depGraph.getSortedFiles();
-    this.warnings.push(...depGraph.getWarnings());
-
-    const sortedFiles: IDiscoveredFile[] = [];
-    for (const path of sortedPaths) {
-      const file = fileByPath.get(path);
-      if (file) {
-        sortedFiles.push(file);
-      }
-    }
-    return sortedFiles;
-  }
-
-  /**
-   * Stage 1: Discover source files
-   *
-   * Unified include resolution: Discovers .cnx files from inputs, then
-   * reads each file to extract and resolve its #include directives.
-   * This ensures headers are found based on what the source actually
-   * includes, not by blindly scanning include directories.
-   */
-  private _discoverFromFiles(): IPipelineInput {
-    const entryPath = resolve(this.config.input);
-
-    // Check if this is a C/C++ entry point
-    if (InputExpansion.isCppEntryPoint(entryPath)) {
-      return this._discoverFromCppEntryPoint(entryPath);
-    }
-
-    // Step 1: Discover entry point file (original .cnx entry point logic)
-    const cnextFiles: IDiscoveredFile[] = [];
-    const fileByPath = new Map<string, IDiscoveredFile>();
-
-    const entryFile = FileDiscovery.discoverFile(entryPath, this.fs);
-    if (entryFile?.type !== EFileType.CNext) {
-      return Transpiler._noCNextFiles();
-    }
-    cnextFiles.push(entryFile);
-    fileByPath.set(resolve(entryFile.path), entryFile);
-
-    // Step 2: Build dependency graph, resolve headers, and return pipeline input
-    return this._buildPipelineInput(cnextFiles, fileByPath);
-  }
-
-  /**
-   * Discover C-Next files from a C/C++ entry point.
-   *
-   * Scans the include tree for headers with C-Next generation markers,
-   * extracts the source .cnx paths, and returns them for transpilation.
-   */
-  private _discoverFromCppEntryPoint(entryPath: string): IPipelineInput {
-    // #1706: the entry point's search path and each discovered .cnx file's
-    // are the ones .cnx discovery computes, discovered tiers included.
-    const tiersByDirectory = new Map<string, readonly string[]>();
-    const searchPaths = this._searchPathsFor(entryPath, [], tiersByDirectory);
-
-    const scanner = new CppEntryPointScanner(searchPaths, this.fs, (cnxPath) =>
-      this._searchPathsFor(cnxPath, [], tiersByDirectory),
-    );
-    const scanResult = scanner.scan(entryPath);
-
-    // #1541: these are ERRORS, and they now behave like it.
-    //
-    // They were pushed onto `this.warnings` with a hand-written `Error: `
-    // prefix, which produced `Warning: Error: C-Next source not found: x.cnx`
-    // and, far worse, exit 0 with zero output files -- while the same fault
-    // reached through a quoted include is E0506 and exits 1. Two discovery
-    // routes, one class of fault, opposite outcomes.
-    //
-    // The comment that stood here said the prefix was "to distinguish from
-    // informational warnings", which states the conflation rather than
-    // resolving it: `IScanResult` already separates the two, and only this
-    // consumer merged them.
-    //
-    // This is the shape #1319 settled twice in the catches above -- a
-    // deliberate rejection propagates, an incidental failure degrades. The
-    // error was buried doubly here, because a marker found with no source also
-    // sets `noCNextFound`, so the run additionally printed the friendly
-    // "To get started:" onboarding text at a user whose header path was wrong.
-    // The warnings are pushed BEFORE the throw, deliberately. The scan collects
-    // `#include "x.h" not found (from ...)` and `Could not read <path>`, and a
-    // missing C-Next source is very often downstream of exactly those -- so
-    // throwing first would report "that source is not there" while discarding
-    // the reason. `ResultPrinter` emits warnings above errors, so they land
-    // where a reader looks next.
-    this.warnings.push(...scanResult.warnings);
-
-    if (scanResult.errors.length > 0) {
-      throw new Error(
-        `E0509: ${scanResult.errors.join("\n       ")}\n` +
-          `  A generated header records the C-Next source it was written from.\n` +
-          `  Check that source is present, and reachable from the include path.`,
-      );
-    }
-
-    if (scanResult.noCNextFound) {
-      return Transpiler._noCNextFiles();
-    }
-
-    // Convert discovered .cnx paths to IDiscoveredFile array
-    const cnextFiles: IDiscoveredFile[] = scanResult.cnextSources.map(
-      (path) => ({
-        path,
-        type: EFileType.CNext,
-        extension: ".cnx",
-      }),
-    );
-
-    // Build fileByPath map for dependency resolution
-    const fileByPath = new Map<string, IDiscoveredFile>();
-    for (const cnxFile of cnextFiles) {
-      fileByPath.set(resolve(cnxFile.path), cnxFile);
-    }
-
-    // Scanner discovers .cnx files via header markers in the C/C++ include tree.
-    // _buildPipelineInput then resolves direct .cnx-to-.cnx includes (e.g.,
-    // #include "utils.cnx") which the scanner visits but doesn't add to sources.
-    return this._buildPipelineInput(cnextFiles, fileByPath);
-  }
-
-  /** Discovery's answer when it finds no C-Next file to transpile. */
-  private static _noCNextFiles(): IPipelineInput {
-    return {
-      cnextFiles: [],
-      headerFiles: [],
-      headerSearchPaths: new Map(),
-      includeSearchPaths: [],
-      writeOutputToDisk: true,
-    };
-  }
-
-  /**
-   * Shared helper: Build pipeline input from discovered C-Next files.
-   *
-   * Processes includes, builds dependency graph, resolves headers transitively,
-   * and converts to pipeline files. Used by both .cnx and C/C++ entry point paths.
-   *
-   * @param callerIncludeDirs - A source run's own include directories, which
-   *   every file of the run searches (see `_discoverFromSource`).
-   */
-  private _buildPipelineInput(
-    cnextFiles: IDiscoveredFile[],
-    fileByPath: Map<string, IDiscoveredFile>,
-    inMemory?: IInMemorySource,
-    callerIncludeDirs: readonly string[] = [],
-  ): IPipelineInput {
-    const headerRoots = new Map<string, IHeaderRoot>();
-    const depGraph = new DependencyGraph();
-
-    const directForeignHeaderFiles = new Set<string>();
-    // #1435: the include graph, kept. It is resolved here once, with the full
-    // search path, and 1.4 takes every file's visibility closure over it.
-    const includesByPath = new Map<string, IDiscoveredFile[]>();
-    const tiersByDirectory = new Map<string, readonly string[]>();
-    // #1835 review: the text discovery read, which 1.2 parses -- one read, so
-    // a save between the passes cannot give them different directives.
-    const sourcesByPath = new Map<string, string>();
-    // #1723: every file's search path, merged in discovery order.
-    const includeSearchPaths = new Set<string>();
-    // `cnextFiles` grows as includes are found, so this visits the closure.
-    for (const cnxFile of cnextFiles) {
-      const cnxPath = resolve(cnxFile.path);
-      depGraph.addFile(cnxPath);
-      const discovered = this._resolveCnxIncludes(
-        cnxFile,
-        callerIncludeDirs,
-        tiersByDirectory,
-        inMemory?.path === cnxFile.path ? inMemory : undefined,
-      );
-      const resolved = discovered.resolved;
-      sourcesByPath.set(cnxPath, discovered.content);
-      for (const searchPath of discovered.searchPaths) {
-        includeSearchPaths.add(searchPath);
-      }
-      if (resolved.hasForeignInclude) {
-        directForeignHeaderFiles.add(cnxPath);
-      }
-      this._collectHeaders(resolved, discovered.searchPaths, headerRoots);
-      includesByPath.set(
-        cnxPath,
-        this._processCnextIncludes(
-          resolved,
-          cnxPath,
-          depGraph,
-          cnextFiles,
-          fileByPath,
-        ),
-      );
-    }
-
-    // Include visibility is transitive, so the precondition for E0426/E0427
-    // must be too.
-    const reachesForeign = depGraph.collectDependentsOf(
-      directForeignHeaderFiles,
-    );
-
-    // Issue #580: Sort files topologically for correct cross-file const inference
-    const sortedCnextFiles = this._sortFilesByDependency(depGraph, fileByPath);
-
-    // Resolve headers transitively, each along its includer's search path
-    const allHeaders = this._resolveHeadersTransitively([
-      ...headerRoots.values(),
-    ]);
-
-    // Convert IDiscoveredFile[] to IPipelineFile[] (disk-based, all get code gen)
-    const pipelineFiles: IPipelineFile[] = sortedCnextFiles.map((f) => {
-      const cnextIncludes = includesByPath.get(resolve(f.path));
-      invariant(
-        cnextIncludes !== undefined,
-        `discovery resolves the includes of every file it sorts (missing ${f.path})`,
-      );
-      const source = sourcesByPath.get(resolve(f.path));
-      invariant(
-        source !== undefined,
-        `discovery reads the text of every file it sorts (missing ${f.path})`,
-      );
-      return {
-        path: f.path,
-        source,
-        discoveredFile: f,
-        cnextIncludes,
-        reachesForeignHeader: reachesForeign.has(resolve(f.path)),
-      };
-    });
-
-    return {
-      cnextFiles: pipelineFiles,
-      headerFiles: allHeaders.headers,
-      headerSearchPaths: allHeaders.searchPaths,
-      includeSearchPaths: [...includeSearchPaths],
-      writeOutputToDisk: true,
-    };
-  }
-
-  // ===========================================================================
   // Header Symbol Collection
   // ===========================================================================
 
@@ -2676,8 +1879,6 @@ class Transpiler {
    */
   private _collectHeaderSymbols(header: THeaderPreparation): void {
     const file = header.file;
-    // Track as processed (for cycle detection)
-    this.processedHeaders.add(resolve(file.path));
 
     if (header.kind === "failed") {
       throw header.error;
@@ -2831,7 +2032,7 @@ class Transpiler {
     // includes a sibling library's header preprocesses as it resolved.
     const result = await limit(() =>
       this.anchor.preprocessor.preprocess(file.path, {
-        defines: { ...this.anchor.defines },
+        defines: { ...this._requireSourceGraph().anchor.defines },
         includePaths: [...searchPaths],
         keepLineDirectives: false, // We don't need line mappings for symbol collection
       }),
@@ -2851,7 +2052,7 @@ class Transpiler {
       if (precedingHeaders.length > 0) {
         const retry = await limit(() =>
           this.anchor.preprocessor.preprocess(file.path, {
-            defines: { ...this.anchor.defines },
+            defines: { ...this._requireSourceGraph().anchor.defines },
             includePaths: [...searchPaths],
             keepLineDirectives: false,
             imacros: precedingHeaders,
@@ -3062,7 +2263,8 @@ class Transpiler {
    * map two files onto one guard; that is what E0203 is for.
    */
   private _guardIdentity(sourcePath: string): string {
-    const base = this.anchor.projectRoot ?? this.anchor.directory;
+    const anchor = this._requireSourceGraph().anchor;
+    const base = anchor.projectRoot ?? anchor.directory;
     const relativePath = relative(base, resolve(sourcePath));
 
     return relativePath.startsWith("..") || relativePath === ""
@@ -3188,20 +2390,12 @@ class Transpiler {
   private _includeDirectivesSpelledBy(
     sourcePath: string,
   ): ReadonlyMap<string, string> {
-    const own = this.headerIncludeDirectivesByFile.get(sourcePath);
-    invariant(
-      own !== undefined,
-      `discovery records the include directives of every file it renders (missing ${sourcePath})`,
-    );
-    invariant(
-      this.program,
-      "1.4 Resolve built Program before a header was rendered",
-    );
-    const here = this.program.quotedIncludeDirectory(sourcePath);
+    const own = this._includesOf(sourcePath);
+    const here = own.quotedIncludeDirectory;
     const directives = new Map<string, string>();
-    for (const file of this.headerIncludeDirectivesByFile.values()) {
-      for (const [header, directive] of file.directives) {
-        const named = file.writerRelative.get(header);
+    for (const file of this._requireSourceGraph().includes.values()) {
+      for (const [header, directive] of file.headerIncludeDirectives) {
+        const named = file.writerRelativeIncludes.get(header);
         directives.set(
           header,
           named === undefined
@@ -3210,10 +2404,29 @@ class Transpiler {
         );
       }
     }
-    for (const [header, directive] of own.directives) {
+    for (const [header, directive] of own.headerIncludeDirectives) {
       directives.set(header, directive);
     }
     return directives;
+  }
+
+  /** The run's `SourceGraph`, which every stage after 1.1 runs inside. */
+  private _requireSourceGraph(): ISourceGraph {
+    invariant(
+      this.sourceGraph !== null,
+      "1.1 Discover emitted the SourceGraph before a later stage read it",
+    );
+    return this.sourceGraph;
+  }
+
+  /** What 1.1 Discover learned about one file's includes (#1444). */
+  private _includesOf(sourcePath: string): IFileIncludes {
+    const includes = this._requireSourceGraph().includes.get(sourcePath);
+    invariant(
+      includes !== undefined,
+      `1.1 Discover records the includes of every file it discovers (missing ${sourcePath})`,
+    );
+    return includes;
   }
 
   /**
@@ -3273,7 +2486,7 @@ class Transpiler {
     // file. `typeInput` is the view `generate()` received, so the `.h` and the
     // `.c` are built from one object; neither is copied onto this class.
     const passByValueParams = program.passByValueParams();
-    const cnxIncludes = this.userIncludes.get(sourcePath) ?? [];
+    const includes = this._includesOf(sourcePath);
     // Issue #424: a dimension that is not a number is a macro the header names
     // but does not define, so the header must carry its source include.
     const cHeadersIncluded = Transpiler._headerNeedsUserCHeaders(
@@ -3281,11 +2494,8 @@ class Transpiler {
       this.codeGenerator.transpileState,
     );
     const userIncludes = cHeadersIncluded
-      ? [
-          ...cnxIncludes,
-          ...(this.userIncludes.get(`${sourcePath}\u0000c-headers`) ?? []),
-        ]
-      : cnxIncludes;
+      ? [...includes.userIncludes, ...includes.cHeaderIncludes]
+      : [...includes.userIncludes];
 
     // #1447: read from the artifact, not accumulated from the files transpiled
     // so far. The old form was correct only because `_sortFilesByDependency`
@@ -3676,36 +2886,6 @@ class Transpiler {
    */
   isCppMode(): boolean {
     return this.cppMode;
-  }
-
-  /**
-   * Determine the project root by walking up from a run's anchor looking for
-   * project markers. Returns undefined if no project root can be established,
-   * which disables caching to avoid polluting the filesystem with .cnx directories.
-   */
-  private determineProjectRoot(anchorPath: string): string | undefined {
-    // Start from the anchor: the input, or where a source run's text lives
-    const firstInput = anchorPath;
-    if (!firstInput) {
-      return undefined;
-    }
-
-    const resolvedInput = resolve(firstInput);
-    let startDir: string;
-
-    // Determine starting directory based on whether input exists
-    if (this.fs.exists(resolvedInput)) {
-      // Input exists - use its directory if file, or itself if directory
-      startDir = this.fs.isFile(resolvedInput)
-        ? dirname(resolvedInput)
-        : resolvedInput;
-    } else {
-      // Input doesn't exist - assume it's a file path, use parent directory
-      startDir = dirname(resolvedInput);
-    }
-
-    // No project root disables caching, so no .cnx directory is left behind
-    return IncludeDiscovery.findProjectRoot(startDir, this.fs) ?? undefined;
   }
 }
 

@@ -177,13 +177,6 @@ interface IProgram {
   callbackCompatibleFunctions(): ReadonlyMap<string, string>;
 
   /**
-   * Issue #1467: where each `.cnx` include of `sourceFile` resolves to. Empty
-   * when the file was never reached through discovery -- a real answer, not a
-   * default.
-   */
-  cnxIncludeRewrites(sourceFile: string): ReadonlyMap<string, string>;
-
-  /**
    * #1668 / #1664: the innermost lexical frame of `sourceFile` containing
    * `at`, or its file frame. Settled and frozen with the program.
    */
@@ -232,32 +225,6 @@ interface IProgram {
    * error: only a test builds one, and only a test that never asks.
    */
   target(): TRunTarget;
-
-  /**
-   * #1672: the file 1.1 Discover resolved each `#include` directive of
-   * `sourceFile` to, or null, keyed by `IncludeDiscovery.directiveText`.
-   * ADR-010's E0506 reads this and asks the file system nothing, so the
-   * include 2.1 accepts and the file the run discovered are one answer. Every
-   * file the run analyzes was discovered, so a missing entry is a defect.
-   */
-  includeResolutions(sourceFile: string): ReadonlyMap<string, string | null>;
-
-  /**
-   * #1672: for each include of a header in `sourceFile` whose C-Next source
-   * the same form of include would find, that source's spelling, keyed like
-   * `includeResolutions`. ADR-010's E0504 reads it; 1.1 answered it by the
-   * rule it resolves every include with.
-   */
-  cnextAlternatives(sourceFile: string): ReadonlyMap<string, string>;
-
-  /**
-   * #1435: the directory a quoted include from `sourceFile` resolves from, as
-   * discovery resolved it. It has no empty answer:
-   * every file the run analyzes was discovered, so a missing entry is a
-   * defect, and guessing `dirname(sourceFile)` is the re-derivation that let
-   * discovery and E0506 disagree for an in-memory root.
-   */
-  quotedIncludeDirectory(sourceFile: string): string;
 
   /**
    * The run's scope graph, for the passes after 1.4 (#1452 box 3).

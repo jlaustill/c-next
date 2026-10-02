@@ -6,6 +6,8 @@ import TargetResolver from "../../utils/TargetResolver";
 import ProgramGeneration from "./ProgramGeneration";
 import PublicInterface from "../2-Plan/PublicInterface";
 import { describe, it, expect, beforeEach } from "vitest";
+import IncludeResolver from "../../PARSE/1-Discover/IncludeResolver";
+import MockFileSystem from "../../transpiler/__tests__/MockFileSystem";
 import CodeGenWalker from "../CodeGenWalker";
 import CodeGenerator from "../3-Render/codegen/CodeGenerator";
 import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
@@ -18,7 +20,22 @@ import TParameterInfo from "../../transpiler/types/TParameterInfo";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import DeferredTypes from "../../PARSE/4-Resolve/DeferredTypes";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
-import NodeFileSystem from "../../transpiler/NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
+
+/**
+ * #1444, owner ruling 1: the kind 1.1 Discover records for each `#include`
+ * of `source`, built the way the run builds it -- the real `IncludeResolver`
+ * over a file system with nothing in it. Render reads it and classifies
+ * nothing, so a test that renders an include hands it over.
+ */
+const discoveredKinds = (source: string) =>
+  new IncludeResolver(
+    [],
+    ".h",
+    new MockFileSystem(),
+    null,
+    "/project/src",
+  ).resolve(source).kinds;
 
 /**
  * Both symbol passes, the way the pipeline runs them.
@@ -1883,6 +1900,7 @@ describe("CodeGenWalker", () => {
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
+        includeKinds: discoveredKinds(source),
       });
 
       expect(code).toContain("#include <stdio.h>");
@@ -1912,6 +1930,7 @@ describe("CodeGenWalker", () => {
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
+        includeKinds: discoveredKinds(source),
       });
 
       expect(code).toContain('#include "nonexistent.h"');
@@ -15858,6 +15877,7 @@ describe("CodeGenWalker", () => {
         const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
+          includeKinds: discoveredKinds(source),
         });
 
         expect(code).toContain("#include <stdio.h>");

@@ -10,6 +10,7 @@ import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 import type IIncludeContext from "../types/IIncludeContext";
+import EFileType from "../../../PARSE/1-Discover/types/EFileType";
 
 /**
  * #1322 / #1672: discovery's answer, for a test that has no file.
@@ -23,6 +24,7 @@ import type IIncludeContext from "../types/IIncludeContext";
 const NO_INCLUDES: IIncludeContext = {
   resolutions: new Map([["#include <string.h>", null]]),
   cnextAlternatives: new Map(),
+  kinds: new Map([["#include <string.h>", EFileType.CHeader]]),
 };
 
 /**

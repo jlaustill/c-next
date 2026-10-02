@@ -20,7 +20,6 @@
  * form did, so a caller that supplied nothing still supplies nothing.
  */
 import type IRunTargetInputs from "./IRunTargetInputs";
-import type IDiscoveryFacts from "./IDiscoveryFacts";
 import type IForeignSymbols from "./IForeignSymbols";
 import type IModificationFacts from "../../../transpiler/types/IModificationFacts";
 import type IStructFieldInfo from "../../../transpiler/types/symbols/IStructFieldInfo";
@@ -51,9 +50,6 @@ interface IProgramInputs {
 
   /** Functions used as an ADR-029 callback, to the typedef they are used as. */
   readonly callbackCompatibleFunctions?: ReadonlyMap<string, string>;
-
-  /** What 1.1 Discover learned about each file's includes. */
-  readonly discovery?: IDiscoveryFacts;
 
   /**
    * The run's scope graph (#1452 box 3).

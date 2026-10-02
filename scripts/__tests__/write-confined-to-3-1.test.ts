@@ -22,7 +22,7 @@ const METHODS = ["writeFile", "mkdir", "unlink", "rename"] as const;
 // `writeFileSync`/`mkdirSync`, whose names run on.
 const MUTATING = new RegExp(String.raw`\.(${METHODS.join("|")})\b`, "g");
 const WRITE_PASS = "src/WRITE/1-Write/";
-const PORT = "src/transpiler/NodeFileSystem.ts";
+const PORT = "src/PARSE/1-Discover/NodeFileSystem.ts";
 
 describe("3.1 Write owns every change to the filesystem", () => {
   const hits = SourceScan.scan(MUTATING);

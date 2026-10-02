@@ -561,7 +561,7 @@ describe("HeaderGeneratorUtils", () => {
       expect(lines[lines.length - 1]).toBe("");
     });
 
-    it("passes through userIncludes as-is (extension already correct from IncludeExtractor)", () => {
+    it("passes through userIncludes as-is (1.1 Discover already rendered their extension)", () => {
       const lines = HeaderGeneratorUtils.generateIncludes(
         {
           userIncludes: ['#include "types.hpp"'],

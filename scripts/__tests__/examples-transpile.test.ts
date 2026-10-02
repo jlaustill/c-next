@@ -17,7 +17,7 @@ import { join, dirname, relative, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import Transpiler from "../../src/transpiler/Transpiler";
 import FileScanner from "../utils/FileScanner";
-import NodeFileSystem from "../../src/transpiler/NodeFileSystem";
+import NodeFileSystem from "../../src/PARSE/1-Discover/NodeFileSystem";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const examplesDir = join(repoRoot, "examples");

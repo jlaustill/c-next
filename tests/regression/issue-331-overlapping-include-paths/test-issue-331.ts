@@ -17,7 +17,7 @@
 
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import FileDiscovery from "../../../src/transpiler/data/FileDiscovery";
+import FileDiscovery from "../../../src/PARSE/1-Discover/FileDiscovery";
 import Transpiler from "../../../src/transpiler/Transpiler";
 
 const __filename = fileURLToPath(import.meta.url);

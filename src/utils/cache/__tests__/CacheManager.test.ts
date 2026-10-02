@@ -28,7 +28,7 @@ import TTypeUtils from "../../TTypeUtils";
 import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
 import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
-import NodeFileSystem from "../../../transpiler/NodeFileSystem";
+import NodeFileSystem from "../../../PARSE/1-Discover/NodeFileSystem";
 
 describe("CacheManager", () => {
   let testDir: string;

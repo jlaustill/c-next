@@ -16,7 +16,7 @@
  */
 import { describe, it, expect } from "vitest";
 import Transpiler from "../Transpiler";
-import NodeFileSystem from "../NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /** The latch #985's recovery path is gated on, which is private. */
 function preprocessFailedFlag(transpiler: Transpiler): boolean {

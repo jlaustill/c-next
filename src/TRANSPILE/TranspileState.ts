@@ -1,3 +1,4 @@
+import type EFileType from "../PARSE/1-Discover/types/EFileType";
 import type ITargetDescription from "../transpiler/types/ITargetDescription";
 import SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import ReservedCnxName from "../utils/ReservedCnxName";
@@ -52,6 +53,12 @@ class TranspileState {
    * described a resolution codegen was never given the data to perform.
    */
   cnxIncludeRewrites: ReadonlyMap<string, string> = new Map<string, string>();
+  /**
+   * #1444, owner ruling 1: the kind of file each `#include` directive of this
+   * file names, as 1.1 Discover classified it. Codegen rewrites a directive by
+   * this answer and classifies nothing itself.
+   */
+  includeKinds: ReadonlyMap<string, EFileType> = new Map<string, EFileType>();
   /** Issue #477: Current function return type for enum inference */
   currentFunctionReturnType: string | null = null;
   /** Debug mode generates panic-on-overflow helpers (ADR-044) */
@@ -513,7 +520,9 @@ class TranspileState {
    * siblings from `output/codegen/types` -- but that was the whole problem:
    * `logic/ -> state/ -> output/` was live through exactly those imports while
    * `logic-cannot-import-output` reported clean, because it matched only direct
-   * edges. The rule is now transitive and `state/` has one of its own.
+   * edges. The rule was made transitive and `state/` got one of its own; #1444
+   * retired the `logic-` rule with the layer, when `logic/` joined 1.1 Discover
+   * and `parse-cannot-import-transpile` covered it.
    *
    * The reference itself is still a `state/` object holding a codegen contract.
    * That coupling is by design today and is #1323's to move; what this removes
@@ -1557,6 +1566,7 @@ class TranspileState {
     this.debugMode = false;
     this.selfIncludeAdded = false;
     this.cnxIncludeRewrites = new Map<string, string>();
+    this.includeKinds = new Map<string, EFileType>();
   }
 }
 

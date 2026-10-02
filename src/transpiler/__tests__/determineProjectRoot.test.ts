@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
-import NodeFileSystem from "../NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 describe("Transpiler.determineProjectRoot", () => {
   const testDir = join(process.cwd(), "test-project-root-tmp");

@@ -7,7 +7,7 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import ConfigPrinter from "./ConfigPrinter";
 import TargetResolver from "../utils/TargetResolver";
-import NodeFileSystem from "../transpiler/NodeFileSystem";
+import NodeFileSystem from "../PARSE/1-Discover/NodeFileSystem";
 import IParsedArgs from "./types/IParsedArgs";
 
 /**

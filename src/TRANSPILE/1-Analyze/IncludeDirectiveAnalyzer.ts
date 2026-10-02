@@ -39,22 +39,23 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
 import invariant from "../../utils/invariant";
-import IncludeDiscovery from "../../transpiler/data/IncludeDiscovery";
+import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
+import EFileType from "../../PARSE/1-Discover/types/EFileType";
 import IncludeDirective from "./helpers/IncludeDirective";
 import IIncludeContext from "./types/IIncludeContext";
 import IIncludeDirectiveError from "./types/IIncludeDirectiveError";
 
-/** Files that carry definitions; including one duplicates every symbol in it. */
-const IMPLEMENTATION_EXTENSIONS = new Set([
-  ".c",
-  ".cpp",
-  ".cc",
-  ".cxx",
-  ".c++",
+/**
+ * Files that carry definitions; including one duplicates every symbol in it.
+ *
+ * #1840: kinds, not extensions. This was a list of its own (`.c`, `.cpp`,
+ * `.cc`, `.cxx`, `.c++`) beside discovery's, and the two had diverged on
+ * `.c++`. 1.1 Discover classifies every directive, and this reads its answer.
+ */
+const IMPLEMENTATION_KINDS: ReadonlySet<EFileType> = new Set([
+  EFileType.CSource,
+  EFileType.CppSource,
 ]);
-
-const extensionOf = (path: string): string =>
-  path.substring(path.lastIndexOf(".")).toLowerCase();
 
 class IncludeDirectiveListener extends CNextListener {
   private readonly found: IIncludeDirectiveError[] = [];
@@ -73,9 +74,12 @@ class IncludeDirectiveListener extends CNextListener {
     const spec = IncludeDirective.of(ctx);
     if (spec === null) return;
 
-    if (this.checkImplementationFile(ctx, spec)) return;
-    const directive = IncludeDiscovery.directiveText(spec);
-    if (this.checkMissingCnextFile(ctx, spec, this.resolutionOf(directive))) {
+    const directive = IncludeDirectiveText.join(spec);
+    const kind = this.kindOf(directive);
+    if (this.checkImplementationFile(ctx, spec, kind)) return;
+    if (
+      this.checkMissingCnextFile(ctx, spec, kind, this.resolutionOf(directive))
+    ) {
       return;
     }
     this.checkCnextAlternative(
@@ -90,6 +94,16 @@ class IncludeDirectiveListener extends CNextListener {
    * directives with the grammar's own lexer (#1745), so every directive the
    * parser found has one.
    */
+  private kindOf(directive: string): EFileType {
+    const kind = this.context.kinds.get(directive);
+    invariant(
+      kind !== undefined,
+      `1.1 Discover classified every directive 1.2 parsed (missing ${directive})`,
+    );
+    return kind;
+  }
+
+  /** Discovery's resolution of this directive (see `kindOf`). */
   private resolutionOf(directive: string): string | null {
     const resolved = this.context.resolutions.get(directive);
     invariant(
@@ -103,8 +117,9 @@ class IncludeDirectiveListener extends CNextListener {
   private checkImplementationFile(
     ctx: Parser.IncludeDirectiveContext,
     spec: { path: string; isLocal: boolean },
+    kind: EFileType,
   ): boolean {
-    if (!IMPLEMENTATION_EXTENSIONS.has(extensionOf(spec.path))) return false;
+    if (!IMPLEMENTATION_KINDS.has(kind)) return false;
     this.report(
       ctx,
       "E0503",
@@ -124,9 +139,10 @@ class IncludeDirectiveListener extends CNextListener {
   private checkMissingCnextFile(
     ctx: Parser.IncludeDirectiveContext,
     spec: { path: string; isLocal: boolean },
+    kind: EFileType,
     resolved: string | null,
   ): boolean {
-    if (!IncludeDiscovery.isQuotedCNext(spec)) return false;
+    if (!spec.isLocal || kind !== EFileType.CNext) return false;
     if (resolved !== null) return false;
     // The help names no absolute path on purpose. The throw this replaces put
     // the resolved path in its message; it had no fixture, and the first one
@@ -156,14 +172,14 @@ class IncludeDirectiveListener extends CNextListener {
   ): void {
     if (cnxPath === undefined) return;
 
-    const instead = IncludeDiscovery.directiveText({
+    const instead = IncludeDirectiveText.join({
       path: cnxPath,
       isLocal: spec.isLocal,
     });
     this.report(
       ctx,
       "E0504",
-      `Found ${IncludeDiscovery.directiveText(spec)} but '${cnxPath}' exists at the same location.\n       Use ${instead} instead to use the C-Next version.`,
+      `Found ${IncludeDirectiveText.join(spec)} but '${cnxPath}' exists at the same location.\n       Use ${instead} instead to use the C-Next version.`,
       "The generated header describes the interface; the C-Next source is what the transpiler can check calls against (ADR-010).",
     );
   }

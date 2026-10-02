@@ -1,5 +1,26 @@
 import { describe, expect, it } from "vitest";
 import includeGenerators from "../IncludeGenerator";
+import IncludeDirectiveText from "../../../../../../utils/IncludeDirectiveText";
+import FileDiscovery from "../../../../../../PARSE/1-Discover/FileDiscovery";
+import EFileType from "../../../../../../PARSE/1-Discover/types/EFileType";
+
+/**
+ * 1.1 Discover's answer for one directive, as it records it: the kind its
+ * spelling names, keyed like every per-directive answer (#1444, owner ruling
+ * 1). Render reads this map and classifies nothing, so these cases hand it
+ * the answer 1.1 would give.
+ */
+const kindsOf = (directive: string): ReadonlyMap<string, EFileType> => {
+  const include = IncludeDirectiveText.split(directive);
+  return include === null
+    ? new Map()
+    : new Map([
+        [
+          IncludeDirectiveText.join(include),
+          FileDiscovery.classifyFile(include.path).type,
+        ],
+      ]);
+};
 
 const {
   transformIncludeDirective,
@@ -18,6 +39,7 @@ describe("IncludeGenerator", () => {
 
     it("transforms angle bracket .cnx include to .h", () => {
       const result = transformIncludeDirective("#include <utils.cnx>", {
+        kinds: kindsOf("#include <utils.cnx>"),
         headerExtension: ".h",
         sourcePath: null,
         rewrites: noRewrites,
@@ -27,6 +49,7 @@ describe("IncludeGenerator", () => {
 
     it("transforms angle bracket include with path", () => {
       const result = transformIncludeDirective("#include <lib/utils.cnx>", {
+        kinds: kindsOf("#include <lib/utils.cnx>"),
         headerExtension: ".h",
         sourcePath: null,
         rewrites: noRewrites,
@@ -36,6 +59,7 @@ describe("IncludeGenerator", () => {
 
     it("handles whitespace in directive", () => {
       const result = transformIncludeDirective("#  include  <file.cnx>", {
+        kinds: kindsOf("#  include  <file.cnx>"),
         headerExtension: ".h",
         sourcePath: null,
         rewrites: noRewrites,
@@ -45,6 +69,7 @@ describe("IncludeGenerator", () => {
 
     it("names the resolved header, not the author's spelling", () => {
       const result = transformIncludeDirective("#include <utils.cnx>", {
+        kinds: kindsOf("#include <utils.cnx>"),
         headerExtension: ".h",
         sourcePath: "/project/src/main.cnx",
         rewrites: new Map([["utils.cnx", "Display/utils.h"]]),
@@ -55,6 +80,7 @@ describe("IncludeGenerator", () => {
 
     it("keeps a resolved path that is already what the author wrote", () => {
       const result = transformIncludeDirective("#include <Display/utils.cnx>", {
+        kinds: kindsOf("#include <Display/utils.cnx>"),
         headerExtension: ".h",
         sourcePath: "/project/src/main.cnx",
         rewrites: new Map([["Display/utils.cnx", "Display/utils.h"]]),
@@ -65,6 +91,7 @@ describe("IncludeGenerator", () => {
 
     it("falls back to the extension swap when the resolver has no answer", () => {
       const result = transformIncludeDirective("#include <missing.cnx>", {
+        kinds: kindsOf("#include <missing.cnx>"),
         headerExtension: ".h",
         sourcePath: "/project/src/main.cnx",
         rewrites: new Map([["other.cnx", "Elsewhere/other.h"]]),
@@ -75,6 +102,7 @@ describe("IncludeGenerator", () => {
 
     it("transforms angle bracket .cnx include to .hpp in C++ mode", () => {
       const result = transformIncludeDirective("#include <utils.cnx>", {
+        kinds: kindsOf("#include <utils.cnx>"),
         sourcePath: null,
         headerExtension: ".hpp",
         rewrites: noRewrites,
@@ -84,6 +112,7 @@ describe("IncludeGenerator", () => {
 
     it("names the resolved .hpp header in C++ mode", () => {
       const result = transformIncludeDirective("#include <utils.cnx>", {
+        kinds: kindsOf("#include <utils.cnx>"),
         sourcePath: "/project/src/main.cnx",
         headerExtension: ".hpp",
         rewrites: new Map([["utils.cnx", "Display/utils.hpp"]]),
@@ -94,6 +123,7 @@ describe("IncludeGenerator", () => {
 
     it("falls back to .hpp in C++ mode when the resolver has no answer", () => {
       const result = transformIncludeDirective("#include <missing.cnx>", {
+        kinds: kindsOf("#include <missing.cnx>"),
         sourcePath: "/project/src/main.cnx",
         headerExtension: ".hpp",
         rewrites: noRewrites,
@@ -110,6 +140,7 @@ describe("IncludeGenerator", () => {
   describe("transformIncludeDirective - quotes", () => {
     it("transforms quoted .cnx include to .h", () => {
       const result = transformIncludeDirective('#include "helper.cnx"', {
+        kinds: kindsOf('#include "helper.cnx"'),
         headerExtension: ".h",
         sourcePath: "/project/src/main.cnx",
         rewrites: new Map(),
@@ -120,6 +151,7 @@ describe("IncludeGenerator", () => {
 
     it("transforms quoted include with relative path", () => {
       const result = transformIncludeDirective('#include "../lib/utils.cnx"', {
+        kinds: kindsOf('#include "../lib/utils.cnx"'),
         headerExtension: ".h",
         sourcePath: "/project/src/main.cnx",
         rewrites: new Map(),
@@ -130,6 +162,7 @@ describe("IncludeGenerator", () => {
 
     it("rewrites a quoted .cnx include when there is no sourcePath", () => {
       const result = transformIncludeDirective('#include "file.cnx"', {
+        kinds: kindsOf('#include "file.cnx"'),
         headerExtension: ".h",
         sourcePath: null,
         rewrites: new Map(),
@@ -146,6 +179,7 @@ describe("IncludeGenerator", () => {
 
     it("transforms quoted .cnx include to .hpp in C++ mode", () => {
       const result = transformIncludeDirective('#include "helper.cnx"', {
+        kinds: kindsOf('#include "helper.cnx"'),
         sourcePath: "/project/src/main.cnx",
         headerExtension: ".hpp",
         rewrites: new Map(),
@@ -156,6 +190,7 @@ describe("IncludeGenerator", () => {
 
     it("transforms quoted include with relative path to .hpp in C++ mode", () => {
       const result = transformIncludeDirective('#include "../lib/utils.cnx"', {
+        kinds: kindsOf('#include "../lib/utils.cnx"'),
         sourcePath: "/project/src/main.cnx",
         headerExtension: ".hpp",
         rewrites: new Map(),
@@ -172,6 +207,7 @@ describe("IncludeGenerator", () => {
   describe("transformIncludeDirective - passthrough", () => {
     it("passes through angle bracket .h includes unchanged", () => {
       const result = transformIncludeDirective("#include <stdio.h>", {
+        kinds: kindsOf("#include <stdio.h>"),
         headerExtension: ".h",
         sourcePath: "/project/main.cnx",
         rewrites: new Map(),
@@ -181,6 +217,7 @@ describe("IncludeGenerator", () => {
 
     it("passes through quoted .h includes unchanged", () => {
       const result = transformIncludeDirective('#include "myheader.h"', {
+        kinds: kindsOf('#include "myheader.h"'),
         headerExtension: ".h",
         sourcePath: "/project/main.cnx",
         rewrites: new Map(),
@@ -190,6 +227,7 @@ describe("IncludeGenerator", () => {
 
     it("passes through system includes unchanged", () => {
       const result = transformIncludeDirective("#include <stdint.h>", {
+        kinds: kindsOf("#include <stdint.h>"),
         headerExtension: ".h",
         sourcePath: null,
         rewrites: new Map(),
@@ -199,6 +237,7 @@ describe("IncludeGenerator", () => {
 
     it("passes through C++ headers unchanged", () => {
       const result = transformIncludeDirective("#include <vector>", {
+        kinds: kindsOf("#include <vector>"),
         headerExtension: ".h",
         sourcePath: null,
         rewrites: new Map(),
@@ -208,6 +247,7 @@ describe("IncludeGenerator", () => {
 
     it("passes through non-include text unchanged", () => {
       const result = transformIncludeDirective("int x = 5;", {
+        kinds: kindsOf("int x = 5;"),
         headerExtension: ".h",
         sourcePath: null,
         rewrites: new Map(),
@@ -217,6 +257,7 @@ describe("IncludeGenerator", () => {
 
     it("passes through .h includes unchanged even in C++ mode", () => {
       const result = transformIncludeDirective('#include "myheader.h"', {
+        kinds: kindsOf('#include "myheader.h"'),
         sourcePath: "/project/main.cnx",
         headerExtension: ".hpp",
         rewrites: new Map(),
@@ -228,6 +269,47 @@ describe("IncludeGenerator", () => {
   // ==========================================================================
   // processDefineDirective
   // ==========================================================================
+
+  describe("transformIncludeDirective - 1.1 Discover's kind (#1444)", () => {
+    // Owner ruling 1: whether a directive names C-Next source is 1.1's answer,
+    // recorded per directive. These hand render an answer its extension would
+    // not give, so a render that classified the spelling itself goes red.
+    const options = (kind: EFileType, directive: string) => ({
+      headerExtension: ".h" as const,
+      sourcePath: null,
+      rewrites: new Map<string, string>(),
+      kinds: new Map([[directive, kind]]),
+    });
+
+    it("rewrites a directive 1.1 classified as C-Next, whatever it is spelled", () => {
+      expect(
+        transformIncludeDirective(
+          '#include "Utils.CNX"',
+          options(EFileType.CNext, '#include "Utils.CNX"'),
+        ),
+      ).toBe('#include "Utils.h"');
+    });
+
+    it("leaves a .cnx spelling alone when 1.1 did not classify it as C-Next", () => {
+      expect(
+        transformIncludeDirective(
+          '#include "utils.cnx"',
+          options(EFileType.CHeader, '#include "utils.cnx"'),
+        ),
+      ).toBe('#include "utils.cnx"');
+    });
+
+    it("asserts every directive it renders has 1.1's answer", () => {
+      expect(() =>
+        transformIncludeDirective('#include "utils.cnx"', {
+          headerExtension: ".h",
+          sourcePath: null,
+          rewrites: new Map<string, string>(),
+          kinds: new Map(),
+        }),
+      ).toThrow("1.1 Discover classified every directive 1.2 parsed");
+    });
+  });
 
   describe("processDefineDirective", () => {
     // #1445: these take `{ kind, text }` now -- the node they used to fake is
@@ -357,6 +439,7 @@ describe("IncludeGenerator", () => {
     it("handles .cnx extension variations in angle brackets", () => {
       // Only exact .cnx should match
       const result1 = transformIncludeDirective("#include <file.cnx>", {
+        kinds: kindsOf("#include <file.cnx>"),
         headerExtension: ".h",
         sourcePath: null,
         rewrites: new Map(),
@@ -365,6 +448,7 @@ describe("IncludeGenerator", () => {
 
       // .txt should not match (only .cnx)
       const result2 = transformIncludeDirective("#include <file.txt>", {
+        kinds: kindsOf("#include <file.txt>"),
         headerExtension: ".h",
         sourcePath: null,
         rewrites: new Map(),
@@ -374,6 +458,7 @@ describe("IncludeGenerator", () => {
 
     it("handles .cnx extension variations in quotes", () => {
       const result = transformIncludeDirective('#include "file.cnx"', {
+        kinds: kindsOf('#include "file.cnx"'),
         headerExtension: ".h",
         sourcePath: "/project/main.cnx",
         rewrites: new Map(),
@@ -382,6 +467,7 @@ describe("IncludeGenerator", () => {
 
       // .txt should not match (only .cnx)
       const result2 = transformIncludeDirective('#include "file.txt"', {
+        kinds: kindsOf('#include "file.txt"'),
         headerExtension: ".h",
         sourcePath: "/project/main.cnx",
         rewrites: new Map(),
@@ -391,6 +477,7 @@ describe("IncludeGenerator", () => {
 
     it("handles deeply nested paths in angle brackets", () => {
       const result = transformIncludeDirective("#include <a/b/c/d/file.cnx>", {
+        kinds: kindsOf("#include <a/b/c/d/file.cnx>"),
         headerExtension: ".h",
         sourcePath: null,
         rewrites: new Map(),
@@ -400,6 +487,7 @@ describe("IncludeGenerator", () => {
 
     it("handles special characters in file names", () => {
       const result = transformIncludeDirective('#include "file-name_v2.cnx"', {
+        kinds: kindsOf('#include "file-name_v2.cnx"'),
         headerExtension: ".h",
         sourcePath: "/project/main.cnx",
         rewrites: new Map(),

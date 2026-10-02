@@ -1,0 +1,291 @@
+/**
+ * C/C++ Preprocessor
+ * Runs the system preprocessor on C/C++ files before parsing
+ */
+
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { basename, dirname } from "node:path";
+import IToolchain from "./types/IToolchain";
+import IPreprocessResult from "./types/IPreprocessResult";
+import ISourceMapping from "./types/ISourceMapping";
+import IPreprocessOptions from "./types/IPreprocessOptions";
+import ToolchainDetector from "./ToolchainDetector";
+import IFileSystem from "../../../transpiler/types/IFileSystem";
+
+const execFileAsync = promisify(execFile);
+
+/**
+ * Handles preprocessing of C/C++ files
+ */
+class Preprocessor {
+  private readonly toolchain: IToolchain | null;
+
+  private readonly defaultIncludePaths: string[] = [];
+
+  private readonly fs: IFileSystem;
+
+  constructor(fs: IFileSystem, toolchain?: IToolchain) {
+    this.fs = fs;
+    this.toolchain = toolchain ?? ToolchainDetector.detect(fs);
+
+    if (this.toolchain) {
+      this.defaultIncludePaths = ToolchainDetector.getDefaultIncludePaths(
+        this.toolchain,
+      );
+    }
+  }
+
+  /**
+   * Check if a toolchain is available
+   */
+  isAvailable(): boolean {
+    return this.toolchain !== null;
+  }
+
+  /**
+   * Get the current toolchain
+   */
+  getToolchain(): IToolchain | null {
+    return this.toolchain;
+  }
+
+  /**
+   * Preprocess a C/C++ file
+   */
+  async preprocess(
+    filePath: string,
+    options: IPreprocessOptions = {},
+  ): Promise<IPreprocessResult> {
+    if (!this.toolchain) {
+      return {
+        content: "",
+        sourceMappings: [],
+        success: false,
+        error:
+          "No C/C++ toolchain available. Install gcc, clang, or arm-none-eabi-gcc.",
+        originalFile: filePath,
+      };
+    }
+
+    try {
+      const content = await this.runPreprocessor(filePath, options);
+      const sourceMappings =
+        options.keepLineDirectives === false
+          ? []
+          : this.parseLineDirectives(content);
+
+      // Optionally strip #line directives for cleaner output
+      const cleanContent =
+        options.keepLineDirectives === false
+          ? this.stripLineDirectives(content)
+          : content;
+
+      return {
+        content: cleanContent,
+        sourceMappings,
+        success: true,
+        originalFile: filePath,
+        toolchain: this.toolchain.name,
+      };
+    } catch (error) {
+      return {
+        content: "",
+        sourceMappings: [],
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        originalFile: filePath,
+        toolchain: this.toolchain.name,
+      };
+    }
+  }
+
+  /**
+   * Preprocess content from a string, through a temporary file the port owns.
+   *
+   * Not stdin (#1653, measured on gcc and clang): on stdin a quoted `#include`
+   * is searched for first in the process's working directory, so a header
+   * there would shadow the one the search paths name. A temporary file in an
+   * otherwise empty directory keeps the resolution this always had.
+   */
+  async preprocessString(
+    content: string,
+    filename: string,
+    options: IPreprocessOptions = {},
+  ): Promise<IPreprocessResult> {
+    const result = await this.fs.withTempFile(
+      basename(filename),
+      content,
+      (tempFile) => this.preprocess(tempFile, options),
+    );
+    result.originalFile = filename;
+    return result;
+  }
+
+  /**
+   * Run the preprocessor command
+   */
+  private async runPreprocessor(
+    filePath: string,
+    options: IPreprocessOptions,
+  ): Promise<string> {
+    const toolchain = options.toolchain ?? this.toolchain!;
+    const args: string[] = [
+      "-E", // Preprocess only
+      "-P", // Don't generate linemarkers (we'll add them back if needed)
+    ];
+
+    // If we want line directives, don't use -P
+    if (options.keepLineDirectives !== false) {
+      args.pop(); // Remove -P
+    }
+
+    // Dump macro definitions (#define list) instead of preprocessed source,
+    // to discover function-like macros the normal preprocess would consume.
+    if (options.dumpMacros) {
+      args.push("-dM");
+    }
+
+    // Add include paths
+    const includePaths = [
+      ...this.defaultIncludePaths,
+      ...(options.includePaths ?? []),
+      dirname(filePath), // Include the file's directory
+    ];
+
+    for (const path of includePaths) {
+      args.push(`-I${path}`);
+    }
+
+    // Add defines
+    if (options.defines) {
+      for (const [key, value] of Object.entries(options.defines)) {
+        if (value === true) {
+          args.push(`-D${key}`);
+        } else if (value !== false) {
+          args.push(`-D${key}=${value}`);
+        }
+      }
+    }
+
+    // Import predecessor macros (gcc/clang -imacros) so include-order-dependent
+    // headers get the guards/attribute macros their includer would have defined
+    // first. -imacros keeps only the macros, not the predecessors' declarations,
+    // so the output stays scoped to the target file.
+    if (options.imacros) {
+      for (const macroHeader of options.imacros) {
+        args.push("-imacros", macroHeader);
+      }
+    }
+
+    // Add the input file
+    args.push(filePath);
+
+    // Invoke the preprocessor via argv (execFile, NOT a shell). A shell would
+    // re-parse -D values that legitimately contain spaces / parentheses (e.g.
+    // -DARDUINO_BOARD="Espressif ... (8 MB QD, No PSRAM)"), breaking on the
+    // metacharacters. Passing args directly mirrors how the real compiler is
+    // invoked and is safe for any value the compiler accepts.
+    try {
+      const { stdout, stderr } = await execFileAsync(toolchain.cpp, args, {
+        maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large headers
+      });
+
+      // Log warnings to console but don't fail
+      if (stderr?.trim()) {
+        console.warn(`Preprocessor warnings for ${filePath}:\n${stderr}`);
+      }
+
+      return stdout;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // Include stderr in error message for better debugging
+      const stderr = error.stderr ?? "";
+      throw new Error(
+        `Preprocessor failed for ${filePath}:\n${error.message}\n${stderr}`,
+        { cause: error },
+      );
+    }
+  }
+
+  /**
+   * Parse #line directives to build source mappings
+   * Format: # linenum "filename" [flags]
+   */
+  private parseLineDirectives(content: string): ISourceMapping[] {
+    const mappings: ISourceMapping[] = [];
+    const lines = content.split("\n");
+
+    let currentFile = "";
+    let currentOriginalLine = 1;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Match # linenum "filename" or #line linenum "filename"
+      const match = /^#\s*(?:line\s+)?(\d+)\s+"([^"]+)"(?:\s+\d+)*\s*$/.exec(
+        line,
+      );
+
+      if (match) {
+        currentOriginalLine = Number.parseInt(match[1], 10);
+        currentFile = match[2];
+      } else if (currentFile) {
+        mappings.push({
+          preprocessedLine: i + 1,
+          originalFile: currentFile,
+          originalLine: currentOriginalLine,
+        });
+        currentOriginalLine++;
+      }
+    }
+
+    return mappings;
+  }
+
+  /**
+   * Strip #line directives from preprocessed output
+   */
+  private stripLineDirectives(content: string): string {
+    return content
+      .split("\n")
+      .filter((line) => !/^#\s*(?:line\s+)?\d+\s+"/.exec(line))
+      .join("\n");
+  }
+
+  /**
+   * Map a line in preprocessed output back to original source
+   */
+  static mapToOriginal(
+    mappings: ISourceMapping[],
+    preprocessedLine: number,
+  ): { file: string; line: number } | null {
+    // Find the mapping for this line or the closest previous one
+    let bestMapping: ISourceMapping | null = null;
+
+    for (const mapping of mappings) {
+      if (mapping.preprocessedLine <= preprocessedLine) {
+        if (
+          !bestMapping ||
+          mapping.preprocessedLine > bestMapping.preprocessedLine
+        ) {
+          bestMapping = mapping;
+        }
+      }
+    }
+
+    if (!bestMapping) {
+      return null;
+    }
+
+    // Calculate the offset from the mapping
+    const offset = preprocessedLine - bestMapping.preprocessedLine;
+
+    return {
+      file: bestMapping.originalFile,
+      line: bestMapping.originalLine + offset,
+    };
+  }
+}
+
+export default Preprocessor;

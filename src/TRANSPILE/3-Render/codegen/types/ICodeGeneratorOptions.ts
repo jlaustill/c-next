@@ -1,5 +1,6 @@
 import ICodeGenSymbols from "../../../../transpiler/types/ICodeGenSymbols";
 import type ITargetDescription from "../../../../transpiler/types/ITargetDescription";
+import type EFileType from "../../../../PARSE/1-Discover/types/EFileType";
 
 /**
  * Options for the code generator
@@ -41,6 +42,13 @@ interface ICodeGeneratorOptions {
    * options advertised it.
    */
   cnxIncludeRewrites?: ReadonlyMap<string, string>;
+  /**
+   * #1444, owner ruling 1: the kind of file each `#include` directive's
+   * spelling names, keyed by `IncludeDirectiveText.join`, as 1.1 Discover
+   * classified it. Render rewrites a directive only when this says C-Next,
+   * and classifies nothing itself.
+   */
+  includeKinds?: ReadonlyMap<string, EFileType>;
   /**
    * Issue #1515: whether this file has a public C interface, so the generated
    * `.c` must include its own header.
