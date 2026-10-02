@@ -21,6 +21,7 @@ import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
 
+import ExecFailure from "../src/utils/ExecFailure";
 import FileScanner from "./utils/FileScanner";
 import UnusedCode from "./unused-code/UnusedCode";
 
@@ -77,8 +78,8 @@ function tscOutput(project: string): string {
     return "";
   } catch (error: unknown) {
     // A non-zero exit is the normal path -- tsc reports findings on stdout.
-    const err = error as { stdout?: string; stderr?: string; message: string };
-    output = err.stdout ?? err.stderr ?? err.message;
+    const failure = ExecFailure.of(error);
+    output = failure.stdout ?? failure.stderr ?? failure.message;
   }
   // ...but a non-zero exit with no positioned diagnostic means the compiler
   // never ran: a bad `-p`, a missing binary, no inputs. Returning it would

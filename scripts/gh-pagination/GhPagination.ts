@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import ExecFailure from "../../src/utils/ExecFailure";
 import IGhCommand from "../types/IGhCommand";
 import IGhPaginationOutcome from "../types/IGhPaginationOutcome";
 import IGhPaginationViolation from "../types/IGhPaginationViolation";
@@ -487,10 +488,10 @@ class GhPagination {
         },
       );
       return found.split("\n").filter((line) => line.length > 0);
-    } catch (error) {
+    } catch (error: unknown) {
       // `git grep -l` exits 1 for "no matches", which is clean. Anything else is
       // a real failure and must not be reported as an empty, passing scan.
-      if ((error as { status?: number }).status === 1) return [];
+      if (ExecFailure.of(error).status === 1) return [];
       throw error;
     }
   }

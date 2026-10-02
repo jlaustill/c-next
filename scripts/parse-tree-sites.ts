@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
 
+import ExecFailure from "../src/utils/ExecFailure";
 import ParseTreeSites from "./parse-tree/ParseTreeSites";
 import type IDepcruiseViolation from "./types/IDepcruiseViolation";
 import GeneratedMarkdown from "./utils/GeneratedMarkdown";
@@ -46,12 +47,12 @@ function violations(): readonly IDepcruiseViolation[] {
       ["src", "--config", ".dependency-cruiser.cjs", "--output-type", "json"],
       { cwd: rootDir, encoding: "utf-8", maxBuffer: 64 * 1024 * 1024 },
     );
-  } catch (error) {
-    const result = error as { stdout?: string };
-    if (typeof result.stdout !== "string" || result.stdout.length === 0) {
+  } catch (error: unknown) {
+    const failure = ExecFailure.of(error);
+    if (failure.stdout === undefined || failure.stdout.length === 0) {
       throw error;
     }
-    stdout = result.stdout;
+    stdout = failure.stdout;
   }
   const parsed: unknown = JSON.parse(stdout);
   const summary = (parsed as { summary?: { violations?: unknown } }).summary;
