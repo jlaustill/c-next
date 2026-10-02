@@ -72,19 +72,17 @@ says, like every other.
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.
 
-By area. The first five rows are `3-Render/`, and the last four are #1531's widening:
+By area. Each row names a directory under `src/`, and the gate holds its count to the throws
+the corpus has there. The sum is held to the citations as well, so the rows cover the corpus once.
+#1322's audit split `3-Render/` five ways, and all five are now empty. That history is in the
+bucket sections below, not in this table (#1531):
 
-| area                                                                | sites | b1  | b2  | b3  | b4  |
-| ------------------------------------------------------------------- | ----- | --- | --- | --- | --- |
-| `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 0     | 0   | 0   | 0   | 0   |
-| `codegen/helpers/`                                                  | 0     | 0   | 0   | 0   | 0   |
-| `codegen/generators/**`                                             | 0     | 0   | 0   | 0   | 0   |
-| `codegen/subscript/`                                                | 0     | 0   | 0   | 0   | 0   |
-| `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 0     | 0   | 0   | 0   | 0   |
-| `PARSE/` (1.1 Discover, 1.3 Declare, 1.4 Resolve)                   | 7     | 2   | 0   | 0   | 5   |
-| `TRANSPILE/` outside `3-Render/`                                    | 0     | 0   | 0   | 0   | 0   |
-| `transpiler/` (the orchestrator)                                    | 1     | 1   | 0   | 0   | 0   |
-| `utils/`                                                            | 3     | 0   | 3   | 0   | 0   |
+| area                                                     | sites |
+| -------------------------------------------------------- | ----- |
+| `src/PARSE/` (1.1 Discover, 1.3 Declare, 1.4 Resolve)    | 7     |
+| `src/TRANSPILE/` (2.1 to 2.3; #1322 emptied `3-Render/`) | 0     |
+| `src/transpiler/` (the orchestrator)                     | 1     |
+| `src/utils/`                                             | 3     |
 
 ## Position availability — the finding that shapes #1322
 
@@ -165,7 +163,7 @@ also says which throw it meant, so correcting the line is a lookup rather than a
 
 ### Outside `3-Render/` — 3
 
-#1531 turned every other internal throw outside `3-Render/` into an `invariant()`: ten
+#1531 turned every other internal throw outside `3-Render/` into an `invariant()`: nine
 assertions about stage order and developer obligations. These three are why "every" is not
 literally every.
 

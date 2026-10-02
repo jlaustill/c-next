@@ -506,9 +506,11 @@ class ThrowCitations {
     }
 
     let total = 0;
+    const throwsByFile = new Map<string, number>();
     for (const [file, source] of sources) {
       const actual = ThrowCitations.throwLines(source);
       total += actual.length;
+      throwsByFile.set(file, actual.length);
       const rows = rowsByFile.get(file) ?? [];
       const claimed = rows.map((row) => row.line);
       for (const line of actual) {
@@ -526,7 +528,13 @@ class ThrowCitations {
     }
 
     errors.push(...ThrowCitations.checkProse(markdown, sources));
-    errors.push(...ThrowCitations.checkDeclaredCounts(markdown, cited.length));
+    errors.push(
+      ...ThrowCitations.checkDeclaredCounts(
+        markdown,
+        cited.length,
+        throwsByFile,
+      ),
+    );
 
     return {
       ok: errors.length === 0,
@@ -728,14 +736,27 @@ class ThrowCitations {
    * the total, and the by-area table make the same kind of claim a citation
    * does, so adding a throw and its classification row must not be able to
    * leave any of them reading the old figure.
+   *
+   * #1531: every number now, not only the headings and the two totals. The
+   * counts table's per-bucket rows and the by-area table's per-area rows were
+   * read by nothing -- a bucket row could say 4 over a section of 3, and two
+   * areas could trade counts with the sum intact, and the gate stayed green.
+   *
+   * @param throwsByFile the corpus's throw count per file, which an area row is
+   *        held to
    */
-  static checkDeclaredCounts(markdown: string, cited: number): string[] {
+  static checkDeclaredCounts(
+    markdown: string,
+    cited: number,
+    throwsByFile: ReadonlyMap<string, number>,
+  ): string[] {
     const errors: string[] = [];
+    const sections = ThrowCitations.bucketCounts(markdown);
 
     // Sections nest, so their row counts deliberately overlap and are NOT
     // summed -- the total is held by the counts table and the by-area table
     // below, each against the citation count directly.
-    for (const section of ThrowCitations.bucketCounts(markdown)) {
+    for (const section of sections) {
       if (section.declared !== section.rows) {
         errors.push(
           `${section.heading} -- declares ${section.declared}, has ${section.rows} row(s)`,
@@ -754,17 +775,80 @@ class ThrowCitations {
       );
     }
 
-    const areas = [...markdown.matchAll(/^\| `[^`]+`[^|]*\|\s*(\d+)\s*\|/gm)];
-    if (areas.length > 0) {
-      const summed = areas.reduce(
-        (sum, row) => sum + Number.parseInt(row[1], 10),
-        0,
+    errors.push(...ThrowCitations.checkBucketRows(markdown, sections));
+    errors.push(...ThrowCitations.checkAreas(markdown, cited, throwsByFile));
+    return errors;
+  }
+
+  /**
+   * Each `| **N** | … | **C** |` row of the counts table, held to the rows
+   * under `## Bucket N`. The heading's own `(C)` is held to the same rows
+   * above, so the summary cannot disagree with the section it summarizes.
+   */
+  private static checkBucketRows(
+    markdown: string,
+    sections: ReadonlyArray<{ heading: string; rows: number }>,
+  ): string[] {
+    const errors: string[] = [];
+    const rows = markdown.matchAll(
+      /^\|\s*\*\*(\d+)\*\*\s*\|[^|]*\|\s*\*\*(\d+)\*\*\s*\|/gm,
+    );
+    for (const row of rows) {
+      const said = Number.parseInt(row[2], 10);
+      const section = sections.find((candidate) =>
+        new RegExp(String.raw`^## Bucket ${row[1]}\b`).test(candidate.heading),
       );
-      if (summed !== cited) {
-        errors.push(`by-area table sums to ${summed}, document cites ${cited}`);
+      if (section === undefined) {
+        errors.push(
+          `counts table names bucket ${row[1]}, and no "## Bucket ${row[1]}" heading declares it`,
+        );
+      } else if (section.rows !== said) {
+        errors.push(
+          `counts table says bucket ${row[1]} holds ${said}, its section has ${section.rows} row(s)`,
+        );
       }
     }
+    return errors;
+  }
 
+  /**
+   * Each by-area row names a directory under `src/` in its first cell, and is
+   * held to the throws the corpus has there. The sum is held to the citations
+   * as well, so the rows must cover the corpus once: a throw in a directory no
+   * row names, or two rows naming one directory, fails the sum.
+   */
+  private static checkAreas(
+    markdown: string,
+    cited: number,
+    throwsByFile: ReadonlyMap<string, number>,
+  ): string[] {
+    const areas = [...markdown.matchAll(/^\| `([^`]+)`[^|]*\|\s*(\d+)\s*\|/gm)];
+    if (areas.length === 0) {
+      return [];
+    }
+    const errors: string[] = [];
+    let summed = 0;
+    for (const area of areas) {
+      const prefix = area[1];
+      const said = Number.parseInt(area[2], 10);
+      summed += said;
+      if (!prefix.startsWith("src/")) {
+        errors.push(`by-area row \`${prefix}\` names no directory under src/`);
+        continue;
+      }
+      let actual = 0;
+      for (const [file, count] of throwsByFile) {
+        if (file.startsWith(prefix)) actual += count;
+      }
+      if (actual !== said) {
+        errors.push(
+          `by-area row \`${prefix}\` says ${said}, and ${prefix} holds ${actual} throw site(s)`,
+        );
+      }
+    }
+    if (summed !== cited) {
+      errors.push(`by-area table sums to ${summed}, document cites ${cited}`);
+    }
     return errors;
   }
 }

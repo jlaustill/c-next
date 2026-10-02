@@ -208,11 +208,14 @@ describe("ThrowCitations.resolve", () => {
 });
 
 describe("ThrowCitations.check", () => {
-  /** A minimal document citing both of SAMPLE's throws, with matching totals. */
+  /**
+   * A minimal document citing both of SAMPLE's throws, with matching totals.
+   * No by-area table: its rows are held to real directories, which the
+   * `checkDeclaredCounts` tests build for themselves.
+   */
   const docFor = (...rows: string[]): string =>
     [
       "|  | **total** | **" + rows.length + "** |",
-      "| `codegen/` | " + rows.length + " |",
       "",
       "## Bucket 1 — user-facing (" + rows.length + ")",
       ...rows,
@@ -486,9 +489,11 @@ describe("ThrowCitations.checkDeclaredCounts", () => {
   // old figure.
   const doc = [
     "| bucket | count |",
-    "| **1** | **1** |",
+    "| **1** | user-facing | **1** |",
+    "| **2** | internal | **1** |",
     "|  | **total** | **2** |",
-    "| `codegen/` | 2 | 1 | 1 | 0 |",
+    "| `src/TRANSPILE/` | 2 |",
+    "| `src/utils/` | 0 |",
     "",
     "## Bucket 1 — user-facing (1)",
     "| `Sample.ts:2` | `first failure` | why |",
@@ -496,9 +501,12 @@ describe("ThrowCitations.checkDeclaredCounts", () => {
     "## Bucket 2 — internal invariants (1)",
     "| `Sample.ts:5` | `second failure` | why |",
   ].join("\n");
+  const throwsByFile = new Map([[FILE, 2]]);
+  const check = (markdown: string, cited = 2) =>
+    ThrowCitations.checkDeclaredCounts(markdown, cited, throwsByFile);
 
   it("passes when every declared number matches the rows", () => {
-    expect(ThrowCitations.checkDeclaredCounts(doc, 2)).toEqual([]);
+    expect(check(doc)).toEqual([]);
   });
 
   it("fails a bucket heading whose count no longer matches its rows", () => {
@@ -506,28 +514,64 @@ describe("ThrowCitations.checkDeclaredCounts", () => {
       "internal invariants (1)",
       "internal invariants (5)",
     );
-    const errors = ThrowCitations.checkDeclaredCounts(stale, 2);
-    expect(errors.some((e) => e.includes("declares 5, has 1 row"))).toBe(true);
-  });
-
-  it("fails a stale total row", () => {
-    const errors = ThrowCitations.checkDeclaredCounts(doc, 3);
-    expect(
-      errors.some((e) => e.includes("total says 2, document cites 3")),
-    ).toBe(true);
-  });
-
-  it("fails a by-area table that no longer sums", () => {
-    const stale = doc.replace("| `codegen/` | 2 |", "| `codegen/` | 9 |");
-    const errors = ThrowCitations.checkDeclaredCounts(stale, 2);
-    expect(errors.some((e) => e.includes("by-area table sums to 9"))).toBe(
+    expect(check(stale).some((e) => e.includes("declares 5, has 1 row"))).toBe(
       true,
     );
   });
 
+  it("fails a stale total row", () => {
+    expect(
+      check(doc, 3).some((e) => e.includes("total says 2, document cites 3")),
+    ).toBe(true);
+  });
+
+  it("fails a by-area table that no longer sums", () => {
+    const stale = doc.replace(
+      "| `src/TRANSPILE/` | 2 |",
+      "| `src/TRANSPILE/` | 9 |",
+    );
+    expect(
+      check(stale).some((e) => e.includes("by-area table sums to 9")),
+    ).toBe(true);
+  });
+
   it("reports a missing total row rather than passing silently", () => {
-    const errors = ThrowCitations.checkDeclaredCounts("## Bucket 1 — x (0)", 0);
+    const errors = ThrowCitations.checkDeclaredCounts(
+      "## Bucket 1 — x (0)",
+      0,
+      new Map(),
+    );
     expect(errors.some((e) => e.includes("no **total** row"))).toBe(true);
+  });
+
+  // #1531: these three passed before. Only the headings and the two totals
+  // were read, so a summary row and a per-area row could say anything.
+  it("fails a counts-table bucket row that disagrees with its section", () => {
+    const stale = doc.replace(
+      "| **1** | user-facing | **1** |",
+      "| **1** | user-facing | **4** |",
+    );
+    expect(
+      check(stale).some((e) =>
+        e.includes("says bucket 1 holds 4, its section has 1 row"),
+      ),
+    ).toBe(true);
+  });
+
+  it("fails two areas that trade counts, though the sum holds", () => {
+    const traded = doc
+      .replace("| `src/TRANSPILE/` | 2 |", "| `src/TRANSPILE/` | 0 |")
+      .replace("| `src/utils/` | 0 |", "| `src/utils/` | 2 |");
+    const errors = check(traded);
+    expect(errors.some((e) => e.includes("`src/utils/` says 2"))).toBe(true);
+    expect(errors.some((e) => e.includes("sums to"))).toBe(false);
+  });
+
+  it("fails an area that names no directory under src/", () => {
+    const loose = doc.replace("| `src/TRANSPILE/` | 2 |", "| `codegen/` | 2 |");
+    expect(
+      check(loose).some((e) => e.includes("names no directory under src/")),
+    ).toBe(true);
   });
 });
 
