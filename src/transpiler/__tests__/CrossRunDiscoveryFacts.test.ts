@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -6,22 +6,22 @@ import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
 import ITranspilerConfig from "../types/ITranspilerConfig";
 import NodeFileSystem from "../NodeFileSystem";
+import Discover from "../../PARSE/1-Discover/Discover";
+import type ISourceGraph from "../../PARSE/1-Discover/types/ISourceGraph";
 
 /**
  * #1452: 1.1 Discover's include facts must not outlive the run that found them.
  *
  * `TranspilerState.reset()` cleared eight maps, and `_initializeRun` called it.
  * Box 1 deleted `TranspilerState` and re-wrote that teardown as five inline
- * `.clear()` calls -- `discoveredCnxIncludeRewrites` and
- * `discoveredIncludeSearchPaths` were not among them, and nothing else clears
- * either, so both grow one entry per file ever discovered for the life of the
- * instance.
+ * `.clear()` calls, and two of discovery's maps were not among them, so both
+ * grew one entry per file ever discovered for the life of the instance.
  *
- * That is the drift `_initializeRun`'s own comment cites three lines above the
- * gap, as the reason `SymbolTable.clear()` was deleted rather than extended:
- * *"`clear()` listed eleven of twelve indexes ... adding the twelfth line would
- * have fixed this instance and left the shape."* The shape recurred in the same
- * method that recorded it.
+ * #1444: the maps are gone. Each run's discovery is its own `Discover`, and
+ * its facts are the run's `SourceGraph`, so there is no teardown to forget.
+ * What `Transpiler` still holds is the graph itself, for the length of the
+ * run. These assert both halves: the graph a run reads answers for that run's
+ * files alone, and the instance lets go of it when the run ends.
  *
  * ## Why this is asserted directly rather than through generated output
  *
@@ -29,16 +29,7 @@ import NodeFileSystem from "../NodeFileSystem";
  * and reuses it for every request -- so post-run residency is the cost, and it
  * is a different number from anything a fixture or a peak-RSS benchmark can
  * see. The same argument `RetainedParseCacheRelease.test.ts` makes for the parse
- * cache, and these maps (three since #1435) are the remaining fields with its
- * shape.
- *
- * Attempting it through output instead is what showed the direct assertion is
- * the honest one: a stale rewrite is only consulted for a spelling that is in
- * the tree, and if the spelling is there, this run either resolves it or raises
- * E0506 -- so the retained entry is unreachable by construction today. The
- * property is that nothing is retained, not that something currently misreads
- * it, and `Program.build` is handed these maps by reference (not a copy), so
- * "unreachable today" is one call site away from not being true.
+ * cache. The graph holds every source text of the run.
  */
 describe("#1452: discovery's include facts are released at end of run", () => {
   let tempDir: string;
@@ -48,41 +39,39 @@ describe("#1452: discovery's include facts are released at end of run", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  /**
-   * Which files the maps currently answer for, without widening their
-   * visibility for production.
-   *
-   * KEYS rather than sizes: a run records one entry per file it discovered, so
-   * the size after run 2 is "run 2's files" plus whatever run 1 left, and only
-   * the names say which. File names alone, because the temp directory differs
-   * per test.
-   */
-  function discoveryFactFiles(transpiler: Transpiler): {
-    rewrites: string[];
-    resolutions: string[];
-    alternatives: string[];
-    quotedDirs: string[];
-  } {
-    const fields = transpiler as unknown as {
-      discoveredCnxIncludeRewrites: Map<string, unknown>;
-      discoveredIncludeResolutions: Map<string, unknown>;
-      discoveredCnextAlternatives: Map<string, unknown>;
-      discoveredQuotedIncludeDirectories: Map<string, unknown>;
-    };
-    const fileNames = (map: Map<string, unknown>): string[] =>
-      [...map.keys()].map((path) => path.split("/").pop() ?? path).sort();
-    return {
-      rewrites: fileNames(fields.discoveredCnxIncludeRewrites),
-      resolutions: fileNames(fields.discoveredIncludeResolutions),
-      alternatives: fileNames(fields.discoveredCnextAlternatives),
-      quotedDirs: fileNames(fields.discoveredQuotedIncludeDirectories),
-    };
+  /** The graphs `Discover` emitted, in run order. */
+  function recordGraphs(): ISourceGraph[] {
+    const graphs: ISourceGraph[] = [];
+    const run = Discover.run.bind(Discover);
+    vi.spyOn(Discover, "run").mockImplementation((...args) => {
+      const discovered = run(...args);
+      graphs.push(discovered.graph);
+      return discovered;
+    });
+    return graphs;
   }
 
-  /** An entry that includes a sibling `.cnx`, so every map gets an entry. */
+  /**
+   * File names alone, because the temp directory differs per test. KEYS
+   * rather than sizes: only the names say whose files they are.
+   */
+  function filesWithIncludeFacts(graph: ISourceGraph): string[] {
+    return [...graph.includes.keys()]
+      .map((path) => path.split("/").pop() ?? path)
+      .sort();
+  }
+
+  /** The graph the instance holds, read without widening its visibility. */
+  function heldGraph(transpiler: Transpiler): ISourceGraph | null {
+    return (transpiler as unknown as { sourceGraph: ISourceGraph | null })
+      .sourceGraph;
+  }
+
+  /** An entry that includes a sibling `.cnx`, so both files get facts. */
   function writeProject(): string {
     writeFileSync(
       join(tempDir, "lib.cnx"),
@@ -110,7 +99,8 @@ describe("#1452: discovery's include facts are released at end of run", () => {
   it("answers for exactly the files the current run discovered", async () => {
     // Run 1 over a two-file project, then run 2 over a DIFFERENT entry that
     // includes nothing. Run 2's own discovery reaches `solo.cnx` alone, so
-    // `app.cnx` and `lib.cnx` appearing afterwards is run 1's, retained.
+    // `app.cnx` or `lib.cnx` appearing in its graph would be run 1's, retained.
+    const graphs = recordGraphs();
     const transpiler = createTranspiler(writeProject());
 
     const first = await transpiler.transpile({ kind: "files" });
@@ -118,14 +108,10 @@ describe("#1452: discovery's include facts are released at end of run", () => {
     // NEGATIVE CONTROL for the assertion below. "Run 1's files are absent"
     // would also hold if discovery never recorded anything at all -- so prove
     // it DID. A program that resolves `lib.cnx` to a generated header is only
-    // reachable through the maps being written.
+    // reachable through these facts.
     expect(first.success).toBe(true);
-    expect(discoveryFactFiles(transpiler)).toEqual({
-      rewrites: ["app.cnx", "lib.cnx"],
-      resolutions: ["app.cnx", "lib.cnx"],
-      alternatives: ["app.cnx", "lib.cnx"],
-      quotedDirs: ["app.cnx", "lib.cnx"],
-    });
+    expect(graphs).toHaveLength(1);
+    expect(filesWithIncludeFacts(graphs[0])).toEqual(["app.cnx", "lib.cnx"]);
 
     const standalone = join(tempDir, "solo.cnx");
     writeFileSync(standalone, `u32 main() {\n    return 0;\n}\n`);
@@ -137,25 +123,31 @@ describe("#1452: discovery's include facts are released at end of run", () => {
 
     const second = await transpiler.transpile({ kind: "files" });
     expect(second.success).toBe(true);
-    expect(discoveryFactFiles(transpiler)).toEqual({
-      rewrites: ["solo.cnx"],
-      resolutions: ["solo.cnx"],
-      alternatives: ["solo.cnx"],
-      quotedDirs: ["solo.cnx"],
-    });
+    expect(graphs).toHaveLength(2);
+    expect(filesWithIncludeFacts(graphs[1])).toEqual(["solo.cnx"]);
   });
 
-  it("records the same thing on a fresh instance, so the case above is about retention", async () => {
-    const standalone = join(tempDir, "solo.cnx");
-    writeFileSync(standalone, `u32 main() {\n    return 0;\n}\n`);
+  it("lets go of the run's graph when the run ends", async () => {
+    const graphs = recordGraphs();
+    const transpiler = createTranspiler(writeProject());
 
-    const fresh = createTranspiler(standalone);
-    expect((await fresh.transpile({ kind: "files" })).success).toBe(true);
-    expect(discoveryFactFiles(fresh)).toEqual({
-      rewrites: ["solo.cnx"],
-      resolutions: ["solo.cnx"],
-      alternatives: ["solo.cnx"],
-      quotedDirs: ["solo.cnx"],
-    });
+    expect((await transpiler.transpile({ kind: "files" })).success).toBe(true);
+
+    // The run did hold a graph, so its absence below is a release, not a
+    // graph that was never there.
+    expect(graphs).toHaveLength(1);
+    expect(heldGraph(transpiler)).toBeNull();
+  });
+
+  it("lets go of it when the run fails, too", async () => {
+    const graphs = recordGraphs();
+    const entry = join(tempDir, "broken.cnx");
+    writeFileSync(entry, `void main() {\n    u32 x <- ;\n}\n`);
+    const transpiler = createTranspiler(entry);
+
+    expect((await transpiler.transpile({ kind: "files" })).success).toBe(false);
+
+    expect(graphs).toHaveLength(1);
+    expect(heldGraph(transpiler)).toBeNull();
   });
 });

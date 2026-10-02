@@ -33,7 +33,7 @@ const AWAITING_ROWS: Readonly<Record<string, number>> = {
   "src/transpiler/Transpiler.ts": 1,
   "src/transpiler/ModificationFacts.ts": 1,
   "src/transpiler/CallbackCompatibility.ts": 1,
-  "src/transpiler/types/**": 132,
+  "src/transpiler/types/**": 131,
   "src/transpiler/constants/BITMAP_BACKING_TYPE.ts": 1,
   "src/transpiler/constants/BITMAP_SIZE.ts": 1,
   "src/transpiler/constants/SMALL_PRIMITIVES.ts": 1,

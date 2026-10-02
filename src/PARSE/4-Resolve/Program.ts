@@ -55,7 +55,6 @@ import type IConflict from "../../transpiler/types/IConflict";
 import type IModificationFacts from "../../transpiler/types/IModificationFacts";
 import type ICallGraphEntry from "../../transpiler/types/ICallGraphEntry";
 import type ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
-import type IDiscoveryFacts from "./types/IDiscoveryFacts";
 import type IProgramInputs from "./types/IProgramInputs";
 import type IVisibilityInput from "./types/IVisibilityInput";
 import TSymbolInfoAdapter from "../3-Declare/cnext/adapters/TSymbolInfoAdapter";
@@ -64,7 +63,6 @@ import VisibleSymbols from "./VisibleSymbols";
 
 /** Shared empty result, so a miss does not allocate. */
 const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
-const EMPTY_REWRITES: ReadonlyMap<string, string> = new Map<string, string>();
 const EMPTY_HEADER_FIELDS: ReadonlyMap<
   string,
   ReadonlyMap<string, IStructFieldInfo>
@@ -100,14 +98,6 @@ const NO_MODIFICATIONS: IModificationFacts = {
   callGraph: new Map<string, ReadonlyArray<ICallGraphEntry>>(),
 };
 
-/** A program built without include information: nothing composes. */
-const NO_DISCOVERY: IDiscoveryFacts = {
-  cnxIncludeRewrites: new Map(),
-  includeResolutions: new Map(),
-  cnextAlternatives: new Map(),
-  quotedIncludeDirectories: new Map(),
-};
-
 /** A program built without include information: each file sees only itself. */
 const NO_VISIBILITY: IVisibilityInput = {
   cnextIncludesByFile: new Map(),
@@ -137,7 +127,6 @@ class Program {
     const visibility = inputs.visibility ?? NO_VISIBILITY;
     const callbackCompatibleFunctions =
       inputs.callbackCompatibleFunctions ?? EMPTY_CALLBACKS;
-    const discovery = inputs.discovery ?? NO_DISCOVERY;
     const registry = inputs.registry ?? null;
 
     // Each derivation is its own step, in dependency order: the scope types
@@ -265,8 +254,6 @@ class Program {
         passByValueParams,
       callbackCompatibleFunctions: (): ReadonlyMap<string, string> =>
         callbackCompatibleFunctions,
-      cnxIncludeRewrites: (sourceFile: string): ReadonlyMap<string, string> =>
-        discovery.cnxIncludeRewrites.get(sourceFile) ?? EMPTY_REWRITES,
       lexicalFrameAt: (sourceFile: string, at: TPosition): ILexicalFrame => {
         const root = framesByFile.get(sourceFile);
         invariant(root, `${sourceFile} is a file of this program`);
@@ -304,32 +291,6 @@ class Program {
           "a program built without target inputs has no target",
         );
         return target;
-      },
-      includeResolutions: (
-        sourceFile: string,
-      ): ReadonlyMap<string, string | null> => {
-        const resolutions = discovery.includeResolutions.get(sourceFile);
-        invariant(
-          resolutions !== undefined,
-          `discovery records the include resolutions of every file it resolves (missing ${sourceFile})`,
-        );
-        return resolutions;
-      },
-      cnextAlternatives: (sourceFile: string): ReadonlyMap<string, string> => {
-        const alternatives = discovery.cnextAlternatives.get(sourceFile);
-        invariant(
-          alternatives !== undefined,
-          `discovery records the C-Next alternatives of every file it resolves (missing ${sourceFile})`,
-        );
-        return alternatives;
-      },
-      quotedIncludeDirectory: (sourceFile: string): string => {
-        const directory = discovery.quotedIncludeDirectories.get(sourceFile);
-        invariant(
-          directory !== undefined,
-          `discovery records the quoted-include directory of every file it resolves (missing ${sourceFile})`,
-        );
-        return directory;
       },
       scope: (path: string): IScopeSymbol | null =>
         registry?.getScope(path) ?? null,

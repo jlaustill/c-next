@@ -798,29 +798,6 @@ describe("IncludeResolver", () => {
       expect(result.warnings.some((w) => w.includes("missing.h"))).toBe(true);
     });
 
-    it("should respect processedPaths option to skip already-processed headers", () => {
-      const processedDir = join(testDir, "processed_test");
-      mkdirSync(processedDir, { recursive: true });
-      writeFileSync(join(processedDir, "already.h"), "int already;");
-
-      const rootHeaders = [
-        {
-          path: join(processedDir, "already.h"),
-          type: EFileType.CHeader,
-          extension: ".h",
-        },
-      ];
-      const alreadyProcessed = new Set([join(processedDir, "already.h")]);
-
-      const result = IncludeResolver.resolveHeadersTransitively(
-        rootsAlong(rootHeaders, processedDir),
-        { processedPaths: alreadyProcessed, fs: NodeFileSystem.instance },
-      );
-
-      // Should skip the already-processed header
-      expect(result.headers).toHaveLength(0);
-    });
-
     it("searches a root's own includes along that root's path, and says so (#1723)", () => {
       const libA = join(testDir, "libA");
       const libB = join(testDir, "libB");

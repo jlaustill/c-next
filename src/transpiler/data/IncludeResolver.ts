@@ -463,8 +463,6 @@ class IncludeResolver {
     options: {
       /** Callback for debug logging */
       onDebug?: (message: string) => void;
-      /** Set of already-processed paths to skip */
-      processedPaths?: Set<string>;
       /** File system abstraction: the port the host injected */
       fs: IFileSystem;
     },
@@ -474,7 +472,7 @@ class IncludeResolver {
     warnings: string[];
   } {
     const fs = options.fs;
-    const visited = new Set<string>(options.processedPaths);
+    const visited = new Set<string>();
     const warnings: string[] = [];
     const depGraph = new DependencyGraph();
     const fileByPath = new Map<string, IDiscoveredFile>();
