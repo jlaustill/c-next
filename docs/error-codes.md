@@ -356,7 +356,7 @@ base: bare, `this.` and `global.`.
 | Code  | Message                                           | Help                                                                     | Source                                           |
 | ----- | ------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------ |
 | E0893 | A bitmap's field widths do not add up to its size | Resize a field, or declare the bitmap with the size its fields add up to | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts` |
-| E0894 | An enum member's value is negative                | Use a value of 0 or more                                                 | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts` |
+| E0894 | An enum member's value is negative                | Use a non-negative value                                                 | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts` |
 
 ## E09xx — NULL Safety (ADR-046)
 

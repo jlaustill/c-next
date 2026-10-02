@@ -784,31 +784,69 @@ class ThrowCitations {
    * Each `| **N** | … | **C** |` row of the counts table, held to the rows
    * under `## Bucket N`. The heading's own `(C)` is held to the same rows
    * above, so the summary cannot disagree with the section it summarizes.
+   *
+   * Both directions, and read by a row's two ends (#1848 review). The first
+   * version matched one three-cell shape and went from the table to the
+   * sections only: a fourth column made every row vanish, and a bucket with no
+   * row at all passed, so a change of table shape would have switched the
+   * check off without a word.
    */
   private static checkBucketRows(
     markdown: string,
     sections: ReadonlyArray<{ heading: string; rows: number }>,
   ): string[] {
     const errors: string[] = [];
-    const rows = markdown.matchAll(
-      /^\|\s*\*\*(\d+)\*\*\s*\|[^|]*\|\s*\*\*(\d+)\*\*\s*\|/gm,
-    );
-    for (const row of rows) {
-      const said = Number.parseInt(row[2], 10);
-      const section = sections.find((candidate) =>
-        new RegExp(String.raw`^## Bucket ${row[1]}\b`).test(candidate.heading),
-      );
-      if (section === undefined) {
+    const said = ThrowCitations.countsRows(markdown);
+    const buckets = new Set<string>();
+    for (const line of markdown.split("\n")) {
+      const bucket = /^## Bucket (\d+)\b/.exec(line);
+      if (bucket === null) continue;
+      buckets.add(bucket[1]);
+      const claims = said.get(bucket[1]) ?? [];
+      const section = sections.find((s) => s.heading === line.trim());
+      if (claims.length !== 1) {
         errors.push(
-          `counts table names bucket ${row[1]}, and no "## Bucket ${row[1]}" heading declares it`,
+          `"## Bucket ${bucket[1]}" needs one counts-table row, and has ${claims.length}`,
         );
-      } else if (section.rows !== said) {
+      } else if (section === undefined) {
+        errors.push(`"${line.trim()}" declares no count to hold its rows to`);
+      } else if (claims[0] !== section.rows) {
         errors.push(
-          `counts table says bucket ${row[1]} holds ${said}, its section has ${section.rows} row(s)`,
+          `counts table says bucket ${bucket[1]} holds ${claims[0]}, its section has ${section.rows} row(s)`,
+        );
+      }
+    }
+    for (const bucket of said.keys()) {
+      if (!buckets.has(bucket)) {
+        errors.push(
+          `counts table names bucket ${bucket}, and no "## Bucket ${bucket}" heading declares it`,
         );
       }
     }
     return errors;
+  }
+
+  /**
+   * The counts table's bucket rows, by bucket: any table row whose first cell
+   * is `**N**` and whose last is `**C**`, however many cells sit between.
+   */
+  private static countsRows(markdown: string): Map<string, number[]> {
+    const rows = new Map<string, number[]>();
+    for (const line of markdown.split("\n")) {
+      if (!line.startsWith("|")) continue;
+      const cells = line
+        .split("|")
+        .slice(1, -1)
+        .map((cell) => cell.trim());
+      const bucket = /^\*\*(\d+)\*\*$/.exec(cells[0] ?? "");
+      const count = /^\*\*(\d+)\*\*$/.exec(cells.at(-1) ?? "");
+      if (bucket === null || count === null || cells.length < 2) continue;
+      rows.set(bucket[1], [
+        ...(rows.get(bucket[1]) ?? []),
+        Number.parseInt(count[1], 10),
+      ]);
+    }
+    return rows;
   }
 
   /**
@@ -824,7 +862,11 @@ class ThrowCitations {
   ): string[] {
     const areas = [...markdown.matchAll(/^\| `([^`]+)`[^|]*\|\s*(\d+)\s*\|/gm)];
     if (areas.length === 0) {
-      return [];
+      // #1848 review: an empty table switched this check off. With throws to
+      // cite, a document with no area rows is missing one, like a total row.
+      return cited > 0
+        ? ["by-area table has no rows, and the document cites throws"]
+        : [];
     }
     const errors: string[] = [];
     let summed = 0;

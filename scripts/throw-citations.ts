@@ -35,13 +35,6 @@ import type IRevision from "./diagnostics/IRevision";
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const docPath = ThrowSources.docPath;
 
-/**
- * Every file under `3-Render/` that differs from HEAD, with both revisions.
- *
- * Keyed by basename because that is how the document cites -- some rows say
- * `codegen/CodeGenerator.ts`, others just `CodeGenerator.ts`, and the gate's
- * own `resolve` already treats the cited path as a suffix.
- */
 /** A file's text at HEAD, or null when it did not exist there. */
 function revisionAtHead(path: string): string | null {
   try {

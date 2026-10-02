@@ -209,13 +209,16 @@ describe("ThrowCitations.resolve", () => {
 
 describe("ThrowCitations.check", () => {
   /**
-   * A minimal document citing both of SAMPLE's throws, with matching totals.
-   * No by-area table: its rows are held to real directories, which the
-   * `checkDeclaredCounts` tests build for themselves.
+   * A minimal complete document citing SAMPLE's throws, with matching totals:
+   * a counts row, the total, and a by-area row for the directory SAMPLE is in.
+   * #1848 review: a document missing any of the three now fails, so the
+   * fixture carries all three.
    */
   const docFor = (...rows: string[]): string =>
     [
+      "| **1** | user-facing | **" + rows.length + "** |",
       "|  | **total** | **" + rows.length + "** |",
+      "| `src/TRANSPILE/` | " + rows.length + " |",
       "",
       "## Bucket 1 — user-facing (" + rows.length + ")",
       ...rows,
@@ -408,10 +411,15 @@ describe("ThrowCitations.check", () => {
     // the shape this gate catches beyond drift.
     const outcome = ThrowCitations.check(docFor(), sources());
     expect(outcome.ok).toBe(false);
-    expect(outcome.errors).toHaveLength(2);
-    expect(outcome.errors.every((e) => e.includes("not classified"))).toBe(
-      true,
+    // Both throws are unclassified, and the by-area row that says the
+    // directory holds none is wrong too (#1531): three findings, each true.
+    expect(
+      outcome.errors.filter((e) => e.includes("not classified")),
+    ).toHaveLength(2);
+    expect(outcome.errors).toContain(
+      "by-area row `src/TRANSPILE/` says 0, and src/TRANSPILE/ holds 2 throw site(s)",
     );
+    expect(outcome.errors).toHaveLength(3);
   });
 
   it("fails a citation whose path matches no file", () => {
@@ -565,6 +573,44 @@ describe("ThrowCitations.checkDeclaredCounts", () => {
     const errors = check(traded);
     expect(errors.some((e) => e.includes("`src/utils/` says 2"))).toBe(true);
     expect(errors.some((e) => e.includes("sums to"))).toBe(false);
+  });
+
+  // #1848 review: each of these passed the first version of the two checks,
+  // which read one table shape in one direction.
+  it("reads a counts row by its two ends, so a column added between them cannot hide it", () => {
+    const widened = doc.replace(
+      "| **1** | user-facing | **1** |",
+      "| **1** | user-facing | tier A | **4** |",
+    );
+    expect(
+      check(widened).some((e) => e.includes("says bucket 1 holds 4")),
+    ).toBe(true);
+  });
+
+  it("fails a bucket heading with no counts-table row", () => {
+    const missing = doc.replace("| **1** | user-facing | **1** |\n", "");
+    expect(
+      check(missing).some((e) =>
+        e.includes('"## Bucket 1" needs one counts-table row, and has 0'),
+      ),
+    ).toBe(true);
+  });
+
+  it("fails a bucket with two counts-table rows", () => {
+    const doubled = doc.replace(
+      "| **1** | user-facing | **1** |",
+      "| **1** | user-facing | **1** |\n| **1** | again | **1** |",
+    );
+    expect(check(doubled).some((e) => e.includes("and has 2"))).toBe(true);
+  });
+
+  it("fails a document that cites throws and has no by-area table", () => {
+    const withoutAreas = doc
+      .replace("| `src/TRANSPILE/` | 2 |\n", "")
+      .replace("| `src/utils/` | 0 |\n", "");
+    expect(check(withoutAreas)).toContain(
+      "by-area table has no rows, and the document cites throws",
+    );
   });
 
   it("fails an area that names no directory under src/", () => {

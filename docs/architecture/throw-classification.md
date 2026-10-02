@@ -36,19 +36,23 @@ as counted at audit time" rather than a literal.
 
 ## How to recount
 
-Run these rather than restating the numbers below; a count in prose is the thing that goes
+Run the gate rather than restating the numbers below. A count in prose is the thing that goes
 stale, and this document has done it before.
 
 ```bash
-# every throw STATEMENT in output/ -- the corpus this audit classifies (184)
-grep -rn '^\s*throw\b' src/TRANSPILE/3-Render --include='*.ts' | grep -v __tests__ | wc -l
-# the subset spelled `throw new` (181)
-grep -rn '^\s*throw new' src/TRANSPILE/3-Render --include='*.ts' | grep -v __tests__ | wc -l
-# and the authority: the gate agrees or fails
+# prints "N citation(s) checked against M throw site(s) in src/.", and fails on any disagreement
 npm run docs:throw-citations:check
 ```
 
-Measured on `fix/1322-diagnostics-into-pass-2-1` @ `8477f526`.
+**There is no `grep` here, on purpose** (#1848 review). The corpus is defined once, in
+`scripts/diagnostics/ThrowSources.ts`: every `.ts` under `src/` except tests and the files that
+carry ANTLR's mark. A shell command that recounted it would be a second copy of that definition.
+This section's own grep was such a copy. It still counted `3-Render/`, so it read 0 against a
+corpus of 11, and with only its path changed it read 80, because ANTLR's throws were counted.
+The gate also counts throw statements the way the citations do: a bare rethrow is not one.
+
+When #1322's audit began, measured on `fix/1322-diagnostics-into-pass-2-1` @ `8477f526`, the
+corpus was `output/` (now `3-Render/`), with 184 throw statements, 181 of them spelled `throw new`.
 
 #1321 was filed against 177 and this audit first recorded 181, counting `throw new` only: 180
 `Error` plus one `TypeError` in `StringHandlers`.

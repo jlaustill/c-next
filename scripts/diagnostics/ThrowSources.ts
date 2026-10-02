@@ -45,8 +45,7 @@ class ThrowSources {
 
   /**
    * `__tests__` is skipped because a test's own `throw new` is not a rejection
-   * the transpiler makes, and the document's own command spells the same
-   * exclusion as `| grep -v __tests__`. A generated parser is skipped because
+   * the transpiler makes. A generated parser is skipped because
    * nobody writes its throws: they are ANTLR's, and regenerating would undo
    * any classification of them.
    */

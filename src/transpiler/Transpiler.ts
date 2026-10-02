@@ -995,7 +995,7 @@ class Transpiler {
     const declared = this.retainedParses.get(sourcePath);
     invariant(
       declared,
-      "every file that reaches code generation was declared and its parse retained",
+      `every file that reaches code generation was declared and its parse retained, ${sourcePath} included`,
     );
     return declared;
   }
@@ -1032,7 +1032,7 @@ class Transpiler {
     const symbolInfo = program.codeGenSymbolsFor(sourcePath);
     invariant(
       symbolInfo,
-      "1.4 Resolve built every file's visible symbol view before stage 5 read one",
+      `1.4 Resolve built every file's visible symbol view before stage 5 read one, ${sourcePath}'s included`,
     );
     return symbolInfo;
   }
