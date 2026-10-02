@@ -353,13 +353,13 @@ a tool it calls. No line of a program is the cause, so pass 2.1 is not their hom
 cannot be given. None reaches the user with a code today. #1847 decides the format for an error
 that names no file and no line, and codes them.
 
-| file:line                             | anchor                                | what the user sees                                                                                                                               | card  |
-| ------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
-| `1-Discover/InputExpansion.ts:31`     | `Input not found`                     | nothing. The CLI checks that the entry exists before this runs, with its own message, so this copy is unreachable and the check is decided twice | #1847 |
-| `1-Discover/InputExpansion.ts:63`     | `Invalid file extension`              | only through `--clean`, as `Error: Error: Invalid file extension …` at exit 0                                                                    | #1847 |
-| `1-Discover/TargetCatalogFile.ts:52`  | `was not found above`                 | a broken installation, as `Pipeline failed:`                                                                                                     | #1847 |
-| `4-Resolve/TargetDescriptions.ts:215` | `the compiler installation is broken` | a broken installation, as `Pipeline failed:`                                                                                                     | #1847 |
-| `preprocessor/Preprocessor.ts:204`    | `Preprocessor failed for`             | never an error. `Preprocessor.preprocess` catches it, and the run falls back to the header's raw text with a warning, by design (#985)           | —     |
+| file:line                             | anchor                                | what the user sees                                                                                                                                                     | card  |
+| ------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| `1-Discover/InputExpansion.ts:31`     | `Input not found`                     | nothing. The CLI checks that the entry exists before this runs, with its own message, so this copy is unreachable and the check is decided twice                       | #1847 |
+| `1-Discover/InputExpansion.ts:63`     | `Invalid file extension`              | only through `--clean`, as `Error: Error: Invalid file extension …` at exit 0                                                                                          | #1847 |
+| `1-Discover/TargetCatalogFile.ts:52`  | `was not found above`                 | a broken installation. In a run it reads `Code generation failed:`, from the catch around building `Program`; the CLI's usage text also reads the catalog (not traced) | #1847 |
+| `4-Resolve/TargetDescriptions.ts:215` | `the compiler installation is broken` | a broken installation. In a run it reads `Code generation failed:`, from the catch around building `Program`; the CLI's usage text also reads the catalog (not traced) | #1847 |
+| `preprocessor/Preprocessor.ts:204`    | `Preprocessor failed for`             | never an error. `Preprocessor.preprocess` catches it, and the run falls back to the header's raw text with a warning, by design (#985)                                 | —     |
 
 ## Proposed split of #1322
 
