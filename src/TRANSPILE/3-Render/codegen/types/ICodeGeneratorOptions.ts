@@ -1,6 +1,6 @@
 import ICodeGenSymbols from "../../../../transpiler/types/ICodeGenSymbols";
 import type ITargetDescription from "../../../../transpiler/types/ITargetDescription";
-import type EFileType from "../../../../transpiler/data/types/EFileType";
+import type EFileType from "../../../../PARSE/1-Discover/types/EFileType";
 
 /**
  * Options for the code generator

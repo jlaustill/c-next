@@ -1,4 +1,4 @@
-import type EFileType from "../../../transpiler/data/types/EFileType";
+import type EFileType from "../../../PARSE/1-Discover/types/EFileType";
 
 /**
  * ADR-010 facts about the file under analysis: 1.1 Discover's answers, read

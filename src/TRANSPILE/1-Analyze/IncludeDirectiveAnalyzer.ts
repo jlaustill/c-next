@@ -40,7 +40,7 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
 import invariant from "../../utils/invariant";
 import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
-import EFileType from "../../transpiler/data/types/EFileType";
+import EFileType from "../../PARSE/1-Discover/types/EFileType";
 import IncludeDirective from "./helpers/IncludeDirective";
 import IIncludeContext from "./types/IIncludeContext";
 import IIncludeDirectiveError from "./types/IIncludeDirectiveError";

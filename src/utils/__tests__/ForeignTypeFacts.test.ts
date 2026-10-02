@@ -7,8 +7,8 @@ import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../types/ESourceLanguage";
 import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
 import ForeignTypeFacts from "../ForeignTypeFacts";
-import TargetCatalogFile from "../../transpiler/data/TargetCatalogFile";
-import NodeFileSystem from "../../transpiler/NodeFileSystem";
+import TargetCatalogFile from "../../PARSE/1-Discover/TargetCatalogFile";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 const C_HEADER = {
   sourceFile: "api.h",

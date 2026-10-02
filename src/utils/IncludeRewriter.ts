@@ -17,8 +17,8 @@
 
 import { extname } from "node:path";
 
-import type THeaderExtension from "../types/THeaderExtension";
-import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
+import type THeaderExtension from "../transpiler/types/THeaderExtension";
+import IncludeDirectiveText from "./IncludeDirectiveText";
 
 class IncludeRewriter {
   /**

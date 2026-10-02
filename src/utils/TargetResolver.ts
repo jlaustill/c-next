@@ -1,12 +1,13 @@
 /**
  * ADR-049: a target name to its description, from the target catalog
- * (`targets/targets.cnx`), read once per process. Nothing here holds a second
+ * (`targets/targets.cnx`), read on each call (#1444 removed the per-port
+ * cache, which #1452 box 4 forbids under a pass root). Nothing here holds a second
  * list of targets, and nothing here decides a run's target -- 1.4 Resolve
  * settles that once, from every file's pragmas and the target option.
  */
 
 import type ITargetDescription from "../transpiler/types/ITargetDescription";
-import TargetCatalogFile from "../transpiler/data/TargetCatalogFile";
+import TargetCatalogFile from "../PARSE/1-Discover/TargetCatalogFile";
 import type IFileSystem from "../transpiler/types/IFileSystem";
 
 class TargetResolver {

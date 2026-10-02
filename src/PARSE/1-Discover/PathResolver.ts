@@ -9,9 +9,9 @@
 import { join, basename, relative, dirname, resolve, sep } from "node:path";
 
 import IDiscoveredFile from "./types/IDiscoveredFile";
-import type TSourceExtension from "../types/TSourceExtension";
-import type THeaderExtension from "../types/THeaderExtension";
-import IFileSystem from "../types/IFileSystem";
+import type TSourceExtension from "../../transpiler/types/TSourceExtension";
+import type THeaderExtension from "../../transpiler/types/THeaderExtension";
+import IFileSystem from "../../transpiler/types/IFileSystem";
 
 /**
  * Configuration for PathResolver

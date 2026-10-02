@@ -3,14 +3,14 @@ import { dirname, join, resolve } from "node:path";
 import CNextMarkerDetector from "./CNextMarkerDetector";
 import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import IncludeDiscovery from "./IncludeDiscovery";
-import IncludeRewriter from "./IncludeRewriter";
+import IncludeRewriter from "../../utils/IncludeRewriter";
 import FileDiscovery from "./FileDiscovery";
-import type THeaderExtension from "../types/THeaderExtension";
+import type THeaderExtension from "../../transpiler/types/THeaderExtension";
 import IDiscoveredFile from "./types/IDiscoveredFile";
 import type IHeaderRoot from "./types/IHeaderRoot";
 import EFileType from "./types/EFileType";
 import DependencyGraph from "./DependencyGraph";
-import IFileSystem from "../types/IFileSystem";
+import IFileSystem from "../../transpiler/types/IFileSystem";
 
 /**
  * The header extensions ADR-010 admits, and the C-Next source each names:

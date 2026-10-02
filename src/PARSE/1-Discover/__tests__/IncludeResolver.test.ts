@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import IncludeResolver from "../IncludeResolver";
 import EFileType from "../types/EFileType";
-import NodeFileSystem from "../../NodeFileSystem";
+import NodeFileSystem from "../NodeFileSystem";
 
 describe("IncludeResolver", () => {
   // #1640: NOT under `src/`. `HeaderOwnership.test.ts` walks the whole source

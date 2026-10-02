@@ -20,7 +20,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import IFileSystem from "./types/IFileSystem";
+import IFileSystem from "../../transpiler/types/IFileSystem";
 
 /**
  * Node.js file system implementation
@@ -96,13 +96,12 @@ class NodeFileSystem implements IFileSystem {
     return realpathSync(path);
   }
 
-  /** Shared singleton instance for use across all modules */
-  private static _instance: NodeFileSystem | null = null;
-
-  static get instance(): NodeFileSystem {
-    NodeFileSystem._instance ??= new NodeFileSystem();
-    return NodeFileSystem._instance;
-  }
+  /**
+   * Shared singleton instance for use across all modules. Built once, at
+   * module load: it holds no state, and #1452 box 4 forbids a reassignable
+   * static under a pass root, which the lazy slot it replaced was (#1444).
+   */
+  static readonly instance = new NodeFileSystem();
 }
 
 export default NodeFileSystem;

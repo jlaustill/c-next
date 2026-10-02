@@ -20,6 +20,12 @@ import IMove from "../types/IMove";
  * express the move being made is how the wrong row gets written and then
  * defended (#1449).
  */
+const DISCOVERS =
+  "#1444 box 3: 1.1 Discover authors which files exist, their kind, the " +
+  "include graph and every resolved path (§1), and this module computes part " +
+  "of that. Its row has read `src/PARSE/1-Discover/`, awaiting #1444, since " +
+  "#1653.";
+
 const MOVES: readonly IMove[] = [
   // --- layer-neutral: reached by more than one pass ----------------------
   {
@@ -934,6 +940,193 @@ const MOVES: readonly IMove[] = [
     to: "src/TRANSPILE/types/ICodeGenApi.ts",
     because:
       '#1653, owner ruling 2026-09-30 ("move them"): a shared type that one area alone names moves into it. Its non-test importers at 8127b38f4 are `TRANSPILE/TranspileState.ts`. No type that stays shared imports it, so the move leaves no shared contract importing a pass.',
+  },
+  // --- #1444 box 3: 1.1 Discover's modules join the pass --------------------
+  // The map has given each of these `src/PARSE/1-Discover/`, awaiting #1444,
+  // since #1653 (owner rulings 16 and 17). Listed file by file, because
+  // `IncludeRewriter` leaves `data/` for `utils/` while its siblings go to 1.1.
+  {
+    from: "src/transpiler/data/CNextMarkerDetector.ts",
+    to: "src/PARSE/1-Discover/CNextMarkerDetector.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/CppEntryPointScanner.ts",
+    to: "src/PARSE/1-Discover/CppEntryPointScanner.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/DependencyGraph.ts",
+    to: "src/PARSE/1-Discover/DependencyGraph.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/FileDiscovery.ts",
+    to: "src/PARSE/1-Discover/FileDiscovery.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/IncludeDiscovery.ts",
+    to: "src/PARSE/1-Discover/IncludeDiscovery.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/IncludeResolver.ts",
+    to: "src/PARSE/1-Discover/IncludeResolver.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/InputExpansion.ts",
+    to: "src/PARSE/1-Discover/InputExpansion.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/PathResolver.ts",
+    to: "src/PARSE/1-Discover/PathResolver.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/PlatformIOIni.ts",
+    to: "src/PARSE/1-Discover/PlatformIOIni.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/TargetCatalogFile.ts",
+    to: "src/PARSE/1-Discover/TargetCatalogFile.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/__tests__/CNextMarkerDetector.test.ts",
+    to: "src/PARSE/1-Discover/__tests__/CNextMarkerDetector.test.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/__tests__/CppEntryPointScanner.test.ts",
+    to: "src/PARSE/1-Discover/__tests__/CppEntryPointScanner.test.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/__tests__/DependencyGraph.test.ts",
+    to: "src/PARSE/1-Discover/__tests__/DependencyGraph.test.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/__tests__/FileDiscovery.test.ts",
+    to: "src/PARSE/1-Discover/__tests__/FileDiscovery.test.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/__tests__/IncludeDiscovery.test.ts",
+    to: "src/PARSE/1-Discover/__tests__/IncludeDiscovery.test.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/__tests__/IncludeResolver.test.ts",
+    to: "src/PARSE/1-Discover/__tests__/IncludeResolver.test.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/__tests__/InputExpansion.test.ts",
+    to: "src/PARSE/1-Discover/__tests__/InputExpansion.test.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/__tests__/PathResolver.test.ts",
+    to: "src/PARSE/1-Discover/__tests__/PathResolver.test.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/__tests__/PlatformIOIni.test.ts",
+    to: "src/PARSE/1-Discover/__tests__/PlatformIOIni.test.ts",
+    because: DISCOVERS,
+  },
+  {
+    from: "src/transpiler/data/types",
+    to: "src/PARSE/1-Discover/types",
+    because:
+      "#1444: the shapes 1.1 emits -- a discovered file, its kind, a header " +
+      "root. Later passes read them as parts of the `SourceGraph`, which §1 " +
+      "allows: a later pass may read an earlier pass's artifact.",
+  },
+  {
+    from: "src/transpiler/logic/detectCppSyntax.ts",
+    to: "src/PARSE/1-Discover/detectCppSyntax.ts",
+    because:
+      "#1444: decides a header's kind (C or C++), which §1 gives to 1.1: " +
+      '"which files exist, their kind".',
+  },
+  {
+    from: "src/transpiler/logic/detectAssemblySyntax.ts",
+    to: "src/PARSE/1-Discover/detectAssemblySyntax.ts",
+    because: "#1444: the same, for an assembler header.",
+  },
+  {
+    from: "src/transpiler/logic/__tests__/detectCppSyntax.test.ts",
+    to: "src/PARSE/1-Discover/__tests__/detectCppSyntax.test.ts",
+    because: "#1444: with its module.",
+  },
+  {
+    from: "src/transpiler/logic/__tests__/detectAssemblySyntax.test.ts",
+    to: "src/PARSE/1-Discover/__tests__/detectAssemblySyntax.test.ts",
+    because: "#1444: with its module.",
+  },
+  {
+    from: "src/transpiler/logic/preprocessor",
+    to: "src/PARSE/1-Discover/preprocessor",
+    because:
+      "Owner ruling 15 (2026-09-26): the preprocessor goes to 1.1 Discover. " +
+      "Its reads go through the port since #1653, and its scratch file is " +
+      "the port's `withTempFile`.",
+  },
+  {
+    from: "src/transpiler/NodeFileSystem.ts",
+    to: "src/PARSE/1-Discover/NodeFileSystem.ts",
+    because:
+      "#1444: the production `IFileSystem`, the host port 1.1 publishes. It " +
+      "is the only module that imports `node:fs`, and 3.1 Write changes the " +
+      "disk through it.",
+  },
+  {
+    from: "src/transpiler/__tests__/NodeFileSystem.withTempFile.test.ts",
+    to: "src/PARSE/1-Discover/__tests__/NodeFileSystem.withTempFile.test.ts",
+    because: "#1444: with its module.",
+  },
+  {
+    from: "src/transpiler/__tests__/NodeFileSystem.withTempFile.mocked.test.ts",
+    to: "src/PARSE/1-Discover/__tests__/NodeFileSystem.withTempFile.mocked.test.ts",
+    because: "#1444: with its module.",
+  },
+  {
+    from: "src/transpiler/data/IncludeRewriter.ts",
+    to: "src/utils/IncludeRewriter.ts",
+    because:
+      "#1444: renders a `.cnx` include as C text and decides nothing (#1467). " +
+      "1.1 renders a file's user includes with it and 2.3 renders the " +
+      "`.c`'s, which is `utils/`' admission test. Whether a directive is " +
+      "C-Next is 1.1's answer, which both read (owner ruling 1).",
+  },
+  {
+    from: "src/transpiler/data/__tests__/IncludeRewriter.test.ts",
+    to: "src/utils/__tests__/IncludeRewriter.test.ts",
+    because: "#1444: with its module.",
+  },
+  {
+    from: "src/transpiler/types/IRunAnchor.ts",
+    to: "src/PARSE/1-Discover/types/IRunAnchor.ts",
+    because:
+      "#1444, by #1653's ruling (\"a shared type that one area alone names " +
+      'moves into it"): 1.1 decides the anchor (`RunAnchor.at`), and its ' +
+      "only other importer is the orchestrator. Left in the shared root it " +
+      "named `PathResolver` and `Preprocessor`, 1.1 modules, which " +
+      "`shared-contracts-cannot-import-a-pass` forbids.",
+  },
+  {
+    from: "src/transpiler/types/IPipelineFile.ts",
+    to: "src/PARSE/1-Discover/types/IPipelineFile.ts",
+    because:
+      "#1444, the same ruling: one file of the `SourceGraph` 1.1 emits. Its " +
+      "only importers are 1.1 and the orchestrator, and it names " +
+      "`IDiscoveredFile`, a 1.1 type.",
   },
 ];
 

@@ -2,13 +2,13 @@ import { dirname, resolve, join, isAbsolute } from "node:path";
 
 import { CharStream } from "antlr4ng";
 
-import { CNextLexer } from "../../PARSE/2-Parse/grammar/CNextLexer";
+import { CNextLexer } from "../2-Parse/grammar/CNextLexer";
 import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import invariant from "../../utils/invariant";
 import FileDiscovery from "./FileDiscovery";
 import PlatformIOIni from "./PlatformIOIni";
 import EFileType from "./types/EFileType";
-import IFileSystem from "../types/IFileSystem";
+import IFileSystem from "../../transpiler/types/IFileSystem";
 
 /**
  * Auto-discovery of include paths for C-Next compilation

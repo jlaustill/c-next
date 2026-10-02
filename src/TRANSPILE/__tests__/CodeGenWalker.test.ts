@@ -6,7 +6,7 @@ import TargetResolver from "../../utils/TargetResolver";
 import ProgramGeneration from "./ProgramGeneration";
 import PublicInterface from "../2-Plan/PublicInterface";
 import { describe, it, expect, beforeEach } from "vitest";
-import IncludeResolver from "../../transpiler/data/IncludeResolver";
+import IncludeResolver from "../../PARSE/1-Discover/IncludeResolver";
 import MockFileSystem from "../../transpiler/__tests__/MockFileSystem";
 import CodeGenWalker from "../CodeGenWalker";
 import CodeGenerator from "../3-Render/codegen/CodeGenerator";
@@ -20,7 +20,7 @@ import TParameterInfo from "../../transpiler/types/TParameterInfo";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import DeferredTypes from "../../PARSE/4-Resolve/DeferredTypes";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
-import NodeFileSystem from "../../transpiler/NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /**
  * #1444, owner ruling 1: the kind 1.1 Discover records for each `#include`

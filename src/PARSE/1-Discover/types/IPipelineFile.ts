@@ -1,4 +1,4 @@
-import IDiscoveredFile from "../data/types/IDiscoveredFile";
+import IDiscoveredFile from "./IDiscoveredFile";
 
 /**
  * A file descriptor for the unified transpilation pipeline.

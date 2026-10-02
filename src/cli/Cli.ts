@@ -5,7 +5,7 @@
  */
 
 import { dirname, resolve } from "node:path";
-import NodeFileSystem from "../transpiler/NodeFileSystem";
+import NodeFileSystem from "../PARSE/1-Discover/NodeFileSystem";
 import ArgParser from "./ArgParser";
 import ConfigLoader from "./ConfigLoader";
 import ConfigPrinter from "./ConfigPrinter";

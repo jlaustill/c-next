@@ -19,7 +19,7 @@ import TestSymbolUtils from "../cnext/__tests__/testSymbolUtils";
 import TVisibility from "../../../transpiler/types/TVisibility";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import TestEnumMembers from "../../../transpiler/types/__testUtils__/testEnumMembers";
-import NodeFileSystem from "../../../transpiler/NodeFileSystem";
+import NodeFileSystem from "../../1-Discover/NodeFileSystem";
 
 describe("SymbolTable", () => {
   let symbolTable: SymbolTable;

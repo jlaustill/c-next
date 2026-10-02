@@ -30,13 +30,11 @@ one.
 | Layer                   | Modules |
 | ----------------------- | ------: |
 | `src/TRANSPILE/`        |      63 |
-| `src/PARSE/`            |      20 |
+| `src/PARSE/`            |      21 |
 | `src/utils/`            |      12 |
 | `src/transpiler/`       |       3 |
 | `src/transpiler/types/` |       2 |
-| `src/transpiler/data/`  |       1 |
-| `src/transpiler/logic/` |       1 |
-| **total**               | **102** |
+| **total**               | **101** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -46,6 +44,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 
 | Module                                                          | Holds             |
 | --------------------------------------------------------------- | ----------------- |
+| `src/PARSE/1-Discover/IncludeDiscovery.ts`                      | antlr4ng, grammar |
 | `src/PARSE/3-Declare/c/collectors/EnumCollector.ts`             | grammar           |
 | `src/PARSE/3-Declare/c/collectors/FunctionCollector.ts`         | grammar           |
 | `src/PARSE/3-Declare/c/collectors/StructCollector.ts`           | grammar           |
@@ -130,8 +129,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/2-Plan/StringLengthCounter.ts`                   | grammar           |
 | `src/TRANSPILE/CodeGenWalker.ts`                                | antlr4ng, grammar |
 | `src/transpiler/CallbackCompatibility.ts`                       | grammar           |
-| `src/transpiler/data/IncludeDiscovery.ts`                       | antlr4ng, grammar |
-| `src/transpiler/logic/IncludeExtractor.ts`                      | grammar           |
 | `src/transpiler/ModificationFacts.ts`                           | grammar           |
 | `src/transpiler/Transpiler.ts`                                  | grammar           |
 | `src/transpiler/types/IParsedFile.ts`                           | antlr4ng, grammar |
@@ -149,4 +146,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/ParserUtils.ts`                                      | antlr4ng, grammar |
 | `src/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-102 module(s).
+101 module(s).

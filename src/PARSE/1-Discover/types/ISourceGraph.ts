@@ -1,7 +1,7 @@
-import type IDiscoveredFile from "../../../transpiler/data/types/IDiscoveredFile";
-import type IPipelineFile from "../../../transpiler/types/IPipelineFile";
+import type IDiscoveredFile from "./IDiscoveredFile";
+import type IPipelineFile from "./IPipelineFile";
 import type IPlatformIOProject from "../../../transpiler/types/IPlatformIOProject";
-import type IRunAnchor from "../../../transpiler/types/IRunAnchor";
+import type IRunAnchor from "./IRunAnchor";
 import type IFileIncludes from "./IFileIncludes";
 
 /**

@@ -9,44 +9,34 @@
  * included, so a test double that stands in for one seeds the catalog, as
  * `MockFileSystem` does.
  *
- * Read and validated once per port, on first use.
+ * Read and validated on each call. #1444 moved this module under a pass root,
+ * where #1452 box 4 forbids mutable state, and it held a per-port `WeakMap`
+ * cache written on first use. The cache is gone rather than moved, since moving
+ * it would only put the same state somewhere no guard scans. A cold parse costs
+ * about 2.6 ms (measured 2026-10-02, 20 cold reads), and a run makes one.
  */
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import TargetCatalogParser from "../../PARSE/2-Parse/TargetCatalogParser";
-import TargetDescriptions from "../../PARSE/4-Resolve/TargetDescriptions";
-import type ITargetDescription from "../types/ITargetDescription";
-import type IFileSystem from "../types/IFileSystem";
+import TargetCatalogParser from "../2-Parse/TargetCatalogParser";
+import TargetDescriptions from "../4-Resolve/TargetDescriptions";
+import type ITargetDescription from "../../transpiler/types/ITargetDescription";
+import type IFileSystem from "../../transpiler/types/IFileSystem";
 
 const CATALOG = join("targets", "targets.cnx");
 
 class TargetCatalogFile {
   /**
-   * Per port, not per process: a single slot would hand every later port the
-   * first port's answer, so a run's catalog would depend on who asked first.
-   */
-  private static readonly loaded = new WeakMap<
-    IFileSystem,
-    ReadonlyMap<string, ITargetDescription>
-  >();
-
-  /**
    * Every target name, aliases included, to the description it denotes.
-   * Read once per port. The catalog is an installation file, so a port that
-   * models the filesystem models the installation too.
+   * The catalog is an installation file, so a port that models the filesystem
+   * models the installation too.
    */
   static targets(fs: IFileSystem): ReadonlyMap<string, ITargetDescription> {
-    let catalog = TargetCatalogFile.loaded.get(fs);
-    if (!catalog) {
-      const path = TargetCatalogFile.locate(fs);
-      catalog = TargetDescriptions.catalog(
-        TargetCatalogParser.parse(fs.readFile(path)),
-        path,
-      );
-      TargetCatalogFile.loaded.set(fs, catalog);
-    }
-    return catalog;
+    const path = TargetCatalogFile.locate(fs);
+    return TargetDescriptions.catalog(
+      TargetCatalogParser.parse(fs.readFile(path)),
+      path,
+    );
   }
 
   /** The catalog's path; throws if the installation has none */

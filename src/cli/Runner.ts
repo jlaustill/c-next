@@ -8,8 +8,8 @@ import Transpiler from "../transpiler/Transpiler";
 import ICliConfig from "./types/ICliConfig";
 import ResultPrinter from "./ResultPrinter";
 import ITranspilerResult from "../transpiler/types/ITranspilerResult";
-import InputExpansion from "../transpiler/data/InputExpansion";
-import NodeFileSystem from "../transpiler/NodeFileSystem";
+import InputExpansion from "../PARSE/1-Discover/InputExpansion";
+import NodeFileSystem from "../PARSE/1-Discover/NodeFileSystem";
 import Write from "../WRITE/1-Write/Write";
 
 /** Result of determining output path */

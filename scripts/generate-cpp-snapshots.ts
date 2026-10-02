@@ -24,11 +24,11 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Transpiler from "../src/transpiler/Transpiler";
 import TestUtils from "./test-utils";
-import IncludeDiscovery from "../src/transpiler/data/IncludeDiscovery";
+import IncludeDiscovery from "../src/PARSE/1-Discover/IncludeDiscovery";
 import FileScanner from "./utils/FileScanner";
 import TestMarkers from "./TestMarkers";
 import chalk from "chalk";
-import NodeFileSystem from "../src/transpiler/NodeFileSystem";
+import NodeFileSystem from "../src/PARSE/1-Discover/NodeFileSystem";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

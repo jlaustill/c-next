@@ -23,7 +23,7 @@
  */
 import type ISubstringOps from "./3-Render/codegen/types/ISubstringOps";
 import type IChainStep from "../transpiler/types/IChainStep";
-import type EFileType from "../transpiler/data/types/EFileType";
+import type EFileType from "../PARSE/1-Discover/types/EFileType";
 import type IStringConcatOps from "./3-Render/codegen/types/IStringConcatOps";
 import { basename } from "node:path";
 import { CommonTokenStream, ParserRuleContext } from "antlr4ng";

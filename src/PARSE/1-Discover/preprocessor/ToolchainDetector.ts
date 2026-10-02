@@ -6,7 +6,7 @@
 import { execSync } from "node:child_process";
 import { basename, join } from "node:path";
 import IToolchain from "./types/IToolchain";
-import IFileSystem from "../../types/IFileSystem";
+import IFileSystem from "../../../transpiler/types/IFileSystem";
 
 /**
  * Detects available C/C++ toolchains

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import TargetToolchain from "../TargetToolchain";
 import TargetResolver from "../TargetResolver";
 import type ITargetDescription from "../../transpiler/types/ITargetDescription";
-import NodeFileSystem from "../../transpiler/NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 function row(name: string): ITargetDescription {
   const description = TargetResolver.byName(name, NodeFileSystem.instance);

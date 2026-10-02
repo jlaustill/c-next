@@ -13,7 +13,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import ExternalDeclarationOracle from "../ExternalDeclarationOracle";
 import Preprocessor from "../Preprocessor";
-import NodeFileSystem from "../../../NodeFileSystem";
+import NodeFileSystem from "../../NodeFileSystem";
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const FIXTURES = join(currentDir, "fixtures", "oracle");

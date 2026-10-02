@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
 import ITranspilerConfig from "../types/ITranspilerConfig";
-import NodeFileSystem from "../NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 import Discover from "../../PARSE/1-Discover/Discover";
 import type ISourceGraph from "../../PARSE/1-Discover/types/ISourceGraph";
 

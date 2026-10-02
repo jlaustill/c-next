@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
 import MockFileSystem from "./MockFileSystem";
-import NodeFileSystem from "../NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 const COLORS = `enum EColor { RED, GREEN, BLUE }
 `;

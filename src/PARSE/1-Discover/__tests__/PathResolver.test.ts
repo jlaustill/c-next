@@ -8,8 +8,8 @@ import { join, relative, resolve } from "node:path";
 import PathResolver from "../PathResolver";
 import IDiscoveredFile from "../types/IDiscoveredFile";
 import EFileType from "../types/EFileType";
-import NodeFileSystem from "../../NodeFileSystem";
-import MockFileSystem from "../../__tests__/MockFileSystem";
+import NodeFileSystem from "../NodeFileSystem";
+import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
 
 describe("PathResolver", () => {
   const testDir = join(process.cwd(), "test-path-resolver-tmp");

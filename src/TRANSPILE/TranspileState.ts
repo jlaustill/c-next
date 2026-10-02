@@ -1,4 +1,4 @@
-import type EFileType from "../transpiler/data/types/EFileType";
+import type EFileType from "../PARSE/1-Discover/types/EFileType";
 import type ITargetDescription from "../transpiler/types/ITargetDescription";
 import SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import ReservedCnxName from "../utils/ReservedCnxName";
@@ -520,7 +520,9 @@ class TranspileState {
    * siblings from `output/codegen/types` -- but that was the whole problem:
    * `logic/ -> state/ -> output/` was live through exactly those imports while
    * `logic-cannot-import-output` reported clean, because it matched only direct
-   * edges. The rule is now transitive and `state/` has one of its own.
+   * edges. The rule was made transitive and `state/` got one of its own; #1444
+   * retired the `logic-` rule with the layer, when `logic/` joined 1.1 Discover
+   * and `parse-cannot-import-transpile` covered it.
    *
    * The reference itself is still a `state/` object holding a codegen contract.
    * That coupling is by design today and is #1323's to move; what this removes

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import IncludeResolver from "../../../transpiler/data/IncludeResolver";
+import IncludeResolver from "../../../PARSE/1-Discover/IncludeResolver";
 import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
 import IncludeDirectiveAnalyzer from "../IncludeDirectiveAnalyzer";
-import EFileType from "../../../transpiler/data/types/EFileType";
+import EFileType from "../../../PARSE/1-Discover/types/EFileType";
 
 /**
  * #1322. ADR-010's include rules -- E0503 (an implementation file), E0504 (a

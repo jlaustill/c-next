@@ -11,7 +11,7 @@ import IPreprocessResult from "./types/IPreprocessResult";
 import ISourceMapping from "./types/ISourceMapping";
 import IPreprocessOptions from "./types/IPreprocessOptions";
 import ToolchainDetector from "./ToolchainDetector";
-import IFileSystem from "../../types/IFileSystem";
+import IFileSystem from "../../../transpiler/types/IFileSystem";
 
 const execFileAsync = promisify(execFile);
 

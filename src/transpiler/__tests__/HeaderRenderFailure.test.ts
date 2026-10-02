@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
 import HeaderGenerator from "../../TRANSPILE/3-Render/headers/HeaderGenerator";
-import NodeFileSystem from "../NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /**
  * Issue #1323: `_renderHeaders` (Stage 5.5) promotes a header-render failure

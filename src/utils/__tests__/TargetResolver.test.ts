@@ -4,7 +4,8 @@
  */
 import { describe, it, expect } from "vitest";
 import TargetResolver from "../TargetResolver";
-import NodeFileSystem from "../../transpiler/NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
+import TargetCatalogFile from "../../PARSE/1-Discover/TargetCatalogFile";
 
 describe("TargetResolver", () => {
   describe("byName", () => {
@@ -40,7 +41,12 @@ describe("TargetResolver", () => {
       ["avr", "atmega328p"],
       ["arduino-uno", "atmega328p"],
     ])("resolves the alias %s to %s's description", (alias, target) => {
-      expect(TargetResolver.byName(alias, NodeFileSystem.instance)).toBe(
+      // One catalog read: an alias is the same description, not a copy of
+      // it. Across two reads only equality holds, since #1444 removed the
+      // per-port cache that made two reads return one map.
+      const catalog = TargetCatalogFile.targets(NodeFileSystem.instance);
+      expect(catalog.get(alias)).toBe(catalog.get(target));
+      expect(TargetResolver.byName(alias, NodeFileSystem.instance)).toEqual(
         TargetResolver.byName(target, NodeFileSystem.instance),
       );
     });

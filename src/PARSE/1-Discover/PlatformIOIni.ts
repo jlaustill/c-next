@@ -8,9 +8,9 @@
  */
 import { join } from "node:path";
 
-import type IFileSystem from "../types/IFileSystem";
-import type IPlatformIOEnv from "../types/IPlatformIOEnv";
-import type IPlatformIOProject from "../types/IPlatformIOProject";
+import type IFileSystem from "../../transpiler/types/IFileSystem";
+import type IPlatformIOEnv from "../../transpiler/types/IPlatformIOEnv";
+import type IPlatformIOProject from "../../transpiler/types/IPlatformIOProject";
 
 /** How deep `${section.option}` may nest before a value is taken as cyclic */
 const MAX_INTERPOLATION = 8;

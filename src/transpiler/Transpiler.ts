@@ -54,8 +54,8 @@ import HeaderSymbolAdapter from "../TRANSPILE/3-Render/headers/adapters/HeaderSy
 import IHeaderSymbol from "../TRANSPILE/3-Render/headers/types/IHeaderSymbol";
 import TSymbol from "./types/symbols/TSymbol";
 
-import EFileType from "./data/types/EFileType";
-import IDiscoveredFile from "./data/types/IDiscoveredFile";
+import EFileType from "../PARSE/1-Discover/types/EFileType";
+import IDiscoveredFile from "../PARSE/1-Discover/types/IDiscoveredFile";
 import OutputExtensions from "../utils/OutputExtensions";
 import DeclarationSite from "../utils/DeclarationSite";
 import type IOutputExtensions from "./types/IOutputExtensions";
@@ -64,8 +64,8 @@ import ParserUtils from "../utils/ParserUtils";
 import ITranspilerConfig from "./types/ITranspilerConfig";
 import ITranspilerResult from "./types/ITranspilerResult";
 import IFileResult from "./types/IFileResult";
-import type IRunAnchor from "./types/IRunAnchor";
-import IPipelineFile from "./types/IPipelineFile";
+import type IRunAnchor from "../PARSE/1-Discover/types/IRunAnchor";
+import IPipelineFile from "../PARSE/1-Discover/types/IPipelineFile";
 import type ISourceGraph from "../PARSE/1-Discover/types/ISourceGraph";
 import type IFileIncludes from "../PARSE/1-Discover/types/IFileIncludes";
 import Discover from "../PARSE/1-Discover/Discover";
@@ -78,14 +78,14 @@ import type IDiagnostics from "./types/IDiagnostics";
 import type ICodeGenSymbols from "./types/ICodeGenSymbols";
 import CacheManager from "../utils/cache/CacheManager";
 import ConcurrencyLimit from "../utils/ConcurrencyLimit";
-import detectCppSyntax from "./logic/detectCppSyntax";
-import detectAssemblySyntax from "./logic/detectAssemblySyntax";
-import ExternalDeclarationOracle from "./logic/preprocessor/ExternalDeclarationOracle";
+import detectCppSyntax from "../PARSE/1-Discover/detectCppSyntax";
+import detectAssemblySyntax from "../PARSE/1-Discover/detectAssemblySyntax";
+import ExternalDeclarationOracle from "../PARSE/1-Discover/preprocessor/ExternalDeclarationOracle";
 import TypedefParamParser from "../TRANSPILE/3-Render/codegen/helpers/TypedefParamParser";
 import type IRecordedRequirement from "./types/IRecordedRequirement";
 import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../utils/RequirementAggregator";
-import TargetCatalogFile from "./data/TargetCatalogFile";
+import TargetCatalogFile from "../PARSE/1-Discover/TargetCatalogFile";
 import Write from "../WRITE/1-Write/Write";
 
 /** A header's cache entry, as `CacheManager` returns it. */

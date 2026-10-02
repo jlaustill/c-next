@@ -261,9 +261,11 @@ MCP server is configured for this repo (`claude mcp list`, and no `mcpServers` e
 project or user config), and the successor package no longer exposes those names, so the
 instruction could not be followed as written.
 
-**Layer constraints (depcruise)**: `data/` cannot import from `logic/` or 2.3 Render, and
-`logic/` and the per-file state cannot import 2.3 Render — all four **transitively**, not just
-as a direct edge. `state-cannot-import-output` names the MODULE now
+**Layer constraints (depcruise)**: PARSE (1.x) cannot import TRANSPILE (2.x), no pass after
+1.1 Discover reaches a 1.1 module other than its artifact's `types/`
+(`nothing-after-1-1-discovers`, #1444 box 4), and the per-file state cannot import 2.3 Render —
+all **transitively**, not just as a direct edge. The `data-` and `logic-` rules were retired by
+#1444, when both directories became `src/PARSE/1-Discover/`. `state-cannot-import-output` names the MODULE now
 (`src/TRANSPILE/TranspileState.ts`) rather than a directory, because #1452 deleted
 `src/transpiler/state/` and `CodeGenWalker.ts` sits beside the state at the `src/TRANSPILE/`
 root while importing sixteen generators — so a root-wide `from` would fail on the walker whose
@@ -543,8 +545,7 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 
 | Layer        | Path                      | Purpose                                                                                                                                                                                           |
 | ------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Data         | `data/`                   | Discovery (FileDiscovery, IncludeResolver, DependencyGraph)                                                                                                                                       |
-| Logic        | `logic/`                  | Business logic (parser/, preprocessor/) — `symbols/` and `analysis/` left under #1511 and #1322                                                                                                   |
+| Discover     | `src/PARSE/1-Discover/`   | 1.1 Discover — `Discover.run` emits the frozen `SourceGraph`; FileDiscovery, IncludeResolver, DependencyGraph, preprocessor/, the port. Was `data/` and `logic/` until #1444                      |
 | Render       | `src/TRANSPILE/3-Render/` | 2.3 Render — codegen/, headers/. Moved out of `transpiler/output/` by #1450 box 5                                                                                                                 |
 | State        | _(gone)_                  | `src/transpiler/state/` was deleted by #1452. The per-file working state 2.2 and 2.3 share is `TranspileState` at the `src/TRANSPILE/` root; `SymbolRegistry` and `SymbolTable` are 1.3 Declare's |
 | Constants    | `constants/`              | Runtime lookups (BITMAP_SIZE, BITMAP_BACKING_TYPE)                                                                                                                                                |

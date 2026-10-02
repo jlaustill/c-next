@@ -14,7 +14,7 @@ vi.mock("node:fs", () => ({ existsSync: vi.fn() }));
 
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import NodeFileSystem from "../../../NodeFileSystem";
+import NodeFileSystem from "../../NodeFileSystem";
 
 describe("ToolchainDetector.fromPath", () => {
   beforeEach(() => vi.clearAllMocks());

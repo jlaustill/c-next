@@ -2,8 +2,8 @@
  * Include directive and preprocessor handling.
  * Extracted from CodeGenerator.ts.
  */
-import IncludeRewriter from "../../../../../transpiler/data/IncludeRewriter";
-import EFileType from "../../../../../transpiler/data/types/EFileType";
+import IncludeRewriter from "../../../../../utils/IncludeRewriter";
+import EFileType from "../../../../../PARSE/1-Discover/types/EFileType";
 import IncludeDirectiveText from "../../../../../utils/IncludeDirectiveText";
 import type THeaderExtension from "../../../../../transpiler/types/THeaderExtension";
 import invariant from "../../../../../utils/invariant";

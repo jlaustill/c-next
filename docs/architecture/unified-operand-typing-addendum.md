@@ -308,7 +308,7 @@ They become one: `IncludeDiscovery.findProjectRoot`, with the **union** of the m
 - The start-directory rule (a file gives its directory; a directory gives itself) stays in the caller.
 - The cases in `determineProjectRoot.test.ts` move to the one finder.
 
-**One `platformio.ini` reader.** `src/transpiler/data/PlatformIOIni.ts`.
+**One `platformio.ini` reader.** `src/PARSE/1-Discover/PlatformIOIni.ts` (`src/transpiler/data/` until #1444).
 
 - `_collectLibExtraDirsValues` and `parsePlatformIOLibExtraDirs` (`IncludeDiscovery.ts:202-311`) move onto it.
 - It returns each env's `{name, board, platform}` and `default_envs`.

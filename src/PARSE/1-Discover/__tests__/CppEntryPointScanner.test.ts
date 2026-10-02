@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { dirname } from "node:path";
 import CppEntryPointScanner from "../CppEntryPointScanner";
-import IFileSystem from "../../types/IFileSystem";
+import IFileSystem from "../../../transpiler/types/IFileSystem";
 
 /** A discovered .cnx file searched along its own directory, then the project. */
 const alongProject = (cnxPath: string): readonly string[] => [

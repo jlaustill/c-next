@@ -17,9 +17,9 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
-import NodeFileSystem from "../NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 import type IFileSystem from "../types/IFileSystem";
-import Preprocessor from "../logic/preprocessor/Preprocessor";
+import Preprocessor from "../../PARSE/1-Discover/preprocessor/Preprocessor";
 
 // No conditional of its own, so it is used as written, and it is usable.
 const A_H = `#define A_GUARD 1

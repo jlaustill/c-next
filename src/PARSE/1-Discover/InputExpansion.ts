@@ -1,5 +1,5 @@
 import { resolve, extname, basename } from "node:path";
-import IFileSystem from "../types/IFileSystem";
+import IFileSystem from "../../transpiler/types/IFileSystem";
 
 /**
  * Input expansion for C-Next CLI

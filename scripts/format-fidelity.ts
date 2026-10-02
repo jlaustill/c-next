@@ -43,7 +43,7 @@ import Transpiler from "../src/transpiler/Transpiler";
 
 import FileScanner from "./utils/FileScanner";
 import TestUtils from "./test-utils";
-import NodeFileSystem from "../src/transpiler/NodeFileSystem";
+import NodeFileSystem from "../src/PARSE/1-Discover/NodeFileSystem";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const pluginPath = join(rootDir, "prettier-plugin/dist/index.js");

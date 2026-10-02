@@ -15,7 +15,7 @@ import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import MockFileSystem from "./MockFileSystem";
-import NodeFileSystem from "../NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 describe("Transpiler coverage tests", () => {
   let mockFs: MockFileSystem;

@@ -14,7 +14,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import CompileCommandsReader from "../CompileCommandsReader";
-import NodeFileSystem from "../../../NodeFileSystem";
+import NodeFileSystem from "../../NodeFileSystem";
 
 describe("CompileCommandsReader.parse", () => {
   it("extracts include paths from -I arguments, resolving relative to the entry directory", () => {

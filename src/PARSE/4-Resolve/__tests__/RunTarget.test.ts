@@ -4,11 +4,11 @@
  */
 import { describe, it, expect } from "vitest";
 import RunTarget from "../RunTarget";
-import TargetCatalogFile from "../../../transpiler/data/TargetCatalogFile";
+import TargetCatalogFile from "../../1-Discover/TargetCatalogFile";
 import type ITargetDirective from "../../../transpiler/types/ITargetDirective";
 import type ITargetDescription from "../../../transpiler/types/ITargetDescription";
 import type IPlatformIOProject from "../../../transpiler/types/IPlatformIOProject";
-import NodeFileSystem from "../../../transpiler/NodeFileSystem";
+import NodeFileSystem from "../../1-Discover/NodeFileSystem";
 
 const catalog = TargetCatalogFile.targets(NodeFileSystem.instance);
 

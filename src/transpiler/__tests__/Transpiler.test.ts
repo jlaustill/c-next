@@ -8,7 +8,7 @@ import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import MockFileSystem from "./MockFileSystem";
 import ParserUtils from "../../utils/ParserUtils";
-import NodeFileSystem from "../NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 describe("Transpiler", () => {
   describe("with MockFileSystem", () => {

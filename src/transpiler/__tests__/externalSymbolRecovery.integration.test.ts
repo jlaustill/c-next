@@ -16,9 +16,9 @@ import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
-import Preprocessor from "../logic/preprocessor/Preprocessor";
-import detectCppSyntax from "../logic/detectCppSyntax";
-import NodeFileSystem from "../NodeFileSystem";
+import Preprocessor from "../../PARSE/1-Discover/preprocessor/Preprocessor";
+import detectCppSyntax from "../../PARSE/1-Discover/detectCppSyntax";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 const GUARD_H = `#define WIDGET_GUARD 1
 #define WIDGET_FEATURE 1

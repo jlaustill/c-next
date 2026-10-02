@@ -1,4 +1,4 @@
-import type EFileType from "../../../transpiler/data/types/EFileType";
+import type EFileType from "./EFileType";
 
 /**
  * What 1.1 Discover learned about one `.cnx` file's includes, while it

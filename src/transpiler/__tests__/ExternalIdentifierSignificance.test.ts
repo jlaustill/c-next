@@ -22,7 +22,7 @@ import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
 import type CodeGenWalker from "../../TRANSPILE/CodeGenWalker";
 import TargetResolver from "../../utils/TargetResolver";
-import NodeFileSystem from "../NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /** Two members that are distinct at 31 characters but collide at 6. */
 const NARROW_COLLIDER = `scope Tiny {

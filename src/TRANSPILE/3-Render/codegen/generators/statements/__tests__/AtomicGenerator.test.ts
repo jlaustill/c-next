@@ -9,7 +9,7 @@ import atomicGenerators from "../AtomicGenerator";
 import TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
 import type ITargetDescription from "../../../../../../transpiler/types/ITargetDescription";
 import TargetResolver from "../../../../../../utils/TargetResolver";
-import NodeFileSystem from "../../../../../../transpiler/NodeFileSystem";
+import NodeFileSystem from "../../../../../../PARSE/1-Discover/NodeFileSystem";
 
 const {
   generateAtomicRMW,

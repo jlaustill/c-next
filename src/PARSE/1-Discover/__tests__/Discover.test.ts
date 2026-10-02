@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import Discover from "../Discover";
 import RunAnchor from "../RunAnchor";
-import EFileType from "../../../transpiler/data/types/EFileType";
+import EFileType from "../types/EFileType";
 import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
 import type ISourceGraph from "../types/ISourceGraph";
 

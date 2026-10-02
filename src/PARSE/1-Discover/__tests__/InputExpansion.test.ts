@@ -16,7 +16,7 @@ vi.mock("node:fs", () => ({
 }));
 
 import { existsSync, statSync } from "node:fs";
-import NodeFileSystem from "../../NodeFileSystem";
+import NodeFileSystem from "../NodeFileSystem";
 
 const mockExistsSync = vi.mocked(existsSync);
 const mockStatSync = vi.mocked(statSync);

@@ -1,14 +1,14 @@
 import { dirname, join, resolve } from "node:path";
 
-import IncludeDiscovery from "../../transpiler/data/IncludeDiscovery";
-import PathResolver from "../../transpiler/data/PathResolver";
-import CompileCommandsReader from "../../transpiler/logic/preprocessor/CompileCommandsReader";
-import Preprocessor from "../../transpiler/logic/preprocessor/Preprocessor";
-import ToolchainDetector from "../../transpiler/logic/preprocessor/ToolchainDetector";
-import type ICompileCommandsResult from "../../transpiler/logic/preprocessor/types/ICompileCommandsResult";
-import type IToolchain from "../../transpiler/logic/preprocessor/types/IToolchain";
+import IncludeDiscovery from "./IncludeDiscovery";
+import PathResolver from "./PathResolver";
+import CompileCommandsReader from "./preprocessor/CompileCommandsReader";
+import Preprocessor from "./preprocessor/Preprocessor";
+import ToolchainDetector from "./preprocessor/ToolchainDetector";
+import type ICompileCommandsResult from "./preprocessor/types/ICompileCommandsResult";
+import type IToolchain from "./preprocessor/types/IToolchain";
 import type IFileSystem from "../../transpiler/types/IFileSystem";
-import type IRunAnchor from "../../transpiler/types/IRunAnchor";
+import type IRunAnchor from "./types/IRunAnchor";
 import type ITranspilerConfig from "../../transpiler/types/ITranspilerConfig";
 
 /** The configuration an anchor is decided from. */

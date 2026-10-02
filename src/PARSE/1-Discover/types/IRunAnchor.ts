@@ -1,5 +1,5 @@
-import type PathResolver from "../data/PathResolver";
-import type Preprocessor from "../logic/preprocessor/Preprocessor";
+import type PathResolver from "../PathResolver";
+import type Preprocessor from "../preprocessor/Preprocessor";
 
 /**
  * Where a run is anchored (#1719): every fact that follows from the location of

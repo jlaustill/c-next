@@ -33,7 +33,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
-import NodeFileSystem from "../NodeFileSystem";
+import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /** A run whose last generated file declares a function-local `u8 idx`. */
 const SHADOWS_IDX_AS_U8 = `u32 shadowFn(u32 n) {

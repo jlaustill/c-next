@@ -80,9 +80,11 @@ class QualifiedNameGenerator {
    * silently inverted call gets written by the next person editing nearby (#1357
    * review).
    *
-   * `logic/` cannot import from `output/` (depcruise `logic-cannot-import-output`),
-   * so `ScopeUtils.qualifyInScope` remains that layer's door and this one is not a
-   * replacement for it -- it is the door for the layer that CAN reach it.
+   * `ScopeUtils.qualifyInScope` was the door for `logic/`, which could not import
+   * `output/`, where this class lived (depcruise `logic-cannot-import-output`).
+   * #1445 moved this class to `utils/` and #1444 dissolved `logic/` into 1.1
+   * Discover, so the rule is retired. Both doors remain because both have
+   * callers. This one delegates and decides nothing, so they cannot disagree.
    */
   static forMember(scopePath: string, memberName: string): string {
     return ScopeUtils.qualifyInScope(memberName, scopePath);

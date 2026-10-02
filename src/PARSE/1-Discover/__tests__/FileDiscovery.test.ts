@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import FileDiscovery from "../FileDiscovery";
 import EFileType from "../types/EFileType";
-import NodeFileSystem from "../../NodeFileSystem";
+import NodeFileSystem from "../NodeFileSystem";
 
 describe("FileDiscovery", () => {
   // #1640: NOT under `src/`. A test that writes into the tree another
