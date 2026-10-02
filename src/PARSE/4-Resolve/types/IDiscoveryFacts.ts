@@ -45,7 +45,7 @@ interface IDiscoveryFacts {
 
   /**
    * Per source file, the file each `#include` directive resolved to, or null,
-   * keyed by `IncludeDiscovery.directiveText` (#1672).
+   * keyed by `IncludeDirectiveText.join` (#1672).
    *
    * Recorded because 2.1's ADR-010 rules must report the answer discovery
    * gave, not one of their own. #1322 recorded the search path for them

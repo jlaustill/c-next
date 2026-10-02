@@ -2,7 +2,7 @@
  * ADR-010 facts about the file under analysis: 1.1 Discover's answers, read
  * rather than re-derived (#1672).
  *
- * Both maps are keyed by `IncludeDiscovery.directiveText`. #1322 and #1435
+ * Both maps are keyed by `IncludeDirectiveText.join`. #1322 and #1435
  * handed this pass discovery's INPUTS instead -- the search path, the
  * quoted-include directory and a file-exists oracle -- and it made its own
  * decision with them, along its own branch between the two forms. That

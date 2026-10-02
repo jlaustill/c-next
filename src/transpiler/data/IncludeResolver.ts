@@ -1,6 +1,7 @@
 import { dirname, join, resolve } from "node:path";
 
 import CNextMarkerDetector from "./CNextMarkerDetector";
+import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import IncludeDiscovery from "./IncludeDiscovery";
 import IncludeRewriter from "./IncludeRewriter";
 import FileDiscovery from "./FileDiscovery";
@@ -84,7 +85,7 @@ interface IResolvedIncludes {
 
   /**
    * #1672: the file every directive this resolver read resolved to, or null,
-   * keyed by `IncludeDiscovery.directiveText`. 2.1's E0506 reads it rather
+   * keyed by `IncludeDirectiveText.join`. 2.1's E0506 reads it rather
    * than resolving the include a second time.
    */
   resolutions: Map<string, string | null>;
@@ -214,7 +215,7 @@ class IncludeResolver {
     result: IResolvedIncludes,
   ): void {
     const resolved = this._resolveSpelling(includeInfo);
-    const directive = IncludeDiscovery.directiveText(includeInfo);
+    const directive = IncludeDirectiveText.join(includeInfo);
     result.resolutions.set(directive, resolved);
     const alternative = this._cnextAlternativeOf(includeInfo);
     if (alternative !== null) {
@@ -297,7 +298,7 @@ class IncludeResolver {
       // Issue #497: Track the original include directive for this header
       result.headerIncludeDirectives.set(
         absolutePath,
-        IncludeDiscovery.directiveText(includeInfo),
+        IncludeDirectiveText.join(includeInfo),
       );
       if (this._resolvedBesideWriter(includeInfo, absolutePath)) {
         result.writerRelativeIncludes.set(absolutePath, absolutePath);
@@ -319,7 +320,7 @@ class IncludeResolver {
         IncludeRewriter.besideSource(includeInfo.path, this.headerExtension);
       result.headerIncludeDirectives.set(
         absolutePath,
-        IncludeDiscovery.directiveText({
+        IncludeDirectiveText.join({
           path: headerPath,
           isLocal: includeInfo.isLocal,
         }),

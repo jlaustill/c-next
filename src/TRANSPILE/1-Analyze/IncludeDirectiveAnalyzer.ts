@@ -39,6 +39,7 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
 import invariant from "../../utils/invariant";
+import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import IncludeDiscovery from "../../transpiler/data/IncludeDiscovery";
 import IncludeDirective from "./helpers/IncludeDirective";
 import IIncludeContext from "./types/IIncludeContext";
@@ -74,7 +75,7 @@ class IncludeDirectiveListener extends CNextListener {
     if (spec === null) return;
 
     if (this.checkImplementationFile(ctx, spec)) return;
-    const directive = IncludeDiscovery.directiveText(spec);
+    const directive = IncludeDirectiveText.join(spec);
     if (this.checkMissingCnextFile(ctx, spec, this.resolutionOf(directive))) {
       return;
     }
@@ -156,14 +157,14 @@ class IncludeDirectiveListener extends CNextListener {
   ): void {
     if (cnxPath === undefined) return;
 
-    const instead = IncludeDiscovery.directiveText({
+    const instead = IncludeDirectiveText.join({
       path: cnxPath,
       isLocal: spec.isLocal,
     });
     this.report(
       ctx,
       "E0504",
-      `Found ${IncludeDiscovery.directiveText(spec)} but '${cnxPath}' exists at the same location.\n       Use ${instead} instead to use the C-Next version.`,
+      `Found ${IncludeDirectiveText.join(spec)} but '${cnxPath}' exists at the same location.\n       Use ${instead} instead to use the C-Next version.`,
       "The generated header describes the interface; the C-Next source is what the transpiler can check calls against (ADR-010).",
     );
   }

@@ -381,22 +381,6 @@ describe("IncludeDiscovery", () => {
   // directivesOf (#1830 review)
   // ==========================================================================
 
-  describe("specOfDirective (#1672)", () => {
-    it("splits a directive into its path and form", () => {
-      expect(IncludeDiscovery.specOfDirective('#include "a.cnx"')).toEqual({
-        path: "a.cnx",
-        isLocal: true,
-      });
-    });
-
-    it.each([["#include <>"], ["#define FLAG"]])(
-      "names nothing for %s",
-      (text) => {
-        expect(IncludeDiscovery.specOfDirective(text)).toBeNull();
-      },
-    );
-  });
-
   describe("directivesOf", () => {
     const COMMENTED = '/*\n#include "ghost.h"\n*/\n';
 

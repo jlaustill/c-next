@@ -235,7 +235,7 @@ interface IProgram {
 
   /**
    * #1672: the file 1.1 Discover resolved each `#include` directive of
-   * `sourceFile` to, or null, keyed by `IncludeDiscovery.directiveText`.
+   * `sourceFile` to, or null, keyed by `IncludeDirectiveText.join`.
    * ADR-010's E0506 reads this and asks the file system nothing, so the
    * include 2.1 accepts and the file the run discovered are one answer. Every
    * file the run analyzes was discovered, so a missing entry is a defect.

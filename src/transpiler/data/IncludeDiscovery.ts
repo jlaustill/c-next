@@ -3,6 +3,7 @@ import { dirname, resolve, join, isAbsolute } from "node:path";
 import { CharStream } from "antlr4ng";
 
 import { CNextLexer } from "../../PARSE/2-Parse/grammar/CNextLexer";
+import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import invariant from "../../utils/invariant";
 import FileDiscovery from "./FileDiscovery";
 import PlatformIOIni from "./PlatformIOIni";
@@ -461,38 +462,8 @@ class IncludeDiscovery {
           token.text !== undefined,
           "an INCLUDE_DIRECTIVE token carries its text",
         );
-        return IncludeDiscovery.specOfDirective(token.text) ?? [];
+        return IncludeDirectiveText.split(token.text) ?? [];
       });
-  }
-
-  /**
-   * One `INCLUDE_DIRECTIVE` token's path and delimiter, or null when the text
-   * names nothing: `#include <>` is a token too, and text with no delimiter
-   * is not a directive.
-   *
-   * #1672: the one split of a directive's text. 1.1 reads the lexer's token
-   * with it, and 2.1 and 2.3 read the parser's, which is the same token. Each
-   * held regexes of its own, which agreed with this on every fixture.
-   *
-   * @param text - An `INCLUDE_DIRECTIVE` token's text, exactly
-   */
-  static specOfDirective(
-    text: string,
-  ): { path: string; isLocal: boolean } | null {
-    const open = text.search(/[<"]/);
-    if (open === -1) return null;
-    const path = text.slice(open + 1, -1);
-    return path === "" ? null : { path, isLocal: text[open] === '"' };
-  }
-
-  /**
-   * The directive that names `include`: `#include "path"` or `#include <path>`.
-   * The key 1.1 records its answer under and 2.1 reads it by (#1672).
-   */
-  static directiveText(include: { path: string; isLocal: boolean }): string {
-    return include.isLocal
-      ? `#include "${include.path}"`
-      : `#include <${include.path}>`;
   }
 
   /**

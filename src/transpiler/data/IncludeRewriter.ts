@@ -19,7 +19,7 @@ import { extname } from "node:path";
 
 import type THeaderExtension from "../types/THeaderExtension";
 import FileDiscovery from "./FileDiscovery";
-import IncludeDiscovery from "./IncludeDiscovery";
+import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import EFileType from "./types/EFileType";
 
 class IncludeRewriter {
@@ -74,7 +74,7 @@ class IncludeRewriter {
   private static _cnextSpecOf(
     includeText: string,
   ): { path: string; isLocal: boolean } | null {
-    const spec = IncludeDiscovery.specOfDirective(includeText);
+    const spec = IncludeDirectiveText.split(includeText);
     if (spec === null) return null;
     return FileDiscovery.classifyFile(spec.path).type === EFileType.CNext
       ? spec
