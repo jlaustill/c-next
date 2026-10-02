@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 /**
  * Build the C-Next transpiler into a single JS bundle using esbuild.
  *

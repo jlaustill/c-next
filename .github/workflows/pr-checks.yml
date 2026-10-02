@@ -636,7 +636,7 @@ jobs:
       fail-fast: false
       matrix:
         # Note: 'misra' is a cppcheck addon, not a standalone tool
-        # batch-validate.mjs handles this dependency automatically
+        # batch-validate.ts handles this dependency automatically
         tool: [cppcheck, clang-tidy, misra, flawfinder]
 
     steps:

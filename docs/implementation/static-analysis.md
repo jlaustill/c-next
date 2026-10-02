@@ -248,7 +248,7 @@ This section documents intentional deviations from MISRA C 2012 rules.
 > not applicable — tracked as #1413.** The construct and the rationale below are sound,
 > but 11.3 governs casts between pointers to different object types; an integer-to-pointer
 > conversion is **Rule 11.4**. `docs/misra-compliance.md` lists 11.4 as "By Design — No
-> raw pointers", while `scripts/misra-baseline.mjs` allowlists 25 real violations of it
+> raw pointers", while `scripts/misra-baseline.ts` allowlists 25 real violations of it
 > against the open #867. Left in place rather than silently renumbered: which of the two
 > records is correct is a compliance decision, not an editorial one.
 

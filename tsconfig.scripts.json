@@ -11,13 +11,13 @@
   // scripts/. Everything else is inherited so the two surfaces cannot drift apart.
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "rootDir": ".",
-    // scripts/ still holds three .mjs files. `allowJs` lets the checker read
-    // them directly and infer, rather than shipping a hand-written .d.ts --
-    // which would be a second declaration of one module's shape, i.e. the
-    // duplicate code path CLAUDE.md forbids.
-    "allowJs": true
+    "rootDir": "."
   },
-  "include": ["scripts/**/*.ts", "scripts/**/*.mjs"],
+  // scripts/ is TypeScript only. It used to hold four JavaScript files, read
+  // under `allowJs` without `checkJs` -- inferred, never reported -- and one of
+  // them, test-cli.js, matched no `include` pattern at all (#1489). A JavaScript
+  // file added here would be outside this program again, silently, so
+  // `scripts/__tests__/scripts-are-typescript.test.ts` fails on one instead.
+  "include": ["scripts/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

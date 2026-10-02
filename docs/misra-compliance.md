@@ -58,11 +58,11 @@ Counted from the guideline tables below by `npm run docs:toolchain` (157 guideli
 ## How violations are validated
 
 `npm run validate:c` runs cppcheck's MISRA addon over every generated C test
-file via `scripts/batch-validate.mjs`. cppcheck emits all MISRA findings at
+file via `scripts/batch-validate.ts`. cppcheck emits all MISRA findings at
 `style` severity, so the runner passes `--enable=style` — omitting it makes the
 check a silent no-op (issue #1057).
 
-The failure decision lives in `scripts/misra-baseline.mjs`:
+The failure decision lives in `scripts/misra-baseline.ts`:
 
 - **Generated-only**: cppcheck also flags transitively-included third-party libs
   and hand-written fixtures; only violations in C-Next-generated output

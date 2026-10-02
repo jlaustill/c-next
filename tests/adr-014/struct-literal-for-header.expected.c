@@ -29,7 +29,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // preference. With `i32` members the emitted loop trips MISRA C:2012 Rule 14.2
 // -- `for (Point p = (Point){...}; p.x < 7; p.x += 1)` initializes the STRUCT in
 // its first clause while the counter is `p.x`, one of its members -- and 14.2 is
-// deliberately absent from `scripts/misra-baseline.mjs`'s BASELINE, so a
+// deliberately absent from `scripts/misra-baseline.ts`'s BASELINE, so a
 // compiling fixture in that shape would fail `validate:c` on an enforced rule
 // class. #1539 carries that with its reproduction and the three ways it could be
 // resolved.

@@ -1,5 +1,5 @@
 /**
- * Unit tests for misra-baseline.mjs
+ * Unit tests for misra-baseline.ts
  *
  * Regression guard for #1057: the MISRA portion of `validate:c` was a silent
  * no-op because runMisra() invoked cppcheck without `--enable=style`, and
@@ -9,7 +9,7 @@
  *   3. only violations of un-baselined rules are treated as failures.
  */
 
-import MisraBaseline from "../misra-baseline.mjs";
+import MisraBaseline from "../misra-baseline";
 
 // Real cppcheck output captured with `--enable=style`. Mixes MISRA findings
 // with non-MISRA style findings to prove the parser ignores the latter.

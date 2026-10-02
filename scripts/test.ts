@@ -66,7 +66,7 @@ interface IWorkerResult {
  * Check if validation tools are available
  *
  * Static analysis tools (cppcheck, clang-tidy, MISRA, flawfinder) run as a
- * separate batch step via `npm run validate:c` / scripts/batch-validate.mjs.
+ * separate batch step via `npm run validate:c` / scripts/batch-validate.ts.
  */
 function checkValidationTools(): ITools {
   const tools: ITools = {

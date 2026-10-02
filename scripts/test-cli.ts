@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 /**
  * C-Next CLI Integration Tests
  *
@@ -27,6 +27,47 @@ import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import chalk from "chalk";
 
+import ExecFailure from "../src/utils/ExecFailure";
+
+/** One CLI run, as runCliInDir reports it. */
+interface ICliResult {
+  success: boolean;
+  output: string;
+  /** Empty on success: a successful run's stderr is not captured. */
+  stderr: string;
+  exitCode: number;
+}
+
+/** A temp directory and the paths a CLI test writes into it. */
+interface ITempTestEnv {
+  tempDir: string;
+  cnxFile: string;
+  cFile: string;
+  configFile: string;
+}
+
+/** Issue #1467: one include-path layout, and the header path it must name. */
+interface IIncludePathCase {
+  name: string;
+  includeSpec: string;
+  utilsAt: string;
+  includeArg: string;
+  useStruct: boolean;
+  projectDir?: string;
+  expected: string;
+}
+
+/** Issue #1467: what one include-path layout produced. */
+interface IIncludePathOutcome {
+  transpileSucceeded: boolean;
+  transpileOutput: string;
+  cIncludes: string[];
+  hIncludes: string[];
+  headerWrittenAt: string;
+  gccExitCode: number;
+  gccOutput: string;
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, "..");
@@ -38,7 +79,11 @@ let failed = 0;
 /**
  * Run a CLI command in a specific directory and return result
  */
-function runCliInDir(cwd, args = [], expectError = false) {
+function runCliInDir(
+  cwd: string,
+  args: string[] = [],
+  expectError = false,
+): ICliResult {
   try {
     const output = execFileSync("node", [cliPath, ...args], {
       encoding: "utf-8",
@@ -46,14 +91,15 @@ function runCliInDir(cwd, args = [], expectError = false) {
       timeout: 10000,
       stdio: ["pipe", "pipe", "pipe"],
     });
-    return { success: true, output, exitCode: 0 };
-  } catch (error) {
+    return { success: true, output, stderr: "", exitCode: 0 };
+  } catch (error: unknown) {
     if (expectError) {
+      const failure = ExecFailure.of(error);
       return {
         success: false,
-        output: error.stdout || "",
-        stderr: error.stderr || "",
-        exitCode: error.status || 1,
+        output: failure.stdout || "",
+        stderr: failure.stderr || "",
+        exitCode: failure.status || 1,
       };
     }
     throw error;
@@ -63,21 +109,21 @@ function runCliInDir(cwd, args = [], expectError = false) {
 /**
  * Run a CLI command in the root directory
  */
-function runCli(args = [], expectError = false) {
+function runCli(args: string[] = [], expectError = false): ICliResult {
   return runCliInDir(rootDir, args, expectError);
 }
 
 /**
  * Run a test case
  */
-function test(name, fn) {
+function test(name: string, fn: () => void): void {
   try {
     fn();
     console.log(`${chalk.green("PASS")}    ${name}`);
     passed++;
-  } catch (error) {
+  } catch (error: unknown) {
     console.log(`${chalk.red("FAIL")}    ${name}`);
-    console.log(`        ${chalk.dim(error.message)}`);
+    console.log(`        ${chalk.dim(ExecFailure.of(error).message)}`);
     failed++;
   }
 }
@@ -85,7 +131,7 @@ function test(name, fn) {
 /**
  * Assert helper
  */
-function assert(condition, message) {
+function assert(condition: boolean, message: string): asserts condition {
   if (!condition) {
     throw new Error(message);
   }
@@ -94,7 +140,7 @@ function assert(condition, message) {
 /**
  * Clean up generated test files
  */
-function cleanup(files) {
+function cleanup(files: readonly string[]): void {
   for (const file of files) {
     if (existsSync(file)) {
       unlinkSync(file);
@@ -297,7 +343,7 @@ test("syntax error in file exits 1", () => {
  * @param {string} pioIniContent - Content for platformio.ini
  * @returns {string} Path to temp directory
  */
-function createTempPioProject(pioIniContent) {
+function createTempPioProject(pioIniContent: string): string {
   const tempDir = mkdtempSync(join(tmpdir(), "cnext-pio-test-"));
   writeFileSync(join(tempDir, "platformio.ini"), pioIniContent, "utf-8");
   return tempDir;
@@ -306,7 +352,11 @@ function createTempPioProject(pioIniContent) {
 /**
  * Assert file contains substring
  */
-function assertFileContains(filePath, substring, message) {
+function assertFileContains(
+  filePath: string,
+  substring: string,
+  message?: string,
+): void {
   assert(existsSync(filePath), `File should exist: ${filePath}`);
   const content = readFileSync(filePath, "utf-8");
   assert(
@@ -318,7 +368,7 @@ function assertFileContains(filePath, substring, message) {
 /**
  * Assert file does not exist
  */
-function assertFileNotExists(filePath, message) {
+function assertFileNotExists(filePath: string, message?: string): void {
   assert(
     !existsSync(filePath),
     message || `File should not exist: ${filePath}`,
@@ -328,7 +378,7 @@ function assertFileNotExists(filePath, message) {
 /**
  * Clean up a temp directory
  */
-function cleanupTempDir(dir) {
+function cleanupTempDir(dir: string): void {
   try {
     rmSync(dir, { recursive: true, force: true });
   } catch {
@@ -340,7 +390,7 @@ function cleanupTempDir(dir) {
  * Create temp test environment with .cnx and .c file paths
  * Returns object with tempDir, cnxFile, cFile, and optional configFile
  */
-function createTempTestEnv(prefix = "cnext-test-") {
+function createTempTestEnv(prefix = "cnext-test-"): ITempTestEnv {
   const tempDir = mkdtempSync(join(tmpdir(), prefix));
   return {
     tempDir,
@@ -353,7 +403,10 @@ function createTempTestEnv(prefix = "cnext-test-") {
 /**
  * Run a test with temp directory setup and automatic cleanup
  */
-function withTempTest(prefix, testFn) {
+function withTempTest(
+  prefix: string,
+  testFn: (env: ITempTestEnv) => void,
+): void {
   const env = createTempTestEnv(prefix);
   try {
     testFn(env);
@@ -1067,7 +1120,10 @@ scope Utils {
  * THIRD derivation of this path, and a fixture that only calls a function
  * never reaches it.
  */
-const includePathMain = (includeSpec, useStruct) => `#include <${includeSpec}>
+const includePathMain = (
+  includeSpec: string,
+  useStruct: boolean,
+): string => `#include <${includeSpec}>
 
 ${
   useStruct
@@ -1089,7 +1145,7 @@ ${useStruct ? "    return 0;" : "    result <- global.Utils.add(5);\n    return 
  * Narrowed to that one header so the run's own `main.h`/`stdint.h` lines
  * cannot mask a disagreement.
  */
-function utilsIncludesIn(source) {
+function utilsIncludesIn(source: string): string[] {
   return source
     .split("\n")
     .filter((line) => /^#include\s*[<"].*utils\.h/.test(line))
@@ -1105,9 +1161,15 @@ function utilsIncludesIn(source) {
  * under the entry's tree (header nests) or outside it (header goes flat).
  */
 function runIncludePathCase(
-  { includeSpec, utilsAt, includeArg, useStruct, projectDir = "." },
-  tempDir,
-) {
+  {
+    includeSpec,
+    utilsAt,
+    includeArg,
+    useStruct,
+    projectDir = ".",
+  }: IIncludePathCase,
+  tempDir: string,
+): IIncludePathOutcome {
   // `utilsAt` is relative to tempDir; the project (and the cwd the CLI runs in)
   // is `projectDir` under it. A case that puts the included file OUTSIDE the
   // project exercises the flat-header path -- see PathResolver's #489 branch.
@@ -1144,7 +1206,7 @@ function runIncludePathCase(
   if (!result.success) {
     return {
       transpileSucceeded: false,
-      transpileOutput: `${result.output}${result.stderr ?? ""}`,
+      transpileOutput: `${result.output}${result.stderr}`,
       cIncludes: [],
       hIncludes: [],
       headerWrittenAt: "<not written>",
@@ -1161,9 +1223,10 @@ function runIncludePathCase(
       ["-c", "build/main.c", "-I", "include", "-o", "/dev/null"],
       { cwd: projectRoot, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] },
     );
-  } catch (error) {
-    gccExitCode = error.status ?? 1;
-    gccOutput = error.stderr || error.stdout || "";
+  } catch (error: unknown) {
+    const failure = ExecFailure.of(error);
+    gccExitCode = failure.status ?? 1;
+    gccOutput = failure.stderr || failure.stdout || "";
   }
 
   // Where the header actually landed, relative to --header-out.
@@ -1194,7 +1257,11 @@ function runIncludePathCase(
  * written, relative to `--header-out`. Every generated file must name exactly
  * that, which is the property that makes `-I <header-out>` sufficient.
  */
-function assertIncludeAgreesWithHeader(label, actual, expected) {
+function assertIncludeAgreesWithHeader(
+  label: string,
+  actual: IIncludePathOutcome,
+  expected: string,
+): void {
   assert(
     actual.transpileSucceeded,
     `${label}: transpiler should exit 0\n${actual.transpileOutput}`,
@@ -1206,7 +1273,7 @@ function assertIncludeAgreesWithHeader(label, actual, expected) {
   for (const [where, lines] of [
     ["main.c", actual.cIncludes],
     ["main.h", actual.hIncludes],
-  ]) {
+  ] as const) {
     assert(
       lines.length === 1 && lines[0] === `#include <${expected}>`,
       `${label}: ${where} should include <${expected}>, had ${JSON.stringify(lines)}`,
@@ -1222,7 +1289,7 @@ function assertIncludeAgreesWithHeader(label, actual, expected) {
 // The contract: `-I <header-out>` alone is sufficient, so every emitted include
 // names its header relative to that root. Cases 2-4 hold on the unfixed tree and
 // are the negative controls -- a fix that prepends unconditionally breaks them.
-const includePathCases = [
+const includePathCases: IIncludePathCase[] = [
   {
     name: "Issue #1467: a bare angle include of a nested .cnx names the header's real path",
     includeSpec: "utils.cnx",
