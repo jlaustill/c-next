@@ -126,6 +126,11 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
+2 linked fixtures with no derivable context:
+
+- `bugs/issue-1531-declaration-rejections/cross-file-enum.test.cnx`
+- `enum/enum-error-negative.test.cnx`
+
 ## ADR-022
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
@@ -238,6 +243,11 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | warn       | n/a         | n/a        |
 | scope member       | warn      | warn   | warn       | n/a         | n/a        |
 | scope method       | ok        | warn   | warn       | n/a         | n/a        |
+
+2 linked fixtures with no derivable context:
+
+- `bitmap/bitmap-error-bits.test.cnx`
+- `bugs/issue-1531-declaration-rejections/cross-file-bitmap.test.cnx`
 
 ## ADR-035
 

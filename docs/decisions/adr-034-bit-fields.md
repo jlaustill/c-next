@@ -393,11 +393,12 @@ uint8_t mode = ((status.flags >> 3) & 0x7);
 
 ## Diagnostics
 
-| Code  | Reported when                                                             | Asserted by                                            |
-| ----- | ------------------------------------------------------------------------- | ------------------------------------------------------ |
-| E0881 | A value written to a bitmap field does not fit the field's declared width | `tests/adr-034/bitmap-error-overflow.test.cnx`         |
-| E0882 | A member access names something the bitmap does not declare               | `tests/adr-034/bitmap-unknown-field-error.test.cnx`    |
-| E0883 | A bitmap is addressed by bit index rather than by named field             | `tests/adr-034/bitmap-bracket-indexing-error.test.cnx` |
+| Code  | Reported when                                                             | Asserted by                                                                                                          |
+| ----- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| E0881 | A value written to a bitmap field does not fit the field's declared width | `tests/adr-034/bitmap-error-overflow.test.cnx`                                                                       |
+| E0882 | A member access names something the bitmap does not declare               | `tests/adr-034/bitmap-unknown-field-error.test.cnx`                                                                  |
+| E0883 | A bitmap is addressed by bit index rather than by named field             | `tests/adr-034/bitmap-bracket-indexing-error.test.cnx`                                                               |
+| E0893 | A bitmap's field widths do not add up to its size, at the bitmap          | `tests/bitmap/bitmap-error-bits.test.cnx`, `tests/bugs/issue-1531-declaration-rejections/cross-file-bitmap.test.cnx` |
 
 A bitmap is reached two ways -- through a variable declared with a bitmap type,
 and through a register member typed by one -- and all three rules ask the same

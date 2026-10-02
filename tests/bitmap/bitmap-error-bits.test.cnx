@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 034
 // ADR-034: Bitmap total bits validation error
 // This should fail because 1+1+3 = 5 bits, not 8
 //
