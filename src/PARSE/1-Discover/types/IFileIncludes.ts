@@ -63,6 +63,19 @@ interface IFileIncludes {
    * it relative to itself (#1725). Keyed like `headerIncludeDirectives`.
    */
   readonly writerRelativeIncludes: ReadonlyMap<string, string>;
+
+  /**
+   * This file's `.cnx` includes, each rendered as the include its generated
+   * header carries (#589, #941, #1467), in source order.
+   */
+  readonly userIncludes: readonly string[];
+
+  /**
+   * This file's other includes, exactly as written, in source order. A
+   * generated header carries them only when it names a macro one of them
+   * supplies (#424), and #985's translation-unit recovery is built from them.
+   */
+  readonly cHeaderIncludes: readonly string[];
 }
 
 export default IFileIncludes;

@@ -447,6 +447,23 @@ class IncludeDiscovery {
   static extractCNextIncludes(
     source: string,
   ): Array<{ path: string; isLocal: boolean }> {
+    return IncludeDiscovery.directiveTextsOf(source).flatMap(
+      (text) => IncludeDirectiveText.split(text) ?? [],
+    );
+  }
+
+  /**
+   * The text of every `INCLUDE_DIRECTIVE` token in a `.cnx` file, in source
+   * order and exactly as written: the author's spacing and form survive. It
+   * is the token 1.2's `includeDirective` holds, so these are the directives
+   * the parser sees (#1745).
+   *
+   * #1444: a file's user includes were derived from that tree in Stage 5,
+   * after 1.1 had already lexed the same tokens. 1.1 keeps the text instead.
+   *
+   * @param source - A `.cnx` file's text
+   */
+  static directiveTextsOf(source: string): string[] {
     const lexer = new CNextLexer(CharStream.fromString(source));
     // 1.2 Parse reports a lexical error once, with its position. Here it
     // would only print ANTLR's console default a second time.
@@ -455,14 +472,14 @@ class IncludeDiscovery {
     return lexer
       .getAllTokens()
       .filter((token) => token.type === CNextLexer.INCLUDE_DIRECTIVE)
-      .flatMap((token) => {
+      .map((token) => {
         // A token the lexer produced always carries its text. The type allows
         // none, and an empty default would drop the directive without a trace.
         invariant(
           token.text !== undefined,
           "an INCLUDE_DIRECTIVE token carries its text",
         );
-        return IncludeDirectiveText.split(token.text) ?? [];
+        return token.text;
       });
   }
 

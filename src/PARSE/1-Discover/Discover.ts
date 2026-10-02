@@ -501,6 +501,10 @@ class Discover {
         // includes, which is what its own generated header must say (#1435)
         headerIncludeDirectives: resolved.headerIncludeDirectives,
         writerRelativeIncludes: resolved.writerRelativeIncludes,
+        // #1444: what its own generated header includes, from the tokens
+        // read here rather than from 1.2's tree in Stage 5
+        userIncludes: Object.freeze(resolved.userIncludes),
+        cHeaderIncludes: Object.freeze(resolved.cHeaderIncludes),
       }),
     );
     this.warnings.push(...resolved.warnings);

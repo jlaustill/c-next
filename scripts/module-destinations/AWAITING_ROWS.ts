@@ -26,7 +26,6 @@ const AWAITING_ROWS: Readonly<Record<string, number>> = {
   "src/transpiler/data/IncludeRewriter.ts": 1,
   "src/transpiler/logic/preprocessor/**": 9,
   "src/utils/cache/**": 4,
-  "src/transpiler/logic/IncludeExtractor.ts": 1,
   "src/transpiler/logic/detectCppSyntax.ts": 1,
   "src/transpiler/logic/detectAssemblySyntax.ts": 1,
   "src/transpiler/NodeFileSystem.ts": 1,

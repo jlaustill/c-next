@@ -96,6 +96,33 @@ interface IResolvedIncludes {
    * for `ext.h`), keyed like `resolutions`. 2.1's E0504 reads it.
    */
   cnextAlternatives: Map<string, string>;
+
+  /**
+   * The file's `.cnx` includes, each rendered as the include its generated
+   * header carries: the author's directive with its path replaced by the
+   * header `cnextIncludeRewrites` names, or by the extension swap when it
+   * names none (#1467). In source order, the author's spacing and form kept.
+   *
+   * Issue #589 / #941: these define types used in function signatures, so the
+   * generated header needs them. #1444: derived here, from the tokens this
+   * resolver lexes, rather than from 1.2's tree in Stage 5.
+   */
+  userIncludes: string[];
+
+  /**
+   * The file's other includes -- every directive that does not name C-Next
+   * source -- exactly as written, in source order.
+   *
+   * Issue #424: a macro from one of these can appear inside a generated
+   * declaration -- `u32[DEVICE_COUNT] devices` becomes
+   * `extern uint32_t devices[DEVICE_COUNT]`. Such a header only compiles for a
+   * translation unit that already included the macro's source, so when the
+   * generated header names a macro it must carry the include itself. Kept apart
+   * from `userIncludes` because it is added conditionally: propagating every C
+   * include into every header would put implementation-only dependencies into
+   * the public interface. Issue #985's translation-unit recovery reads it too.
+   */
+  cHeaderIncludes: string[];
 }
 
 /**
@@ -194,13 +221,35 @@ class IncludeResolver {
       writerRelativeIncludes: new Map<string, string>(),
       resolutions: new Map<string, string | null>(),
       cnextAlternatives: new Map<string, string>(),
+      userIncludes: [],
+      cHeaderIncludes: [],
       hasForeignInclude: false,
     };
 
-    const includes = IncludeDiscovery.extractCNextIncludes(content);
+    const directives = IncludeDiscovery.directiveTextsOf(content);
 
-    for (const includeInfo of includes) {
-      this._processInclude(includeInfo, sourceFilePath, result);
+    for (const directive of directives) {
+      const includeInfo = IncludeDirectiveText.split(directive);
+      if (includeInfo !== null) {
+        this._processInclude(includeInfo, sourceFilePath, result);
+      }
+    }
+
+    // After every directive is resolved, so each `.cnx` include's header is
+    // known. Issue #1467 review: one predicate for "is this a C-Next
+    // include?" -- a substring test answered NO for `<utils.cnext>`.
+    for (const directive of directives) {
+      if (IncludeRewriter.cnxSpecOf(directive) === null) {
+        result.cHeaderIncludes.push(directive);
+      } else {
+        result.userIncludes.push(
+          IncludeRewriter.rewrite(
+            directive,
+            result.cnextIncludeRewrites,
+            this.headerExtension,
+          ),
+        );
+      }
     }
 
     return result;

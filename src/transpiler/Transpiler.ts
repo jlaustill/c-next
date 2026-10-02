@@ -40,7 +40,7 @@ import ExternalTypeHeaderBuilder from "../TRANSPILE/3-Render/headers/ExternalTyp
 import HeaderGeneratorUtils from "../TRANSPILE/3-Render/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "../TRANSPILE/3-Render/headers/types/IHeaderEmissionFacts";
 import IHeaderCallbackType from "./types/IHeaderCallbackType";
-import IncludeExtractor from "./logic/IncludeExtractor";
+import IncludeDirectiveText from "../utils/IncludeDirectiveText";
 import SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import type TranspileState from "../TRANSPILE/TranspileState";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
@@ -56,10 +56,8 @@ import HeaderSymbolAdapter from "../TRANSPILE/3-Render/headers/adapters/HeaderSy
 import IHeaderSymbol from "../TRANSPILE/3-Render/headers/types/IHeaderSymbol";
 import TSymbol from "./types/symbols/TSymbol";
 
-import FileDiscovery from "./data/FileDiscovery";
 import EFileType from "./data/types/EFileType";
 import IDiscoveredFile from "./data/types/IDiscoveredFile";
-import IncludeDiscovery from "./data/IncludeDiscovery";
 import OutputExtensions from "../utils/OutputExtensions";
 import DeclarationSite from "../utils/DeclarationSite";
 import type IOutputExtensions from "./types/IOutputExtensions";
@@ -170,22 +168,6 @@ class Transpiler {
    * only projects with unresolvable framework headers pay its cost.
    */
   private anyHeaderPreprocessFailed = false;
-
-  /** Issue #587: Encapsulated state for accumulated Maps/Sets */
-  /**
-   * The run's own accumulations (#1452 box 1).
-   *
-   * These were a `TranspilerState` under `src/transpiler/state/`, which box 1
-   * deletes. What remains is not a pass's facts (#1671 moved out the two that
-   * were, both 1.4 Resolve's) -- it is what the ORCHESTRATOR accumulates while
-   * driving a run, written and read by this class alone, which is why inlining
-   * it removed an indirection rather than relocating a state container.
-   *
-   * `userIncludes` is keyed by source path, and by `${path}\u0000c-headers`
-   * for the #424 C-header half. The NUL separator is deliberate: no filesystem
-   * path contains one, so the two keyspaces cannot collide.
-   */
-  private readonly userIncludes = new Map<string, string[]>();
 
   /**
    * #1323: one file's fully-resolved header-render input, captured while its
@@ -1148,21 +1130,6 @@ class Transpiler {
         ),
       });
 
-      // Collect user includes
-      const userIncludes = IncludeExtractor.collectUserIncludes(
-        tree,
-        this.outputExtensions.header,
-        this._includesOf(sourcePath).cnxIncludeRewrites,
-      );
-      // Issue #424: kept separate — added to the header only when it names a
-      // macro that one of these supplies (see _headerNeedsMacroIncludes).
-      this.userIncludes.set(
-        `${sourcePath}\u0000c-headers`,
-        IncludeExtractor.collectCHeaderIncludes(tree),
-      );
-
-      this.userIncludes.set(sourcePath, [...userIncludes]);
-
       // #1323: resolve this file's header-render input while its state is
       // warm (reads from state populated above), but do not render it here.
       // HeaderRenderer renders every file's header in one step, after
@@ -1244,7 +1211,6 @@ class Transpiler {
       await this.cacheManager.initialize();
     }
     // Issue #587: Reset accumulated state for new run
-    this.userIncludes.clear();
     // #1662: both are run-scoped and both were initialized ONCE, in the
     // constructor, so neither was ever cleared. `warnings` is pushed to per run
     // and copied onto every result, which made three runs of one source on one
@@ -1471,13 +1437,15 @@ class Transpiler {
     const seen = new Set<string>();
     const directives: string[] = [];
     for (const file of input.cnextFiles) {
-      const source = file.source ?? this.readFileOrEmpty(file.path);
       // #1830 review: the directives 1.1 reads, so a commented-out header adds
-      // nothing to the recovered translation unit. The regex this replaces did
+      // nothing to the recovered translation unit. The regex this replaced did
       // not know about comments, missed `#include"x.h"`, which the grammar
       // allows, and skipped `.cnx` but sent a `.cnext` include in as a header.
-      for (const include of IncludeDiscovery.extractCNextIncludes(source)) {
-        if (FileDiscovery.classifyFile(include.path).type === EFileType.CNext) {
+      // #1444: and read from 1.1's answer, rather than lexed and classified
+      // again here from the file's text.
+      for (const text of this._includesOf(file.path).cHeaderIncludes) {
+        const include = IncludeDirectiveText.split(text);
+        if (include === null) {
           continue;
         }
         const directive = include.isLocal
@@ -1561,14 +1529,6 @@ class Transpiler {
       if (tag && !cleanBodies.has(tag)) {
         state.symbolTable.clearStructTagHasBody(tag);
       }
-    }
-  }
-
-  private readFileOrEmpty(path: string): string {
-    try {
-      return this.fs.readFile(path);
-    } catch {
-      return "";
     }
   }
 
@@ -2538,7 +2498,7 @@ class Transpiler {
     // file. `typeInput` is the view `generate()` received, so the `.h` and the
     // `.c` are built from one object; neither is copied onto this class.
     const passByValueParams = program.passByValueParams();
-    const cnxIncludes = this.userIncludes.get(sourcePath) ?? [];
+    const includes = this._includesOf(sourcePath);
     // Issue #424: a dimension that is not a number is a macro the header names
     // but does not define, so the header must carry its source include.
     const cHeadersIncluded = Transpiler._headerNeedsUserCHeaders(
@@ -2546,11 +2506,8 @@ class Transpiler {
       this.codeGenerator.transpileState,
     );
     const userIncludes = cHeadersIncluded
-      ? [
-          ...cnxIncludes,
-          ...(this.userIncludes.get(`${sourcePath}\u0000c-headers`) ?? []),
-        ]
-      : cnxIncludes;
+      ? [...includes.userIncludes, ...includes.cHeaderIncludes]
+      : [...includes.userIncludes];
 
     // #1447: read from the artifact, not accumulated from the files transpiled
     // so far. The old form was correct only because `_sortFilesByDependency`

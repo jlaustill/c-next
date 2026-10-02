@@ -352,7 +352,7 @@ class HeaderGeneratorUtils {
       lines.push(...systemIncludes.map((target) => `#include ${target}`));
     }
 
-    // User includes (already have correct extension from IncludeExtractor)
+    // User includes (already rendered with the run's extension by 1.1 Discover)
     HeaderGeneratorUtils.addUserIncludes(lines, options.userIncludes);
 
     // External type header includes (skip duplicates of user includes)
@@ -363,7 +363,7 @@ class HeaderGeneratorUtils {
     // It also used to absorb a .h/.hpp mismatch: IncludeResolver ran before
     // cppDetected was raised and IncludeExtractor after, so the two disagreed
     // about the extension. #1319 made the mode declared, so both read the same
-    // value and that cause is gone. The path-style case is not, so the dedup
+    // value and that cause is gone; #1444 then made them one resolver. The path-style case is not, so the dedup
     // stays -- but it is no longer covering for a timing bug.
     HeaderGeneratorUtils.addExternalTypeHeaders(
       lines,

@@ -537,6 +537,96 @@ describe("IncludeResolver", () => {
   // ExternalTypeHeaderBuilder directive can only be caught right here.
   // ==========================================================================
 
+  // ========================================================================
+  // A file's own includes, for its generated header (#1444, were
+  // IncludeExtractor's, which read them from 1.2's tree in Stage 5)
+  // ========================================================================
+
+  describe("userIncludes and cHeaderIncludes", () => {
+    const resolverFor = (ext: ".h" | ".hpp") =>
+      new IncludeResolver(
+        [includeDir],
+        ext,
+        NodeFileSystem.instance,
+        null,
+        srcDir,
+      );
+
+    it.each([
+      ['#include "types.cnx"', ".h", '#include "types.h"'],
+      ["#include <system.cnx>", ".h", "#include <system.h>"],
+      ['#include "types.cnx"', ".hpp", '#include "types.hpp"'],
+      ["#include <lib.cnx>", ".hpp", "#include <lib.hpp>"],
+      ["#include <lib.cnext>", ".h", "#include <lib.h>"],
+    ] as const)(
+      "renders %s with the run's %s extension when it resolves to nothing",
+      (directive, ext, rendered) => {
+        const result = resolverFor(ext).resolve(
+          `${directive}\nvoid main() { }`,
+        );
+
+        expect(result.userIncludes).toEqual([rendered]);
+        expect(result.cHeaderIncludes).toEqual([]);
+      },
+    );
+
+    it("renders a resolved .cnx include as the header the owner names", () => {
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        NodeFileSystem.instance,
+        () => "Display/shared.h",
+        srcDir,
+      );
+
+      const result = resolver.resolve("#include <shared.cnx>");
+
+      expect(result.userIncludes).toEqual(["#include <Display/shared.h>"]);
+    });
+
+    it("keeps every other include as written, in source order", () => {
+      const result = resolverFor(".h").resolve(
+        [
+          '#include "local.cnx"',
+          "#include  <system.h>",
+          '#include "other.cnx"',
+          '#include "types.h"',
+          "#include <lib.cnx>",
+          "#include <>",
+          "void main() { }",
+        ].join("\n"),
+      );
+
+      expect(result.userIncludes).toEqual([
+        '#include "local.h"',
+        '#include "other.h"',
+        "#include <lib.h>",
+      ]);
+      // The author's spacing survives, and `<>` names no C-Next source
+      expect(result.cHeaderIncludes).toEqual([
+        "#include  <system.h>",
+        '#include "types.h"',
+        "#include <>",
+      ]);
+    });
+
+    it("reads no directive a comment disables (#1745)", () => {
+      const result = resolverFor(".h").resolve(
+        '/* #include "hidden.cnx" */\n// #include <hidden.h>\nvoid main() { }',
+      );
+
+      expect(result.userIncludes).toEqual([]);
+      expect(result.cHeaderIncludes).toEqual([]);
+    });
+
+    it("has neither for a file with no includes", () => {
+      const result = resolverFor(".h").resolve("void main() { }");
+
+      expect(result.userIncludes).toEqual([]);
+      expect(result.cHeaderIncludes).toEqual([]);
+    });
+  });
+
   describe("resolved header path (#1467)", () => {
     it("names the resolved header, not the author's spelling", () => {
       const resolver = new IncludeResolver(
