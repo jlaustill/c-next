@@ -397,7 +397,6 @@ The help text is "name one with `#pragma target <name>`, `--target <name>`, or `
 - the harness;
 - `examples-transpile.test.ts:72`;
 - `format-fidelity.ts:135`;
-- `generate-cpp-snapshots.ts:128`;
 - `matrix/AdrProvenanceLines.ts:41`.
 
 Provenance returns an empty map for a failed transpile, by design (`AdrProvenanceLines.ts:27-31`). Without a target, a fixture that reaches a header would therefore lose its matrix occupancy without any error.
