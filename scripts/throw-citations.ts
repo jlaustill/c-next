@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Issue #1365: verify `docs/architecture/output-throw-classification.md`.
+ * Issue #1365: verify `docs/architecture/throw-classification.md`.
  *
  * This header used to say there could be no `write` mode, "because the document
  * is authored, not generated -- a fixer would have to guess which throw a stale
@@ -29,11 +29,11 @@ import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 
 import ThrowCitations from "./diagnostics/ThrowCitations";
-import OutputThrowSources from "./diagnostics/OutputThrowSources";
+import ThrowSources from "./diagnostics/ThrowSources";
 import type IRevision from "./diagnostics/IRevision";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
-const docPath = OutputThrowSources.docPath;
+const docPath = ThrowSources.docPath;
 
 /**
  * Every file under `3-Render/` that differs from HEAD, with both revisions.
@@ -59,14 +59,23 @@ function revisionAtHead(path: string): string | null {
   }
 }
 
-function changedRevisions(): Map<string, IRevision> {
+/**
+ * #1531: the changed files are the corpus's, not a directory's. This walk used
+ * to name `src/TRANSPILE/3-Render` itself, beside `ThrowSources` naming it too --
+ * the two-definitions shape `ThrowSources` was extracted to end, and the reason
+ * widening one would have left the remapper blind to every file the gate began
+ * to check.
+ */
+function changedRevisions(
+  corpus: ReadonlyMap<string, string>,
+): Map<string, IRevision> {
   const changed = execFileSync(
     "git",
-    ["diff", "--name-only", "HEAD", "--", "src/TRANSPILE/3-Render"],
+    ["diff", "--name-only", "HEAD", "--", "src"],
     { encoding: "utf-8", cwd: rootDir },
   )
     .split("\n")
-    .filter((path) => path.endsWith(".ts") && !path.includes("__tests__"));
+    .filter((path) => corpus.has(path));
 
   const revisions = new Map<string, IRevision>();
   for (const path of changed) {
@@ -83,7 +92,7 @@ function changedRevisions(): Map<string, IRevision> {
     if (previous === null) continue;
     if (!existsSync(join(rootDir, path))) continue;
     const current = readFileSync(join(rootDir, path), "utf-8");
-    revisions.set(path.slice(path.lastIndexOf("/") + 1), { previous, current });
+    revisions.set(path, { previous, current });
   }
   return revisions;
 }
@@ -94,21 +103,19 @@ function write(): void {
   // running it twice would look up numbers that are already new and shift any
   // that happen to collide with an old one. Refusing to act on a document that
   // needs nothing removes that hazard entirely rather than detecting it.
-  if (
-    ThrowCitations.check(
-      readFileSync(docPath, "utf-8"),
-      OutputThrowSources.read(),
-    ).ok
-  ) {
+  // One read of the corpus serves every step below, so the check, the remap
+  // and the re-check cannot see different file sets.
+  const corpus = ThrowSources.read();
+  if (ThrowCitations.check(readFileSync(docPath, "utf-8"), corpus).ok) {
     console.log("Citations already consistent; nothing to remap.");
     return;
   }
 
-  const revisions = changedRevisions();
+  const revisions = changedRevisions(corpus);
   if (revisions.size === 0) {
     console.error(
       chalk.red(
-        "Citations are stale, but no file under 3-Render/ differs from HEAD.\n" +
+        "Citations are stale, but no file in the corpus differs from HEAD.\n" +
           "  `--write` remaps against the previous revision, so it can only fix\n" +
           "  drift caused by the WORKING TREE. This drift is already committed:\n" +
           "  the source moved in an earlier commit and the document did not.\n" +
@@ -122,6 +129,7 @@ function write(): void {
   const outcome = ThrowCitations.remap(
     readFileSync(docPath, "utf-8"),
     revisions,
+    [...corpus.keys()],
   );
 
   for (const refusal of outcome.refusals) {
@@ -146,10 +154,7 @@ function write(): void {
   // Checking the candidate instead makes a failed remap a no-op, which is what
   // lets the idempotence guard above stay simple: the only states on disk are
   // "consistent" and "untouched since the last commit".
-  const rechecked = ThrowCitations.check(
-    outcome.markdown,
-    OutputThrowSources.read(),
-  );
+  const rechecked = ThrowCitations.check(outcome.markdown, corpus);
   if (!rechecked.ok) {
     console.error(
       chalk.red(
@@ -178,7 +183,7 @@ function main(): void {
 
   const outcome = ThrowCitations.check(
     readFileSync(docPath, "utf-8"),
-    OutputThrowSources.read(),
+    ThrowSources.read(),
   );
 
   for (const line of outcome.info) {
@@ -187,7 +192,7 @@ function main(): void {
   if (!outcome.ok) {
     console.error(
       chalk.red(
-        `docs/architecture/output-throw-classification.md is out of date:\n` +
+        `docs/architecture/throw-classification.md is out of date:\n` +
           outcome.errors.map((error) => `  ${error}`).join("\n"),
       ),
     );

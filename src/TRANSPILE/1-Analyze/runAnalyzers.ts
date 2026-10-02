@@ -11,7 +11,7 @@
  * the time it moved here. It is deliberately not replaced with a new number:
  * a literal in a comment beside the table it describes is the doc-rot this
  * card exists to remove, and `docs/error-codes.md` plus
- * `docs/architecture/output-throw-classification.md` carry the counts that ARE
+ * `docs/architecture/throw-classification.md` carry the counts that ARE
  * gated.
  */
 

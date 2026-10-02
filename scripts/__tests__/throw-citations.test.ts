@@ -44,6 +44,19 @@ describe("ThrowCitations.parse", () => {
     ).toEqual([{ path: "Sample.ts", line: 12, anchor: "first failure" }]);
   });
 
+  it("reads a path through a pass directory, whose name carries a hyphen (#1531)", () => {
+    // No pattern in the gate allowed `-` while the corpus was `codegen/...`.
+    // A row citing `1-Discover/` was then not read at all, and its throw
+    // reported as unclassified beside the row that classified it.
+    expect(
+      ThrowCitations.parse(
+        "| `1-Discover/Discover.ts:271` | `first failure` | why |",
+      ),
+    ).toEqual([
+      { path: "1-Discover/Discover.ts", line: 271, anchor: "first failure" },
+    ]);
+  });
+
   it("accepts the abbreviated `…/` path form the document uses", () => {
     expect(
       ThrowCitations.parse(
@@ -536,6 +549,12 @@ describe("ThrowCitations.bucketCounts", () => {
 });
 
 describe("ThrowCitations.remap (#1518)", () => {
+  /** Each revision's key is the only file a cited path can resolve to. */
+  const remapByKeys = (
+    markdown: string,
+    revisions: Map<string, { previous: string; current: string }>,
+  ) => ThrowCitations.remap(markdown, revisions, [...revisions.keys()]);
+
   const doc = (line: number): string =>
     `| \`Gen.ts:${line}\` | \`boom\` | why |\n`;
 
@@ -550,7 +569,7 @@ describe("ThrowCitations.remap (#1518)", () => {
       "c",
     ].join("\n");
 
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       doc(3),
       new Map([["Gen.ts", { previous, current }]]),
     );
@@ -561,7 +580,7 @@ describe("ThrowCitations.remap (#1518)", () => {
   });
 
   it("leaves a citation alone when nothing moved", () => {
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       doc(3),
       new Map([["Gen.ts", { previous, current: previous }]]),
     );
@@ -588,7 +607,7 @@ describe("ThrowCitations.remap (#1518)", () => {
       "c",
     ].join("\n");
 
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       doc(3),
       new Map([["Gen.ts", { previous, current }]]),
     );
@@ -611,7 +630,7 @@ describe("ThrowCitations.remap (#1518)", () => {
       "c",
     ].join("\n");
 
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       doc(3),
       new Map([["Gen.ts", { previous, current }]]),
     );
@@ -632,7 +651,7 @@ describe("ThrowCitations.remap (#1518)", () => {
       "c",
     ].join("\n");
 
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       "| `Gen.ts:3` | prose, not an anchor | why |\n",
       new Map([["Gen.ts", { previous, current }]]),
     );
@@ -647,7 +666,7 @@ describe("ThrowCitations.remap (#1518)", () => {
     const otherMoved = ["x", "y", 'throw new Error("other");'].join("\n");
     const broken = [previous, 'throw new Error("added");'].join("\n");
 
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       `${doc(3)}| \`Other.ts:2\` | \`other\` | why |\n`,
       new Map([
         ["Gen.ts", { previous, current: broken }],
@@ -672,7 +691,7 @@ describe("ThrowCitations.remap (#1518)", () => {
       "c",
     ].join("\n");
 
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       "| `codegen/Gen.ts:3` | `boom` | why |\n",
       new Map([["Gen.ts", { previous, current }]]),
     );
@@ -681,7 +700,7 @@ describe("ThrowCitations.remap (#1518)", () => {
   });
 
   it("leaves a line it cannot place, rather than guessing one", () => {
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       doc(9999),
       new Map([["Gen.ts", { previous, current: previous }]]),
     );
@@ -691,11 +710,48 @@ describe("ThrowCitations.remap (#1518)", () => {
   });
 
   it("ignores a file it was given no revision for", () => {
-    const outcome = ThrowCitations.remap(
-      "| `Absent.ts:7` | `x` | y |\n",
-      new Map(),
-    );
+    const outcome = remapByKeys("| `Absent.ts:7` | `x` | y |\n", new Map());
 
     expect(outcome.markdown).toBe("| `Absent.ts:7` | `x` | y |\n");
+  });
+
+  it("keeps two changed files that share a basename apart (#1531)", () => {
+    // Across src/, utils/TypeResolver.ts and codegen/TypeResolver.ts are two
+    // files. Keyed by basename, one revision overwrote the other, and a cited
+    // path resolved against the changed files alone fell back to the basename.
+    const files = [
+      "src/utils/TypeResolver.ts",
+      "src/TRANSPILE/3-Render/codegen/TypeResolver.ts",
+    ];
+    const utils = ["a", 'throw new Error("utils boom");'];
+    const codegen = ["x", 'throw new Error("codegen boom");'];
+
+    const outcome = ThrowCitations.remap(
+      "| `utils/TypeResolver.ts:2` | `utils boom` | why |\n" +
+        "| `codegen/TypeResolver.ts:2` | `codegen boom` | why |\n",
+      new Map([
+        [
+          files[0],
+          {
+            previous: utils.join("\n"),
+            current: ["a", "b", "c", utils[1]].join("\n"),
+          },
+        ],
+        [
+          files[1],
+          {
+            previous: codegen.join("\n"),
+            current: ["x", "y", codegen[1]].join("\n"),
+          },
+        ],
+      ]),
+      files,
+    );
+
+    expect(outcome.markdown).toBe(
+      "| `utils/TypeResolver.ts:4` | `utils boom` | why |\n" +
+        "| `codegen/TypeResolver.ts:3` | `codegen boom` | why |\n",
+    );
+    expect(outcome.refusals).toEqual([]);
   });
 });

@@ -1,4 +1,13 @@
-# Classification of every `throw new` in `output/`
+# Classification of every `throw` in `src/`
+
+**#1531 widened this from `output/` (now `src/TRANSPILE/3-Render/`) to all of `src/`.** #1322 had
+emptied `output/` of rejections, and the user-facing throws left were all outside it, where no
+gate could see them: 1.3 Declare's bitmap-width and negative-enum rules reached the user as `1:0`
+with no code. A throw can be written in any directory, so the corpus is every hand-written,
+non-test `.ts` under `src/`. A file ANTLR generated is left out by the mark ANTLR writes on its
+first line, not by a list of directories. Most of what follows is #1322's audit of `output/`, kept
+as the record of how that directory was emptied. Buckets 1 and 2 each gain an "Outside
+`3-Render/`" section, and bucket 4 is new.
 
 Deliverable of [#1321](https://github.com/jlaustill/c-next/issues/1321). Resolves open
 question 4 of [#1313](https://github.com/jlaustill/c-next/issues/1313) — _"Does Render really
@@ -10,19 +19,20 @@ own nothing?"_ — and is the input that splits
 > **2.1 authors every rejection.** A diagnostic carries a code and a position, which means it
 > cannot originate from a `throw` in a later pass.
 
-A `throw` in `output/` has no position to carry, which is why a fixture reports `1:0`.
+A `throw` has no position to carry, which is why a fixture reports `1:0`.
 
 ## Counts
 
 The number grows with ordinary work, which is why the acceptance criterion should read "every site
 as counted at audit time" rather than a literal.
 
-| bucket | meaning                                                                        | count |
-| ------ | ------------------------------------------------------------------------------ | ----- |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **0** |
-| **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0** |
-| **3**  | dead — unreachable or subsumed; delete                                         | **0** |
-|        | **total**                                                                      | **0** |
+| bucket | meaning                                                                        | count  |
+| ------ | ------------------------------------------------------------------------------ | ------ |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **3**  |
+| **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **3**  |
+| **3**  | dead — unreachable or subsumed; delete                                         | **0**  |
+| **4**  | about the run, not a line — no source position exists; needs a code (#1847)    | **5**  |
+|        | **total**                                                                      | **11** |
 
 ## How to recount
 
@@ -62,15 +72,19 @@ says, like every other.
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.
 
-By area:
+By area. The first five rows are `3-Render/`, and the last four are #1531's widening:
 
-| area                                                                | sites | b1  | b2  | b3  |
-| ------------------------------------------------------------------- | ----- | --- | --- | --- |
-| `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 0     | 0   | 0   | 0   |
-| `codegen/helpers/`                                                  | 0     | 0   | 0   | 0   |
-| `codegen/generators/**`                                             | 0     | 0   | 0   | 0   |
-| `codegen/subscript/`                                                | 0     | 0   | 0   | 0   |
-| `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 0     | 0   | 0   | 0   |
+| area                                                                | sites | b1  | b2  | b3  | b4  |
+| ------------------------------------------------------------------- | ----- | --- | --- | --- | --- |
+| `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 0     | 0   | 0   | 0   | 0   |
+| `codegen/helpers/`                                                  | 0     | 0   | 0   | 0   | 0   |
+| `codegen/generators/**`                                             | 0     | 0   | 0   | 0   | 0   |
+| `codegen/subscript/`                                                | 0     | 0   | 0   | 0   | 0   |
+| `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 0     | 0   | 0   | 0   | 0   |
+| `PARSE/` (1.1 Discover, 1.3 Declare, 1.4 Resolve)                   | 7     | 2   | 0   | 0   | 5   |
+| `TRANSPILE/` outside `3-Render/`                                    | 0     | 0   | 0   | 0   | 0   |
+| `transpiler/` (the orchestrator)                                    | 1     | 1   | 0   | 0   | 0   |
+| `utils/`                                                            | 3     | 0   | 3   | 0   | 0   |
 
 ## Position availability — the finding that shapes #1322
 
@@ -147,7 +161,21 @@ carry anchors that each match the other's throw, so an anchor that stops just sh
 telling two different throws apart is reported, not left to review. When a row drifts, its anchor
 also says which throw it meant, so correcting the line is a lookup rather than a guess.
 
-## Bucket 2 — internal invariants (0)
+## Bucket 2 — internal invariants (3)
+
+### Outside `3-Render/` — 3
+
+#1531 turned every other internal throw outside `3-Render/` into an `invariant()`: ten
+assertions about stage order and developer obligations. These three are why "every" is not
+literally every.
+
+| file:line                  | anchor                             | why it is not an `invariant()` call                                                                                                                                                                 |
+| -------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `utils/invariant.ts:40`    | `invariant requires a statement`   | it is `invariant` itself: the guard against an assertion that states nothing                                                                                                                        |
+| `utils/invariant.ts:43`    | `Internal: ${statement}`           | it is `invariant` itself: what every assertion throws                                                                                                                                               |
+| `utils/TypeResolver.ts:31` | `Cannot resolve empty type string` | the CLI cannot reach it, because it stops at 1.2 on a parse error. `parseWithSymbols` declares an error-recovered tree and does reach it (#1846). It becomes an assertion once that caller is fixed |
+
+### `output/` — 0
 
 **All 16 are resolved (#1322b).** Each is now an `invariant(condition, statement)` assertion,
 so it no longer opens with `throw new` and has left this corpus.
@@ -210,7 +238,20 @@ questions and only the first was asked.
   **parse error**, so it never reaches codegen at all. That leaves four live copies plus the
   factory, which is what makes unification tractable.
 
-## Bucket 1 — user-facing diagnostics (0)
+## Bucket 1 — user-facing diagnostics (3)
+
+### Outside `3-Render/` — 3
+
+Each is a rejection a user can see. It is thrown rather than reported, so it reaches them at
+`1:0`, behind `Pipeline failed:` or `Code generation failed:`. Each has a card.
+
+| file:line                               | anchor                                         | what                                                                              | card  |
+| --------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------- | ----- |
+| `transpiler/Transpiler.ts:2117`         | `this run does not target C++`                 | E0507: a C++ header in a run that does not target C++                             | #1542 |
+| `1-Discover/Discover.ts:271`            | `A generated header records the C-Next source` | E0509: a generated header names a C-Next source that is not there                 | #1542 |
+| `cnext/utils/ExpressionEvaluator.ts:32` | `Invalid constant expression`                  | an enum member value that is not one integer literal (`A <- FOO`), at 1.3 Declare | #1669 |
+
+### `output/` — 0
 
 **Empty.** Every one of the 145 user-facing rejections `output/` held is authored in pass 2.1,
 with a code and the position of the construct it is about. `npm run docs:throw-citations:check`
@@ -306,6 +347,21 @@ it was absent from this audit because the throw named a factory rather than `new
 is gone: `helpers/CodeGenErrors.ts` is deleted and the message is built at the site, so the row is
 anchored on what the throw says. It remains tier A — the line is a parameter already, spent on
 `Error at line ${line}:` prose.
+
+## Bucket 4 — about the run, not a line (5)
+
+Added by #1531. Each of these throws is about the run itself: its invocation, its installation, or
+a tool it calls. No line of a program is the cause, so pass 2.1 is not their home, and a position
+cannot be given. None reaches the user with a code today. #1847 decides the format for an error
+that names no file and no line, and codes them.
+
+| file:line                             | anchor                                | what the user sees                                                                                                                               | card  |
+| ------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
+| `1-Discover/InputExpansion.ts:31`     | `Input not found`                     | nothing. The CLI checks that the entry exists before this runs, with its own message, so this copy is unreachable and the check is decided twice | #1847 |
+| `1-Discover/InputExpansion.ts:63`     | `Invalid file extension`              | only through `--clean`, as `Error: Error: Invalid file extension …` at exit 0                                                                    | #1847 |
+| `1-Discover/TargetCatalogFile.ts:52`  | `was not found above`                 | a broken installation, as `Pipeline failed:`                                                                                                     | #1847 |
+| `4-Resolve/TargetDescriptions.ts:215` | `the compiler installation is broken` | a broken installation, as `Pipeline failed:`                                                                                                     | #1847 |
+| `preprocessor/Preprocessor.ts:204`    | `Preprocessor failed for`             | never an error. `Preprocessor.preprocess` catches it, and the run falls back to the header's raw text with a warning, by design (#985)           | —     |
 
 ## Proposed split of #1322
 

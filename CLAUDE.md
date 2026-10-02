@@ -352,7 +352,7 @@ is neither run nor listed — in either direction, so an exclusion CI stopped ru
 never enter the comparison. A green `test:all` says nothing about any of
 them: #1399 pushed on one and turned CI red on `docs:throw-citations:check`, because
 **adding a single import to a file under `output/` shifts every later `throw new` down one
-line** and all 20 citations in `docs/architecture/output-throw-classification.md` missed by
+line** and all 20 citations in `docs/architecture/throw-classification.md` missed by
 exactly one. The prose is authored, but the line numbers are not hand-edited:
 `npm run docs:throw-citations` remaps them by reading the PREVIOUS revision, where an
 unchanged `throw` count makes the Nth throw then the Nth throw now. It **refuses** a file
@@ -360,10 +360,13 @@ whose count changed — the one case it cannot decide, and precisely the objecti
 justify having no write mode at all (#1518). Each row also carries an `anchor`, a verbatim
 substring of what its throw says, which the gate holds to the cited line: two rows cannot
 trade sites and stay green, and a drifted row's anchor says which throw it meant (#1374).
-**It gates the population too, not only the citations**: a `throw` added under `output/`
-with no row fails it as `throw statement is not classified`. That is what holds the corpus
-at the zero #1322 emptied it to — verified by mutation, with a negative control, since the
-line-shifting edit above is the thing a file-level check would confuse it with.
+**It gates the population too, not only the citations**: a `throw` added anywhere under `src/`
+with no row fails it as `throw statement is not classified`. Tests and ANTLR's generated parsers
+are left out, by the mark ANTLR writes rather than by a directory list. Until #1531 the corpus was
+`output/` alone, so the user-facing throws #1322 had not reached, all outside it, were invisible.
+That is what holds `3-Render/` at the zero #1322 emptied it to — verified by mutation, with a
+negative control, since the line-shifting edit above is the thing a file-level check would confuse
+it with.
 
 **A lost diagnostic used to erase its own evidence (#1316)**: under `--update`, a
 `test-error` fixture that stopped erroring had its `.expected.error` unlinked and rewritten

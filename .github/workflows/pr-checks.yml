@@ -192,8 +192,8 @@ jobs:
         run: npm run error-codes:check
         continue-on-error: true
 
-      # Issue #1365: docs/architecture/output-throw-classification.md cites all
-      # every throw site in output/ by file:line, and a line number decays
+      # Issue #1365: docs/architecture/throw-classification.md cites every
+      # throw site in src/ (output/ until #1531) by file:line, and a line number decays
       # silently. #1362
       # committed it correct; #1363 then added 62 lines to TypeValidator.ts and
       # 64 citations began pointing at a docstring. Each PR was green alone, and

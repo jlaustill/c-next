@@ -2,7 +2,7 @@
  * Issue #1365: the throw classification cites every site by `file:line`, and a
  * line number decays silently.
  *
- * `docs/architecture/output-throw-classification.md` (#1321) is the input that
+ * `docs/architecture/throw-classification.md` (#1321) is the input that
  * splits #1322. It names every throw site in `output/` by file and
  * line. #1362 committed it with correct citations; #1363 then added 62 lines to
  * `TypeValidator.ts`, and 64 of the 180 citations silently began pointing at a
@@ -18,7 +18,7 @@
  * Five invariants, all mechanical:
  *
  *   1. every cited `file:line` is exactly a line opening a throw statement
- *   2. every throw under `output/` is cited exactly once
+ *   2. every throw under `src/` is cited exactly once (`output/` until #1531)
  *   3. every row's anchor is a substring of what the throw at its line says
  *   4. no two rows in one file could trade line numbers and keep 3 holding
  *   5. a `file:line` written in PROSE lands on a throw too
@@ -63,8 +63,22 @@ import type IRevision from "./IRevision";
  */
 const MIN_ANCHOR_LENGTH = 8;
 
+/**
+ * A cited path: what a row's first cell, and a remapped `file:line`, may spell.
+ *
+ * #1531: one definition, read by all four patterns below. Four copies of this
+ * class sat in this file, and none allowed `-` -- harmless while every path was
+ * `codegen/...`, and silent once the corpus reached `1-Discover/` and
+ * `4-Resolve/`: a row citing one was not read at all, so its throw reported as
+ * unclassified beside the row that classified it. `-` is last so it is literal.
+ */
+const CITED_PATH = String.raw`[A-Za-z0-9_/….-]+\.ts`;
+
+/** The start of a citation row, `| \`path.ts:N\``. */
+const CITATION_ROW = new RegExp(String.raw`^\| \`${CITED_PATH}:\d+\``);
+
 /** Prefix on a prose-citation error, naming the line OF THE DOCUMENT. */
-const DOC_LINE_LABEL = "output-throw-classification.md:";
+const DOC_LINE_LABEL = "throw-classification.md:";
 
 interface IThrowCitation {
   readonly path: string;
@@ -115,16 +129,25 @@ class ThrowCitations {
    * as written: visibly stale beats plausibly wrong, because the gate goes
    * green on plausibly wrong.
    *
-   * @param revisions cited basename -> that file's previous and current text
+   * #1531: keyed by repo path, and every cited path resolved against the
+   * whole corpus. It was keyed by basename, which was safe while the corpus was
+   * one directory and is not across `src/`: `utils/TypeResolver.ts` and
+   * `codegen/TypeResolver.ts` would share a key, and resolving a cited path
+   * against the changed files alone falls back to the basename and picks the
+   * wrong one. `resolve` against every file is the same question `check` asks.
+   *
+   * @param revisions repo path -> that file's previous and current text
+   * @param files every file in the corpus, which a cited path resolves against
    */
   static remap(
     markdown: string,
     revisions: ReadonlyMap<string, IRevision>,
+    files: readonly string[],
   ): IRemapOutcome {
     const maps = new Map<string, ReadonlyMap<number, number>>();
     const refusals: string[] = [];
 
-    for (const [basename, revision] of revisions) {
+    for (const [path, revision] of revisions) {
       const before = ThrowCitations.throwLines(revision.previous);
       const after = ThrowCitations.throwLines(revision.current);
       if (before.length !== after.length) {
@@ -143,16 +166,17 @@ class ThrowCitations {
         // because prose carries no anchor and there is nothing to re-find it by.
         const [anchored, unplaced] = ThrowCitations.anchorPairs(
           markdown,
-          basename,
+          path,
+          files,
           revision.current,
         );
         if (anchored.size > 0) {
-          maps.set(basename, anchored);
+          maps.set(path, anchored);
         }
         refusals.push(
           ...unplaced.map(
             (why) =>
-              `${basename}: \`throw new\` count changed ${before.length} -> ${after.length}; ${why}`,
+              `${path}: \`throw new\` count changed ${before.length} -> ${after.length}; ${why}`,
           ),
         );
         continue;
@@ -170,18 +194,21 @@ class ThrowCitations {
       for (const [index, oldLine] of before.entries()) {
         map.set(oldLine, after[index]);
       }
-      maps.set(basename, map);
+      maps.set(path, map);
     }
 
     let rewritten = 0;
     const updated = markdown.replace(
-      /([A-Za-z0-9_/….]*\.ts):(\d+)/g,
-      (whole, path: string, digits: string) => {
-        const basename = path.slice(path.lastIndexOf("/") + 1);
-        const mapped = maps.get(basename)?.get(Number.parseInt(digits, 10));
+      new RegExp(String.raw`(${CITED_PATH}):(\d+)`, "g"),
+      (whole, cited: string, digits: string) => {
+        const file = ThrowCitations.resolve(cited, files);
+        const mapped =
+          file === null
+            ? undefined
+            : maps.get(file)?.get(Number.parseInt(digits, 10));
         if (mapped === undefined) return whole;
         rewritten += 1;
-        return `${path}:${mapped}`;
+        return `${cited}:${mapped}`;
       },
     );
 
@@ -204,11 +231,12 @@ class ThrowCitations {
    */
   static anchorPairs(
     markdown: string,
-    basename: string,
+    file: string,
+    files: readonly string[],
     current: string,
   ): [Map<number, number>, string[]] {
     const rows = ThrowCitations.parse(markdown).filter(
-      (row) => row.path.slice(row.path.lastIndexOf("/") + 1) === basename,
+      (row) => ThrowCitations.resolve(row.path, files) === file,
     );
     const byAnchor = new Map<string, IThrowCitation[]>();
     const pairs = new Map<number, number>();
@@ -272,8 +300,10 @@ class ThrowCitations {
    * rather than as a wrong anchor.
    */
   static parse(markdown: string): IThrowCitation[] {
-    const pattern =
-      /^\| `([A-Za-z0-9_/….]+\.ts):(\d+)`\s*\|(?:\s*`([^`|]+)`\s*\|)?/gm;
+    const pattern = new RegExp(
+      String.raw`^\| \`(${CITED_PATH}):(\d+)\`\s*\|(?:\s*\`([^\`|]+)\`\s*\|)?`,
+      "gm",
+    );
     const found: IThrowCitation[] = [];
     let match = pattern.exec(markdown);
     while (match !== null) {
@@ -416,7 +446,7 @@ class ThrowCitations {
         }
         continue;
       }
-      if (/^\| `[A-Za-z0-9_/….]+\.ts:\d+`/.test(line)) {
+      if (CITATION_ROW.test(line)) {
         for (const section of open) {
           section.rows += 1;
         }
@@ -447,7 +477,7 @@ class ThrowCitations {
 
   /**
    * @param cited citation list from the document
-   * @param sources every non-test `.ts` under `output/`, mapped to its contents
+   * @param sources the corpus `ThrowSources.read` returns, path to contents
    */
   static check(
     markdown: string,
@@ -502,7 +532,7 @@ class ThrowCitations {
       ok: errors.length === 0,
       errors,
       info: [
-        `${cited.length} citation(s) checked against ${total} throw site(s) in 3-Render/.`,
+        `${cited.length} citation(s) checked against ${total} throw site(s) in src/.`,
       ],
     };
   }
@@ -537,7 +567,7 @@ class ThrowCitations {
     const errors: string[] = [];
     markdown.split("\n").forEach((text, index) => {
       // A citation row is defended by invariants 1 and 3 already.
-      if (/^\| `[A-Za-z0-9_/….]+\.ts:\d+`/.test(text)) return;
+      if (CITATION_ROW.test(text)) return;
       // `Thing.ts:1`, `Thing.ts:1/2/3` and `Thing.ts:9-12` all appear in this
       // document; reading only the first number is how a drifted list passes.
       const pattern = /([A-Za-z0-9_]+\.ts):(\d+(?:[/-]\d+)*)/g;
@@ -553,7 +583,7 @@ class ThrowCitations {
         ) {
           errors.push(`${where}:${match[2]} -- prose cites a descending range`);
         } else if (file === null) {
-          errors.push(`${where} -- prose names no single file under output/`);
+          errors.push(`${where} -- prose names no single file under src/`);
         } else {
           const source = sources.get(file)!;
           const actual = ThrowCitations.throwLines(source);
