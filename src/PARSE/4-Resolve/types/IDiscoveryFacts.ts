@@ -1,3 +1,5 @@
+import type IResolvedInclude from "../../../transpiler/types/IResolvedInclude";
+
 /**
  * What 1.1 Discover learned about a file's includes, frozen into `Program`.
  *
@@ -44,32 +46,34 @@ interface IDiscoveryFacts {
   readonly cnxIncludeRewrites: ReadonlyMap<string, ReadonlyMap<string, string>>;
 
   /**
-   * Per source file, the directories an angle include is searched along, in
-   * priority order, exactly as discovery built them (#1322).
+   * Per source file, what each `#include` directive resolved to, keyed by
+   * `IncludeDiscovery.directiveText` (#1672).
    *
-   * Recorded because it cannot be re-derived: discovery builds the list from
-   * the file's own directory PLUS `--include` directories PLUS the config's,
-   * and codegen once re-derived a narrower one from the file's directory alone.
-   * ADR-010's `.cnx`-alternative rule was then blind to any header reachable
-   * only through `--include` -- with `ext.h` and `ext.cnx` side by side in an
-   * `--include` directory, `#include <ext.h>` transpiled at exit 0 with no
-   * diagnostic, while the same two files in the source's own directory
-   * reported E0504.
+   * Recorded because 2.1's ADR-010 rules must report the answer discovery
+   * gave, not one of their own. #1322 recorded the search path for them
+   * instead, after codegen re-derived a narrower one: ADR-010's
+   * `.cnx`-alternative rule was then blind to any header reachable only
+   * through `--include`. Handing over the inputs still let 2.1 make its own
+   * decision with them, along its own branch between the two forms, and it
+   * missed an absolute angle include that discovery resolves.
    */
-  readonly includeSearchPaths: ReadonlyMap<string, readonly string[]>;
+  readonly includeResolutions: ReadonlyMap<
+    string,
+    ReadonlyMap<string, IResolvedInclude>
+  >;
 
   /**
    * Per source file, the directory its quoted includes resolve from (#1435).
    *
    * The file's own directory. For a source run's in-memory root that is the
    * directory of its `sourcePath`, or the caller's `workingDir` when the text
-   * has no path. Recorded for the same reason as the search path: 2.1
-   * re-derived it as `dirname(sourcePath)` while discovery resolved from
-   * `workingDir`, so the two started from different directories -- and a
-   * missing include read as a foreign header, E0426 declined, and C-Next
-   * member syntax reached the C output at exit 0. Whether a quoted `.cnx`
-   * include is found here is one decision too: 1.1 and 2.1 both ask
-   * `IncludeDiscovery.resolveQuoted` (#1672).
+   * has no path. Recorded because it cannot be re-derived: 2.1 re-derived it
+   * as `dirname(sourcePath)` while discovery resolved from `workingDir`, so
+   * the two started from different directories -- and a missing include read
+   * as a foreign header, E0426 declined, and C-Next member syntax reached the
+   * C output at exit 0 (#1435). 2.1 now reads `includeResolutions`, which
+   * discovery resolved from here (#1672); a generated header spells a quoted
+   * include relative to this directory (#1725).
    */
   readonly quotedIncludeDirectories: ReadonlyMap<string, string>;
 }

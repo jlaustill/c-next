@@ -38,20 +38,6 @@ describe("IncludeRewriter", () => {
     });
   });
 
-  describe("quotedCnxSpecOf", () => {
-    it("reads a quoted spec", () => {
-      expect(IncludeRewriter.quotedCnxSpecOf('#include "utils.cnext"')).toBe(
-        "utils.cnext",
-      );
-    });
-
-    it("returns null for an angle include, which is not validated", () => {
-      expect(
-        IncludeRewriter.quotedCnxSpecOf("#include <utils.cnx>"),
-      ).toBeNull();
-    });
-  });
-
   describe("rewrite", () => {
     it.each([
       [".cnx", "#include <utils.cnx>", "utils.cnx"],

@@ -10,6 +10,13 @@ import type IHeaderRoot from "./types/IHeaderRoot";
 import EFileType from "./types/EFileType";
 import DependencyGraph from "./DependencyGraph";
 import IFileSystem from "../types/IFileSystem";
+import type IResolvedInclude from "../types/IResolvedInclude";
+
+/**
+ * The header extensions ADR-010 admits, and the C-Next source each names:
+ * E0504 asks whether `ext.cnx` is where an include of `ext.h` would find it.
+ */
+const ADMITTED_HEADER = /\.(h|hpp)$/i;
 
 /**
  * Result of resolving includes from source content
@@ -75,6 +82,13 @@ interface IResolvedIncludes {
    * relative to a file would climb into an SDK or a library directory.
    */
   writerRelativeIncludes: Map<string, string>;
+
+  /**
+   * #1672: this resolver's answer for every directive it read, keyed by
+   * `IncludeDiscovery.directiveText`. 2.1's ADR-010 rules read it rather than
+   * resolving the include a second time.
+   */
+  resolutions: Map<string, IResolvedInclude>;
 }
 
 /**
@@ -170,6 +184,7 @@ class IncludeResolver {
       headerIncludeDirectives: new Map<string, string>(),
       cnextIncludeRewrites: new Map<string, string>(),
       writerRelativeIncludes: new Map<string, string>(),
+      resolutions: new Map<string, IResolvedInclude>(),
       hasForeignInclude: false,
     };
 
@@ -191,6 +206,10 @@ class IncludeResolver {
     result: IResolvedIncludes,
   ): void {
     const resolved = this._resolveSpelling(includeInfo);
+    result.resolutions.set(IncludeDiscovery.directiveText(includeInfo), {
+      file: resolved,
+      cnextSource: this._cnextSourceOf(includeInfo),
+    });
 
     if (!resolved) {
       this._handleUnresolvedInclude(includeInfo, sourceFilePath, result);
@@ -200,31 +219,35 @@ class IncludeResolver {
     this._handleResolvedInclude(resolved, includeInfo, result);
   }
 
-  /**
-   * Where an include resolves: a quoted `.cnx` include beside the including
-   * file and only there (ADR-010, #1672), anything else along the search
-   * path, as a compiler searches its -I list.
-   */
+  /** Where an include resolves from this file, by the one rule (#1672). */
   private _resolveSpelling(includeInfo: {
     path: string;
     isLocal: boolean;
   }): string | null {
-    if (
-      includeInfo.isLocal &&
-      this.quotedIncludeDirectory !== null &&
-      FileDiscovery.classifyFile(includeInfo.path).type === EFileType.CNext
-    ) {
-      return IncludeDiscovery.resolveQuoted(
-        includeInfo.path,
-        this.quotedIncludeDirectory,
-        (path) => this.fs.exists(path) && this.fs.isFile(path),
-      );
-    }
-    return IncludeDiscovery.resolveInclude(
-      includeInfo.path,
+    return IncludeDiscovery.resolveSpelling(
+      includeInfo,
+      this.quotedIncludeDirectory,
       this.searchPaths,
       this.fs,
     );
+  }
+
+  /**
+   * For an include of a header ADR-010 admits, the C-Next source spelling
+   * when the same form of include would find it -- E0504's question, which
+   * 2.1 reads rather than asks (#1672).
+   */
+  private _cnextSourceOf(includeInfo: {
+    path: string;
+    isLocal: boolean;
+  }): string | null {
+    if (!ADMITTED_HEADER.test(includeInfo.path)) return null;
+    const spelling = includeInfo.path.replace(ADMITTED_HEADER, ".cnx");
+    const found = this._resolveSpelling({
+      path: spelling,
+      isLocal: includeInfo.isLocal,
+    });
+    return found === null ? null : spelling;
   }
 
   /**
@@ -262,10 +285,10 @@ class IncludeResolver {
       result.headers.push(file);
       result.hasForeignInclude = true;
       // Issue #497: Track the original include directive for this header
-      const directive = includeInfo.isLocal
-        ? `#include "${includeInfo.path}"`
-        : `#include <${includeInfo.path}>`;
-      result.headerIncludeDirectives.set(absolutePath, directive);
+      result.headerIncludeDirectives.set(
+        absolutePath,
+        IncludeDiscovery.directiveText(includeInfo),
+      );
       if (this._resolvedBesideWriter(includeInfo, absolutePath)) {
         result.writerRelativeIncludes.set(absolutePath, absolutePath);
       }
@@ -284,10 +307,13 @@ class IncludeResolver {
       const headerPath =
         reachable ??
         IncludeRewriter.besideSource(includeInfo.path, this.headerExtension);
-      const directive = includeInfo.isLocal
-        ? `#include "${headerPath}"`
-        : `#include <${headerPath}>`;
-      result.headerIncludeDirectives.set(absolutePath, directive);
+      result.headerIncludeDirectives.set(
+        absolutePath,
+        IncludeDiscovery.directiveText({
+          path: headerPath,
+          isLocal: includeInfo.isLocal,
+        }),
+      );
       result.cnextIncludeRewrites.set(includeInfo.path, headerPath);
       // #1725: an output-root path is valid from every file. The author's
       // spelling is not: its header is generated beside the `.cnx`, so that

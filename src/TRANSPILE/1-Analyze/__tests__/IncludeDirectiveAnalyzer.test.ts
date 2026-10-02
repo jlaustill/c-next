@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
+import IncludeResolver from "../../../transpiler/data/IncludeResolver";
+import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
 import IncludeDirectiveAnalyzer from "../IncludeDirectiveAnalyzer";
 
 /**
@@ -14,19 +16,30 @@ import IncludeDirectiveAnalyzer from "../IncludeDirectiveAnalyzer";
  * which is precisely why the position defect was invisible to them: there was
  * no position to get wrong. These parse a directive and assert where it is.
  *
- * `fileExists` is injected rather than reached for, so a test says which files
- * exist instead of arranging them on disk -- the same abstraction the run uses.
+ * #1672: the analyzer reports 1.1 Discover's answer, so a test builds that
+ * answer the way the run does -- with the real `IncludeResolver`, over an
+ * in-memory file system holding the files the test says exist. Each case
+ * asserts 1.1's decision and 2.1's report of it together.
  */
 const analyze = (
   source: string,
   present: readonly string[] = [],
   searchPaths: readonly string[] = [],
-) =>
-  new IncludeDirectiveAnalyzer().analyze(CNextSourceParser.parse(source).tree, {
-    quotedIncludeDirectory: "/project/src",
-    searchPaths,
-    fileExists: (path) => present.includes(path),
-  });
+) => {
+  const fs = new MockFileSystem();
+  for (const path of present) fs.addFile(path, "");
+  const discovered = new IncludeResolver(
+    [...searchPaths],
+    ".h",
+    fs,
+    null,
+    "/project/src",
+  ).resolve(source);
+  return new IncludeDirectiveAnalyzer().analyze(
+    CNextSourceParser.parse(source).tree,
+    discovered.resolutions,
+  );
+};
 
 describe("IncludeDirectiveAnalyzer (E0503)", () => {
   it("rejects an implementation file at the directive, not 1:0", () => {
@@ -160,6 +173,19 @@ describe("IncludeDirectiveAnalyzer (E0504)", () => {
     ).toEqual([]);
   });
 
+  it("finds a twin beside a header named by its absolute path", () => {
+    // 1.1 resolves an absolute angle include by its path. 2.1 joined it onto
+    // each search directory, so this was silent while discovery would have
+    // found `/vendor/ext.cnx` (#1672).
+    const [found] = analyze(
+      "#include </vendor/ext.h>\n\nu8 main() {\n    return 0;\n}",
+      ["/vendor/ext.cnx"],
+      ["/project/src"],
+    );
+    expect(found.code).toBe("E0504");
+    expect(found.message).toContain("Use #include </vendor/ext.cnx> instead");
+  });
+
   it("reports the implementation-file rule first, and only it", () => {
     // `helper.c` is an implementation file AND has a `.cnx` beside it. One
     // diagnostic, naming the thing the author must fix first.
@@ -168,5 +194,19 @@ describe("IncludeDirectiveAnalyzer (E0504)", () => {
         "/project/src/helper.cnx",
       ]).map((e) => e.code),
     ).toEqual(["E0503"]);
+  });
+});
+
+describe("IncludeDirectiveAnalyzer (1.1's answer)", () => {
+  it("never decides a directive discovery did not resolve", () => {
+    // An answer missing here means 1.1 and 1.2 disagree on which lines are
+    // directives (#1745). Re-deriving it would hide that behind a second
+    // decision, which is what #1672 removed.
+    const { tree } = CNextSourceParser.parse(
+      '#include "helper.h"\n\nu8 main() {\n    return 0;\n}',
+    );
+    expect(() =>
+      new IncludeDirectiveAnalyzer().analyze(tree, new Map()),
+    ).toThrow("1.1 Discover resolved every directive 1.2 parsed");
   });
 });

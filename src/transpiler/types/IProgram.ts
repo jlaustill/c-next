@@ -11,6 +11,7 @@ import type TSymbol from "./symbols/TSymbol";
 import type IConflict from "./IConflict";
 import type ICallGraphEntry from "./ICallGraphEntry";
 import type ICodeGenSymbols from "./ICodeGenSymbols";
+import type IResolvedInclude from "./IResolvedInclude";
 
 /**
  * `Program` — the artifact 1.4 Resolve emits, and the only place a cross-file
@@ -234,12 +235,13 @@ interface IProgram {
   target(): TRunTarget;
 
   /**
-   * Issue #1322: the directories an angle include from `sourceFile` is searched
-   * along, in discovery's priority order. Empty when the file was never
-   * discovered, which is also a real answer: a rule that guessed a search path
-   * would report against directories the run does not use.
+   * #1672: what 1.1 Discover resolved each `#include` directive of
+   * `sourceFile` to, keyed by `IncludeDiscovery.directiveText`. ADR-010's
+   * rules read this and ask the file system nothing, so the include 2.1
+   * accepts and the file the run discovered are one answer. Every file the run
+   * analyzes was discovered, so a missing entry is a defect.
    */
-  includeSearchPaths(sourceFile: string): readonly string[];
+  includeResolutions(sourceFile: string): ReadonlyMap<string, IResolvedInclude>;
 
   /**
    * #1435: the directory a quoted include from `sourceFile` resolves from, as

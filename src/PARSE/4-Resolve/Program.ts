@@ -56,6 +56,7 @@ import type IModificationFacts from "../../transpiler/types/IModificationFacts";
 import type ICallGraphEntry from "../../transpiler/types/ICallGraphEntry";
 import type ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import type IDiscoveryFacts from "./types/IDiscoveryFacts";
+import type IResolvedInclude from "../../transpiler/types/IResolvedInclude";
 import type IProgramInputs from "./types/IProgramInputs";
 import type IVisibilityInput from "./types/IVisibilityInput";
 import TSymbolInfoAdapter from "../3-Declare/cnext/adapters/TSymbolInfoAdapter";
@@ -65,7 +66,6 @@ import VisibleSymbols from "./VisibleSymbols";
 /** Shared empty result, so a miss does not allocate. */
 const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
 const EMPTY_REWRITES: ReadonlyMap<string, string> = new Map<string, string>();
-const EMPTY_PATHS: readonly string[] = [];
 const EMPTY_HEADER_FIELDS: ReadonlyMap<
   string,
   ReadonlyMap<string, IStructFieldInfo>
@@ -104,7 +104,7 @@ const NO_MODIFICATIONS: IModificationFacts = {
 /** A program built without include information: nothing composes. */
 const NO_DISCOVERY: IDiscoveryFacts = {
   cnxIncludeRewrites: new Map(),
-  includeSearchPaths: new Map(),
+  includeResolutions: new Map(),
   quotedIncludeDirectories: new Map(),
 };
 
@@ -305,8 +305,16 @@ class Program {
         );
         return target;
       },
-      includeSearchPaths: (sourceFile: string): readonly string[] =>
-        discovery.includeSearchPaths.get(sourceFile) ?? EMPTY_PATHS,
+      includeResolutions: (
+        sourceFile: string,
+      ): ReadonlyMap<string, IResolvedInclude> => {
+        const resolutions = discovery.includeResolutions.get(sourceFile);
+        invariant(
+          resolutions !== undefined,
+          `discovery records the include resolutions of every file it resolves (missing ${sourceFile})`,
+        );
+        return resolutions;
+      },
       quotedIncludeDirectory: (sourceFile: string): string => {
         const directory = discovery.quotedIncludeDirectories.get(sourceFile);
         invariant(

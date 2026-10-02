@@ -5,28 +5,24 @@
  * -- all reported as `1:0` with the real line appended to the message as
  * `Line N`, and the third with no error code at all.
  *
- * ## What this pass may know, and what it is handed
+ * ## What this pass reads: discovery's answer, not discovery's inputs
  *
- * The two facts these rules need beyond the parse tree are the directory this
- * file's quoted includes resolve from and where its angle includes are
- * searched, and NEITHER may be re-derived from the file's path (#1435) or read
- * off shared state here. `CodeGenState.sourcePath` is written inside
- * `CodeGenerator.generate()`, which runs after the analyzers: measured, it is
- * `null` for the first file of a run and holds the PREVIOUS file's path for
- * every file after. A rule reading it would report against the wrong file, or
- * not at all, depending on include order -- the exact shape #1399 shipped.
- * Both facts are handed in by the caller instead, which holds them correctly.
+ * Whether an include resolves, and whether a header's C-Next source is where
+ * the same include would find it, are decided once, by 1.1 Discover, while it
+ * resolves the file's includes. This pass reads that answer per directive and
+ * asks the file system nothing (#1672).
  *
- * ## The search path is recorded, not re-derived -- and that closes a hole
- *
- * Codegen re-derived the angle search path from the source file's own
- * directory. Discovery builds it from that directory PLUS `--include`
- * directories PLUS the config's, so the two disagreed exactly where `--include`
- * was load-bearing: with `ext.h` and `ext.cnx` side by side in an `--include`
- * directory, `#include <ext.h>` transpiled at exit 0 and reported nothing,
- * while the same two files in the source's own directory reported E0504. Two
- * derivations of one fact, agreeing by coincidence. Discovery's list is now
- * recorded per file and read here, so there is one.
+ * #1322 and #1435 handed it discovery's INPUTS instead -- the search path and
+ * the quoted-include directory -- because re-deriving them here had already
+ * gone wrong twice: codegen's search path lacked the `--include` directories,
+ * and its quoted directory started from `dirname(sourcePath)` where discovery
+ * started from `workingDir`. With the inputs in hand this pass still made its
+ * own decision, along its own branch between the two forms and its own copy
+ * of the C-Next extensions. It joined an absolute angle include onto each
+ * search directory, where discovery resolves it by its path, so E0504 missed
+ * a header whose C-Next source sat beside it; and it asked the file system a
+ * second time, so a file that appeared between the two asks was accepted
+ * while the run never discovered it.
  *
  * ## E0506 was uncoded
  *
@@ -42,11 +38,11 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
+import invariant from "../../utils/invariant";
 import IncludeDiscovery from "../../transpiler/data/IncludeDiscovery";
+import type IResolvedInclude from "../../transpiler/types/IResolvedInclude";
 import IncludeDirective from "./helpers/IncludeDirective";
-import IIncludeContext from "./types/IIncludeContext";
 import IIncludeDirectiveError from "./types/IIncludeDirectiveError";
-import IIncludeSpec from "./types/IIncludeSpec";
 
 /** Files that carry definitions; including one duplicates every symbol in it. */
 const IMPLEMENTATION_EXTENSIONS = new Set([
@@ -57,19 +53,15 @@ const IMPLEMENTATION_EXTENSIONS = new Set([
   ".c++",
 ]);
 
-/** The header extensions ADR-010 admits. */
-const HEADER_EXTENSIONS = new Set([".h", ".hpp"]);
-
-/** The C-Next spellings an include may name (Issue #1467's set, one copy). */
-const CNEXT_EXTENSIONS = new Set([".cnx", ".cnext"]);
-
 const extensionOf = (path: string): string =>
   path.substring(path.lastIndexOf(".")).toLowerCase();
 
 class IncludeDirectiveListener extends CNextListener {
   private readonly found: IIncludeDirectiveError[] = [];
 
-  public constructor(private readonly context: IIncludeContext) {
+  public constructor(
+    private readonly resolutions: ReadonlyMap<string, IResolvedInclude>,
+  ) {
     super();
   }
 
@@ -84,14 +76,33 @@ class IncludeDirectiveListener extends CNextListener {
     if (spec === null) return;
 
     if (this.checkImplementationFile(ctx, spec)) return;
-    if (this.checkMissingCnextFile(ctx, spec)) return;
-    this.checkCnextAlternative(ctx, spec);
+    const resolution = this.resolutionOf(spec);
+    if (this.checkMissingCnextFile(ctx, spec, resolution)) return;
+    this.checkCnextAlternative(ctx, spec, resolution);
   };
+
+  /**
+   * Discovery's answer for this directive. It reads a `.cnx` file's
+   * directives with the grammar's own lexer (#1745), so every directive the
+   * parser found has one.
+   */
+  private resolutionOf(spec: {
+    path: string;
+    isLocal: boolean;
+  }): IResolvedInclude {
+    const directive = IncludeDiscovery.directiveText(spec);
+    const resolution = this.resolutions.get(directive);
+    invariant(
+      resolution !== undefined,
+      `1.1 Discover resolved every directive 1.2 parsed (missing ${directive})`,
+    );
+    return resolution;
+  }
 
   /** E0503: `#include "helper.c"` -- a definition, not an interface. */
   private checkImplementationFile(
     ctx: Parser.IncludeDirectiveContext,
-    spec: IIncludeSpec,
+    spec: { path: string; isLocal: boolean },
   ): boolean {
     if (!IMPLEMENTATION_EXTENSIONS.has(extensionOf(spec.path))) return false;
     this.report(
@@ -112,13 +123,11 @@ class IncludeDirectiveListener extends CNextListener {
    */
   private checkMissingCnextFile(
     ctx: Parser.IncludeDirectiveContext,
-    spec: IIncludeSpec,
+    spec: { path: string; isLocal: boolean },
+    resolution: IResolvedInclude,
   ): boolean {
-    if (!spec.isQuoted) return false;
-    if (!CNEXT_EXTENSIONS.has(extensionOf(spec.path))) return false;
-
-    // Where a quoted include resolves is one decision, shared with E0504.
-    if (this.quotedAlternative(spec.path) !== null) return false;
+    if (!IncludeDiscovery.isQuotedCNext(spec)) return false;
+    if (resolution.file !== null) return false;
     // The help names no absolute path on purpose. The throw this replaces put
     // the resolved path in its message; it had no fixture, and the first one
     // written for it embedded this machine's checkout directory in an
@@ -142,47 +151,21 @@ class IncludeDirectiveListener extends CNextListener {
    */
   private checkCnextAlternative(
     ctx: Parser.IncludeDirectiveContext,
-    spec: IIncludeSpec,
+    spec: { path: string; isLocal: boolean },
+    resolution: IResolvedInclude,
   ): void {
-    if (!HEADER_EXTENSIONS.has(extensionOf(spec.path))) return;
-    const cnxPath = spec.path.replace(/\.(h|hpp)$/i, ".cnx");
+    const cnxPath = resolution.cnextSource;
+    if (cnxPath === null) return;
 
-    const where = spec.isQuoted
-      ? this.quotedAlternative(cnxPath)
-      : this.angleAlternative(cnxPath);
-    if (where === null) return;
-
-    const open = spec.isQuoted ? '"' : "<";
-    const close = spec.isQuoted ? '"' : ">";
+    const instead = IncludeDiscovery.directiveText({
+      path: cnxPath,
+      isLocal: spec.isLocal,
+    });
     this.report(
       ctx,
       "E0504",
-      `Found #include ${open}${spec.path}${close} but '${cnxPath}' exists at the same location.\n       Use #include ${open}${cnxPath}${close} instead to use the C-Next version.`,
+      `Found ${IncludeDiscovery.directiveText(spec)} but '${cnxPath}' exists at the same location.\n       Use ${instead} instead to use the C-Next version.`,
       "The generated header describes the interface; the C-Next source is what the transpiler can check calls against (ADR-010).",
-    );
-  }
-
-  /**
-   * A quoted include resolves beside the including file, and only there.
-   * #1672: asked of the rule discovery resolved the include with, not a copy.
-   */
-  private quotedAlternative(cnxPath: string): string | null {
-    return IncludeDiscovery.resolveQuoted(
-      cnxPath,
-      this.context.quotedIncludeDirectory,
-      this.context.fileExists,
-    );
-  }
-
-  /**
-   * An angle include is searched along the run's paths, in priority order.
-   * #1672: the same rule discovery resolves one with.
-   */
-  private angleAlternative(cnxPath: string): string | null {
-    return IncludeDiscovery.resolveAlong(
-      cnxPath,
-      this.context.searchPaths,
-      this.context.fileExists,
     );
   }
 
@@ -200,9 +183,9 @@ class IncludeDirectiveListener extends CNextListener {
 class IncludeDirectiveAnalyzer {
   public analyze(
     tree: Parser.ProgramContext,
-    context: IIncludeContext,
+    resolutions: ReadonlyMap<string, IResolvedInclude>,
   ): IIncludeDirectiveError[] {
-    const listener = new IncludeDirectiveListener(context);
+    const listener = new IncludeDirectiveListener(resolutions);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

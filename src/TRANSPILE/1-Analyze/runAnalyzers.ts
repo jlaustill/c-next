@@ -64,7 +64,7 @@ import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
 import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../lib/types/ITranspileError";
 import IncludeDirectiveAnalyzer from "./IncludeDirectiveAnalyzer";
-import IIncludeContext from "./types/IIncludeContext";
+import type IResolvedInclude from "../../transpiler/types/IResolvedInclude";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
@@ -83,21 +83,22 @@ interface IAnalyzerOptions {
   readonly context: IAnalysisContext;
 
   /**
-   * #1322: the file being analyzed, and where its angle includes are searched.
+   * #1672: what 1.1 Discover resolved each of this file's `#include`
+   * directives to, keyed by `IncludeDiscovery.directiveText`. ADR-010's rules
+   * read discovery's answer and ask the file system nothing, so the include
+   * they accept and the file the run discovered cannot differ.
    *
-   * REQUIRED, and that is the point. Passed in rather than read off shared
+   * #1322 passed the include facts in rather than reading them off shared
    * state, because the shared answer is WRONG at this moment:
-   * `CodeGenState.sourcePath` is written inside `CodeGenerator.generate()`,
-   * which runs after this, so an analyzer reading it sees `null` on the first
-   * file and the PREVIOUS file's path on every one after -- the
-   * order-dependent-diagnostic shape #1399 shipped. The caller holds both facts
-   * correctly, seventeen lines below the call.
+   * `CodeGenState.sourcePath` was written inside `CodeGenerator.generate()`,
+   * which runs after this -- the order-dependent-diagnostic shape #1399
+   * shipped.
    *
-   * It is not optional-with-a-skip because that is a guard that cannot fire: a
-   * caller who forgot it would lose all three ADR-010 rules with nothing
-   * failing, which is the shape this card exists to remove.
+   * REQUIRED, and that is the point. Optional-with-a-skip is a guard that
+   * cannot fire: a caller who forgot it would lose all three ADR-010 rules
+   * with nothing failing.
    */
-  readonly includes: IIncludeContext;
+  readonly includes: ReadonlyMap<string, IResolvedInclude>;
 
   /**
    * #1322: whether this run emits C++.

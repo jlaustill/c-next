@@ -17,6 +17,7 @@ import { availableParallelism } from "node:os";
 import type IConflict from "./types/IConflict";
 
 import IFileSystem from "./types/IFileSystem";
+import type IResolvedInclude from "./types/IResolvedInclude";
 
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import CNextSourceParser from "../PARSE/2-Parse/CNextSourceParser";
@@ -298,9 +299,9 @@ class Transpiler {
   >();
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly discoveredIncludeSearchPaths = new Map<
+  private readonly discoveredIncludeResolutions = new Map<
     string,
-    readonly string[]
+    ReadonlyMap<string, IResolvedInclude>
   >();
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
@@ -938,7 +939,7 @@ class Transpiler {
           callbackCompatibleFunctions: callbackCompatible,
           discovery: {
             cnxIncludeRewrites: this.discoveredCnxIncludeRewrites,
-            includeSearchPaths: this.discoveredIncludeSearchPaths,
+            includeResolutions: this.discoveredIncludeResolutions,
             quotedIncludeDirectories: this.discoveredQuotedIncludeDirectories,
           },
           registry: this.symbolRegistry,
@@ -1161,15 +1162,7 @@ class Transpiler {
           reachesForeignHeader: file.reachesForeignHeader ?? true,
           sourceFile: sourcePath,
         },
-        includes: {
-          quotedIncludeDirectory:
-            this.program.quotedIncludeDirectory(sourcePath),
-          searchPaths: this.program.includeSearchPaths(sourcePath),
-          // #1672: a file, as discovery counts one, so the include 2.1 accepts
-          // and the file 1.1 resolved it to cannot differ on a directory.
-          fileExists: (candidate: string) =>
-            this.fs.exists(candidate) && this.fs.isFile(candidate),
-        },
+        includes: this.program.includeResolutions(sourcePath),
       });
     } catch (err) {
       return [Transpiler._collectionError(err)];
@@ -1559,7 +1552,7 @@ class Transpiler {
     // REAL answer that ADR-010's E0504 reads, and a stale quoted-include
     // directory (#1435) would answer where its invariant should fire.
     this.discoveredCnxIncludeRewrites.clear();
-    this.discoveredIncludeSearchPaths.clear();
+    this.discoveredIncludeResolutions.clear();
     this.discoveredQuotedIncludeDirectories.clear();
     // #1662: both are run-scoped and both were initialized ONCE, in the
     // constructor, so neither was ever cleared. `warnings` is pushed to per run
@@ -2360,8 +2353,8 @@ class Transpiler {
       cnxFile.path,
       resolved.cnextIncludeRewrites,
     );
-    // Issue #1322: the same list ADR-010's E0504 asks about in pass 2.1
-    this.discoveredIncludeSearchPaths.set(cnxFile.path, [...searchPaths]);
+    // #1672: what each directive resolved to, which 2.1's ADR-010 rules read
+    this.discoveredIncludeResolutions.set(cnxFile.path, resolved.resolutions);
     // Issues #497/#854: how this file spells each header and .cnx it includes,
     // which is what its own generated header must say (#1435)
     this.headerIncludeDirectivesByFile.set(cnxFile.path, {

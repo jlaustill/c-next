@@ -838,7 +838,7 @@ scope Gauge {
         "constantOf",
         "externalStructFields",
         "functionParamLists",
-        "includeSearchPaths",
+        "includeResolutions",
         "isOpaqueType",
         "isScopeTypeVisibleFrom",
         "knownEnums",

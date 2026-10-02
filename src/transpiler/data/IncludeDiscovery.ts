@@ -461,20 +461,78 @@ class IncludeDiscovery {
           token.text !== undefined,
           "an INCLUDE_DIRECTIVE token carries its text",
         );
-        return IncludeDiscovery._specOfToken(token.text);
+        return IncludeDiscovery.specOfDirective(token.text) ?? [];
       });
   }
 
   /**
-   * One `INCLUDE_DIRECTIVE` token's path and delimiter. `#include <>` is a
-   * token too, and names nothing.
+   * One `INCLUDE_DIRECTIVE` token's path and delimiter, or null when the text
+   * names nothing: `#include <>` is a token too, and text with no delimiter
+   * is not a directive.
+   *
+   * #1672: the one split of a directive's text. 1.1 reads the lexer's token
+   * with it, and 2.1 and 2.3 read the parser's, which is the same token. Each
+   * held regexes of its own, which agreed with this on every fixture.
+   *
+   * @param text - An `INCLUDE_DIRECTIVE` token's text, exactly
    */
-  private static _specOfToken(
+  static specOfDirective(
     text: string,
-  ): Array<{ path: string; isLocal: boolean }> {
+  ): { path: string; isLocal: boolean } | null {
     const open = text.search(/[<"]/);
+    if (open === -1) return null;
     const path = text.slice(open + 1, -1);
-    return path === "" ? [] : [{ path, isLocal: text[open] === '"' }];
+    return path === "" ? null : { path, isLocal: text[open] === '"' };
+  }
+
+  /**
+   * The directive that names `include`: `#include "path"` or `#include <path>`.
+   * The key 1.1 records its answer under and 2.1 reads it by (#1672).
+   */
+  static directiveText(include: { path: string; isLocal: boolean }): string {
+    return include.isLocal
+      ? `#include "${include.path}"`
+      : `#include <${include.path}>`;
+  }
+
+  /**
+   * Whether `include` is a quoted include of C-Next source: the form ADR-010
+   * resolves beside the including file only, and whose absence is E0506.
+   */
+  static isQuotedCNext(include: { path: string; isLocal: boolean }): boolean {
+    return (
+      include.isLocal &&
+      FileDiscovery.classifyFile(include.path).type === EFileType.CNext
+    );
+  }
+
+  /**
+   * #1672: where an include resolves -- the one decision. A quoted C-Next
+   * include beside the including file and only there (ADR-010); anything
+   * else by its absolute path or along the search path, as a compiler
+   * searches its -I list.
+   *
+   * @param quotedIncludeDirectory - Where a quoted include resolves from, or
+   *   null when the caller does not say; then a quoted C-Next include is
+   *   searched like any other
+   */
+  static resolveSpelling(
+    include: { path: string; isLocal: boolean },
+    quotedIncludeDirectory: string | null,
+    searchPaths: string[],
+    fs: IFileSystem,
+  ): string | null {
+    if (
+      quotedIncludeDirectory !== null &&
+      IncludeDiscovery.isQuotedCNext(include)
+    ) {
+      return IncludeDiscovery.resolveQuoted(
+        include.path,
+        quotedIncludeDirectory,
+        (path) => fs.exists(path) && fs.isFile(path),
+      );
+    }
+    return IncludeDiscovery.resolveInclude(include.path, searchPaths, fs);
   }
 
   /**
@@ -527,8 +585,7 @@ class IncludeDiscovery {
 
   /**
    * The first search directory holding `includePath`, in priority order --
-   * how an angle include resolves. #1672: the one statement of that rule,
-   * which 2.1's E0504 asks as well as 1.1.
+   * how an angle include resolves.
    *
    * @param isFile - Whether a path is an existing file, through the run's
    *   file system
@@ -549,11 +606,8 @@ class IncludeDiscovery {
 
   /**
    * #1672: where a quoted `.cnx` include resolves -- beside the file it
-   * appears in, and only there (ADR-010). The one statement of that rule: 1.1
-   * resolves such an include with it and 2.1's E0504/E0506 ask it too, so the
-   * file discovery pulls into the run and the include 2.1 accepts are one.
-   * 1.1 searched every search path, and pulled in a file 2.1 then said the
-   * include could not reach.
+   * appears in, and only there (ADR-010). 1.1 searched every search path, and
+   * pulled in a file 2.1 then said the include could not reach.
    *
    * @param isFile - Whether a path is an existing file, through the run's
    *   file system
