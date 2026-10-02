@@ -62,19 +62,22 @@ describe("#1452: discovery's include facts are released at end of run", () => {
    */
   function discoveryFactFiles(transpiler: Transpiler): {
     rewrites: string[];
-    searchPaths: string[];
+    resolutions: string[];
+    alternatives: string[];
     quotedDirs: string[];
   } {
     const fields = transpiler as unknown as {
       discoveredCnxIncludeRewrites: Map<string, unknown>;
-      discoveredIncludeSearchPaths: Map<string, unknown>;
+      discoveredIncludeResolutions: Map<string, unknown>;
+      discoveredCnextAlternatives: Map<string, unknown>;
       discoveredQuotedIncludeDirectories: Map<string, unknown>;
     };
     const fileNames = (map: Map<string, unknown>): string[] =>
       [...map.keys()].map((path) => path.split("/").pop() ?? path).sort();
     return {
       rewrites: fileNames(fields.discoveredCnxIncludeRewrites),
-      searchPaths: fileNames(fields.discoveredIncludeSearchPaths),
+      resolutions: fileNames(fields.discoveredIncludeResolutions),
+      alternatives: fileNames(fields.discoveredCnextAlternatives),
       quotedDirs: fileNames(fields.discoveredQuotedIncludeDirectories),
     };
   }
@@ -119,7 +122,8 @@ describe("#1452: discovery's include facts are released at end of run", () => {
     expect(first.success).toBe(true);
     expect(discoveryFactFiles(transpiler)).toEqual({
       rewrites: ["app.cnx", "lib.cnx"],
-      searchPaths: ["app.cnx", "lib.cnx"],
+      resolutions: ["app.cnx", "lib.cnx"],
+      alternatives: ["app.cnx", "lib.cnx"],
       quotedDirs: ["app.cnx", "lib.cnx"],
     });
 
@@ -135,7 +139,8 @@ describe("#1452: discovery's include facts are released at end of run", () => {
     expect(second.success).toBe(true);
     expect(discoveryFactFiles(transpiler)).toEqual({
       rewrites: ["solo.cnx"],
-      searchPaths: ["solo.cnx"],
+      resolutions: ["solo.cnx"],
+      alternatives: ["solo.cnx"],
       quotedDirs: ["solo.cnx"],
     });
   });
@@ -148,7 +153,8 @@ describe("#1452: discovery's include facts are released at end of run", () => {
     expect((await fresh.transpile({ kind: "files" })).success).toBe(true);
     expect(discoveryFactFiles(fresh)).toEqual({
       rewrites: ["solo.cnx"],
-      searchPaths: ["solo.cnx"],
+      resolutions: ["solo.cnx"],
+      alternatives: ["solo.cnx"],
       quotedDirs: ["solo.cnx"],
     });
   });

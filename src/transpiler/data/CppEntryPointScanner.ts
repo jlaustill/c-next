@@ -104,8 +104,11 @@ class CppEntryPointScanner {
     searchPaths: readonly string[],
     fromFile: string,
   ): void {
-    const resolved = IncludeDiscovery.resolveInclude(
-      includeInfo.path,
+    // #1672: the one decision 1.1 resolves a .cnx file's includes with, so a
+    // quoted C-Next include is found beside `fromFile` and nowhere else.
+    const resolved = IncludeDiscovery.resolveSpelling(
+      includeInfo,
+      dirname(fromFile),
       [...searchPaths],
       this.fs,
     );

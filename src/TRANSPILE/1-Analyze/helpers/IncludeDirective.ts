@@ -8,30 +8,21 @@
  * accepted by those two and rejected by the other two. Nothing depended on the
  * disagreement, which is exactly why it survived.
  *
- * One parse, one answer, and it carries the FORM as well as the path, because
- * ADR-010's two forms are searched in different places.
+ * #1672: the regexes #1322 left here were a second split of the token 1.1
+ * splits, and agreed with it on every fixture. A directive node holds that
+ * same token, so it is split the same way. The answer carries the FORM as well
+ * as the path, because ADR-010's two forms are searched in different places.
  */
 
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
-import IIncludeSpec from "../types/IIncludeSpec";
-
-/** `#include <path>` and `#include "path"`, each closed by its own delimiter. */
-const ANGLE = /#\s*include\s*<([^>]+)>/;
-const QUOTED = /#\s*include\s*"([^"]+)"/;
+import IncludeDiscovery from "../../../transpiler/data/IncludeDiscovery";
 
 class IncludeDirective {
-  /** What `text` includes, or null when it is not an include directive. */
-  static parse(text: string): IIncludeSpec | null {
-    const quoted = QUOTED.exec(text);
-    if (quoted) return { path: quoted[1], isQuoted: true };
-    const angle = ANGLE.exec(text);
-    if (angle) return { path: angle[1], isQuoted: false };
-    return null;
-  }
-
-  /** The same for a directive node. */
-  static of(ctx: Parser.IncludeDirectiveContext): IIncludeSpec | null {
-    return IncludeDirective.parse(ctx.getText());
+  /** What a directive node includes, or null when it names nothing. */
+  static of(
+    ctx: Parser.IncludeDirectiveContext,
+  ): { path: string; isLocal: boolean } | null {
+    return IncludeDiscovery.specOfDirective(ctx.getText());
   }
 
   /** Every header a program includes, in source order, by either form. */

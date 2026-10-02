@@ -1,36 +1,24 @@
 /**
- * ADR-010 facts about the file under analysis, supplied by the caller.
+ * ADR-010 facts about the file under analysis: 1.1 Discover's answers, read
+ * rather than re-derived (#1672).
  *
- * #1322: none of these may be read off shared state at analyzer time.
- * `CodeGenState.sourcePath` is written inside `CodeGenerator.generate()`, which
- * runs after the analyzers -- measured, it is `null` for the first file of a run
- * and holds the PREVIOUS file's path for every file after, so a rule reading it
- * would be order-dependent (#1399). The search path cannot be re-derived at all
- * without losing the `--include` directories discovery had. And the existence
- * oracle is the run's own file-system abstraction, so a source-mode run and a
- * unit test answer the same way a files-mode run does.
+ * Both maps are keyed by `IncludeDiscovery.directiveText`. #1322 and #1435
+ * handed this pass discovery's INPUTS instead -- the search path, the
+ * quoted-include directory and a file-exists oracle -- and it made its own
+ * decision with them, along its own branch between the two forms. That
+ * decision missed an absolute angle include discovery resolves, and asked the
+ * file system a second time, so the two could answer differently.
  */
 interface IIncludeContext {
-  /**
-   * The directory a quoted include from this file resolves from, as DISCOVERY
-   * resolved it (#1435). Handed in rather than taken as `dirname` of the
-   * file's path: a source run's in-memory root may have no path, when the
-   * caller's `workingDir` stands in, and a second derivation here started
-   * from a different directory than discovery did. Discovery resolves a
-   * quoted `.cnx` include here and only here, by the same rule (#1672).
-   */
-  readonly quotedIncludeDirectory: string;
+  /** The file each directive resolved to, or null: E0506's question. */
+  readonly resolutions: ReadonlyMap<string, string | null>;
 
   /**
-   * Directories an angle include is searched along, in priority order, as
-   * DISCOVERY built them. Never re-derived: see `IDiscoveryFacts` for what
-   * re-deriving cost, and for why the list is frozen onto the program artifact
-   * rather than read from a mutable accumulator (#1452).
+   * For each include of a header whose C-Next source the same form of include
+   * would find, that source's spelling: E0504's question. An include with no
+   * entry has none.
    */
-  readonly searchPaths: readonly string[];
-
-  /** Whether a path is an existing file, through the run's file system. */
-  readonly fileExists: (path: string) => boolean;
+  readonly cnextAlternatives: ReadonlyMap<string, string>;
 }
 
 export default IIncludeContext;

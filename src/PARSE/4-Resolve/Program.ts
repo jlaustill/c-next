@@ -65,7 +65,6 @@ import VisibleSymbols from "./VisibleSymbols";
 /** Shared empty result, so a miss does not allocate. */
 const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
 const EMPTY_REWRITES: ReadonlyMap<string, string> = new Map<string, string>();
-const EMPTY_PATHS: readonly string[] = [];
 const EMPTY_HEADER_FIELDS: ReadonlyMap<
   string,
   ReadonlyMap<string, IStructFieldInfo>
@@ -104,7 +103,8 @@ const NO_MODIFICATIONS: IModificationFacts = {
 /** A program built without include information: nothing composes. */
 const NO_DISCOVERY: IDiscoveryFacts = {
   cnxIncludeRewrites: new Map(),
-  includeSearchPaths: new Map(),
+  includeResolutions: new Map(),
+  cnextAlternatives: new Map(),
   quotedIncludeDirectories: new Map(),
 };
 
@@ -305,8 +305,24 @@ class Program {
         );
         return target;
       },
-      includeSearchPaths: (sourceFile: string): readonly string[] =>
-        discovery.includeSearchPaths.get(sourceFile) ?? EMPTY_PATHS,
+      includeResolutions: (
+        sourceFile: string,
+      ): ReadonlyMap<string, string | null> => {
+        const resolutions = discovery.includeResolutions.get(sourceFile);
+        invariant(
+          resolutions !== undefined,
+          `discovery records the include resolutions of every file it resolves (missing ${sourceFile})`,
+        );
+        return resolutions;
+      },
+      cnextAlternatives: (sourceFile: string): ReadonlyMap<string, string> => {
+        const alternatives = discovery.cnextAlternatives.get(sourceFile);
+        invariant(
+          alternatives !== undefined,
+          `discovery records the C-Next alternatives of every file it resolves (missing ${sourceFile})`,
+        );
+        return alternatives;
+      },
       quotedIncludeDirectory: (sourceFile: string): string => {
         const directory = discovery.quotedIncludeDirectories.get(sourceFile);
         invariant(

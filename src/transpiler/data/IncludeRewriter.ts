@@ -15,26 +15,12 @@
  * `-I <header-out>`.
  */
 
+import { extname } from "node:path";
+
 import type THeaderExtension from "../types/THeaderExtension";
-
-/**
- * The C-Next source extensions, as `FileDiscovery` maps them. `.cnext` is one
- * of them, and leaving it out is how the previous copies of this pattern
- * diverged: `IncludeResolver` swapped `/\.cnx$|\.cnext$/` while the `.c` and
- * `.h` matched `.cnx` alone, so a `.cnext` include reached no owner at all --
- * emitted verbatim into the `.c` and dropped from the `.h`.
- *
- * The #1399 review already named this shape once, as "a third spelling of
- * 'is this a C-Next include?' (it missed `.cnext`)". This file is where the
- * spelling now lives, so there is one to keep right.
- */
-const CNX_EXTENSION = /\.cnx$|\.cnext$/;
-
-/** `#include <path.cnx>` / `<path.cnext>` -- captures the path WITH its extension. */
-const ANGLE_CNX = /#\s*include\s*<([^>]+\.(?:cnext|cnx))>/;
-
-/** `#include "path.cnx"` / `"path.cnext"` -- captures the path WITH its extension. */
-const QUOTE_CNX = /#\s*include\s*"([^"]+\.(?:cnext|cnx))"/;
+import FileDiscovery from "./FileDiscovery";
+import IncludeDiscovery from "./IncludeDiscovery";
+import EFileType from "./types/EFileType";
 
 class IncludeRewriter {
   /**
@@ -46,21 +32,7 @@ class IncludeRewriter {
    * the same reading of the directive.
    */
   static cnxSpecOf(includeText: string): string | null {
-    const match = ANGLE_CNX.exec(includeText) ?? QUOTE_CNX.exec(includeText);
-    return match ? match[1] : null;
-  }
-
-  /**
-   * The `.cnx` path a QUOTED include names, or null for any other directive.
-   *
-   * Quote-specific because only quoted includes are resolved relative to the
-   * including file and so can be validated at transpile time. Kept here rather
-   * than re-spelled at the call site: a second copy of this pattern is exactly
-   * what let `.cnext` fall through three producers at once.
-   */
-  static quotedCnxSpecOf(includeText: string): string | null {
-    const match = QUOTE_CNX.exec(includeText);
-    return match ? match[1] : null;
+    return IncludeRewriter._cnextSpecOf(includeText)?.path ?? null;
   }
 
   /**
@@ -78,25 +50,35 @@ class IncludeRewriter {
     rewrites: ReadonlyMap<string, string>,
     ext: THeaderExtension,
   ): string {
-    const angleMatch = ANGLE_CNX.exec(includeText);
-    if (angleMatch) {
-      const spec = angleMatch[1];
-      return includeText.replace(
-        `<${spec}>`,
-        `<${IncludeRewriter._headerFor(spec, rewrites, ext)}>`,
-      );
-    }
+    const spec = IncludeRewriter._cnextSpecOf(includeText);
+    if (spec === null) return includeText;
+    // The path is everything between the delimiters, and the closing one is
+    // the token's last character, so only the path is replaced: the author's
+    // spacing and form survive.
+    const pathStart = includeText.length - 1 - spec.path.length;
+    return (
+      includeText.slice(0, pathStart) +
+      IncludeRewriter._headerFor(spec.path, rewrites, ext) +
+      includeText.slice(-1)
+    );
+  }
 
-    const quoteMatch = QUOTE_CNX.exec(includeText);
-    if (quoteMatch) {
-      const spec = quoteMatch[1];
-      return includeText.replace(
-        `"${spec}"`,
-        `"${IncludeRewriter._headerFor(spec, rewrites, ext)}"`,
-      );
-    }
-
-    return includeText;
+  /**
+   * The C-Next source a directive names, with its form, or null.
+   *
+   * #1672: split by the one split of a directive's text and classified by
+   * `FileDiscovery`, the classification 1.1 resolves with. This held its own
+   * regexes and its own copy of the C-Next extensions, matched
+   * case-sensitively where discovery is not (#1833).
+   */
+  private static _cnextSpecOf(
+    includeText: string,
+  ): { path: string; isLocal: boolean } | null {
+    const spec = IncludeDiscovery.specOfDirective(includeText);
+    if (spec === null) return null;
+    return FileDiscovery.classifyFile(spec.path).type === EFileType.CNext
+      ? spec
+      : null;
   }
 
   /**
@@ -118,7 +100,7 @@ class IncludeRewriter {
    * source -- the fallback when the output root does not reach it.
    */
   static besideSource(cnxPath: string, ext: THeaderExtension): string {
-    return cnxPath.replace(CNX_EXTENSION, ext);
+    return cnxPath.slice(0, cnxPath.length - extname(cnxPath).length) + ext;
   }
 }
 

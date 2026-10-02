@@ -10,6 +10,8 @@
 
 import { describe, it, expect } from "vitest";
 import IncludeRewriter from "../IncludeRewriter";
+import FileDiscovery from "../FileDiscovery";
+import EFileType from "../types/EFileType";
 
 describe("IncludeRewriter", () => {
   const none = new Map<string, string>();
@@ -36,19 +38,20 @@ describe("IncludeRewriter", () => {
     ])("returns null for %s", (directive) => {
       expect(IncludeRewriter.cnxSpecOf(directive)).toBeNull();
     });
-  });
 
-  describe("quotedCnxSpecOf", () => {
-    it("reads a quoted spec", () => {
-      expect(IncludeRewriter.quotedCnxSpecOf('#include "utils.cnext"')).toBe(
-        "utils.cnext",
+    // #1672: render calls an include C-Next exactly when 1.1 does, because it
+    // asks the same classification. Its own case-sensitive regexes called
+    // `Utils.CNX` foreign while 1.1 pulled it into the run (#1833).
+    it.each([
+      "Utils.CNX",
+      "utils.Cnext",
+      "utils.cnx",
+      "utils.h",
+      "utils.cnx.h",
+    ])("classifies %s as 1.1 Discover does", (path) => {
+      expect(IncludeRewriter.cnxSpecOf(`#include "${path}"`) !== null).toBe(
+        FileDiscovery.classifyFile(path).type === EFileType.CNext,
       );
-    });
-
-    it("returns null for an angle include, which is not validated", () => {
-      expect(
-        IncludeRewriter.quotedCnxSpecOf("#include <utils.cnx>"),
-      ).toBeNull();
     });
   });
 
@@ -78,6 +81,10 @@ describe("IncludeRewriter", () => {
       ["#include <utils.cnext>", ".h", "#include <utils.h>"],
       ["#include <utils.cnx>", ".hpp", "#include <utils.hpp>"],
       ["#include <utils.cnext>", ".hpp", "#include <utils.hpp>"],
+      // #1672: the C-Next extension FileDiscovery recognizes, in any case
+      ['#include "Utils.CNX"', ".h", '#include "Utils.h"'],
+      // only the path is replaced: the author's spacing survives
+      ["#  include  <utils.cnx>", ".h", "#  include  <utils.h>"],
     ])(
       "falls back to the extension swap for %s in %s mode",
       (directive, ext, expected) => {

@@ -9,20 +9,20 @@ import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import testAnalysisContextFor from "./testAnalysisContextFor";
+import type IIncludeContext from "../types/IIncludeContext";
 
 /**
- * #1322: what a file under analysis is, for a test that has no file.
+ * #1322 / #1672: discovery's answer, for a test that has no file.
  *
- * `runAnalyzers` requires the ADR-010 include context rather than accepting an
- * absent one, so a unit test states it too -- no file on disk, so nothing
- * exists and no angle include has anywhere to search. That makes E0504 and
- * E0506 silent here by construction, and it says so, where an optional
- * parameter would have made them silent by omission.
+ * `runAnalyzers` requires 1.1's include resolutions rather than accepting
+ * absent ones, so a unit test states them too -- no file on disk, so the one
+ * directive these tests write resolves to nothing, and no header has a C-Next
+ * source. That makes E0504 and E0506 silent here by construction, and it says
+ * so, where an optional parameter would have made them silent by omission.
  */
-const NO_INCLUDES = {
-  quotedIncludeDirectory: "/unit-test",
-  searchPaths: [] as readonly string[],
-  fileExists: () => false,
+const NO_INCLUDES: IIncludeContext = {
+  resolutions: new Map([["#include <string.h>", null]]),
+  cnextAlternatives: new Map(),
 };
 
 /**
