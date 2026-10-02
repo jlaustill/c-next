@@ -571,9 +571,12 @@ class IncludeDiscovery {
     searchPaths: string[],
     fs: IFileSystem,
   ): string | null {
-    // If already absolute, check if it exists
+    // Already absolute: a file there, as every other branch asks (#1672).
+    // A directory "resolved" here and was then dropped by `discoverFile`.
     if (isAbsolute(includePath)) {
-      return fs.exists(includePath) ? includePath : null;
+      return fs.exists(includePath) && fs.isFile(includePath)
+        ? includePath
+        : null;
     }
 
     return IncludeDiscovery.resolveAlong(
