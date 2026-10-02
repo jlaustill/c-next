@@ -167,6 +167,78 @@ describe("search path parity", () => {
       expect(result.files.map((f) => f.sourcePath)).toContain(colors);
     });
 
+    /**
+     * A file reached through an include, whose quoted `colors.cnx` is spelled
+     * exactly as the entry's. Only the entry has one beside it.
+     */
+    function helperIncluding(besideHelper: boolean): string {
+      const lib = join(project, "src", "lib");
+      mkdirSync(lib);
+      writeFileSync(
+        join(lib, "helper.cnx"),
+        '#include "colors.cnx"\n\nu32 helperValue() {\n    return 1;\n}\n',
+      );
+      writeFileSync(join(project, "src", "colors.cnx"), COLORS);
+      // A different file under the same spelling, so both join the run.
+      if (besideHelper) {
+        writeFileSync(join(lib, "colors.cnx"), "enum ELibColor { ON, OFF }\n");
+      }
+      const main = join(project, "src", "main.cnx");
+      writeFileSync(
+        main,
+        '#include "lib/helper.cnx"\n#include "colors.cnx"\n\nvoid main() {\n}\n',
+      );
+      return main;
+    }
+
+    it("an included file is answered from its own resolutions", async () => {
+      // Every E0504/E0506 fixture errs in the entry, so nothing checked that
+      // each file reads the answers discovery gave for IT. The same directive
+      // text resolves in the entry and not in the helper.
+      const result = await run(helperIncluding(false));
+
+      const missing = result.errors.filter((e) => e.message.includes("E0506"));
+      expect(missing.map((e) => [e.sourcePath, e.line])).toEqual([
+        [join(project, "src", "lib", "helper.cnx"), 1],
+      ]);
+    });
+
+    it("control: the helper's include resolves beside the helper", async () => {
+      const result = await run(helperIncluding(true));
+
+      expect(result.errors).toEqual([]);
+    });
+
+    it("an included file's E0504 is its own", async () => {
+      // The same `#include "ext.h"` in both files; only the helper has
+      // `ext.cnx` beside its header, so only the helper is rejected.
+      const lib = join(project, "src", "lib");
+      mkdirSync(lib);
+      const header = "#ifndef EXT_H\n#define EXT_H\n#endif\n";
+      writeFileSync(join(project, "src", "ext.h"), header);
+      writeFileSync(join(lib, "ext.h"), header);
+      writeFileSync(
+        join(lib, "ext.cnx"),
+        "u32 extValue() {\n    return 1;\n}\n",
+      );
+      writeFileSync(
+        join(lib, "helper.cnx"),
+        '#include "ext.h"\n\nu32 helperValue() {\n    return 1;\n}\n',
+      );
+      const main = join(project, "src", "main.cnx");
+      writeFileSync(
+        main,
+        '#include "lib/helper.cnx"\n#include "ext.h"\n\nvoid main() {\n}\n',
+      );
+
+      const result = await run(main);
+
+      const found = result.errors.filter((e) => e.message.includes("E0504"));
+      expect(found.map((e) => [e.sourcePath, e.line])).toEqual([
+        [join(lib, "helper.cnx"), 1],
+      ]);
+    });
+
     /** `ext.h` in a directory on no search path, named by absolute path. */
     function absoluteHeader(withCNextSource: boolean): string {
       const vendor = join(project, "vendor");

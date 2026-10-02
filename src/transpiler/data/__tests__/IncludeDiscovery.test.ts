@@ -381,6 +381,22 @@ describe("IncludeDiscovery", () => {
   // directivesOf (#1830 review)
   // ==========================================================================
 
+  describe("specOfDirective (#1672)", () => {
+    it("splits a directive into its path and form", () => {
+      expect(IncludeDiscovery.specOfDirective('#include "a.cnx"')).toEqual({
+        path: "a.cnx",
+        isLocal: true,
+      });
+    });
+
+    it.each([["#include <>"], ["#define FLAG"]])(
+      "names nothing for %s",
+      (text) => {
+        expect(IncludeDiscovery.specOfDirective(text)).toBeNull();
+      },
+    );
+  });
+
   describe("directivesOf", () => {
     const COMMENTED = '/*\n#include "ghost.h"\n*/\n';
 
@@ -419,6 +435,22 @@ describe("IncludeDiscovery", () => {
       );
 
       expect(result).toBe(join(testDir, "include", "types.h"));
+    });
+
+    it("resolves an absolute path only when it names a file (#1672)", () => {
+      // Every other branch of the one decision asks `exists && isFile`. An
+      // absolute path naming a directory was "resolved", then dropped by
+      // `discoverFile`, so it read as resolved where any other missing header
+      // reads as unresolved.
+      const directory = join(testDir, "include", "subdir.h");
+      mkdirSync(directory);
+      expect(
+        IncludeDiscovery.resolveInclude(directory, [], NodeFileSystem.instance),
+      ).toBeNull();
+      const file = join(testDir, "include", "types.h");
+      expect(
+        IncludeDiscovery.resolveInclude(file, [], NodeFileSystem.instance),
+      ).toBe(file);
     });
 
     it("returns null when include not found", () => {
