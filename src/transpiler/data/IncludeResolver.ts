@@ -111,7 +111,7 @@ interface IResolvedIncludes {
  * - Deduplicate resolved files by path
  *
  * @example
- * const resolver = new IncludeResolver(['/path/to/includes'], '.h');
+ * const resolver = new IncludeResolver(['/path/to/includes'], '.h', fs, null, '/path/to/src');
  * const result = resolver.resolve('#include "header.h"');
  * // result.headers contains resolved header files
  */
@@ -132,10 +132,11 @@ class IncludeResolver {
 
   /**
    * #1725: the directory a quoted include from the file being resolved
-   * resolves beside (ADR-010), or null when the caller does not say -- then no
-   * spelling is known to be relative to its writer, and none is recorded.
+   * resolves beside (ADR-010). Required since #1835's review: its `null`
+   * default served only tests, and with no directory a quoted C-Next include
+   * was searched like any other -- a second rule beside #1672's one.
    */
-  private readonly quotedIncludeDirectory: string | null;
+  private readonly quotedIncludeDirectory: string;
 
   /**
    * @param headerIncludePathFor Issue #1467: where the generated header for a
@@ -165,8 +166,8 @@ class IncludeResolver {
     private readonly searchPaths: string[],
     headerExtension: THeaderExtension,
     fs: IFileSystem,
-    headerIncludePathFor: ((cnxPath: string) => string | null) | null = null,
-    quotedIncludeDirectory: string | null = null,
+    headerIncludePathFor: ((cnxPath: string) => string | null) | null,
+    quotedIncludeDirectory: string,
   ) {
     this.fs = fs;
     this.headerExtension = headerExtension;
@@ -349,7 +350,6 @@ class IncludeResolver {
   ): boolean {
     return (
       includeInfo.isLocal &&
-      this.quotedIncludeDirectory !== null &&
       resolve(this.quotedIncludeDirectory, includeInfo.path) === absolutePath
     );
   }

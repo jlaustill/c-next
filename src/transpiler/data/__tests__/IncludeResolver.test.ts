@@ -65,6 +65,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
       const content = '#include "types.h"\nvoid test() {}';
 
@@ -80,6 +82,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
       const content = "#include <utils.h>\nvoid test() {}";
 
@@ -95,6 +99,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
       const content = '#include "nested/deep.h"';
 
@@ -109,6 +115,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
       const content = '#include "types.h"\n#include "utils.h"';
 
@@ -131,6 +139,8 @@ describe("IncludeResolver", () => {
         [srcDir, includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
       const content = '#include "types.h"';
 
@@ -146,6 +156,8 @@ describe("IncludeResolver", () => {
         [srcDir, includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
       const content = '#include "utils.h"';
 
@@ -166,6 +178,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
       const content = '#include "nonexistent.h"';
 
@@ -182,6 +196,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
       const content = "#include <stdio.h>"; // System header, won't be found
 
@@ -196,6 +212,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
       const content = '#include "missing.h"';
 
@@ -215,6 +233,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
       const content = '#include "types.h"\n#include "types.h"';
 
@@ -228,6 +248,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
 
       // First file includes types.h
@@ -244,6 +266,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
 
       resolver.resolve('#include "types.h"');
@@ -258,6 +282,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
       const alreadyResolved = join(includeDir, "types.h");
 
@@ -278,6 +304,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
       const content = '#include "types.h"';
 
@@ -292,6 +320,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        includeDir,
       );
       const content = '#include "shared.cnx"';
 
@@ -307,6 +337,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        includeDir,
       );
       const content = '#include "types.h"\n#include "shared.cnx"';
 
@@ -338,6 +370,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       ).resolve(content);
 
       expect(result.cnextIncludes).toHaveLength(0);
@@ -442,6 +476,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        includeDir,
       );
       const content = '#include "shared.cnx"';
 
@@ -473,6 +509,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".hpp",
         NodeFileSystem.instance,
+        null,
+        includeDir,
       );
       const content = source;
 
@@ -506,6 +544,7 @@ describe("IncludeResolver", () => {
         ".h",
         NodeFileSystem.instance,
         () => "Display/shared.h",
+        srcDir,
       );
 
       const result = resolver.resolve("#include <shared.cnx>");
@@ -524,6 +563,7 @@ describe("IncludeResolver", () => {
         ".h",
         NodeFileSystem.instance,
         () => "Display/shared.h",
+        includeDir,
       );
 
       const result = resolver.resolve('#include "shared.cnx"');
@@ -539,6 +579,7 @@ describe("IncludeResolver", () => {
         ".h",
         NodeFileSystem.instance,
         () => null,
+        srcDir,
       );
 
       const result = resolver.resolve("#include <shared.cnx>");
@@ -553,6 +594,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
 
       const result = resolver.resolve("#include <shared.cnx>");
@@ -569,6 +612,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
 
       const result = resolver.resolve("");
@@ -583,6 +628,8 @@ describe("IncludeResolver", () => {
         [includeDir],
         ".h",
         NodeFileSystem.instance,
+        null,
+        srcDir,
       );
 
       const result = resolver.resolve("void main() { }");
@@ -593,7 +640,13 @@ describe("IncludeResolver", () => {
     });
 
     it("should handle empty search paths", () => {
-      const resolver = new IncludeResolver([], ".h", NodeFileSystem.instance);
+      const resolver = new IncludeResolver(
+        [],
+        ".h",
+        NodeFileSystem.instance,
+        null,
+        srcDir,
+      );
 
       const result = resolver.resolve('#include "types.h"');
 
@@ -821,6 +874,8 @@ describe("IncludeResolver", () => {
           [includeDir],
           ext,
           NodeFileSystem.instance,
+          null,
+          includeDir,
         ).resolve(source, sourcePath);
 
         expect(result.cnextIncludes).toHaveLength(1);

@@ -1148,9 +1148,10 @@ class Transpiler {
       // so holds another file's value here.
       // #1452: asserted, not defaulted. Stage 3 builds `Program` and returns
       // false on failure before this runs, so a null here is a broken stage
-      // order -- and `?? []` would answer it with an empty search path, which
-      // is a REAL answer meaning "discovery never saw this file". E0504 would
-      // go blind and nothing would fail. Same reasoning as the conflict check.
+      // order -- and a default would only move the failure: ADR-010's rules
+      // read discovery's per-directive answers through `Program` (#1672), and
+      // an empty set of answers is not "this file includes nothing". Same
+      // reasoning as the conflict check.
       invariant(
         this.program,
         "1.4 Resolve built Program before a later pass read its discovery facts",
@@ -1556,10 +1557,10 @@ class Transpiler {
     // two alongside the five above, and re-writing that teardown as inline
     // calls dropped them -- the drift this method's own SymbolTable comment
     // below records, in the commit that recorded it. `Program.build` is handed
-    // all three by reference, so a retained entry answers for a file this run
-    // never saw: `IProgram` documents an empty rewrite map or search path as a
-    // REAL answer that ADR-010's E0504 reads, and a stale quoted-include
-    // directory (#1435) would answer where its invariant should fire.
+    // all four by reference, so a retained entry answers for a file this run
+    // never saw: `IProgram` documents an empty rewrite map as a REAL answer,
+    // and a stale include resolution (#1672) or quoted-include directory
+    // (#1435) would answer where its invariant should fire.
     this.discoveredCnxIncludeRewrites.clear();
     this.discoveredIncludeResolutions.clear();
     this.discoveredCnextAlternatives.clear();
@@ -2310,10 +2311,12 @@ class Transpiler {
 
   /**
    * Resolve one `.cnx` file's includes -- the one place discovery decides such
-   * a file's text, its directory and its search path. The directory and the
-   * search path are recorded, so 2.1's ADR-010 rules read them rather than
-   * derive them again. The search path is `_searchPathsFor`'s, which a C/C++
-   * entry point's marker scan uses too (#1706).
+   * a file's text, its directory and its search path. What each directive
+   * resolved to is recorded, so 2.1's ADR-010 rules read that answer rather
+   * than resolve the include again (#1672), and the text read here is the
+   * text 1.2 parses, so the two cannot see different directives (#1835
+   * review). The search path is `_searchPathsFor`'s, which a C/C++ entry
+   * point's marker scan uses too (#1706).
    *
    * #1435: every file in a run comes through here, including the root of a
    * source run, whose text is `inMemory.source` and whose directory is
@@ -2330,8 +2333,9 @@ class Transpiler {
    *   given, the filesystem and $HOME, none of which change within one pass,
    *   so the files of one directory share one answer -- and a source run makes
    *   this pass on every editor request.
-   * @returns the resolution, and the search path it was made along -- which
-   *   the C headers this file reaches are searched along too (#1723)
+   * @returns the resolution, the search path it was made along -- which
+   *   the C headers this file reaches are searched along too (#1723) -- and
+   *   the text it was read from
    */
   private _resolveCnxIncludes(
     cnxFile: IDiscoveredFile,
@@ -2341,6 +2345,7 @@ class Transpiler {
   ): {
     readonly resolved: ReturnType<IncludeResolver["resolve"]>;
     readonly searchPaths: readonly string[];
+    readonly content: string;
   } {
     const content = inMemory?.source ?? this.fs.readFile(cnxFile.path);
     const sourceDir = inMemory?.directory ?? dirname(cnxFile.path);
@@ -2375,10 +2380,11 @@ class Transpiler {
       directives: resolved.headerIncludeDirectives,
       writerRelative: resolved.writerRelativeIncludes,
     });
-    // #1435: and the same directory its E0506 and quoted E0504 resolve from
+    // #1435: the directory its quoted includes resolve from, which a generated
+    // header spells them relative to (#1725)
     this.discoveredQuotedIncludeDirectories.set(cnxFile.path, sourceDir);
     this.warnings.push(...resolved.warnings);
-    return { resolved, searchPaths };
+    return { resolved, searchPaths, content };
   }
 
   /**
@@ -2577,6 +2583,9 @@ class Transpiler {
     // search path, and 1.4 takes every file's visibility closure over it.
     const includesByPath = new Map<string, IDiscoveredFile[]>();
     const tiersByDirectory = new Map<string, readonly string[]>();
+    // #1835 review: the text discovery read, which 1.2 parses -- one read, so
+    // a save between the passes cannot give them different directives.
+    const sourcesByPath = new Map<string, string>();
     // #1723: every file's search path, merged in discovery order.
     const includeSearchPaths = new Set<string>();
     // `cnextFiles` grows as includes are found, so this visits the closure.
@@ -2590,6 +2599,7 @@ class Transpiler {
         inMemory?.path === cnxFile.path ? inMemory : undefined,
       );
       const resolved = discovered.resolved;
+      sourcesByPath.set(cnxPath, discovered.content);
       for (const searchPath of discovered.searchPaths) {
         includeSearchPaths.add(searchPath);
       }
@@ -2630,8 +2640,14 @@ class Transpiler {
         cnextIncludes !== undefined,
         `discovery resolves the includes of every file it sorts (missing ${f.path})`,
       );
+      const source = sourcesByPath.get(resolve(f.path));
+      invariant(
+        source !== undefined,
+        `discovery reads the text of every file it sorts (missing ${f.path})`,
+      );
       return {
         path: f.path,
+        source,
         discoveredFile: f,
         cnextIncludes,
         reachesForeignHeader: reachesForeign.has(resolve(f.path)),

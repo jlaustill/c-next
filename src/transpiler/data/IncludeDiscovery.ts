@@ -507,25 +507,24 @@ class IncludeDiscovery {
   }
 
   /**
-   * #1672: where an include resolves -- the one decision. A quoted C-Next
-   * include beside the including file and only there (ADR-010); anything
-   * else by its absolute path or along the search path, as a compiler
-   * searches its -I list.
+   * #1672: where an include resolves -- the one decision, for both routes
+   * by which 1.1 resolves a file's includes: a `.cnx` file's own
+   * (`IncludeResolver`) and the C/C++ entry point's scan
+   * (`CppEntryPointScanner`). A quoted C-Next include resolves beside the
+   * including file and only there (ADR-010); anything else by its absolute
+   * path or along the search path, as a compiler searches its -I list.
    *
-   * @param quotedIncludeDirectory - Where a quoted include resolves from, or
-   *   null when the caller does not say; then a quoted C-Next include is
-   *   searched like any other
+   * @param quotedIncludeDirectory - The including file's directory. It is
+   *   required: with no directory, a quoted C-Next include was searched like
+   *   any other, which is the second rule #1672 removed (#1835 review)
    */
   static resolveSpelling(
     include: { path: string; isLocal: boolean },
-    quotedIncludeDirectory: string | null,
+    quotedIncludeDirectory: string,
     searchPaths: string[],
     fs: IFileSystem,
   ): string | null {
-    if (
-      quotedIncludeDirectory !== null &&
-      IncludeDiscovery.isQuotedCNext(include)
-    ) {
+    if (IncludeDiscovery.isQuotedCNext(include)) {
       return IncludeDiscovery.resolveQuoted(
         include.path,
         quotedIncludeDirectory,
