@@ -85,10 +85,12 @@ describe("ScopeStack", () => {
       expect(stack.lookup("x")).toEqual({ initialized: false, value: 0 });
     });
 
-    it("should throw when declaring without active scope", () => {
+    it("asserts an active scope: declaring outside one is a transpiler defect", () => {
       expect(() => {
         stack.declare("x", { initialized: false, value: 0 });
-      }).toThrow("no active scope");
+      }).toThrow(
+        "Internal: a variable is declared only inside a scope the analysis entered",
+      );
     });
 
     it("should allow same name in different scopes (shadowing)", () => {

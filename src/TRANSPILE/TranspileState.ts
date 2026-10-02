@@ -536,11 +536,7 @@ class TranspileState {
    * null-check (the generator is always set before any handler runs).
    */
   requireGenerator(): ICodeGenApi {
-    if (this.generator === null) {
-      throw new Error(
-        "TranspileState.generator is not set; codegen accessed before initialization.",
-      );
-    }
+    invariant(this.generator, "the generator is set before any handler runs");
     return this.generator;
   }
 

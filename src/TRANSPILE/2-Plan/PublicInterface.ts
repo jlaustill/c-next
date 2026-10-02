@@ -3,6 +3,7 @@ import type TSymbol from "../../transpiler/types/symbols/TSymbol";
 import type TType from "../../transpiler/types/TType";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
+import invariant from "../../utils/invariant";
 
 /**
  * Issues #1161 and #1164 — the single answer to "which symbols form this
@@ -297,20 +298,17 @@ class PublicInterface {
     if (type.kind === "primitive" || type.kind === "string") {
       return;
     }
-    if (type.kind === "deferred") {
-      // Named explicitly, because the fall-through below would otherwise ACCEPT
-      // this arm: a deferred type carries a `name` field, so it matches
-      // structurally and TypeScript cannot object. It would contribute the
-      // UNQUALIFIED name to the public-interface closure, and this walk's
-      // failure mode is silence -- an unrecognized name is read as "not mine to
-      // define", so the header omits a typedef and the generated C does not
-      // compile while the transpiler exits 0.
-      throw new Error(
-        `Internal error: unresolved type '${type.name}' (in scope ` +
-          `'${type.scopePath || "global"}') reached public-interface analysis. ` +
-          `1.4 Resolve must settle every deferred type before 2.1 begins.`,
-      );
-    }
+    // Named explicitly, because the fall-through below would otherwise ACCEPT
+    // a deferred type: it carries a `name` field, so it matches structurally
+    // and TypeScript cannot object. It would contribute the UNQUALIFIED name to
+    // the public-interface closure, and this walk's failure mode is silence --
+    // an unrecognized name is read as "not mine to define", so the header omits
+    // a typedef and the generated C does not compile while the transpiler
+    // exits 0.
+    invariant(
+      type.kind !== "deferred",
+      "1.4 Resolve settles every deferred type before the public interface is walked",
+    );
     into.push(type.name);
   }
 

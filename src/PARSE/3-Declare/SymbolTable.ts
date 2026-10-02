@@ -25,6 +25,7 @@ import IEnumSymbol from "../../transpiler/types/symbols/IEnumSymbol";
 import IFunctionSymbol from "../../transpiler/types/symbols/IFunctionSymbol";
 import TypeResolver from "../../utils/TypeResolver";
 import type ITargetDescription from "../../transpiler/types/ITargetDescription";
+import invariant from "../../utils/invariant";
 
 // Enable immer support for Map and Set (must be called once at module scope)
 enableMapSet();
@@ -952,12 +953,11 @@ class SymbolTable {
           target.set(entryKey, entryValue);
         }
       } else {
-        // TypeError, not Error: the condition above is an instanceof check
-        // (SonarCloud S7786), and what went wrong is genuinely a field whose
-        // type has no merge rule.
-        throw new TypeError(
-          `SymbolTable.mergeStructState: no merge rule for struct-state field "${key}". ` +
-            `Add one -- a silently skipped field is how #1225 happened.`,
+        // A field with no merge rule would be skipped in silence, which is how
+        // #1225 happened. Add the rule above.
+        invariant(
+          false,
+          `every struct-state field has a merge rule, "${key}" included`,
         );
       }
     }

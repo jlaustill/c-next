@@ -8,6 +8,7 @@ import type TType from "../transpiler/types/TType";
 import TTypeUtils from "./TTypeUtils";
 import PrimitiveKindUtils from "./PrimitiveKindUtils";
 import ArrayDimensionText from "./ArrayDimensionText";
+import invariant from "./invariant";
 
 // Regex patterns for type parsing
 const STRING_TYPE_PATTERN = /^string\s*<\s*(\d+)\s*>$/;
@@ -89,6 +90,16 @@ class TypeResolver {
    * @returns String representation of the type
    */
   static getTypeName(type: TType): string {
+    // Not a diagnostic and not reachable from user input: 1.4 Resolve
+    // replaces every deferred type, so one arriving here means a pass ran out
+    // of order or a rebuilt symbol was dropped. Flattening it to `type.name`
+    // would emit the UNQUALIFIED name -- the silent wrong answer this exists to
+    // make impossible, and the one ADR-057 cannot recover from once the name
+    // is a string.
+    invariant(
+      type.kind !== "deferred",
+      "1.4 Resolve settles every deferred type before code generation names one",
+    );
     switch (type.kind) {
       case "primitive":
         return type.primitive;
@@ -111,18 +122,6 @@ class TypeResolver {
         const dims = type.dimensions.map((d) => `[${d}]`).join("");
         return `${elementName}${dims}`;
       }
-      case "deferred":
-        // Not a diagnostic and not reachable from user input: 1.4 Resolve
-        // replaces every deferred type, so one arriving here means a pass ran
-        // out of order or a rebuilt symbol was dropped. Flattening it to
-        // `type.name` instead would emit the UNQUALIFIED name -- the exact
-        // silent wrong answer the arm exists to make impossible, and the one
-        // ADR-057 cannot recover from once the name is a string.
-        throw new Error(
-          `Internal error: unresolved type '${type.name}' (in scope ` +
-            `'${type.scopePath || "global"}') reached code generation. ` +
-            `1.4 Resolve must settle every deferred type before 2.1 begins.`,
-        );
     }
   }
 }
