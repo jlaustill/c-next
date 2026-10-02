@@ -184,10 +184,6 @@ error[E0428]: Cannot assign Power enum to State enum
 error[E0894]: Negative values not allowed in enum (found -1 in State.FAULT)
 ```
 
-A cast whose enum value does not fit its target is a compile error by the
-casting rules above, and has no diagnostic yet: it is accepted and truncates
-(#1845).
-
 ### Generated C
 
 ```cnx
@@ -265,12 +261,12 @@ castExpression
 
 ## Diagnostics
 
-| Code  | Reported when                                                                            | Asserted by                                                                                                        |
-| ----- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| E0424 | An enum member is written bare where nothing names its enum, or names a different enum   | `tests/adr-017/unqualified-enum-*.test.cnx`, `tests/adr-017/enum-bare-in-*.test.cnx`                               |
-| E0428 | A value assigned to an enum-typed target is not of that enum                             | `tests/adr-017/enum-error-assign-*.test.cnx`                                                                       |
-| E0434 | The two sides of a comparison are not the same enum type                                 | `tests/adr-017/enum-error-compare-*.test.cnx`                                                                      |
-| E0894 | A member's value is negative, written or counted on from a negative value, at the member | `tests/enum/enum-error-negative.test.cnx`, `tests/bugs/issue-1531-declaration-rejections/cross-file-enum.test.cnx` |
+| Code  | Reported when                                                                          | Asserted by                                                                                                        |
+| ----- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| E0424 | An enum member is written bare where nothing names its enum, or names a different enum | `tests/adr-017/unqualified-enum-*.test.cnx`, `tests/adr-017/enum-bare-in-*.test.cnx`                               |
+| E0428 | A value assigned to an enum-typed target is not of that enum                           | `tests/adr-017/enum-error-assign-*.test.cnx`                                                                       |
+| E0434 | The two sides of a comparison are not the same enum type                               | `tests/adr-017/enum-error-compare-*.test.cnx`                                                                      |
+| E0894 | An enum member's value is negative, reported at the member                             | `tests/enum/enum-error-negative.test.cnx`, `tests/bugs/issue-1531-declaration-rejections/cross-file-enum.test.cnx` |
 
 A bare member (`RED` for `Color.RED`) is accepted only where the position
 already names the enum: a declaration or assignment whose type is the enum, a
