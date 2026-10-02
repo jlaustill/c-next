@@ -6,6 +6,7 @@ import FileDiscovery from "../../transpiler/data/FileDiscovery";
 import IncludeDiscovery from "../../transpiler/data/IncludeDiscovery";
 import IncludeResolver from "../../transpiler/data/IncludeResolver";
 import InputExpansion from "../../transpiler/data/InputExpansion";
+import PlatformIOIni from "../../transpiler/data/PlatformIOIni";
 import EFileType from "../../transpiler/data/types/EFileType";
 import type IDiscoveredFile from "../../transpiler/data/types/IDiscoveredFile";
 import type IHeaderRoot from "../../transpiler/data/types/IHeaderRoot";
@@ -17,6 +18,7 @@ import type ITranspilerConfig from "../../transpiler/types/ITranspilerConfig";
 import type THeaderExtension from "../../transpiler/types/THeaderExtension";
 import type TTranspileInput from "../../transpiler/types/TTranspileInput";
 import invariant from "../../utils/invariant";
+import ReadOnceFileSystem from "./ReadOnceFileSystem";
 import RunAnchor from "./RunAnchor";
 import type IFileIncludes from "./types/IFileIncludes";
 import type ISourceGraph from "./types/ISourceGraph";
@@ -104,11 +106,14 @@ class Discover {
       settings,
       fs,
     );
+    // Owner ruling 3: every read 1.1 makes goes through one view, so each
+    // file's text is read once. The anchor keeps the host port: it, and its
+    // `PathResolver`, outlive this run.
     const discovery = new Discover(
       anchor,
       settings,
       headerExtension,
-      fs,
+      new ReadOnceFileSystem(fs),
       warnings,
     );
     const files =
@@ -160,6 +165,12 @@ class Discover {
         directory: this.anchor.directory,
         projectRoot: this.anchor.projectRoot,
         defines: this.anchor.defines,
+        // ADR-049's build-system rung, from the text discovery read. The
+        // build machine's environment too: PlatformIO appends its
+        // PLATFORMIO_DEFAULT_ENVS to default_envs (#1794)
+        platformio: this.anchor.projectRoot
+          ? PlatformIOIni.read(this.anchor.projectRoot, this.fs, process.env)
+          : null,
       }),
       writeOutputToDisk: files.writeOutputToDisk,
     });

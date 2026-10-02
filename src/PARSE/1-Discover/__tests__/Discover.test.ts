@@ -107,6 +107,7 @@ describe("Discover", () => {
       directory: "/proj/src",
       projectRoot: undefined,
       defines: { BOARD: "uno" },
+      platformio: null,
     });
   });
 

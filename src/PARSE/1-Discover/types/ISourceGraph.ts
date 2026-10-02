@@ -1,5 +1,6 @@
 import type IDiscoveredFile from "../../../transpiler/data/types/IDiscoveredFile";
 import type IPipelineFile from "../../../transpiler/types/IPipelineFile";
+import type IPlatformIOProject from "../../../transpiler/types/IPlatformIOProject";
 import type IRunAnchor from "../../../transpiler/types/IRunAnchor";
 import type IFileIncludes from "./IFileIncludes";
 
@@ -56,8 +57,16 @@ interface ISourceGraph {
    * Where the run is anchored (#1719), as facts: the project root found from
    * the anchor, the directory a `.cnx` header's `#include` is measured from,
    * and the compile database's defines beneath the caller's.
+   *
+   * And the project root's `platformio.ini`, parsed: ADR-049's build-system
+   * rung, or null when the root has none (#1444, owner ruling 3). It is
+   * parsed from the text 1.1's include discovery read for `lib_extra_dirs`,
+   * so the libraries the run searches and the target it builds for come from
+   * one version of the file.
    */
-  readonly anchor: Pick<IRunAnchor, "directory" | "projectRoot" | "defines">;
+  readonly anchor: Pick<IRunAnchor, "directory" | "projectRoot" | "defines"> & {
+    readonly platformio: IPlatformIOProject | null;
+  };
 
   /** Whether to write generated output to disk: a files run, not a source run. */
   readonly writeOutputToDisk: boolean;

@@ -9,8 +9,6 @@
  * _executePipeline(). There is ONE pipeline for all transpilation.
  */
 
-import PlatformIOIni from "./data/PlatformIOIni";
-import type IPlatformIOProject from "./types/IPlatformIOProject";
 import type TRunTarget from "./types/TRunTarget";
 import { basename, resolve, relative, sep } from "node:path";
 import { availableParallelism } from "node:os";
@@ -722,7 +720,9 @@ class Transpiler {
           registry: this.symbolRegistry,
           target: {
             option: this.config.target,
-            platformio: this._platformIOProject(),
+            // ADR-049's build-system rung, read once by 1.1 from the text its
+            // include discovery used (#1444, owner ruling 3)
+            platformio: this._requireSourceGraph().anchor.platformio,
             pioEnv: this.config.pioEnv || undefined,
             catalog: TargetCatalogFile.targets(this.fs),
             files: declared.map((entry) => ({
@@ -1685,19 +1685,6 @@ class Transpiler {
     }
     result.success = false;
     return false;
-  }
-
-  /**
-   * ADR-049's build-system rung: the platformio.ini of the project the run is
-   * anchored in. #1760 review: this found the root again from the entry's
-   * path, and a source run with no path resolved "<string>" against the
-   * process's cwd, so it read another project's file, or none.
-   */
-  private _platformIOProject(): IPlatformIOProject | null {
-    const root = this._requireSourceGraph().anchor.projectRoot;
-    // The build machine's environment too: PlatformIO appends its
-    // PLATFORMIO_DEFAULT_ENVS to default_envs (#1794)
-    return root ? PlatformIOIni.read(root, this.fs, process.env) : null;
   }
 
   /** The run's target; valid once Stage 3b has passed */
