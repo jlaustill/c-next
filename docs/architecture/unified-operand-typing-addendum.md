@@ -349,15 +349,15 @@ This reaches serve, which builds its Transpiler with `input: ""` (`ServeCommand.
 **Position.**
 
 - For an unknown or conflicting pragma: that pragma.
-- Otherwise: the first header `#include` of the first pipeline file that has one. Pipeline order puts dependencies first (`:2352`), and source mode lists includes before the main file (`:1427-1434`).
+- Otherwise: the first header `#include` of the first pipeline file that has one. Pipeline order puts dependencies first in both modes, because source mode builds its input through the same `Transpiler._buildPipelineInput` and its `_sortFilesByDependency`.
 - The chain case is equal in both modes, which the DualCodePaths test asserts. The order of sibling branches can differ between modes; that is #1435's territory.
 
 **The one fact behind "reaches a header".**
 
-- `IResolvedIncludes.hasForeignInclude` (`IncludeResolver.ts:47`, set at `:295` and `:371`) becomes `firstForeignInclude: {line, column} | null`.
-- `extractIncludesWithInfo` (`IncludeDiscovery.ts:485-499`) carries the position from `_scanIncludeDirectives` (`:382`).
-- The readers at `Transpiler.ts:1423`, `:1432` and `:2169` compare it with `!== null`.
-- `IPipelineFile` gains `firstForeignInclude`, which is direct. `reachesForeignHeader` (`IPipelineFile.ts:38`) is unchanged, so E0426 and E0427 are unchanged.
+- `IResolvedIncludes.hasForeignInclude` (set in `IncludeResolver._categorizeFile` and `_handleUnresolvedInclude`) becomes `firstForeignInclude: {line, column} | null`.
+- `IncludeDiscovery.extractCNextIncludes` carries the position of the `INCLUDE_DIRECTIVE` token. Since #1745, it is how `IncludeResolver.resolve` reads a `.cnx` file's directives. The text scan, `extractIncludesWithInfo`, now reads only C and C++ headers.
+- Its one reader, in `Transpiler._buildPipelineInput`, compares it with `!== null`.
+- `IPipelineFile` gains `firstForeignInclude`, which is direct. `IPipelineFile.reachesForeignHeader` is unchanged, so E0426 and E0427 are unchanged.
 
 **Source-mode reach.**
 

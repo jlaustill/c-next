@@ -252,7 +252,7 @@ interface IProgram {
 
   /**
    * #1435: the directory a quoted include from `sourceFile` resolves from, as
-   * discovery resolved it. Unlike the search path it has no empty answer:
+   * discovery resolved it. It has no empty answer:
    * every file the run analyzes was discovered, so a missing entry is a
    * defect, and guessing `dirname(sourceFile)` is the re-derivation that let
    * discovery and E0506 disagree for an in-memory root.
