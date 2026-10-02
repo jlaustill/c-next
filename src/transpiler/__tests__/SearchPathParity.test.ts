@@ -9,9 +9,13 @@
  * #1672: ADR-010 resolves a quoted `.cnx` include beside the file it appears
  * in, and only there -- 2.1's E0506 looks there -- but 1.1 searched every
  * search path, so it pulled into the run a file the include cannot reach.
+ *
+ * #1672 box 1: where an include resolves is one decision, which 2.1 reads
+ * rather than re-derives. 2.1 asked the filesystem again, along its own branch
+ * between the two forms, so its answer and 1.1's could differ.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -117,6 +121,86 @@ describe("search path parity", () => {
       expect(result.files.map((f) => f.sourcePath)).toContain(
         join(lib, "colors.cnx"),
       );
+    });
+  });
+
+  describe("2.1 reports 1.1's answer, not one of its own (#1672 box 1)", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    /** `colors.cnx` beside `main.cnx`, which includes it quoted. */
+    function besideMain(): { main: string; colors: string } {
+      const main = join(project, "src", "main.cnx");
+      const colors = join(project, "src", "colors.cnx");
+      writeFileSync(colors, COLORS);
+      writeFileSync(main, '#include "colors.cnx"\n\nvoid main() {\n}\n');
+      return { main, colors };
+    }
+
+    it("E0506 is the include 1.1 could not resolve, however the file system answers later", async () => {
+      const { main, colors } = besideMain();
+      // The file is absent when 1.1 resolves the include and present after
+      // (an editor saving it mid-run). Only a pass that asks again can see
+      // the second answer, so this tells reading from re-deriving.
+      const fs = NodeFileSystem.instance;
+      const exists = fs.exists.bind(fs);
+      let answered = false;
+      vi.spyOn(fs, "exists").mockImplementation((path: string) => {
+        if (path !== colors || answered) return exists(path);
+        answered = true;
+        return false;
+      });
+
+      const result = await run(main);
+
+      expect(result.files.map((f) => f.sourcePath)).not.toContain(colors);
+      expect(result.errors.map((e) => e.message).join("\n")).toContain("E0506");
+    });
+
+    it("control: an include 1.1 resolved is not reported", async () => {
+      const { main, colors } = besideMain();
+
+      const result = await run(main);
+
+      expect(result.errors).toEqual([]);
+      expect(result.files.map((f) => f.sourcePath)).toContain(colors);
+    });
+
+    /** `ext.h` in a directory on no search path, named by absolute path. */
+    function absoluteHeader(withCNextSource: boolean): string {
+      const vendor = join(project, "vendor");
+      mkdirSync(vendor);
+      writeFileSync(
+        join(vendor, "ext.h"),
+        "#ifndef EXT_H\n#define EXT_H\n#endif\n",
+      );
+      if (withCNextSource) {
+        writeFileSync(
+          join(vendor, "ext.cnx"),
+          "u32 extValue() {\n    return 1;\n}\n",
+        );
+      }
+      const main = join(project, "src", "main.cnx");
+      writeFileSync(
+        main,
+        `#include <${join(vendor, "ext.h")}>\n\nvoid main() {\n}\n`,
+      );
+      return main;
+    }
+
+    it("E0504 asks 1.1's rule, which resolves an absolute angle include", async () => {
+      // 1.1 resolves `#include <…/ext.cnx>` by its absolute path; 2.1 joined
+      // that path onto each search directory and never found it.
+      const result = await run(absoluteHeader(true));
+
+      expect(result.errors.map((e) => e.message).join("\n")).toContain("E0504");
+    });
+
+    it("control: an absolute angle header with no C-Next source is accepted", async () => {
+      const result = await run(absoluteHeader(false));
+
+      expect(result.errors).toEqual([]);
     });
   });
 });
