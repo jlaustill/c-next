@@ -53,7 +53,6 @@ import ConflictDetector from "./ConflictDetector";
 import type IForeignSymbols from "./types/IForeignSymbols";
 import type IConflict from "../../types/IConflict";
 import type IModificationFacts from "./types/IModificationFacts";
-import type ICallGraphEntry from "../../types/ICallGraphEntry";
 import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import type IProgramInputs from "./types/IProgramInputs";
 import type IVisibilityInput from "./types/IVisibilityInput";
@@ -95,7 +94,6 @@ const NO_FOREIGN: IForeignSymbols = {
 const NO_MODIFICATIONS: IModificationFacts = {
   modifiedParameters: new Map<string, ReadonlySet<string>>(),
   functionParamLists: new Map<string, ReadonlyArray<string>>(),
-  callGraph: new Map<string, ReadonlyArray<ICallGraphEntry>>(),
 };
 
 /** A program built without include information: each file sees only itself. */
@@ -246,8 +244,6 @@ class Program {
         modifications.modifiedParameters,
       functionParamLists: (): ReadonlyMap<string, ReadonlyArray<string>> =>
         modifications.functionParamLists,
-      callGraph: (): ReadonlyMap<string, ReadonlyArray<ICallGraphEntry>> =>
-        modifications.callGraph,
       codeGenSymbolsFor: (sourceFile: string): ICodeGenSymbols | undefined =>
         visibleByFile.get(sourceFile),
       passByValueParams: (): ReadonlyMap<string, ReadonlySet<string>> =>

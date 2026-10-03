@@ -6,6 +6,8 @@
  */
 
 import LexicalScopeCollector from "./collectors/LexicalScopeCollector";
+import ModificationCollector from "./collectors/ModificationCollector";
+import CallbackUseCollector from "./collectors/CallbackUseCollector";
 import * as Parser from "../../2-Parse/grammar/CNextParser";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TSymbol from "../../../types/symbols/TSymbol";
@@ -120,7 +122,24 @@ class CNextResolver {
       isScopeType,
     );
 
-    return { sourceFile, symbols, declaredScopeTypes, lexicalScopes };
+    // #1825: ADR-006's and ADR-029's per-file halves. Each records what this
+    // file spells; resolving a callee and deciding a callback need every file,
+    // so 1.4 does both.
+    const modifications = ModificationCollector.collect(tree, (scopeName) =>
+      registry.scopePathOf(scopeName),
+    );
+    const callbackUses = CallbackUseCollector.collect(tree, (scopeName) =>
+      registry.scopePathOf(scopeName),
+    );
+
+    return {
+      sourceFile,
+      symbols,
+      declaredScopeTypes,
+      lexicalScopes,
+      modifications,
+      callbackUses,
+    };
   }
 
   /**
