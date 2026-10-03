@@ -94,10 +94,11 @@ A member's value is computed while the program compiles, as in C (owner ruling, 
 - `const`s that have a value;
 - `sizeof` of a primitive type;
 - casts;
-- the integer operators.
+- the integer operators;
+- members of the same enum declared above it.
 
 It is evaluated with ADR-044's arithmetic, including its rule that a value fixed at compile time
-never overflows. A member with no value continues from the one before it.
+never overflows. A member written without a value continues from the one before it.
 
 ```cnx
 const u32 BASE <- 0x10;
@@ -109,8 +110,35 @@ enum Reg {
 }
 ```
 
+**A member of the same enum needs no cast** (owner ruling, 2026-10-03). A member is of its
+enum's own type, which is the type the new member's value is being given, so nothing is
+converted. The two common cases are a combined flag and an alias:
+
+```cnx
+enum Perm {
+    READ  <- 1,
+    WRITE <- 2,
+    EXEC  <- 4,
+    RW    <- Perm.READ | Perm.WRITE,   // 3
+    ALL   <- Perm.RW | Perm.EXEC       // 7
+}
+
+enum Mode {
+    SLOW,
+    FAST,
+    DEFAULT <- Mode.FAST               // 1
+}
+```
+
+**A member's value is an `i32`** (owner ruling, 2026-10-03). When nothing gives a literal a type,
+it is an `i32` (ADR-044), so arithmetic on literals alone happens at `i32`. Whatever the
+arithmetic, the value it produces must fit `i32`: `A <- 0x80000000` is an error. Together with E0894, this puts a member's value in
+`0`…`2147483647`. On some targets C's `int` is narrower than `i32`, for example 16 bits on an
+8-bit microcontroller. Whether the range narrows there is #1862.
+
 Some things are not a member value, and each is an error at the member:
 
+- the member itself, or a member declared below it. Neither has a value yet;
 - a variable;
 - a function call;
 - a name that an included C or C++ header defines, such as a macro. C-Next needs the value
@@ -291,8 +319,6 @@ castExpression
 ## Open Questions (Deferred)
 
 1. Exhaustiveness checking in switch statements? (ADR-025)
-2. May a member's value name an earlier member of the same enum, as C allows? (#1669, pending
-   the owner)
 
 ## Diagnostics
 
