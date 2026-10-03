@@ -23,9 +23,8 @@
  */
 
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
-import ArrayDimensionParser from "../../../utils/ArrayDimensionParser";
+import ConstExprLowering from "../../../utils/ConstExprLowering";
 import ConstantFold from "../../../utils/ConstantFold";
-import ParserUtils from "../../../utils/ParserUtils";
 import type IAnalysisContext from "../types/IAnalysisContext";
 
 class ConstantExpression {
@@ -47,13 +46,9 @@ class ConstantExpression {
     context: IAnalysisContext,
   ): number | null {
     return (
-      ArrayDimensionParser.parseSingleDimension(
+      ConstExprLowering.valueOf(
         expr,
-        ConstantFold.at(
-          context.program,
-          context.sourceFile,
-          ParserUtils.getPosition(expr),
-        ),
+        ConstantFold.environment(context.program, context.sourceFile),
       ) ?? null
     );
   }

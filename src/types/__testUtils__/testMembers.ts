@@ -63,6 +63,8 @@ class TestMembers {
         ...TestMembers.base("enum_member", name, enumScopedName, line),
         sourceFile,
         kind: "enum_member",
+        // A test states the settled value; the value as written is not its subject
+        valueExpr: null,
         value,
       });
     }

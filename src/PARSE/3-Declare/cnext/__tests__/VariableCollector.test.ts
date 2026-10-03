@@ -3,6 +3,8 @@ import parse from "./testHelpers";
 import VariableCollector from "../collectors/VariableCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TypeResolver from "../../../../utils/TypeResolver";
+import ConstExprShape from "../../../../utils/__testUtils__/ConstExprShape";
+import UNRESOLVED_DIMENSION from "../../../../types/UNRESOLVED_DIMENSION";
 
 describe("VariableCollector", () => {
   describe("omitted sizes (#1822, #1824 review)", () => {
@@ -185,7 +187,7 @@ describe("VariableCollector", () => {
       expect(symbol.arrayDimensions).toEqual([4, 4]);
     });
 
-    it("keeps a const-named dimension as text, for 1.4 to fold (#455, #1664 box 7)", () => {
+    it("keeps a const-named dimension as written, for 1.4 to fold (#455, #1664 box 7)", () => {
       const code = `
         bool flags[DEVICE_COUNT];
       `;
@@ -199,10 +201,13 @@ describe("VariableCollector", () => {
       );
 
       expect(symbol.isArray).toBe(true);
-      expect(symbol.arrayDimensions).toEqual(["DEVICE_COUNT"]);
+      expect(symbol.arrayDimensions).toEqual([UNRESOLVED_DIMENSION]);
+      expect(ConstExprShape.list(symbol.arrayDimensionExprs)).toEqual([
+        "DEVICE_COUNT",
+      ]);
     });
 
-    it("keeps a const-named dimension as text beside a literal (#455)", () => {
+    it("keeps a const-named dimension as written beside a literal (#455)", () => {
       const code = `
         i32 matrix[ROWS][8];
       `;
@@ -216,10 +221,14 @@ describe("VariableCollector", () => {
       );
 
       expect(symbol.isArray).toBe(true);
-      expect(symbol.arrayDimensions).toEqual(["ROWS", 8]);
+      expect(symbol.arrayDimensions).toEqual([UNRESOLVED_DIMENSION, 8]);
+      expect(ConstExprShape.list(symbol.arrayDimensionExprs)).toEqual([
+        "ROWS",
+        null,
+      ]);
     });
 
-    it("keeps several const-named dimensions as text (#455)", () => {
+    it("keeps several const-named dimensions as written (#455)", () => {
       const code = `
         u16 data[WIDTH][HEIGHT];
       `;
@@ -233,7 +242,14 @@ describe("VariableCollector", () => {
       );
 
       expect(symbol.isArray).toBe(true);
-      expect(symbol.arrayDimensions).toEqual(["WIDTH", "HEIGHT"]);
+      expect(symbol.arrayDimensions).toEqual([
+        UNRESOLVED_DIMENSION,
+        UNRESOLVED_DIMENSION,
+      ]);
+      expect(ConstExprShape.list(symbol.arrayDimensionExprs)).toEqual([
+        "WIDTH",
+        "HEIGHT",
+      ]);
     });
 
     it("collects C-Next style array with dimensions in type (u8[8] arr)", () => {
@@ -270,7 +286,7 @@ describe("VariableCollector", () => {
       expect(symbol.arrayDimensions).toEqual([4, 4]);
     });
 
-    it("keeps a const reference in a C-Next style array as text", () => {
+    it("keeps a const reference in a C-Next style array as written", () => {
       const code = `
         u8[SIZE] buffer;
       `;
@@ -284,10 +300,11 @@ describe("VariableCollector", () => {
       );
 
       expect(symbol.isArray).toBe(true);
-      expect(symbol.arrayDimensions).toEqual(["SIZE"]);
+      expect(symbol.arrayDimensions).toEqual([UNRESOLVED_DIMENSION]);
+      expect(ConstExprShape.list(symbol.arrayDimensionExprs)).toEqual(["SIZE"]);
     });
 
-    it("preserves unresolved macro as string in C-Next style array", () => {
+    it("keeps an unresolved macro as written in a C-Next style array", () => {
       const code = `
         u8[BUFFER_SIZE] buffer;
       `;
@@ -301,7 +318,10 @@ describe("VariableCollector", () => {
       );
 
       expect(symbol.isArray).toBe(true);
-      expect(symbol.arrayDimensions).toEqual(["BUFFER_SIZE"]);
+      expect(symbol.arrayDimensions).toEqual([UNRESOLVED_DIMENSION]);
+      expect(ConstExprShape.list(symbol.arrayDimensionExprs)).toEqual([
+        "BUFFER_SIZE",
+      ]);
     });
   });
 

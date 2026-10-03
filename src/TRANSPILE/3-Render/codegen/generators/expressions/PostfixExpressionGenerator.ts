@@ -32,8 +32,8 @@ import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import BitUtils from "../../../../../utils/BitUtils";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
-import TYPE_WIDTH from "../../../../../types/TYPE_WIDTH";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
+import LengthProperty from "../../../../../utils/LengthProperty";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import OperandTyper from "../../../../../utils/OperandTyper";
 import invariant from "../../../../../utils/invariant";
@@ -507,26 +507,16 @@ interface IPropertyContext {
  * Get the numeric bit width for a type (internal helper for ADR-058).
  * Returns 0 if type is unknown.
  */
-const getNumericBitWidth = (
-  typeName: string,
-  input: IGeneratorInput,
-): number => {
-  let bitWidth = TYPE_WIDTH[typeName] ?? C_TYPE_WIDTH[typeName] ?? 0;
-  if (bitWidth === 0 && input.symbolTable) {
-    const enumWidth = input.symbolTable.getEnumBitWidth(typeName);
-    if (enumWidth) bitWidth = enumWidth;
-  }
-  // Check if it's a known enum (default to 32 bits per ADR-017)
-  if (bitWidth === 0 && input.symbols?.knownEnums?.has(typeName)) {
-    bitWidth = 32;
-  }
-  // Check bitmap types
-  if (bitWidth === 0 && input.symbols?.bitmapBitWidth) {
-    const bitmapWidth = input.symbols.bitmapBitWidth.get(typeName);
-    if (bitmapWidth) bitWidth = bitmapWidth;
-  }
-  return bitWidth;
-};
+const getNumericBitWidth = (typeName: string, input: IGeneratorInput): number =>
+  // #1175: C-Next's own widths are the one rule the constant evaluator reads
+  // too; a C header type's width, from a table 1.4 may not read, is render's
+  LengthProperty.elementBits(typeName, {
+    enumBitWidth: (name) => input.symbolTable?.getEnumBitWidth(name) || null,
+    isEnum: (name) => input.symbols?.knownEnums?.has(name) ?? false,
+    bitmapBitWidth: (name) => input.symbols?.bitmapBitWidth?.get(name) || null,
+  }) ??
+  C_TYPE_WIDTH[typeName] ??
+  0;
 
 /** The bits one element of the measured value holds; 0 if not known */
 const elementBitWidth = (
@@ -539,7 +529,7 @@ const elementBitWidth = (
       measured.stringCapacity !== null,
       `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for string with unknown capacity.`,
     );
-    return (measured.stringCapacity + 1) * 8;
+    return LengthProperty.stringElementBits(measured.stringCapacity);
   }
   if (measured.bitWidth !== null) return measured.bitWidth;
   return measured.typeName === null
@@ -573,10 +563,13 @@ const measuredLength = (
   );
   const perElement = element / unitBits;
   const dimensions = measured.dimensions;
-  if (dimensions.every((dim) => typeof dim === "number")) {
-    const product = dimensions.reduce<number>((all, dim) => all * dim, 1);
-    return String(product * perElement);
-  }
+  // #1175: the one rule the constant evaluator folds a dimension by, too
+  const folded = LengthProperty.of(
+    unitBits === 1 ? "bit_length" : "byte_length",
+    dimensions,
+    element,
+  );
+  if (folded !== null) return String(folded);
   const factors = dimensions.map((dim) =>
     typeof dim === "number" ? `${dim}U` : `(${dim})`,
   );

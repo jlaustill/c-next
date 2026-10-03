@@ -13,6 +13,8 @@
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "./ParserUtils";
 import invariant from "./invariant";
+import ConstantEvaluator from "./ConstantEvaluator";
+import type IConstantEnvironment from "./types/IConstantEnvironment";
 import type { ParserRuleContext } from "antlr4ng";
 import type TConstExpr from "../types/TConstExpr";
 
@@ -44,8 +46,52 @@ const BINARY_OPS: ReadonlySet<string> = new Set<TBinaryOp>([
 const SUFFIXED = /^(.+?)([uUiI](?:8|16|32|64))$/;
 
 class ConstExprLowering {
+  /**
+   * What an expression written here is worth, as an integer: the 2.x entry,
+   * where the tree is in hand. Undefined when it has no value -- a runtime
+   * operand, a C macro -- which is a real answer, not a failure.
+   */
+  static valueOf(
+    ctx: Parser.ExpressionContext,
+    env: IConstantEnvironment,
+  ): number | undefined {
+    const result = ConstantEvaluator.evaluate(
+      ConstExprLowering.lower(ctx),
+      env,
+    );
+    return result.kind === "value"
+      ? ConstantEvaluator.toNumber(result.value)
+      : undefined;
+  }
+
   static lower(ctx: Parser.ExpressionContext): TConstExpr {
-    const ternary = ctx.ternaryExpression();
+    return ConstExprLowering.ternary(ctx.ternaryExpression());
+  }
+
+  /**
+   * Any expression-level node: what a caller holding an operand rather than
+   * an `expression` lowers (a shift amount, a slice bound, a subscript)
+   */
+  static lowerNode(node: ParserRuleContext): TConstExpr {
+    if (node instanceof Parser.ExpressionContext) {
+      return ConstExprLowering.lower(node);
+    }
+    if (node instanceof Parser.TernaryExpressionContext) {
+      return ConstExprLowering.ternary(node);
+    }
+    if (node instanceof Parser.PostfixExpressionContext) {
+      return ConstExprLowering.postfix(node);
+    }
+    if (node instanceof Parser.PrimaryExpressionContext) {
+      return ConstExprLowering.primary(node);
+    }
+    if (node instanceof Parser.LiteralContext) {
+      return ConstExprLowering.literal(node);
+    }
+    return ConstExprLowering.chain(node);
+  }
+
+  private static ternary(ternary: Parser.TernaryExpressionContext): TConstExpr {
     const parts = ternary.orExpression();
     if (parts.length === 3) {
       return {
@@ -194,6 +240,12 @@ class ConstExprLowering {
         digits: BigInt(match[1]).toString(),
         typeName: match[2].toLowerCase(),
       };
+    }
+    // #1728's interim answer, the one every reading shares: a leading-zero
+    // literal is octal to C and decimal to the transpiler, so until #1728 says
+    // which it is, it has no value -- not one C may disagree with
+    if (ctx.INTEGER_LITERAL() && /^0\d/.test(ctx.getText())) {
+      return ConstExprLowering.other("leadingZero", ctx);
     }
     if (ctx.INTEGER_LITERAL() || ctx.HEX_LITERAL() || ctx.BINARY_LITERAL()) {
       return {

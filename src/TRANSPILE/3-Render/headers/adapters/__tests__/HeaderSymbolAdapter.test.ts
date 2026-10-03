@@ -661,35 +661,38 @@ describe("HeaderSymbolAdapter", () => {
       expect(result.arrayDimensions).toEqual(["DEVICE_COUNT"]);
     });
 
-    it("should resolve qualified enum array dimensions", () => {
+    it("writes each settled dimension as it is: a value, or a header macro's C (#1175)", () => {
+      // 1.4 settles every dimension to its value, or -- for one only C can
+      // evaluate -- to C written from its structure. Nothing is left for the
+      // header to resolve, so it rewrites nothing: it used to rewrite source
+      // text such as `EColor.COUNT`, which no longer reaches it.
       const tSymbol: IVariableSymbol = {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "DATA",
           scopePath: "",
           sourceFile: "test.cnx",
-          span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
-          visibility: "public",
         }),
+        span: TestSourceSpan.at(1),
+        sourceLanguage: ESourceLanguage.CNext,
+        visibility: "public",
         type: TTypeUtils.createPrimitive("u8"),
         isConst: true,
         isAtomic: false,
         isVolatile: false,
         overflowBehavior: "clamp",
         isArray: true,
-        arrayDimensions: ["EColor.COUNT"],
+        arrayDimensions: [3, "BUF_SIZE + 1"],
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
-      // Qualified enum access should be converted to C-style underscore notation
-      expect(result.arrayDimensions).toEqual(["EColor__COUNT"]);
+      expect(result.arrayDimensions).toEqual(["3", "BUF_SIZE + 1"]);
     });
 
-    // The dimension arrives as C-Next SOURCE, so it must be resolved with the same
-    // scope awareness the .c path uses — otherwise the header names a different
-    // symbol than the implementation and does not compile (#1117 review).
+    // #1117 review: a dimension used to arrive as C-Next SOURCE, resolved here
+    // with the .c path's scope awareness. #1175: 1.4 settles it once for both
+    // files, so what remains is a value or C, written as given.
     describe("scope-aware array dimensions", () => {
       const makeArrayVar = (
         scopePath: string,
@@ -711,36 +714,6 @@ describe("HeaderSymbolAdapter", () => {
         overflowBehavior: "clamp",
         isArray: true,
         arrayDimensions: [dim],
-      });
-
-      it("strips global. and adds no scope prefix", () => {
-        const result = HeaderSymbolAdapter.fromTSymbol(
-          makeArrayVar("Motor", "global.EColor.COUNT"),
-          state,
-        );
-
-        expect(result.arrayDimensions).toEqual(["EColor__COUNT"]);
-      });
-
-      it("strips this. and prefixes the declaring scope", () => {
-        const result = HeaderSymbolAdapter.fromTSymbol(
-          makeArrayVar("Motor", "this.State.COUNT"),
-          state,
-        );
-
-        // `this` must not survive as a name component
-        expect(result.arrayDimensions).toEqual(["Motor__State__COUNT"]);
-      });
-
-      it("leaves a bare dotted path unprefixed when the scope has no such enum", () => {
-        // TranspileState has no registered enums here, so the bare path resolves
-        // global-first — matching the .c path for a top-level enum.
-        const result = HeaderSymbolAdapter.fromTSymbol(
-          makeArrayVar("Motor", "Global.COUNT"),
-          state,
-        );
-
-        expect(result.arrayDimensions).toEqual(["Global__COUNT"]);
       });
 
       it("leaves a non-qualified dimension untouched", () => {

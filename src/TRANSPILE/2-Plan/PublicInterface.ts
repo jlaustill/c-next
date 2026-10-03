@@ -1,7 +1,6 @@
 import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import type TSymbol from "../../types/symbols/TSymbol";
 import type TType from "../../types/TType";
-import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import invariant from "../../utils/invariant";
 
@@ -144,13 +143,12 @@ class PublicInterface {
     // a header defines types, and a private function or variable is `static`
     // in the `.c` by design (ADR-016).
     //
-    // Enum MEMBERS are indexed too, because an array dimension crosses the
-    // header boundary as a value, not a type: `extern u8 v[Motor__State__COUNT]`
-    // needs the enum defined even though no declaration names `Motor__State`.
-    // Walking types alone left four headers in the corpus referencing an
-    // undeclared constant, all of which compiled before this fix.
+    // Enum MEMBERS used to be indexed too, because an array dimension crossed
+    // the header boundary as a member's NAME: `extern u8 v[Motor__State__COUNT]`
+    // needed the enum defined though no declaration named `Motor__State`.
+    // #1175: a dimension crosses as its value now (`extern u8 v[3]`), folded
+    // once by 1.4 Resolve, so it names nothing this header must define.
     const definedBy = new Map<string, TSymbol>();
-    const enumCNames = new Set<string>();
     for (const symbol of symbols) {
       if (
         symbol.kind === "struct" ||
@@ -159,29 +157,7 @@ class PublicInterface {
       ) {
         definedBy.set(symbol.fullyQualifiedCName, symbol);
       }
-      if (symbol.kind === "enum") {
-        enumCNames.add(symbol.fullyQualifiedCName);
-        for (const memberName of symbol.members.keys()) {
-          definedBy.set(
-            QualifiedCName.fromParts([symbol.fullyQualifiedCName, memberName]),
-            symbol,
-          );
-        }
-      }
     }
-
-    // A dimension is written in SOURCE form -- `State.COUNT`, `this.State.COUNT`,
-    // `global.EColor.COUNT` -- so it has to be resolved before it can be matched
-    // against a C name. `ScopeUtils.resolveDimensionName` is the same rule the
-    // header and the struct-field path apply (#1127); it takes the predicate
-    // injected so it stays usable from this layer.
-    //
-    // Scoping the predicate to THIS FILE's enums is deliberate: a dimension
-    // naming an enum from an include resolves to a name this map does not hold,
-    // and is correctly ignored -- an included type is not this header's to
-    // define, and the external-dependency path already handles it.
-    const isKnownEnum = (qualifiedName: string): boolean =>
-      enumCNames.has(qualifiedName);
 
     const reached = new Set<string>();
     const queue = symbols.filter((symbol) =>
@@ -190,13 +166,10 @@ class PublicInterface {
 
     while (queue.length > 0) {
       const current = queue.pop()!;
-      for (const name of PublicInterface.namesReferencedBy(
-        current,
-        isKnownEnum,
-      )) {
-        // Absent means it is not this file's to define -- a primitive, a C
-        // macro dimension, or a type from an include, which the header already
-        // handles as an external dependency.
+      for (const name of PublicInterface.namesReferencedBy(current)) {
+        // Absent means it is not this file's to define -- a primitive, or a
+        // type from an include, which the header already handles as an
+        // external dependency.
         const definer = definedBy.get(name);
         if (definer === undefined || reached.has(definer.fullyQualifiedCName)) {
           continue;
@@ -209,47 +182,25 @@ class PublicInterface {
     return reached;
   }
 
-  /**
-   * Every name this symbol requires the header to declare: the types it names,
-   * and the constants its array dimensions name.
-   */
-  private static namesReferencedBy(
-    symbol: TSymbol,
-    isKnownEnum: (qualifiedName: string) => boolean,
-  ): string[] {
+  /** Every name this symbol requires the header to declare: the types it names */
+  private static namesReferencedBy(symbol: TSymbol): string[] {
     const names: string[] = [];
-    const scopePath = symbol.scopePath;
     const collect = (type: TType): void =>
-      PublicInterface.collectTypeNames(type, scopePath, isKnownEnum, names);
-    const collectDims = (
-      dimensions: ReadonlyArray<number | string> | undefined,
-    ): void =>
-      PublicInterface.collectDimensions(
-        dimensions,
-        scopePath,
-        isKnownEnum,
-        names,
-      );
+      PublicInterface.collectTypeNames(type, names);
 
     if (symbol.kind === "function") {
       collect(symbol.returnType);
       for (const parameter of symbol.parameters) {
         collect(parameter.type);
-        collectDims(parameter.arrayDimensions);
       }
     } else if (symbol.kind === "variable") {
       collect(symbol.type);
-      collectDims(symbol.arrayDimensions);
     } else if (symbol.kind === "struct") {
       for (const field of symbol.fields.values()) {
+        // `field.type` is the ELEMENT type. A field's dimensions used to be
+        // walked too, for an enum member naming its bound -- the header wrote
+        // `uint8_t data[Internal__Size__COUNT]`. #1175: it writes the value.
         collect(field.type);
-        // `field.type` is the ELEMENT type; a field's dimensions live in their
-        // own slot, spelled `dimensions` here and `arrayDimensions` on
-        // parameters and variables. Walking only the type missed an enum that
-        // a public struct field names as its bound, so the header declared
-        // `uint8_t data[Internal__Size__COUNT]` with the enum defined in the
-        // `.c` -- transpiler exit 0, header does not compile.
-        collectDims(field.dimensions);
       }
     } else if (symbol.kind === "register") {
       // #1453: a register's accessor casts to its member's type, so a bitmap a
@@ -270,29 +221,13 @@ class PublicInterface {
   /**
    * Flatten a TType to the names it depends on.
    *
-   * An array needs its ELEMENT type complete AND its dimensions declared, so it
-   * contributes both. Primitives and strings name nothing -- a C-Next string is
+   * An array needs its ELEMENT type complete; its dimensions are values, not
+   * names (#1175). Primitives and strings name nothing -- a C-Next string is
    * a fixed-capacity char array.
    */
-  private static collectTypeNames(
-    type: TType,
-    scopePath: string,
-    isKnownEnum: (qualifiedName: string) => boolean,
-    into: string[],
-  ): void {
+  private static collectTypeNames(type: TType, into: string[]): void {
     if (type.kind === "array") {
-      PublicInterface.collectDimensions(
-        type.dimensions,
-        scopePath,
-        isKnownEnum,
-        into,
-      );
-      PublicInterface.collectTypeNames(
-        type.elementType,
-        scopePath,
-        isKnownEnum,
-        into,
-      );
+      PublicInterface.collectTypeNames(type.elementType, into);
       return;
     }
     if (type.kind === "primitive" || type.kind === "string") {
@@ -310,25 +245,6 @@ class PublicInterface {
       "1.4 Resolve settles every deferred type before the public interface is walked",
     );
     into.push(type.name);
-  }
-
-  /**
-   * Array dimensions are numbers once resolved; a string is a name the header
-   * must be able to see -- an enum member, or a C macro from an include.
-   */
-  private static collectDimensions(
-    dimensions: ReadonlyArray<number | string> | undefined,
-    scopePath: string,
-    isKnownEnum: (qualifiedName: string) => boolean,
-    into: string[],
-  ): void {
-    for (const dimension of dimensions ?? []) {
-      if (typeof dimension === "string") {
-        into.push(
-          ScopeUtils.resolveDimensionName(dimension, scopePath, isKnownEnum),
-        );
-      }
-    }
   }
 }
 

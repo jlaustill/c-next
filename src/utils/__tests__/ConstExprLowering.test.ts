@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
 import ConstExprLowering from "../ConstExprLowering";
 import type TConstExpr from "../../types/TConstExpr";
+import ConstExprShape from "../__testUtils__/ConstExprShape";
 
 /** The expression `source` lowers to, written as a const's initializer */
 function lowerOf(source: string): TConstExpr {
@@ -11,30 +12,6 @@ function lowerOf(source: string): TConstExpr {
   return ConstExprLowering.lower(expression);
 }
 
-/** A compact spelling of a lowered expression, so a table can state shape */
-function shape(expr: TConstExpr): string {
-  switch (expr.kind) {
-    case "literal":
-      return expr.typeName === null
-        ? expr.digits
-        : `${expr.digits}:${expr.typeName}`;
-    case "name":
-      return `${expr.root === null ? "" : `${expr.root}.`}${expr.path.join(".")}`;
-    case "sizeof":
-      return `sizeof(${expr.typeName})`;
-    case "cast":
-      return `(${expr.typeName})${shape(expr.operand)}`;
-    case "unary":
-      return `${expr.op}${shape(expr.operand)}`;
-    case "binary":
-      return `(${shape(expr.left)} ${expr.op} ${shape(expr.right)})`;
-    case "ternary":
-      return `(${shape(expr.condition)} ? ${shape(expr.whenTrue)} : ${shape(expr.whenFalse)})`;
-    case "other":
-      return `<${expr.what} ${expr.spelling}>`;
-  }
-}
-
 describe("ConstExprLowering", () => {
   it.each<[string, string]>([
     ["1 + 2", "(1 + 2)"],
@@ -42,7 +19,8 @@ describe("ConstExprLowering", () => {
     ["1 - -1", "(1 - -1)"],
     ["0x10 + 1", "(16 + 1)"],
     ["0b101", "5"],
-    ["010", "10"],
+    // #1728: a leading-zero literal has no value until #1728 says what it is
+    ["010", "<leadingZero 010>"],
     ["9u8", "9:u8"],
     ["0xFFu16", "255:u16"],
     ["0b11i8", "3:i8"],
@@ -69,7 +47,7 @@ describe("ConstExprLowering", () => {
     ["'c'", "<character 'c'>"],
     ["&x", "<address &x>"],
   ])("%s lowers to %s", (source, expected) => {
-    expect(shape(lowerOf(source))).toBe(expected);
+    expect(ConstExprShape.of(lowerOf(source))).toBe(expected);
   });
 
   it("records where a name is written, which is where it binds", () => {

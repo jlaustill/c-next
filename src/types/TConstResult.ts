@@ -39,6 +39,7 @@ type TConstResult =
         | "initializer"
         | "address"
         | "member"
+        | "leadingZero"
         | "divisionByZero"
         | "negativeShift";
       /** The offending part as the source spells it, for a message */
@@ -46,6 +47,16 @@ type TConstResult =
       readonly at: ISourcePosition | null;
     }
   | { readonly kind: "overflow"; readonly typeName: string }
-  | { readonly kind: "foreign" };
+  | {
+      readonly kind: "foreign";
+      /** What only C knows, as the source spells it, for a message */
+      readonly spelling: string;
+      /**
+       * A name a header declares; a name no C-Next declaration binds, in a
+       * file that includes a header, which may be a macro (a `#define` never
+       * reaches the symbol model); or a size the target decides
+       */
+      readonly why: "header" | "maybeHeader" | "targetSize";
+    };
 
 export default TConstResult;

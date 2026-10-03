@@ -1,12 +1,12 @@
 /**
- * Issue #1159: the one place that binds `ArrayDimensionParser` to the live
+ * Issue #1159: the one place that binds the constant evaluator to the live
  * constant/type state.
  *
- * `ArrayDimensionParser` is deliberately pure — it takes its lookups as
- * options so it stays unit-testable without `CodeGenState`. That purity is
- * worth keeping, but it means every caller has to supply the same three
- * lookups, and a caller that supplies fewer silently resolves fewer dimension
- * forms than the others. That is how the `.c` came to fold a const in a
+ * `ConstantEvaluator` is deliberately pure — it takes its names through an
+ * environment so it stays unit-testable without the state. That purity is
+ * worth keeping, but it means every caller has to supply the same
+ * environment, and a caller that supplies a narrower one silently resolves
+ * fewer dimension forms than the others. That is how the `.c` came to fold a const in a
  * local declaration (`uint8_t b[6]`) while emitting the bare identifier in a
  * parameter (`uint8_t buf[SIZE]`) for the same const — a VLA parameter, which
  * CLAUDE.md rules out ("the transpiler resolves consts to their value, no C
@@ -18,24 +18,20 @@
 
 import ConstantFold from "../../utils/ConstantFold";
 import type TranspileState from "../TranspileState";
-import type ISourcePosition from "../../utils/types/ISourcePosition";
-import type IConstantEvalOptions from "../../utils/types/IConstantEvalOptions";
+import type IConstantEnvironment from "../../utils/types/IConstantEnvironment";
 
 /**
- * The constant-folding options for a dimension folded at `at`: the const
- * values visible there, as 1.4 settled them (#1664 box 7), and the type
- * widths `sizeof` needs.
+ * What a name in a dimension is worth where it is written, as 1.4 settled it
+ * (#1664 box 7). #1175: each name carries its own position, so the file is
+ * all this needs -- the position the options were built at is gone.
  *
  * Render held one mutable map per file instead, seeded with every const under
  * its bare name and written as the walk passed a local const, so a local `N`
  * in one function sized another's `u8[N]`.
  */
-function dimensionEvalOptions(
-  state: TranspileState,
-  at: ISourcePosition,
-): IConstantEvalOptions {
+function dimensionEvalOptions(state: TranspileState): IConstantEnvironment {
   const typing = state.typingContext();
-  return ConstantFold.at(typing.program, typing.sourceFile, at);
+  return ConstantFold.environment(typing.program, typing.sourceFile);
 }
 
 export default dimensionEvalOptions;

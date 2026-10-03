@@ -146,13 +146,17 @@ class FunctionCollector {
       // read `2*BUF` as 2 and `0x10` as 0, so the prototype disagreed with
       // the definition and a subscript was checked against the wrong size.
       // An unsized `[]` keeps its slot as "".
-      const arrayDimensions: (number | string)[] = [
+      const declared = [
         ...(arrayTypeCtx?.arrayTypeDimension() ?? []),
         ...cStyleDimensions,
       ].map((dim) => {
         const sizeExpr = dim.expression();
-        return sizeExpr ? DimensionResolver.resolve(sizeExpr) : "";
+        return sizeExpr
+          ? DimensionResolver.resolve(sizeExpr)
+          : { size: "", expr: null };
       });
+      const arrayDimensions = declared.map((dim) => dim.size);
+      const arrayDimensionExprs = declared.map((dim) => dim.expr);
 
       return {
         name,
@@ -161,6 +165,8 @@ class FunctionCollector {
         isArray,
         arrayDimensions:
           arrayDimensions.length > 0 ? arrayDimensions : undefined,
+        arrayDimensionExprs:
+          arrayDimensions.length > 0 ? arrayDimensionExprs : undefined,
       };
     });
   }

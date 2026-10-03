@@ -3,6 +3,7 @@ import parse from "./testHelpers";
 import TestScopeUtils from "./testUtils";
 import EnumCollector from "../collectors/EnumCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import SettledEnumValues from "../../../../utils/__testUtils__/SettledEnumValues";
 
 describe("EnumCollector", () => {
   beforeEach(() => {
@@ -31,9 +32,9 @@ describe("EnumCollector", () => {
 
       // Check members
       expect(symbol.members.size).toBe(3);
-      expect(symbol.members.get("Red")?.value).toBe(0);
-      expect(symbol.members.get("Green")?.value).toBe(1);
-      expect(symbol.members.get("Blue")?.value).toBe(2);
+      // 1.3 records each value as written; 1.4 settles it (#1669)
+      expect(symbol.members.get("Red")?.value).toBeNull();
+      expect(SettledEnumValues.of(symbol)).toEqual([0, 1, 2]);
     });
 
     it("collects an enum with explicit values", () => {
@@ -48,9 +49,9 @@ describe("EnumCollector", () => {
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
-      expect(symbol.members.get("Low")?.value).toBe(10);
-      expect(symbol.members.get("Medium")?.value).toBe(20);
-      expect(symbol.members.get("High")?.value).toBe(30);
+      // 1.3 records each value as written; 1.4 settles it (#1669)
+      expect(symbol.members.get("Low")?.value).toBeNull();
+      expect(SettledEnumValues.of(symbol)).toEqual([10, 20, 30]);
     });
 
     it("supports mixed explicit and auto-increment values", () => {
@@ -67,11 +68,9 @@ describe("EnumCollector", () => {
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
-      expect(symbol.members.get("Idle")?.value).toBe(0);
-      expect(symbol.members.get("Running")?.value).toBe(5);
-      expect(symbol.members.get("Paused")?.value).toBe(6); // Auto-increment from 5
-      expect(symbol.members.get("Stopped")?.value).toBe(10);
-      expect(symbol.members.get("Error")?.value).toBe(11); // Auto-increment from 10
+      // 1.3 records each value as written; 1.4 settles it (#1669)
+      expect(symbol.members.get("Idle")?.value).toBeNull();
+      expect(SettledEnumValues.of(symbol)).toEqual([0, 5, 6, 10, 11]);
     });
   });
 
@@ -88,9 +87,9 @@ describe("EnumCollector", () => {
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
-      expect(symbol.members.get("A")?.value).toBe(1);
-      expect(symbol.members.get("B")?.value).toBe(2);
-      expect(symbol.members.get("C")?.value).toBe(16);
+      // 1.3 records each value as written; 1.4 settles it (#1669)
+      expect(symbol.members.get("A")?.value).toBeNull();
+      expect(SettledEnumValues.of(symbol)).toEqual([1, 2, 16]);
     });
 
     it("supports binary values", () => {
@@ -106,10 +105,9 @@ describe("EnumCollector", () => {
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
-      expect(symbol.members.get("Bit0")?.value).toBe(1);
-      expect(symbol.members.get("Bit1")?.value).toBe(2);
-      expect(symbol.members.get("Bit2")?.value).toBe(4);
-      expect(symbol.members.get("Bit3")?.value).toBe(8);
+      // 1.3 records each value as written; 1.4 settles it (#1669)
+      expect(symbol.members.get("Bit0")?.value).toBeNull();
+      expect(SettledEnumValues.of(symbol)).toEqual([1, 2, 4, 8]);
     });
   });
 
@@ -152,8 +150,9 @@ describe("EnumCollector", () => {
 
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
-      expect(symbol.members.get("Bad")!.value).toBe(-1);
-      expect(symbol.members.get("Next")!.value).toBe(0);
+      // 1.3 records each value as written; 1.4 settles it (#1669)
+      expect(symbol.members.get("Bad")!.value).toBeNull();
+      expect(SettledEnumValues.of(symbol)).toEqual([-1, 0]);
     });
   });
 

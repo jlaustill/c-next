@@ -192,7 +192,9 @@ describe("ConstantEvaluator", () => {
   });
 
   describe("a name only C knows", () => {
-    const withMacro = env({ BUF_SIZE: { kind: "foreign" } });
+    const withMacro = env({
+      BUF_SIZE: { kind: "foreign", spelling: "BUF_SIZE", why: "header" },
+    });
     it("makes the whole expression foreign: C evaluates it", () => {
       expect(valueOf(bin("+", name("BUF_SIZE"), lit("1")), withMacro)).toBe(
         "foreign",

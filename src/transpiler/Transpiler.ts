@@ -708,6 +708,13 @@ class Transpiler {
             ),
           },
           modifications,
+          // #1175: where a name nothing binds may be a macro -- the same
+          // reach 2.1's E0427 is given, defaulted the same way
+          filesReachingForeignHeaders: new Set(
+            declared
+              .filter((entry) => entry.file.reachesForeignHeader ?? true)
+              .map((entry) => entry.fileSymbols.sourceFile),
+          ),
           visibility: {
             cnextIncludesByFile: new Map(
               declared.map((entry) => [

@@ -20,6 +20,9 @@ import TVisibility from "../../../../types/TVisibility";
 import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
 import ParserUtils from "../../../../utils/ParserUtils";
 import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
+import ConstExprLowering from "../../../../utils/ConstExprLowering";
+import type TConstExpr from "../../../../types/TConstExpr";
+import type IDeclaredDimension from "../types/IDeclaredDimension";
 
 class VariableCollector {
   /**
@@ -58,7 +61,7 @@ class VariableCollector {
   private static resolveDimension(
     dim: Parser.ArrayDimensionContext,
     initExpr: Parser.ExpressionContext | null,
-  ): number | string {
+  ): IDeclaredDimension {
     const sizeExpr = dim.expression();
 
     // A literal folds here; a const or a C macro keeps its text (#455), and
@@ -68,7 +71,7 @@ class VariableCollector {
     }
 
     // Issue #636: Empty dimension [] - infer size from array initializer
-    return VariableCollector.omittedSize(initExpr);
+    return { size: VariableCollector.omittedSize(initExpr), expr: null };
   }
 
   /**
@@ -92,8 +95,8 @@ class VariableCollector {
   private static collectArrayDimensions(
     arrayDims: Parser.ArrayDimensionContext[],
     initExpr: Parser.ExpressionContext | null,
-  ): (number | string)[] {
-    const dimensions: (number | string)[] = [];
+  ): IDeclaredDimension[] {
+    const dimensions: IDeclaredDimension[] = [];
 
     for (const dim of arrayDims) {
       dimensions.push(VariableCollector.resolveDimension(dim, initExpr));
@@ -109,14 +112,17 @@ class VariableCollector {
   private static collectArrayTypeDimensions(
     arrayTypeCtx: Parser.ArrayTypeContext,
     initExpr: Parser.ExpressionContext | null,
-  ): (number | string)[] {
-    const dimensions: (number | string)[] = [];
+  ): IDeclaredDimension[] {
+    const dimensions: IDeclaredDimension[] = [];
     for (const dim of arrayTypeCtx.arrayTypeDimension()) {
       const sizeExpr = dim.expression();
 
       if (!sizeExpr) {
         // Issue #636: Empty dimension [] - infer size from array initializer
-        dimensions.push(VariableCollector.omittedSize(initExpr));
+        dimensions.push({
+          size: VariableCollector.omittedSize(initExpr),
+          expr: null,
+        });
         continue;
       }
 
@@ -152,7 +158,9 @@ class VariableCollector {
     overflowBehavior: TOverflowBehavior;
     isArray: boolean;
     arrayDimensions: (number | string)[];
+    arrayDimensionExprs: (TConstExpr | null)[];
     initialValue: string | undefined;
+    initialValueExpr: TConstExpr | null;
     initializerCallee: string | null;
   } {
     // Get type string and convert to TType
@@ -189,7 +197,7 @@ class VariableCollector {
     const hasArrayTypeSyntax = arrayTypeCtx !== null;
     const isArray = arrayDims.length > 0 || hasArrayTypeSyntax;
     const initExpr = ctx.expression();
-    const arrayDimensions: (number | string)[] = [];
+    const declaredDimensions: IDeclaredDimension[] = [];
 
     // #1822 (ADR-035): only a one-dimensional array's size is counted from its
     // list. An empty dimension anywhere else is E0892, and counting the OUTER
@@ -201,7 +209,7 @@ class VariableCollector {
 
     // Collect dimensions from arrayType syntax (u16[8] arr, u16[4][4] arr, u16[] arr)
     if (hasArrayTypeSyntax) {
-      arrayDimensions.push(
+      declaredDimensions.push(
         ...VariableCollector.collectArrayTypeDimensions(
           arrayTypeCtx,
           countedFrom,
@@ -211,13 +219,15 @@ class VariableCollector {
 
     // Collect additional dimensions from arrayDimension syntax
     if (arrayDims.length > 0) {
-      arrayDimensions.push(
+      declaredDimensions.push(
         ...VariableCollector.collectArrayDimensions(arrayDims, countedFrom),
       );
     }
 
     // Issue #282: Capture initial value for const inlining
     const initialValue = initExpr?.getText();
+    const arrayDimensions = declaredDimensions.map((dim) => dim.size);
+    const arrayDimensionExprs = declaredDimensions.map((dim) => dim.expr);
 
     return {
       type,
@@ -227,7 +237,11 @@ class VariableCollector {
       overflowBehavior,
       isArray,
       arrayDimensions,
+      arrayDimensionExprs,
       initialValue,
+      // #1175: a const's value folds from this, in 1.4, never from the text
+      initialValueExpr:
+        isConst && initExpr ? ConstExprLowering.lower(initExpr) : null,
       // #895: what the initializer calls, for `DeclaredPointer.of`
       initializerCallee: VariableCollector.calleeOf(initExpr),
     };
@@ -309,7 +323,12 @@ class VariableCollector {
       isArray: facts.isArray,
       arrayDimensions:
         facts.arrayDimensions.length > 0 ? facts.arrayDimensions : undefined,
+      arrayDimensionExprs:
+        facts.arrayDimensions.length > 0
+          ? facts.arrayDimensionExprs
+          : undefined,
       initialValue: facts.initialValue,
+      initialValueExpr: facts.initialValueExpr ?? undefined,
       initializerCallee: facts.initializerCallee,
     };
 

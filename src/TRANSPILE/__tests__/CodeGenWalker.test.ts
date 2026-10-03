@@ -18,7 +18,7 @@ import TSymbolInfoAdapter from "../../PARSE/3-Declare/cnext/adapters/TSymbolInfo
 import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import TParameterInfo from "../../types/TParameterInfo";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
-import DeferredTypes from "../../PARSE/4-Resolve/DeferredTypes";
+import Program from "../../PARSE/4-Resolve/Program";
 import type TSymbol from "../../types/symbols/TSymbol";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
@@ -38,24 +38,22 @@ const discoveredKinds = (source: string) =>
   ).resolve(source).kinds;
 
 /**
- * Both symbol passes, the way the pipeline runs them.
+ * Both symbol passes, the way the pipeline runs them -- the real 1.4, not an
+ * imitation of it.
  *
  * #1472: 1.3 Declare defers a bare type name it cannot settle, and reading one
  * as a type name throws by design -- so a test that ran Declare alone and fed
- * the result to codegen would fail on any scope that names a type bare. These
- * fixtures are single-file programs, so the file's own declared scope types ARE
- * the whole-program set.
+ * the result to codegen would fail on any scope that names a type bare. #1669:
+ * 1.4 settles enum member values too, so this used to settle types alone and
+ * hand codegen enums whose members had no value. These fixtures are
+ * single-file programs, so the file is the whole program.
  */
 function declareAndResolveAs(
   tree: Parser.ProgramContext,
   sourcePath: string,
 ): TSymbol[] {
   const declared = CNextResolver.resolve(tree, sourcePath, registry);
-  return DeferredTypes.settle(
-    declared.symbols,
-    (qualifiedName) => declared.declaredScopeTypes.has(qualifiedName),
-    () => false, // no headers: nothing is opaque (#1722)
-  );
+  return [...Program.build([declared], { registry }).symbolsInFile(sourcePath)];
 }
 
 function declareAndResolve(tree: Parser.ProgramContext): TSymbol[] {

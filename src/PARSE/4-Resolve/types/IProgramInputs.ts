@@ -64,6 +64,12 @@ interface IProgramInputs {
    * test builds a program that never asks for its target.
    */
   readonly target?: IRunTargetInputs;
+  /**
+   * #1175: the files that include a C or C++ header, directly or
+   * transitively. A `#define` never reaches the symbol model, so in these a
+   * name nothing binds may be a macro. Absent, no file does.
+   */
+  readonly filesReachingForeignHeaders?: ReadonlySet<string>;
 }
 
 export default IProgramInputs;

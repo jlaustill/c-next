@@ -1,6 +1,7 @@
 import type IBaseSymbol from "./IBaseSymbol";
 import type TType from "../TType";
 import type TOverflowBehavior from "../TOverflowBehavior";
+import type TConstExpr from "../TConstExpr";
 
 /**
  * Symbol representing a variable (global, static, or extern).
@@ -47,9 +48,22 @@ interface IVariableSymbol extends IBaseSymbol {
 
   /** Array dimensions if isArray is true - numbers for resolved, strings for macros */
   readonly arrayDimensions?: ReadonlyArray<number | string>;
+  /**
+   * #1175: each dimension as written, index-aligned with the dimensions --
+   * null where 1.3 already knew the size (a literal, `sizeof` of a primitive,
+   * an unsized `[]`). 1.4 Resolve settles the rest from this, never from
+   * source text.
+   */
+  readonly arrayDimensionExprs?: ReadonlyArray<TConstExpr | null>;
 
   /** Initial value expression (as string) */
   readonly initialValue?: string;
+  /**
+   * #1175: a const's initializer as written, which its value folds from.
+   * The text above is for what reads the spelling; a value is never read
+   * from it.
+   */
+  readonly initialValueExpr?: TConstExpr;
 
   /** #895: what the initializer calls (`VariableCollector.calleeOf`) */
   readonly initializerCallee?: string | null;

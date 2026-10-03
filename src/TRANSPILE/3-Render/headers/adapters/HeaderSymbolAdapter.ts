@@ -111,16 +111,9 @@ class HeaderSymbolAdapter {
     // ADR-057: the symbol layer already qualified scope-local type names.
     const typeStr = TypeResolver.getTypeName(variable.type);
 
-    // Convert dimensions to strings and resolve qualified enum access
-    const arrayDimensions = variable.arrayDimensions?.map((d) =>
-      typeof d === "number"
-        ? String(d)
-        : HeaderSymbolAdapter.resolveArrayDimension(
-            d,
-            variable.scopePath,
-            state,
-          ),
-    );
+    // #1175: 1.4 settled each dimension to its value, or, for one only C can
+    // evaluate (a header macro), to its C -- there is nothing left to resolve
+    const arrayDimensions = variable.arrayDimensions?.map((d) => String(d));
 
     return {
       name: cName,
@@ -261,43 +254,6 @@ class HeaderSymbolAdapter {
       sourceFile: scope.sourceFile,
       sourceLine: scope.span.line,
     };
-  }
-
-  /**
-   * Convert an array dimension string to C-compatible format.
-   *
-   * The dimension arrives as written in C-Next SOURCE (`State.COUNT`,
-   * `this.State.COUNT`, `global.EColor.COUNT`), not as a generated C name, so it
-   * has to be resolved the same way the `.c` path resolves it — otherwise the
-   * header and the implementation derive different names for the same array and
-   * the header does not compile (#1117 review).
-   *
-   * Sharing `QualifiedCName.fromParts([])` is not sufficient on its own: both sides must
-   * also agree on *what to join*. A bare `State.COUNT` written inside `scope Motor`
-   * refers to `Motor.State.COUNT` and must become `Motor__State__COUNT`, while a
-   * top-level `EColor.COUNT` must stay `EColor__COUNT`.
-   *
-   * @param dim - Dimension as written in source; may be a qualified enum access
-   * @param scopePath - Path of the scope declaring the variable, "" at file scope
-   * @returns C-compatible dimension string
-   * @example resolveArrayDimension("EColor.COUNT", "") => "EColor__COUNT"
-   * @example resolveArrayDimension("State.COUNT", "Motor") => "Motor__State__COUNT"
-   * @example resolveArrayDimension("this.State.COUNT", "Motor") => "Motor__State__COUNT"
-   * @example resolveArrayDimension("global.EColor.COUNT", "Motor") => "EColor__COUNT"
-   * @example resolveArrayDimension("10", "Motor") => "10"
-   */
-  private static resolveArrayDimension(
-    dim: string,
-    scopePath: string,
-    state: TranspileState,
-  ): string {
-    // Issue #1127: the rule itself lives on ScopeUtils so the struct-field path
-    // applies the same one. This wrapper only binds the predicate.
-    return ScopeUtils.resolveDimensionName(
-      dim,
-      scopePath,
-      (qualified: string) => state.isKnownEnum(qualified),
-    );
   }
 }
 

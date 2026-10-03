@@ -1,5 +1,6 @@
 import type IBaseSymbol from "./IBaseSymbol";
 import type TType from "../TType";
+import type TConstExpr from "../TConstExpr";
 
 /**
  * Symbol representing one field of a struct.
@@ -31,6 +32,13 @@ interface IStructFieldSymbol extends IBaseSymbol {
 
   /** Array dimensions if isArray is true */
   readonly dimensions?: ReadonlyArray<number | string>;
+  /**
+   * #1175: each dimension as written, index-aligned with the dimensions --
+   * null where 1.3 already knew the size (a literal, `sizeof` of a primitive,
+   * an unsized `[]`). 1.4 Resolve settles the rest from this, never from
+   * source text.
+   */
+  readonly dimensionExprs?: ReadonlyArray<TConstExpr | null>;
 }
 
 export default IStructFieldSymbol;

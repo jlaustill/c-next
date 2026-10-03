@@ -44,6 +44,7 @@ import ScopeAccessAnalyzer from "./ScopeAccessAnalyzer";
 import RegisterAccessAnalyzer from "./RegisterAccessAnalyzer";
 import BareEnumMemberAnalyzer from "./BareEnumMemberAnalyzer";
 import ArrayDeclarationAnalyzer from "./ArrayDeclarationAnalyzer";
+import ConstantDimensionAnalyzer from "./ConstantDimensionAnalyzer";
 import ArrayIndexBoundsAnalyzer from "./ArrayIndexBoundsAnalyzer";
 import CallbackAssignmentAnalyzer from "./CallbackAssignmentAnalyzer";
 import BitmapAccessAnalyzer from "./BitmapAccessAnalyzer";
@@ -249,7 +250,7 @@ function runAnalyzers(
       // A declaration whose own shape is wrong is the cause; a later step
       // reading it would report a consequence.
       label:
-        "declared type shape (ADR-034 bitmap width E0893, ADR-017 enum values E0894)",
+        "declared type shape (ADR-034 bitmap width E0893, ADR-017 enum values E0894, E0909-E0911)",
       run: () => new TypeDeclarationAnalyzer(context).analyze(),
     },
     {
@@ -405,6 +406,14 @@ function runAnalyzers(
       // already guaranteed a comparison, as it did in codegen.
       label: "loops and break/continue (ADR-068/ADR-026, E0703/E0705/E0707)",
       run: () => new LoopAnalyzer().analyze(tree),
+    },
+    {
+      // #1175: before the declaration-shape rules, which read a dimension's
+      // size -- one with no size is the cause, and a count against it would
+      // report a consequence.
+      label:
+        "constant array dimensions (ADR-023 no VLAs, ADR-044, E0909/E0910)",
+      run: () => new ConstantDimensionAnalyzer(context).analyze(tree),
     },
     {
       label:

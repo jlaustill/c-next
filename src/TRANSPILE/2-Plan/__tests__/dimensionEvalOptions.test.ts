@@ -1,6 +1,6 @@
 /**
  * Unit tests for dimensionEvalOptions
- * Issue #1127: one place binding ArrayDimensionParser to live codegen state.
+ * Issue #1127: one place binding the constant evaluator to live codegen state.
  * #1664 box 7: the const values are the ones visible where the dimension is
  * folded, as 1.4 settled them -- not one map the render walk writes.
  */
@@ -10,29 +10,28 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import TranspileState from "../../TranspileState";
-import TYPE_WIDTH from "../../../types/TYPE_WIDTH";
 import dimensionEvalOptions from "../dimensionEvalOptions";
-import ParserUtils from "../../../utils/ParserUtils";
+import ConstExprLowering from "../../../utils/ConstExprLowering";
 import testAnalysisContextFor from "../../1-Analyze/__tests__/testAnalysisContextFor";
-import type ISourcePosition from "../../../utils/types/ISourcePosition";
 
-/** The render state for `source`, and each array declaration's position */
+/** The render state for `source`, and each array dimension as written */
 function setUp(source: string): {
   state: TranspileState;
-  arrays: ISourcePosition[];
+  arrays: Parser.ExpressionContext[];
 } {
   const { tree, context } = testAnalysisContextFor(source);
   const state = new TranspileState();
   state.program = context.program;
   state.symbols = context.symbols;
   state.sourcePath = context.sourceFile;
-  const arrays: ISourcePosition[] = [];
+  const arrays: Parser.ExpressionContext[] = [];
   ParseTreeWalker.DEFAULT.walk(
     new (class extends CNextListener {
       override enterArrayTypeDimension = (
         ctx: Parser.ArrayTypeDimensionContext,
       ): void => {
-        arrays.push(ParserUtils.getPosition(ctx));
+        const expression = ctx.expression();
+        if (expression) arrays.push(expression);
       };
     })(),
     tree,
@@ -60,46 +59,46 @@ u32 third() {
     return x;
 }`;
 
+/** A dimension's value, by the one evaluator, in the state's environment */
+function sizeOf(
+  state: TranspileState,
+  dimension: Parser.ExpressionContext,
+): number | undefined {
+  return ConstExprLowering.valueOf(dimension, dimensionEvalOptions(state));
+}
+
 describe("dimensionEvalOptions", () => {
-  it("supplies the shared TYPE_WIDTH table", () => {
+  it("folds sizeof through the shared TYPE_WIDTH table", () => {
     // Codegen and symbol collection must fold sizeof against the same widths;
     // supplying a different table is how the two layers came to disagree.
-    const { state, arrays } = setUp(SHADOWED);
-    expect(dimensionEvalOptions(state, arrays[0]).typeWidths).toBe(TYPE_WIDTH);
+    const { state, arrays } = setUp("u8[sizeof(u32)] word;");
+    expect(sizeOf(state, arrays[0])).toBe(4);
   });
 
   it("folds a local const where it is declared", () => {
     const { state, arrays } = setUp(SHADOWED);
-    expect(
-      dimensionEvalOptions(state, arrays[0]).constantOf?.("N")?.value,
-    ).toBe(2);
+    expect(sizeOf(state, arrays[0])).toBe(2);
   });
 
   it("does not carry a local const into another function", () => {
     // The render walk wrote `first`'s N into one map and never restored the
     // global's, so `second`'s `u8[N]` was sized 2
     const { state, arrays } = setUp(SHADOWED);
-    expect(
-      dimensionEvalOptions(state, arrays[1]).constantOf?.("N")?.value,
-    ).toBe(8);
+    expect(sizeOf(state, arrays[1])).toBe(8);
   });
 
   it("does not carry an inner block's const past the block", () => {
     const { state, arrays } = setUp(SHADOWED);
-    expect(
-      dimensionEvalOptions(state, arrays[2]).constantOf?.("N")?.value,
-    ).toBe(8);
+    expect(sizeOf(state, arrays[2])).toBe(8);
   });
 
   it("supplies exactly the lookups the evaluator consumes", () => {
     // An isKnownStruct predicate used to be threaded through here. It could
     // not change any answer, so callers that omitted it agreed only because
     // the difference was inert -- the latent divergence this helper exists to
-    // prevent. It was removed rather than propagated.
-    const { state, arrays } = setUp(SHADOWED);
-    expect(Object.keys(dimensionEvalOptions(state, arrays[0])).sort()).toEqual([
-      "constantOf",
-      "typeWidths",
-    ]);
+    // prevent. It was removed rather than propagated. #1175: the evaluator
+    // asks one thing, what a name is worth where it is written.
+    const { state } = setUp(SHADOWED);
+    expect(Object.keys(dimensionEvalOptions(state))).toEqual(["valueOf"]);
   });
 });

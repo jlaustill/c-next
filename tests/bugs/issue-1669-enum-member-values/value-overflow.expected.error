@@ -1,2 +1,2 @@
-tests/bugs/issue-1669-enum-member-values/value-overflow.test.cnx:10:4 error[E0910]: Enum member value overflows u8 at compile time (EOvf.A): the arithmetic would clamp (ADR-044)
+10:4 error[E0910]: Enum member value overflows u8 at compile time (EOvf.A): the arithmetic would clamp or wrap (ADR-044)
        help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type

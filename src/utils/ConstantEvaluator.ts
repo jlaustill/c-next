@@ -88,7 +88,7 @@ class ConstantEvaluator {
   private static sizeOf(typeName: string): TConstResult {
     const width = TYPE_WIDTH[typeName];
     return width === undefined
-      ? { kind: "foreign" }
+      ? { kind: "foreign", spelling: `sizeof(${typeName})`, why: "targetSize" }
       : { kind: "value", value: BigInt(width / 8), typeName: null };
   }
 

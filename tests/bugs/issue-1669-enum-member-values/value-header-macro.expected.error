@@ -1,2 +1,2 @@
-tests/bugs/issue-1669-enum-member-values/value-header-macro.test.cnx:12:4 error[E0909]: Enum member value must be known at compile time (EMac.A): 'MODE_FAST' is defined by a C or C++ header
+12:4 error[E0909]: Enum member value must be known at compile time (EMac.A): 'MODE_FAST' is not declared in C-Next, so only an included C or C++ header can define it
        help: A member's value is built from literals, consts, sizeof, casts and the members of its enum declared above it (ADR-017)

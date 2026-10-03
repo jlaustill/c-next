@@ -1,0 +1,44 @@
+// test-execution
+// Issue #1175 / ADR-058: a length property is a compile-time constant, so it
+// sizes an array. A local sized this way worked before #1175 (render folded
+// the property), while a global reached the header as the C-Next name
+// `src__element_count`. Both now fold by the one rule render reads too.
+//
+// `sized` is itself sized by a const, so its property settles only after its
+// own dimension has: the global case needs 1.4's dimensions to settle to a
+// fixpoint. `cfg.data` reaches the property through a struct field.
+
+const u32 N <- 4;
+
+struct Config {
+    u16[6] data;
+}
+
+u8[3] src;
+u8[N] sized;
+Config cfg;
+
+u8[src.element_count] byCount;
+u16[sized.byte_length] byBytes;
+u8[cfg.data.element_count] byField;
+
+u32 main() {
+    u8[src.element_count] local;
+    u8[cfg.data.byte_length] localField;
+    if (byCount.element_count != 3) {
+        return 1;
+    }
+    if (byBytes.element_count != 4) {
+        return 2;
+    }
+    if (byField.element_count != 6) {
+        return 3;
+    }
+    if (local.element_count != 3) {
+        return 4;
+    }
+    if (localField.element_count != 12) {
+        return 5;
+    }
+    return 0;
+}

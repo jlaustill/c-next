@@ -215,8 +215,16 @@ describe("OperandTyper.constantOf (#1668)", () => {
     ["a const local", "const u8 N <- 7;\nu8 r <- N;", 7],
     ["a mutable local", "u8 N <- 7;\nu8 r <- N;", null],
     ["a leading-zero literal (#1728)", "u8 r <- 010;", null],
-    ["arithmetic", "u8 r <- 2 + 3;", null],
-    ["a bitwise complement", "u8 r <- ~3;", null],
+    // #1175: arithmetic folds now, at its operands' width (ADR-044), where it
+    // used to be called a runtime value because folding ignored that width
+    ["arithmetic", "u8 r <- 2 + 3;", 5],
+    ["a bitwise complement: an untyped literal is an i32", "u8 r <- ~3;", -4],
+    ["arithmetic over a variable", "u8 v <- 2;\nu8 r <- v + 3;", null],
+    [
+      "arithmetic ADR-044 would clamp",
+      "const u8 A <- 200;\nu8 r <- A + A;",
+      null,
+    ],
   ])("evaluates %s", (_why, body, value) => {
     expect(constantOf(inMain(body))).toBe(value);
   });

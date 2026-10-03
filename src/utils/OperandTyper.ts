@@ -16,7 +16,8 @@
 import { ParserRuleContext, ParseTree, TerminalNode } from "antlr4ng";
 
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
-import ArrayDimensionParser from "./ArrayDimensionParser";
+import ConstExprLowering from "./ConstExprLowering";
+import ConstantEvaluator from "./ConstantEvaluator";
 import ConstantFold from "./ConstantFold";
 import TTypeUtils from "./TTypeUtils";
 import PrimitiveKindUtils from "./PrimitiveKindUtils";
@@ -234,42 +235,30 @@ class OperandTyper {
   }
 
   /**
-   * An operand's compile-time integer value: an integer literal under any
-   * number of leading minus signs, or a name that binds here to a const --
-   * bare, `this.NAME` or `global.NAME`, through the one binder, so a const
-   * local shadows as it does everywhere else. Anything else (arithmetic, a
-   * call, an element, `~x`) is a runtime value: null.
+   * An operand's compile-time integer value, by the one evaluator (#1175):
+   * literals, names that bind here to a const (through the one binder, so a
+   * const local shadows as it does everywhere else), and the arithmetic over
+   * them that C computes exactly. Anything else -- a call, an element, a
+   * variable, arithmetic ADR-044 would clamp or wrap -- is a runtime value:
+   * null. So is a comparison, which is a bool, not an integer.
+   *
+   * This used to read only a literal under leading minus signs or a bare
+   * name, and called arithmetic a runtime value, because folding it exactly
+   * disagreed with ADR-044's saturating C. The evaluator folds at the
+   * operands' width and declines where C would clamp, so that reason is gone,
+   * and a fifth rule for a constant's value with it.
    */
   static constantOf(
     node: ParserRuleContext,
     ctx: ITypingContext,
   ): number | null {
-    const inner = OperandTyper.descend(node);
-    if (inner instanceof Parser.UnaryExpressionContext) {
-      const operand = inner.unaryExpression();
-      if (inner.MINUS() === null || !operand) return null;
-      const value = OperandTyper.constantOf(operand, ctx);
-      return value === null ? null : -value;
-    }
-    if (inner instanceof Parser.LiteralContext) {
-      return LiteralUtils.integerValue(inner.getText());
-    }
-    let root: TValueBinding | null = null;
-    if (inner instanceof Parser.PostfixExpressionContext) {
-      const typing = OperandTyper.chainOf(inner, ctx);
-      if (typing.steps.length > 0) return null;
-      root = typing.root;
-    } else if (inner instanceof Parser.PrimaryExpressionContext) {
-      const name = inner.IDENTIFIER()?.getText();
-      if (name === undefined) return null;
-      root = ctx.program.bindValue(
-        ctx.sourceFile,
-        null,
-        name,
-        ParserUtils.getPosition(inner),
-      );
-    }
-    return root === null ? null : (ctx.program.constantOf(root)?.value ?? null);
+    const result = ConstantEvaluator.evaluate(
+      ConstExprLowering.lowerNode(node),
+      ConstantFold.environment(ctx.program, ctx.sourceFile),
+    );
+    return result.kind === "value" && result.typeName !== "bool"
+      ? (ConstantEvaluator.toNumber(result.value) ?? null)
+      : null;
   }
 
   /**
@@ -701,14 +690,14 @@ class OperandTyper {
     if (array) {
       const element = OperandTyper.typeOfWritten(array, ctx, at);
       if (element === null) return null;
-      const options = ConstantFold.at(ctx.program, ctx.sourceFile, at);
+      const env = ConstantFold.environment(ctx.program, ctx.sourceFile);
+      // #1175: the size as 1.4 settles a declared one -- never the source
+      // text, which named what C cannot see
       const dimensions = array.arrayTypeDimension().map((dimension) => {
         const size = dimension.expression();
-        if (!size) return "";
-        return (
-          ArrayDimensionParser.parseSingleDimension(size, options) ??
-          size.getText()
-        );
+        return size
+          ? ConstantFold.dimension(ConstExprLowering.lower(size), env)
+          : "";
       });
       return {
         ...element,
@@ -1551,9 +1540,9 @@ class OperandTyper {
     ctx: ITypingContext,
   ): number | null {
     if (!widthExpr) return null;
-    const value = ArrayDimensionParser.parseText(
-      widthExpr.getText(),
-      ConstantFold.at(ctx.program, ctx.sourceFile, ParserUtils.getPosition(at)),
+    const value = ConstExprLowering.valueOf(
+      widthExpr,
+      ConstantFold.environment(ctx.program, ctx.sourceFile),
     );
     return value !== undefined && value > 0 ? value : null;
   }
