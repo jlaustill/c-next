@@ -390,12 +390,3 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | -         | -      | -          | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-
-## ADR-071
-
-| Context            | same file   | direct      | transitive  | from 1 away | thru chain |
-| ------------------ | ----------- | ----------- | ----------- | ----------- | ---------- |
-| global variable    | **MISSING** | **MISSING** | **MISSING** | n/a         | n/a        |
-| top-level function | **MISSING** | **MISSING** | **MISSING** | n/a         | n/a        |
-| scope member       | **MISSING** | **MISSING** | **MISSING** | n/a         | n/a        |
-| scope method       | **MISSING** | **MISSING** | **MISSING** | n/a         | n/a        |
