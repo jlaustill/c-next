@@ -1282,7 +1282,7 @@ const MOVES: readonly IMove[] = [
     from: "src/transpiler/constants/TYPE_WIDTH.ts",
     to: "src/types/TYPE_WIDTH.ts",
     because:
-      "#1853: read by more than one layer. A shared constant, like " +
+      "#1853: read by more than one area. A shared constant, like " +
       "`FLOAT_TYPES`, which already sits in the types root.",
   },
   {

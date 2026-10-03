@@ -156,7 +156,7 @@ describe("declared types are bound, not registered", () => {
     // arm runs rather than a hand-written copy of it
     const planted = project.createSourceFile(
       join(repoRoot, "src/TRANSPILE/3-Render/__planted__.ts"),
-      `import type TTypeInfo from "../../transpiler/types/TTypeInfo";
+      `import type TTypeInfo from "../../types/TTypeInfo";
        export default class Planted {
          private readonly registry: Map<string, TTypeInfo> = new Map();
          private readonly view: ReadonlyMap<string, TTypeInfo> = new Map();
@@ -166,6 +166,13 @@ describe("declared types are bound, not registered", () => {
       { overwrite: true },
     );
     try {
+      // The planted file must compile. An unresolved import still prints its
+      // alias name, so a stale path kept the match below green on any path at
+      // all: #1853 moved TTypeInfo, and `move:modules` cannot rewrite a path
+      // inside a template literal (#1859 review)
+      expect(planted.getPreEmitDiagnostics().map((d) => d.getCode())).toEqual(
+        [],
+      );
       // One per spelling, and not the map of something else
       expect(
         typeInfoMapFields(["src/TRANSPILE/3-Render/__planted__.ts"]),

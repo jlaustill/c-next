@@ -7,10 +7,10 @@
  * byte-identical, so a fifth field meant three edits. CLAUDE.md: "If two
  * interfaces need the same fields, extract a shared type."
  *
- * In `transpiler/types/` rather than beside its producer because `ICodeGenApi`
- * is one of the three namers and lives here: a shape named by more than one
- * layer is a shared contract, and this directory is where the layer rules send
- * those.
+ * In the shared `src/types/` root rather than beside its producer because more
+ * than one area names it, `ICodeGenApi` (`src/TRANSPILE/types/`) among them: a
+ * shape named by more than one area is a shared contract, and this directory is
+ * where the layer rules send those (#1853).
  *
  * #1668 review: it carried the rendered base target, bit index and type as
  * well, built from the source spelling, so a renamed local's bit write wrote

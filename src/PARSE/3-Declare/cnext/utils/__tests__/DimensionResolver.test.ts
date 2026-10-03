@@ -46,7 +46,8 @@ describe("DimensionResolver", () => {
     });
 
     it("folds sizeof through the shared TYPE_WIDTH table", () => {
-      // The reason TYPE_WIDTH moved to transpiler/constants: without it here,
+      // The reason TYPE_WIDTH moved to a shared root (transpiler/constants,
+      // and `src/types/` since #1853): without it here,
       // collection folded fewer forms than codegen and `u8[sizeof(u32)] sz`
       // reached the header as `sz[sizeof(u32)]`, which is not valid C.
       expect(resolve("sizeof(u32)")).toBe(4);

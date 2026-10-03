@@ -10,8 +10,8 @@
  *
  * It is a constant, not a decision: it answers "which C functions are these?",
  * which is neither "is this program legal?" (2.1) nor "what C should exist?"
- * (2.2). `constants/` is the documented home for runtime lookups, and both
- * passes may read it.
+ * (2.2). It sits in `src/utils/constants/` because its one reader is
+ * `utils/DeclaredPointer`, which both passes reach (#1853).
  */
 const STRUCT_POINTER_C_FUNCTIONS: ReadonlySet<string> = new Set([
   "fopen",

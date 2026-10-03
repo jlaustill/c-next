@@ -546,22 +546,22 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 
 ### 4-Layer Structure (`src/transpiler/`)
 
-| Layer        | Path                      | Purpose                                                                                                                                                                                           |
-| ------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Discover     | `src/PARSE/1-Discover/`   | 1.1 Discover — `Discover.run` emits the frozen `SourceGraph`; FileDiscovery, IncludeResolver, DependencyGraph, preprocessor/, the port. Was `data/` and `logic/` until #1444                      |
-| Render       | `src/TRANSPILE/3-Render/` | 2.3 Render — codegen/, headers/. Moved out of `transpiler/output/` by #1450 box 5                                                                                                                 |
-| State        | _(gone)_                  | `src/transpiler/state/` was deleted by #1452. The per-file working state 2.2 and 2.3 share is `TranspileState` at the `src/TRANSPILE/` root; `SymbolRegistry` and `SymbolTable` are 1.3 Declare's |
-| Constants    | _(gone)_                  | `src/transpiler/constants/` was dissolved by #1853: a constant with one reader sits beside it (in a pass, or `src/utils/constants/`), and one more than one layer reads sits in `src/types/`      |
-| Orchestrator | `Transpiler.ts`           | Coordinates all layers                                                                                                                                                                            |
+| Layer        | Path                      | Purpose                                                                                                                                                                                                                                                             |
+| ------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Discover     | `src/PARSE/1-Discover/`   | 1.1 Discover — `Discover.run` emits the frozen `SourceGraph`; FileDiscovery, IncludeResolver, DependencyGraph, preprocessor/, the port. Was `data/` and `logic/` until #1444                                                                                        |
+| Render       | `src/TRANSPILE/3-Render/` | 2.3 Render — codegen/, headers/. Moved out of `transpiler/output/` by #1450 box 5                                                                                                                                                                                   |
+| State        | _(gone)_                  | `src/transpiler/state/` was deleted by #1452. The per-file working state 2.2 and 2.3 share is `TranspileState` at the `src/TRANSPILE/` root; `SymbolRegistry` and `SymbolTable` are 1.3 Declare's                                                                   |
+| Constants    | _(gone)_                  | `src/transpiler/constants/` was dissolved by #1853: a constant one area reads sits in that area (a pass, or `src/utils/constants/`), and one that more than one area reads sits in `src/types/`. Areas are counted by where each reader is going, not where it sits |
+| Orchestrator | `Transpiler.ts`           | Coordinates all layers                                                                                                                                                                                                                                              |
 
 ### Utility Locations
 
-| Type                                                        | Location                                 |
-| ----------------------------------------------------------- | ---------------------------------------- |
-| Type utilities (`ScopeUtils`, `TTypeUtils`, `TypeResolver`) | `src/utils/`                             |
-| Type definitions (interfaces, enums)                        | `src/types/`                             |
-| Stateful classes (`TranspileState`)                         | `src/TRANSPILE/`                         |
-| Runtime lookups                                             | beside their one reader, or `src/types/` |
+| Type                                                        | Location                                         |
+| ----------------------------------------------------------- | ------------------------------------------------ |
+| Type utilities (`ScopeUtils`, `TTypeUtils`, `TypeResolver`) | `src/utils/`                                     |
+| Type definitions (interfaces, enums)                        | `src/types/`                                     |
+| Stateful classes (`TranspileState`)                         | `src/TRANSPILE/`                                 |
+| Runtime lookups                                             | in the one area that reads them, or `src/types/` |
 
 ---
 

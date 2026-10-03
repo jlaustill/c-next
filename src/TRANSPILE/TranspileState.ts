@@ -514,8 +514,9 @@ class TranspileState {
    * Reference to the CodeGenerator instance for handlers to call its methods,
    * typed to the method subset they use (ICodeGenApi).
    *
-   * #1297: `ICodeGenApi` lives in `transpiler/types/`, a layer both sides may
-   * depend on, rather than in `output/`. The previous note here argued the edge
+   * #1297 moved `ICodeGenApi` out of `output/` into the shared types root, which
+   * both sides may depend on, and #1653 moved it on to `src/TRANSPILE/types/`,
+   * since only TRANSPILE names it. The previous note here argued the edge
    * was harmless because it was `import type` and CodeGenState already imported
    * siblings from `output/codegen/types` -- but that was the whole problem:
    * `logic/ -> state/ -> output/` was live through exactly those imports while
