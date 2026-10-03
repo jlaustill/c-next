@@ -698,7 +698,7 @@ E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees 
 ```
 foo.test.cnx          # Source
 foo.expected.c        # Expected C output
-foo.expected.cpp      # Expected C++ output (required, except beside // test-c-only)
+foo.expected.cpp      # Expected C++ output (required unless // test-c-only or // test-error)
 foo.expected.h        # Expected C header
 foo.expected.error    # Expected error (if test-error)
 ```

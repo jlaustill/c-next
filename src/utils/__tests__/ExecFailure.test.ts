@@ -1,4 +1,5 @@
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
+import { promisify } from "node:util";
 
 import ExecFailure from "../ExecFailure";
 
@@ -6,6 +7,16 @@ import ExecFailure from "../ExecFailure";
 function caught(run: () => unknown): unknown {
   try {
     run();
+  } catch (error: unknown) {
+    return error;
+  }
+  throw new Error("expected the child process to fail");
+}
+
+/** The async form of `caught`, for promisified `execFile`. */
+async function rejected(run: () => Promise<unknown>): Promise<unknown> {
+  try {
+    await run();
   } catch (error: unknown) {
     return error;
   }
@@ -45,6 +56,34 @@ describe("ExecFailure.of", () => {
     );
 
     expect(ExecFailure.of(error).stderr).toBe("raw");
+  });
+
+  it("reads the exit code of a promisified execFile, which Node reports as `code`", async () => {
+    const error = await rejected(() =>
+      promisify(execFile)(process.execPath, [
+        "-e",
+        "process.stderr.write('async'); process.exit(3)",
+      ]),
+    );
+
+    const failure = ExecFailure.of(error);
+
+    expect(failure.status).toBe(3);
+    expect(failure.stderr).toBe("async");
+  });
+
+  it("gives a spawn that never started no exit code, sync or async", async () => {
+    // Both APIs put the errno string on `code` (`ENOENT`) when the binary is
+    // missing, and the sync one sets `status` to null: neither is an exit code.
+    const sync = caught(() =>
+      execFileSync("/no/such/binary-1489", [], { stdio: "pipe" }),
+    );
+    const async = await rejected(() =>
+      promisify(execFile)("/no/such/binary-1489", []),
+    );
+
+    expect(ExecFailure.of(sync).status).toBeUndefined();
+    expect(ExecFailure.of(async).status).toBeUndefined();
   });
 
   it("leaves absent streams undefined, so `??` and `||` callers fall through", () => {

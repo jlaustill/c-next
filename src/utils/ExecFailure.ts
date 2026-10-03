@@ -6,8 +6,8 @@ import IExecFailure from "./types/IExecFailure";
  *
  * Every caller needs the same three facts -- the captured streams and the exit
  * status -- and each used to assert them into existence with its own inline
- * cast (`error as { stderr?: string; ... }`), in three different shapes, or
- * reach them through `any`. This narrows instead of asserting: a field is read
+ * cast (`error as { stderr?: string; ... }`), each in its own shape, or reach
+ * them through `any`. This narrows instead of asserting: a field is read
  * only if the value has it, as text, so a non-Error throw or a Buffer stream
  * is handled rather than assumed away (#1489).
  *
@@ -30,11 +30,22 @@ class ExecFailure {
       message,
       stdout: ExecFailure.text("stdout" in error ? error.stdout : undefined),
       stderr: ExecFailure.text("stderr" in error ? error.stderr : undefined),
-      status:
-        "status" in error && typeof error.status === "number"
-          ? error.status
-          : undefined,
+      status: ExecFailure.exitCode(error),
     };
+  }
+
+  /**
+   * `execFileSync` and `execSync` report the exit code as `status`; callback
+   * and promisified `execFile` report it as `code`. Both put a string there
+   * instead (`ENOENT`) when the spawn itself failed, and the sync form sets
+   * `status` to null, so only a number is an exit code.
+   */
+  private static exitCode(error: object): number | undefined {
+    if ("status" in error && typeof error.status === "number") {
+      return error.status;
+    }
+    if ("code" in error && typeof error.code === "number") return error.code;
+    return undefined;
   }
 
   /** A captured stream is a string, or a Buffer when no `encoding` was set. */

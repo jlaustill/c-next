@@ -15,9 +15,11 @@
   },
   // scripts/ is TypeScript only. It used to hold four JavaScript files, read
   // under `allowJs` without `checkJs` -- inferred, never reported -- and one of
-  // them, test-cli.js, matched no `include` pattern at all (#1489). A JavaScript
-  // file added here would be outside this program again, silently, so
-  // `scripts/__tests__/scripts-are-typescript.test.ts` fails on one instead.
+  // them, test-cli.js, matched no `include` pattern at all (#1489). A file this
+  // `include` does not match -- JavaScript, `.mts`, `.cts`, `.tsx` -- would be
+  // outside the program again, silently, so
+  // `scripts/__tests__/scripts-are-typescript.test.ts` compares the program
+  // `tsc` builds from this file with what git tracks, and fails on the gap.
   "include": ["scripts/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
