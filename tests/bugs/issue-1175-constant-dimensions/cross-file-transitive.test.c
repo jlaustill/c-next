@@ -6,6 +6,7 @@
 #include "cross-file-transitive.test.h"
 
 // test-execution
+// test-adr: 036
 // Issue #1175: dimensions that name LIB_N, which is two includes away, through dim-mid.cnx. One fixture covers all
 // four declaration contexts: a global, a function's local, a scope member, and a
 // scope method's local. Each folds to the same number in the .c and the .h.

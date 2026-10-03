@@ -4134,6 +4134,9 @@ class CodeGenWalker {
    * E0910).
    */
   private renderDimension(expression: Parser.ExpressionContext): string {
+    // ADR-036: a dimension is a constant expression in every context, so a
+    // fixture occupies the matrix cell it is written in
+    AdrProvenance.record("036", expression.start?.line);
     const dimension = ConstantFold.settled(
       ConstExprLowering.lower(expression),
       dimensionEvalOptions(this.transpileState),

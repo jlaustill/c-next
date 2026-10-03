@@ -6,9 +6,13 @@
 // put the C-Next type name `u32` into the header. Every dimension is now folded
 // once, and the .c and the .h carry the same number.
 //
+// ADR-044: `wide` adds at u16, so it is 400; the same sum at u8 is E0910
+// (overflow-dimension.test.cnx), where main's .c clamped it to 255.
+//
 // NEGATIVE CONTROL: `plain` is a single literal, which was always right.
 
 const u8 LOCAL <- 8;
+const u8 BIG <- 200;
 
 enum EColor {
     RED,
@@ -26,6 +30,7 @@ u8[(u32)EColor.COUNT + 1] counted;
 u8[1 + 2 + 3] three;
 u8[1 << 3] shifted;
 u8[4] plain;
+u8[(u16)BIG + (u16)BIG] wide;
 
 // File scope, not a local: a local struct's field reads as uninitialized
 // even for `.element_count`, which is a constant (#1867).
@@ -52,6 +57,9 @@ u32 main() {
     }
     if (plain.element_count != 4) {
         return 7;
+    }
+    if (wide.element_count != 400) {
+        return 8;
     }
     return 0;
 }

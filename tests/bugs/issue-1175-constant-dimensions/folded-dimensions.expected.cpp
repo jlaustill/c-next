@@ -15,8 +15,13 @@
 // put the C-Next type name `u32` into the header. Every dimension is now folded
 // once, and the .c and the .h carry the same number.
 //
+// ADR-044: `wide` adds at u16, so it is 400; the same sum at u8 is E0910
+// (overflow-dimension.test.cnx), where main's .c clamped it to 255.
+//
 // NEGATIVE CONTROL: `plain` is a single literal, which was always right.
 extern const uint8_t LOCAL = 8U;
+
+extern const uint8_t BIG = 200U;
 
 uint8_t neg[2] = {};
 
@@ -27,6 +32,8 @@ uint8_t three[6] = {};
 uint8_t shifted[8] = {};
 
 uint8_t plain[4] = {};
+
+uint8_t wide[400] = {};
 
 // File scope, not a local: a local struct's field reads as uninitialized
 // even for `.element_count`, which is a constant (#1867).
@@ -53,6 +60,9 @@ int main(void) {
     }
     if (4 != 4) {
         return 7U;
+    }
+    if (400 != 400) {
+        return 8U;
     }
     return 0U;
 }
