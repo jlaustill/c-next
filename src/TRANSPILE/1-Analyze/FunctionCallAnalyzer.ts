@@ -13,15 +13,12 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../utils/ParserUtils";
-import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
-import QualifiedCName from "../../utils/QualifiedCName";
 import AdrProvenance from "../../instrumentation/AdrProvenance";
 import DynamicAllocation from "./DynamicAllocation";
 import StdlibFunctions from "./StdlibFunctions";
 import CalleeNameResolver from "./helpers/CalleeNameResolver";
 import EnclosingScope from "./helpers/EnclosingScope";
 import ScopeUtils from "../../utils/ScopeUtils";
-import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import IncludeDirective from "./helpers/IncludeDirective";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
@@ -252,55 +249,12 @@ class FunctionCallAnalyzer {
   private callableVariables: Set<string> = new Set();
 
   /**
-   * #1544: every function the PROGRAM declares, for the callback writers only.
-   *
-   * Empty for a per-file run, which is correct: the whole-program pass is the
-   * one that owns the callback map, and a per-file run's writes to it are not
-   * read by anything (`Program` holds the copy taken when it was derived).
+   * @param context the 2.1 analysis context. Optional only because this
+   *        analyzer's unit tests drive it without one (#1825 removed the
+   *        whole-program pass that was the other reason); #1866 makes it
+   *        required.
    */
-  private readonly programFunctions: ReadonlySet<string>;
-
-  private readonly callbacksFound = new Map<string, string>();
-
-  /**
-   * @param programFunctions every function declared anywhere in the program,
-   *        supplied by the whole-program callback pass. Omitted for a per-file
-   *        run.
-   * @param registry supplied only by the Stage 3 caller
-   *        (`CallbackCompatibility.derive`), which runs BEFORE `Program.build`
-   *        and so cannot reach the scope graph through the artifact (#1452
-   *        box 3). The 2.1 caller leaves it undefined and reads `IProgram`,
-   *        which exists by then.
-   * @param context absent on that same Stage 3 path, and present for every 2.1
-   *        run. That is why it is optional here and required everywhere else.
-   */
-  public constructor(
-    programFunctions: ReadonlySet<string> = new Set(),
-    private readonly registry?: SymbolRegistry,
-    private readonly context?: IAnalysisContext,
-  ) {
-    this.programFunctions = programFunctions;
-  }
-
-  /**
-   * ADR-029 callbacks this analyzer recognized: function name to the typedef it
-   * is used as.
-   *
-   * #1452: this accumulated into a mutable static on `CodeGenState` that
-   * `reset()` deliberately skipped, so entries would survive between files.
-   * `CallbackCompatibility.derive` cleared it, ran this analyzer over every
-   * tree for the side effect, and snapshotted it onto `IProgram` -- the same
-   * shape as the modification trio, and the same fix: the accumulation is the
-   * analyzer's own, and the caller that wants the whole program's answer merges
-   * what each run reports.
-   *
-   * The per-file 2.1 run (`runAnalyzers`) simply does not read it. That write
-   * was dead -- nothing consulted the static after `derive` had snapshotted it
-   * -- and it is what made a per-RUN reset necessary in `Transpiler`.
-   */
-  public callbackCompatibleFunctions(): ReadonlyMap<string, string> {
-    return this.callbacksFound;
-  }
+  public constructor(private readonly context?: IAnalysisContext) {}
 
   /**
    * Analyze a parsed program for function call errors
@@ -326,7 +280,6 @@ class FunctionCallAnalyzer {
     this.collectScopes(tree);
     this.collectIncludes(tree);
     this.collectAllLocalFunctions(tree);
-    this.collectCallbackCompatibleFunctions(tree);
 
     // Second pass: walk tree in order, tracking definitions and checking calls
     const listener = new FunctionCallListener(this);
@@ -377,13 +330,10 @@ class FunctionCallAnalyzer {
   }
 
   /**
-   * What path a scope NAME has, from whichever artifact this instance was
-   * handed: `SymbolRegistry` at Stage 3, before `Program` is built, and the
-   * 2.1 context after. Falling back to the bare name is what the registry does
-   * for a name it has not seen, so the two agree on an unknown scope.
+   * What path a scope NAME has, from the 2.1 context's program. Falling back
+   * to the bare name is what the program does for a name it has not seen.
    */
   private scopePathOf(scopeName: string): string {
-    if (this.registry) return this.registry.scopePathOf(scopeName);
     return this.context?.program.scopePathOf(scopeName) ?? scopeName;
   }
 
@@ -391,58 +341,36 @@ class FunctionCallAnalyzer {
    * Issue #786: Pre-collect all function names defined in this file.
    * Used to distinguish between local functions (subject to define-before-use)
    * and cross-file functions from includes (allowed without local definition).
+   *
+   * Scope members are keyed by their transpiled C name. #1472: the set that
+   * preceded this one walked `tree.declaration()` alone and silently omitted
+   * every scope member.
    */
   private collectAllLocalFunctions(tree: Parser.ProgramContext): void {
-    for (const name of FunctionCallAnalyzer.declaredFunctionNames(
-      tree,
-      (scopeName) => this.scopePathOf(scopeName),
-    )) {
-      this.allLocalFunctions.add(name);
-    }
-  }
-
-  /**
-   * The functions ONE FILE declares, keyed as the callback writers look them up.
-   *
-   * #1544: static and returning the set, so the per-file set and the
-   * program-wide union are built by the SAME encoder rather than by two
-   * spellings of one rule. A second derivation of these keys could only ever
-   * agree with this one by coincidence, which is the failure #1472 already
-   * found in this file: the set that preceded `allLocalFunctions` walked
-   * `tree.declaration()` separately and silently omitted every scope member.
-   */
-  public static declaredFunctionNames(
-    tree: Parser.ProgramContext,
-    scopePathOf: (scopeName: string) => string,
-  ): Set<string> {
-    const names = new Set<string>();
     for (const decl of tree.declaration()) {
       // Standalone functions
       if (decl.functionDeclaration()) {
-        names.add(decl.functionDeclaration()!.IDENTIFIER().getText());
+        this.allLocalFunctions.add(
+          decl.functionDeclaration()!.IDENTIFIER().getText(),
+        );
       }
       // Scope member functions
       if (decl.scopeDeclaration()) {
         const scopeDecl = decl.scopeDeclaration()!;
-        const scopeName = scopeDecl.IDENTIFIER().getText();
-        // #1456: one question, asked once. This used to branch on whether a
-        // registry was supplied -- Stage 3 has one and 2.1 does not -- and the
-        // 2.1 arm read `CodeGenState.program`. The caller answers instead,
-        // from whichever artifact it holds, so there is no branch to keep in
-        // step and no shared state to reach.
-        const scopePath = scopePathOf(scopeName);
+        const scopePath = this.scopePathOf(scopeDecl.IDENTIFIER().getText());
         for (const member of scopeDecl.scopeMember()) {
           if (member.functionDeclaration()) {
             const funcName = member
               .functionDeclaration()!
               .IDENTIFIER()
               .getText();
-            names.add(ScopeUtils.qualifyInScope(funcName, scopePath));
+            this.allLocalFunctions.add(
+              ScopeUtils.qualifyInScope(funcName, scopePath),
+            );
           }
         }
       }
     }
-    return names;
   }
 
   /**
@@ -487,390 +415,7 @@ class FunctionCallAnalyzer {
    * whose underlying type contains "(*)" indicating a function pointer.
    */
   public isCFunctionPointerTypedef(typeName: string): boolean {
-    if (!this.symbolTable) return false;
-    const sym = this.symbolTable.getCSymbol(typeName);
-    if (sym?.kind !== "type") return false;
-    // ICTypedefSymbol has a `type` field with the underlying C type string
-    return (
-      "type" in sym && typeof sym.type === "string" && sym.type.includes("(*)")
-    );
-  }
-
-  /** Current scope name during callback assignment scanning */
-  private scanCurrentScope: string | null = null;
-
-  /**
-   * Detect functions assigned to C function pointer typedefs.
-   * When `PointCallback cb <- my_handler;` is found and PointCallback
-   * is a C function pointer typedef, mark my_handler as callback-compatible.
-   */
-  private collectCallbackCompatibleFunctions(
-    tree: Parser.ProgramContext,
-  ): void {
-    for (const decl of tree.declaration()) {
-      const funcDecl = decl.functionDeclaration();
-      if (funcDecl) {
-        this.scanStandaloneFunctionForCallbacks(funcDecl);
-        continue;
-      }
-
-      const scopeDecl = decl.scopeDeclaration();
-      if (scopeDecl) {
-        this.scanScopeForCallbacks(scopeDecl);
-      }
-    }
-  }
-
-  /**
-   * Scan a standalone function declaration for callback assignments.
-   */
-  private scanStandaloneFunctionForCallbacks(
-    funcDecl: Parser.FunctionDeclarationContext,
-  ): void {
-    const block = funcDecl.block();
-    if (!block) return;
-
-    this.scanCurrentScope = null;
-    this.scanBlockForCallbackAssignments(block);
-  }
-
-  /**
-   * Scan all member functions in a scope for callback assignments (Issue #895).
-   */
-  private scanScopeForCallbacks(
-    scopeDecl: Parser.ScopeDeclarationContext,
-  ): void {
-    const scopeName = scopeDecl.IDENTIFIER().getText();
-
-    for (const member of scopeDecl.scopeMember()) {
-      this.scanScopeMemberForCallbacks(member, scopeName);
-    }
-
-    this.scanCurrentScope = null;
-  }
-
-  /**
-   * Scan a single scope member for callback assignments.
-   */
-  private scanScopeMemberForCallbacks(
-    member: Parser.ScopeMemberContext,
-    scopeName: string,
-  ): void {
-    const memberFunc = member.functionDeclaration();
-    if (!memberFunc) return;
-
-    const block = memberFunc.block();
-    if (!block) return;
-
-    this.scanCurrentScope = scopeName;
-    this.scanBlockForCallbackAssignments(block);
-  }
-
-  /**
-   * Recursively scan all statements in a block for callback typedef assignments.
-   */
-  private scanBlockForCallbackAssignments(block: Parser.BlockContext): void {
-    for (const stmt of block.statement()) {
-      this.scanStatementForCallbackAssignments(stmt);
-    }
-  }
-
-  /**
-   * Scan a single statement for callback typedef assignments,
-   * recursing into nested blocks (if/while/for/do-while/switch/critical).
-   */
-  private scanStatementForCallbackAssignments(
-    stmt: Parser.StatementContext,
-  ): void {
-    // Check variable declarations for callback assignments
-    const varDecl = stmt.variableDeclaration();
-    if (varDecl) {
-      this.checkVarDeclForCallbackAssignment(varDecl);
-      return;
-    }
-
-    // Check expression statements for function calls with callback arguments
-    const exprStmt = stmt.expressionStatement();
-    if (exprStmt) {
-      this.checkExpressionForCallbackArgs(exprStmt.expression());
-      return;
-    }
-
-    // Recurse into nested blocks/statements
-    const ifStmt = stmt.ifStatement();
-    if (ifStmt) {
-      for (const child of ifStmt.statement()) {
-        this.scanStatementForCallbackAssignments(child);
-      }
-      return;
-    }
-
-    const whileStmt = stmt.whileStatement();
-    if (whileStmt) {
-      this.scanStatementForCallbackAssignments(whileStmt.statement());
-      return;
-    }
-
-    const forStmt = stmt.forStatement();
-    if (forStmt) {
-      this.scanStatementForCallbackAssignments(forStmt.statement());
-      return;
-    }
-
-    const doWhileStmt = stmt.doWhileStatement();
-    if (doWhileStmt) {
-      this.scanBlockForCallbackAssignments(doWhileStmt.block());
-      return;
-    }
-
-    const switchStmt = stmt.switchStatement();
-    if (switchStmt) {
-      for (const caseCtx of switchStmt.switchCase()) {
-        this.scanBlockForCallbackAssignments(caseCtx.block());
-      }
-      const defaultCtx = switchStmt.defaultCase();
-      if (defaultCtx) {
-        this.scanBlockForCallbackAssignments(defaultCtx.block());
-      }
-      return;
-    }
-
-    const criticalStmt = stmt.criticalStatement();
-    if (criticalStmt) {
-      this.scanBlockForCallbackAssignments(criticalStmt.block());
-      return;
-    }
-
-    // A statement can itself be a block
-    const nestedBlock = stmt.block();
-    if (nestedBlock) {
-      this.scanBlockForCallbackAssignments(nestedBlock);
-    }
-  }
-
-  /**
-   * Check if a variable declaration assigns a function to a C callback typedef.
-   */
-  private checkVarDeclForCallbackAssignment(
-    varDecl: Parser.VariableDeclarationContext,
-  ): void {
-    const typeName = varDecl.type().getText();
-    if (!this.isCFunctionPointerTypedef(typeName)) return;
-
-    const expr = varDecl.expression();
-    if (!expr) return;
-
-    const funcRef = this.extractFunctionReference(expr);
-    if (!funcRef) return;
-
-    this.recordCallbackCompatible(funcRef, typeName);
-  }
-
-  /**
-   * Record that `funcRef` is assigned to the C callback typedef `typedefName`,
-   * so its emitted signature keeps the typedef's parameter shape instead of
-   * taking #268 auto-const and ADR-006 pass-by-reference.
-   *
-   * #1544, two changes that belong together:
-   *
-   * The two callers -- a variable declaration and a call argument -- held
-   * byte-identical copies of the key derivation and the gate. One decision
-   * spelled twice must agree by construction rather than by inspection, and a
-   * fix applied to one copy and not the other is precisely the divergence the
-   * duplicate-path rule exists for. There is now one place to change.
-   *
-   * The gate asks TWO sets, and that distinction IS the defect.
-   * `allLocalFunctions` exists to EXCLUDE cross-file functions, because ADR-030
-   * define-before-use (#786) needs exactly that -- it answers "is this ordered
-   * correctly here?", never "does this function exist?". Asking it the second
-   * question dropped every function wired from a file other than the one
-   * declaring it: the emitted signature stopped matching the typedef it was
-   * assigned to, and gcc reported an incompatible pointer type while the
-   * transpiler exited 0. `programFunctions` answers the existence question at
-   * the scope the fact actually has -- the map decides a signature, and the
-   * wiring may sit in any file. `allLocalFunctions` is left untouched and keeps
-   * answering the ordering question it exists for, the same discipline
-   * `isCallbackType` follows for #1491.
-   *
-   * ## Why the `||` survives, given one side is the defective rule
-   *
-   * The two sides never both decide. Under `CallbackCompatibility.derive`,
-   * `programFunctions` is the union of `declaredFunctionNames` over the very
-   * files each analyzer is then run on, so it is a strict SUPERSET of every
-   * file's `allLocalFunctions` and the disjunction reduces to
-   * `programFunctions.has()`. Under a per-file run `programFunctions` is empty
-   * by the constructor default and it reduces to `allLocalFunctions.has()` --
-   * the pre-#1544 rule, still reachable.
-   *
-   * That narrower answer is dead by construction rather than by design: the
-   * whole-program pass owns this map, and a per-file run's writes to it are
-   * read by nobody, because all three readers go through
-   * `CodeGenState.program?.callbackCompatibleFunctions()` and none falls back
-   * to the static map. What keeps the per-file branch alive is the unit tests
-   * that construct a bare `FunctionCallAnalyzer` and assert on a map
-   * production never consults, which is why removing it is not a one-line
-   * change and is not attempted here.
-   *
-   * ## Not the same set `isCallbackType` uses, forty lines up
-   *
-   * That method answers with the per-file VISIBLE set; this one answers with
-   * the whole-program DECLARED set. CLAUDE.md names exactly that disagreement
-   * as #1312 -- a sibling never included is absent from the first and present
-   * in the second. The visible set is genuinely unavailable at this call site:
-   * it is published from `Program`, and this pass runs before the `Program` it
-   * is an input to. Declared-anywhere is sound here because gate 1 has already
-   * established the target is a C typedef and the argument named a function
-   * the using file could resolve.
-   */
-  private recordCallbackCompatible(funcRef: string, typedefName: string): void {
-    // Scope-qualified names use dot in source (MyScope.handler) but the
-    // declared-function sets store them joined (MyScope__handler).
-    const lookupName = funcRef.includes(".")
-      ? QualifiedCName.fromParts([funcRef])
-      : funcRef;
-
-    if (
-      this.allLocalFunctions.has(lookupName) ||
-      this.programFunctions.has(lookupName)
-    ) {
-      // Store function name -> typedef name mapping
-      this.callbacksFound.set(lookupName, typedefName);
-    }
-  }
-
-  /**
-   * Extract a function reference from an expression context.
-   * Matches:
-   *   - Bare identifiers: "my_handler"
-   *   - Qualified scope names: "MyScope.handler"
-   *   - Self-scope reference: "this.handler" (resolved using scanCurrentScope)
-   *   - Global scope reference: "global.ScopeName.handler"
-   * Returns null if the expression is not a function reference.
-   */
-  private extractFunctionReference(
-    expr: Parser.ExpressionContext,
-  ): string | null {
-    const text = expr.getText();
-
-    // Pattern 1: this.member -> CurrentScope.member (Issue #895)
-    const thisPattern = /^this\.(\w+)$/;
-    const thisMatch = thisPattern.exec(text);
-    if (thisMatch) {
-      if (!this.scanCurrentScope) {
-        return null; // this.member outside scope context
-      }
-      return this.scanCurrentScope + "." + thisMatch[1];
-    }
-
-    // Pattern 2: global.Scope.member -> Scope.member (Issue #895)
-    const globalPattern = /^global\.(\w+)\.(\w+)$/;
-    const globalMatch = globalPattern.exec(text);
-    if (globalMatch) {
-      return globalMatch[1] + "." + globalMatch[2];
-    }
-
-    // Pattern 3: Bare identifier or simple Scope.member
-    const simplePattern = /^\w+(\.\w+)?$/;
-    if (simplePattern.test(text)) {
-      return text;
-    }
-
-    return null;
-  }
-
-  /**
-   * Issue #895: Check expression for function calls that pass C-Next functions
-   * to C function pointer parameters.
-   *
-   * Pattern: `global.widget_set_flush_cb(w, my_flush)`
-   * Where widget_set_flush_cb's 2nd param is a C function pointer typedef.
-   */
-  private checkExpressionForCallbackArgs(expr: Parser.ExpressionContext): void {
-    // Navigate to the postfix expression (handles assignments, ternaries, etc.)
-    const postfix = this.findPostfixExpression(expr);
-    if (!postfix) return;
-
-    // Extract function name and argument list
-    const callInfo = this.extractCallInfo(postfix);
-    if (!callInfo) return;
-
-    // Look up the C function in symbol table
-    const cFunc = this.symbolTable?.getCSymbol(callInfo.funcName);
-    if (cFunc?.kind !== "function" || !cFunc.parameters) return;
-
-    // Check each argument against the corresponding parameter type
-    for (let i = 0; i < callInfo.args.length; i++) {
-      const param = cFunc.parameters[i];
-      if (!param) continue;
-
-      // Check if parameter type is a function pointer typedef
-      if (!this.isCFunctionPointerTypedef(param.type)) continue;
-
-      // Extract function reference from argument
-      const funcRef = this.extractFunctionReference(callInfo.args[i]);
-      if (!funcRef) continue;
-
-      this.recordCallbackCompatible(funcRef, param.type);
-    }
-  }
-
-  /**
-   * Find the postfix expression within an expression tree.
-   * Uses ExpressionUnwrapper which validates that expression is "simple"
-   * (single term at each level), returning null for complex expressions.
-   */
-  private findPostfixExpression(
-    expr: Parser.ExpressionContext,
-  ): Parser.PostfixExpressionContext | null {
-    return ExpressionUnwrapper.getPostfixExpression(expr);
-  }
-
-  /**
-   * Extract function name and arguments from a postfix expression.
-   * Returns null if not a function call.
-   */
-  private extractCallInfo(
-    postfix: Parser.PostfixExpressionContext,
-  ): { funcName: string; args: Parser.ExpressionContext[] } | null {
-    const primary = postfix.primaryExpression();
-    const ops = postfix.postfixOp();
-
-    // Start with primary expression (identifier or 'global')
-    const ident = primary.IDENTIFIER();
-    const globalKw = primary.GLOBAL();
-
-    // Early return: neither identifier nor global keyword means not a function call
-    if (!ident && !globalKw) {
-      return null;
-    }
-
-    // Build function name from primary + member access ops
-    // For 'global' keyword, funcName starts empty and gets built from member access
-    let funcName = ident ? ident.getText() : "";
-    let argListOp: Parser.PostfixOpContext | null = null;
-
-    // Walk postfix ops to find function name and call
-    for (const op of ops) {
-      if (op.IDENTIFIER()) {
-        // Member access: build qualified name
-        const member = op.IDENTIFIER()!.getText();
-        funcName = funcName
-          ? QualifiedCName.fromParts([funcName, member])
-          : member;
-      } else if (op.argumentList() || op.getText().startsWith("(")) {
-        // Found the call - this op has the arguments
-        argListOp = op;
-        break;
-      }
-    }
-
-    if (!argListOp || !funcName) return null;
-
-    // Extract arguments
-    const argList = argListOp.argumentList();
-    const args = argList?.expression() ?? [];
-
-    return { funcName, args };
+    return this.symbolTable?.isCFunctionPointerTypedef(typeName) ?? false;
   }
 
   /**

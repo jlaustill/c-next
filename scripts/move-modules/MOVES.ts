@@ -1365,6 +1365,53 @@ const MOVES: readonly IMove[] = [
     to: "src/utils/constants/__tests__/STRUCT_POINTER_C_FUNCTIONS.test.ts",
     because: "#1853: with its module.",
   },
+  {
+    from: "src/TRANSPILE/2-Plan/types/IModificationCollector.ts",
+    to: "src/PARSE/3-Declare/cnext/types/IModificationCollector.ts",
+    because:
+      "#1825: what the per-file modification walk accumulates, which needs one " +
+      "file's parse tree and nothing else. The walk moves to 1.3's collectors " +
+      "and its working shape moves beside them, as the map's row decided.",
+  },
+  {
+    from: "src/TRANSPILE/2-Plan/TransitiveModificationPropagator.ts",
+    to: "src/PARSE/4-Resolve/TransitiveModificationPropagator.ts",
+    because:
+      "#1825: propagates parameter modification to a fixed point over the " +
+      "whole call graph, a fact that needs every file. It sat in 2.2 only " +
+      "because the code that fed it did, and 1.4 may not import TRANSPILE/.",
+  },
+  {
+    from: "src/TRANSPILE/2-Plan/__tests__/TransitiveModificationPropagator.test.ts",
+    to: "src/PARSE/4-Resolve/__tests__/TransitiveModificationPropagator.test.ts",
+    because: "#1825: with its module.",
+  },
+  {
+    from: "src/transpiler/ModificationFacts.ts",
+    to: "src/PARSE/4-Resolve/ModificationFacts.ts",
+    because:
+      "#1825: derives which parameters the whole program modifies, a fact " +
+      "that needs every file. It sat beside the orchestrator only because its " +
+      "recognizer lived in 2.2; with the walk in 1.3's collectors, what is " +
+      "left -- resolving callees and propagating over the call graph -- is 1.4.",
+  },
+  {
+    from: "src/transpiler/CallbackCompatibility.ts",
+    to: "src/PARSE/4-Resolve/CallbackCompatibility.ts",
+    because:
+      "#1825: decides which functions the whole program uses as ADR-029 " +
+      "callbacks, a fact that needs every file (#1544). It sat beside the " +
+      "orchestrator only because it ran a 2.1 analyzer for the answer; 1.3 " +
+      "now records the uses and this applies the rule to them.",
+  },
+  {
+    from: "src/TRANSPILE/2-Plan/__tests__/PassByValueAnalyzerCalleeResolution.test.ts",
+    to: "src/PARSE/4-Resolve/__tests__/ModificationFactsCalleeResolution.test.ts",
+    because:
+      "#1825: tests the #1178 callee resolver, which moved from " +
+      "`PassByValueAnalyzer` into `ModificationFacts` with the propagation it " +
+      "serves.",
+  },
 ];
 
 export default MOVES;

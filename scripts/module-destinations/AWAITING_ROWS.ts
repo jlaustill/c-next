@@ -10,12 +10,8 @@
  * pattern strings, which a glob row made blind).
  */
 const AWAITING_ROWS: Readonly<Record<string, number>> = {
-  "src/TRANSPILE/2-Plan/TransitiveModificationPropagator.ts": 1,
-  "src/TRANSPILE/2-Plan/types/IModificationCollector.ts": 1,
   "src/utils/cache/**": 4,
   "src/transpiler/Transpiler.ts": 1,
-  "src/transpiler/ModificationFacts.ts": 1,
-  "src/transpiler/CallbackCompatibility.ts": 1,
   "src/transpiler/types/**": 4,
   "src/index.ts": 1,
   "src/tests/utils/FunctionUtils.ts": 1,

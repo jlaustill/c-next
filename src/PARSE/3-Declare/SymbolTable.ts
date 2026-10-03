@@ -356,6 +356,23 @@ class SymbolTable {
   }
 
   /**
+   * Whether `typeName` is a C typedef of a function pointer: its underlying
+   * type contains "(*)".
+   *
+   * One rule for two readers (#1825): 1.4 recognizes a function assigned to
+   * such a typedef as an ADR-029 callback, and 2.1 treats a variable of one as
+   * callable (ADR-040).
+   */
+  isCFunctionPointerTypedef(typeName: string): boolean {
+    const sym = this.getCSymbol(typeName);
+    if (sym?.kind !== "type") return false;
+    // ICTypedefSymbol has a `type` field with the underlying C type string
+    return (
+      "type" in sym && typeof sym.type === "string" && sym.type.includes("(*)")
+    );
+  }
+
+  /**
    * Get all C symbols with a given name
    */
   getCOverloads(name: string): TCSymbol[] {
