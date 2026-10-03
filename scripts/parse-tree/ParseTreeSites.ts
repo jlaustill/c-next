@@ -14,7 +14,7 @@
  * forbids, and it would fail in the quiet direction: a rule and a scanner that
  * disagree leave a module gated by neither while both report green.
  *
- * Keyed on the MODULE, not on `file:line`. `output-throw-classification.md`
+ * Keyed on the MODULE, not on `file:line`. `throw-classification.md`
  * records what line citations cost -- adding one import shifts every later
  * citation down one and all 20 missed by exactly one (#1399) -- and a module
  * path moves only when the module does, which is a reviewable diff rather than

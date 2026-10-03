@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-462 fixture(s) assert a diagnostic; 447 carry a code.
+464 fixture(s) assert a diagnostic; 451 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -239,7 +239,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/arithmetic/modulo-by-const-zero.test.cnx                                                   | E0802               |
 | tests/arithmetic/modulo-by-zero-literal.test.cnx                                                 | E0802               |
 | tests/atomic/atomic-struct-member.test.cnx                                                       | (uncoded)           |
-| tests/bitmap/bitmap-error-bits.test.cnx                                                          | (uncoded)           |
+| tests/bitmap/bitmap-error-bits.test.cnx                                                          | E0893               |
 | tests/bitwise/i16-compound-shift-assign.test.cnx                                                 | E0805               |
 | tests/bitwise/i16-shift-ops.test.cnx                                                             | E0805               |
 | tests/bitwise/i32-compound-shift-assign.test.cnx                                                 | E0805               |
@@ -332,6 +332,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1430-e0427-order-dependence/consumer-first.test.cnx                             | E0427               |
 | tests/bugs/issue-1430-e0427-order-dependence/source-first.test.cnx                               | E0427               |
 | tests/bugs/issue-1472-scope-function-as-type/undefined-still-rejected.test.cnx                   | E0422               |
+| tests/bugs/issue-1531-declaration-rejections/cross-file-bitmap.test.cnx                          | E0893               |
+| tests/bugs/issue-1531-declaration-rejections/cross-file-enum.test.cnx                            | E0894               |
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-read-through-root.test.cnx              | E0427               |
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-consumer-first.test.cnx   | E0427               |
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-source-first.test.cnx     | E0427               |
@@ -419,7 +421,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/constructor-syntax/error-literal-arg.test.cnx                                              | (uncoded)           |
 | tests/constructor-syntax/error-non-const-arg.test.cnx                                            | E0432               |
 | tests/constructor-syntax/error-undeclared-arg.test.cnx                                           | E0433               |
-| tests/enum/enum-error-negative.test.cnx                                                          | (uncoded)           |
+| tests/enum/enum-error-negative.test.cnx                                                          | E0894               |
 | tests/external-types/cpp-class-global-error.test.cnx                                             | E0508               |
 | tests/external-types/cpp-class-scope-member-error.test.cnx                                       | E0508               |
 | tests/floats/float-const-zero-error.test.cnx                                                     | E0800               |

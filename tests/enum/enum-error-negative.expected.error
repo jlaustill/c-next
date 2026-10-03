@@ -1,1 +1,4 @@
-1:0 Code generation failed: Error: Negative values not allowed in enum (found -1 in BadEnum.BAD)
+14:4 error[E0894]: Negative values not allowed in enum (found -1 in BadEnum.BAD)
+       help: An enum member's value is 0 or more (ADR-017). Use a non-negative value
+19:8 error[E0894]: Negative values not allowed in enum (found -2 in Motor.EMode.OFF)
+       help: An enum member's value is 0 or more (ADR-017). Use a non-negative value

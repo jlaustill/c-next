@@ -1,7 +1,7 @@
 /**
  * #1518: map line numbers from one revision of a file to the next.
  *
- * `output-throw-classification.md` cites 181 sites by `file:line`, and any edit
+ * `throw-classification.md` cites 181 sites by `file:line`, and any edit
  * under `output/` -- adding a single import -- moves every later `throw new`.
  * Correcting the document by hand is how #1399 turned CI red, and this branch
  * did it four times before writing this.

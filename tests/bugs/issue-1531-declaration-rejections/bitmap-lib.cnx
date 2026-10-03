@@ -1,0 +1,8 @@
+// Helper for cross-file-bitmap.test.cnx (#1531). Declares a bitmap whose fields
+// do not fill its width. The rejection must fire for an INCLUDED file, at the
+// included file's own position -- 1.3 Declare threw for every file it read, and
+// 2.1 Analyze reaches a file only if that file is analyzed.
+bitmap8 LibFlags {
+    Ready,
+    Count[4]
+}

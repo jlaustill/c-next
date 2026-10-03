@@ -597,11 +597,10 @@ class Program {
     // already correct. Per-file granularity survives in the message, which is
     // all it was ever for.
     for (const [sourceFile, settled] of settledByFile) {
-      if (DeferredTypes.hasUnsettled(settled)) {
-        throw new Error(
-          `Internal error: 1.4 Resolve left a deferred type in ${sourceFile}`,
-        );
-      }
+      invariant(
+        !DeferredTypes.hasUnsettled(settled),
+        `1.4 Resolve settles every deferred type, ${sourceFile}'s included`,
+      );
     }
 
     return settledByFile;

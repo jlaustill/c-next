@@ -1,0 +1,2 @@
+tests/bugs/issue-1531-declaration-rejections/bitmap-lib.cnx:5:0 error[E0893]: Bitmap 'LibFlags' has 5 bits but bitmap8 requires exactly 8 bits
+       help: A bitmap's field widths must add up to its size (ADR-034). Resize a field, or declare the bitmap with the size its fields add up to

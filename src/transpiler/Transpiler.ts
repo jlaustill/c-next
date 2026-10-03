@@ -986,16 +986,17 @@ class Transpiler {
    * any error, so nothing reachable through the public API can miss. It cannot
    * be mutation-checked either -- mis-keying the cache returns a WRONG entry,
    * never `undefined`, so that mutation exercises the key rather than this
-   * guard. It surfaces as a user-facing `Code generation failed: ...` at line 1,
-   * since the message carries no `N:M` prefix for `parseErrorLocation` to find.
+   * guard. If it ever fired it would surface at line 1, since the message
+   * carries no `N:M` prefix for `parseErrorLocation` to find -- and as an
+   * `Internal:` assertion (#1531), so the reader knows the transpiler broke,
+   * not their program.
    */
   private _requireRetainedParse(sourcePath: string): IParsedFile {
     const declared = this.retainedParses.get(sourcePath);
-    if (!declared) {
-      throw new Error(
-        `${sourcePath} reached code generation without being declared`,
-      );
-    }
+    invariant(
+      declared,
+      `every file that reaches code generation was declared and its parse retained, ${sourcePath} included`,
+    );
     return declared;
   }
 
@@ -1029,12 +1030,10 @@ class Transpiler {
     const program = this.program;
 
     const symbolInfo = program.codeGenSymbolsFor(sourcePath);
-    if (!symbolInfo) {
-      throw new Error(
-        `Internal error: no visible symbol view for ${sourcePath}; ` +
-          `1.4 Resolve must run before stage 5`,
-      );
-    }
+    invariant(
+      symbolInfo,
+      `1.4 Resolve built every file's visible symbol view before stage 5 read one, ${sourcePath}'s included`,
+    );
     return symbolInfo;
   }
 
@@ -1590,11 +1589,10 @@ class Transpiler {
     // #1511: asserted, not defaulted -- a missing artifact would report zero
     // conflicts and pass the check. Stage 3 returns false on a build failure
     // before this runs, so reaching here without one is a broken stage order.
-    if (!this.program) {
-      throw new Error(
-        "Internal error: symbol-conflict check ran before 1.4 Resolve built Program",
-      );
-    }
+    invariant(
+      this.program,
+      "1.4 Resolve built Program before the symbol-conflict check ran",
+    );
     const conflicts = this.program.conflicts();
     for (const conflict of conflicts) {
       // #1334: a conflict is an ordinary diagnostic. It used to reach the user
