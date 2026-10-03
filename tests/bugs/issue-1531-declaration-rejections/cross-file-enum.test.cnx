@@ -1,0 +1,18 @@
+// test-error
+// test-adr: 017
+// Issue #1531 / ADR-017: the cross-file half of E0894. An enum in an INCLUDED
+// file with a negative member value is rejected with the same coded diagnostic,
+// at the included file's own position.
+//
+// NEGATIVE CONTROL: EEntryLevel below starts at 0 and must stay silent, so a
+// check that fired on every enum reachable through an include would fail here.
+// Only the included enum is named in .expected.error.
+
+#include "enum-lib.cnx"
+
+enum EEntryLevel {
+    OFF <- 0,
+    ON
+}
+
+void main() {}

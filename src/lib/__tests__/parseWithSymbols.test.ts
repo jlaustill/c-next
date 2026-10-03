@@ -90,6 +90,26 @@ describe("parseWithSymbols", () => {
       expect(result.success).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
     });
+
+    // #1531: 1.3 Declare threw on both declarations, and this API runs 1.3
+    // without 2.1, so the throw escaped to the editor. 1.3 records them now and
+    // 2.1 rejects them (E0893/E0894), so the symbols arrive like any other.
+    it.each([
+      [
+        "a bitmap whose fields do not fill it",
+        "bitmap8 Few {\n    a,\n    b[3]\n}\n",
+        "Few",
+      ],
+      [
+        "an enum with a negative member value",
+        "enum E {\n    A <- -1\n}\n",
+        "E",
+      ],
+    ])("returns the symbols of %s rather than throwing", (_, source, name) => {
+      const result = parseWithSymbols(source);
+
+      expect(result.symbols.some((s) => s.name === name)).toBe(true);
+    });
   });
 
   describe("symbol info properties", () => {

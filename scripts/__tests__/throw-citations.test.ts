@@ -44,6 +44,19 @@ describe("ThrowCitations.parse", () => {
     ).toEqual([{ path: "Sample.ts", line: 12, anchor: "first failure" }]);
   });
 
+  it("reads a path through a pass directory, whose name carries a hyphen (#1531)", () => {
+    // No pattern in the gate allowed `-` while the corpus was `codegen/...`.
+    // A row citing `1-Discover/` was then not read at all, and its throw
+    // reported as unclassified beside the row that classified it.
+    expect(
+      ThrowCitations.parse(
+        "| `1-Discover/Discover.ts:271` | `first failure` | why |",
+      ),
+    ).toEqual([
+      { path: "1-Discover/Discover.ts", line: 271, anchor: "first failure" },
+    ]);
+  });
+
   it("accepts the abbreviated `…/` path form the document uses", () => {
     expect(
       ThrowCitations.parse(
@@ -195,11 +208,17 @@ describe("ThrowCitations.resolve", () => {
 });
 
 describe("ThrowCitations.check", () => {
-  /** A minimal document citing both of SAMPLE's throws, with matching totals. */
+  /**
+   * A minimal complete document citing SAMPLE's throws, with matching totals:
+   * a counts row, the total, and a by-area row for the directory SAMPLE is in.
+   * #1848 review: a document missing any of the three now fails, so the
+   * fixture carries all three.
+   */
   const docFor = (...rows: string[]): string =>
     [
+      "| **1** | user-facing | **" + rows.length + "** |",
       "|  | **total** | **" + rows.length + "** |",
-      "| `codegen/` | " + rows.length + " |",
+      "| `src/TRANSPILE/` | " + rows.length + " |",
       "",
       "## Bucket 1 — user-facing (" + rows.length + ")",
       ...rows,
@@ -392,10 +411,15 @@ describe("ThrowCitations.check", () => {
     // the shape this gate catches beyond drift.
     const outcome = ThrowCitations.check(docFor(), sources());
     expect(outcome.ok).toBe(false);
-    expect(outcome.errors).toHaveLength(2);
-    expect(outcome.errors.every((e) => e.includes("not classified"))).toBe(
-      true,
+    // Both throws are unclassified, and the by-area row that says the
+    // directory holds none is wrong too (#1531): three findings, each true.
+    expect(
+      outcome.errors.filter((e) => e.includes("not classified")),
+    ).toHaveLength(2);
+    expect(outcome.errors).toContain(
+      "by-area row `src/TRANSPILE/` says 0, and src/TRANSPILE/ holds 2 throw site(s)",
     );
+    expect(outcome.errors).toHaveLength(3);
   });
 
   it("fails a citation whose path matches no file", () => {
@@ -473,9 +497,11 @@ describe("ThrowCitations.checkDeclaredCounts", () => {
   // old figure.
   const doc = [
     "| bucket | count |",
-    "| **1** | **1** |",
+    "| **1** | user-facing | **1** |",
+    "| **2** | internal | **1** |",
     "|  | **total** | **2** |",
-    "| `codegen/` | 2 | 1 | 1 | 0 |",
+    "| `src/TRANSPILE/` | 2 |",
+    "| `src/utils/` | 0 |",
     "",
     "## Bucket 1 — user-facing (1)",
     "| `Sample.ts:2` | `first failure` | why |",
@@ -483,9 +509,12 @@ describe("ThrowCitations.checkDeclaredCounts", () => {
     "## Bucket 2 — internal invariants (1)",
     "| `Sample.ts:5` | `second failure` | why |",
   ].join("\n");
+  const throwsByFile = new Map([[FILE, 2]]);
+  const check = (markdown: string, cited = 2) =>
+    ThrowCitations.checkDeclaredCounts(markdown, cited, throwsByFile);
 
   it("passes when every declared number matches the rows", () => {
-    expect(ThrowCitations.checkDeclaredCounts(doc, 2)).toEqual([]);
+    expect(check(doc)).toEqual([]);
   });
 
   it("fails a bucket heading whose count no longer matches its rows", () => {
@@ -493,28 +522,102 @@ describe("ThrowCitations.checkDeclaredCounts", () => {
       "internal invariants (1)",
       "internal invariants (5)",
     );
-    const errors = ThrowCitations.checkDeclaredCounts(stale, 2);
-    expect(errors.some((e) => e.includes("declares 5, has 1 row"))).toBe(true);
-  });
-
-  it("fails a stale total row", () => {
-    const errors = ThrowCitations.checkDeclaredCounts(doc, 3);
-    expect(
-      errors.some((e) => e.includes("total says 2, document cites 3")),
-    ).toBe(true);
-  });
-
-  it("fails a by-area table that no longer sums", () => {
-    const stale = doc.replace("| `codegen/` | 2 |", "| `codegen/` | 9 |");
-    const errors = ThrowCitations.checkDeclaredCounts(stale, 2);
-    expect(errors.some((e) => e.includes("by-area table sums to 9"))).toBe(
+    expect(check(stale).some((e) => e.includes("declares 5, has 1 row"))).toBe(
       true,
     );
   });
 
+  it("fails a stale total row", () => {
+    expect(
+      check(doc, 3).some((e) => e.includes("total says 2, document cites 3")),
+    ).toBe(true);
+  });
+
+  it("fails a by-area table that no longer sums", () => {
+    const stale = doc.replace(
+      "| `src/TRANSPILE/` | 2 |",
+      "| `src/TRANSPILE/` | 9 |",
+    );
+    expect(
+      check(stale).some((e) => e.includes("by-area table sums to 9")),
+    ).toBe(true);
+  });
+
   it("reports a missing total row rather than passing silently", () => {
-    const errors = ThrowCitations.checkDeclaredCounts("## Bucket 1 — x (0)", 0);
+    const errors = ThrowCitations.checkDeclaredCounts(
+      "## Bucket 1 — x (0)",
+      0,
+      new Map(),
+    );
     expect(errors.some((e) => e.includes("no **total** row"))).toBe(true);
+  });
+
+  // #1531: these three passed before. Only the headings and the two totals
+  // were read, so a summary row and a per-area row could say anything.
+  it("fails a counts-table bucket row that disagrees with its section", () => {
+    const stale = doc.replace(
+      "| **1** | user-facing | **1** |",
+      "| **1** | user-facing | **4** |",
+    );
+    expect(
+      check(stale).some((e) =>
+        e.includes("says bucket 1 holds 4, its section has 1 row"),
+      ),
+    ).toBe(true);
+  });
+
+  it("fails two areas that trade counts, though the sum holds", () => {
+    const traded = doc
+      .replace("| `src/TRANSPILE/` | 2 |", "| `src/TRANSPILE/` | 0 |")
+      .replace("| `src/utils/` | 0 |", "| `src/utils/` | 2 |");
+    const errors = check(traded);
+    expect(errors.some((e) => e.includes("`src/utils/` says 2"))).toBe(true);
+    expect(errors.some((e) => e.includes("sums to"))).toBe(false);
+  });
+
+  // #1848 review: each of these passed the first version of the two checks,
+  // which read one table shape in one direction.
+  it("reads a counts row by its two ends, so a column added between them cannot hide it", () => {
+    const widened = doc.replace(
+      "| **1** | user-facing | **1** |",
+      "| **1** | user-facing | tier A | **4** |",
+    );
+    expect(
+      check(widened).some((e) => e.includes("says bucket 1 holds 4")),
+    ).toBe(true);
+  });
+
+  it("fails a bucket heading with no counts-table row", () => {
+    const missing = doc.replace("| **1** | user-facing | **1** |\n", "");
+    expect(
+      check(missing).some((e) =>
+        e.includes('"## Bucket 1" needs one counts-table row, and has 0'),
+      ),
+    ).toBe(true);
+  });
+
+  it("fails a bucket with two counts-table rows", () => {
+    const doubled = doc.replace(
+      "| **1** | user-facing | **1** |",
+      "| **1** | user-facing | **1** |\n| **1** | again | **1** |",
+    );
+    expect(check(doubled).some((e) => e.includes("and has 2"))).toBe(true);
+  });
+
+  it("fails a document that cites throws and has no by-area table", () => {
+    const withoutAreas = doc
+      .replace("| `src/TRANSPILE/` | 2 |\n", "")
+      .replace("| `src/utils/` | 0 |\n", "");
+    expect(check(withoutAreas)).toContain(
+      "by-area table has no rows, and the document cites throws",
+    );
+  });
+
+  it("fails an area that names no directory under src/", () => {
+    const loose = doc.replace("| `src/TRANSPILE/` | 2 |", "| `codegen/` | 2 |");
+    expect(
+      check(loose).some((e) => e.includes("names no directory under src/")),
+    ).toBe(true);
   });
 });
 
@@ -536,6 +639,12 @@ describe("ThrowCitations.bucketCounts", () => {
 });
 
 describe("ThrowCitations.remap (#1518)", () => {
+  /** Each revision's key is the only file a cited path can resolve to. */
+  const remapByKeys = (
+    markdown: string,
+    revisions: Map<string, { previous: string; current: string }>,
+  ) => ThrowCitations.remap(markdown, revisions, [...revisions.keys()]);
+
   const doc = (line: number): string =>
     `| \`Gen.ts:${line}\` | \`boom\` | why |\n`;
 
@@ -550,7 +659,7 @@ describe("ThrowCitations.remap (#1518)", () => {
       "c",
     ].join("\n");
 
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       doc(3),
       new Map([["Gen.ts", { previous, current }]]),
     );
@@ -561,7 +670,7 @@ describe("ThrowCitations.remap (#1518)", () => {
   });
 
   it("leaves a citation alone when nothing moved", () => {
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       doc(3),
       new Map([["Gen.ts", { previous, current: previous }]]),
     );
@@ -588,7 +697,7 @@ describe("ThrowCitations.remap (#1518)", () => {
       "c",
     ].join("\n");
 
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       doc(3),
       new Map([["Gen.ts", { previous, current }]]),
     );
@@ -611,7 +720,7 @@ describe("ThrowCitations.remap (#1518)", () => {
       "c",
     ].join("\n");
 
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       doc(3),
       new Map([["Gen.ts", { previous, current }]]),
     );
@@ -632,7 +741,7 @@ describe("ThrowCitations.remap (#1518)", () => {
       "c",
     ].join("\n");
 
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       "| `Gen.ts:3` | prose, not an anchor | why |\n",
       new Map([["Gen.ts", { previous, current }]]),
     );
@@ -647,7 +756,7 @@ describe("ThrowCitations.remap (#1518)", () => {
     const otherMoved = ["x", "y", 'throw new Error("other");'].join("\n");
     const broken = [previous, 'throw new Error("added");'].join("\n");
 
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       `${doc(3)}| \`Other.ts:2\` | \`other\` | why |\n`,
       new Map([
         ["Gen.ts", { previous, current: broken }],
@@ -672,7 +781,7 @@ describe("ThrowCitations.remap (#1518)", () => {
       "c",
     ].join("\n");
 
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       "| `codegen/Gen.ts:3` | `boom` | why |\n",
       new Map([["Gen.ts", { previous, current }]]),
     );
@@ -681,7 +790,7 @@ describe("ThrowCitations.remap (#1518)", () => {
   });
 
   it("leaves a line it cannot place, rather than guessing one", () => {
-    const outcome = ThrowCitations.remap(
+    const outcome = remapByKeys(
       doc(9999),
       new Map([["Gen.ts", { previous, current: previous }]]),
     );
@@ -691,11 +800,48 @@ describe("ThrowCitations.remap (#1518)", () => {
   });
 
   it("ignores a file it was given no revision for", () => {
-    const outcome = ThrowCitations.remap(
-      "| `Absent.ts:7` | `x` | y |\n",
-      new Map(),
-    );
+    const outcome = remapByKeys("| `Absent.ts:7` | `x` | y |\n", new Map());
 
     expect(outcome.markdown).toBe("| `Absent.ts:7` | `x` | y |\n");
+  });
+
+  it("keeps two changed files that share a basename apart (#1531)", () => {
+    // Across src/, utils/TypeResolver.ts and codegen/TypeResolver.ts are two
+    // files. Keyed by basename, one revision overwrote the other, and a cited
+    // path resolved against the changed files alone fell back to the basename.
+    const files = [
+      "src/utils/TypeResolver.ts",
+      "src/TRANSPILE/3-Render/codegen/TypeResolver.ts",
+    ];
+    const utils = ["a", 'throw new Error("utils boom");'];
+    const codegen = ["x", 'throw new Error("codegen boom");'];
+
+    const outcome = ThrowCitations.remap(
+      "| `utils/TypeResolver.ts:2` | `utils boom` | why |\n" +
+        "| `codegen/TypeResolver.ts:2` | `codegen boom` | why |\n",
+      new Map([
+        [
+          files[0],
+          {
+            previous: utils.join("\n"),
+            current: ["a", "b", "c", utils[1]].join("\n"),
+          },
+        ],
+        [
+          files[1],
+          {
+            previous: codegen.join("\n"),
+            current: ["x", "y", codegen[1]].join("\n"),
+          },
+        ],
+      ]),
+      files,
+    );
+
+    expect(outcome.markdown).toBe(
+      "| `utils/TypeResolver.ts:4` | `utils boom` | why |\n" +
+        "| `codegen/TypeResolver.ts:3` | `codegen boom` | why |\n",
+    );
+    expect(outcome.refusals).toEqual([]);
   });
 });

@@ -1,1 +1,6 @@
-1:0 Code generation failed: Error: Bitmap 'BadBitmap' has 5 bits but bitmap8 requires exactly 8 bits
+18:0 error[E0893]: Bitmap 'BadBitmap' has 5 bits but bitmap8 requires exactly 8 bits
+       help: A bitmap's field widths must add up to its size (ADR-034). Resize a field, or declare the bitmap with the size its fields add up to
+25:0 error[E0893]: Bitmap 'WideBitmap' has 17 bits but bitmap16 requires exactly 16 bits
+       help: A bitmap's field widths must add up to its size (ADR-034). Resize a field, or declare the bitmap with the size its fields add up to
+30:4 error[E0893]: Bitmap 'Motor.Flags' has 3 bits but bitmap8 requires exactly 8 bits
+       help: A bitmap's field widths must add up to its size (ADR-034). Resize a field, or declare the bitmap with the size its fields add up to

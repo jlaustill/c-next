@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 15      |
 | E06xx     | Sizeof Expressions      | 2       |
 | E07xx     | Control Flow            | 12      |
-| E08xx     | Arithmetic/Array Safety | 52      |
+| E08xx     | Arithmetic/Array Safety | 54      |
 | E09xx     | NULL Safety             | 8       |
-| **Total** |                         | **116** |
+| **Total** |                         | **118** |
 
 ---
 
@@ -350,6 +350,13 @@ base: bare, `this.` and `global.`.
 | Code  | Message                                                      | Help                                                                                                                           | Source                                            |
 | ----- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
 | E0892 | Array dimension without a size, and nothing to count it from | Write the size; only a one-dimensional array initialized by a list (or, for `u8`, a string literal) may leave it out (ADR-035) | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts` |
+
+### Declared Type Shape (ADR-034 / ADR-017)
+
+| Code  | Message                                           | Help                                                                     | Source                                           |
+| ----- | ------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------ |
+| E0893 | A bitmap's field widths do not add up to its size | Resize a field, or declare the bitmap with the size its fields add up to | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts` |
+| E0894 | An enum member's value is negative                | Use a non-negative value                                                 | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts` |
 
 ## E09xx — NULL Safety (ADR-046)
 

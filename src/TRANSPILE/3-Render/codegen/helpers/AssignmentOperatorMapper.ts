@@ -21,7 +21,7 @@
  * It is `invariant()` and not `throw new`, per #1322b: the map and the grammar
  * are two halves of one fact, so a miss means the transpiler is wrong, not the
  * author's program. A `throw new` here would also rejoin the `output/` corpus
- * that #1322 emptied -- bucket 2 of `output-throw-classification.md` is exactly
+ * that #1322 emptied -- bucket 2 of `throw-classification.md` is exactly
  * this shape, and all sixteen of its sites became assertions for that reason.
  * `scripts/__tests__/assignment-operator-parity.test.ts` catches the divergence
  * at its source; this catches it at the point of use.

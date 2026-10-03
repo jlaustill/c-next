@@ -8,6 +8,8 @@
  * Used by InitializationAnalyzer, but generic enough for other analyses.
  */
 
+import invariant from "../../utils/invariant";
+
 /**
  * A single scope in the stack
  */
@@ -54,12 +56,12 @@ class ScopeStack<T> {
    * Declare a variable in the current scope
    * @param name - Variable name
    * @param state - Initial state for the variable
-   * @throws Error if no scope exists (call enterScope first)
    */
   declare(name: string, state: T): void {
-    if (!this.currentScope) {
-      throw new Error("Cannot declare variable: no active scope");
-    }
+    invariant(
+      this.currentScope,
+      "a variable is declared only inside a scope the analysis entered",
+    );
     this.currentScope.variables.set(name, state);
   }
 

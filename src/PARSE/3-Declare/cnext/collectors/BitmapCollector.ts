@@ -24,8 +24,9 @@ class BitmapCollector {
    * @param sourceFile Source file path
    * @param scopePath The path of the scope this bitmap belongs to (dotted path, "" at file scope)
    * @param visibility ADR-016 visibility as declared (#1300)
-   * @returns The bitmap symbol with proper scope reference
-   * @throws Error if total bits don't match bitmap size
+   * @returns The bitmap symbol with proper scope reference. Fields that do not
+   *          fill its width are recorded as written: whether they must is
+   *          ADR-034's rule, and 2.1 Analyze reports it as E0893 (#1531).
    */
   static collect(
     ctx: Parser.BitmapDeclarationContext,
@@ -68,13 +69,6 @@ class BitmapCollector {
         width,
       });
       totalBits += width;
-    }
-
-    // Validate total bits equals bitmap size
-    if (totalBits !== expectedBits) {
-      throw new Error(
-        `Error: Bitmap '${name}' has ${totalBits} bits but ${bitmapType} requires exactly ${expectedBits} bits`,
-      );
     }
 
     return {

@@ -23,8 +23,9 @@ class EnumCollector {
    * @param sourceFile Source file path
    * @param scopePath The path of the scope this enum belongs to (dotted path, "" at file scope)
    * @param visibility ADR-016 visibility as declared (#1300)
-   * @returns The enum symbol with proper scope reference
-   * @throws Error if any member has a negative value
+   * @returns The enum symbol with proper scope reference. A negative member
+   *          value is recorded as written: that it is not allowed is
+   *          ADR-017's rule, and 2.1 Analyze reports it as E0894 (#1531).
    */
   static collect(
     ctx: Parser.EnumDeclarationContext,
@@ -53,15 +54,7 @@ class EnumCollector {
       if (member.expression()) {
         // Explicit value with <-
         const valueText = member.expression()!.getText();
-        const value = ExpressionEvaluator.evaluateConstant(valueText);
-
-        if (value < 0) {
-          throw new Error(
-            `Error: Negative values not allowed in enum (found ${value} in ${name}.${memberName})`,
-          );
-        }
-
-        currentValue = value;
+        currentValue = ExpressionEvaluator.evaluateConstant(valueText);
       }
 
       members.set(memberName, {

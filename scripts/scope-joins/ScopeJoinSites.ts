@@ -14,7 +14,7 @@
  *
  * Keyed on a per-file COUNT rather than `file:line`. Two reasons, both learned
  * the expensive way: an eleven-site change silently invalidated eighteen
- * `file:line` citations in `output-throw-classification.md` through pure line
+ * `file:line` citations in `throw-classification.md` through pure line
  * drift, and #1374 records that a citation gate cannot detect two rows trading
  * sites. A count cannot rot when code moves and still fails the moment the
  * residue grows -- which is the requirement, since #1348 moved the population
