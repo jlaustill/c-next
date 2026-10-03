@@ -127,6 +127,15 @@ function referencesTo(
 }
 
 describe("declared types are bound, not registered", () => {
+  // The type checker over all of src/ is built by the first `getType()`,
+  // which made it a cost of whichever test asked first -- arm A, on vitest's
+  // 5 s default. It ran 4.0 s there under CI coverage and timed out at 5.3 s
+  // when another run shared the machine (#1850). Building it here, once, puts
+  // the cost on setup, under the budget the whole-tree arm C also sets.
+  beforeAll(() => {
+    project.getProgram().compilerObject.getTypeChecker();
+  }, 60_000);
+
   // #1760 review: arms A, B and D are keyed on paths. Were the render side to
   // move, each would compare [] to [] and stay green.
   it("finds the render side the arms search", () => {
