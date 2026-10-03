@@ -61,6 +61,7 @@ describe("ConstantEvaluator", () => {
       ["1 + 2 + 3", bin("+", bin("+", lit("1"), lit("2")), lit("3")), 6n],
       ["1 << 3", bin("<<", lit("1"), lit("3")), 8n],
       ["0x10 + 1, from digits", bin("+", lit("16"), lit("1")), 17n],
+      ["4 * 5", bin("*", lit("4"), lit("5")), 20n],
       ["7 / 2 truncates toward zero", bin("/", lit("7"), lit("2")), 3n],
       [
         "-7 / 2 truncates toward zero",

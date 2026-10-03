@@ -34,57 +34,6 @@ class BinaryExprUtils {
   }
 
   /**
-   * Issue #235: Evaluate a constant arithmetic expression.
-   * Returns the result if all operands are numeric and every step is exact,
-   * undefined otherwise (falls back to non-folded code). #1760 review: a step
-   * past 2^53 is rounded, and `9007199254740993 - 9007199254740992` folded
-   * to 0 where C computes 1.
-   */
-  static tryFoldConstants(
-    operandCodes: string[],
-    operators: string[],
-  ): number | undefined {
-    const values = operandCodes.map(BinaryExprUtils.tryParseNumericLiteral);
-
-    let result = values[0];
-    for (let i = 0; i < operators.length; i++) {
-      result = BinaryExprUtils.applyOperator(
-        operators[i],
-        result,
-        values[i + 1],
-      );
-    }
-    return LiteralUtils.isExactInteger(result) ? result : undefined;
-  }
-
-  /**
-   * One step of a constant fold, or undefined when an operand is unknown,
-   * the divisor is zero, or the step is not exact.
-   */
-  private static applyOperator(
-    op: string,
-    left: number | undefined,
-    right: number | undefined,
-  ): number | undefined {
-    if (!LiteralUtils.isExactInteger(left)) return undefined;
-    if (!LiteralUtils.isExactInteger(right)) return undefined;
-    switch (op) {
-      case "*":
-        return left * right;
-      case "/":
-        return right === 0 ? undefined : Math.trunc(left / right);
-      case "%":
-        return right === 0 ? undefined : left % right;
-      case "+":
-        return left + right;
-      case "-":
-        return left - right;
-      default:
-        return undefined;
-    }
-  }
-
-  /**
    * Build a chained binary expression from operands and operators.
    * Used by relational, shift, additive, and multiplicative generators.
    */

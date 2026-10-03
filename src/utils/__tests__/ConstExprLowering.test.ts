@@ -41,7 +41,13 @@ describe("ConstExprLowering", () => {
     ["10 / 3 % 2", "((10 / 3) % 2)"],
     ["pick()", "<call pick()>"],
     ["arr[0]", "<subscript arr[0]>"],
-    ["m[0].element_count", "<subscript m[0].element_count>"],
+    // ADR-058: a length property is the same for every element, so before
+    // one a subscript is a step into the element, whatever its index
+    ["m[0].element_count", "m[].element_count"],
+    ["m[i][j].bit_length", "m[][].bit_length"],
+    ["m[0].data", "<subscript m[0].data>"],
+    ["m[0, 4].element_count", "<subscript m[0,4].element_count>"],
+    ["pick().element_count", "<call pick().element_count>"],
     ["1.5", "<float 1.5>"],
     ['"s"', '<string "s">'],
     ["'c'", "<character 'c'>"],

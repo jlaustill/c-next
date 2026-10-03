@@ -36,22 +36,32 @@ class ConstantFold {
   }
 
   /**
-   * #1175: a dimension as 1.4 settles it, by the one evaluator. Its value; the
-   * C for one only C can evaluate (a header macro), written from its
-   * structure; otherwise UNRESOLVED_DIMENSION -- no value, which 2.1 Analyze
-   * reports (E0909, E0910) before anything emits it.
+   * #1175: a dimension as C writes it, decided once for the .c (render) and
+   * the .h (1.4's settled symbol). Its value; the C for one only C can
+   * evaluate (a header macro), written from its structure; null when it has
+   * none, which 2.1 Analyze reports (E0909, E0910) before anything emits it.
+   * A value past what a `number` holds exactly is its digits, so the two
+   * files still write the same.
    */
+  static settled(
+    expr: TConstExpr,
+    env: IConstantEnvironment,
+  ): number | string | null {
+    const result = ConstantEvaluator.evaluate(expr, env);
+    if (result.kind === "value") {
+      return (
+        ConstantEvaluator.toNumber(result.value) ?? result.value.toString()
+      );
+    }
+    return result.kind === "foreign" ? ConstExprPrinter.toC(expr, env) : null;
+  }
+
+  /** `settled` as a symbol records it: UNRESOLVED_DIMENSION for none */
   static dimension(
     expr: TConstExpr,
     env: IConstantEnvironment,
   ): number | string {
-    const result = ConstantEvaluator.evaluate(expr, env);
-    if (result.kind === "value") {
-      return ConstantEvaluator.toNumber(result.value) ?? UNRESOLVED_DIMENSION;
-    }
-    return result.kind === "foreign"
-      ? ConstExprPrinter.toC(expr, env)
-      : UNRESOLVED_DIMENSION;
+    return ConstantFold.settled(expr, env) ?? UNRESOLVED_DIMENSION;
   }
 
   /**

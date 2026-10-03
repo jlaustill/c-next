@@ -51,6 +51,7 @@ import type IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import type IBindingFacts from "./types/IBindingFacts";
 import ConflictDetector from "./ConflictDetector";
 import type IForeignSymbols from "./types/IForeignSymbols";
+import type IForeignArray from "./types/IForeignArray";
 import type IConflict from "../../types/IConflict";
 import type IModificationFacts from "./types/IModificationFacts";
 import type ICallGraphEntry from "../../types/ICallGraphEntry";
@@ -174,6 +175,7 @@ class Program {
       ...foreign.c.map((symbol) => symbol.name),
       ...foreign.cpp.map((symbol) => symbol.name),
     ]);
+    const foreignArrays = Program.foreignArrays(foreign);
     // What a spelling means while the consts fold: the declarations as 1.3
     // recorded them, bound in the same order every later pass binds in.
     const declared: IBindingFacts = {
@@ -183,6 +185,7 @@ class Program {
       symbolsByCName: Program.indexByCName(settledByFile),
       registry,
       foreignNames,
+      foreignArrays,
       visibleFiles,
     };
     const constants = Program.deriveConstants(
@@ -222,6 +225,7 @@ class Program {
       symbolsByCName,
       registry,
       foreignNames,
+      foreignArrays,
       visibleFiles,
     };
     const knownEnums = Program.deriveKnownEnums(symbolsByFile);
@@ -848,6 +852,7 @@ class Program {
       get reachesForeignHeader() {
         return options.files.reachesForeignHeader(file());
       },
+      foreignArray: (name) => facts.foreignArrays.get(name) ?? null,
       constValue: (symbol) => {
         const value = constants.consts.get(symbol.fullyQualifiedCName);
         if (value === undefined)
@@ -1072,6 +1077,22 @@ class Program {
       return declared(memberCName);
     }
     return declared(name) ?? scope() ?? foreign();
+  }
+
+  /** #1175: the header arrays, by name, as their headers declare them */
+  private static foreignArrays(
+    foreign: IForeignSymbols,
+  ): ReadonlyMap<string, IForeignArray> {
+    const arrays = new Map<string, IForeignArray>();
+    for (const symbol of [...foreign.c, ...foreign.cpp]) {
+      if (symbol.kind === "variable" && symbol.arrayDimensions?.length) {
+        arrays.set(symbol.name, {
+          type: symbol.type,
+          dimensions: symbol.arrayDimensions,
+        });
+      }
+    }
+    return arrays;
   }
 
   /**

@@ -24,6 +24,7 @@ import type ILocalDeclaration from "../../types/ILocalDeclaration";
 import type IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import type TConstExpr from "../../types/TConstExpr";
 import type TConstResult from "../../types/TConstResult";
+import ELEMENT_STEP from "../../types/ELEMENT_STEP";
 import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
@@ -51,7 +52,8 @@ class ConstantNames {
       at: name.at,
       facts,
     };
-    const [head, ...rest] = name.path;
+    const head = name.path[0];
+    const rest = name.path.slice(1);
     if (head === undefined) return ConstantNames.without("unknown", walk);
     const binding = facts.bind(name.root, head, name.at);
     return binding === null
@@ -87,13 +89,17 @@ class ConstantNames {
       case "scope":
         return ConstantNames.ofScopeMember(binding.scopePath, rest, walk);
       case "foreign":
-        return { kind: "foreign", spelling: walk.spelling, why: "header" };
+        return rest.length === 0
+          ? { kind: "foreign", spelling: walk.spelling, why: "header" }
+          : ConstantNames.ofForeignArray(binding.name, rest, walk);
     }
   }
 
-  /** `this.N`, `global.N`, `Scope.N` -- as the source wrote it */
+  /** `this.N`, `global.N`, `Scope.N`, `m[].element_count` */
   static spell(name: TConstName): string {
-    return [...(name.root === null ? [] : [name.root]), ...name.path].join(".");
+    return [...(name.root === null ? [] : [name.root]), ...name.path]
+      .join(".")
+      .replaceAll(`.${ELEMENT_STEP}`, ELEMENT_STEP);
   }
 
   private static ofLocal(
@@ -160,8 +166,8 @@ class ConstantNames {
     walk: IWalk,
   ): TConstResult {
     let current: IMeasured | null = measured;
-    for (const field of rest.slice(0, -1)) {
-      current = current && ConstantNames.fieldOf(current, field, walk);
+    for (const step of rest.slice(0, -1)) {
+      current = current && ConstantNames.stepInto(current, step, walk);
     }
     const property = rest.at(-1)!;
     if (current === null || !LengthProperty.isLength(property)) {
@@ -175,6 +181,44 @@ class ConstantNames {
     return value === null
       ? ConstantNames.without("unfolded", walk)
       : { kind: "value", value: BigInt(value), typeName: null };
+  }
+
+  /**
+   * A length property of a header's array, measured from its declared
+   * dimensions: `cArr.element_count`. Only a bare name is C's to evaluate as
+   * written, so a member of anything else a header declares has no value.
+   * The element's width is the target's to decide, so a `bit_length` has none
+   * either.
+   */
+  private static ofForeignArray(
+    name: string,
+    rest: ReadonlyArray<string>,
+    walk: IWalk,
+  ): TConstResult {
+    const array = walk.facts.foreignArray(name);
+    return array === null
+      ? ConstantNames.without("member", walk)
+      : ConstantNames.ofMember(
+          {
+            type: { kind: "external", name: array.type },
+            dimensions: array.dimensions,
+          },
+          rest,
+          walk,
+        );
+  }
+
+  /** One step of a measured walk: into an element, or into a field */
+  private static stepInto(
+    current: IMeasured,
+    step: string,
+    walk: IWalk,
+  ): IMeasured | null {
+    if (step !== ELEMENT_STEP)
+      return ConstantNames.fieldOf(current, step, walk);
+    return current.dimensions.length > 0
+      ? { type: current.type, dimensions: current.dimensions.slice(1) }
+      : null;
   }
 
   /** A field of a struct value, measured as declared; null for anything else */
@@ -200,7 +244,8 @@ class ConstantNames {
     rest: ReadonlyArray<string>,
     walk: IWalk,
   ): TConstResult {
-    const [member, ...more] = rest;
+    const member = rest[0];
+    const more = rest.slice(1);
     if (member === undefined) return ConstantNames.without("scope", walk);
     const cName = ScopeUtils.getTranspiledCName({ name: member, scopePath });
     const symbol = walk.facts.visibleSymbol(cName);
@@ -227,7 +272,7 @@ class ConstantNames {
     rest: ReadonlyArray<string>,
     walk: IWalk,
   ): TConstResult {
-    if (rest.length !== 1) return ConstantNames.unbound(walk);
+    if (rest.length !== 1) return ConstantNames.unbound(rest, walk);
     const scopePath = walk.facts.scopePathAt(walk.at);
     let cName = head;
     if (root === "this") {
@@ -241,7 +286,7 @@ class ConstantNames {
     if (walk.facts.visibleSymbol(cName)?.kind === "enum") {
       return walk.facts.enumMember(cName, rest[0], walk.spelling, walk.at);
     }
-    return ConstantNames.unbound(walk);
+    return ConstantNames.unbound(rest, walk);
   }
 
   /**
@@ -250,10 +295,18 @@ class ConstantNames {
    * evaluate, as E0427 leaves it (#1175). Elsewhere it is undeclared, which
    * E0427 reports.
    */
-  private static unbound(walk: IWalk): TConstResult {
-    return walk.facts.reachesForeignHeader
+  private static unbound(
+    rest: ReadonlyArray<string>,
+    walk: IWalk,
+  ): TConstResult {
+    if (!walk.facts.reachesForeignHeader) {
+      return ConstantNames.without("unknown", walk);
+    }
+    // A macro is a bare name: C has no spelling for `X.y` that C-Next could
+    // write for it
+    return rest.length === 0
       ? { kind: "foreign", spelling: walk.spelling, why: "maybeHeader" }
-      : ConstantNames.without("unknown", walk);
+      : ConstantNames.without("member", walk);
   }
 
   private static without(reason: TReason, walk: IWalk): TConstResult {

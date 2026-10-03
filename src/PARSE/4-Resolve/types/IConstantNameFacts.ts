@@ -5,6 +5,7 @@ import type TSymbol from "../../../types/symbols/TSymbol";
 import type TValueBinding from "../../../types/TValueBinding";
 import type IVariableSymbol from "../../../types/symbols/IVariableSymbol";
 import type ISourcePosition from "../../../utils/types/ISourcePosition";
+import type IForeignArray from "./IForeignArray";
 
 /**
  * What `ConstantNames` asks while it walks a name's chain (#1175, #1669), as
@@ -34,6 +35,8 @@ interface IConstantNameFacts {
    * a name nothing binds may then be a macro, which only C can evaluate
    */
   readonly reachesForeignHeader: boolean;
+  /** A header's array the binder bound `name` to; null for anything else */
+  foreignArray(name: string): IForeignArray | null;
   /** A member of the enum with C name `enumCName` */
   enumMember(
     enumCName: string,

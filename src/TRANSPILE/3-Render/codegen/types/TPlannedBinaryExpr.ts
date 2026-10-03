@@ -95,6 +95,12 @@ type TPlannedBinaryExpr =
    */
   | {
       readonly kind: "arithmetic";
+      /**
+       * #1175: the chain's value when it is a constant expression, decided in
+       * 2.2 by the one evaluator (ADR-044: none where it would clamp or wrap);
+       * null otherwise
+       */
+      readonly constantValue: string | null;
       readonly defaultOperator: string;
       readonly operators: readonly string[];
       readonly clampType: () => string | null;

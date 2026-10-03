@@ -14,6 +14,8 @@ import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "./ParserUtils";
 import invariant from "./invariant";
 import ConstantEvaluator from "./ConstantEvaluator";
+import LengthProperty from "./LengthProperty";
+import ELEMENT_STEP from "../types/ELEMENT_STEP";
 import type IConstantEnvironment from "./types/IConstantEnvironment";
 import type { ParserRuleContext } from "antlr4ng";
 import type TConstExpr from "../types/TConstExpr";
@@ -158,7 +160,14 @@ class ConstExprLowering {
     const primary = ctx.primaryExpression();
     const ops = ctx.postfixOp();
     if (ops.length === 0) return ConstExprLowering.primary(primary);
-    const blocking = ops.find((op) => op.DOT() === null);
+    // ADR-058: a length property is the same for every element, so before
+    // one a subscript is a step into the element, whatever its index
+    const last = ops.at(-1)!.IDENTIFIER()?.getText();
+    const measured = last !== undefined && LengthProperty.isLength(last);
+    const blocking = ops.find(
+      (op) =>
+        op.DOT() === null && !(measured && ConstExprLowering.isElement(op)),
+    );
     if (blocking) {
       return ConstExprLowering.other(
         blocking.LBRACKET() ? "subscript" : "call",
@@ -175,10 +184,17 @@ class ConstExprLowering {
       root,
       path: [
         ...(head === undefined ? [] : [head]),
-        ...ops.map((op) => op.IDENTIFIER()!.getText()),
+        ...ops.map((op) =>
+          op.DOT() === null ? ELEMENT_STEP : op.IDENTIFIER()!.getText(),
+        ),
       ],
       at: ParserUtils.getPosition(ctx),
     };
+  }
+
+  /** `[i]`, not a bit range `[start, width]` */
+  private static isElement(op: Parser.PostfixOpContext): boolean {
+    return op.LBRACKET() !== null && op.expression().length === 1;
   }
 
   private static root(

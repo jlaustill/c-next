@@ -1,3 +1,4 @@
+import ELEMENT_STEP from "../../types/ELEMENT_STEP";
 import type TConstExpr from "../../types/TConstExpr";
 
 /**
@@ -12,9 +13,9 @@ class ConstExprShape {
           ? expr.digits
           : `${expr.digits}:${expr.typeName}`;
       case "name":
-        return [...(expr.root === null ? [] : [expr.root]), ...expr.path].join(
-          ".",
-        );
+        return [...(expr.root === null ? [] : [expr.root]), ...expr.path]
+          .join(".")
+          .replaceAll(`.${ELEMENT_STEP}`, ELEMENT_STEP);
       case "sizeof":
         return `sizeof(${expr.typeName})`;
       case "cast":

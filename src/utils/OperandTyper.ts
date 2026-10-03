@@ -1107,7 +1107,7 @@ class OperandTyper {
       };
     }
     if (op.LBRACKET() !== null) {
-      return OperandTyper.subscriptOf(current, op.expression(), op, ctx);
+      return OperandTyper.subscriptOf(current, op.expression(), ctx);
     }
     return { next: OperandTyper.callOf(current, ctx), subscript: null };
   }
@@ -1375,7 +1375,6 @@ class OperandTyper {
   private static subscriptOf(
     current: TChainValue,
     indices: Parser.ExpressionContext[],
-    op: ParserRuleContext,
     ctx: ITypingContext,
   ): { next: TChainValue; subscript: TSubscriptKind | null } {
     const t = current.k === "value" ? current.t : null;
@@ -1456,7 +1455,7 @@ class OperandTyper {
           },
         };
       case "bit_range": {
-        const width = OperandTyper.foldedWidth(indices[1], op, ctx);
+        const width = OperandTyper.foldedWidth(indices[1], ctx);
         // The unsigned type that holds the bits, as 2.2 always typed a range
         const typeName =
           width === null ? null : OperandTyper.unsignedFor(width);
@@ -1536,7 +1535,6 @@ class OperandTyper {
   /** A bit range's width, when it folds in the constants visible there */
   private static foldedWidth(
     widthExpr: Parser.ExpressionContext | undefined,
-    at: ParserRuleContext,
     ctx: ITypingContext,
   ): number | null {
     if (!widthExpr) return null;

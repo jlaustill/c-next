@@ -92,8 +92,8 @@ class EnumMemberValues {
 
   private static ranged(result: TEnumMemberValue): TEnumMemberValue {
     if (result.kind !== "value") return result;
-    const [min, max] = TypeCheckUtils.integerRange(MEMBER_TYPE)!;
-    return result.value < min || result.value > max
+    const range = TypeCheckUtils.integerRange(MEMBER_TYPE)!;
+    return result.value < range[0] || result.value > range[1]
       ? { kind: "outOfRange", value: result.value }
       : result;
   }

@@ -118,7 +118,7 @@ import generateCast from "./3-Render/codegen/generators/expressions/CastExprGene
 import type IPlannedCast from "./3-Render/codegen/types/IPlannedCast";
 import ConstExprLowering from "../utils/ConstExprLowering";
 import ConstantEvaluator from "../utils/ConstantEvaluator";
-import ConstExprPrinter from "../utils/ConstExprPrinter";
+import ConstantFold from "../utils/ConstantFold";
 import UNRESOLVED_DIMENSION from "../types/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./2-Plan/dimensionEvalOptions";
 import MemberChainAnalyzer from "./3-Render/codegen/analysis/MemberChainAnalyzer";
@@ -873,6 +873,7 @@ class CodeGenWalker {
     }
     return {
       kind: "arithmetic",
+      constantValue: this.constantValue(ctx),
       defaultOperator: "+",
       operators: this.getOperatorsFromChildren(ctx),
       // Asked AFTER the operands render, which is where they are asked today.
@@ -886,6 +887,24 @@ class CodeGenWalker {
           this.renderBinaryLevel(this.planMultiplicativeLevel(child)),
       ),
     };
+  }
+
+  /**
+   * #1175: an arithmetic chain's value when it is a constant expression, by
+   * the one evaluator, where the tree is in hand. Render used to fold the
+   * generated C operand text with `parseInt`, so `i32 a <- 010 + 1` was
+   * written as `11` where C reads `010` as octal and computes 9.
+   */
+  private constantValue(ctx: ParserRuleContext): string | null {
+    const result = ConstantEvaluator.evaluate(
+      ConstExprLowering.lowerNode(ctx),
+      dimensionEvalOptions(this.transpileState),
+    );
+    const value =
+      result.kind === "value"
+        ? ConstantEvaluator.toNumber(result.value)
+        : undefined;
+    return value === undefined ? null : String(value);
   }
 
   /**
@@ -918,6 +937,7 @@ class CodeGenWalker {
     }
     return {
       kind: "arithmetic",
+      constantValue: this.constantValue(ctx),
       defaultOperator: "*",
       operators: this.getOperatorsFromChildren(ctx),
       clampType: () => this.compositeClampType(ctx),
@@ -4109,19 +4129,20 @@ class CodeGenWalker {
    * can evaluate (a header macro), the C the .h writes too, from the one
    * printer. It used to fall back to the runtime expression generator, which
    * wrote `cnx_clamp_add_u8(A, A)` where the .h wrote `A+A`, and `2` where
-   * the .h wrote `1--1`. A dimension with no value never reaches render: 2.1
-   * rejects it (E0909, E0910).
+   * the .h wrote `1--1`. `ConstantFold.settled` is the .h's decision too. A
+   * dimension with no value never reaches render: 2.1 rejects it (E0909,
+   * E0910).
    */
   private renderDimension(expression: Parser.ExpressionContext): string {
-    const expr = ConstExprLowering.lower(expression);
-    const env = dimensionEvalOptions(this.transpileState);
-    const result = ConstantEvaluator.evaluate(expr, env);
-    if (result.kind === "value") return result.value.toString();
+    const dimension = ConstantFold.settled(
+      ConstExprLowering.lower(expression),
+      dimensionEvalOptions(this.transpileState),
+    );
     invariant(
-      result.kind === "foreign",
+      dimension !== null,
       `2.1 rejects a dimension with no value (E0909, E0910) before render: '${expression.getText()}'`,
     );
-    return ConstExprPrinter.toC(expr, env);
+    return String(dimension);
   }
 
   /** A dimension's value, by the one evaluator; undefined when it has none */

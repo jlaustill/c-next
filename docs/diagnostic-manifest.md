@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-476 fixture(s) assert a diagnostic; 463 carry a code.
+477 fixture(s) assert a diagnostic; 464 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -408,6 +408,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1724-sibling-scope-type-not-included/typer-sees-own-closure-error.test.cnx      | E0428               |
 | tests/bugs/issue-1745-include-directive-agreement/commented-out-header-error.test.cnx            | E0422               |
 | tests/bugs/issue-1745-include-directive-agreement/commented-out-include-error.test.cnx           | E0426               |
+| tests/bugs/issue-1768-variable-dimension/variable-dimension.test.cnx                             | E0909               |
 | tests/bugs/issue-1800-float-to-integer/for-header-rejected.test.cnx                              | E0868, E0869, E0891 |
 | tests/bugs/issue-1800-float-to-integer/implicit-rejected.test.cnx                                | E0891               |
 | tests/bugs/issue-1800-float-to-integer/positions-rejected.test.cnx                               | E0891               |

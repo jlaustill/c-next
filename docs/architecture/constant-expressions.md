@@ -127,14 +127,25 @@ its value; for a `foreign` one, its C from `ConstExprPrinter`; otherwise
 
 ### Emitting in 2.3
 
-`CodeGenWalker.renderDimension` writes a dimension's value, or, for a
-`foreign` one, `ConstExprPrinter.toC`: the C written from the expression's
-structure, with every part that has a value written as that value, C's
-operators (`=` is `==`), and a negative value parenthesized so no two tokens
-join. The header path writes 1.4's settled dimension, which is the same number
-or the same printed C. A dimension with no value is an `invariant`, because
-2.1 rejected it; that makes a gap in 2.1's coverage fail loudly rather than
-emit C.
+`ConstantFold.settled` decides what C a dimension is written as, once: its
+value, or, for a `foreign` one, `ConstExprPrinter.toC`, the C written from the
+expression's structure, with every part that has a value written as that value,
+C's operators (`=` is `==`), and a negative value parenthesized so no two tokens
+join. `CodeGenWalker.renderDimension` writes it in the `.c`; 1.4 records it on
+the symbol, through `ConstantFold.dimension`, and the header path writes that.
+So the two files write one answer rather than two that agree. A dimension with
+no value is an `invariant` in render, because 2.1 rejected it; that makes a gap
+in 2.1's coverage fail loudly rather than emit C.
+
+An arithmetic chain in ordinary code that is a constant expression is written
+as its value, too. 2.2 decides the value by the one evaluator, while the tree
+is in hand, and the plan carries it (`TPlannedBinaryExpr.constantValue`).
+Render writes it where every operand rendered as a plain integer, which is
+where render's own fold over the generated C text (`tryFoldConstants`) used to
+apply; where a context gave a literal a `U` suffix, the chain is written as
+before. That fold read `010` as decimal, so `i32 a <- 010 + 1` was written as
+`11` where C reads octal and computes 9; the evaluator gives a leading-zero
+literal no value (#1728), so the chain is written as it is and C computes it.
 
 ## What 1.3 records
 
