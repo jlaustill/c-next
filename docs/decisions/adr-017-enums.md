@@ -85,6 +85,39 @@ enum Flags {
 }
 ```
 
+### Member Values
+
+A member's value is computed while the program compiles, as in C (owner ruling, 2026-10-03,
+#1669). It may be any integer expression built from these parts:
+
+- literals;
+- `const`s that have a value;
+- `sizeof` of a primitive type;
+- casts;
+- the integer operators.
+
+It is evaluated with ADR-044's arithmetic, including its rule that a value fixed at compile time
+never overflows. A member with no value continues from the one before it.
+
+```cnx
+const u32 BASE <- 0x10;
+
+enum Reg {
+    CTRL   <- BASE,       // 16
+    STATUS,               // 17
+    DATA   <- BASE + 4    // 20
+}
+```
+
+Some things are not a member value, and each is an error at the member:
+
+- a variable;
+- a function call;
+- a name that an included C or C++ header defines, such as a macro. C-Next needs the value
+  itself: auto-increment continues from it, E0894 checks its sign, and #1862 checks its range.
+  Owner ruling, 2026-10-03: a header name is rejected for now. Accepting it later breaks no
+  program.
+
 ### Usage
 
 ```cnx
@@ -258,6 +291,8 @@ castExpression
 ## Open Questions (Deferred)
 
 1. Exhaustiveness checking in switch statements? (ADR-025)
+2. May a member's value name an earlier member of the same enum, as C allows? (#1669, pending
+   the owner)
 
 ## Diagnostics
 

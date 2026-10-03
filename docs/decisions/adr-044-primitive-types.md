@@ -378,6 +378,27 @@ and wrote out of bounds.
 Applies to `+`, `-` and `*`. Unsigned division and modulo cannot overflow, and
 the single signed case (`INT_MIN / -1`) is left to the safe-division path.
 
+#### Values fixed at compile time
+
+Owner ruling, 2026-10-03 (#1175): some values are fixed while the program compiles, such as an
+array's size and an enum member's value. They use the same arithmetic as every other expression:
+an operation happens at its operands' width, and a literal takes the type of the other operand,
+or `i32` when nothing gives it one (see Integer Literals above). **Where that arithmetic would
+clamp or wrap, the program is rejected.** The operand's modifier makes no difference: neither a
+`clamp` nor a `wrap` operand silently saturates or wraps a size or a value that is fixed at
+compile time.
+
+```cnx
+const u8 A <- 200;
+
+u8[A + A] buf;              // ERROR: A + A overflows u8 (clamp would give 255, C would give 400)
+u8[(u16)A + (u16)A] wide;   // OK: 400, added at u16
+```
+
+A clamped size is a buffer smaller than its arithmetic says, and a wrapped one is smaller
+still. At run time, saturating protects a value that cannot be known in advance. Here the
+value is known in advance, so the rejection reports the overflow while it can still be fixed.
+
 #### Rationale
 
 1. **Intent is documented at declaration** - Code is self-documenting
