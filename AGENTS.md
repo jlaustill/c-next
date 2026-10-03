@@ -67,7 +67,7 @@ normalize(actualErrors) === normalize(expectedErrors);
 **Shared types in `/types` directories** - One interface per file with default export:
 
 ```
-src/transpiler/types/IFileResult.ts
+src/types/IFileResult.ts
 scripts/types/ITools.ts
 ```
 

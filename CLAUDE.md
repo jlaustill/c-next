@@ -270,7 +270,7 @@ all **transitively**, not just as a direct edge. The `data-` and `logic-` rules 
 `src/transpiler/state/` and `CodeGenWalker.ts` sits beside the state at the `src/TRANSPILE/`
 root while importing sixteen generators — so a root-wide `from` would fail on the walker whose
 whole job is calling renderers. Check import dependencies before choosing extraction location; shared contracts
-go in `transpiler/types/`, which every layer may depend on — and which may depend on no
+go in `src/types/`, which every layer may depend on — and which may depend on no
 pass in return, enforced by `shared-contracts-cannot-import-a-pass` (`error`, `reachable`).
 That claim was prose with nothing behind it until #1452 broke it twice: `IAssignmentContext`
 gained a `TranspileState` member, so an analyzer importing the CONTRACT reached a pass root
@@ -551,17 +551,17 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 | Discover     | `src/PARSE/1-Discover/`   | 1.1 Discover — `Discover.run` emits the frozen `SourceGraph`; FileDiscovery, IncludeResolver, DependencyGraph, preprocessor/, the port. Was `data/` and `logic/` until #1444                      |
 | Render       | `src/TRANSPILE/3-Render/` | 2.3 Render — codegen/, headers/. Moved out of `transpiler/output/` by #1450 box 5                                                                                                                 |
 | State        | _(gone)_                  | `src/transpiler/state/` was deleted by #1452. The per-file working state 2.2 and 2.3 share is `TranspileState` at the `src/TRANSPILE/` root; `SymbolRegistry` and `SymbolTable` are 1.3 Declare's |
-| Constants    | `constants/`              | Runtime lookups (BITMAP_SIZE, BITMAP_BACKING_TYPE)                                                                                                                                                |
+| Constants    | _(gone)_                  | `src/transpiler/constants/` was dissolved by #1853: a constant with one reader sits beside it (in a pass, or `src/utils/constants/`), and one more than one layer reads sits in `src/types/`      |
 | Orchestrator | `Transpiler.ts`           | Coordinates all layers                                                                                                                                                                            |
 
 ### Utility Locations
 
-| Type                                                        | Location                    |
-| ----------------------------------------------------------- | --------------------------- |
-| Type utilities (`ScopeUtils`, `TTypeUtils`, `TypeResolver`) | `src/utils/`                |
-| Type definitions (interfaces, enums)                        | `src/transpiler/types/`     |
-| Stateful classes (`TranspileState`)                         | `src/TRANSPILE/`            |
-| Runtime lookups                                             | `src/transpiler/constants/` |
+| Type                                                        | Location                                 |
+| ----------------------------------------------------------- | ---------------------------------------- |
+| Type utilities (`ScopeUtils`, `TTypeUtils`, `TypeResolver`) | `src/utils/`                             |
+| Type definitions (interfaces, enums)                        | `src/types/`                             |
+| Stateful classes (`TranspileState`)                         | `src/TRANSPILE/`                         |
+| Runtime lookups                                             | beside their one reader, or `src/types/` |
 
 ---
 
@@ -928,11 +928,11 @@ To add new patterns: (1) Add `AssignmentKind` enum, (2) Update `AssignmentClassi
 
 ### Adding CLI Flags
 
-Update: `src/index.ts` (parse + pass), `src/transpiler/types/ITranspilerConfig.ts` (interface).
+Update: `src/index.ts` (parse + pass), `src/types/ITranspilerConfig.ts` (interface).
 
 ### Adding Generator Effects
 
-1. Add to the `TIncludeHeader` union in `src/transpiler/types/` — it is a shared
+1. Add to the `TIncludeHeader` union in `src/types/` — it is a shared
    contract, not a codegen type: `TranspileState` names it too, and
    `state-cannot-import-output` forbids the state importing `3-Render/`
 2. Add the `needs<Effect>` field to **`TranspileState`** (reset in its `reset()`)
