@@ -1,15 +1,15 @@
-import type TSymbolKindC from "../../symbol-kinds/TSymbolKindC";
-import type ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import type TSymbolKindCpp from "../../symbol-kinds/TSymbolKindCpp";
+import type ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import type TVisibility from "../../TVisibility";
 import type ISourceSpan from "../../ISourceSpan";
 
 /**
- * Base interface for all C language symbol types.
- * C symbols use simple strings for types since they pass through to codegen unchanged.
+ * Base interface for all C++ language symbol types.
+ * C++ symbols use simple strings for types since they pass through to codegen unchanged.
  */
-interface ICBaseSymbol {
+interface ICppBaseSymbol {
   /** Symbol kind - discriminator for type narrowing */
-  readonly kind: TSymbolKindC;
+  readonly kind: TSymbolKindCpp;
 
   /** Symbol name */
   readonly name: string;
@@ -31,14 +31,16 @@ interface ICBaseSymbol {
    */
   readonly span: ISourceSpan;
 
-  /** Source language - always C for C symbols */
-  readonly sourceLanguage: ESourceLanguage.C;
+  /** Source language - always Cpp for C++ symbols */
+  readonly sourceLanguage: ESourceLanguage.Cpp;
 
-  /** Always "public": C has no declaration-site access control, and everything a header
-   * declares is reachable from the file that includes it — a `static inline` included,
-   * which is why `extern` is not the discriminator the old `isExported` treated it as.
-   * (C++ differs: it does have `private:`, and does not yet record it — #1475.) */
+  /** Recorded "public" for every symbol, including class members declared under
+   * `private:` or `protected:` — the resolver walks `memberdeclaration` only and never
+   * reads an `accessSpecifier`, so this is not yet the declared visibility (#1475). */
   readonly visibility: TVisibility;
+
+  /** Parent namespace or class name */
+  readonly parent?: string;
 }
 
-export default ICBaseSymbol;
+export default ICppBaseSymbol;

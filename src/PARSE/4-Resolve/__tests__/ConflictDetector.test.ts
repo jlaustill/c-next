@@ -13,13 +13,13 @@ import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 import { describe, it, expect, beforeEach } from "vitest";
 import ConflictDetector from "../ConflictDetector";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import TSymbol from "../../../transpiler/types/symbols/TSymbol";
-import IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
+import TSymbol from "../../../types/symbols/TSymbol";
+import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import TTypeUtils from "../../../utils/TTypeUtils";
-import TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
-import TCppSymbol from "../../../transpiler/types/symbols/cpp/TCppSymbol";
+import TCSymbol from "../../../types/symbols/c/TCSymbol";
+import TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
 import TestSymbolUtils from "../../3-Declare/cnext/__tests__/testSymbolUtils";
-import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 const registry = new SymbolRegistry();
 

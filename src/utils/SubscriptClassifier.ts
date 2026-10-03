@@ -31,8 +31,8 @@
  * use explicit array syntax (`u8[N] buf`), which was already the ADR-006
  * documented and supported spelling — see tests/params/param-array-indexing.test.cnx.
  */
-import TSubscriptKind from "../transpiler/types/TSubscriptKind";
-import TTypeInfo from "../transpiler/types/TTypeInfo";
+import TSubscriptKind from "../types/TSubscriptKind";
+import TTypeInfo from "../types/TTypeInfo";
 
 /**
  * Context needed for subscript classification

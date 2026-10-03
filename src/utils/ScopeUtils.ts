@@ -3,11 +3,11 @@
  *
  * Provides utilities for creating and inspecting C-Next scopes.
  */
-import type IScopeSymbol from "../transpiler/types/symbols/IScopeSymbol";
-import type TVisibility from "../transpiler/types/TVisibility";
+import type IScopeSymbol from "../types/symbols/IScopeSymbol";
+import type TVisibility from "../types/TVisibility";
 import ESourceLanguage from "./types/ESourceLanguage";
 import QualifiedCName from "./QualifiedCName";
-import UNSET_SOURCE_SPAN from "../transpiler/constants/UNSET_SOURCE_SPAN";
+import UNSET_SOURCE_SPAN from "../types/UNSET_SOURCE_SPAN";
 
 class ScopeUtils {
   // ============================================================================

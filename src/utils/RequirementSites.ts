@@ -1,4 +1,4 @@
-import type IRequirementSite from "../transpiler/types/IRequirementSite";
+import type IRequirementSite from "../types/IRequirementSite";
 
 /**
  * Issue #1143: Identity and accumulation for requirement source sites.

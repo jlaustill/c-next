@@ -1,5 +1,5 @@
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
-import type TOverflowBehavior from "../transpiler/types/TOverflowBehavior";
+import type TOverflowBehavior from "../types/TOverflowBehavior";
 
 /**
  * ADR-044 overflow behavior, decoded from a declaration's `clamp`/`wrap`

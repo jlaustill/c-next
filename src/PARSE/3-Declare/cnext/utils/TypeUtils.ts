@@ -8,8 +8,8 @@ import TypeBinding from "../../TypeBinding";
 import TypeResolver from "../../../../utils/TypeResolver";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import type TType from "../../../../transpiler/types/TType";
-import type ITypeAccessors from "../../../../transpiler/types/ITypeAccessors";
+import type TType from "../../../../types/TType";
+import type ITypeAccessors from "../../../../types/ITypeAccessors";
 
 /**
  * Static utility class for extracting and converting C-Next type names.

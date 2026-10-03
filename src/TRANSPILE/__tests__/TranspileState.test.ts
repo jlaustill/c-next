@@ -4,9 +4,9 @@
 
 import TargetResolver from "../../utils/TargetResolver";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
-import type IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
+import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 import { describe, it, expect, beforeEach } from "vitest";
-import type IProgram from "../../transpiler/types/IProgram";
+import type IProgram from "../../types/IProgram";
 import DeclaredPointer from "../../utils/DeclaredPointer";
 import installMockSymbols from "../../transpiler/__tests__/installMockSymbols";
 import TranspileState from "../TranspileState";

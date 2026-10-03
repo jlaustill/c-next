@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
-import ITranspilerConfig from "../types/ITranspilerConfig";
+import ITranspilerConfig from "../../types/ITranspilerConfig";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /**

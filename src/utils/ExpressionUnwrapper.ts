@@ -22,7 +22,7 @@ import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
  * An identifier with exactly one subscript applied, and that subscript's
  * index expressions.
  *
- * Declared here rather than in `src/transpiler/types/`: it names a parse
+ * Declared here rather than in `src/types/`: it names a parse
  * context, and a type file that does so JOINS the population
  * `parse-tree-confined-to-parser` gates (#1317). This module is already in it,
  * so the shape costs nothing where it is.

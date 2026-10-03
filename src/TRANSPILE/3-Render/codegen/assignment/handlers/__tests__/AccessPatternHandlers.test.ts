@@ -5,8 +5,8 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import accessPatternHandlers from "../AccessPatternHandlers";
-import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
-import type TPlannedTargetOp from "../../../../../../transpiler/types/TPlannedTargetOp";
+import AssignmentKind from "../../../../../../types/AssignmentKind";
+import type TPlannedTargetOp from "../../../../../../types/TPlannedTargetOp";
 import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
 import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";

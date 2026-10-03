@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from "vitest";
 import TransitiveEnumCollector from "../TransitiveEnumCollector";
-import ICodeGenSymbols from "../../../transpiler/types/ICodeGenSymbols";
+import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
 
 describe("TransitiveEnumCollector", () => {

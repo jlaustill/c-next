@@ -1,8 +1,8 @@
 import CompositeType from "./CompositeType";
 import CExpression from "./CExpression";
 import CNEXT_TO_C_TYPE_MAP from "./constants/TypeMappings";
-import type IBitWidth from "../transpiler/types/IBitWidth";
-import type IOperandType from "../transpiler/types/IOperandType";
+import type IBitWidth from "../types/IBitWidth";
+import type IOperandType from "../types/IOperandType";
 
 /**
  * The storage's width, from its fixed-width C type: `uint32_t`, `int16_t`, ...

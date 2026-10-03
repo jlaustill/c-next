@@ -2,7 +2,7 @@
  * Comment handling utilities.
  * Extracted from CodeGenerator.ts.
  */
-import IComment from "../../../../../transpiler/types/IComment";
+import IComment from "../../../../../types/IComment";
 import CommentScanner from "../../../../../PARSE/2-Parse/CommentScanner";
 import CommentFormatter from "../../CommentFormatter";
 

@@ -13,7 +13,7 @@ import type {
   DeclarationSpecifiersContext,
   DeclarationSpecifierContext,
 } from "../../2-Parse/c/grammar/CParser";
-import type TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
+import type TCSymbol from "../../../types/symbols/c/TCSymbol";
 import SymbolTable from "../SymbolTable";
 import DeclaratorUtils from "./utils/DeclaratorUtils";
 import StructCollector from "./collectors/StructCollector";
@@ -21,7 +21,7 @@ import EnumCollector from "./collectors/EnumCollector";
 import FunctionCollector from "./collectors/FunctionCollector";
 import TypedefCollector from "./collectors/TypedefCollector";
 import VariableCollector from "./collectors/VariableCollector";
-import type ISourceSpan from "../../../transpiler/types/ISourceSpan";
+import type ISourceSpan from "../../../types/ISourceSpan";
 import ParserUtils from "../../../utils/ParserUtils";
 
 /**

@@ -1,5 +1,5 @@
-import type IToolchainRequirement from "../types/IToolchainRequirement";
-import type TRequirementKey from "../types/TRequirementKey";
+import type IToolchainRequirement from "../../types/IToolchainRequirement";
+import type TRequirementKey from "../../types/TRequirementKey";
 
 /**
  * Issue #1143: The single source of truth for what generated output costs.

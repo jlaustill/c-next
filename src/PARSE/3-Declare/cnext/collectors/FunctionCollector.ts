@@ -7,12 +7,12 @@
 
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import IFunctionSymbol from "../../../../transpiler/types/symbols/IFunctionSymbol";
-import IParameterInfo from "../../../../transpiler/types/symbols/IParameterInfo";
+import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
+import IParameterInfo from "../../../../types/symbols/IParameterInfo";
 import TypeUtils from "../utils/TypeUtils";
 import SymbolRegistry from "../../SymbolRegistry";
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import TVisibility from "../../../../transpiler/types/TVisibility";
+import TVisibility from "../../../../types/TVisibility";
 import ParserUtils from "../../../../utils/ParserUtils";
 import DimensionResolver from "../utils/DimensionResolver";
 

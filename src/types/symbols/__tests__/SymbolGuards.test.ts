@@ -3,7 +3,7 @@ import SymbolGuards from "../SymbolGuards";
 import type TSymbol from "../TSymbol";
 import type IFunctionSymbol from "../IFunctionSymbol";
 import type IStructSymbol from "../IStructSymbol";
-import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../__testUtils__/testSourceSpan";
 
 describe("SymbolGuards", () => {

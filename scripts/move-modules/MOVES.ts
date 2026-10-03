@@ -26,6 +26,108 @@ const DISCOVERS =
   "of that. Its row has read `src/PARSE/1-Discover/`, awaiting #1444, since " +
   "#1653.";
 
+/**
+ * #1853: a contract more than one area names goes to §1's `src/types/` root,
+ * which every pass may depend on and which authors no facts. The areas are
+ * counted by where each importer is GOING, not where it sits: `Transpiler.ts`,
+ * `src/utils/cache/**` and `src/index.ts` are bound for `src/cli/`, so a type
+ * only they name is a host type and stays behind with them, awaiting #1443.
+ * Counting by present location is what made #1853's first table send
+ * `ITranspilerResult` here and `ICacheConfig` to `utils/`.
+ */
+const SHARED_CONTRACT =
+  "#1853: named by more than one area, counted by destination, so it is a " +
+  "shared contract and goes to §1's `src/types/` root.";
+
+/**
+ * The files at the root of `src/transpiler/types/` that are shared. Listed
+ * rather than moved as a directory, because four host types stay behind
+ * (`IRenderedFile`, `ITranspilerResult`, `ICacheConfig`, `ICachedFileEntry`)
+ * and three move into a pass, and `--apply` checks "already moved" against
+ * the disk: a directory entry followed by entries moving those files back
+ * would be a cycle the second run undoes.
+ */
+const SHARED_ROOT_TYPES: readonly string[] = [
+  "AssignmentKind.ts",
+  "ECommentType.ts",
+  "FLOAT_TYPES.ts",
+  "IBitAccessAnalysis.ts",
+  "IBitmapFieldLayout.ts",
+  "IBitWidth.ts",
+  "ICallbackTypedefParameter.ts",
+  "ICallbackTypeInfo.ts",
+  "ICallGraphEntry.ts",
+  "IChainStep.ts",
+  "IChainTyping.ts",
+  "ICodeGenSymbols.ts",
+  "IComment.ts",
+  "ICompilerFloor.ts",
+  "IConflict.ts",
+  "IDeclarationPlan.ts",
+  "IDiagnostics.ts",
+  "IEmissionFacts.ts",
+  "IEmissionPlan.ts",
+  "IFileResult.ts",
+  "IFileSymbols.ts",
+  "IFileSystem.ts",
+  "IFloatBitWrite.ts",
+  "IFoldedConstant.ts",
+  "IForeignSymbolLookup.ts",
+  "IFunctionSignature.ts",
+  "IGrammarCoverageReport.ts",
+  "IHeaderCallbackType.ts",
+  "ILexicalFrame.ts",
+  "ILocalDeclaration.ts",
+  "INamedTypeResolution.ts",
+  "INTEGER_TYPES.ts",
+  "IOperandType.ts",
+  "IOutputExtensions.ts",
+  "IParsedFile.ts",
+  "IPlannedBlock.ts",
+  "IPlatformIOEnv.ts",
+  "IPlatformIOProject.ts",
+  "IPostfixOp.ts",
+  "IProgram.ts",
+  "IRecordedAdrSite.ts",
+  "IRecordedRequirement.ts",
+  "IRequirementSite.ts",
+  "ISourceSpan.ts",
+  "ITargetCatalogEntry.ts",
+  "ITargetCatalogSource.ts",
+  "ITargetDescription.ts",
+  "ITargetDirective.ts",
+  "IToolchainRequirement.ts",
+  "ITranspilerConfig.ts",
+  "ITypeAccessors.ts",
+  "ITypeBindingDeps.ts",
+  "ITypingContext.ts",
+  "SIGNED_TYPES.ts",
+  "TChainRoot.ts",
+  "TCompilerExtension.ts",
+  "TDeclarationKind.ts",
+  "TEssentialCategory.ts",
+  "THeaderExtension.ts",
+  "TIncludeHeader.ts",
+  "TLanguageStandard.ts",
+  "TOutputMode.ts",
+  "TOverflowBehavior.ts",
+  "TParameterInfo.ts",
+  "TPlannedTargetOp.ts",
+  "TPrimitiveKind.ts",
+  "TRegisterAccessMode.ts",
+  "TRequirementKey.ts",
+  "TRunTarget.ts",
+  "TSourceExtension.ts",
+  "TSubscriptKind.ts",
+  "TTargetFieldValue.ts",
+  "TTranspileInput.ts",
+  "TTypeInfo.ts",
+  "TType.ts",
+  "TValueBinding.ts",
+  "TVisibility.ts",
+  "UNSIGNED_TYPES.ts",
+];
+
 const MOVES: readonly IMove[] = [
   // --- layer-neutral: reached by more than one pass ----------------------
   {
@@ -1127,6 +1229,141 @@ const MOVES: readonly IMove[] = [
       "#1444, the same ruling: one file of the `SourceGraph` 1.1 emits. Its " +
       "only importers are 1.1 and the orchestrator, and it names " +
       "`IDiscoveredFile`, a 1.1 type.",
+  },
+  // --- #1853: src/transpiler/types/ and constants/ to their homes ---------
+  ...SHARED_ROOT_TYPES.map(
+    (name): IMove => ({
+      from: `src/transpiler/types/${name}`,
+      to: `src/types/${name}`,
+      because: SHARED_CONTRACT,
+    }),
+  ),
+  {
+    from: "src/transpiler/types/symbols",
+    to: "src/types/symbols",
+    because:
+      "#1853: the symbol model every pass reads. Every module under it is " +
+      "shared by the destination count, so the directory moves whole.",
+  },
+  {
+    from: "src/transpiler/types/symbol-kinds",
+    to: "src/types/symbol-kinds",
+    because: "#1853: same, the kinds the symbol model is discriminated by.",
+  },
+  {
+    from: "src/transpiler/types/__testUtils__",
+    to: "src/types/__testUtils__",
+    because: "#1853: the test helpers for the types they build.",
+  },
+  {
+    from: "src/transpiler/types/IInMemorySource.ts",
+    to: "src/PARSE/1-Discover/types/IInMemorySource.ts",
+    because:
+      "#1853: named only by 1.1's `Discover.ts`. The map listed it among the " +
+      "types the orchestrator alone names, which stopped being true when " +
+      "#1444 moved discovery out of the orchestrator.",
+  },
+  {
+    from: "src/transpiler/types/IModificationFacts.ts",
+    to: "src/PARSE/4-Resolve/types/IModificationFacts.ts",
+    because:
+      "#1853: named by 1.4 (`Program`, `IProgramInputs`) and by " +
+      "`ModificationFacts.ts`, whose destination is 1.4 (#1825). One area by " +
+      "destination, so it moves into it now and its last importer follows.",
+  },
+  {
+    from: "src/transpiler/types/ITargetFieldSpec.ts",
+    to: "src/PARSE/4-Resolve/types/ITargetFieldSpec.ts",
+    because:
+      "#1853: read by 1.4's `TargetDescriptions` and by " +
+      "`TARGET_DESCRIPTION_FIELDS`, which moves to 1.4 below.",
+  },
+  {
+    from: "src/transpiler/constants/TYPE_WIDTH.ts",
+    to: "src/types/TYPE_WIDTH.ts",
+    because:
+      "#1853: read by more than one area. A shared constant, like " +
+      "`FLOAT_TYPES`, which already sits in the types root.",
+  },
+  {
+    from: "src/transpiler/constants/UNRESOLVED_DIMENSION.ts",
+    to: "src/types/UNRESOLVED_DIMENSION.ts",
+    because: "#1853: same.",
+  },
+  {
+    from: "src/transpiler/constants/UNSET_SOURCE_SPAN.ts",
+    to: "src/types/UNSET_SOURCE_SPAN.ts",
+    because: "#1853: same.",
+  },
+  {
+    from: "src/transpiler/constants/BITMAP_BACKING_TYPE.ts",
+    to: "src/PARSE/3-Declare/cnext/collectors/BITMAP_BACKING_TYPE.ts",
+    because:
+      "#1853: read only by 1.3's `BitmapCollector`, so it goes beside it.",
+  },
+  {
+    from: "src/transpiler/constants/BITMAP_SIZE.ts",
+    to: "src/PARSE/3-Declare/cnext/collectors/BITMAP_SIZE.ts",
+    because: "#1853: same reader.",
+  },
+  {
+    from: "src/transpiler/constants/SMALL_PRIMITIVES.ts",
+    to: "src/PARSE/4-Resolve/SMALL_PRIMITIVES.ts",
+    because: "#1853: read only by 1.4's `Program`.",
+  },
+  {
+    from: "src/transpiler/constants/TARGET_DESCRIPTION_FIELDS.ts",
+    to: "src/PARSE/4-Resolve/TARGET_DESCRIPTION_FIELDS.ts",
+    because: "#1853: read only by 1.4's `RunTarget` and `TargetDescriptions`.",
+  },
+  {
+    from: "src/transpiler/constants/BUILTIN_TYPE_NAMES.ts",
+    to: "src/TRANSPILE/1-Analyze/BUILTIN_TYPE_NAMES.ts",
+    because: "#1853: read only by 2.1's undeclared-name analyzers.",
+  },
+  {
+    from: "src/transpiler/constants/REJECTED_KEYWORDS.ts",
+    to: "src/TRANSPILE/1-Analyze/REJECTED_KEYWORDS.ts",
+    because:
+      "#1853: read only by 2.1 (`LoopAnalyzer`, `UndeclaredValueAnalyzer`).",
+  },
+  {
+    from: "src/transpiler/constants/SYSTEM_INCLUDE_TARGETS.ts",
+    to: "src/TRANSPILE/2-Plan/SYSTEM_INCLUDE_TARGETS.ts",
+    because: "#1853: read only by 2.2 (`EmissionPlan`, `HeaderIncludes`).",
+  },
+  {
+    from: "src/transpiler/constants/LANGUAGE_STANDARD_FAMILY.ts",
+    to: "src/utils/constants/LANGUAGE_STANDARD_FAMILY.ts",
+    because:
+      "#1853: read only by `utils/ToolchainRequirementUtils`, so it joins " +
+      "`src/utils/constants/`, which the map's `constants/**` row places in " +
+      "that root.",
+  },
+  {
+    from: "src/transpiler/constants/LANGUAGE_STANDARD_ORDER.ts",
+    to: "src/utils/constants/LANGUAGE_STANDARD_ORDER.ts",
+    because: "#1853: same reader.",
+  },
+  {
+    from: "src/transpiler/constants/TOOLCHAIN_REQUIREMENTS.ts",
+    to: "src/utils/constants/TOOLCHAIN_REQUIREMENTS.ts",
+    because: "#1853: same reader.",
+  },
+  {
+    from: "src/transpiler/constants/STRUCT_POINTER_C_FUNCTIONS.ts",
+    to: "src/utils/constants/STRUCT_POINTER_C_FUNCTIONS.ts",
+    because: "#1853: read only by `utils/DeclaredPointer`.",
+  },
+  {
+    from: "src/transpiler/constants/__tests__/TOOLCHAIN_REQUIREMENTS.test.ts",
+    to: "src/utils/constants/__tests__/TOOLCHAIN_REQUIREMENTS.test.ts",
+    because: "#1853: with its module.",
+  },
+  {
+    from: "src/transpiler/constants/__tests__/STRUCT_POINTER_C_FUNCTIONS.test.ts",
+    to: "src/utils/constants/__tests__/STRUCT_POINTER_C_FUNCTIONS.test.ts",
+    because: "#1853: with its module.",
   },
 ];
 

@@ -1,11 +1,11 @@
 import type SymbolTable from "../PARSE/3-Declare/SymbolTable";
-import type TTypeInfo from "../transpiler/types/TTypeInfo";
-import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
-import type TCSymbol from "../transpiler/types/symbols/c/TCSymbol";
-import type TCppSymbol from "../transpiler/types/symbols/cpp/TCppSymbol";
-import type IForeignSymbolLookup from "../transpiler/types/IForeignSymbolLookup";
-import type IOperandType from "../transpiler/types/IOperandType";
-import type ITargetDescription from "../transpiler/types/ITargetDescription";
+import type TTypeInfo from "../types/TTypeInfo";
+import TYPE_WIDTH from "../types/TYPE_WIDTH";
+import type TCSymbol from "../types/symbols/c/TCSymbol";
+import type TCppSymbol from "../types/symbols/cpp/TCppSymbol";
+import type IForeignSymbolLookup from "../types/IForeignSymbolLookup";
+import type IOperandType from "../types/IOperandType";
+import type ITargetDescription from "../types/ITargetDescription";
 
 /** What a C spelling says of an operand: its name, category and width */
 type TForeignElement = Pick<IOperandType, "typeName" | "category" | "bitWidth">;

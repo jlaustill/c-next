@@ -1,5 +1,5 @@
-import ICodeGenSymbols from "../../../../transpiler/types/ICodeGenSymbols";
-import type ITargetDescription from "../../../../transpiler/types/ITargetDescription";
+import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
+import type ITargetDescription from "../../../../types/ITargetDescription";
 import type EFileType from "../../../../PARSE/1-Discover/types/EFileType";
 
 /**

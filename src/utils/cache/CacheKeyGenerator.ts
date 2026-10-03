@@ -1,4 +1,4 @@
-import IFileSystem from "../../transpiler/types/IFileSystem";
+import IFileSystem from "../../types/IFileSystem";
 
 /**
  * Generates and validates cache keys for files.

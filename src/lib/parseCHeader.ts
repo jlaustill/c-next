@@ -8,7 +8,7 @@ import CResolver from "../PARSE/3-Declare/c/index";
 import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
 import TSymbolKind from "./types/TSymbolKind";
-import TCSymbol from "../transpiler/types/symbols/c/TCSymbol";
+import TCSymbol from "../types/symbols/c/TCSymbol";
 import SymbolPathUtils from "./utils/SymbolPathUtils";
 
 /**

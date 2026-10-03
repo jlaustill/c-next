@@ -1,5 +1,5 @@
 import type ITranspileError from "../../lib/types/ITranspileError";
-import type IDiagnostics from "../../transpiler/types/IDiagnostics";
+import type IDiagnostics from "../../types/IDiagnostics";
 
 /** Shared empty result, so a clean file does not allocate. */
 const NONE: readonly ITranspileError[] = Object.freeze([]);

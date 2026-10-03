@@ -15,11 +15,11 @@
  * new one: it stopped respelling the lists it is built from while its own
  * consumers went on respelling it.
  */
-import INTEGER_TYPES from "../transpiler/types/INTEGER_TYPES";
-import UNSIGNED_TYPES from "../transpiler/types/UNSIGNED_TYPES";
-import SIGNED_TYPES from "../transpiler/types/SIGNED_TYPES";
-import FLOAT_TYPES from "../transpiler/types/FLOAT_TYPES";
-import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
+import INTEGER_TYPES from "../types/INTEGER_TYPES";
+import UNSIGNED_TYPES from "../types/UNSIGNED_TYPES";
+import SIGNED_TYPES from "../types/SIGNED_TYPES";
+import FLOAT_TYPES from "../types/FLOAT_TYPES";
+import TYPE_WIDTH from "../types/TYPE_WIDTH";
 
 /** Standard bit widths for MMIO optimization */
 const STANDARD_WIDTHS = [8, 16, 32] as const;

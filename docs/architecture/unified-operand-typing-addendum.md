@@ -212,7 +212,7 @@ The name must come first because headers are preprocessed with a compiler chosen
 ### A5.1 Contracts and the table
 
 ```ts
-// src/transpiler/types/ICDataModel.ts (widths in bits)
+// src/types/ICDataModel.ts (widths in bits)
 interface ICDataModel {
   readonly short: 16; readonly int: 16 | 32; readonly long: 32 | 64;
   readonly longLong: 64; readonly sizeT: 16 | 32 | 64; readonly pointer: 16 | 32 | 64;
@@ -255,7 +255,7 @@ This replaces the per-file codegen decision (`CodeGenWalker.resolveTargetCapabil
 **1.4.** `Program.build` takes `target: {option, platformio}`. `IProgram.target(): TRunTarget` is frozen with the program. The new contract is:
 
 ```ts
-// src/transpiler/types/TRunTarget.ts
+// src/types/TRunTarget.ts
 type TRunTarget =
   | {
       kind: "resolved";

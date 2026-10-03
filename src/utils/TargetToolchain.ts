@@ -14,7 +14,7 @@
  */
 
 import type IGccToolchain from "./types/IGccToolchain";
-import type ITargetDescription from "../transpiler/types/ITargetDescription";
+import type ITargetDescription from "../types/ITargetDescription";
 
 /** The build machine's row in the target catalog */
 const HOST = "host";

@@ -24,9 +24,9 @@ import type SymbolRegistry from "../../SymbolRegistry";
 import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
 import ParserUtils from "../../../../utils/ParserUtils";
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import type ILexicalFrame from "../../../../transpiler/types/ILexicalFrame";
-import type ILocalDeclaration from "../../../../transpiler/types/ILocalDeclaration";
-import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";
+import type ILexicalFrame from "../../../../types/ILexicalFrame";
+import type ILocalDeclaration from "../../../../types/ILocalDeclaration";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 /** A frame while it is being filled */
 interface IFrameBuilder {

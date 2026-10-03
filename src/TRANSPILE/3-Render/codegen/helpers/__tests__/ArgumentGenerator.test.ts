@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import ArgumentGenerator from "../ArgumentGenerator";
 import TranspileState from "../../../../TranspileState";
 import IArgumentGeneratorCallbacks from "../types/IArgumentGeneratorCallbacks";
-import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
+import type TTypeInfo from "../../../../../types/TTypeInfo";
 
 let state = new TranspileState();
 

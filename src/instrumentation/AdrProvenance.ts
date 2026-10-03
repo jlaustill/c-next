@@ -52,7 +52,7 @@
  * accumulator, still inside `CodeGenState` today, is the same kind of fact and
  * belongs here too.
  */
-import type IRecordedAdrSite from "../transpiler/types/IRecordedAdrSite";
+import type IRecordedAdrSite from "../types/IRecordedAdrSite";
 
 class AdrProvenance {
   private static sites: IRecordedAdrSite[] = [];

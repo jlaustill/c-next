@@ -10,13 +10,13 @@
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import HeaderIncludes from "../HeaderIncludes";
 import TTypeUtils from "../../../utils/TTypeUtils";
-import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
-import type IBitmapSymbol from "../../../transpiler/types/symbols/IBitmapSymbol";
-import type IVariableSymbol from "../../../transpiler/types/symbols/IVariableSymbol";
-import type TSymbol from "../../../transpiler/types/symbols/TSymbol";
-import type TPrimitiveKind from "../../../transpiler/types/TPrimitiveKind";
-import type TType from "../../../transpiler/types/TType";
+import type IBitmapSymbol from "../../../types/symbols/IBitmapSymbol";
+import type IVariableSymbol from "../../../types/symbols/IVariableSymbol";
+import type TSymbol from "../../../types/symbols/TSymbol";
+import type TPrimitiveKind from "../../../types/TPrimitiveKind";
+import type TType from "../../../types/TType";
 
 function variable(name: string, type: TType): IVariableSymbol {
   return {

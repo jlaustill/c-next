@@ -76,6 +76,12 @@ const LAYER_ROOTS = [
   // 3.1 Write. It had no modules until #1653 created `WRITE/1-Write/Write.ts`,
   // and was a forward reference until then (see `FORWARD_REFERENCES`).
   "^src/WRITE/",
+  // §1's shared-contracts root. #1853 moved the shared types here out of
+  // `src/transpiler/types/`, which `^src/transpiler/` had covered, and
+  // re-keyed `shared-contracts-cannot-import-a-pass` to it. With no root here
+  // that rule dropped out of every assertion in this file at once -- the
+  // roster below said so, 14 -> 13, exactly as it did for #1449.
+  "^src/types/",
 ];
 
 interface IRuleEnd {

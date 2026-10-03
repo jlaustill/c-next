@@ -14,11 +14,11 @@ import CResolver from "../../PARSE/3-Declare/c/index";
 import CppResolver from "../../PARSE/3-Declare/cpp/index";
 import CompositeType from "../CompositeType";
 import ESourceLanguage from "../types/ESourceLanguage";
-import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
 import testAnalysisContextFor from "../../TRANSPILE/1-Analyze/__tests__/testAnalysisContextFor";
-import type IOperandType from "../../transpiler/types/IOperandType";
-import type ITypingContext from "../../transpiler/types/ITypingContext";
-import type TSubscriptKind from "../../transpiler/types/TSubscriptKind";
+import type IOperandType from "../../types/IOperandType";
+import type ITypingContext from "../../types/ITypingContext";
+import type TSubscriptKind from "../../types/TSubscriptKind";
 import ExpressionUnwrapper from "../ExpressionUnwrapper";
 
 /** Register a C symbol, as Stage 2 would from a header */

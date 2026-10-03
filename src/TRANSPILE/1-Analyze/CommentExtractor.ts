@@ -1,6 +1,6 @@
-import ECommentType from "../../transpiler/types/ECommentType";
+import ECommentType from "../../types/ECommentType";
 import CommentScanner from "../../PARSE/2-Parse/CommentScanner";
-import IComment from "../../transpiler/types/IComment";
+import IComment from "../../types/IComment";
 import ICommentError from "./types/ICommentError";
 
 /**

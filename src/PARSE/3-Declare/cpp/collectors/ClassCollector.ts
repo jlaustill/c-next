@@ -8,14 +8,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import ICppClassSymbol from "../../../../transpiler/types/symbols/cpp/ICppClassSymbol";
-import ICppFunctionSymbol from "../../../../transpiler/types/symbols/cpp/ICppFunctionSymbol";
-import ICppFieldInfo from "../../../../transpiler/types/symbols/cpp/ICppFieldInfo";
+import ICppClassSymbol from "../../../../types/symbols/cpp/ICppClassSymbol";
+import ICppFunctionSymbol from "../../../../types/symbols/cpp/ICppFunctionSymbol";
+import ICppFieldInfo from "../../../../types/symbols/cpp/ICppFieldInfo";
 import SymbolTable from "../../SymbolTable";
 import SymbolUtils from "../../SymbolUtils";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
 import FunctionCollector from "./FunctionCollector";
-import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 import ParserUtils from "../../../../utils/ParserUtils";
 
 /**

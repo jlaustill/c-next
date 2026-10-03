@@ -1,4 +1,4 @@
-import type ICodeGenSymbols from "../../../transpiler/types/ICodeGenSymbols";
+import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 
 /**
  * One file's include closure, walked once (#1472).

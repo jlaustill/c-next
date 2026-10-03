@@ -36,14 +36,14 @@
 import { ParseTreeWalker } from "antlr4ng";
 
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
+import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import ISliceAssignmentError from "./types/ISliceAssignmentError";
 import ConstantExpression from "./helpers/ConstantExpression";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type IOperandType from "../../transpiler/types/IOperandType";
+import type IOperandType from "../../types/IOperandType";
 import type TAssignmentSite from "./types/TAssignmentSite";
 
 /** `string<N>` holds N characters plus the terminator. */

@@ -7,8 +7,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import ICppNamespaceSymbol from "../../../../transpiler/types/symbols/cpp/ICppNamespaceSymbol";
-import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";
+import ICppNamespaceSymbol from "../../../../types/symbols/cpp/ICppNamespaceSymbol";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class NamespaceCollector {
   /**

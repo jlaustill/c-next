@@ -18,8 +18,8 @@
  * published. Composed once now, while the whole program is in hand.
  */
 
-import type IBitmapFieldLayout from "../../transpiler/types/IBitmapFieldLayout";
-import type ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
+import type IBitmapFieldLayout from "../../types/IBitmapFieldLayout";
+import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
 
 /**
  * The mutable collections mergeExternalSymbols accumulates into.

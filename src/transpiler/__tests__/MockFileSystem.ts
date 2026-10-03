@@ -7,7 +7,7 @@
  */
 
 import { dirname, basename } from "node:path";
-import IFileSystem from "../types/IFileSystem";
+import IFileSystem from "../../types/IFileSystem";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 import TargetCatalogFile from "../../PARSE/1-Discover/TargetCatalogFile";
 

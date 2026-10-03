@@ -6,9 +6,9 @@
 import DeclarationSite from "../utils/DeclarationSite";
 import ITranspilerResult from "../transpiler/types/ITranspilerResult";
 import ToolchainRequirementUtils from "../utils/ToolchainRequirementUtils";
-import type IRecordedRequirement from "../transpiler/types/IRecordedRequirement";
-import type IToolchainRequirement from "../transpiler/types/IToolchainRequirement";
-import type TOutputMode from "../transpiler/types/TOutputMode";
+import type IRecordedRequirement from "../types/IRecordedRequirement";
+import type IToolchainRequirement from "../types/IToolchainRequirement";
+import type TOutputMode from "../types/TOutputMode";
 
 /** Column width for the requirement label in the toolchain report. */
 const LABEL_WIDTH = 21;

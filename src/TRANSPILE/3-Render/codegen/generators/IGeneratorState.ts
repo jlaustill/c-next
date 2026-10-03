@@ -3,7 +3,7 @@
  * Represents the current position in the AST traversal.
  * Generators read this but return effects to modify it.
  */
-import TParameterInfo from "../../../../transpiler/types/TParameterInfo";
+import TParameterInfo from "../../../../types/TParameterInfo";
 
 interface IGeneratorState {
   /** Path of the scope currently being generated; `""` at file scope */

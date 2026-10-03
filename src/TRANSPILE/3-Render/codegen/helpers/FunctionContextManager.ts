@@ -22,7 +22,7 @@
 import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks";
 // Issue #895: Parse typedef signatures to determine pointer vs value params
 import TypedefParamParser from "./TypedefParamParser";
-import SymbolGuards from "../../../../transpiler/types/symbols/SymbolGuards";
+import SymbolGuards from "../../../../types/symbols/SymbolGuards";
 import invariant from "../../../../utils/invariant";
 import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
 import type IPlannedType from "../types/IPlannedType";

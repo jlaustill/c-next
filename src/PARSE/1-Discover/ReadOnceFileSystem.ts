@@ -1,4 +1,4 @@
-import type IFileSystem from "../../transpiler/types/IFileSystem";
+import type IFileSystem from "../../types/IFileSystem";
 import invariant from "../../utils/invariant";
 
 /**

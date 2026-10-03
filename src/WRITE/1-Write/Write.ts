@@ -1,6 +1,6 @@
 import { dirname } from "node:path";
 
-import IFileSystem from "../../transpiler/types/IFileSystem";
+import IFileSystem from "../../types/IFileSystem";
 
 /**
  * 3.1 Write: the only module that changes the filesystem (#1653, carrying

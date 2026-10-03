@@ -18,7 +18,7 @@ import CppModeHelper from "./CppModeHelper";
 import TYPE_MAP from "../types/TYPE_MAP";
 import IArgumentGeneratorCallbacks from "./types/IArgumentGeneratorCallbacks";
 import type TranspileState from "../../../TranspileState";
-import type TTypeInfo from "../../../../transpiler/types/TTypeInfo";
+import type TTypeInfo from "../../../../types/TTypeInfo";
 
 /**
  * Generates function arguments with proper pass-by-reference semantics.

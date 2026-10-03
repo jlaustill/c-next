@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import SimpleIdentifierResolver from "../SimpleIdentifierResolver";
 import ISimpleIdentifierDeps from "../../types/ISimpleIdentifierDeps";
-import TParameterInfo from "../../../../../transpiler/types/TParameterInfo";
+import TParameterInfo from "../../../../../types/TParameterInfo";
 
 /** Where the reference is -- the binding's position (#1668) */
 const AT = { line: 3, column: 4 };

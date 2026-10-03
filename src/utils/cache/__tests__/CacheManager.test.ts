@@ -17,17 +17,17 @@ import CacheManager from "../CacheManager";
 import JsonCodec from "../JsonCodec";
 import CachedSymbolReader from "../CachedSymbolReader";
 import TJsonValue from "../../types/TJsonValue";
-import TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
-import TCppSymbol from "../../../transpiler/types/symbols/cpp/TCppSymbol";
-import ICFunctionSymbol from "../../../transpiler/types/symbols/c/ICFunctionSymbol";
+import TCSymbol from "../../../types/symbols/c/TCSymbol";
+import TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
+import ICFunctionSymbol from "../../../types/symbols/c/ICFunctionSymbol";
 import ESourceLanguage from "../../types/ESourceLanguage";
-import IStructFieldInfo from "../../../transpiler/types/symbols/IStructFieldInfo";
+import IStructFieldInfo from "../../../types/symbols/IStructFieldInfo";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
 import TTypeUtils from "../../TTypeUtils";
-import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
+import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
-import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 import NodeFileSystem from "../../../PARSE/1-Discover/NodeFileSystem";
 
 describe("CacheManager", () => {

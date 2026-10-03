@@ -1,4 +1,4 @@
-import type INamedTypeResolution from "../../../../transpiler/types/INamedTypeResolution";
+import type INamedTypeResolution from "../../../../types/INamedTypeResolution";
 
 /**
  * A C-Next type, reduced to what 2.3 Render asks of it.

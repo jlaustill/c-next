@@ -3,15 +3,15 @@ import ConstantFold from "../../../utils/ConstantFold";
 import parse from "../../3-Declare/cnext/__tests__/testHelpers";
 import CNextResolver from "../../3-Declare/cnext/index";
 import Program from "../Program";
-import SymbolGuards from "../../../transpiler/types/symbols/SymbolGuards";
-import type IVariableSymbol from "../../../transpiler/types/symbols/IVariableSymbol";
-import type IStructSymbol from "../../../transpiler/types/symbols/IStructSymbol";
-import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
+import SymbolGuards from "../../../types/symbols/SymbolGuards";
+import type IVariableSymbol from "../../../types/symbols/IVariableSymbol";
+import type IStructSymbol from "../../../types/symbols/IStructSymbol";
+import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 import TypeResolver from "../../../utils/TypeResolver";
-import type IFileSymbols from "../../../transpiler/types/IFileSymbols";
-import type TSymbol from "../../../transpiler/types/symbols/TSymbol";
-import type TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
+import type IFileSymbols from "../../../types/IFileSymbols";
+import type TSymbol from "../../../types/symbols/TSymbol";
+import type TCSymbol from "../../../types/symbols/c/TCSymbol";
 
 /**
  * 1.4 Resolve's artifact, built from real Declare output rather than hand-made

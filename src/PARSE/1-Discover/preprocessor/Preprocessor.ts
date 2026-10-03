@@ -12,7 +12,7 @@ import ISourceMapping from "./types/ISourceMapping";
 import IPreprocessOptions from "./types/IPreprocessOptions";
 import ToolchainDetector from "./ToolchainDetector";
 import ExecFailure from "../../../utils/ExecFailure";
-import IFileSystem from "../../../transpiler/types/IFileSystem";
+import IFileSystem from "../../../types/IFileSystem";
 
 const execFileAsync = promisify(execFile);
 

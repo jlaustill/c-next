@@ -45,7 +45,7 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import IFunctionSymbol from "../../transpiler/types/symbols/IFunctionSymbol";
+import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import ParserUtils from "../../utils/ParserUtils";
 import TypeResolver from "../../utils/TypeResolver";
 import OperandTyper from "../../utils/OperandTyper";

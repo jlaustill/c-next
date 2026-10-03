@@ -3,11 +3,11 @@
  * Transforms C-Next AST to clean, readable C code
  */
 
-import type IFloatBitWrite from "../../../transpiler/types/IFloatBitWrite";
+import type IFloatBitWrite from "../../../types/IFloatBitWrite";
 import ReservedCnxName from "../../../utils/ReservedCnxName";
 
 // Issue #60: BITMAP_SIZE and BITMAP_BACKING_TYPE moved to SymbolCollector
-import TTypeInfo from "../../../transpiler/types/TTypeInfo";
+import TTypeInfo from "../../../types/TTypeInfo";
 import IOrchestrator from "./generators/IOrchestrator";
 import IGeneratorInput from "./generators/IGeneratorInput";
 import IGeneratorState from "./generators/IGeneratorState";
@@ -70,7 +70,7 @@ import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
 // Issue #895: Parse typedef signatures to determine pointer vs value params
 // Extracted resolvers that use CodeGenState
 // Issue #797: Centralized C-style name generation
-import type IRecordedRequirement from "../../../transpiler/types/IRecordedRequirement";
+import type IRecordedRequirement from "../../../types/IRecordedRequirement";
 import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
 import TranspileState from "../../TranspileState";
 

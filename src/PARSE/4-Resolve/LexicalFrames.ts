@@ -12,10 +12,10 @@
  */
 import ConstantFold from "../../utils/ConstantFold";
 import DeferredTypes from "./DeferredTypes";
-import type IFoldedConstant from "../../transpiler/types/IFoldedConstant";
-import type ILexicalFrame from "../../transpiler/types/ILexicalFrame";
-import type ILocalDeclaration from "../../transpiler/types/ILocalDeclaration";
-import type ISourceSpan from "../../transpiler/types/ISourceSpan";
+import type IFoldedConstant from "../../types/IFoldedConstant";
+import type ILexicalFrame from "../../types/ILexicalFrame";
+import type ILocalDeclaration from "../../types/ILocalDeclaration";
+import type ISourceSpan from "../../types/ISourceSpan";
 
 /** A use's position */
 type TPosition = Pick<ISourceSpan, "line" | "column">;

@@ -33,17 +33,17 @@
 import { ParserRuleContext, ParseTreeWalker, TerminalNode } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import BUILTIN_TYPE_NAMES from "../../transpiler/constants/BUILTIN_TYPE_NAMES";
+import BUILTIN_TYPE_NAMES from "./BUILTIN_TYPE_NAMES";
 import ChainRoot from "../../utils/ChainRoot";
-import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
+import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import IUndeclaredValueError from "./types/IUndeclaredValueError";
 import NameExistence from "../../PARSE/3-Declare/NameExistence";
 import ParserUtils from "../../utils/ParserUtils";
-import REJECTED_KEYWORDS from "../../transpiler/constants/REJECTED_KEYWORDS";
+import REJECTED_KEYWORDS from "./REJECTED_KEYWORDS";
 import ScopeUtils from "../../utils/ScopeUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
-import TChainRoot from "../../transpiler/types/TChainRoot";
+import TChainRoot from "../../types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 class UndeclaredValueListener extends CNextListener {

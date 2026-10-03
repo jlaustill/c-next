@@ -58,7 +58,7 @@ import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import IEnumTypeSafetyError from "./types/IEnumTypeSafetyError";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type IOperandType from "../../transpiler/types/IOperandType";
+import type IOperandType from "../../types/IOperandType";
 import type TAssignmentSite from "./types/TAssignmentSite";
 
 const ASSIGN_HELP =

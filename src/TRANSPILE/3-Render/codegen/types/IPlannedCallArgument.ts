@@ -1,4 +1,4 @@
-import type TTypeInfo from "../../../../transpiler/types/TTypeInfo";
+import type TTypeInfo from "../../../../types/TTypeInfo";
 /**
  * One argument of a function call, reduced to what the call generator asks of
  * it (#1445 box 3).

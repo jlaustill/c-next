@@ -18,7 +18,7 @@
 import { describe, it, expect } from "vitest";
 import ParameterInputAdapter from "../ParameterInputAdapter";
 import IParameterSymbol from "../../../../../utils/types/IParameterSymbol";
-import ICallbackTypeInfo from "../../../../../transpiler/types/ICallbackTypeInfo";
+import ICallbackTypeInfo from "../../../../../types/ICallbackTypeInfo";
 import type IPlannedParameter from "../../types/IPlannedParameter";
 
 const TYPE_MAP: Record<string, string> = {

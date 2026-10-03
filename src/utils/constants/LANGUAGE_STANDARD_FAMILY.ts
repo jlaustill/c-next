@@ -1,4 +1,4 @@
-import type TLanguageStandard from "../types/TLanguageStandard";
+import type TLanguageStandard from "../../types/TLanguageStandard";
 
 /**
  * Issue #1143: Which language family a standard belongs to.

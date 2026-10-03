@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import TargetToolchain from "../TargetToolchain";
 import TargetResolver from "../TargetResolver";
-import type ITargetDescription from "../../transpiler/types/ITargetDescription";
+import type ITargetDescription from "../../types/ITargetDescription";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 function row(name: string): ITargetDescription {

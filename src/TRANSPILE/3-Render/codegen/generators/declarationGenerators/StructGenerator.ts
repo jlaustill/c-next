@@ -25,7 +25,7 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import TGeneratorEffect from "../TGeneratorEffect";
-import ICodeGenSymbols from "../../../../../transpiler/types/ICodeGenSymbols";
+import ICodeGenSymbols from "../../../../../types/ICodeGenSymbols";
 import IStructFieldInit from "../../types/IStructFieldInit";
 import StructInitFunction from "../../helpers/StructInitFunction";
 import type IPlannedStruct from "../../types/IPlannedStruct";

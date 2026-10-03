@@ -7,10 +7,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import ICppEnumSymbol from "../../../../transpiler/types/symbols/cpp/ICppEnumSymbol";
+import ICppEnumSymbol from "../../../../types/symbols/cpp/ICppEnumSymbol";
 import SymbolTable from "../../SymbolTable";
 import SymbolUtils from "../../SymbolUtils";
-import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class EnumCollector {
   /**

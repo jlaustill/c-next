@@ -4,7 +4,7 @@
  * A shared contract rather than a module-private interface: 1.3 Declare
  * declares the resolver, 2.3 Render calls it, and `CodeGenState` binds its own
  * type sets to it. CLAUDE.md puts a type three layers reach in
- * `transpiler/types/`, which every layer may depend on -- the alternative was a
+ * `src/types/`, which every layer may depend on -- the alternative was a
  * structural copy in `state/` that had to be kept in step by hand, which is the
  * duplication this type exists to end rather than one more instance of it.
  *

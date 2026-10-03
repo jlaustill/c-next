@@ -20,7 +20,7 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IArrayIndexTypeError from "./types/IArrayIndexTypeError";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
-import type IOperandType from "../../transpiler/types/IOperandType";
+import type IOperandType from "../../types/IOperandType";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**

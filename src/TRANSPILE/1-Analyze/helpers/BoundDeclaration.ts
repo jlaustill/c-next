@@ -8,7 +8,7 @@
  * so no rule re-derives the switch between them.
  */
 
-import type TValueBinding from "../../../transpiler/types/TValueBinding";
+import type TValueBinding from "../../../types/TValueBinding";
 
 interface IBoundDeclaration {
   readonly isConst: boolean;

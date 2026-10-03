@@ -11,13 +11,13 @@
  * diagnostic, so `catalog()` throws once, listing every problem, rather than
  * reporting a code.
  */
-import TARGET_DESCRIPTION_FIELDS from "../../transpiler/constants/TARGET_DESCRIPTION_FIELDS";
+import TARGET_DESCRIPTION_FIELDS from "./TARGET_DESCRIPTION_FIELDS";
 import invariant from "../../utils/invariant";
-import type ITargetCatalogEntry from "../../transpiler/types/ITargetCatalogEntry";
-import type ITargetCatalogSource from "../../transpiler/types/ITargetCatalogSource";
-import type ITargetDescription from "../../transpiler/types/ITargetDescription";
-import type ITargetFieldSpec from "../../transpiler/types/ITargetFieldSpec";
-import type TTargetFieldValue from "../../transpiler/types/TTargetFieldValue";
+import type ITargetCatalogEntry from "../../types/ITargetCatalogEntry";
+import type ITargetCatalogSource from "../../types/ITargetCatalogSource";
+import type ITargetDescription from "../../types/ITargetDescription";
+import type ITargetFieldSpec from "./types/ITargetFieldSpec";
+import type TTargetFieldValue from "../../types/TTargetFieldValue";
 
 /** The catalog schema versions this compiler reads */
 const SCHEMA_VERSION = 1;

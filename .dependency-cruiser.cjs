@@ -19,7 +19,7 @@ module.exports = {
     //     in the published API surface it happens to have been written in.
     //     Listed rather than quietly dropped: an allowance the record contradicts
     //     should be visible to whoever writes layout:check (#1466).
-    //   - Any layer → transpiler/types/ (shared contracts, layer-neutral)
+    //   - Any layer → src/types/ (shared contracts, layer-neutral)
     //
     // Forbidden dependencies:
     //   - data/ → logic/, output/ (data layer is independent)
@@ -69,7 +69,7 @@ module.exports = {
         "`state/` sat outside the layer model entirely, which is precisely " +
         "why it could become the place facts get stashed instead of carried " +
         "-- it was the one module nothing forbade the coupling in. Shared " +
-        "contracts belong in transpiler/types/, which both layers may depend " +
+        "contracts belong in src/types/, which both layers may depend " +
         "on, and that is how the state reaches `ICodeGenApi` for its " +
         "`generator` slot without naming a renderer module. " +
         "`from` names the MODULE, not a directory: since #1452 the state is " +
@@ -206,7 +206,7 @@ module.exports = {
         "nothing may compute a cross-file fact. A pass that needs one reads it " +
         'from Program, which is complete before 2.1 begins." ' +
         "Stated as an import rule, that is: a pass after 1.4 may depend on the " +
-        "TYPE `IProgram` -- which lives in `transpiler/types/`, reachable by " +
+        "TYPE `IProgram` -- which lives in `src/types/`, reachable by " +
         "every layer -- and never on `4-Resolve/` itself. Importing the builder " +
         "or a deriver is how a later pass recomputes what 1.4 authored, which " +
         "is the failure the ownership rule exists to prevent, and it is exactly " +
@@ -279,7 +279,8 @@ module.exports = {
     {
       name: "shared-contracts-cannot-import-a-pass",
       comment:
-        "`transpiler/types/` is what CLAUDE.md and this file both call the " +
+        "`src/types/` (`transpiler/types/` until #1853) is what CLAUDE.md and " +
+        "this file both call the " +
         "place EVERY layer may depend on, and until now that was prose with " +
         "nothing behind it. A contract that imports a pass root drags the pass " +
         "into every layer that names the contract -- transitively and " +
@@ -297,7 +298,11 @@ module.exports = {
         "`SymbolRegistry` for the scope back-reference `no-circular` exempts.",
       severity: "error",
       from: {
-        path: "^src/transpiler/types/",
+        // The shared root only. The four types #1853 left in
+        // `src/transpiler/types/` are host types bound for `src/cli/`
+        // (awaiting #1443) -- only `Transpiler.ts`, `cli/` and the cache name
+        // them -- and the host is the one root that may name a pass.
+        path: "^src/types/",
         pathNot: "(__tests__|__testUtils__)",
       },
       to: {
@@ -485,7 +490,7 @@ module.exports = {
           // -- exactly what naming the carriers here was for. Its `symbols`
           // half had no reader, so it was a bundle whose only live content was
           // the re-export.
-          "^src/transpiler/types/(IParsedFile|ITypeAccessors)\\.ts$",
+          "^src/types/(IParsedFile|ITypeAccessors)\\.ts$",
         ],
       },
     },
@@ -498,8 +503,7 @@ module.exports = {
         // IScopeSymbol <-> IFunctionSymbol is an intentional mutual reference,
         // and IBaseSymbol.scope is an IScopeSymbol because every symbol is
         // declared in a scope. Type-only cycles are erased at compile time.
-        pathNot:
-          "^src/transpiler/types/symbols/I(Scope|Function|Base)Symbol\\.ts$",
+        pathNot: "^src/types/symbols/I(Scope|Function|Base)Symbol\\.ts$",
       },
       to: { circular: true },
     },

@@ -1,4 +1,4 @@
-import type ICallGraphEntry from "./ICallGraphEntry";
+import type ICallGraphEntry from "../../../types/ICallGraphEntry";
 
 /**
  * What the whole program does to its function parameters.

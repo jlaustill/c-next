@@ -10,7 +10,7 @@ import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import Program from "../../PARSE/4-Resolve/Program";
 import FunctionUtils from "../../tests/utils/FunctionUtils";
 import TTypeUtils from "../TTypeUtils";
-import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";

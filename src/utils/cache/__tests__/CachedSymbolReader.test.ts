@@ -12,7 +12,7 @@ import JsonCodec from "../JsonCodec";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../types/ESourceLanguage";
 import TJsonValue from "../../types/TJsonValue";
-import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 const C_FUNCTION = {
   name: "use_handle",

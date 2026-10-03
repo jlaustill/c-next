@@ -7,12 +7,12 @@
 
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import IEnumSymbol from "../../../../transpiler/types/symbols/IEnumSymbol";
+import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
 import ExpressionEvaluator from "../utils/ExpressionEvaluator";
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import TVisibility from "../../../../transpiler/types/TVisibility";
+import TVisibility from "../../../../types/TVisibility";
 import ParserUtils from "../../../../utils/ParserUtils";
-import type IEnumMemberSymbol from "../../../../transpiler/types/symbols/IEnumMemberSymbol";
+import type IEnumMemberSymbol from "../../../../types/symbols/IEnumMemberSymbol";
 import MemberSymbolBase from "../utils/MemberSymbolBase";
 
 class EnumCollector {

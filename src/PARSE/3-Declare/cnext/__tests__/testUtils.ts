@@ -9,7 +9,7 @@
  */
 
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import IScopeSymbol from "../../../../transpiler/types/symbols/IScopeSymbol";
+import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 
 /**
  * Static utility class for creating mock scopes in tests.

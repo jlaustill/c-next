@@ -16,10 +16,10 @@ import type IModificationCollector from "../TRANSPILE/2-Plan/types/IModification
 import type SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import SymbolRegistry from "../PARSE/3-Declare/SymbolRegistry";
 import PassByValueAnalyzer from "../TRANSPILE/2-Plan/PassByValueAnalyzer";
-import type IFileSymbols from "./types/IFileSymbols";
-import type IParsedFile from "./types/IParsedFile";
-import type IModificationFacts from "./types/IModificationFacts";
-import type ICallGraphEntry from "./types/ICallGraphEntry";
+import type IFileSymbols from "../types/IFileSymbols";
+import type IParsedFile from "../types/IParsedFile";
+import type IModificationFacts from "../PARSE/4-Resolve/types/IModificationFacts";
+import type ICallGraphEntry from "../types/ICallGraphEntry";
 
 class ModificationFacts {
   /**

@@ -17,17 +17,17 @@ import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
 import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import TypeResolver from "../../utils/TypeResolver";
 import TypeMapping from "../../utils/mapType";
-import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
+import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import ArrayDimensionText from "../../utils/ArrayDimensionText";
 import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
-import type ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
-import type TOverflowBehavior from "../../transpiler/types/TOverflowBehavior";
-import type TTypeInfo from "../../transpiler/types/TTypeInfo";
-import type TType from "../../transpiler/types/TType";
-import type TValueBinding from "../../transpiler/types/TValueBinding";
-import type IChainTyping from "../../transpiler/types/IChainTyping";
+import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
+import type TOverflowBehavior from "../../types/TOverflowBehavior";
+import type TTypeInfo from "../../types/TTypeInfo";
+import type TType from "../../types/TType";
+import type TValueBinding from "../../types/TValueBinding";
+import type IChainTyping from "../../types/IChainTyping";
 import type IChainBase from "./types/IChainBase";
-import type ITargetDescription from "../../transpiler/types/ITargetDescription";
+import type ITargetDescription from "../../types/ITargetDescription";
 
 /** What a local declaration and a variable symbol both say */
 interface IDeclared {

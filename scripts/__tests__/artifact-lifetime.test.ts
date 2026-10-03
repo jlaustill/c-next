@@ -144,14 +144,14 @@ function namedType(file: string, name: string): Type {
  * 2.1 Analyze is handed the tree and must be.
  */
 const ARTIFACTS: ReadonlyArray<readonly [string, string]> = [
-  ["src/transpiler/types/IFileSymbols.ts", "IFileSymbols"],
+  ["src/types/IFileSymbols.ts", "IFileSymbols"],
   // #1668: named directly, so a later field of node type fails on the frame
   // itself rather than only through IFileSymbols.
-  ["src/transpiler/types/ILexicalFrame.ts", "ILexicalFrame"],
-  ["src/transpiler/types/ILocalDeclaration.ts", "ILocalDeclaration"],
-  ["src/transpiler/types/ICodeGenSymbols.ts", "ICodeGenSymbols"],
+  ["src/types/ILexicalFrame.ts", "ILexicalFrame"],
+  ["src/types/ILocalDeclaration.ts", "ILocalDeclaration"],
+  ["src/types/ICodeGenSymbols.ts", "ICodeGenSymbols"],
   ["src/TRANSPILE/types/ICodeGenApi.ts", "ICodeGenApi"],
-  ["src/transpiler/types/symbols/TSymbol.ts", "TSymbol"],
+  ["src/types/symbols/TSymbol.ts", "TSymbol"],
   ["src/PARSE/4-Resolve/Program.ts", "Program"],
   ["src/PARSE/4-Resolve/VisibleSymbols.ts", "VisibleSymbols"],
   ["src/PARSE/3-Declare/SymbolTable.ts", "SymbolTable"],
@@ -159,7 +159,7 @@ const ARTIFACTS: ReadonlyArray<readonly [string, string]> = [
   // The two artifacts whose RUNTIME values retain a tree through closures --
   // included precisely so the return-type check above is exercised on them.
   ["src/TRANSPILE/2-Plan/types/IAssignmentContext.ts", "IAssignmentContext"],
-  ["src/transpiler/types/TPlannedTargetOp.ts", "TPlannedTargetOp"],
+  ["src/types/TPlannedTargetOp.ts", "TPlannedTargetOp"],
 ];
 
 /** Every class field under a directory whose type reaches a parse node. */

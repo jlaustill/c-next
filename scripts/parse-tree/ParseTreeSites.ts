@@ -55,7 +55,7 @@ class ParseTreeSites {
     "src/PARSE/",
     "src/TRANSPILE/3-Render/",
     "src/TRANSPILE/",
-    "src/transpiler/types/",
+    "src/types/",
     "src/transpiler/",
     "src/instrumentation/",
     "src/utils/",

@@ -2,11 +2,11 @@ import TranspileState from "../../TRANSPILE/TranspileState";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import createMockSymbols from "./codeGenSymbolsHelpers";
-import type ICodeGenSymbols from "../types/ICodeGenSymbols";
-import type TSymbol from "../types/symbols/TSymbol";
-import type TVisibility from "../types/TVisibility";
-import TestSourceSpan from "../types/__testUtils__/testSourceSpan";
-import type ISourceSpan from "../types/ISourceSpan";
+import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
+import type TSymbol from "../../types/symbols/TSymbol";
+import type TVisibility from "../../types/TVisibility";
+import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
+import type ISourceSpan from "../../types/ISourceSpan";
 
 /**
  * Build a mock symbol world and install BOTH of its representations.

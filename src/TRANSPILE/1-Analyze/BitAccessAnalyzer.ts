@@ -39,18 +39,18 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
+import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import ChainRoot from "../../utils/ChainRoot";
 import EnclosingFunction from "./helpers/EnclosingFunction";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import IBitAccessError from "./types/IBitAccessError";
-import TChainRoot from "../../transpiler/types/TChainRoot";
+import TChainRoot from "../../types/TChainRoot";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import type TAssignmentSite from "./types/TAssignmentSite";
-import SHARED_FLOAT_TYPES from "../../transpiler/types/FLOAT_TYPES";
+import SHARED_FLOAT_TYPES from "../../types/FLOAT_TYPES";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**

@@ -14,7 +14,7 @@
  */
 
 import StringOperationsHelper from "../StringOperationsHelper";
-import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
+import type TTypeInfo from "../../../../../types/TTypeInfo";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import StringDeclHelper from "../StringDeclHelper";
 import TranspileState from "../../../../TranspileState";

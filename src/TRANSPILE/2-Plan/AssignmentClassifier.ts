@@ -7,11 +7,11 @@
  *
  * Migrated to use CodeGenState instead of constructor DI.
  */
-import AssignmentKind from "../../transpiler/types/AssignmentKind";
+import AssignmentKind from "../../types/AssignmentKind";
 import IAssignmentContext from "./types/IAssignmentContext";
 import invariant from "../../utils/invariant";
 import SubscriptDepthValidator from "./SubscriptDepthValidator";
-import TTypeInfo from "../../transpiler/types/TTypeInfo";
+import TTypeInfo from "../../types/TTypeInfo";
 import OperandTyper from "../../utils/OperandTyper";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import QualifiedCName from "../../utils/QualifiedCName";

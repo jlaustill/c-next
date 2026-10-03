@@ -6,8 +6,8 @@
 
 import { describe, it, expect } from "vitest";
 import atomicGenerators from "../AtomicGenerator";
-import TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
-import type ITargetDescription from "../../../../../../transpiler/types/ITargetDescription";
+import TTypeInfo from "../../../../../../types/TTypeInfo";
+import type ITargetDescription from "../../../../../../types/ITargetDescription";
 import TargetResolver from "../../../../../../utils/TargetResolver";
 import NodeFileSystem from "../../../../../../PARSE/1-Discover/NodeFileSystem";
 

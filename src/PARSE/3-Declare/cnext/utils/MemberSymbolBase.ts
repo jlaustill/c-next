@@ -1,6 +1,6 @@
-import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";
-import type TSymbolKindCNext from "../../../../transpiler/types/symbol-kinds/TSymbolKindCNext";
-import type TVisibility from "../../../../transpiler/types/TVisibility";
+import type ISourceSpan from "../../../../types/ISourceSpan";
+import type TSymbolKindCNext from "../../../../types/symbol-kinds/TSymbolKindCNext";
+import type TVisibility from "../../../../types/TVisibility";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ParserUtils from "../../../../utils/ParserUtils";
 import ScopeUtils from "../../../../utils/ScopeUtils";

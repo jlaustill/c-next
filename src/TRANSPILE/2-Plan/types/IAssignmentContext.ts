@@ -5,8 +5,8 @@
  * code for an assignment. Built once by the context extractor, then used
  * by the classifier and handlers.
  */
-import type IBitAccessAnalysis from "../../../transpiler/types/IBitAccessAnalysis";
-import type TPlannedTargetOp from "../../../transpiler/types/TPlannedTargetOp";
+import type IBitAccessAnalysis from "../../../types/IBitAccessAnalysis";
+import type TPlannedTargetOp from "../../../types/TPlannedTargetOp";
 import type IChainBase from "./IChainBase";
 import type TranspileState from "../../TranspileState";
 

@@ -1,7 +1,7 @@
 import { dirname, join, resolve } from "node:path";
 import IncludeDiscovery from "./IncludeDiscovery";
 import CNextMarkerDetector from "./CNextMarkerDetector";
-import IFileSystem from "../../transpiler/types/IFileSystem";
+import IFileSystem from "../../types/IFileSystem";
 
 /**
  * Result of scanning a C/C++ entry point for C-Next sources.

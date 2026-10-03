@@ -12,7 +12,7 @@
  */
 
 import TYPE_MAP from "../../utils/constants/TypeMappings";
-import IPostfixOp from "../../transpiler/types/IPostfixOp";
+import IPostfixOp from "../../types/IPostfixOp";
 
 /**
  * Parameter info from the type registry

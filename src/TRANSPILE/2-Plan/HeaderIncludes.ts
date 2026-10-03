@@ -28,8 +28,8 @@
  */
 
 import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
-import type TSymbol from "../../transpiler/types/symbols/TSymbol";
-import SYSTEM_INCLUDE_TARGETS from "../../transpiler/constants/SYSTEM_INCLUDE_TARGETS";
+import type TSymbol from "../../types/symbols/TSymbol";
+import SYSTEM_INCLUDE_TARGETS from "./SYSTEM_INCLUDE_TARGETS";
 import headerCType from "../../utils/headerCType";
 import HeaderTypeNames from "./HeaderTypeNames";
 

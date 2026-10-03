@@ -7,11 +7,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import ICppFunctionSymbol from "../../../../transpiler/types/symbols/cpp/ICppFunctionSymbol";
-import ICppParameterInfo from "../../../../transpiler/types/symbols/cpp/ICppParameterInfo";
+import ICppFunctionSymbol from "../../../../types/symbols/cpp/ICppFunctionSymbol";
+import ICppParameterInfo from "../../../../types/symbols/cpp/ICppParameterInfo";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
 import IExtractedParameter from "../../shared/IExtractedParameter";
-import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class FunctionCollector {
   /**

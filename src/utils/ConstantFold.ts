@@ -14,12 +14,12 @@
 import ArrayDimensionParser from "./ArrayDimensionParser";
 import TypeCheckUtils from "./TypeCheckUtils";
 import TTypeUtils from "./TTypeUtils";
-import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
+import TYPE_WIDTH from "../types/TYPE_WIDTH";
 import type IConstantEvalOptions from "./types/IConstantEvalOptions";
-import type IFoldedConstant from "../transpiler/types/IFoldedConstant";
-import type IProgram from "../transpiler/types/IProgram";
+import type IFoldedConstant from "../types/IFoldedConstant";
+import type IProgram from "../types/IProgram";
 import type ISourcePosition from "./types/ISourcePosition";
-import type TType from "../transpiler/types/TType";
+import type TType from "../types/TType";
 
 type TConstantOf = (name: string) => IFoldedConstant | undefined;
 

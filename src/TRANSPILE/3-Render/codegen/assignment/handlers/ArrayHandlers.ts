@@ -7,10 +7,10 @@
  * - ARRAY_SLICE: buffer[0, 10] <- source
  */
 import ComplianceAnnotations from "../../../../2-Plan/ComplianceAnnotations";
-import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
+import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import TAssignmentHandler from "./TAssignmentHandler";
-import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
+import type TTypeInfo from "../../../../../types/TTypeInfo";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 import invariant from "../../../../../utils/invariant";
 import type TranspileState from "../../../../TranspileState";

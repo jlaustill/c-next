@@ -19,7 +19,7 @@ vi.mock("../../PARSE/3-Declare/c", () => {
 
 // Import after mock is set up
 import parseCHeader from "../parseCHeader";
-import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
 
 describe("parseCHeader mocked scenarios", () => {
   beforeEach(() => {

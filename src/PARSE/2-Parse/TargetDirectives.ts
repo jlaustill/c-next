@@ -7,7 +7,7 @@
  * pragma cannot be understood two ways.
  */
 import type * as Parser from "./grammar/CNextParser";
-import type ITargetDirective from "../../transpiler/types/ITargetDirective";
+import type ITargetDirective from "../../types/ITargetDirective";
 
 class TargetDirectives {
   static read(tree: Parser.ProgramContext): ITargetDirective[] {

@@ -17,8 +17,8 @@ import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import MemberChainAnalyzer from "../MemberChainAnalyzer";
 import OperandTyper from "../../../../../utils/OperandTyper";
 import testAnalysisContextFor from "../../../../1-Analyze/__tests__/testAnalysisContextFor";
-import type TPlannedTargetOp from "../../../../../transpiler/types/TPlannedTargetOp";
-import type IBitAccessAnalysis from "../../../../../transpiler/types/IBitAccessAnalysis";
+import type TPlannedTargetOp from "../../../../../types/TPlannedTargetOp";
+import type IBitAccessAnalysis from "../../../../../types/IBitAccessAnalysis";
 
 const DECLARATIONS = `
 struct Point {

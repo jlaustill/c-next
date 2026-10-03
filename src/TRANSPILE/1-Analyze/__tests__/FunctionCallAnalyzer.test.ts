@@ -10,9 +10,9 @@ import FunctionCallAnalyzer from "../FunctionCallAnalyzer";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TTypeUtils from "../../../utils/TTypeUtils";
-import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
+import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
-import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 /**
  * Helper to parse C-Next code and return the AST

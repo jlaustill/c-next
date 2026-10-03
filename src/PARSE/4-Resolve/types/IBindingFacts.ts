@@ -1,6 +1,6 @@
 import type SymbolRegistry from "../../3-Declare/SymbolRegistry";
-import type ILexicalFrame from "../../../transpiler/types/ILexicalFrame";
-import type TSymbol from "../../../transpiler/types/symbols/TSymbol";
+import type ILexicalFrame from "../../../types/ILexicalFrame";
+import type TSymbol from "../../../types/symbols/TSymbol";
 
 /**
  * What `Program.bindValue` reads to decide what a spelling means.

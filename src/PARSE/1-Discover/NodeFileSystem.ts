@@ -20,7 +20,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import IFileSystem from "../../transpiler/types/IFileSystem";
+import IFileSystem from "../../types/IFileSystem";
 
 /**
  * Node.js file system implementation

@@ -5,7 +5,7 @@
  */
 
 import { join } from "node:path";
-import IFileSystem from "../transpiler/types/IFileSystem";
+import IFileSystem from "../types/IFileSystem";
 import NodeFileSystem from "../PARSE/1-Discover/NodeFileSystem";
 import ICliConfig from "./types/ICliConfig";
 

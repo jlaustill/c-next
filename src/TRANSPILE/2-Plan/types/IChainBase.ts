@@ -1,6 +1,6 @@
-import type TTypeInfo from "../../../transpiler/types/TTypeInfo";
-import type TValueBinding from "../../../transpiler/types/TValueBinding";
-import type IChainStep from "../../../transpiler/types/IChainStep";
+import type TTypeInfo from "../../../types/TTypeInfo";
+import type TValueBinding from "../../../types/TValueBinding";
+import type IChainStep from "../../../types/IChainStep";
 
 /**
  * #1668 (C7): what an assignment target writes, bound once where the target

@@ -1,7 +1,7 @@
-import type IFileResult from "../transpiler/types/IFileResult";
-import type IRecordedRequirement from "../transpiler/types/IRecordedRequirement";
-import type IRequirementSite from "../transpiler/types/IRequirementSite";
-import type TRequirementKey from "../transpiler/types/TRequirementKey";
+import type IFileResult from "../types/IFileResult";
+import type IRecordedRequirement from "../types/IRecordedRequirement";
+import type IRequirementSite from "../types/IRequirementSite";
+import type TRequirementKey from "../types/TRequirementKey";
 import RequirementSites from "./RequirementSites";
 
 /**

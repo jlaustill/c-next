@@ -24,7 +24,7 @@
  */
 
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
-import IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
+import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";

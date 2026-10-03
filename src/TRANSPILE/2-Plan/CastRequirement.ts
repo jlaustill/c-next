@@ -1,6 +1,6 @@
-import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
-import INTEGER_TYPES from "../../transpiler/types/INTEGER_TYPES";
-import FLOAT_TYPES from "../../transpiler/types/FLOAT_TYPES";
+import TYPE_WIDTH from "../../types/TYPE_WIDTH";
+import INTEGER_TYPES from "../../types/INTEGER_TYPES";
+import FLOAT_TYPES from "../../types/FLOAT_TYPES";
 
 /**
  * Does a conversion need an explicit cast? (MISRA C:2012 Rule 10.3)

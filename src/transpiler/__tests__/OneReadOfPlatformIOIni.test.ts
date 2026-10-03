@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
-import type IFileSystem from "../types/IFileSystem";
+import type IFileSystem from "../../types/IFileSystem";
 
 /**
  * #1444, owner ruling 3: one run reads `platformio.ini` once.

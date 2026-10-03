@@ -10,8 +10,8 @@ import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import DeclarationSite from "../../../../utils/DeclarationSite";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import TSymbol from "../../../../transpiler/types/symbols/TSymbol";
-import TVisibility from "../../../../transpiler/types/TVisibility";
+import TSymbol from "../../../../types/symbols/TSymbol";
+import TVisibility from "../../../../types/TVisibility";
 import IScopeCollectorResult from "../types/IScopeCollectorResult";
 import SymbolRegistry from "../../SymbolRegistry";
 import BitmapCollector from "./BitmapCollector";
@@ -20,8 +20,8 @@ import StructCollector from "./StructCollector";
 import FunctionCollector from "./FunctionCollector";
 import VariableCollector from "./VariableCollector";
 import RegisterCollector from "./RegisterCollector";
-import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";
-import UNSET_SOURCE_SPAN from "../../../../transpiler/constants/UNSET_SOURCE_SPAN";
+import type ISourceSpan from "../../../../types/ISourceSpan";
+import UNSET_SOURCE_SPAN from "../../../../types/UNSET_SOURCE_SPAN";
 import ParserUtils from "../../../../utils/ParserUtils";
 
 class ScopeCollector {

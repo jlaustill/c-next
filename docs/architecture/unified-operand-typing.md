@@ -87,7 +87,7 @@
 
 ### 1.1 Contracts
 
-Each contract is in its own file under `src/transpiler/types/`, and each is pure data.
+Each contract is in its own file under `src/types/`, and each is pure data.
 
 **Moved in:**
 
@@ -240,7 +240,7 @@ class OperandTyper {
 ### 2.1 What it holds
 
 ```ts
-// src/transpiler/types/ILexicalFrame.ts
+// src/types/ILexicalFrame.ts
 interface ILexicalFrame {
   readonly kind: "file" | "scope" | "function" | "block" | "for";
   readonly span: ISourceSpan; // the construct that opened it (ParserUtils.getSpan)
@@ -249,7 +249,7 @@ interface ILexicalFrame {
   readonly declarations: ReadonlyArray<ILocalDeclaration>; // source order
   readonly children: ReadonlyArray<ILexicalFrame>; // source order, non-overlapping
 }
-// src/transpiler/types/ILocalDeclaration.ts
+// src/types/ILocalDeclaration.ts
 interface ILocalDeclaration {
   readonly name: string;
   readonly kind: "local" | "parameter" | "for" | "constructor";
@@ -298,7 +298,7 @@ interface ILocalDeclaration {
 
 ### 2.3 Query surface, key and lifetime gates
 
-`IProgram` (`src/transpiler/types/IProgram.ts`) gains four methods. `P` is `Pick<ISourceSpan, "line" | "column">`, which `ParserUtils.getPosition` satisfies structurally. It is used so that no shared contract imports `utils/types`.
+`IProgram` (`src/types/IProgram.ts`) gains four methods. `P` is `Pick<ISourceSpan, "line" | "column">`, which `ParserUtils.getPosition` satisfies structurally. It is used so that no shared contract imports `utils/types`.
 
 ```ts
 lexicalFrameAt(sourceFile: string, at: P): ILexicalFrame;                        // innermost; file frame if none

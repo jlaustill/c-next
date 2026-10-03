@@ -4,8 +4,8 @@
  * module because several sites share them. The typer reports facts; each row
  * here decides what one site does with them, and nowhere else does.
  */
-import type IOperandType from "../../transpiler/types/IOperandType";
-import type TOverflowBehavior from "../../transpiler/types/TOverflowBehavior";
+import type IOperandType from "../../types/IOperandType";
+import type TOverflowBehavior from "../../types/TOverflowBehavior";
 
 class PlanTyping {
   /**

@@ -32,7 +32,7 @@ import RunTarget from "../src/PARSE/4-Resolve/RunTarget";
 import TargetDescriptions from "../src/PARSE/4-Resolve/TargetDescriptions";
 import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
 import type IGccToolchain from "../src/utils/types/IGccToolchain";
-import type ITargetDescription from "../src/transpiler/types/ITargetDescription";
+import type ITargetDescription from "../src/types/ITargetDescription";
 import type IValidationResult from "./types/IValidationResult";
 import type TTestMode from "./types/TTestMode";
 import NodeFileSystem from "../src/PARSE/1-Discover/NodeFileSystem";

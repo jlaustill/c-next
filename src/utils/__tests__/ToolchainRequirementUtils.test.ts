@@ -9,9 +9,9 @@
  */
 import { describe, it, expect } from "vitest";
 import ToolchainRequirementUtils from "../ToolchainRequirementUtils";
-import TOOLCHAIN_REQUIREMENTS from "../../transpiler/constants/TOOLCHAIN_REQUIREMENTS";
-import type IRecordedRequirement from "../../transpiler/types/IRecordedRequirement";
-import type TRequirementKey from "../../transpiler/types/TRequirementKey";
+import TOOLCHAIN_REQUIREMENTS from "../constants/TOOLCHAIN_REQUIREMENTS";
+import type IRecordedRequirement from "../../types/IRecordedRequirement";
+import type TRequirementKey from "../../types/TRequirementKey";
 
 const recorded = (...keys: TRequirementKey[]): IRecordedRequirement[] =>
   keys.map((key) => ({ key, sites: [] }));

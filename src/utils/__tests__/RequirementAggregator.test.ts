@@ -7,8 +7,8 @@
  */
 import { describe, it, expect } from "vitest";
 import RequirementAggregator from "../RequirementAggregator";
-import type IFileResult from "../../transpiler/types/IFileResult";
-import type IRecordedRequirement from "../../transpiler/types/IRecordedRequirement";
+import type IFileResult from "../../types/IFileResult";
+import type IRecordedRequirement from "../../types/IRecordedRequirement";
 
 function fileWith(
   sourcePath: string,

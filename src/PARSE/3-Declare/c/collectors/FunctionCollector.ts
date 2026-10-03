@@ -6,12 +6,12 @@ import type {
   DeclaratorContext,
   FunctionDefinitionContext,
 } from "../../../2-Parse/c/grammar/CParser";
-import type ICFunctionSymbol from "../../../../transpiler/types/symbols/c/ICFunctionSymbol";
-import type ICParameterInfo from "../../../../transpiler/types/symbols/c/ICParameterInfo";
+import type ICFunctionSymbol from "../../../../types/symbols/c/ICFunctionSymbol";
+import type ICParameterInfo from "../../../../types/symbols/c/ICParameterInfo";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
 import type IExtractedParameter from "../../shared/IExtractedParameter";
-import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 import ParserUtils from "../../../../utils/ParserUtils";
 
 class FunctionCollector {

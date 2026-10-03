@@ -38,9 +38,9 @@
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import BUILTIN_TYPE_NAMES from "../../transpiler/constants/BUILTIN_TYPE_NAMES";
+import BUILTIN_TYPE_NAMES from "./BUILTIN_TYPE_NAMES";
 import EnclosingScope from "./helpers/EnclosingScope";
-import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
+import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import IUndeclaredTypeError from "./types/IUndeclaredTypeError";
 import NameExistence from "../../PARSE/3-Declare/NameExistence";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";

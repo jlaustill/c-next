@@ -22,7 +22,7 @@ import TTypeUtils from "./TTypeUtils";
 import PrimitiveKindUtils from "./PrimitiveKindUtils";
 import ChainRoot from "./ChainRoot";
 import TypeCheckUtils from "./TypeCheckUtils";
-import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
+import TYPE_WIDTH from "../types/TYPE_WIDTH";
 import ExpressionUtils from "./ExpressionUtils";
 import ForeignTypeFacts from "./ForeignTypeFacts";
 import LiteralUtils from "./LiteralUtils";
@@ -34,15 +34,15 @@ import ScopeUtils from "./ScopeUtils";
 import SubscriptClassifier from "./SubscriptClassifier";
 import TypeResolver from "./TypeResolver";
 import TypeBinding from "../PARSE/3-Declare/TypeBinding";
-import type IChainStep from "../transpiler/types/IChainStep";
-import type IChainTyping from "../transpiler/types/IChainTyping";
-import type IOperandType from "../transpiler/types/IOperandType";
-import type ITargetDescription from "../transpiler/types/ITargetDescription";
-import type ITypingContext from "../transpiler/types/ITypingContext";
-import type TEssentialCategory from "../transpiler/types/TEssentialCategory";
-import type TType from "../transpiler/types/TType";
-import type TValueBinding from "../transpiler/types/TValueBinding";
-import type TSubscriptKind from "../transpiler/types/TSubscriptKind";
+import type IChainStep from "../types/IChainStep";
+import type IChainTyping from "../types/IChainTyping";
+import type IOperandType from "../types/IOperandType";
+import type ITargetDescription from "../types/ITargetDescription";
+import type ITypingContext from "../types/ITypingContext";
+import type TEssentialCategory from "../types/TEssentialCategory";
+import type TType from "../types/TType";
+import type TValueBinding from "../types/TValueBinding";
+import type TSubscriptKind from "../types/TSubscriptKind";
 
 /** Where a chain walk stands between operations */
 type TChainValue =

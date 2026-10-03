@@ -47,9 +47,9 @@
  * is the thing to re-measure if a write site is ever added from an earlier pass.
  */
 import RequirementSites from "../utils/RequirementSites";
-import type IRecordedRequirement from "../transpiler/types/IRecordedRequirement";
-import type IRequirementSite from "../transpiler/types/IRequirementSite";
-import type TRequirementKey from "../transpiler/types/TRequirementKey";
+import type IRecordedRequirement from "../types/IRecordedRequirement";
+import type IRequirementSite from "../types/IRequirementSite";
+import type TRequirementKey from "../types/TRequirementKey";
 
 class ToolchainRequirements {
   /** Requirements the emitted text actually carries, with every site. */

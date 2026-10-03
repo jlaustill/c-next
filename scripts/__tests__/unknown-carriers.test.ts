@@ -114,7 +114,7 @@ const SELECTOR_CASES: readonly {
 // by one commit and said so, which is the direction a roster usually rots in
 // silence.
 const ACCOUNTED: Readonly<Record<string, string>> = {
-  "src/transpiler/types/symbols/IScopeSymbol.ts:variables":
+  "src/types/symbols/IScopeSymbol.ts:variables":
     "symbols, not nodes — the element type is open because `IVariableSymbol` would close a cycle through `TSymbol`",
 };
 

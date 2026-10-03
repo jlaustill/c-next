@@ -27,7 +27,7 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import REJECTED_KEYWORDS from "../../transpiler/constants/REJECTED_KEYWORDS";
+import REJECTED_KEYWORDS from "./REJECTED_KEYWORDS";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import ILoopError from "./types/ILoopError";

@@ -20,10 +20,10 @@
  * out of the population for real rather than by spelling.
  */
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import type IChainStep from "../../transpiler/types/IChainStep";
+import type IChainStep from "../../types/IChainStep";
 import IAssignmentContext from "./types/IAssignmentContext";
-import IBitAccessAnalysis from "../../transpiler/types/IBitAccessAnalysis";
-import TPlannedTargetOp from "../../transpiler/types/TPlannedTargetOp";
+import IBitAccessAnalysis from "../../types/IBitAccessAnalysis";
+import TPlannedTargetOp from "../../types/TPlannedTargetOp";
 import type IChainBase from "./types/IChainBase";
 import type TranspileState from "../TranspileState";
 

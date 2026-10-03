@@ -2,8 +2,8 @@
  * Cached entry for a single header file
  */
 
-import IStructFieldInfo from "./symbols/IStructFieldInfo";
-import IStructSymbolState from "./symbols/IStructSymbolState";
+import IStructFieldInfo from "../../types/symbols/IStructFieldInfo";
+import IStructSymbolState from "../../types/symbols/IStructSymbolState";
 import TJsonSafe from "../../utils/types/TJsonSafe";
 import TJsonValue from "../../utils/types/TJsonValue";
 

@@ -24,7 +24,7 @@ import AdrProvenance from "../../../../instrumentation/AdrProvenance";
 import IParameterInput from "../types/IParameterInput";
 import type IPlannedParameter from "../types/IPlannedParameter";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
-import ICallbackTypeInfo from "../../../../transpiler/types/ICallbackTypeInfo";
+import ICallbackTypeInfo from "../../../../types/ICallbackTypeInfo";
 import AutoConstRule from "../../../../utils/AutoConstRule";
 
 /**

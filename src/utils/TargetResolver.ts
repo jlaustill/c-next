@@ -6,9 +6,9 @@
  * settles that once, from every file's pragmas and the target option.
  */
 
-import type ITargetDescription from "../transpiler/types/ITargetDescription";
+import type ITargetDescription from "../types/ITargetDescription";
 import TargetCatalogFile from "../PARSE/1-Discover/TargetCatalogFile";
-import type IFileSystem from "../transpiler/types/IFileSystem";
+import type IFileSystem from "../types/IFileSystem";
 
 class TargetResolver {
   /**

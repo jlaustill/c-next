@@ -10,9 +10,9 @@
  */
 
 import type IChainBase from "../../../../../2-Plan/types/IChainBase";
-import type IOperandType from "../../../../../../transpiler/types/IOperandType";
-import type IChainStep from "../../../../../../transpiler/types/IChainStep";
-import type TSubscriptKind from "../../../../../../transpiler/types/TSubscriptKind";
+import type IOperandType from "../../../../../../types/IOperandType";
+import type IChainStep from "../../../../../../types/IChainStep";
+import type TSubscriptKind from "../../../../../../types/TSubscriptKind";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import generatePostfixExpression from "../PostfixExpressionGenerator";
 import type IPlannedPostfix from "../../../types/IPlannedPostfix";
@@ -20,9 +20,9 @@ import type TPlannedPostfixOp from "../../../types/TPlannedPostfixOp";
 import type IGeneratorInput from "../../IGeneratorInput";
 import type IGeneratorState from "../../IGeneratorState";
 import type IOrchestrator from "../../IOrchestrator";
-import type ICodeGenSymbols from "../../../../../../transpiler/types/ICodeGenSymbols";
-import type TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
-import type TParameterInfo from "../../../../../../transpiler/types/TParameterInfo";
+import type ICodeGenSymbols from "../../../../../../types/ICodeGenSymbols";
+import type TTypeInfo from "../../../../../../types/TTypeInfo";
+import type TParameterInfo from "../../../../../../types/TParameterInfo";
 import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
 import TranspileState from "../../../../../TranspileState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";

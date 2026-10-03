@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import PathNormalizer from "../PathNormalizer";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
-import IFileSystem from "../../transpiler/types/IFileSystem";
+import IFileSystem from "../../types/IFileSystem";
 import ICliConfig from "../types/ICliConfig";
 
 // Store original environment variables at module level for all tests

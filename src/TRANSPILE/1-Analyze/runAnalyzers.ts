@@ -16,7 +16,7 @@
  */
 
 import { ProgramContext } from "../../PARSE/2-Parse/grammar/CNextParser";
-import IComment from "../../transpiler/types/IComment";
+import IComment from "../../types/IComment";
 import CppClassInitializerAnalyzer from "./CppClassInitializerAnalyzer";
 import DefineDirectiveAnalyzer from "./DefineDirectiveAnalyzer";
 import IdentifierSyntaxAnalyzer from "./IdentifierSyntaxAnalyzer";

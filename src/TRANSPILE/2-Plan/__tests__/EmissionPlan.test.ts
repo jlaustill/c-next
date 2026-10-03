@@ -8,7 +8,7 @@
  */
 
 import EmissionPlan from "../EmissionPlan";
-import type IEmissionFacts from "../../../transpiler/types/IEmissionFacts";
+import type IEmissionFacts from "../../../types/IEmissionFacts";
 
 const NOTHING: IEmissionFacts = {
   cppMode: false,

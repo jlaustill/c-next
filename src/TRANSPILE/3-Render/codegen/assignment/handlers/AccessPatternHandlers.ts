@@ -7,7 +7,7 @@
  * - THIS_MEMBER: this.count <- 5
  * - MEMBER_CHAIN: struct.field.subfield <- value
  */
-import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
+import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 import TAssignmentHandler from "./TAssignmentHandler";

@@ -50,7 +50,7 @@ import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import BoundDeclaration from "./helpers/BoundDeclaration";
 import IRegisterMember from "./types/IRegisterMember";
 import IRegisterAccessError from "./types/IRegisterAccessError";
-import TChainRoot from "../../transpiler/types/TChainRoot";
+import TChainRoot from "../../types/TChainRoot";
 import type TAssignmentSite from "./types/TAssignmentSite";
 import ConstantExpression from "./helpers/ConstantExpression";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";

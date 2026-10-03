@@ -130,7 +130,7 @@ const ANNOTATION_FORM = /\/\*[^*\n]{0,80}\bRule\b/g;
  *
  * Anchored at the path segment (#1589 review): `[^"]*` absorbs a leading `I`,
  * so the unanchored form matched the TYPE `IDeclarationPlan` as well as the
- * DECISION `DeclarationPlan` -- and `src/transpiler/types/IDeclarationPlan.ts`
+ * DECISION `DeclarationPlan` -- and `src/types/IDeclarationPlan.ts`
  * exists. The census is exact-equality, so that is a false positive waiting to
  * happen: a render module typing a parameter with `IDeclarationPlan` is
  * decision-free, and would have reddened the census under a message naming the

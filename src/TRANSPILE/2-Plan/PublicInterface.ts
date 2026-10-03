@@ -1,6 +1,6 @@
 import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
-import type TSymbol from "../../transpiler/types/symbols/TSymbol";
-import type TType from "../../transpiler/types/TType";
+import type TSymbol from "../../types/symbols/TSymbol";
+import type TType from "../../types/TType";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import invariant from "../../utils/invariant";

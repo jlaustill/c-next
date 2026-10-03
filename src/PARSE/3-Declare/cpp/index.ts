@@ -9,7 +9,7 @@
 
 import { CPP14Parser } from "../../2-Parse/cpp/grammar/CPP14Parser";
 import type { DeclSpecifierSeqContext } from "../../2-Parse/cpp/grammar/CPP14Parser";
-import TCppSymbol from "../../../transpiler/types/symbols/cpp/TCppSymbol";
+import TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
 import SymbolTable from "../SymbolTable";
 import NamespaceCollector from "./collectors/NamespaceCollector";
 import EnumCollector from "./collectors/EnumCollector";
@@ -18,7 +18,7 @@ import FunctionCollector from "./collectors/FunctionCollector";
 import ClassCollector from "./collectors/ClassCollector";
 import VariableCollector from "./collectors/VariableCollector";
 import DeclaratorUtils from "./utils/DeclaratorUtils";
-import type ISourceSpan from "../../../transpiler/types/ISourceSpan";
+import type ISourceSpan from "../../../types/ISourceSpan";
 import ParserUtils from "../../../utils/ParserUtils";
 
 // Import context types

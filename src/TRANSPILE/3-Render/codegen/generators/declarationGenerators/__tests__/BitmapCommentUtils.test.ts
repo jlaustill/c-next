@@ -2,7 +2,7 @@
  * Unit tests for BitmapCommentUtils
  */
 
-import type IBitmapFieldLayout from "../../../../../../transpiler/types/IBitmapFieldLayout";
+import type IBitmapFieldLayout from "../../../../../../types/IBitmapFieldLayout";
 import { describe, it, expect } from "vitest";
 import BitmapCommentUtils from "../BitmapCommentUtils";
 

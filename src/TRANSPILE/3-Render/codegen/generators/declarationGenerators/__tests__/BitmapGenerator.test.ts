@@ -1,4 +1,4 @@
-import type IBitmapFieldLayout from "../../../../../../transpiler/types/IBitmapFieldLayout";
+import type IBitmapFieldLayout from "../../../../../../types/IBitmapFieldLayout";
 import { describe, it, expect } from "vitest";
 import generateBitmap from "../BitmapGenerator";
 import IGeneratorInput from "../../IGeneratorInput";

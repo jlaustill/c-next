@@ -26,11 +26,11 @@ import ChainRoot from "../../../utils/ChainRoot";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import IRegisterMember from "../types/IRegisterMember";
-import TChainRoot from "../../../transpiler/types/TChainRoot";
+import TChainRoot from "../../../types/TChainRoot";
 import OperandTyper from "../../../utils/OperandTyper";
 import ParserUtils from "../../../utils/ParserUtils";
 import type IAnalysisContext from "../types/IAnalysisContext";
-import type ICodeGenSymbols from "../../../transpiler/types/ICodeGenSymbols";
+import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 
 class RegisterMemberReference {
   /**

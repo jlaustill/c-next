@@ -4,7 +4,7 @@
 
 import generateBitmapHeader from "../generateBitmapHeader";
 import IHeaderTypeInput from "../IHeaderTypeInput";
-import type IBitmapFieldLayout from "../../../../../transpiler/types/IBitmapFieldLayout";
+import type IBitmapFieldLayout from "../../../../../types/IBitmapFieldLayout";
 
 /**
  * Creates a minimal IHeaderTypeInput with bitmap data populated

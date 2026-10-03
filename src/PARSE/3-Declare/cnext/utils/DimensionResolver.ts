@@ -18,7 +18,7 @@
 
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
-import TYPE_WIDTH from "../../../../transpiler/constants/TYPE_WIDTH";
+import TYPE_WIDTH from "../../../../types/TYPE_WIDTH";
 
 class DimensionResolver {
   /**

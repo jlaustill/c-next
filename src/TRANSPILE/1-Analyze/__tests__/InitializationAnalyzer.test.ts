@@ -11,7 +11,7 @@ import InitializationAnalyzer from "../InitializationAnalyzer";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import TranspileState from "../../TranspileState";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 import Program from "../../../PARSE/4-Resolve/Program";
 import testAnalysisContext from "./testAnalysisContext";
 

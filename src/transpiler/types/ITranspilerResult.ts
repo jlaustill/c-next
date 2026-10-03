@@ -1,8 +1,8 @@
 import ITranspileError from "../../lib/types/ITranspileError";
-import IGrammarCoverageReport from "./IGrammarCoverageReport";
-import IFileResult from "./IFileResult";
-import type IRecordedRequirement from "./IRecordedRequirement";
-import type IRecordedAdrSite from "./IRecordedAdrSite";
+import IGrammarCoverageReport from "../../types/IGrammarCoverageReport";
+import IFileResult from "../../types/IFileResult";
+import type IRecordedRequirement from "../../types/IRecordedRequirement";
+import type IRecordedAdrSite from "../../types/IRecordedAdrSite";
 
 /**
  * Result of running the unified transpiler
