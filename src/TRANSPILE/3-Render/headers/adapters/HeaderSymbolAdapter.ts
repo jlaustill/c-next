@@ -113,7 +113,7 @@ class HeaderSymbolAdapter {
 
     // #1175: 1.4 settled each dimension to its value, or, for one only C can
     // evaluate (a header macro), to its C -- there is nothing left to resolve
-    const arrayDimensions = variable.arrayDimensions?.map((d) => String(d));
+    const arrayDimensions = variable.arrayDimensions?.map(String);
 
     return {
       name: cName,
