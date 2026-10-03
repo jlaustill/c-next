@@ -44,6 +44,7 @@ import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
 
+import ExecFailure from "../src/utils/ExecFailure";
 import FileScanner from "./utils/FileScanner";
 import FixtureFiles from "./headers/FixtureFiles";
 
@@ -95,8 +96,8 @@ function compileAlone(header: string): IOutcome {
     });
     return { path: header, compiled: true, error: "" };
   } catch (error: unknown) {
-    const err = error as { stderr?: string; stdout?: string; message: string };
-    const output = err.stderr || err.stdout || err.message;
+    const failure = ExecFailure.of(error);
+    const output = failure.stderr || failure.stdout || failure.message;
     const first =
       output
         .split("\n")

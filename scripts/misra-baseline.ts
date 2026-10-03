@@ -1,5 +1,5 @@
 /**
- * MISRA baseline + parsing helpers for batch-validate.mjs.
+ * MISRA baseline + parsing helpers for batch-validate.ts.
  *
  * Background (#1057): the MISRA portion of `validate:c` was a silent no-op
  * because runMisra() invoked cppcheck WITHOUT `--enable=style`. cppcheck emits
@@ -28,10 +28,12 @@
 
 import { dirname } from "node:path";
 
+import IMisraViolation from "./types/IMisraViolation";
+
 // rule id -> tracking issue. Generated from the suite via:
 //   cppcheck --addon=misra --enable=style --inline-suppr ... | grep misra-c2012
-// (see scripts/misra-baseline.test.ts for the integrity guards).
-const BASELINE = new Map([
+// (see scripts/__tests__/misra-baseline.test.ts for the integrity guards).
+const BASELINE = new Map<string, string>([
   // --- rules with pre-existing tracking issues (#841–#869) ---
   ["misra-c2012-2.2", "#849"],
   ["misra-c2012-2.3", "#869"],
@@ -78,29 +80,21 @@ const BASELINE = new Map([
 // drive-letter path (`C:\...`) would need a more specific anchor.
 const MISRA_LINE = /^(.+?):\d+:\d+:.*\[(misra-c2012-\d+\.\d+)\]/;
 
-/**
- * One cppcheck finding attributed to a MISRA rule.
- *
- * Declared as JSDoc rather than a sibling `.d.ts` so the shape has a single
- * source of truth: a hand-written declaration file is a second copy that drifts
- * silently, which is the duplicate code path CLAUDE.md forbids. `allowJs` in
- * `tsconfig.scripts.json` is what makes these annotations load-bearing (#1489).
- *
- * @typedef {{ file: string | undefined, ruleId: string | undefined, raw: string }} IMisraViolation
- */
-
 class MisraBaseline {
   static BASELINE = BASELINE;
 
   /**
    * cppcheck argv for a single C file. Always enables style (the #1057 fix).
-   * @param {string} file - the translation unit to analyze
-   * @param {string} includeDir - the corpus's shared include directory
-   * @param {string[]} [extraArgs] - more cppcheck flags for this file, such
-   *   as a Cortex-M file's CMSIS-Core include and architecture macros
-   * @returns {string[]}
+   * @param file - the translation unit to analyze
+   * @param includeDir - the corpus's shared include directory
+   * @param extraArgs - more cppcheck flags for this file, such as a Cortex-M
+   *   file's CMSIS-Core include and architecture macros
    */
-  static buildArgs(file, includeDir, extraArgs = []) {
+  static buildArgs(
+    file: string,
+    includeDir: string,
+    extraArgs: readonly string[] = [],
+  ): string[] {
     return [
       "--addon=misra",
       // REQUIRED: cppcheck emits MISRA findings only at `style` severity.
@@ -123,8 +117,8 @@ class MisraBaseline {
   }
 
   /** Parse MISRA violations from cppcheck output (ignores non-MISRA findings). */
-  static parseViolations(output) {
-    const violations = [];
+  static parseViolations(output: string): IMisraViolation[] {
+    const violations: IMisraViolation[] = [];
     for (const line of output.split("\n")) {
       const match = MISRA_LINE.exec(line);
       if (match !== null) {
@@ -134,21 +128,15 @@ class MisraBaseline {
     return violations;
   }
 
-  /**
-   * True for C-Next-generated output (*.test.c / *.test.h), false for fixtures.
-   * @param {string | undefined} file
-   * @returns {boolean}
-   */
-  static isGenerated(file) {
+  /** True for C-Next-generated output (*.test.c / *.test.h), false for fixtures. */
+  static isGenerated(file: string): boolean {
     return /\.test\.(c|h)$/.test(file);
   }
 
-  /**
-   * Violations that should fail the build: generated code, un-baselined rule.
-   * @param {IMisraViolation[]} violations
-   * @returns {IMisraViolation[]}
-   */
-  static findFailures(violations) {
+  /** Violations that should fail the build: generated code, un-baselined rule. */
+  static findFailures(
+    violations: readonly IMisraViolation[],
+  ): IMisraViolation[] {
     return violations.filter(
       (violation) =>
         MisraBaseline.isGenerated(violation.file) &&

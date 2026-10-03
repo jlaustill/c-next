@@ -281,7 +281,7 @@ $ clang-tidy rid.c   -checks='-*,bugprone-reserved-identifier' -- -std=c99
 (nothing)
 ```
 
-Nothing breaks and nothing miscompiles: no real toolchain collides with these names, and `npm run validate:c` does not flag it (`batch-validate.mjs` passes no `-checks=`, and the repo has no `.clang-tidy`). It is a conformance property of the generated artifact, and it matters for MISRA C++:2008 17-0-1 / AUTOSAR M17-0-1.
+Nothing breaks and nothing miscompiles: no real toolchain collides with these names, and `npm run validate:c` does not flag it (its clang-tidy run passes no `-checks=`, and the repo has no `.clang-tidy`). It is a conformance property of the generated artifact, and it matters for MISRA C++:2008 17-0-1 / AUTOSAR M17-0-1.
 
 C is C-Next's primary target and the injectivity argument is language-independent, so the separator is not re-litigated over this. The clean long-term fix for C++ mode is to emit real `namespace Scope { }` blocks so the flat name never reaches a C++ translation unit — see Open Questions.
 

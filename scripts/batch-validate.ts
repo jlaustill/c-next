@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 /**
  * Batch C/C++ Static Analysis
  *
@@ -8,8 +8,8 @@
  * costs and ensuring local + CI behavior are identical.
  *
  * Usage:
- *   npm run validate:c              # Run all available checks
- *   node scripts/batch-validate.mjs # Same thing
+ *   npm run validate:c                  # Run all available checks
+ *   npx tsx scripts/batch-validate.ts   # Same thing
  *
  * Security: All external tool invocations use execFileSync (not exec)
  * to prevent shell injection. File paths come from filesystem traversal,
@@ -20,7 +20,8 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import MisraBaseline from "./misra-baseline.mjs";
+import ExecFailure from "../src/utils/ExecFailure";
+import MisraBaseline from "./misra-baseline";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -38,7 +39,7 @@ const CMSIS_DIR = join(ROOT, "vendor/cmsis-core");
  * hid 34 MISRA C:2012 Rule 15.6 violations from cppcheck. Analyzing each file
  * for its own target is #1714.
  */
-function cortexArgs(file) {
+function cortexArgs(file: string): string[] {
   return /#include\s*<cmsis_gcc\.h>/.test(readFileSync(file, "utf-8"))
     ? ["-I", CMSIS_DIR, "-D__ARM_ARCH_7EM__=1", "-D__ARM_FEATURE_LDREX=7"]
     : [];
@@ -50,7 +51,7 @@ function cortexArgs(file) {
 
 const VALID_TOOLS = ["cppcheck", "clang-tidy", "misra", "flawfinder", "all"];
 
-function parseArgs() {
+function parseTool(): string {
   const args = process.argv.slice(2);
   let tool = "all";
 
@@ -65,16 +66,16 @@ function parseArgs() {
     }
   }
 
-  return { tool };
+  return tool;
 }
 
-const { tool: selectedTool } = parseArgs();
+const selectedTool = parseTool();
 
 // ============================================================================
 // Tool detection
 // ============================================================================
 
-function toolAvailable(cmd) {
+function toolAvailable(cmd: string): boolean {
   try {
     execFileSync(cmd, ["--version"], {
       encoding: "utf-8",
@@ -95,8 +96,8 @@ const hasFlawfinder = toolAvailable("flawfinder");
 // File discovery
 // ============================================================================
 
-function findFilesRecursively(dir, pattern) {
-  const results = [];
+function findFilesRecursively(dir: string, pattern: RegExp): string[] {
+  const results: string[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const fullPath = join(dir, entry.name);
     if (entry.isDirectory()) {
@@ -142,20 +143,20 @@ const CPP_HEADER_PATTERNS = [
   /\bprotected\s*:/,
 ];
 
-function hasCppFeatures(code) {
+function hasCppFeatures(code: string): boolean {
   for (const pattern of CPP_FEATURE_PATTERNS) {
     if (pattern.test(code)) return true;
   }
   return false;
 }
 
-function requiresCpp(cFile) {
+function requiresCpp(cFile: string): boolean {
   try {
     const code = readFileSync(cFile, "utf-8");
     if (hasCppFeatures(code)) return true;
 
     const includePattern = /#include\s+"([^"]+)"/g;
-    let match;
+    let match: RegExpExecArray | null;
     while ((match = includePattern.exec(code)) !== null) {
       const headerPath = join(dirname(cFile), match[1]);
       if (existsSync(headerPath)) {
@@ -178,7 +179,7 @@ function requiresCpp(cFile) {
 
 let failures = 0;
 
-function reportFailure(tool, file, message) {
+function reportFailure(tool: string, file: string, message: string): void {
   console.error(`FAIL [${tool}] ${file}`);
   if (message) {
     const lines = message.split("\n").slice(0, 5);
@@ -230,8 +231,9 @@ function runCppcheck() {
         timeout: 300000,
         stdio: "pipe",
       });
-    } catch (error) {
-      const output = error.stderr || error.stdout || error.message;
+    } catch (error: unknown) {
+      const failure = ExecFailure.of(error);
+      const output = failure.stderr || failure.stdout || failure.message;
       reportFailure("cppcheck", `${pureCFiles.length} C files`, output);
     }
   }
@@ -258,8 +260,9 @@ function runCppcheck() {
         timeout: 300000,
         stdio: "pipe",
       });
-    } catch (error) {
-      const output = error.stderr || error.stdout || error.message;
+    } catch (error: unknown) {
+      const failure = ExecFailure.of(error);
+      const output = failure.stderr || failure.stdout || failure.message;
       reportFailure("cppcheck-cpp", `${allCppFiles.length} C++ files`, output);
     }
   }
@@ -296,8 +299,9 @@ function runClangTidy() {
         ],
         { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
       );
-    } catch (error) {
-      const output = error.stderr || error.stdout || error.message;
+    } catch (error: unknown) {
+      const failure = ExecFailure.of(error);
+      const output = failure.stderr || failure.stdout || failure.message;
       const issues = output
         .split("\n")
         .filter((line) => line.includes("error:"))
@@ -343,7 +347,7 @@ function runMisra() {
   // cppcheck exits 1 on ANY enabled finding (including non-MISRA style noise),
   // so every match throws; we parse the captured output and decide ourselves.
   for (const file of misraFiles) {
-    let output;
+    let output: string;
     try {
       execFileSync(
         "cppcheck",
@@ -355,28 +359,29 @@ function runMisra() {
         },
       );
       continue; // exit 0 → no findings at all
-    } catch (error) {
+    } catch (error: unknown) {
+      const failure = ExecFailure.of(error);
       // Exit 1 is the expected "findings present" signal; any other status
       // means cppcheck itself failed to run, which must not pass silently.
-      if (error.status !== 1) {
+      if (failure.status !== 1) {
         reportFailure(
           "MISRA",
           file,
-          error.stderr || error.stdout || error.message,
+          failure.stderr || failure.stdout || failure.message,
         );
         continue;
       }
-      output = `${error.stdout || ""}\n${error.stderr || ""}`;
+      output = `${failure.stdout || ""}\n${failure.stderr || ""}`;
     }
 
-    const failures = MisraBaseline.findFailures(
+    const misraFailures = MisraBaseline.findFailures(
       MisraBaseline.parseViolations(output),
     );
-    if (failures.length > 0) {
+    if (misraFailures.length > 0) {
       reportFailure(
         "MISRA",
         file,
-        failures
+        misraFailures
           .slice(0, 5)
           .map((violation) => violation.raw)
           .join("\n"),
@@ -401,8 +406,9 @@ function runFlawfinder() {
       ["--minlevel=3", "--error-level=3", "--dataonly", "--quiet", ...allFiles],
       { encoding: "utf-8", timeout: 120000, stdio: "pipe" },
     );
-  } catch (error) {
-    const output = error.stdout || error.stderr || error.message;
+  } catch (error: unknown) {
+    const failure = ExecFailure.of(error);
+    const output = failure.stdout || failure.stderr || failure.message;
     const issues = output
       .split("\n")
       .filter((line) => line.includes("CWE") || line.trim().length > 0)
@@ -416,11 +422,11 @@ function runFlawfinder() {
 // Main
 // ============================================================================
 
-function shouldRun(toolName) {
+function shouldRun(toolName: string): boolean {
   return selectedTool === "all" || selectedTool === toolName;
 }
 
-const availableTools = [];
+const availableTools: string[] = [];
 if (hasCppcheck) availableTools.push("cppcheck", "misra");
 if (hasClangTidy) availableTools.push("clang-tidy");
 if (hasFlawfinder) availableTools.push("flawfinder");

@@ -30,6 +30,7 @@ import type IModeResult from "./types/ITestMode";
 import detectCppSyntax from "../src/PARSE/1-Discover/detectCppSyntax";
 import TestMarkers from "./TestMarkers";
 import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
+import ExecFailure from "../src/utils/ExecFailure";
 import TargetResolver from "../src/utils/TargetResolver";
 import type IGccToolchain from "../src/utils/types/IGccToolchain";
 import TargetMatrix from "./TargetMatrix";
@@ -829,12 +830,8 @@ class TestUtils {
       );
       return { valid: true };
     } catch (error: unknown) {
-      const err = error as {
-        stderr?: string;
-        stdout?: string;
-        message: string;
-      };
-      const output = err.stderr || err.stdout || err.message;
+      const failure = ExecFailure.of(error);
+      const output = failure.stderr || failure.stdout || failure.message;
       const warnings = output
         .split("\n")
         .filter(
@@ -1018,8 +1015,8 @@ class TestUtils {
         { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
       );
     } catch (compileError: unknown) {
-      const err = compileError as { stderr?: string; message: string };
-      return `${mode.toUpperCase()} compile for execution failed: ${err.stderr || err.message}`;
+      const failure = ExecFailure.of(compileError);
+      return `${mode.toUpperCase()} compile for execution failed: ${failure.stderr || failure.message}`;
     }
     try {
       result.stdout = execFileSync(execPath, [], {
@@ -1029,9 +1026,9 @@ class TestUtils {
       });
       return null;
     } catch (execError: unknown) {
-      const err = execError as { status?: number; stdout?: string };
-      result.stdout = err.stdout;
-      return `${mode.toUpperCase()} execution failed with exit code ${err.status || 1}`;
+      const failure = ExecFailure.of(execError);
+      result.stdout = failure.stdout;
+      return `${mode.toUpperCase()} execution failed with exit code ${failure.status || 1}`;
     } finally {
       try {
         if (existsSync(execPath)) unlinkSync(execPath);

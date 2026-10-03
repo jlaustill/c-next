@@ -11,6 +11,7 @@ import IPreprocessResult from "./types/IPreprocessResult";
 import ISourceMapping from "./types/ISourceMapping";
 import IPreprocessOptions from "./types/IPreprocessOptions";
 import ToolchainDetector from "./ToolchainDetector";
+import ExecFailure from "../../../utils/ExecFailure";
 import IFileSystem from "../../../transpiler/types/IFileSystem";
 
 const execFileAsync = promisify(execFile);
@@ -197,12 +198,11 @@ class Preprocessor {
       }
 
       return stdout;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Include stderr in error message for better debugging
-      const stderr = error.stderr ?? "";
+      const failure = ExecFailure.of(error);
       throw new Error(
-        `Preprocessor failed for ${filePath}:\n${error.message}\n${stderr}`,
+        `Preprocessor failed for ${filePath}:\n${failure.message}\n${failure.stderr ?? ""}`,
         { cause: error },
       );
     }

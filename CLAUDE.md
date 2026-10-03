@@ -701,12 +701,14 @@ E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees 
 ```
 foo.test.cnx          # Source
 foo.expected.c        # Expected C output
-foo.expected.cpp      # Expected C++ output (optional)
+foo.expected.cpp      # Expected C++ output (required unless // test-c-only or // test-error)
 foo.expected.h        # Expected C header
 foo.expected.error    # Expected error (if test-error)
 ```
 
-**Generate C++ snapshots**: `npx tsx scripts/generate-cpp-snapshots.ts [path] [--dry-run]`
+**Generate C++ snapshots**: `npm test -- <path> --update` writes them beside the C ones. A dual-mode
+fixture with no `.expected.cpp` fails `npm test` (`No expected file`), so there is no separate
+generator (#1489 deleted the one that duplicated this).
 
 ### Unit Tests
 
