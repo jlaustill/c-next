@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern const uint8_t DATA[EColor__COUNT];
+extern const uint8_t DATA[3];
 
 #ifdef __cplusplus
 }

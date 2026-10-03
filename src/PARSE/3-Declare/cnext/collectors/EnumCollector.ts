@@ -8,7 +8,7 @@
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
-import ExpressionEvaluator from "../utils/ExpressionEvaluator";
+import ConstExprLowering from "../../../../utils/ConstExprLowering";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
 import ParserUtils from "../../../../utils/ParserUtils";
@@ -23,9 +23,12 @@ class EnumCollector {
    * @param sourceFile Source file path
    * @param scopePath The path of the scope this enum belongs to (dotted path, "" at file scope)
    * @param visibility ADR-016 visibility as declared (#1300)
-   * @returns The enum symbol with proper scope reference. A negative member
-   *          value is recorded as written: that it is not allowed is
-   *          ADR-017's rule, and 2.1 Analyze reports it as E0894 (#1531).
+   * @returns The enum symbol with proper scope reference. Each member's value
+   *          is recorded as WRITTEN, and its number is left to 1.4 Resolve:
+   *          a value may name a const or an earlier member (ADR-017 "Member
+   *          Values"), and those settle across the whole program (#1669). A
+   *          value 1.4 cannot settle, a negative one, or one outside `i32` is
+   *          2.1 Analyze's to report.
    */
   static collect(
     ctx: Parser.EnumDeclarationContext,
@@ -36,9 +39,7 @@ class EnumCollector {
     const name = ctx.IDENTIFIER().getText();
     const span = ParserUtils.getSpan(ctx);
 
-    // Collect member values with auto-increment
     const members = new Map<string, IEnumMemberSymbol>();
-    let currentValue = 0;
 
     // #1318: a member's identity hangs off the ENUM's source-spelled name, not
     // the enclosing scope's. `identityOf` then yields the identifier codegen
@@ -51,12 +52,7 @@ class EnumCollector {
     for (const member of ctx.enumMember()) {
       const memberName = member.IDENTIFIER().getText();
 
-      if (member.expression()) {
-        // Explicit value with <-
-        const valueText = member.expression()!.getText();
-        currentValue = ExpressionEvaluator.evaluateConstant(valueText);
-      }
-
+      const valueExpression = member.expression();
       members.set(memberName, {
         ...MemberSymbolBase.of({
           kind: "enum_member" as const,
@@ -67,9 +63,11 @@ class EnumCollector {
           sourceFile,
           visibility,
         }),
-        value: currentValue,
+        valueExpr: valueExpression
+          ? ConstExprLowering.lower(valueExpression)
+          : null,
+        value: null,
       });
-      currentValue++;
     }
 
     return {

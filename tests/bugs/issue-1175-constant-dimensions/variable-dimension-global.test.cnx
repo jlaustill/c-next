@@ -1,0 +1,15 @@
+// test-error
+// test-adr: 036
+// Issue #1175 / ADR-023: a file-scope array sized by a variable transpiled at
+// exit 0 to `uint8_t grid[count]`, which C rejects ("variably modified at file
+// scope").
+//
+// NEGATIVE CONTROL: `fine` is sized by a const and must stay silent.
+
+u8 count <- 3;
+const u8 K <- 3;
+
+u8[count] grid;
+u8[K] fine;
+
+void main() {}

@@ -6,6 +6,7 @@ import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import SymbolGuards from "../../../../types/symbols/SymbolGuards";
 import SymbolRegistry from "../../SymbolRegistry";
 import TypeResolver from "../../../../utils/TypeResolver";
+import SettledEnumValues from "../../../../utils/__testUtils__/SettledEnumValues";
 
 let registry = new SymbolRegistry();
 
@@ -203,9 +204,9 @@ describe("ScopeCollector", () => {
       expect(enumSymbol).toBeDefined();
       expect(SymbolGuards.isEnum(enumSymbol!)).toBe(true);
       if (SymbolGuards.isEnum(enumSymbol!)) {
-        expect(enumSymbol.members.get("Off")?.value).toBe(0);
-        expect(enumSymbol.members.get("Running")?.value).toBe(1);
-        expect(enumSymbol.members.get("Error")?.value).toBe(2);
+        // 1.3 records each value as written; 1.4 settles it (#1669)
+        expect(enumSymbol.members.get("Off")?.value).toBeNull();
+        expect(SettledEnumValues.of(enumSymbol)).toEqual([0, 1, 2]);
         expect(enumSymbol.scopePath).toBe("Motor");
       }
     });

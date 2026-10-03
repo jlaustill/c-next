@@ -21,7 +21,7 @@ typedef enum {
 } EColor;
 
 /* External variables */
-extern const uint8_t DATA[EColor__COUNT];
+extern const uint8_t DATA[3];
 
 /* Function prototypes */
 uint8_t Test__get(uint8_t idx);

@@ -121,12 +121,14 @@ class FrameListener extends CNextListener {
         span: FrameListener.spanOf(params[index].IDENTIFIER()),
         type: info.type,
         arrayDimensions: info.arrayDimensions ?? [],
+        arrayDimensionExprs: info.arrayDimensionExprs ?? [],
         isConst: info.isConst,
         isAtomic: false,
         isVolatile: false,
         // A parameter has no overflow modifier in the grammar
         overflowBehavior: OverflowBehaviorUtils.fromModifier(null),
         initialValue: null,
+        initialValueExpr: null,
         initializerCallee: null,
         constValue: null,
       });
@@ -167,8 +169,8 @@ class FrameListener extends CNextListener {
     kind: ILocalDeclaration["kind"],
   ): void {
     const frame = this.top();
-    // #1664 box 7: a local's `u8[N]` keeps `N` as text, so 1.4 folds it where
-    // it is declared -- after a local `const N` that shadows a global one.
+    // #1664 box 7: a local's `u8[N]` keeps `N` as written, so 1.4 folds it
+    // where it is declared -- after a local `const N` that shadows a global one.
     const facts = VariableCollector.declaredFacts(
       ctx,
       frame.scopePath,
@@ -180,11 +182,13 @@ class FrameListener extends CNextListener {
       span: FrameListener.spanOf(ctx.IDENTIFIER()),
       type: facts.type,
       arrayDimensions: facts.arrayDimensions,
+      arrayDimensionExprs: facts.arrayDimensionExprs,
       isConst: facts.isConst,
       isAtomic: facts.isAtomic,
       isVolatile: facts.isVolatile,
       overflowBehavior: facts.overflowBehavior,
       initialValue: facts.initialValue ?? null,
+      initialValueExpr: facts.initialValueExpr,
       initializerCallee: facts.initializerCallee,
       constValue: null,
     });

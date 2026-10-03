@@ -1,0 +1,21 @@
+// test-execution
+// test-adr: 017
+// Issue #1669: a binary operand in a member's value. `0b1 + 1` emitted 1,
+// because the binary branch read the prefix and ignored the rest.
+//
+// NEGATIVE CONTROL: LONE is a single binary literal.
+
+enum EBin {
+    SUM <- 0b1 + 1,
+    LONE <- 0b11
+}
+
+u32 main() {
+    if ((u32)EBin.SUM != 2) {
+        return 1;
+    }
+    if ((u32)EBin.LONE != 3) {
+        return 2;
+    }
+    return 0;
+}

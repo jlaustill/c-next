@@ -85,6 +85,67 @@ enum Flags {
 }
 ```
 
+### Member Values
+
+A member's value is computed while the program compiles, as in C (owner ruling, 2026-10-03,
+#1669). It may be any integer expression built from these parts:
+
+- literals;
+- `const`s that have a value;
+- `sizeof` of a primitive type;
+- casts;
+- the integer operators;
+- members of the same enum declared above it.
+
+It is evaluated with ADR-044's arithmetic, including its rule that a value fixed at compile time
+never overflows. A member written without a value continues from the one before it.
+
+```cnx
+const u32 BASE <- 0x10;
+
+enum Reg {
+    CTRL   <- BASE,       // 16
+    STATUS,               // 17
+    DATA   <- BASE + 4    // 20
+}
+```
+
+**A member of the same enum needs no cast** (owner ruling, 2026-10-03). A member is of its
+enum's own type, which is the type the new member's value is being given, so nothing is
+converted. The two common cases are a combined flag and an alias:
+
+```cnx
+enum Perm {
+    READ  <- 1,
+    WRITE <- 2,
+    EXEC  <- 4,
+    RW    <- Perm.READ | Perm.WRITE,   // 3
+    ALL   <- Perm.RW | Perm.EXEC       // 7
+}
+
+enum Mode {
+    SLOW,
+    FAST,
+    DEFAULT <- Mode.FAST               // 1
+}
+```
+
+**A member's value is an `i32`** (owner ruling, 2026-10-03). When nothing gives a literal a type,
+it is an `i32` (ADR-044), so arithmetic on literals alone happens at `i32`. Whatever the
+arithmetic, the value it produces must fit `i32`: `A <- 0x80000000` is an error. Together with E0894, this puts a member's value in
+`0`…`2147483647`. On some targets C's `int` is narrower than `i32`, for example 16 bits on an
+8-bit microcontroller. Whether the range narrows there is #1862.
+
+Some things are not a member value, and each is an error at the member:
+
+- the member itself, or a member declared below it. Neither has a value yet;
+- a variable;
+- a function call;
+- a name that an included C or C++ header defines, such as a macro. C-Next needs the value
+  itself: auto-increment continues from it, E0894 checks its sign, and #1862 checks its range.
+  Owner ruling, 2026-10-03: a header name is rejected for now. Accepting it later breaks no
+  program.
+
 ### Usage
 
 ```cnx
@@ -261,12 +322,15 @@ castExpression
 
 ## Diagnostics
 
-| Code  | Reported when                                                                          | Asserted by                                                                                                        |
-| ----- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| E0424 | An enum member is written bare where nothing names its enum, or names a different enum | `tests/adr-017/unqualified-enum-*.test.cnx`, `tests/adr-017/enum-bare-in-*.test.cnx`                               |
-| E0428 | A value assigned to an enum-typed target is not of that enum                           | `tests/adr-017/enum-error-assign-*.test.cnx`                                                                       |
-| E0434 | The two sides of a comparison are not the same enum type                               | `tests/adr-017/enum-error-compare-*.test.cnx`                                                                      |
-| E0894 | An enum member's value is negative, reported at the member                             | `tests/enum/enum-error-negative.test.cnx`, `tests/bugs/issue-1531-declaration-rejections/cross-file-enum.test.cnx` |
+| Code  | Reported when                                                                                                         | Asserted by                                                                                                                                                                                |
+| ----- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| E0424 | An enum member is written bare where nothing names its enum, or names a different enum                                | `tests/adr-017/unqualified-enum-*.test.cnx`, `tests/adr-017/enum-bare-in-*.test.cnx`                                                                                                       |
+| E0428 | A value assigned to an enum-typed target is not of that enum                                                          | `tests/adr-017/enum-error-assign-*.test.cnx`                                                                                                                                               |
+| E0434 | The two sides of a comparison are not the same enum type                                                              | `tests/adr-017/enum-error-compare-*.test.cnx`                                                                                                                                              |
+| E0894 | An enum member's value is negative, reported at the member                                                            | `tests/enum/enum-error-negative.test.cnx`, `tests/bugs/issue-1531-declaration-rejections/cross-file-enum.test.cnx`, `tests/bugs/issue-1669-enum-member-values/value-negative-hex.test.cnx` |
+| E0909 | A member's value is not known at compile time: a variable, a call, a header's name, the member itself or one below it | `tests/bugs/issue-1669-enum-member-values/value-variable.test.cnx`, `value-call.test.cnx`, `value-header-macro.test.cnx`, `value-self-later.test.cnx`                                      |
+| E0910 | A member's value is arithmetic that would clamp or wrap (ADR-044)                                                     | `tests/bugs/issue-1669-enum-member-values/value-overflow.test.cnx`                                                                                                                         |
+| E0911 | A member's value does not fit `i32`                                                                                   | `tests/bugs/issue-1669-enum-member-values/value-i32-range.test.cnx`                                                                                                                        |
 
 A bare member (`RED` for `Color.RED`) is accepted only where the position
 already names the enum: a declaration or assignment whose type is the enum, a

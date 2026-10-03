@@ -1,0 +1,2 @@
+13:4 error[E0909]: Enum member value must be known at compile time (EVar.A): 'limit' is a variable
+       help: A member's value is built from literals, consts, sizeof, casts and the members of its enum declared above it (ADR-017)

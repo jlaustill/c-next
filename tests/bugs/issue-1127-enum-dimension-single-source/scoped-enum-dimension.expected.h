@@ -18,23 +18,18 @@ typedef enum {
     Top__B = 1,
     Top__COUNT = 2
 } Top;
-typedef enum {
-    Motor__State__IDLE = 0,
-    Motor__State__RUN = 1,
-    Motor__State__COUNT = 2
-} Motor__State;
 
 /* Struct definitions */
 typedef struct Motor__Info {
-    uint8_t viaBare[Motor__State__COUNT];
-    uint8_t viaThis[Motor__State__COUNT];
-    uint8_t viaGlobal[Top__COUNT];
+    uint8_t viaBare[2];
+    uint8_t viaThis[2];
+    uint8_t viaGlobal[2];
 } Motor__Info;
 
 /* External variables */
-extern uint8_t Motor__varBare[Motor__State__COUNT];
-extern uint8_t Motor__varThis[Motor__State__COUNT];
-extern uint8_t Motor__varGlobal[Top__COUNT];
+extern uint8_t Motor__varBare[2];
+extern uint8_t Motor__varThis[2];
+extern uint8_t Motor__varGlobal[2];
 
 #ifdef __cplusplus
 }

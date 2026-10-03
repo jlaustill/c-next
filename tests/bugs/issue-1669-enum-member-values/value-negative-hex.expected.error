@@ -1,0 +1,2 @@
+10:4 error[E0894]: Negative values not allowed in enum (found -1 in ENeg.A)
+       help: An enum member's value is 0 or more (ADR-017). Use a non-negative value

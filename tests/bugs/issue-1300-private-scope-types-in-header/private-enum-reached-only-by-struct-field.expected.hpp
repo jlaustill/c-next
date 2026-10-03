@@ -12,16 +12,9 @@
 extern "C" {
 #endif
 
-/* Enumerations */
-typedef enum {
-    Internal__Size__A = 0,
-    Internal__Size__B = 1,
-    Internal__Size__COUNT = 2
-} Internal__Size;
-
 /* Struct definitions */
 typedef struct Internal__Buffer {
-    uint8_t data[Internal__Size__COUNT];
+    uint8_t data[2];
     uint32_t len;
 } Internal__Buffer;
 

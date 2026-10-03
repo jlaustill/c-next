@@ -1,0 +1,2 @@
+10:4 error[E0911]: Enum member value does not fit i32 (found 2147483648 in EOver.A)
+       help: A member's value is an i32 (ADR-017). Use a value of at most 2147483647

@@ -219,9 +219,10 @@ class SliceAssignmentListener {
     }
 
     const capacity = declared.dimensions[0];
-    if (typeof capacity !== "number") {
-      // A dimension this pass cannot fold -- a C macro, or a const it cannot
-      // see. Reporting a bounds error would mean guessing at the bound.
+    if (typeof capacity !== "number" || capacity <= 0) {
+      // A dimension this pass cannot fold -- a C macro, or a size that did not
+      // settle, which UNRESOLVED_DIMENSION records as 0 (#1175). Reporting a
+      // bounds error would mean guessing at the bound.
       this.report(
         at,
         "E0858",

@@ -5,6 +5,7 @@ import FunctionCollector from "../collectors/FunctionCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import SymbolRegistry from "../../SymbolRegistry";
 import TypeResolver from "../../../../utils/TypeResolver";
+import UNRESOLVED_DIMENSION from "../../../../types/UNRESOLVED_DIMENSION";
 
 let registry = new SymbolRegistry();
 
@@ -164,8 +165,9 @@ describe("FunctionCollector", () => {
       ["void f(u8[0x10] p) { }", [16]],
       ["void f(u8[0b100] p) { }", [4]],
       ["void f(u8[sizeof(u32)] p) { }", [4]],
-      ["void f(u8[2*BUF] p) { }", ["2*BUF"]],
-      ["void f(u8[BUF] p) { }", ["BUF"]],
+      // #1175: a name is kept as written for 1.4, never as joined text
+      ["void f(u8[2*BUF] p) { }", [UNRESOLVED_DIMENSION]],
+      ["void f(u8[BUF] p) { }", [UNRESOLVED_DIMENSION]],
       ["void f(u8[8] p) { }", [8]],
     ])("folds a parameter's dimension as a declaration's: %s", (code, dims) => {
       const funcCtx = parse(code).declaration(0)!.functionDeclaration()!;

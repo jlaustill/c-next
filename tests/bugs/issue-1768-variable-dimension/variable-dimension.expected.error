@@ -1,0 +1,4 @@
+14:3 error[E0909]: Array dimension must be known at compile time: 'gx' is a variable
+       help: An array's size is built from literals, consts, sizeof and casts (ADR-023). C-Next has no variable-length arrays
+19:7 error[E0909]: Array dimension must be known at compile time: 'x' is a variable
+       help: An array's size is built from literals, consts, sizeof and casts (ADR-023). C-Next has no variable-length arrays

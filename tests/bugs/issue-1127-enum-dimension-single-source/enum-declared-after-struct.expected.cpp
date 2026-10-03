@@ -27,7 +27,7 @@
 // defined is a forward reference (#1176). The qualification itself is correct
 // either way -- both files say EColor__COUNT -- which is what this asserts.
 // Should become a compiling test once #1176 is fixed.
-uint8_t globalSlots[EColor__COUNT] = {};
+uint8_t globalSlots[3] = {};
 
 int main(void) {
     return 0;

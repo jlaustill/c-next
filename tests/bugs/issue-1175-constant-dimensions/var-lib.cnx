@@ -1,0 +1,6 @@
+// Helper for the cross-file E0909 fixtures (#1175). `libCount` is a VARIABLE,
+// so a dimension naming it has no value at compile time. LIB_SIZE is a const
+// and folds -- the negative control.
+
+u32 libCount <- 4;
+const u32 LIB_SIZE <- 4;

@@ -1,0 +1,44 @@
+// test-execution
+// test-adr: 036
+// Issue #1175: dimensions that name LIB_N, which is one include away. One fixture covers all
+// four declaration contexts: a global, a function's local, a scope member, and a
+// scope method's local. Each folds to the same number in the .c and the .h.
+// Three are shapes the old two-operand pattern table could not fold
+// (parentheses, three operands, a shift); `LIB_N * 3` is one it could, kept as a
+// guard that the new evaluator still binds it.
+
+#include "dim-lib.cnx"
+
+u8[(LIB_N + 1)] shared;
+
+scope Store {
+    u8[LIB_N - 2 + 1] slots;
+
+    public u32 slotCount() {
+        return this.slots.element_count;
+    }
+
+    public u32 scratchCount() {
+        u8[LIB_N * 3] scratch;
+        return scratch.element_count;
+    }
+}
+
+u32 main() {
+    u8[LIB_N << 1] local;
+    if (shared.element_count != 5) {
+        return 1;
+    }
+    if (local.element_count != 8) {
+        return 2;
+    }
+    u32 slots <- Store.slotCount();
+    u32 scratch <- Store.scratchCount();
+    if (slots != 3) {
+        return 3;
+    }
+    if (scratch != 12) {
+        return 4;
+    }
+    return 0;
+}

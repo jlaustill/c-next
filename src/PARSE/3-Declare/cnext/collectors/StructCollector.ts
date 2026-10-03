@@ -11,6 +11,7 @@ import IStructSymbol from "../../../../types/symbols/IStructSymbol";
 import type IStructFieldSymbol from "../../../../types/symbols/IStructFieldSymbol";
 import TypeUtils from "../utils/TypeUtils";
 import DimensionResolver from "../utils/DimensionResolver";
+import type IDeclaredDimension from "../types/IDeclaredDimension";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
 import ParserUtils from "../../../../utils/ParserUtils";
@@ -26,12 +27,10 @@ interface IArrayTypeResult {
    * Every dimension, or undefined when the count is not knowable here -- no
    * dimensions at all, or an unsized `[]`.
    *
-   * A dimension that does not fold is NOT dropped: DimensionResolver carries
-   * it as source text, and qualifyStructFieldDimensions resolves it later. So
-   * `u8[EColor.COUNT][3]` yields ["EColor.COUNT", 3], not undefined.
-   *
-   * That resolution covers enum-qualified names. Text naming anything else C
-   * does not know reaches the header verbatim and does not compile -- #1175.
+   * A dimension that does not fold here is NOT dropped: DimensionResolver
+   * keeps it as written, and 1.4 Resolve settles it. So `u8[EColor.COUNT][3]`
+   * yields two slots, not undefined. (#1175: it used to keep the source TEXT,
+   * which reached the header naming what C cannot see.)
    *
    * Position matters more than resolution (issue #1158). A partial list
    * silently shifts later dimensions -- `u8[N][3]` reporting [3] makes the
@@ -40,7 +39,7 @@ interface IArrayTypeResult {
    * which resolves all dimensions correctly on its own. Either every slot is
    * present, or the list is undefined.
    */
-  dimensions: (number | string)[] | undefined;
+  dimensions: IDeclaredDimension[] | undefined;
 }
 
 /**
@@ -62,16 +61,16 @@ function processArrayTypeSyntax(
     return { isArray: true, dimensions: undefined };
   }
 
-  const dimensions: (number | string)[] = [];
+  const dimensions: IDeclaredDimension[] = [];
   for (const dim of dims) {
     const sizeExpr = dim.expression();
     if (!sizeExpr) {
       // Unsized `[]` -- size is not knowable here.
       return { isArray: true, dimensions: undefined };
     }
-    // Always a number or the source text -- never undefined -- so every slot
-    // is filled and positions are preserved.
-    dimensions.push(tryResolveExpressionDimension(sizeExpr));
+    // Always a size or the dimension as written -- never undefined -- so every
+    // slot is filled and positions are preserved.
+    dimensions.push(DimensionResolver.resolve(sizeExpr));
   }
 
   return { isArray: true, dimensions };
@@ -83,7 +82,7 @@ function processArrayTypeSyntax(
 function processStringField(
   stringCtx: Parser.StringTypeContext,
   arrayDims: Parser.ArrayDimensionContext[],
-  dimensions: (number | string)[],
+  dimensions: IDeclaredDimension[],
 ): boolean {
   const intLiteral = stringCtx.INTEGER_LITERAL();
   if (!intLiteral) {
@@ -97,18 +96,8 @@ function processStringField(
     parseArrayDimensions(arrayDims, dimensions);
   }
   // String capacity becomes final dimension (+1 for null terminator)
-  dimensions.push(capacity + 1);
+  dimensions.push({ size: capacity + 1, expr: null });
   return true;
-}
-
-/**
- * Try to resolve a single expression as a numeric dimension.
- * Handles integer literals and const references.
- */
-function tryResolveExpressionDimension(
-  sizeExpr: Parser.ExpressionContext,
-): number | string {
-  return DimensionResolver.resolve(sizeExpr);
 }
 
 /**
@@ -116,12 +105,12 @@ function tryResolveExpressionDimension(
  */
 function parseArrayDimensions(
   arrayDims: Parser.ArrayDimensionContext[],
-  dimensions: (number | string)[],
+  dimensions: IDeclaredDimension[],
 ): void {
   for (const dim of arrayDims) {
     const sizeExpr = dim.expression();
     if (sizeExpr) {
-      dimensions.push(tryResolveExpressionDimension(sizeExpr));
+      dimensions.push(DimensionResolver.resolve(sizeExpr));
     }
   }
 }
@@ -223,7 +212,7 @@ class StructCollector {
     const isAtomic = false;
 
     const arrayDims = member.arrayDimension();
-    const dimensions: (number | string)[] = [];
+    const dimensions: IDeclaredDimension[] = [];
     let isArray = false;
 
     // Check for C-Next style arrayType syntax: Item[3] items -> typeCtx.arrayType()
@@ -234,8 +223,8 @@ class StructCollector {
         dimensions.push(...arrayTypeResult.dimensions);
       }
       // dimensions is undefined only for an unsized `[]` or no dimensions at
-      // all; an expression that does not fold (global.EnumName.COUNT) is
-      // carried as source text and resolved by qualifyStructFieldDimensions.
+      // all; one that does not fold here (global.EnumName.COUNT) is kept as
+      // written and settled by 1.4 Resolve.
     }
 
     // Handle string types specially
@@ -268,7 +257,10 @@ class StructCollector {
       isConst,
       isAtomic,
       isArray,
-      dimensions: dimensions.length > 0 ? dimensions : undefined,
+      dimensions:
+        dimensions.length > 0 ? dimensions.map((dim) => dim.size) : undefined,
+      dimensionExprs:
+        dimensions.length > 0 ? dimensions.map((dim) => dim.expr) : undefined,
     };
   }
 }

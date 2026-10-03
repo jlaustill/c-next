@@ -75,6 +75,77 @@ describe("TypeDeclarationAnalyzer", () => {
     });
   });
 
+  describe('E0909-E0911 -- an enum member\'s value (ADR-017 "Member Values", #1669)', () => {
+    const codes = (source: string, helpers?: Record<string, string>) =>
+      errors(source, helpers).map((e) => [e.code, e.line, e.column, e.message]);
+
+    it("reports a value with no value at the member, saying why", () => {
+      expect(codes("u32 limit <- 3;\nenum E {\n    A <- limit\n}\n")).toEqual([
+        [
+          "E0909",
+          3,
+          4,
+          "Enum member value must be known at compile time (E.A): 'limit' is a variable",
+        ],
+      ]);
+    });
+
+    it("reports a member continuing from one without a value only once", () => {
+      // B is A plus one; A's own report is the cause, B's would be a consequence
+      expect(
+        codes("u32 limit <- 3;\nenum E {\n    A <- limit,\n    B\n}\n").map(
+          (c) => c[1],
+        ),
+      ).toEqual([3]);
+    });
+
+    it("lets a member name members above it, with no cast, and not itself or below", () => {
+      const found = codes(
+        "enum E {\n    A <- E.B,\n    B <- 1,\n    C <- E.C,\n    D <- E.B | 2\n}\n",
+      );
+      expect(found.map((c) => [c[0], c[1]])).toEqual([
+        ["E0909", 2],
+        ["E0909", 4],
+      ]);
+      expect(found[0][3]).toContain("'E.B' is declared below it");
+      expect(found[1][3]).toContain("'E.C' is the member itself");
+    });
+
+    it("reports arithmetic ADR-044 would clamp", () => {
+      expect(codes("enum E {\n    A <- (u8)200 + (u8)100\n}\n")).toEqual([
+        [
+          "E0910",
+          2,
+          4,
+          "Enum member value overflows u8 at compile time (E.A): the arithmetic would clamp or wrap (ADR-044)",
+        ],
+      ]);
+    });
+
+    it("reports a value outside i32, and stays silent at its maximum", () => {
+      expect(
+        codes(
+          "enum E {\n    A <- 0x80000000\n}\nenum F {\n    MAX <- 0x7FFFFFFF\n}\n",
+        ),
+      ).toEqual([
+        [
+          "E0911",
+          2,
+          4,
+          "Enum member value does not fit i32 (found 2147483648 in E.A)",
+        ],
+      ]);
+    });
+
+    it("folds a const declared in an included file", () => {
+      expect(
+        codes('#include "lib.cnx"\nenum E {\n    A <- BASE + 1\n}\n', {
+          "lib.cnx": "const u32 BASE <- 4;\n",
+        }),
+      ).toEqual([]);
+    });
+  });
+
   it("judges only the file being analyzed, not the files it includes", () => {
     // Each file reports its own declarations when it is analyzed. Judging an
     // included file's here as well would report its error once per includer,

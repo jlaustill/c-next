@@ -161,18 +161,6 @@ class TSymbolInfoAdapter {
       }
     }
 
-    // Issue #1127: qualify struct field dimensions that name a symbol.
-    //
-    // A second pass, not inline in processStruct: structs and enums are
-    // processed by one loop in symbol order, so knownEnums is still being
-    // filled while structs are read. Qualifying inline would make the result
-    // depend on whether the enum happens to be declared above the struct.
-    TSymbolInfoAdapter.qualifyStructFieldDimensions(
-      symbols,
-      structFieldDimensions,
-      knownEnums,
-    );
-
     // Build the ISymbolInfo result
     const result: ICodeGenSymbols = {
       // Type sets
@@ -263,47 +251,6 @@ class TSymbolInfoAdapter {
     }
   }
 
-  /**
-   * Resolve struct field dimensions that name a symbol to their C identifier.
-   *
-   * Runs after every symbol has been seen, so `knownEnums` is complete and the
-   * answer does not depend on declaration order. Numeric dimensions and plain
-   * macro names pass through untouched.
-   */
-  private static qualifyStructFieldDimensions(
-    symbols: readonly TSymbol[],
-    structFieldDimensions: Map<string, Map<string, (number | string)[]>>,
-    knownEnums: ReadonlySet<string>,
-  ): void {
-    const isKnownEnum = (qualifiedName: string): boolean =>
-      knownEnums.has(qualifiedName);
-
-    for (const symbol of symbols) {
-      if (symbol.kind !== "struct") {
-        continue;
-      }
-      const cName = TSymbolInfoAdapter.getTranspiledCName(symbol);
-      const fieldDimensions = structFieldDimensions.get(cName);
-      if (!fieldDimensions) {
-        continue;
-      }
-      for (const [fieldName, dimensions] of fieldDimensions) {
-        fieldDimensions.set(
-          fieldName,
-          dimensions.map((dimension) =>
-            typeof dimension === "string"
-              ? ScopeUtils.resolveDimensionName(
-                  dimension,
-                  symbol.scopePath,
-                  isKnownEnum,
-                )
-              : dimension,
-          ),
-        );
-      }
-    }
-  }
-
   private static processEnum(
     enumSym: IEnumSymbol,
     knownEnums: Set<string>,
@@ -315,10 +262,15 @@ class TSymbolInfoAdapter {
     // name-to-value view codegen wants, so project rather than widen it --
     // handing codegen a symbol here would put a second symbol vocabulary in
     // the per-file view for no consumer that asked for one.
+    // #1669: a member with no value has its enum rejected by 2.1 (E0909,
+    // E0910, E0911) before codegen reads this, so it is left out rather than
+    // handed on as a number it does not have
     enumMembers.set(
       cName,
       new Map(
-        [...enumSym.members].map(([name, member]) => [name, member.value]),
+        [...enumSym.members].flatMap(([name, member]) =>
+          member.value === null ? [] : [[name, member.value] as const],
+        ),
       ),
     );
   }

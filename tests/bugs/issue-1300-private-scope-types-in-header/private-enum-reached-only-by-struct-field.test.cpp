@@ -20,11 +20,22 @@
 // `uint8_t data[Internal__Size__COUNT]` with the enum defined in the .c:
 // transpiler exit 0, header uncompilable.
 //
+// #1175: the dimension crosses the header as its value now (`data[2]`), so
+// the private enum stays in the .c and the header compiles with no edge left
+// to walk. This fixture still guards it: were the header to name the member
+// again, it would not compile.
+//
 // `scoped-enum-dimension` cannot catch this. Its enum also reaches the header
 // through three public VARIABLES whose own dimensions name it, and those take
 // a different closure edge -- so that fixture stays green with this edge
 // broken. Nothing else here names Size.
 /* Scope: Internal */
+
+typedef enum {
+    Internal__Size__A = 0,
+    Internal__Size__B = 1,
+    Internal__Size__COUNT = 2
+} Internal__Size;
 
 uint32_t Internal__measure(const Internal__Buffer& b) {
     return b.len;

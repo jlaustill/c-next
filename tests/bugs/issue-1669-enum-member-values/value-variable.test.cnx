@@ -1,0 +1,20 @@
+// test-error
+// test-adr: 017
+// Issue #1669 / ADR-017 "Member Values": a variable is not a member value. It
+// failed uncoded at 1:0 ("Code generation failed: Invalid constant expression").
+//
+// NEGATIVE CONTROL: EOk's member names a const, which has a value, and must
+// stay silent.
+
+u32 limit <- 3;
+const u32 LIMIT <- 3;
+
+enum EVar {
+    A <- limit
+}
+
+enum EOk {
+    B <- LIMIT
+}
+
+void main() {}

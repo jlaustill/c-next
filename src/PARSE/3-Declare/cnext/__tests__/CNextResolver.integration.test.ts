@@ -6,6 +6,8 @@ import DeferredTypes from "../../../4-Resolve/DeferredTypes";
 import SymbolGuards from "../../../../types/symbols/SymbolGuards";
 import SymbolRegistry from "../../SymbolRegistry";
 import TypeResolver from "../../../../utils/TypeResolver";
+import ConstExprShape from "../../../../utils/__testUtils__/ConstExprShape";
+import UNRESOLVED_DIMENSION from "../../../../types/UNRESOLVED_DIMENSION";
 
 let registry = new SymbolRegistry();
 
@@ -471,7 +473,7 @@ describe("CNextResolver Integration", () => {
       expect(symbols).toHaveLength(2);
     });
 
-    it("passes through unresolved identifiers for C macros", () => {
+    it("keeps an unresolved identifier (a C macro) as written, for 1.4", () => {
       const code = `
         bool arr[DEVICE_COUNT];
       `;
@@ -483,11 +485,14 @@ describe("CNextResolver Integration", () => {
       expect(arrSymbol).toBeDefined();
       if (SymbolGuards.isVariable(arrSymbol!)) {
         expect(arrSymbol.isArray).toBe(true);
-        expect(arrSymbol.arrayDimensions).toEqual(["DEVICE_COUNT"]);
+        expect(arrSymbol.arrayDimensions).toEqual([UNRESOLVED_DIMENSION]);
+        expect(ConstExprShape.list(arrSymbol.arrayDimensionExprs)).toEqual([
+          "DEVICE_COUNT",
+        ]);
       }
     });
 
-    it("passes through expressions in array dimension", () => {
+    it("keeps an expression in an array dimension as written, for 1.4", () => {
       const code = `
         const u8 SIZE <- 4;
         bool arr[SIZE * 2];
@@ -500,7 +505,11 @@ describe("CNextResolver Integration", () => {
       expect(arrSymbol).toBeDefined();
       if (SymbolGuards.isVariable(arrSymbol!)) {
         expect(arrSymbol.isArray).toBe(true);
-        expect(arrSymbol.arrayDimensions).toEqual(["SIZE*2"]);
+        // #1175: as written, not as joined text
+        expect(arrSymbol.arrayDimensions).toEqual([UNRESOLVED_DIMENSION]);
+        expect(ConstExprShape.list(arrSymbol.arrayDimensionExprs)).toEqual([
+          "(SIZE * 2)",
+        ]);
       }
     });
   });

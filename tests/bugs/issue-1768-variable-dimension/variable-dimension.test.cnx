@@ -1,0 +1,23 @@
+// test-error
+// test-adr: 036
+// Issue #1768 / ADR-023: an array dimension naming a non-const variable
+// transpiled at exit 0 to a C variable-length array, which gcc rejects. As a
+// local it was `uint8_t buf[x] = {0U};` ("variable-sized object may not be
+// initialized"); at file scope, `uint8_t gbuf[gx] = {0};` ("variably modified
+// at file scope").
+//
+// NEGATIVE CONTROLS: `ok` and `gok` are sized by consts and must stay silent.
+// const-dimension.test.cnx shows the same two shapes transpile and compile.
+
+u32 gx <- 2;
+const u32 GY <- 2;
+u8[gx] gbuf;
+u8[GY] gok;
+
+u32 main() {
+    u32 x <- 2;
+    u8[x] buf <- [0*];
+    const u32 y <- 2;
+    u8[y] ok <- [0*];
+    return 0;
+}
