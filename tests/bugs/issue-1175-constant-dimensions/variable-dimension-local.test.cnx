@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 036
 // Issue #1175 / ADR-023: C-Next has no variable-length arrays. A local sized by a
 // parameter transpiled at exit 0 to `uint8_t arr[n] = {0};`, which C rejects
 // ("variable-sized object may not be initialized").

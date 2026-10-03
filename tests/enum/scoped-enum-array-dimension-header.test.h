@@ -18,16 +18,11 @@ typedef enum {
     Global__B = 1,
     Global__COUNT = 2
 } Global;
-typedef enum {
-    Motor__State__IDLE = 0,
-    Motor__State__RUN = 1,
-    Motor__State__COUNT = 2
-} Motor__State;
 
 /* External variables */
-extern uint8_t Motor__fromScope[Motor__State__COUNT];
-extern uint8_t Motor__fromGlobal[Global__COUNT];
-extern uint8_t Motor__viaThis[Motor__State__COUNT];
+extern uint8_t Motor__fromScope[2];
+extern uint8_t Motor__fromGlobal[2];
+extern uint8_t Motor__viaThis[2];
 
 #ifdef __cplusplus
 }

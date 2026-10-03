@@ -627,6 +627,12 @@ of a width table is three chances for them to disagree.
 
 ---
 
+## Diagnostics
+
+| Code  | Reported when                                                                                                                                                              | Asserted by                                                                                                                                 |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0910 | A value fixed at compile time -- an array's size, an enum member's value -- is arithmetic that would clamp or wrap at its operands' width ("Values fixed at compile time") | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`, `tests/bugs/issue-1669-enum-member-values/value-overflow.test.cnx` |
+
 ## Scope-Context Matrix
 
 <!-- MATRIX-SEVERITY -->

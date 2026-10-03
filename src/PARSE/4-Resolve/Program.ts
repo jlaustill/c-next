@@ -86,7 +86,7 @@ const EMPTY_CALLBACKS: ReadonlyMap<string, string> = new Map();
  * 1.4, binding over the frames while it settles them, needs another answer.
  */
 /** The position a binding's value is asked with: none is read */
-const UNPOSITIONED: ISourcePosition = { line: 0, column: 0 };
+const NO_POSITION: ISourcePosition = { line: 0, column: 0 };
 
 const SETTLED = (declaration: ILocalDeclaration): ILocalDeclaration =>
   declaration;
@@ -270,7 +270,7 @@ class Program {
           ConstantNames.ofBinding(
             binding,
             "",
-            UNPOSITIONED,
+            NO_POSITION,
             Program.nameFacts(bound, null, constants, {
               settledLocal: SETTLED,
               files: fileFacts,

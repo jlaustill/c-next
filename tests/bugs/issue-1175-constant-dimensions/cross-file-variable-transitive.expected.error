@@ -1,0 +1,8 @@
+13:3 error[E0909]: Array dimension must be known at compile time: 'libCount' is a variable
+       help: An array's size is built from literals, consts, sizeof and casts (ADR-023). C-Next has no variable-length arrays
+17:7 error[E0909]: Array dimension must be known at compile time: 'libCount' is a variable
+       help: An array's size is built from literals, consts, sizeof and casts (ADR-023). C-Next has no variable-length arrays
+20:11 error[E0909]: Array dimension must be known at compile time: 'libCount' is a variable
+       help: An array's size is built from literals, consts, sizeof and casts (ADR-023). C-Next has no variable-length arrays
+26:7 error[E0909]: Array dimension must be known at compile time: 'libCount' is a variable
+       help: An array's size is built from literals, consts, sizeof and casts (ADR-023). C-Next has no variable-length arrays

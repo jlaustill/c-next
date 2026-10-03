@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 036, 044
 // Issue #1175 / ADR-044 "Values fixed at compile time": A + A happens at u8 and
 // does not fit. The .c clamped it (`buf[cnx_clamp_add_u8(A, A)]`, 255), the .h
 // did not (`buf[A+A]`, 400 in C), and gcc rejected both. A size fixed at compile

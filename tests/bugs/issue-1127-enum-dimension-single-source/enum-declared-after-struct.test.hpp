@@ -22,11 +22,11 @@ typedef enum {
 
 /* Struct definitions */
 typedef struct Palette {
-    uint8_t slots[EColor__COUNT];
+    uint8_t slots[3];
 } Palette;
 
 /* External variables */
-extern uint8_t globalSlots[EColor__COUNT];
+extern uint8_t globalSlots[3];
 
 #ifdef __cplusplus
 }

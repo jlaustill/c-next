@@ -322,12 +322,15 @@ castExpression
 
 ## Diagnostics
 
-| Code  | Reported when                                                                          | Asserted by                                                                                                        |
-| ----- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| E0424 | An enum member is written bare where nothing names its enum, or names a different enum | `tests/adr-017/unqualified-enum-*.test.cnx`, `tests/adr-017/enum-bare-in-*.test.cnx`                               |
-| E0428 | A value assigned to an enum-typed target is not of that enum                           | `tests/adr-017/enum-error-assign-*.test.cnx`                                                                       |
-| E0434 | The two sides of a comparison are not the same enum type                               | `tests/adr-017/enum-error-compare-*.test.cnx`                                                                      |
-| E0894 | An enum member's value is negative, reported at the member                             | `tests/enum/enum-error-negative.test.cnx`, `tests/bugs/issue-1531-declaration-rejections/cross-file-enum.test.cnx` |
+| Code  | Reported when                                                                                                         | Asserted by                                                                                                                                                                                |
+| ----- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| E0424 | An enum member is written bare where nothing names its enum, or names a different enum                                | `tests/adr-017/unqualified-enum-*.test.cnx`, `tests/adr-017/enum-bare-in-*.test.cnx`                                                                                                       |
+| E0428 | A value assigned to an enum-typed target is not of that enum                                                          | `tests/adr-017/enum-error-assign-*.test.cnx`                                                                                                                                               |
+| E0434 | The two sides of a comparison are not the same enum type                                                              | `tests/adr-017/enum-error-compare-*.test.cnx`                                                                                                                                              |
+| E0894 | An enum member's value is negative, reported at the member                                                            | `tests/enum/enum-error-negative.test.cnx`, `tests/bugs/issue-1531-declaration-rejections/cross-file-enum.test.cnx`, `tests/bugs/issue-1669-enum-member-values/value-negative-hex.test.cnx` |
+| E0909 | A member's value is not known at compile time: a variable, a call, a header's name, the member itself or one below it | `tests/bugs/issue-1669-enum-member-values/value-variable.test.cnx`, `value-call.test.cnx`, `value-header-macro.test.cnx`, `value-self-later.test.cnx`                                      |
+| E0910 | A member's value is arithmetic that would clamp or wrap (ADR-044)                                                     | `tests/bugs/issue-1669-enum-member-values/value-overflow.test.cnx`                                                                                                                         |
+| E0911 | A member's value does not fit `i32`                                                                                   | `tests/bugs/issue-1669-enum-member-values/value-i32-range.test.cnx`                                                                                                                        |
 
 A bare member (`RED` for `Color.RED`) is accepted only where the position
 already names the enum: a declaration or assignment whose type is the enum, a

@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 036
 // Issue #1175 / ADR-023: a file-scope array sized by a variable transpiled at
 // exit 0 to `uint8_t grid[count]`, which C rejects ("variably modified at file
 // scope").

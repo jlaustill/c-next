@@ -9,7 +9,7 @@
 
 // Same-file enum value used as array size in header (fixed in v0.1.65)
 // Cross-file case tested in tests/enum-external/enum-array-dimension.test.cnx
-extern const uint8_t DATA[EColor__COUNT] = {10U, 20U, 30U};
+extern const uint8_t DATA[3] = {10U, 20U, 30U};
 
 /* Scope: Test */
 

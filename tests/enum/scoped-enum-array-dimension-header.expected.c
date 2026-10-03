@@ -15,13 +15,22 @@
 // awareness the .c path uses. Sharing the join function is not enough — both
 // sides must also agree on WHAT to join.
 //
+// #1175: a dimension no longer reaches the header as source at all. It folds
+// once, in 1.4, and both files write its value.
+//
 // Before the fix the header emitted `State__COUNT` while the .c emitted
 // `Motor__State__COUNT`, and the header did not compile. The `this.` spelling
 // was worse: `this__State__COUNT`, with `this` joined in as a name component.
 /* Scope: Motor */
-uint8_t Motor__fromScope[Motor__State__COUNT] = {0};
-uint8_t Motor__fromGlobal[Global__COUNT] = {0};
-uint8_t Motor__viaThis[Motor__State__COUNT] = {0};
+
+typedef enum {
+    Motor__State__IDLE = 0,
+    Motor__State__RUN = 1,
+    Motor__State__COUNT = 2
+} Motor__State;
+uint8_t Motor__fromScope[2] = {0};
+uint8_t Motor__fromGlobal[2] = {0};
+uint8_t Motor__viaThis[2] = {0};
 
 int main(void) {
     Motor__fromScope[0] = 11U;

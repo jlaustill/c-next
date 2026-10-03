@@ -29,12 +29,12 @@ one.
 
 | Layer             | Modules |
 | ----------------- | ------: |
-| `src/TRANSPILE/`  |      63 |
+| `src/TRANSPILE/`  |      64 |
 | `src/PARSE/`      |      21 |
 | `src/utils/`      |      12 |
 | `src/transpiler/` |       3 |
 | `src/types/`      |       2 |
-| **total**         | **101** |
+| **total**         | **102** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -76,6 +76,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/1-Analyze/BooleanOperandAnalyzer.ts`             | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer.ts`         | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/CompoundAssignmentAnalyzer.ts`         | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/ConstantDimensionAnalyzer.ts`          | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts`            | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ConstructorArgumentAnalyzer.ts`        | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ControllingExpressionAnalyzer.ts`      | antlr4ng, grammar |
@@ -133,11 +134,11 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/transpiler/Transpiler.ts`                                  | grammar           |
 | `src/types/IParsedFile.ts`                                      | antlr4ng, grammar |
 | `src/types/ITypeAccessors.ts`                                   | grammar           |
-| `src/utils/ArrayDimensionParser.ts`                             | grammar           |
 | `src/utils/ast/AssignmentTargetExtractor.ts`                    | grammar           |
 | `src/utils/ast/ChildStatementCollector.ts`                      | grammar           |
 | `src/utils/ast/StatementExpressionCollector.ts`                 | grammar           |
 | `src/utils/ChainRoot.ts`                                        | antlr4ng, grammar |
+| `src/utils/ConstExprLowering.ts`                                | antlr4ng, grammar |
 | `src/utils/ExpressionUnwrapper.ts`                              | grammar           |
 | `src/utils/ExpressionUtils.ts`                                  | grammar           |
 | `src/utils/LiteralUtils.ts`                                     | grammar           |
@@ -146,4 +147,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/ParserUtils.ts`                                      | antlr4ng, grammar |
 | `src/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-101 module(s).
+102 module(s).
