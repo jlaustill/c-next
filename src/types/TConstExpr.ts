@@ -91,7 +91,8 @@ type TConstExpr =
         | "string"
         | "character"
         | "initializer"
-        | "address";
+        | "address"
+        | "member";
       /** The source spelling, for a diagnostic's message only -- never emitted */
       readonly spelling: string;
       readonly at: ISourcePosition;
