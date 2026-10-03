@@ -1,0 +1,14 @@
+// test-error
+// test-adr: 017
+// Issue #1669 / ADR-044 "Values fixed at compile time": an operation happens at
+// its operands' width, and where that would clamp, a value fixed at compile time
+// is rejected. (u8)200 + (u8)100 is 300 and does not fit u8.
+//
+// NEGATIVE CONTROL: B adds at u16, where 300 fits, and must stay silent.
+
+enum EOvf {
+    A <- (u8)200 + (u8)100,
+    B <- (u16)200 + (u16)100
+}
+
+void main() {}

@@ -1,0 +1,15 @@
+// test-error
+// Issue #1175 / ADR-023: C-Next has no variable-length arrays. A local sized by a
+// parameter transpiled at exit 0 to `uint8_t arr[n] = {0};`, which C rejects
+// ("variable-sized object may not be initialized").
+//
+// NEGATIVE CONTROL: `fixed` is sized by a literal and must stay silent.
+
+void fill(u32 n) {
+    u8[n] arr;
+    arr[0] <- 1;
+    u8[4] fixed;
+    fixed[0] <- 1;
+}
+
+void main() {}

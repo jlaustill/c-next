@@ -1,0 +1,14 @@
+// test-error
+// Issue #1175 / ADR-044 "Values fixed at compile time": A + A happens at u8 and
+// does not fit. The .c clamped it (`buf[cnx_clamp_add_u8(A, A)]`, 255), the .h
+// did not (`buf[A+A]`, 400 in C), and gcc rejected both. A size fixed at compile
+// time is never silently clamped: it is rejected.
+//
+// NEGATIVE CONTROL: `wide` adds at u16, where 400 fits, and must stay silent.
+
+const u8 A <- 200;
+
+u8[A + A] buf;
+u8[(u16)A + (u16)A] wide;
+
+void main() {}

@@ -1,0 +1,2 @@
+tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx:11:3 error[E0910]: Array dimension overflows u8 at compile time: the arithmetic would clamp (ADR-044)
+       help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type

@@ -1,0 +1,57 @@
+// test-execution
+// Issue #1175: a dimension the transpiler could not fold was copied into the
+// generated C as source text with its spacing removed. Each shape below did:
+// `(LOCAL)` named a C-Next const C cannot see, `1 - -1` became `1--1` (C's
+// decrement) in the .h while the .c folded it to 2, and `(u32)EColor.COUNT + 1`
+// put the C-Next type name `u32` into the header. Every dimension is now folded
+// once, and the .c and the .h carry the same number.
+//
+// NEGATIVE CONTROL: `plain` is a single literal, which was always right.
+
+const u8 LOCAL <- 8;
+
+enum EColor {
+    RED,
+    GREEN,
+    COUNT
+}
+
+struct Info {
+    u8[(LOCAL)] parens;
+    u8[(LOCAL) * 2] scaled;
+}
+
+u8[1 - -1] neg;
+u8[(u32)EColor.COUNT + 1] counted;
+u8[1 + 2 + 3] three;
+u8[1 << 3] shifted;
+u8[4] plain;
+
+// File scope, not a local: a local struct's field reads as uninitialized
+// even for `.element_count`, which is a constant (#1867).
+Info info;
+
+u32 main() {
+    if (info.parens.element_count != 8) {
+        return 1;
+    }
+    if (info.scaled.element_count != 16) {
+        return 2;
+    }
+    if (neg.element_count != 2) {
+        return 3;
+    }
+    if (counted.element_count != 3) {
+        return 4;
+    }
+    if (three.element_count != 6) {
+        return 5;
+    }
+    if (shifted.element_count != 8) {
+        return 6;
+    }
+    if (plain.element_count != 4) {
+        return 7;
+    }
+    return 0;
+}

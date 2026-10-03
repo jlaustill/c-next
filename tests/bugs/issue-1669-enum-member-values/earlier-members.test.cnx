@@ -1,0 +1,36 @@
+// test-execution
+// test-adr: 017
+// Issue #1669 / ADR-017 "Member Values" (owner ruling 2026-10-03): a member's
+// value may name members of the same enum declared above it, with no cast -- a
+// member is of its enum's own type. The two common cases are a combined flag
+// and an alias. Both failed uncoded at 1:0.
+
+enum EPerm {
+    READ <- 1,
+    WRITE <- 2,
+    EXEC <- 4,
+    RW <- EPerm.READ | EPerm.WRITE,
+    ALL <- EPerm.RW | EPerm.EXEC
+}
+
+enum EMode {
+    SLOW,
+    FAST,
+    DEFAULT <- EMode.FAST
+}
+
+u32 main() {
+    if ((u32)EPerm.RW != 3) {
+        return 1;
+    }
+    if ((u32)EPerm.ALL != 7) {
+        return 2;
+    }
+    if ((u32)EMode.DEFAULT != 1) {
+        return 3;
+    }
+    if ((u32)EMode.FAST != 1) {
+        return 4;
+    }
+    return 0;
+}
