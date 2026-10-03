@@ -7,7 +7,7 @@ import { dirname, isAbsolute, join, resolve } from "node:path";
 import IFileConfig from "./types/IFileConfig";
 import PathNormalizer from "./PathNormalizer";
 import NodeFileSystem from "../PARSE/1-Discover/NodeFileSystem";
-import IFileSystem from "../transpiler/types/IFileSystem";
+import IFileSystem from "../types/IFileSystem";
 
 /**
  * Searched in this order in each directory. `cnext --help` documents these

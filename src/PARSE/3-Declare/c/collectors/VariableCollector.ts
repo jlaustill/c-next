@@ -4,10 +4,10 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type ICVariableSymbol from "../../../../transpiler/types/symbols/c/ICVariableSymbol";
+import type ICVariableSymbol from "../../../../types/symbols/c/ICVariableSymbol";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
-import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class VariableCollector {
   /**

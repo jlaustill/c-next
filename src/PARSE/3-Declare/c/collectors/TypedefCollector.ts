@@ -2,9 +2,9 @@
  * TypedefCollector - Collects typedef symbols from C parse trees.
  */
 
-import type ICTypedefSymbol from "../../../../transpiler/types/symbols/c/ICTypedefSymbol";
+import type ICTypedefSymbol from "../../../../types/symbols/c/ICTypedefSymbol";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class TypedefCollector {
   /**

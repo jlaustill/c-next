@@ -1,6 +1,6 @@
 import type IDiscoveredFile from "./IDiscoveredFile";
 import type IPipelineFile from "./IPipelineFile";
-import type IPlatformIOProject from "../../../transpiler/types/IPlatformIOProject";
+import type IPlatformIOProject from "../../../types/IPlatformIOProject";
 import type IAnchorFacts from "./IAnchorFacts";
 import type IFileIncludes from "./IFileIncludes";
 

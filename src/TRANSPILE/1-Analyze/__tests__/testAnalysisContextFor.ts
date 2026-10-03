@@ -7,7 +7,7 @@ import Program from "../../../PARSE/4-Resolve/Program";
 import TargetCatalogFile from "../../../PARSE/1-Discover/TargetCatalogFile";
 import invariant from "../../../utils/invariant";
 import type IAnalysisContext from "../types/IAnalysisContext";
-import type ILexicalFrame from "../../../transpiler/types/ILexicalFrame";
+import type ILexicalFrame from "../../../types/ILexicalFrame";
 import NodeFileSystem from "../../../PARSE/1-Discover/NodeFileSystem";
 
 /** Where a test's source is taken to live */

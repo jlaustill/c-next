@@ -21,7 +21,7 @@ import { ParserRuleContext, ParseTree } from "antlr4ng";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import OperandTyper from "../../utils/OperandTyper";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type IOperandType from "../../transpiler/types/IOperandType";
+import type IOperandType from "../../types/IOperandType";
 
 /** An expression's kind, as ADR-017's rules need to see it. */
 type TValueKind =

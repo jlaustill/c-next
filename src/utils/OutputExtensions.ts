@@ -1,4 +1,4 @@
-import IOutputExtensions from "../transpiler/types/IOutputExtensions";
+import IOutputExtensions from "../types/IOutputExtensions";
 
 /**
  * Issue #1319: The single owner of "which extension does this run emit?".

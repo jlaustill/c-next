@@ -22,9 +22,9 @@
  * from the source spelling, so a renamed local wrote the global it shadows).
  */
 
-import IBitAccessAnalysis from "../../../../transpiler/types/IBitAccessAnalysis";
-import TPlannedTargetOp from "../../../../transpiler/types/TPlannedTargetOp";
-import type IChainStep from "../../../../transpiler/types/IChainStep";
+import IBitAccessAnalysis from "../../../../types/IBitAccessAnalysis";
+import TPlannedTargetOp from "../../../../types/TPlannedTargetOp";
+import type IChainStep from "../../../../types/IChainStep";
 import OperandTyper from "../../../../utils/OperandTyper";
 
 class MemberChainAnalyzer {

@@ -5,11 +5,11 @@
  * - ATOMIC_RMW: atomic counter +<- 1
  * - OVERFLOW_CLAMP: clamp u8 saturated +<- 200
  */
-import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
+import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import AssignmentClassifier from "../../../../2-Plan/AssignmentClassifier";
 import TAssignmentHandler from "./TAssignmentHandler";
-import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
+import TTypeInfo from "../../../../../types/TTypeInfo";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 
 /**

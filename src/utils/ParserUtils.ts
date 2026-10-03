@@ -9,7 +9,7 @@ import { ParserRuleContext, TerminalNode } from "antlr4ng";
 
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import ISourcePosition from "./types/ISourcePosition";
-import type ISourceSpan from "../transpiler/types/ISourceSpan";
+import type ISourceSpan from "../types/ISourceSpan";
 
 /**
  * Static utility methods for parser context operations

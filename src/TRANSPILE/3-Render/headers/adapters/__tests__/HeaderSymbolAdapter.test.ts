@@ -5,20 +5,20 @@
 import { describe, it, expect } from "vitest";
 import TranspileState from "../../../../TranspileState";
 import HeaderSymbolAdapter from "../HeaderSymbolAdapter";
-import IVariableSymbol from "../../../../../transpiler/types/symbols/IVariableSymbol";
-import IFunctionSymbol from "../../../../../transpiler/types/symbols/IFunctionSymbol";
-import IStructSymbol from "../../../../../transpiler/types/symbols/IStructSymbol";
-import IEnumSymbol from "../../../../../transpiler/types/symbols/IEnumSymbol";
-import IBitmapSymbol from "../../../../../transpiler/types/symbols/IBitmapSymbol";
-import IRegisterSymbol from "../../../../../transpiler/types/symbols/IRegisterSymbol";
-import IScopeSymbol from "../../../../../transpiler/types/symbols/IScopeSymbol";
+import IVariableSymbol from "../../../../../types/symbols/IVariableSymbol";
+import IFunctionSymbol from "../../../../../types/symbols/IFunctionSymbol";
+import IStructSymbol from "../../../../../types/symbols/IStructSymbol";
+import IEnumSymbol from "../../../../../types/symbols/IEnumSymbol";
+import IBitmapSymbol from "../../../../../types/symbols/IBitmapSymbol";
+import IRegisterSymbol from "../../../../../types/symbols/IRegisterSymbol";
+import IScopeSymbol from "../../../../../types/symbols/IScopeSymbol";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
 import TestSymbolUtils from "../../../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
-import TestSourceSpan from "../../../../../transpiler/types/__testUtils__/testSourceSpan";
-import TestEnumMembers from "../../../../../transpiler/types/__testUtils__/testEnumMembers";
-import TestMembers from "../../../../../transpiler/types/__testUtils__/testMembers";
-import type IProgram from "../../../../../transpiler/types/IProgram";
+import TestSourceSpan from "../../../../../types/__testUtils__/testSourceSpan";
+import TestEnumMembers from "../../../../../types/__testUtils__/testEnumMembers";
+import TestMembers from "../../../../../types/__testUtils__/testMembers";
+import type IProgram from "../../../../../types/IProgram";
 
 let state = new TranspileState();
 

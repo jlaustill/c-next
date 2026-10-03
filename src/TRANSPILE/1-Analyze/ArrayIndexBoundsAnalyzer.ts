@@ -39,7 +39,7 @@ import OperandTyper from "../../utils/OperandTyper";
 import IArrayIndexBoundsError from "./types/IArrayIndexBoundsError";
 import ConstantExpression from "./helpers/ConstantExpression";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type IOperandType from "../../transpiler/types/IOperandType";
+import type IOperandType from "../../types/IOperandType";
 
 /** One subscript in a chain: its expressions, and how many ops follow it. */
 interface ISubscript {

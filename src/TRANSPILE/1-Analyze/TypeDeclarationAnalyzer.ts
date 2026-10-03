@@ -17,8 +17,8 @@
  * extra: 1.3 registers it under the file like any other.
  */
 
-import type IBitmapSymbol from "../../transpiler/types/symbols/IBitmapSymbol";
-import type IEnumSymbol from "../../transpiler/types/symbols/IEnumSymbol";
+import type IBitmapSymbol from "../../types/symbols/IBitmapSymbol";
+import type IEnumSymbol from "../../types/symbols/IEnumSymbol";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type ITypeDeclarationError from "./types/ITypeDeclarationError";
 

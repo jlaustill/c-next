@@ -7,15 +7,15 @@
 
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import IStructSymbol from "../../../../transpiler/types/symbols/IStructSymbol";
-import type IStructFieldSymbol from "../../../../transpiler/types/symbols/IStructFieldSymbol";
+import IStructSymbol from "../../../../types/symbols/IStructSymbol";
+import type IStructFieldSymbol from "../../../../types/symbols/IStructFieldSymbol";
 import TypeUtils from "../utils/TypeUtils";
 import DimensionResolver from "../utils/DimensionResolver";
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import TVisibility from "../../../../transpiler/types/TVisibility";
+import TVisibility from "../../../../types/TVisibility";
 import ParserUtils from "../../../../utils/ParserUtils";
 import MemberSymbolBase from "../utils/MemberSymbolBase";
-import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 /**
  * Result of processing an arrayType syntax context.

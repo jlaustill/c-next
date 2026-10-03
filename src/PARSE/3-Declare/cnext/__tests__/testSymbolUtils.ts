@@ -15,10 +15,10 @@
 
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import TSymbolKindCNext from "../../../../transpiler/types/symbol-kinds/TSymbolKindCNext";
-import TVisibility from "../../../../transpiler/types/TVisibility";
-import TestSourceSpan from "../../../../transpiler/types/__testUtils__/testSourceSpan";
-import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";
+import TSymbolKindCNext from "../../../../types/symbol-kinds/TSymbolKindCNext";
+import TVisibility from "../../../../types/TVisibility";
+import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 interface IBaseOverrides<K extends TSymbolKindCNext> {
   readonly kind: K;

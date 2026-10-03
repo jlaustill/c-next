@@ -1,4 +1,4 @@
-import type ITranspileError from "../../lib/types/ITranspileError";
+import type ITranspileError from "../lib/types/ITranspileError";
 import type ITargetDescription from "./ITargetDescription";
 
 /**

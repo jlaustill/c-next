@@ -11,7 +11,7 @@
  * .char_count) are handled in PostfixExpressionGenerator.ts, not here.
  * The deprecated .length property was removed per ADR-058.
  */
-import type IBitmapFieldLayout from "../../../../../transpiler/types/IBitmapFieldLayout";
+import type IBitmapFieldLayout from "../../../../../types/IBitmapFieldLayout";
 import IGeneratorOutput from "../IGeneratorOutput";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import invariant from "../../../../../utils/invariant";

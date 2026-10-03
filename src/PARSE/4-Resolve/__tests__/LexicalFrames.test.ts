@@ -7,8 +7,8 @@ import CNextSourceParser from "../../2-Parse/CNextSourceParser";
 import CNextResolver from "../../3-Declare/cnext/index";
 import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 import Program from "../Program";
-import type ILexicalFrame from "../../../transpiler/types/ILexicalFrame";
-import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import type ILexicalFrame from "../../../types/ILexicalFrame";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 import LexicalFrames from "../LexicalFrames";
 
 /** Build a program from path -> source, in dependency order */

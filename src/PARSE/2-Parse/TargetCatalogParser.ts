@@ -15,9 +15,9 @@
 import CNextSourceParser from "./CNextSourceParser";
 import type * as Parser from "./grammar/CNextParser";
 import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
-import type ITargetCatalogEntry from "../../transpiler/types/ITargetCatalogEntry";
-import type ITargetCatalogSource from "../../transpiler/types/ITargetCatalogSource";
-import type TTargetFieldValue from "../../transpiler/types/TTargetFieldValue";
+import type ITargetCatalogEntry from "../../types/ITargetCatalogEntry";
+import type ITargetCatalogSource from "../../types/ITargetCatalogSource";
+import type TTargetFieldValue from "../../types/TTargetFieldValue";
 
 class TargetCatalogParser {
   static parse(text: string): ITargetCatalogSource {

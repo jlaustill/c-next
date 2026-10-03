@@ -8,8 +8,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import ICppTypeAliasSymbol from "../../../../transpiler/types/symbols/cpp/ICppTypeAliasSymbol";
-import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";
+import ICppTypeAliasSymbol from "../../../../types/symbols/cpp/ICppTypeAliasSymbol";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class TypeAliasCollector {
   /**

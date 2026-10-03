@@ -11,7 +11,7 @@
  * A single bit at the end of a member chain (`item.byte[7] <- true`) is
  * MEMBER_CHAIN's, which writes it the same way.
  */
-import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
+import AssignmentKind from "../../../../../types/AssignmentKind";
 import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 

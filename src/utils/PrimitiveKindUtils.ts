@@ -1,4 +1,4 @@
-import TPrimitiveKind from "../transpiler/types/TPrimitiveKind";
+import TPrimitiveKind from "../types/TPrimitiveKind";
 
 /**
  * Utility functions for working with C-Next primitive types.

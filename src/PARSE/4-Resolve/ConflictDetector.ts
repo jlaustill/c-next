@@ -22,11 +22,11 @@ import DeclarationSite from "../../utils/DeclarationSite";
 import ScopeUtils from "../../utils/ScopeUtils";
 import SymbolRegistry from "../3-Declare/SymbolRegistry";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
-import type IConflict from "../../transpiler/types/IConflict";
-import type TSymbol from "../../transpiler/types/symbols/TSymbol";
-import type TCSymbol from "../../transpiler/types/symbols/c/TCSymbol";
-import type TCppSymbol from "../../transpiler/types/symbols/cpp/TCppSymbol";
-import type TAnySymbol from "../../transpiler/types/symbols/TAnySymbol";
+import type IConflict from "../../types/IConflict";
+import type TSymbol from "../../types/symbols/TSymbol";
+import type TCSymbol from "../../types/symbols/c/TCSymbol";
+import type TCppSymbol from "../../types/symbols/cpp/TCppSymbol";
+import type TAnySymbol from "../../types/symbols/TAnySymbol";
 
 class ConflictDetector {
   /**

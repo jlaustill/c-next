@@ -12,8 +12,8 @@
  * to reduce the size and complexity of CodeGenerator.ts.
  */
 import type IChainBase from "../../../../2-Plan/types/IChainBase";
-import type IChainStep from "../../../../../transpiler/types/IChainStep";
-import type IOperandType from "../../../../../transpiler/types/IOperandType";
+import type IChainStep from "../../../../../types/IChainStep";
+import type IOperandType from "../../../../../types/IOperandType";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IPlannedPostfix from "../../types/IPlannedPostfix";
 import TPlannedPostfixOp from "../../types/TPlannedPostfixOp";
@@ -32,7 +32,7 @@ import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import BitUtils from "../../../../../utils/BitUtils";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
-import TYPE_WIDTH from "../../../../../transpiler/constants/TYPE_WIDTH";
+import TYPE_WIDTH from "../../../../../types/TYPE_WIDTH";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import OperandTyper from "../../../../../utils/OperandTyper";

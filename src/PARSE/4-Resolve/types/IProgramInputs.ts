@@ -21,8 +21,8 @@
  */
 import type IRunTargetInputs from "./IRunTargetInputs";
 import type IForeignSymbols from "./IForeignSymbols";
-import type IModificationFacts from "../../../transpiler/types/IModificationFacts";
-import type IStructFieldInfo from "../../../transpiler/types/symbols/IStructFieldInfo";
+import type IModificationFacts from "./IModificationFacts";
+import type IStructFieldInfo from "../../../types/symbols/IStructFieldInfo";
 import type IVisibilityInput from "./IVisibilityInput";
 import type SymbolRegistry from "../../3-Declare/SymbolRegistry";
 

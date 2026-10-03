@@ -8,15 +8,15 @@ import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSym
 import TranspileState from "../../../../../TranspileState";
 import SymbolTable from "../../../../../../PARSE/3-Declare/SymbolTable";
 import type ICodeGenApi from "../../../../../types/ICodeGenApi";
-import type ICodeGenSymbols from "../../../../../../transpiler/types/ICodeGenSymbols";
-import type TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
+import type ICodeGenSymbols from "../../../../../../types/ICodeGenSymbols";
+import type TTypeInfo from "../../../../../../types/TTypeInfo";
 import type IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
 import type IChainBase from "../../../../../2-Plan/types/IChainBase";
-import type IChainStep from "../../../../../../transpiler/types/IChainStep";
-import type IOperandType from "../../../../../../transpiler/types/IOperandType";
+import type IChainStep from "../../../../../../types/IChainStep";
+import type IOperandType from "../../../../../../types/IOperandType";
 import ScopeUtils from "../../../../../../utils/ScopeUtils";
 import QualifiedCName from "../../../../../../utils/QualifiedCName";
-import TYPE_WIDTH from "../../../../../../transpiler/constants/TYPE_WIDTH";
+import TYPE_WIDTH from "../../../../../../types/TYPE_WIDTH";
 
 /**
  * Set up mock symbols on state.

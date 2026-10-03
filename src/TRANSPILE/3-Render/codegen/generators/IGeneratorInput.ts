@@ -3,10 +3,10 @@
  * Contains all the context a generator needs to produce code.
  * Immutable - generators cannot modify this.
  */
-import IFunctionSignature from "../../../../transpiler/types/IFunctionSignature";
-import ICallbackTypeInfo from "../../../../transpiler/types/ICallbackTypeInfo";
+import IFunctionSignature from "../../../../types/IFunctionSignature";
+import ICallbackTypeInfo from "../../../../types/ICallbackTypeInfo";
 import SymbolTable from "../../../../PARSE/3-Declare/SymbolTable";
-import ICodeGenSymbols from "../../../../transpiler/types/ICodeGenSymbols";
+import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 
 interface IGeneratorInput {
   /** Symbol table from parsed C/C++ headers (may be null for single-file transpilation) */

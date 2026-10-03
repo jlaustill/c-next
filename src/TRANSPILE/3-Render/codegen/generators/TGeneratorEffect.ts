@@ -6,9 +6,9 @@
  * - Type-safe payloads per effect type
  * - Central effect processing in the orchestrator
  */
-import TParameterInfo from "../../../../transpiler/types/TParameterInfo";
-import TIncludeHeader from "../../../../transpiler/types/TIncludeHeader";
-import type TRequirementKey from "../../../../transpiler/types/TRequirementKey";
+import TParameterInfo from "../../../../types/TParameterInfo";
+import TIncludeHeader from "../../../../types/TIncludeHeader";
+import type TRequirementKey from "../../../../types/TRequirementKey";
 
 type TGeneratorEffect =
   // === Include Effects ===

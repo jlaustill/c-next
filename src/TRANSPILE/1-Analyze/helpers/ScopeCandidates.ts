@@ -20,7 +20,7 @@
  * roots.
  */
 
-import TChainRoot from "../../../transpiler/types/TChainRoot";
+import TChainRoot from "../../../types/TChainRoot";
 
 class ScopeCandidates {
   /**

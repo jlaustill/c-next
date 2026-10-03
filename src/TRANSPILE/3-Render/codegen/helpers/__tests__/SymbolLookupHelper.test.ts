@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import SymbolLookupHelper from "../SymbolLookupHelper";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import type TSymbolKind from "../../../../../transpiler/types/symbol-kinds/TSymbolKind";
+import type TSymbolKind from "../../../../../types/symbol-kinds/TSymbolKind";
 
 /**
  * Build an ISymbolTable stub for these tests.

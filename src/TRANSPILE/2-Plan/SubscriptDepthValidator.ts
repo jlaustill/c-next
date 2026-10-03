@@ -15,7 +15,7 @@
  * sharing only the check while each path re-derived the count would leave the
  * two agreeing by coincidence rather than by construction.
  */
-import TTypeInfo from "../../transpiler/types/TTypeInfo";
+import TTypeInfo from "../../types/TTypeInfo";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import invariant from "../../utils/invariant";
 

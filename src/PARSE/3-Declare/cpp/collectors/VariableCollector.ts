@@ -7,9 +7,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import ICppVariableSymbol from "../../../../transpiler/types/symbols/cpp/ICppVariableSymbol";
+import ICppVariableSymbol from "../../../../types/symbols/cpp/ICppVariableSymbol";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
-import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class VariableCollector {
   /**

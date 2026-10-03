@@ -30,11 +30,11 @@
  * leave `scope.functions` on the unstamped one.
  */
 
-import type TSymbol from "../../transpiler/types/symbols/TSymbol";
-import type TType from "../../transpiler/types/TType";
-import type IParameterInfo from "../../transpiler/types/symbols/IParameterInfo";
-import type IStructFieldSymbol from "../../transpiler/types/symbols/IStructFieldSymbol";
-import type IFunctionSymbol from "../../transpiler/types/symbols/IFunctionSymbol";
+import type TSymbol from "../../types/symbols/TSymbol";
+import type TType from "../../types/TType";
+import type IParameterInfo from "../../types/symbols/IParameterInfo";
+import type IStructFieldSymbol from "../../types/symbols/IStructFieldSymbol";
+import type IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import ScopeUtils from "../../utils/ScopeUtils";
 import TypeResolver from "../../utils/TypeResolver";
 

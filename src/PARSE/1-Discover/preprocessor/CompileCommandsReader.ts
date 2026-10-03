@@ -17,7 +17,7 @@
  */
 import { resolve, isAbsolute } from "node:path";
 import ICompileCommandsResult from "./types/ICompileCommandsResult";
-import IFileSystem from "../../../transpiler/types/IFileSystem";
+import IFileSystem from "../../../types/IFileSystem";
 
 /** One compile_commands.json entry (clang spec: `command` OR `arguments`). */
 interface ICompileCommandsEntry {

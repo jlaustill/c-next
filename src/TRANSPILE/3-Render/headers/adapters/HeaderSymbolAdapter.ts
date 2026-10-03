@@ -6,12 +6,12 @@
  */
 
 import DeclaredTypeInfo from "../../../2-Plan/DeclaredTypeInfo";
-import TSymbol from "../../../../transpiler/types/symbols/TSymbol";
+import TSymbol from "../../../../types/symbols/TSymbol";
 import IHeaderSymbol from "../types/IHeaderSymbol";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import TypeResolver from "../../../../utils/TypeResolver";
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import type TType from "../../../../transpiler/types/TType";
+import type TType from "../../../../types/TType";
 import type TranspileState from "../../../TranspileState";
 
 /**
@@ -55,7 +55,7 @@ class HeaderSymbolAdapter {
   // ========================================================================
 
   private static convertFunction(
-    func: import("../../../../transpiler/types/symbols/IFunctionSymbol").default,
+    func: import("../../../../types/symbols/IFunctionSymbol").default,
   ): IHeaderSymbol {
     // Convert TType return type to string
     const returnTypeStr = TypeResolver.getTypeName(func.returnType);
@@ -101,7 +101,7 @@ class HeaderSymbolAdapter {
   }
 
   private static convertVariable(
-    variable: import("../../../../transpiler/types/symbols/IVariableSymbol").default,
+    variable: import("../../../../types/symbols/IVariableSymbol").default,
     state: TranspileState,
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
@@ -181,7 +181,7 @@ class HeaderSymbolAdapter {
   }
 
   private static convertStruct(
-    struct: import("../../../../transpiler/types/symbols/IStructSymbol").default,
+    struct: import("../../../../types/symbols/IStructSymbol").default,
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(struct);
@@ -197,7 +197,7 @@ class HeaderSymbolAdapter {
   }
 
   private static convertEnum(
-    enumSym: import("../../../../transpiler/types/symbols/IEnumSymbol").default,
+    enumSym: import("../../../../types/symbols/IEnumSymbol").default,
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(enumSym);
@@ -213,7 +213,7 @@ class HeaderSymbolAdapter {
   }
 
   private static convertBitmap(
-    bitmap: import("../../../../transpiler/types/symbols/IBitmapSymbol").default,
+    bitmap: import("../../../../types/symbols/IBitmapSymbol").default,
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(bitmap);
@@ -230,7 +230,7 @@ class HeaderSymbolAdapter {
   }
 
   private static convertRegister(
-    register: import("../../../../transpiler/types/symbols/IRegisterSymbol").default,
+    register: import("../../../../types/symbols/IRegisterSymbol").default,
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(register);
@@ -246,7 +246,7 @@ class HeaderSymbolAdapter {
   }
 
   private static convertScope(
-    scope: import("../../../../transpiler/types/symbols/IScopeSymbol").default,
+    scope: import("../../../../types/symbols/IScopeSymbol").default,
   ): IHeaderSymbol {
     return {
       name: scope.name,

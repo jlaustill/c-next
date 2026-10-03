@@ -3,10 +3,10 @@
  */
 
 import type { EnumSpecifierContext } from "../../../2-Parse/c/grammar/CParser";
-import type ICEnumSymbol from "../../../../transpiler/types/symbols/c/ICEnumSymbol";
-import type ICEnumMemberSymbol from "../../../../transpiler/types/symbols/c/ICEnumMemberSymbol";
+import type ICEnumSymbol from "../../../../types/symbols/c/ICEnumSymbol";
+import type ICEnumMemberSymbol from "../../../../types/symbols/c/ICEnumMemberSymbol";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 import ParserUtils from "../../../../utils/ParserUtils";
 
 /**

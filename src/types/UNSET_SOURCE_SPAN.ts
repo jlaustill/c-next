@@ -1,4 +1,4 @@
-import type ISourceSpan from "../types/ISourceSpan";
+import type ISourceSpan from "./ISourceSpan";
 
 /**
  * Issue #1318: the span a scope carries before any declaring block has been

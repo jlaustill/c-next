@@ -12,7 +12,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import FloatBitHelper from "../FloatBitHelper";
 import TranspileState from "../../../../TranspileState";
-import type TIncludeHeader from "../../../../../transpiler/types/TIncludeHeader";
+import type TIncludeHeader from "../../../../../types/TIncludeHeader";
 
 /**
  * Callback types for code generation operations.

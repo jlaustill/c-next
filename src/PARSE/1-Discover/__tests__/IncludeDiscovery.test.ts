@@ -14,7 +14,7 @@ import { mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import IncludeDiscovery from "../IncludeDiscovery";
-import IFileSystem from "../../../transpiler/types/IFileSystem";
+import IFileSystem from "../../../types/IFileSystem";
 import NodeFileSystem from "../NodeFileSystem";
 
 describe("IncludeDiscovery", () => {

@@ -7,9 +7,9 @@ import Preprocessor from "./preprocessor/Preprocessor";
 import ToolchainDetector from "./preprocessor/ToolchainDetector";
 import type ICompileCommandsResult from "./preprocessor/types/ICompileCommandsResult";
 import type IToolchain from "./preprocessor/types/IToolchain";
-import type IFileSystem from "../../transpiler/types/IFileSystem";
+import type IFileSystem from "../../types/IFileSystem";
 import type IRunAnchor from "./types/IRunAnchor";
-import type ITranspilerConfig from "../../transpiler/types/ITranspilerConfig";
+import type ITranspilerConfig from "../../types/ITranspilerConfig";
 
 /** The configuration an anchor is decided from. */
 type TAnchorSettings = Pick<

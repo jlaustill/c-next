@@ -28,8 +28,8 @@
  * guard still counts two files rather than being widened to three.
  */
 
-import type IDeclarationPlan from "../../transpiler/types/IDeclarationPlan";
-import type TDeclarationKind from "../../transpiler/types/TDeclarationKind";
+import type IDeclarationPlan from "../../types/IDeclarationPlan";
+import type TDeclarationKind from "../../types/TDeclarationKind";
 import HeaderOwnership from "./HeaderOwnership";
 
 class DeclarationPlan {

@@ -1,4 +1,4 @@
-import TSymbolKindCNext from "../../transpiler/types/symbol-kinds/TSymbolKindCNext";
+import TSymbolKindCNext from "../../types/symbol-kinds/TSymbolKindCNext";
 
 /**
  * The symbol kinds whose declaration introduces a TYPE NAME.

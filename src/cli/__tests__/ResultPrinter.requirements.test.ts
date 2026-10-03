@@ -10,7 +10,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import ResultPrinter from "../ResultPrinter";
 import type ITranspilerResult from "../../transpiler/types/ITranspilerResult";
-import type IRecordedRequirement from "../../transpiler/types/IRecordedRequirement";
+import type IRecordedRequirement from "../../types/IRecordedRequirement";
 
 function createResult(
   requirements: readonly IRecordedRequirement[],

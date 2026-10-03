@@ -27,10 +27,10 @@
 import LiteralUtils from "./LiteralUtils.js";
 import TypeCheckUtils from "./TypeCheckUtils";
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
-import UNRESOLVED_DIMENSION from "../transpiler/constants/UNRESOLVED_DIMENSION.js";
+import UNRESOLVED_DIMENSION from "../types/UNRESOLVED_DIMENSION";
 import BareIdentifier from "./BareIdentifier";
 import type IConstantEvalOptions from "./types/IConstantEvalOptions";
-import type IFoldedConstant from "../transpiler/types/IFoldedConstant";
+import type IFoldedConstant from "../types/IFoldedConstant";
 
 /**
  * Helper class for parsing array dimension expressions.

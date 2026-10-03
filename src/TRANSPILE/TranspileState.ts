@@ -1,33 +1,33 @@
 import type EFileType from "../PARSE/1-Discover/types/EFileType";
-import type ITargetDescription from "../transpiler/types/ITargetDescription";
+import type ITargetDescription from "../types/ITargetDescription";
 import SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import ReservedCnxName from "../utils/ReservedCnxName";
-import ICodeGenSymbols from "../transpiler/types/ICodeGenSymbols";
-import TTypeInfo from "../transpiler/types/TTypeInfo";
-import type TChainRoot from "../transpiler/types/TChainRoot";
-import type TValueBinding from "../transpiler/types/TValueBinding";
+import ICodeGenSymbols from "../types/ICodeGenSymbols";
+import TTypeInfo from "../types/TTypeInfo";
+import type TChainRoot from "../types/TChainRoot";
+import type TValueBinding from "../types/TValueBinding";
 import type ISourcePosition from "../utils/types/ISourcePosition";
 import DeclaredTypeInfo from "./2-Plan/DeclaredTypeInfo";
-import TParameterInfo from "../transpiler/types/TParameterInfo";
-import ICallbackTypeInfo from "../transpiler/types/ICallbackTypeInfo";
-import TYPE_WIDTH from "../transpiler/constants/TYPE_WIDTH";
+import TParameterInfo from "../types/TParameterInfo";
+import ICallbackTypeInfo from "../types/ICallbackTypeInfo";
+import TYPE_WIDTH from "../types/TYPE_WIDTH";
 import ArrayDimensionText from "../utils/ArrayDimensionText";
 import type ICodeGenApi from "./types/ICodeGenApi";
 import DeclaredTypeFacts from "../utils/DeclaredTypeFacts";
 import DeclaredPointer from "../utils/DeclaredPointer";
 import OutputExtensions from "../utils/OutputExtensions";
-import type IOutputExtensions from "../transpiler/types/IOutputExtensions";
+import type IOutputExtensions from "../types/IOutputExtensions";
 import QualifiedCName from "../utils/QualifiedCName";
 import ScopeUtils from "../utils/ScopeUtils";
-import type ITypeBindingDeps from "../transpiler/types/ITypeBindingDeps";
+import type ITypeBindingDeps from "../types/ITypeBindingDeps";
 import StructFieldFacts from "../utils/StructFieldFacts";
-import type IProgram from "../transpiler/types/IProgram";
-import type ITypingContext from "../transpiler/types/ITypingContext";
-import type IDeclarationPlan from "../transpiler/types/IDeclarationPlan";
-import type IFunctionSignature from "../transpiler/types/IFunctionSignature";
+import type IProgram from "../types/IProgram";
+import type ITypingContext from "../types/ITypingContext";
+import type IDeclarationPlan from "../types/IDeclarationPlan";
+import type IFunctionSignature from "../types/IFunctionSignature";
 import invariant from "../utils/invariant";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
-import type TIncludeHeader from "../transpiler/types/TIncludeHeader";
+import type TIncludeHeader from "../types/TIncludeHeader";
 
 /**
  * 2.3 Render's per-file working state, as an INSTANCE.

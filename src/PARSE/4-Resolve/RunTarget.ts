@@ -20,15 +20,15 @@
  */
 import TargetDescriptions from "./TargetDescriptions";
 import DeclarationSite from "../../utils/DeclarationSite";
-import TARGET_DESCRIPTION_FIELDS from "../../transpiler/constants/TARGET_DESCRIPTION_FIELDS";
+import TARGET_DESCRIPTION_FIELDS from "./TARGET_DESCRIPTION_FIELDS";
 import type ITranspileError from "../../lib/types/ITranspileError";
 import type IRunTargetInputs from "./types/IRunTargetInputs";
-import type ITargetDescription from "../../transpiler/types/ITargetDescription";
-import type ITargetDirective from "../../transpiler/types/ITargetDirective";
-import type TRunTarget from "../../transpiler/types/TRunTarget";
-import type TTargetFieldValue from "../../transpiler/types/TTargetFieldValue";
-import type IPlatformIOEnv from "../../transpiler/types/IPlatformIOEnv";
-import type IPlatformIOProject from "../../transpiler/types/IPlatformIOProject";
+import type ITargetDescription from "../../types/ITargetDescription";
+import type ITargetDirective from "../../types/ITargetDirective";
+import type TRunTarget from "../../types/TRunTarget";
+import type TTargetFieldValue from "../../types/TTargetFieldValue";
+import type IPlatformIOEnv from "../../types/IPlatformIOEnv";
+import type IPlatformIOProject from "../../types/IPlatformIOProject";
 
 /** The description pragmas are the facts that define a platform */
 const DESCRIPTION_KEYS = TargetDescriptions.PLATFORM_FACTS;

@@ -8,10 +8,10 @@
  * These are helper functions called from assignment generation,
  * not top-level statement generators.
  */
-import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
+import TTypeInfo from "../../../../../types/TTypeInfo";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
-import type ITargetDescription from "../../../../../transpiler/types/ITargetDescription";
+import type ITargetDescription from "../../../../../types/ITargetDescription";
 import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY";
 import InterruptMask from "../../helpers/InterruptMask";
 

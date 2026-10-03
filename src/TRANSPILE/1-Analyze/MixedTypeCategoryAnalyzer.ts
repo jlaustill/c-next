@@ -56,7 +56,7 @@ import OperandTyper from "../../utils/OperandTyper";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type TBinaryOperatorLevel from "./types/TBinaryOperatorLevel";
 import type TAssignmentSite from "./types/TAssignmentSite";
-import type IOperandType from "../../transpiler/types/IOperandType";
+import type IOperandType from "../../types/IOperandType";
 
 /**
  * A Rule 10.4 category: `signed`, `unsigned`, `floating`, `character`,

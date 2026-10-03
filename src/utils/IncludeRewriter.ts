@@ -18,7 +18,7 @@
 import { extname } from "node:path";
 
 import EFileType from "../PARSE/1-Discover/types/EFileType";
-import type THeaderExtension from "../transpiler/types/THeaderExtension";
+import type THeaderExtension from "../types/THeaderExtension";
 import IncludeDirectiveText from "./IncludeDirectiveText";
 import invariant from "./invariant";
 

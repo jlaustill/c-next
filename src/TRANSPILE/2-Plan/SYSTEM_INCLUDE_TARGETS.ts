@@ -1,4 +1,4 @@
-import type TIncludeHeader from "../types/TIncludeHeader";
+import type TIncludeHeader from "../../types/TIncludeHeader";
 
 /**
  * How each system header is spelled when emitted.

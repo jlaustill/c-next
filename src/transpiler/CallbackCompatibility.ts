@@ -50,7 +50,7 @@ import FunctionCallAnalyzer from "../TRANSPILE/1-Analyze/FunctionCallAnalyzer";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import SymbolRegistry from "../PARSE/3-Declare/SymbolRegistry";
 import type SymbolTable from "../PARSE/3-Declare/SymbolTable";
-import type IParsedFile from "./types/IParsedFile";
+import type IParsedFile from "../types/IParsedFile";
 
 class CallbackCompatibility {
   /**

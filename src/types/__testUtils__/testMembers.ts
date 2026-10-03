@@ -4,8 +4,8 @@ import type IRegisterMemberSymbol from "../symbols/IRegisterMemberSymbol";
 import type IEnumMemberSymbol from "../symbols/IEnumMemberSymbol";
 import type IStructFieldSymbol from "../symbols/IStructFieldSymbol";
 import type TSymbolKindCNext from "../symbol-kinds/TSymbolKindCNext";
-import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import ScopeUtils from "../../../utils/ScopeUtils";
+import ESourceLanguage from "../../utils/types/ESourceLanguage";
+import ScopeUtils from "../../utils/ScopeUtils";
 import TestSourceSpan from "./testSourceSpan";
 
 /**

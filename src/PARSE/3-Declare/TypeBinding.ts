@@ -32,9 +32,9 @@
  * here depends on codegen state.
  */
 
-import ITypeAccessors from "../../transpiler/types/ITypeAccessors";
-import type INamedTypeResolution from "../../transpiler/types/INamedTypeResolution";
-import type ITypeBindingDeps from "../../transpiler/types/ITypeBindingDeps";
+import ITypeAccessors from "../../types/ITypeAccessors";
+import type INamedTypeResolution from "../../types/INamedTypeResolution";
+import type ITypeBindingDeps from "../../types/ITypeBindingDeps";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import * as Parser from "../2-Parse/grammar/CNextParser";

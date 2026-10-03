@@ -21,8 +21,8 @@
 import { describe, it, expect } from "vitest";
 import Transpiler from "../../../../transpiler/Transpiler";
 import MockFileSystem from "../../../../transpiler/__tests__/MockFileSystem";
-import TOOLCHAIN_REQUIREMENTS from "../../../../transpiler/constants/TOOLCHAIN_REQUIREMENTS";
-import type TOutputMode from "../../../../transpiler/types/TOutputMode";
+import TOOLCHAIN_REQUIREMENTS from "../../../../utils/constants/TOOLCHAIN_REQUIREMENTS";
+import type TOutputMode from "../../../../types/TOutputMode";
 
 interface ICase {
   readonly name: string;

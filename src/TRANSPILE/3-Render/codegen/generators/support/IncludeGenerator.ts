@@ -4,7 +4,7 @@
  */
 import IncludeRewriter from "../../../../../utils/IncludeRewriter";
 import EFileType from "../../../../../PARSE/1-Discover/types/EFileType";
-import type THeaderExtension from "../../../../../transpiler/types/THeaderExtension";
+import type THeaderExtension from "../../../../../types/THeaderExtension";
 import invariant from "../../../../../utils/invariant";
 import type IPlannedDirective from "../../types/IPlannedDirective";
 

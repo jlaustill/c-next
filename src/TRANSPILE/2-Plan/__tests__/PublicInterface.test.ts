@@ -3,12 +3,12 @@ import { describe, expect, it } from "vitest";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import PublicInterface from "../PublicInterface";
-import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
-import TestMembers from "../../../transpiler/types/__testUtils__/testMembers";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
+import TestMembers from "../../../types/__testUtils__/testMembers";
 import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
-import type IBitmapSymbol from "../../../transpiler/types/symbols/IBitmapSymbol";
-import type IRegisterSymbol from "../../../transpiler/types/symbols/IRegisterSymbol";
-import type TSymbol from "../../../transpiler/types/symbols/TSymbol";
+import type IBitmapSymbol from "../../../types/symbols/IBitmapSymbol";
+import type IRegisterSymbol from "../../../types/symbols/IRegisterSymbol";
+import type TSymbol from "../../../types/symbols/TSymbol";
 
 /**
  * #1453: a register is part of the public interface, and its accessor block

@@ -1,8 +1,8 @@
 import { CommonTokenStream, Token } from "antlr4ng";
 
 import { CNextLexer } from "./grammar/CNextLexer";
-import ECommentType from "../../transpiler/types/ECommentType";
-import IComment from "../../transpiler/types/IComment";
+import ECommentType from "../../types/ECommentType";
+import IComment from "../../types/IComment";
 
 /**
  * Reads comments off the HIDDEN channel of a parsed token stream (ADR-043).

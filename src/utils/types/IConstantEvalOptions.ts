@@ -1,4 +1,4 @@
-import type IFoldedConstant from "../../transpiler/types/IFoldedConstant";
+import type IFoldedConstant from "../../types/IFoldedConstant";
 
 /**
  * What the one constant evaluator (`ArrayDimensionParser`) may look up.

@@ -5,7 +5,7 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import stringHandlers from "../StringHandlers";
-import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
+import AssignmentKind from "../../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
 import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";

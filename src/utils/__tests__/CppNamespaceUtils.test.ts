@@ -7,10 +7,10 @@ import CppNamespaceUtils from "../CppNamespaceUtils";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../types/ESourceLanguage";
 import ScopeUtils from "../ScopeUtils";
-import type TCppSymbol from "../../transpiler/types/symbols/cpp/TCppSymbol";
-import type TCSymbol from "../../transpiler/types/symbols/c/TCSymbol";
-import type IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
-import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
+import type TCppSymbol from "../../types/symbols/cpp/TCppSymbol";
+import type TCSymbol from "../../types/symbols/c/TCSymbol";
+import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
+import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
 
 describe("CppNamespaceUtils", () => {
   let symbolTable: SymbolTable;

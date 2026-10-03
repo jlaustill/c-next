@@ -1,4 +1,4 @@
-import ICodeGenSymbols from "../types/ICodeGenSymbols";
+import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 
 /**
  * A complete, empty `ICodeGenSymbols` for unit tests, with overrides applied.

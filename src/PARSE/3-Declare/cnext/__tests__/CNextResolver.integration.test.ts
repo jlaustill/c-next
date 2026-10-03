@@ -3,7 +3,7 @@ import parse from "./testHelpers";
 import CNextResolver from "../index";
 import Program from "../../../4-Resolve/Program";
 import DeferredTypes from "../../../4-Resolve/DeferredTypes";
-import SymbolGuards from "../../../../transpiler/types/symbols/SymbolGuards";
+import SymbolGuards from "../../../../types/symbols/SymbolGuards";
 import SymbolRegistry from "../../SymbolRegistry";
 import TypeResolver from "../../../../utils/TypeResolver";
 

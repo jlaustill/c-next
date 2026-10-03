@@ -35,7 +35,7 @@ import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import ICompoundAssignmentError from "./types/ICompoundAssignmentError";
-import type IOperandType from "../../transpiler/types/IOperandType";
+import type IOperandType from "../../types/IOperandType";
 import type TAssignmentSite from "./types/TAssignmentSite";
 import type IAnalysisContext from "./types/IAnalysisContext";
 

@@ -13,7 +13,7 @@
  * a codegen fact.
  */
 
-import TSymbolKind from "../transpiler/types/symbol-kinds/TSymbolKind.js";
+import TSymbolKind from "../types/symbol-kinds/TSymbolKind";
 import QualifiedCName from "./QualifiedCName";
 
 /**

@@ -8,7 +8,7 @@
  */
 
 import DeclarationPlan from "../DeclarationPlan";
-import type TDeclarationKind from "../../../transpiler/types/TDeclarationKind";
+import type TDeclarationKind from "../../../types/TDeclarationKind";
 
 const precede = (kinds: TDeclarationKind[]): number | null =>
   DeclarationPlan.callbackTypedefsPrecede(kinds);

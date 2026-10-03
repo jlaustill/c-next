@@ -1,5 +1,5 @@
-import type TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
-import type TCppSymbol from "../../../transpiler/types/symbols/cpp/TCppSymbol";
+import type TCSymbol from "../../../types/symbols/c/TCSymbol";
+import type TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
 
 /**
  * The symbols this program's C and C++ headers declare.

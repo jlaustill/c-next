@@ -9,7 +9,7 @@
  * - STRING_ARRAY_ELEMENT: names[0] <- "first"
  * - STRING_STRUCT_ARRAY_ELEMENT: config.items[0] <- "value"
  */
-import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
+import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import StringUtils from "../../../../../utils/StringUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";

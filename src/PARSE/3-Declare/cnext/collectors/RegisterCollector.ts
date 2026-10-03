@@ -7,14 +7,14 @@
 
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import IRegisterSymbol from "../../../../transpiler/types/symbols/IRegisterSymbol";
-import type IRegisterMemberSymbol from "../../../../transpiler/types/symbols/IRegisterMemberSymbol";
+import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
+import type IRegisterMemberSymbol from "../../../../types/symbols/IRegisterMemberSymbol";
 import TypeUtils from "../utils/TypeUtils";
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import TVisibility from "../../../../transpiler/types/TVisibility";
+import TVisibility from "../../../../types/TVisibility";
 import ParserUtils from "../../../../utils/ParserUtils";
 import MemberSymbolBase from "../utils/MemberSymbolBase";
-import type TAccessMode from "../../../../transpiler/types/TRegisterAccessMode";
+import type TAccessMode from "../../../../types/TRegisterAccessMode";
 
 class RegisterCollector {
   /**

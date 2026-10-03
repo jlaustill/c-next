@@ -27,7 +27,7 @@ import ISubstringOps from "../types/ISubstringOps";
 import IStringConcatOps from "../types/IStringConcatOps";
 import StringUtils from "../../../../utils/StringUtils";
 import BareIdentifier from "../../../../utils/BareIdentifier";
-import type TTypeInfo from "../../../../transpiler/types/TTypeInfo";
+import type TTypeInfo from "../../../../types/TTypeInfo";
 
 /**
  * Helper for string operation rendering.

@@ -1,6 +1,6 @@
 import type IPlannedCallArgument from "./IPlannedCallArgument";
-import type TSubscriptKind from "../../../../transpiler/types/TSubscriptKind";
-import type IChainStep from "../../../../transpiler/types/IChainStep";
+import type TSubscriptKind from "../../../../types/TSubscriptKind";
+import type IChainStep from "../../../../types/IChainStep";
 
 /**
  * One operation applied to a postfix expression's primary.

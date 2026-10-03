@@ -77,7 +77,7 @@ const LAYOUT_TYPE = "IBitmapFieldLayout";
  * `IBitmapFieldLayout` instead, which is why it no longer appears here.
  */
 const ALLOWED = new Map<string, string>([
-  ["src/transpiler/types/IBitmapFieldLayout.ts", LAYOUT_TYPE],
+  ["src/types/IBitmapFieldLayout.ts", LAYOUT_TYPE],
 ]);
 
 /** The two properties whose co-occurrence IS the layout shape. */
@@ -268,7 +268,7 @@ describe("one name for the bitmap field-layout shape (#1486)", () => {
         `${LAYOUT_TYPE}. Two structurally identical types type-check against ` +
         `each other, so this is agreement by coincidence -- adding a third ` +
         `property means editing every one of them in lockstep. Import ` +
-        `${LAYOUT_TYPE} from transpiler/types/, which every layer may depend ` +
+        `${LAYOUT_TYPE} from src/types/, which every layer may depend ` +
         `on. If the declaration is genuinely a different thing that happens ` +
         `to carry an offset and a width, add its PATH to ALLOWED with the ` +
         `reason -- do not reuse an allowed name to quiet this.`,

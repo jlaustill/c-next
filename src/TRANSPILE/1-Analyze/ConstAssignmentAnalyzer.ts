@@ -37,7 +37,7 @@ import FunctionReference from "./helpers/FunctionReference";
 import BoundDeclaration from "./helpers/BoundDeclaration";
 import SafeDivision from "./helpers/SafeDivision";
 import IConstAssignmentError from "./types/IConstAssignmentError";
-import TChainRoot from "../../transpiler/types/TChainRoot";
+import TChainRoot from "../../types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** What kind of const binding a name is, or null when it is not const. */

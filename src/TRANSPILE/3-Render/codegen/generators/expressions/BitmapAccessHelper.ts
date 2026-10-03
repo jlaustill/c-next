@@ -7,7 +7,7 @@
  * - Register member bitmap type field access
  * - Struct member bitmap type field access
  */
-import type IBitmapFieldLayout from "../../../../../transpiler/types/IBitmapFieldLayout";
+import type IBitmapFieldLayout from "../../../../../types/IBitmapFieldLayout";
 import accessGenerators from "./AccessExprGenerator";
 import TGeneratorEffect from "../TGeneratorEffect";
 import invariant from "../../../../../utils/invariant";

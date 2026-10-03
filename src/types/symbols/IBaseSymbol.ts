@@ -1,5 +1,5 @@
 import type TSymbolKindCNext from "../symbol-kinds/TSymbolKindCNext";
-import type ESourceLanguage from "../../../utils/types/ESourceLanguage";
+import type ESourceLanguage from "../../utils/types/ESourceLanguage";
 import type TVisibility from "../TVisibility";
 import type ISourceSpan from "../ISourceSpan";
 

@@ -17,8 +17,8 @@ import PassByValueAnalyzer from "../PassByValueAnalyzer";
 import TranspileState from "../../TranspileState";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import type TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
-import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import type TCSymbol from "../../../types/symbols/c/TCSymbol";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 interface IParameterShape {
   name: string;

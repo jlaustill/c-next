@@ -7,7 +7,7 @@
  * nested includes (A includes B, B includes C with enum).
  */
 
-import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
+import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import type ITransitiveIncludes from "./types/ITransitiveIncludes";
 
 /**

@@ -28,7 +28,7 @@
  * need an include".
  */
 
-import type TSymbol from "../../transpiler/types/symbols/TSymbol";
+import type TSymbol from "../../types/symbols/TSymbol";
 import TypeResolver from "../../utils/TypeResolver";
 
 class HeaderTypeNames {

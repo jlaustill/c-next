@@ -3,7 +3,7 @@ import DeclarationSite from "../../../../utils/DeclarationSite";
 import parse from "./testHelpers";
 import ScopeCollector from "../collectors/ScopeCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import SymbolGuards from "../../../../transpiler/types/symbols/SymbolGuards";
+import SymbolGuards from "../../../../types/symbols/SymbolGuards";
 import SymbolRegistry from "../../SymbolRegistry";
 import TypeResolver from "../../../../utils/TypeResolver";
 

@@ -25,7 +25,7 @@
  * `TRegisterAccessMode`'s own header records the same lesson from #1450, and
  * `RegisterCollector` already narrows at its boundary the same way.
  */
-import type TRegisterAccessMode from "../../../../transpiler/types/TRegisterAccessMode";
+import type TRegisterAccessMode from "../../../../types/TRegisterAccessMode";
 
 interface IPlannedRegisterMember {
   /** Member name as written, e.g. `DR`. Unqualified -- the prefix is applied by the formatter. */

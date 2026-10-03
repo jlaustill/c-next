@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import StringOperationsHelper from "../StringOperationsHelper";
-import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
+import type TTypeInfo from "../../../../../types/TTypeInfo";
 
 /**
  * #1668 (C7): what each case declares, by name. The helper holds only an

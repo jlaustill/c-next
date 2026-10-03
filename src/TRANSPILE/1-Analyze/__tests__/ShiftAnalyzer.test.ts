@@ -7,7 +7,7 @@ import { describe, it, expect } from "vitest";
 import ShiftAnalyzer from "../ShiftAnalyzer";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
-import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 
 describe("ShiftAnalyzer", () => {

@@ -17,7 +17,7 @@
 import { describe, it, expect } from "vitest";
 import TypeGenerationHelper from "../TypeGenerationHelper";
 import type IPlannedType from "../../types/IPlannedType";
-import type INamedTypeResolution from "../../../../../transpiler/types/INamedTypeResolution";
+import type INamedTypeResolution from "../../../../../types/INamedTypeResolution";
 
 describe("TypeGenerationHelper", () => {
   /** A plan with every alternative absent, for a test to fill one in. */

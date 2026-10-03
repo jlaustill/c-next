@@ -6,8 +6,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import bitmapHandlers from "../BitmapHandlers";
-import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
-import type IBitmapFieldLayout from "../../../../../../transpiler/types/IBitmapFieldLayout";
+import AssignmentKind from "../../../../../../types/AssignmentKind";
+import type IBitmapFieldLayout from "../../../../../../types/IBitmapFieldLayout";
 import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
 import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";

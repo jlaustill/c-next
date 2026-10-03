@@ -18,7 +18,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
-import type IFileSystem from "../types/IFileSystem";
+import type IFileSystem from "../../types/IFileSystem";
 import Preprocessor from "../../PARSE/1-Discover/preprocessor/Preprocessor";
 
 // No conditional of its own, so it is used as written, and it is usable.

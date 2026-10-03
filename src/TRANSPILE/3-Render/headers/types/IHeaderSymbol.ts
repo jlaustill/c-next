@@ -11,7 +11,7 @@
  * - Parameters for function signatures
  */
 
-import TSymbolKind from "../../../../transpiler/types/symbol-kinds/TSymbolKind";
+import TSymbolKind from "../../../../types/symbol-kinds/TSymbolKind";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 
 interface IHeaderSymbol {

@@ -9,12 +9,12 @@
  * _executePipeline(). There is ONE pipeline for all transpilation.
  */
 
-import type TRunTarget from "./types/TRunTarget";
+import type TRunTarget from "../types/TRunTarget";
 import { basename, resolve, relative, sep } from "node:path";
 import { availableParallelism } from "node:os";
-import type IConflict from "./types/IConflict";
+import type IConflict from "../types/IConflict";
 
-import IFileSystem from "./types/IFileSystem";
+import IFileSystem from "../types/IFileSystem";
 
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import CNextSourceParser from "../PARSE/2-Parse/CNextSourceParser";
@@ -37,7 +37,7 @@ import QualifiedCName from "../utils/QualifiedCName";
 import ExternalTypeHeaderBuilder from "../TRANSPILE/3-Render/headers/ExternalTypeHeaderBuilder";
 import HeaderGeneratorUtils from "../TRANSPILE/3-Render/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "../TRANSPILE/3-Render/headers/types/IHeaderEmissionFacts";
-import IHeaderCallbackType from "./types/IHeaderCallbackType";
+import IHeaderCallbackType from "../types/IHeaderCallbackType";
 import IncludeDirectiveText from "../utils/IncludeDirectiveText";
 import SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import type TranspileState from "../TRANSPILE/TranspileState";
@@ -45,44 +45,44 @@ import ESourceLanguage from "../utils/types/ESourceLanguage";
 import CNextResolver from "../PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "../PARSE/3-Declare/SymbolRegistry";
 import Program from "../PARSE/4-Resolve/Program";
-import type IProgram from "./types/IProgram";
-import type IFileSymbols from "./types/IFileSymbols";
-import type IParsedFile from "./types/IParsedFile";
+import type IProgram from "../types/IProgram";
+import type IFileSymbols from "../types/IFileSymbols";
+import type IParsedFile from "../types/IParsedFile";
 import CResolver from "../PARSE/3-Declare/c/index";
 import CppResolver from "../PARSE/3-Declare/cpp/index";
 import HeaderSymbolAdapter from "../TRANSPILE/3-Render/headers/adapters/HeaderSymbolAdapter";
 import IHeaderSymbol from "../TRANSPILE/3-Render/headers/types/IHeaderSymbol";
-import TSymbol from "./types/symbols/TSymbol";
+import TSymbol from "../types/symbols/TSymbol";
 
 import EFileType from "../PARSE/1-Discover/types/EFileType";
 import IDiscoveredFile from "../PARSE/1-Discover/types/IDiscoveredFile";
 import OutputExtensions from "../utils/OutputExtensions";
 import DeclarationSite from "../utils/DeclarationSite";
-import type IOutputExtensions from "./types/IOutputExtensions";
+import type IOutputExtensions from "../types/IOutputExtensions";
 
 import ParserUtils from "../utils/ParserUtils";
-import ITranspilerConfig from "./types/ITranspilerConfig";
+import ITranspilerConfig from "../types/ITranspilerConfig";
 import ITranspilerResult from "./types/ITranspilerResult";
-import IFileResult from "./types/IFileResult";
+import IFileResult from "../types/IFileResult";
 import type IRunAnchor from "../PARSE/1-Discover/types/IRunAnchor";
 import IPipelineFile from "../PARSE/1-Discover/types/IPipelineFile";
 import type ISourceGraph from "../PARSE/1-Discover/types/ISourceGraph";
 import type IFileIncludes from "../PARSE/1-Discover/types/IFileIncludes";
 import Discover from "../PARSE/1-Discover/Discover";
 import RunAnchor from "../PARSE/1-Discover/RunAnchor";
-import TTranspileInput from "./types/TTranspileInput";
+import TTranspileInput from "../types/TTranspileInput";
 import ITranspileError from "../lib/types/ITranspileError";
 import runAnalyzers from "../TRANSPILE/1-Analyze/runAnalyzers";
 import Diagnostics from "../TRANSPILE/1-Analyze/Diagnostics";
-import type IDiagnostics from "./types/IDiagnostics";
-import type ICodeGenSymbols from "./types/ICodeGenSymbols";
+import type IDiagnostics from "../types/IDiagnostics";
+import type ICodeGenSymbols from "../types/ICodeGenSymbols";
 import CacheManager from "../utils/cache/CacheManager";
 import ConcurrencyLimit from "../utils/ConcurrencyLimit";
 import detectCppSyntax from "../PARSE/1-Discover/detectCppSyntax";
 import detectAssemblySyntax from "../PARSE/1-Discover/detectAssemblySyntax";
 import ExternalDeclarationOracle from "../PARSE/1-Discover/preprocessor/ExternalDeclarationOracle";
 import TypedefParamParser from "../TRANSPILE/3-Render/codegen/helpers/TypedefParamParser";
-import type IRecordedRequirement from "./types/IRecordedRequirement";
+import type IRecordedRequirement from "../types/IRecordedRequirement";
 import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../utils/RequirementAggregator";
 import TargetCatalogFile from "../PARSE/1-Discover/TargetCatalogFile";

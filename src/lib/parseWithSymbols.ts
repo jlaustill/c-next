@@ -11,7 +11,7 @@ import ScopeUtils from "../utils/ScopeUtils";
 import TypeResolver from "../utils/TypeResolver";
 import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
-import TSymbol from "../transpiler/types/symbols/TSymbol";
+import TSymbol from "../types/symbols/TSymbol";
 import SymbolPathUtils from "./utils/SymbolPathUtils";
 
 // Re-export helpers for use in this module
@@ -56,7 +56,7 @@ function convertTSymbolsToISymbolInfo(
 }
 
 function convertBitmap(
-  bitmap: import("../transpiler/types/symbols/IBitmapSymbol").default,
+  bitmap: import("../types/symbols/IBitmapSymbol").default,
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
   const cName = ScopeUtils.getTranspiledCName(bitmap);
@@ -96,7 +96,7 @@ function convertBitmap(
 }
 
 function convertEnum(
-  enumSym: import("../transpiler/types/symbols/IEnumSymbol").default,
+  enumSym: import("../types/symbols/IEnumSymbol").default,
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
   const cName = ScopeUtils.getTranspiledCName(enumSym);
@@ -134,7 +134,7 @@ function convertEnum(
 }
 
 function convertStruct(
-  struct: import("../transpiler/types/symbols/IStructSymbol").default,
+  struct: import("../types/symbols/IStructSymbol").default,
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
   const cName = ScopeUtils.getTranspiledCName(struct);
@@ -173,7 +173,7 @@ function convertStruct(
 }
 
 function convertFunction(
-  func: import("../transpiler/types/symbols/IFunctionSymbol").default,
+  func: import("../types/symbols/IFunctionSymbol").default,
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
   const cName = ScopeUtils.getTranspiledCName(func);
@@ -203,7 +203,7 @@ function convertFunction(
 }
 
 function convertVariable(
-  variable: import("../transpiler/types/symbols/IVariableSymbol").default,
+  variable: import("../types/symbols/IVariableSymbol").default,
 ): ISymbolInfo {
   const cName = ScopeUtils.getTranspiledCName(variable);
   const parent = ScopeUtils.leafOf(variable.scopePath) || undefined;
@@ -222,7 +222,7 @@ function convertVariable(
 }
 
 function convertRegister(
-  register: import("../transpiler/types/symbols/IRegisterSymbol").default,
+  register: import("../types/symbols/IRegisterSymbol").default,
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
   const cName = ScopeUtils.getTranspiledCName(register);
@@ -261,7 +261,7 @@ function convertRegister(
 }
 
 function convertScope(
-  scope: import("../transpiler/types/symbols/IScopeSymbol").default,
+  scope: import("../types/symbols/IScopeSymbol").default,
 ): ISymbolInfo {
   const scopeId = ScopeUtils.pathOf(scope);
   const scopeParentId = getParentId(scope.scopePath);

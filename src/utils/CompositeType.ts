@@ -8,7 +8,7 @@
  * way); this reads the leaves `OperandTyper.valueLeaves` collects, so the
  * two passes cannot count a different set.
  */
-import type IOperandType from "../transpiler/types/IOperandType";
+import type IOperandType from "../types/IOperandType";
 
 class CompositeType {
   /**

@@ -27,14 +27,14 @@ one.
 
 ## By layer
 
-| Layer                   | Modules |
-| ----------------------- | ------: |
-| `src/TRANSPILE/`        |      63 |
-| `src/PARSE/`            |      21 |
-| `src/utils/`            |      12 |
-| `src/transpiler/`       |       3 |
-| `src/transpiler/types/` |       2 |
-| **total**               | **101** |
+| Layer             | Modules |
+| ----------------- | ------: |
+| `src/TRANSPILE/`  |      63 |
+| `src/PARSE/`      |      21 |
+| `src/utils/`      |      12 |
+| `src/transpiler/` |       3 |
+| `src/types/`      |       2 |
+| **total**         | **101** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -131,8 +131,8 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/transpiler/CallbackCompatibility.ts`                       | grammar           |
 | `src/transpiler/ModificationFacts.ts`                           | grammar           |
 | `src/transpiler/Transpiler.ts`                                  | grammar           |
-| `src/transpiler/types/IParsedFile.ts`                           | antlr4ng, grammar |
-| `src/transpiler/types/ITypeAccessors.ts`                        | grammar           |
+| `src/types/IParsedFile.ts`                                      | antlr4ng, grammar |
+| `src/types/ITypeAccessors.ts`                                   | grammar           |
 | `src/utils/ArrayDimensionParser.ts`                             | grammar           |
 | `src/utils/ast/AssignmentTargetExtractor.ts`                    | grammar           |
 | `src/utils/ast/ChildStatementCollector.ts`                      | grammar           |

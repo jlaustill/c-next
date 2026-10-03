@@ -6,7 +6,7 @@
  * for the several-enums case. One builder, one wording, used by the bare
  * member rule and by the switch analyzer's case-label check.
  */
-import ICodeGenSymbols from "../../../transpiler/types/ICodeGenSymbols";
+import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 
 class EnumMemberSuggestion {
   /** The enums that declare `member`, in declaration order. */

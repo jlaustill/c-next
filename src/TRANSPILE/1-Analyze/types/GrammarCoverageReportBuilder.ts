@@ -3,7 +3,7 @@
  * Shared between GrammarCoverageListener and scripts/grammar-coverage.ts
  */
 
-import IGrammarCoverageReport from "../../../transpiler/types/IGrammarCoverageReport";
+import IGrammarCoverageReport from "../../../types/IGrammarCoverageReport";
 
 interface IBuildReportInput {
   parserRuleNames: string[];

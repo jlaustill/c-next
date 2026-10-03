@@ -1,4 +1,4 @@
-import type TLanguageStandard from "../types/TLanguageStandard";
+import type TLanguageStandard from "../../types/TLanguageStandard";
 
 /**
  * Issue #1143: Ordering within a language family, so "above the baseline" is a

@@ -35,8 +35,8 @@
  * parse type at all.
  */
 
-import type TParameterInfo from "../../../transpiler/types/TParameterInfo";
-import type TTypeInfo from "../../../transpiler/types/TTypeInfo";
+import type TParameterInfo from "../../../types/TParameterInfo";
+import type TTypeInfo from "../../../types/TTypeInfo";
 import type IRootHolding from "./types/IRootHolding";
 
 /** What `rootHolding` asks of the types a root may name */

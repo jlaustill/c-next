@@ -1,13 +1,13 @@
-import LANGUAGE_STANDARD_FAMILY from "../transpiler/constants/LANGUAGE_STANDARD_FAMILY";
-import LANGUAGE_STANDARD_ORDER from "../transpiler/constants/LANGUAGE_STANDARD_ORDER";
-import TOOLCHAIN_REQUIREMENTS from "../transpiler/constants/TOOLCHAIN_REQUIREMENTS";
-import type ICompilerFloor from "../transpiler/types/ICompilerFloor";
-import type IRecordedRequirement from "../transpiler/types/IRecordedRequirement";
-import type IToolchainRequirement from "../transpiler/types/IToolchainRequirement";
-import type TLanguageStandard from "../transpiler/types/TLanguageStandard";
-import type TCompilerExtension from "../transpiler/types/TCompilerExtension";
-import type TOutputMode from "../transpiler/types/TOutputMode";
-import type TRequirementKey from "../transpiler/types/TRequirementKey";
+import LANGUAGE_STANDARD_FAMILY from "./constants/LANGUAGE_STANDARD_FAMILY";
+import LANGUAGE_STANDARD_ORDER from "./constants/LANGUAGE_STANDARD_ORDER";
+import TOOLCHAIN_REQUIREMENTS from "./constants/TOOLCHAIN_REQUIREMENTS";
+import type ICompilerFloor from "../types/ICompilerFloor";
+import type IRecordedRequirement from "../types/IRecordedRequirement";
+import type IToolchainRequirement from "../types/IToolchainRequirement";
+import type TLanguageStandard from "../types/TLanguageStandard";
+import type TCompilerExtension from "../types/TCompilerExtension";
+import type TOutputMode from "../types/TOutputMode";
+import type TRequirementKey from "../types/TRequirementKey";
 
 /**
  * Issue #1143: Shared reasoning over recorded toolchain requirements.

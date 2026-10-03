@@ -14,7 +14,7 @@
  *    functions that return a struct pointer.
  */
 import type SymbolTable from "../PARSE/3-Declare/SymbolTable";
-import STRUCT_POINTER_C_FUNCTIONS from "../transpiler/constants/STRUCT_POINTER_C_FUNCTIONS";
+import STRUCT_POINTER_C_FUNCTIONS from "./constants/STRUCT_POINTER_C_FUNCTIONS";
 
 /** What the three arms read of a declaration */
 interface IPointerFacts {

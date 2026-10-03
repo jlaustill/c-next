@@ -10,7 +10,7 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import TranspileState from "../../TranspileState";
-import TYPE_WIDTH from "../../../transpiler/constants/TYPE_WIDTH";
+import TYPE_WIDTH from "../../../types/TYPE_WIDTH";
 import dimensionEvalOptions from "../dimensionEvalOptions";
 import ParserUtils from "../../../utils/ParserUtils";
 import testAnalysisContextFor from "../../1-Analyze/__tests__/testAnalysisContextFor";

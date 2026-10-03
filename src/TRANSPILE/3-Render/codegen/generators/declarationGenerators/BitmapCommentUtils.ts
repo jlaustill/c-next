@@ -6,7 +6,7 @@
  * to reduce code duplication.
  */
 
-import type IBitmapFieldLayout from "../../../../../transpiler/types/IBitmapFieldLayout";
+import type IBitmapFieldLayout from "../../../../../types/IBitmapFieldLayout";
 
 /**
  * Generate comment lines describing bitmap field layout.

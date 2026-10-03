@@ -7,15 +7,15 @@
  */
 import { describe, expect, it } from "vitest";
 import VisibleSymbols from "../VisibleSymbols";
-import type IBitmapFieldLayout from "../../../transpiler/types/IBitmapFieldLayout";
+import type IBitmapFieldLayout from "../../../types/IBitmapFieldLayout";
 import TSymbolInfoAdapter from "../../3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import IBitmapSymbol from "../../../transpiler/types/symbols/IBitmapSymbol";
-import IVariableSymbol from "../../../transpiler/types/symbols/IVariableSymbol";
+import IBitmapSymbol from "../../../types/symbols/IBitmapSymbol";
+import IVariableSymbol from "../../../types/symbols/IVariableSymbol";
 import TypeResolver from "../../../utils/TypeResolver";
 import TestSymbolUtils from "../../3-Declare/cnext/__tests__/testSymbolUtils";
-import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
-import TestMembers from "../../../transpiler/types/__testUtils__/testMembers";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
+import TestMembers from "../../../types/__testUtils__/testMembers";
 import CNextSourceParser from "../../2-Parse/CNextSourceParser";
 import CNextResolver from "../../3-Declare/cnext/index";
 import SymbolRegistry from "../../3-Declare/SymbolRegistry";

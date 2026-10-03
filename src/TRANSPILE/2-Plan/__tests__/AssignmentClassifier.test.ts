@@ -1,16 +1,16 @@
-import type IBitmapFieldLayout from "../../../transpiler/types/IBitmapFieldLayout";
+import type IBitmapFieldLayout from "../../../types/IBitmapFieldLayout";
 import { readFileSync } from "node:fs";
-import type IOperandType from "../../../transpiler/types/IOperandType";
-import type TSubscriptKind from "../../../transpiler/types/TSubscriptKind";
+import type IOperandType from "../../../types/IOperandType";
+import type TSubscriptKind from "../../../types/TSubscriptKind";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentClassifier from "../AssignmentClassifier";
-import AssignmentKind from "../../../transpiler/types/AssignmentKind";
+import AssignmentKind from "../../../types/AssignmentKind";
 import AssignmentHandlerRegistry from "../../3-Render/codegen/assignment/index";
 import IAssignmentContext from "../types/IAssignmentContext";
 import TranspileState from "../../TranspileState";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
-import TTypeInfo from "../../../transpiler/types/TTypeInfo";
+import TTypeInfo from "../../../types/TTypeInfo";
 import enterScope from "../../../transpiler/__tests__/enterScope";
 import HandlerTestUtils from "../../3-Render/codegen/assignment/handlers/__tests__/handlerTestUtils";
 

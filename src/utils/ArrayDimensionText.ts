@@ -42,7 +42,7 @@
  */
 
 import LiteralUtils from "./LiteralUtils.js";
-import UNRESOLVED_DIMENSION from "../transpiler/constants/UNRESOLVED_DIMENSION.js";
+import UNRESOLVED_DIMENSION from "../types/UNRESOLVED_DIMENSION";
 
 class ArrayDimensionText {
   /**

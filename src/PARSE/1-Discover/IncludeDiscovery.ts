@@ -8,7 +8,7 @@ import invariant from "../../utils/invariant";
 import FileDiscovery from "./FileDiscovery";
 import PlatformIOIni from "./PlatformIOIni";
 import EFileType from "./types/EFileType";
-import IFileSystem from "../../transpiler/types/IFileSystem";
+import IFileSystem from "../../types/IFileSystem";
 
 /**
  * Auto-discovery of include paths for C-Next compilation

@@ -5,7 +5,7 @@
  * Extracts common lookup patterns for improved testability.
  */
 
-import TSymbolKind from "../../../../transpiler/types/symbol-kinds/TSymbolKind";
+import TSymbolKind from "../../../../types/symbol-kinds/TSymbolKind";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 
 /**

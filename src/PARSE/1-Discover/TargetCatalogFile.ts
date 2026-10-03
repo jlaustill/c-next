@@ -20,8 +20,8 @@ import { fileURLToPath } from "node:url";
 
 import TargetCatalogParser from "../2-Parse/TargetCatalogParser";
 import TargetDescriptions from "../4-Resolve/TargetDescriptions";
-import type ITargetDescription from "../../transpiler/types/ITargetDescription";
-import type IFileSystem from "../../transpiler/types/IFileSystem";
+import type ITargetDescription from "../../types/ITargetDescription";
+import type IFileSystem from "../../types/IFileSystem";
 
 const CATALOG = join("targets", "targets.cnx");
 

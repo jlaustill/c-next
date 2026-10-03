@@ -6,9 +6,9 @@
 import { describe, it, expect } from "vitest";
 import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
 import ArrayDimensionParser from "../ArrayDimensionParser";
-import UNRESOLVED_DIMENSION from "../../transpiler/constants/UNRESOLVED_DIMENSION";
+import UNRESOLVED_DIMENSION from "../../types/UNRESOLVED_DIMENSION";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
+import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import type IConstantEvalOptions from "../types/IConstantEvalOptions";
 
 /** A lookup over untyped consts, as a literal-only test needs */

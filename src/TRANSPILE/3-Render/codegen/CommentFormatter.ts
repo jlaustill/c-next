@@ -1,5 +1,5 @@
-import ECommentType from "../../../transpiler/types/ECommentType";
-import IComment from "../../../transpiler/types/IComment";
+import ECommentType from "../../../types/ECommentType";
+import IComment from "../../../types/IComment";
 
 /**
  * Formats comments for C output (ADR-043)

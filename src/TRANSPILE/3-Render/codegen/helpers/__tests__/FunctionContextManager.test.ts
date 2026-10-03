@@ -22,8 +22,8 @@ import IFunctionContextCallbacks from "../../types/IFunctionContextCallbacks";
 import TranspileState from "../../../../TranspileState";
 import type IPlannedType from "../../types/IPlannedType";
 import type IPlannedFunctionParameter from "../../types/IPlannedFunctionParameter";
-import type INamedTypeResolution from "../../../../../transpiler/types/INamedTypeResolution";
-import type IProgram from "../../../../../transpiler/types/IProgram";
+import type INamedTypeResolution from "../../../../../types/INamedTypeResolution";
+import type IProgram from "../../../../../types/IProgram";
 
 /**
  * Helper to set up state.symbols with minimal fields.

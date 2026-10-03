@@ -8,17 +8,17 @@
  * into the flat map format that CodeGenerator expects via ISymbolInfo.
  */
 
-import type IBitmapFieldLayout from "../../../../transpiler/types/IBitmapFieldLayout";
-import ICodeGenSymbols from "../../../../transpiler/types/ICodeGenSymbols";
+import type IBitmapFieldLayout from "../../../../types/IBitmapFieldLayout";
+import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 import CNEXT_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
-import TSymbol from "../../../../transpiler/types/symbols/TSymbol";
-import IBitmapSymbol from "../../../../transpiler/types/symbols/IBitmapSymbol";
-import IEnumSymbol from "../../../../transpiler/types/symbols/IEnumSymbol";
-import IFunctionSymbol from "../../../../transpiler/types/symbols/IFunctionSymbol";
-import IStructSymbol from "../../../../transpiler/types/symbols/IStructSymbol";
-import IRegisterSymbol from "../../../../transpiler/types/symbols/IRegisterSymbol";
-import IScopeSymbol from "../../../../transpiler/types/symbols/IScopeSymbol";
-import IVariableSymbol from "../../../../transpiler/types/symbols/IVariableSymbol";
+import TSymbol from "../../../../types/symbols/TSymbol";
+import IBitmapSymbol from "../../../../types/symbols/IBitmapSymbol";
+import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
+import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
+import IStructSymbol from "../../../../types/symbols/IStructSymbol";
+import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
+import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
+import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
 import TypeResolver from "../../../../utils/TypeResolver";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import QualifiedCName from "../../../../utils/QualifiedCName";

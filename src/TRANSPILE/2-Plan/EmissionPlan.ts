@@ -44,11 +44,11 @@
  * ever ran.
  */
 
-import type IEmissionFacts from "../../transpiler/types/IEmissionFacts";
-import type IEmissionPlan from "../../transpiler/types/IEmissionPlan";
-import type IPlannedBlock from "../../transpiler/types/IPlannedBlock";
-import type TRequirementKey from "../../transpiler/types/TRequirementKey";
-import SYSTEM_INCLUDE_TARGETS from "../../transpiler/constants/SYSTEM_INCLUDE_TARGETS";
+import type IEmissionFacts from "../../types/IEmissionFacts";
+import type IEmissionPlan from "../../types/IEmissionPlan";
+import type IPlannedBlock from "../../types/IPlannedBlock";
+import type TRequirementKey from "../../types/TRequirementKey";
+import SYSTEM_INCLUDE_TARGETS from "./SYSTEM_INCLUDE_TARGETS";
 import HeaderOwnership from "./HeaderOwnership";
 
 /**

@@ -15,7 +15,7 @@ import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
 import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
-import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
+import TTypeInfo from "../../../../types/TTypeInfo";
 import type TranspileState from "../../../TranspileState";
 
 interface IOrchestrator {

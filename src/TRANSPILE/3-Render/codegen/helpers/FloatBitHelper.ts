@@ -16,13 +16,13 @@
  * Migrated to use CodeGenState instead of constructor DI.
  */
 
-import TIncludeHeader from "../../../../transpiler/types/TIncludeHeader";
+import TIncludeHeader from "../../../../types/TIncludeHeader";
 import BitRangeHelper from "./BitRangeHelper";
 import SaturatingCast from "./SaturatingCast";
 import BitUtils from "../../../../utils/BitUtils";
 import ComplianceAnnotations from "../../../2-Plan/ComplianceAnnotations";
 import type TranspileState from "../../../TranspileState";
-import type IFloatBitWrite from "../../../../transpiler/types/IFloatBitWrite";
+import type IFloatBitWrite from "../../../../types/IFloatBitWrite";
 
 /**
  * Callback types for code generation operations.

@@ -1,6 +1,6 @@
-import type IBitmapFieldLayout from "../../../../transpiler/types/IBitmapFieldLayout";
+import type IBitmapFieldLayout from "../../../../types/IBitmapFieldLayout";
 import SymbolTable from "../../../../PARSE/3-Declare/SymbolTable";
-import IHeaderCallbackType from "../../../../transpiler/types/IHeaderCallbackType";
+import IHeaderCallbackType from "../../../../types/IHeaderCallbackType";
 
 /**
  * Input interface for header type generators.

@@ -6,7 +6,7 @@ import FunctionUtils from "../FunctionUtils";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import ParameterUtils from "../../../utils/ParameterUtils";
 import TTypeUtils from "../../../utils/TTypeUtils";
-import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 describe("IFunctionSymbol", () => {
   describe("FunctionUtils.create", () => {

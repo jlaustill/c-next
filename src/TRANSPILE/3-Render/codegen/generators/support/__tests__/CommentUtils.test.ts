@@ -6,8 +6,8 @@ import { describe, it, expect, vi } from "vitest";
 import commentUtils from "../CommentUtils";
 import CommentScanner from "../../../../../../PARSE/2-Parse/CommentScanner";
 import CommentFormatter from "../../../CommentFormatter";
-import ECommentType from "../../../../../../transpiler/types/ECommentType";
-import IComment from "../../../../../../transpiler/types/IComment";
+import ECommentType from "../../../../../../types/ECommentType";
+import IComment from "../../../../../../types/IComment";
 
 const {
   getLeadingComments,

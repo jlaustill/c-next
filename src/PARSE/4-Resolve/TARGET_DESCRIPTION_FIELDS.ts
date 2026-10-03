@@ -5,8 +5,8 @@
  * table forgets, and the validator refuses a catalog whose `struct
  * TargetDescription` disagrees with it. The allowed values are the ADR's.
  */
-import type ITargetDescription from "../types/ITargetDescription";
-import type ITargetFieldSpec from "../types/ITargetFieldSpec";
+import type ITargetDescription from "../../types/ITargetDescription";
+import type ITargetFieldSpec from "./types/ITargetFieldSpec";
 
 const TARGET_DESCRIPTION_FIELDS: {
   readonly [K in keyof ITargetDescription]-?: ITargetFieldSpec;

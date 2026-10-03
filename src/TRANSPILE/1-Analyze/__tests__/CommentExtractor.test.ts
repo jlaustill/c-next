@@ -7,7 +7,7 @@ import { Token } from "antlr4ng";
 import CommentExtractor from "../CommentExtractor";
 import CommentScanner from "../../../PARSE/2-Parse/CommentScanner";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
-import ECommentType from "../../../transpiler/types/ECommentType";
+import ECommentType from "../../../types/ECommentType";
 
 // Mock token factory
 const createToken = (opts: {

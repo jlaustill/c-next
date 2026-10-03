@@ -4,7 +4,7 @@
  * Tests for the shared bitmap field access generation utility.
  */
 
-import type IBitmapFieldLayout from "../../../../../../transpiler/types/IBitmapFieldLayout";
+import type IBitmapFieldLayout from "../../../../../../types/IBitmapFieldLayout";
 import { describe, it, expect } from "vitest";
 import BitmapAccessHelper from "../BitmapAccessHelper";
 import TranspileState from "../../../../../TranspileState";

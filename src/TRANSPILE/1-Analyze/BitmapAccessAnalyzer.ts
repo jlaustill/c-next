@@ -35,7 +35,7 @@ import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import ConstantExpression from "./helpers/ConstantExpression";
 import IBitmapAccessError from "./types/IBitmapAccessError";
 import type TAssignmentSite from "./types/TAssignmentSite";
-import TChainRoot from "../../transpiler/types/TChainRoot";
+import TChainRoot from "../../types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 class BitmapAccessListener extends CNextListener {

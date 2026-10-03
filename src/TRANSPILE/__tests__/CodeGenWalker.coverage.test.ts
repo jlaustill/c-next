@@ -24,7 +24,7 @@ import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import TSymbolInfoAdapter from "../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import CallbackTypedefFormatter from "../3-Render/codegen/helpers/CallbackTypedefFormatter";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
-import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
 import enterScope from "../../transpiler/__tests__/enterScope";
 
 /**

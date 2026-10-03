@@ -11,7 +11,7 @@ import { CharStream, CommonTokenStream, Parser, Token } from "antlr4ng";
 import { CNextLexer } from "./grammar/CNextLexer";
 import { CNextParser } from "./grammar/CNextParser";
 import CommentScanner from "./CommentScanner";
-import IParsedFile from "../../transpiler/types/IParsedFile";
+import IParsedFile from "../../types/IParsedFile";
 import ITranspileError from "../../lib/types/ITranspileError";
 
 /**

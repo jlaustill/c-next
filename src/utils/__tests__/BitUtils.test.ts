@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import BitUtils from "../BitUtils";
-import type IOperandType from "../../transpiler/types/IOperandType";
+import type IOperandType from "../../types/IOperandType";
 
 // ========================================================================
 // boolToInt

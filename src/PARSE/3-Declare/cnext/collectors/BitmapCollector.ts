@@ -7,12 +7,12 @@
 
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import IBitmapSymbol from "../../../../transpiler/types/symbols/IBitmapSymbol";
-import type IBitmapFieldSymbol from "../../../../transpiler/types/symbols/IBitmapFieldSymbol";
-import BITMAP_SIZE from "../../../../transpiler/constants/BITMAP_SIZE";
-import BITMAP_BACKING_TYPE from "../../../../transpiler/constants/BITMAP_BACKING_TYPE";
+import IBitmapSymbol from "../../../../types/symbols/IBitmapSymbol";
+import type IBitmapFieldSymbol from "../../../../types/symbols/IBitmapFieldSymbol";
+import BITMAP_SIZE from "./BITMAP_SIZE";
+import BITMAP_BACKING_TYPE from "./BITMAP_BACKING_TYPE";
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import TVisibility from "../../../../transpiler/types/TVisibility";
+import TVisibility from "../../../../types/TVisibility";
 import ParserUtils from "../../../../utils/ParserUtils";
 import MemberSymbolBase from "../utils/MemberSymbolBase";
 

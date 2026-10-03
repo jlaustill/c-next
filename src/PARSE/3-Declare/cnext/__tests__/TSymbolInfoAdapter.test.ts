@@ -9,20 +9,20 @@
 import { describe, expect, it } from "vitest";
 import TSymbolInfoAdapter from "../adapters/TSymbolInfoAdapter";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import IBitmapSymbol from "../../../../transpiler/types/symbols/IBitmapSymbol";
-import IEnumSymbol from "../../../../transpiler/types/symbols/IEnumSymbol";
-import IStructSymbol from "../../../../transpiler/types/symbols/IStructSymbol";
-import IRegisterSymbol from "../../../../transpiler/types/symbols/IRegisterSymbol";
-import IVariableSymbol from "../../../../transpiler/types/symbols/IVariableSymbol";
-import IFunctionSymbol from "../../../../transpiler/types/symbols/IFunctionSymbol";
+import IBitmapSymbol from "../../../../types/symbols/IBitmapSymbol";
+import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
+import IStructSymbol from "../../../../types/symbols/IStructSymbol";
+import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
+import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
+import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
 import TypeResolver from "../../../../utils/TypeResolver";
 import TestScopeUtils from "./testUtils";
 import TestSymbolUtils from "./testSymbolUtils";
-import TestSourceSpan from "../../../../transpiler/types/__testUtils__/testSourceSpan";
-import TestEnumMembers from "../../../../transpiler/types/__testUtils__/testEnumMembers";
-import TestMembers from "../../../../transpiler/types/__testUtils__/testMembers";
-import IScopeSymbol from "../../../../transpiler/types/symbols/IScopeSymbol";
-import TVisibility from "../../../../transpiler/types/TVisibility";
+import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
+import TestEnumMembers from "../../../../types/__testUtils__/testEnumMembers";
+import TestMembers from "../../../../types/__testUtils__/testMembers";
+import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
+import TVisibility from "../../../../types/TVisibility";
 
 describe("TSymbolInfoAdapter", () => {
   // Reset global scope between tests to avoid state pollution

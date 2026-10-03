@@ -1,5 +1,5 @@
-import type ICodeGenSymbols from "../../../transpiler/types/ICodeGenSymbols";
-import type IProgram from "../../../transpiler/types/IProgram";
+import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
+import type IProgram from "../../../types/IProgram";
 import type SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 
 /**

@@ -8,8 +8,8 @@
 import LexicalScopeCollector from "./collectors/LexicalScopeCollector";
 import * as Parser from "../../2-Parse/grammar/CNextParser";
 import ScopeUtils from "../../../utils/ScopeUtils";
-import TSymbol from "../../../transpiler/types/symbols/TSymbol";
-import IFileSymbols from "../../../transpiler/types/IFileSymbols";
+import TSymbol from "../../../types/symbols/TSymbol";
+import IFileSymbols from "../../../types/IFileSymbols";
 import SymbolRegistry from "../SymbolRegistry";
 import BitmapCollector from "./collectors/BitmapCollector";
 import EnumCollector from "./collectors/EnumCollector";
@@ -19,7 +19,7 @@ import VariableCollector from "./collectors/VariableCollector";
 import RegisterCollector from "./collectors/RegisterCollector";
 import ScopeCollector from "./collectors/ScopeCollector";
 import TYPE_FORMING_KINDS from "../TYPE_FORMING_KINDS";
-import TSymbolKindCNext from "../../../transpiler/types/symbol-kinds/TSymbolKindCNext";
+import TSymbolKindCNext from "../../../types/symbol-kinds/TSymbolKindCNext";
 
 /**
  * The declaration node behind any one `scopeMember` alternative.

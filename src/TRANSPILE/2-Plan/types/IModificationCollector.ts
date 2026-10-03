@@ -21,7 +21,7 @@
  * two parameters through the same thirteen walker methods would be the same
  * journey twice.
  */
-import type ICallGraphEntry from "../../../transpiler/types/ICallGraphEntry";
+import type ICallGraphEntry from "../../../types/ICallGraphEntry";
 import type SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 
 interface IModificationCollector {

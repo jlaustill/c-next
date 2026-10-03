@@ -21,7 +21,7 @@ import FunctionUtils from "../../tests/utils/FunctionUtils";
 import TTypeUtils from "../TTypeUtils";
 import JsonCodec from "../cache/JsonCodec";
 import type TJsonValue from "../types/TJsonValue";
-import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
 
 /** A scope member, so a scope under test is a graph rather than a leaf. */
 function makeInit(): ReturnType<typeof FunctionUtils.create> {
