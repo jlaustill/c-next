@@ -82,10 +82,12 @@ expression `foreign`.
 
 `src/PARSE/4-Resolve/ConstantNames.ts`. One walk from the binder's answer for a
 chain's head: a local or a const with a folded value (typed by its
-declaration); a scope's member or an enum's, found by C name; a header's name
-(`foreign`); in a file that includes a header, a name nothing binds may be a
-macro, since a `#define` never reaches the symbol model (`foreign`, why
-`maybeHeader`); anything else has no value, with a reason for the message.
+declaration); a scope's member or an enum's, found by C name; a header's bare
+name (`foreign`); in a file that includes a header, a bare name nothing binds
+may be a macro, since a `#define` never reaches the symbol model (`foreign`,
+why `maybeHeader`); anything else has no value, with a reason for the message.
+Only a bare name is `foreign`, because C evaluates it as written: C has no
+spelling of `X.y` that C-Next could write for a header's `X`.
 
 1.4 asks it while it settles, and every later pass asks it through
 `IProgram.constantValueOf`, with the same facts (`IConstantNameFacts`). That is
@@ -166,7 +168,10 @@ those) is a number with no expression. Anything that needs a name is
 
 `.element_count`, `.bit_length` and `.byte_length` are constants, so
 `u8[src.element_count]` is a constant dimension. `ConstantNames` measures the
-value they are taken of -- through struct fields, `cfg.data.element_count` --
+value they are taken of -- through struct fields, `cfg.data.element_count`;
+through elements, `m[0].element_count`, where the lowering records the
+subscript as a step (`ELEMENT_STEP`) because the property is the same for every
+element; and on a header's array, from the dimensions its header declares --
 and `LengthProperty` (`src/utils`) decides the number from its settled
 dimensions and its element's width. Render's property generator asks the same
 `LengthProperty`, so a dimension sized by a property is the number the property
@@ -175,9 +180,13 @@ itself be sized by a const.
 
 ## Known limits
 
-- A property of an element whose width the target decides (a C header type
-  such as `int` or `double`) is not a constant: render measures one through the
-  operand typer and the target's data model, which 1.4 does not have, and a C
-  header type's width table lives in render.
+- A header array's `element_count` is measured from its declared dimensions,
+  but its `bit_length` and `byte_length` are not constants: they need the C
+  element type's width, and that table lives in render, which 1.4 cannot read.
+  Render measures one through the operand typer and the target's data model.
+  #1878 tracks giving both one table.
+- Only a bare name is C's to evaluate as written (`foreign`). A member of
+  anything else a header declares has no value, so `CEnum.MEMBER` in a
+  dimension is E0909 until #1877 decides what that spelling means.
 - A header macro as an enum member's value is rejected for now (owner ruling,
   ADR-017): C-Next needs the value itself.
