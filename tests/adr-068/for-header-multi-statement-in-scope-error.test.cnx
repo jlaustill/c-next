@@ -1,0 +1,35 @@
+// test-error
+// test-adr: 068
+// #1647: E0715 inside a SCOPE METHOD, through `this.` and `global.` targets.
+atomic u32 shared <- 0;
+
+scope Link {
+    string<8> label <- "a";
+    u8[8] frame;
+    atomic u32 ticks <- 0;
+
+    // NEGATIVE CONTROL -- a plain store to an atomic member and a clamped
+    // compound stay legal in a header.
+    public void controls() {
+        u8 n <- 0;
+        for (this.ticks <- 0; n < 2; n +<- 1) {
+            this.label <- "b";
+        }
+    }
+
+    // ASSERTIONS 1-4 -- string member, slice member, atomic member (ADR-049
+    // Q7 makes `this.ticks +<- 1` atomic; #1179 tracks that it is not yet),
+    // and a `global.` atomic.
+    public void offenders() {
+        u8 n <- 0;
+        for (this.label <- "x"; n < 2; n +<- 1) {
+            n +<- 1;
+        }
+        for (this.frame[0, 2] <- 0; n < 4; this.ticks +<- 1) {
+            n +<- 1;
+        }
+        for (n <- 0; n < 2; global.shared +<- 1) {
+            n +<- 1;
+        }
+    }
+}

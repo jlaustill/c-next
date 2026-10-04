@@ -417,8 +417,9 @@ function runAnalyzers(
     {
       // After controlling expressions: the always-true check assumes E0701
       // already guaranteed a comparison, as it did in codegen.
-      label: "loops and break/continue (ADR-068/ADR-026, E0703/E0705/E0707)",
-      run: () => new LoopAnalyzer().analyze(tree),
+      label:
+        "loops and break/continue (ADR-068/ADR-026, E0703/E0705/E0707/E0715)",
+      run: () => new LoopAnalyzer(context).analyze(tree),
     },
     {
       label:

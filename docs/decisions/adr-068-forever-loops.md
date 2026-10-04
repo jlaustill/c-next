@@ -353,11 +353,56 @@ full MISRA 14.3 effort (#1076). MISRA 14.3 moves Not Enforced → **Partial**. R
 zero pre-existing `for (;;)` or `while (1 = 1)` in source (only the one already migrated in #1074),
 so this breaking change flags nothing existing.
 
+## For-Header Assignments (#1647, 2026-10-04)
+
+A `for` header's init and update render through the statement assignment path
+(#1647), so the header gets ADR-044's clamp and MISRA C:2012 Rule 7.2's suffix as
+a statement does. But a header clause is a C **expression**, and three
+assignment forms lower to more than one statement:
+
+| form in a header                              | lowers to                                                   |
+| --------------------------------------------- | ----------------------------------------------------------- |
+| a string target (`s <- "x"`, `p.name <- "x"`) | `strncpy` plus the terminator write (ADR-045)               |
+| a slice (`buf[offset, length] <- v`)          | per-element writes, and a source temp (ADR-052, #1081)      |
+| a compound operator on an `atomic` target     | an LDREX/STREX loop or a PRIMASK critical section (ADR-049) |
+
+Before #1647 the header concatenated target, operator and value, so each form
+emitted C that either failed to compile (`s = "abc"`) or compiled to the wrong
+program: `buf[0, 4] = v` is C's comma operator, and `counter += 1` on an atomic
+is a read-modify-write an interrupt can split.
+
+**Decision:** each form is rejected in pass 2.1 as **E0715**, at the clause that
+holds it:
+
+```
+error[E0715]: a for-loop header cannot hold this assignment: a string copy is more than one statement
+  help: assign before the loop and at the end of its body, and write it as a while loop
+```
+
+The `while` rewrite is exact: ADR-026 rejects `continue`, so nothing can skip
+an update placed at the end of the body.
+
+- **Scope:** the form is the rule, not how many statements it currently lowers
+  to. A one-element slice happens to lower to one write today. It is rejected
+  anyway, so the rule never depends on the slice's element arithmetic.
+- **Atomic scope members:** `this.c +<- 1` is rejected as well. ADR-049 Q7 makes
+  it an atomic read-modify-write. That it lowers non-atomically today is
+  #1179's defect, not a reason to accept it in a header.
+- **Compound operators** on a string or slice are E0857 already, reported
+  earlier in the same pass. E0715 does not report them again, so one mistake
+  gets one diagnostic.
+- **Plain `<-` on an atomic** is one store and stays legal, as are bit indexes
+  and bit ranges (ADR-007), which lower to one expression.
+
+  2.3 asserts the same fact at the emission site: a header assignment whose
+  classified kind is a string, slice or atomic read-modify-write is an internal
+  invariant failure, never emitted C.
+
 ## Scope-Context Matrix (#1219)
 
 Declared for the loop rules #1322 moved out of codegen: `forever` in a
 non-void function (E0705), `for (;;)` and an always-true literal condition
-(E0707). Severity follows the eslint model: `off` records that a cell **cannot
+(E0707), and a for-header assignment that is more than one statement (E0715). Severity follows the eslint model: `off` records that a cell **cannot
 exist**, `warn` that it should be covered and is not, `error` that it must be.
 
 <!-- MATRIX-SEVERITY -->

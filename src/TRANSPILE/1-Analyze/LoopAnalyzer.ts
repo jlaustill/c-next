@@ -1,5 +1,5 @@
 /**
- * ADR-068 loops and ADR-026 break/continue: E0703, E0705, E0707.
+ * ADR-068 loops and ADR-026 break/continue: E0703, E0705, E0707, E0715.
  *
  * #1322. Four throws in `output/` -- `CodeGenerator` for `break`/`continue`,
  * `ControlFlowGenerator` for `for (;;)` and for `forever` in a non-void
@@ -21,6 +21,15 @@
  * E0701 (a condition must be a comparison) runs earlier in the same pass and
  * halts, so a condition reaching the always-true check is already a
  * comparison -- the ordering codegen relied on, kept by the step order.
+ *
+ * ## A header clause is one C expression (E0715, #1647)
+ *
+ * The init and update render through the statement assignment path, and three
+ * forms lower to more than one statement there: a string copy, a slice write,
+ * and a compound operator on an atomic. Each is read off the one operand
+ * typer -- the target's type, its subscripts, its binding -- not decided
+ * again. A compound on a string or slice is E0857's, which runs earlier and
+ * halts. 2.3 asserts the same fact on the classified kind.
  */
 
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
@@ -30,9 +39,17 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import REJECTED_KEYWORDS from "./REJECTED_KEYWORDS";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
+import OperandTyper from "../../utils/OperandTyper";
+import CompoundAssignmentAnalyzer from "./CompoundAssignmentAnalyzer";
 import ILoopError from "./types/ILoopError";
+import type IAnalysisContext from "./types/IAnalysisContext";
+import type IOperandType from "../../types/IOperandType";
+import type TAssignmentSite from "./types/TAssignmentSite";
 
 const FOREVER_HELP = "write 'forever { ... }' for an intentional infinite loop";
+
+const WHILE_HELP =
+  "assign before the loop and at the end of its body, and write it as a while loop";
 
 /** A single comparison of two compile-time literals. */
 interface ILiteralComparison {
@@ -43,6 +60,10 @@ interface ILiteralComparison {
 
 class LoopListener extends CNextListener {
   private readonly found: ILoopError[] = [];
+
+  public constructor(private readonly context: IAnalysisContext) {
+    super();
+  }
 
   public errors(): ILoopError[] {
     return this.found;
@@ -90,6 +111,51 @@ class LoopListener extends CNextListener {
     }
     this.checkAlwaysTrue(condition);
   };
+
+  override enterForAssignment = (ctx: Parser.ForAssignmentContext): void => {
+    this.checkHeaderAssignment(ctx);
+  };
+
+  override enterForUpdate = (ctx: Parser.ForUpdateContext): void => {
+    this.checkHeaderAssignment(ctx);
+  };
+
+  /** E0715: a header clause holds one expression; these forms lower to more. */
+  private checkHeaderAssignment(site: TAssignmentSite): void {
+    const form = this.multiStatementForm(site);
+    if (form === null) return;
+    this.report(
+      site,
+      "E0715",
+      `a for-loop header cannot hold this assignment: ${form} is more than one statement`,
+      WHILE_HELP,
+    );
+  }
+
+  private multiStatementForm(site: TAssignmentSite): string | null {
+    const target = site.assignmentTarget();
+    const written = OperandTyper.typeOfTarget(target, this.context);
+    if (!site.assignmentOperator().ASSIGN()) {
+      return LoopListener.isAtomic(written)
+        ? "an atomic read-modify-write"
+        : null;
+    }
+    const steps = OperandTyper.chainOf(target, this.context).steps;
+    if (steps.some((step) => step.subscript === "array_slice")) {
+      return "a slice write";
+    }
+    return CompoundAssignmentAnalyzer.isString(written)
+      ? "a string copy"
+      : null;
+  }
+
+  /** Declared `atomic`, by the declaration the target binds to */
+  private static isAtomic(t: IOperandType | null): boolean {
+    const binding = t?.binding;
+    if (binding?.kind === "local") return binding.declaration.isAtomic;
+    if (binding?.kind === "variable") return binding.symbol.isAtomic;
+    return false;
+  }
 
   override enterWhileStatement = (ctx: Parser.WhileStatementContext): void => {
     this.checkAlwaysTrue(ctx.expression());
@@ -218,8 +284,10 @@ class LoopListener extends CNextListener {
 }
 
 class LoopAnalyzer {
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): ILoopError[] {
-    const listener = new LoopListener();
+    const listener = new LoopListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }
