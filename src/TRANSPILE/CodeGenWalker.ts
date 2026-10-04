@@ -116,7 +116,9 @@ import StringLengthCounter from "./2-Plan/StringLengthCounter";
 import CppModeHelper from "./3-Render/codegen/helpers/CppModeHelper";
 import generateCast from "./3-Render/codegen/generators/expressions/CastExprGenerator";
 import type IPlannedCast from "./3-Render/codegen/types/IPlannedCast";
-import ArrayDimensionParser from "../utils/ArrayDimensionParser";
+import ConstExprLowering from "../utils/ConstExprLowering";
+import ConstantEvaluator from "../utils/ConstantEvaluator";
+import ConstantFold from "../utils/ConstantFold";
 import UNRESOLVED_DIMENSION from "../types/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./2-Plan/dimensionEvalOptions";
 import MemberChainAnalyzer from "./3-Render/codegen/analysis/MemberChainAnalyzer";
@@ -200,6 +202,9 @@ interface FunctionSignature {
 import CodeGenerator from "./3-Render/codegen/CodeGenerator";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 import type TranspileState from "./TranspileState";
+
+/** What render folds a constant chain at: wide enough to hold any i64 */
+const WIDEST_SIGNED = "i64";
 
 class CodeGenWalker {
   /**
@@ -871,6 +876,7 @@ class CodeGenWalker {
     }
     return {
       kind: "arithmetic",
+      constantValue: this.constantValue(ctx),
       defaultOperator: "+",
       operators: this.getOperatorsFromChildren(ctx),
       // Asked AFTER the operands render, which is where they are asked today.
@@ -884,6 +890,30 @@ class CodeGenWalker {
           this.renderBinaryLevel(this.planMultiplicativeLevel(child)),
       ),
     };
+  }
+
+  /**
+   * #1175: an arithmetic chain's value when it is a constant expression, by
+   * the one evaluator, where the tree is in hand. Render used to fold the
+   * generated C operand text with `parseInt`.
+   *
+   * Whether the chain overflows is 2.1's decision, at its destination's type
+   * (E0910, ADR-044): one that reaches here fits it. So the value is computed
+   * at the widest signed type, which then holds it exactly, and render needs
+   * no destination of its own -- `i64 big <- 2147483647 + 1` is 2147483648,
+   * which no i32 step could give (#1863 review).
+   */
+  private constantValue(ctx: ParserRuleContext): string | null {
+    const result = ConstantEvaluator.evaluate(
+      ConstExprLowering.lowerNode(ctx),
+      dimensionEvalOptions(this.transpileState),
+      WIDEST_SIGNED,
+    );
+    const value =
+      result.kind === "value"
+        ? ConstantEvaluator.toNumber(result.value)
+        : undefined;
+    return value === undefined ? null : String(value);
   }
 
   /**
@@ -916,6 +946,7 @@ class CodeGenWalker {
     }
     return {
       kind: "arithmetic",
+      constantValue: this.constantValue(ctx),
       defaultOperator: "*",
       operators: this.getOperatorsFromChildren(ctx),
       clampType: () => this.compositeClampType(ctx),
@@ -1448,16 +1479,12 @@ class CodeGenWalker {
 
   /** Generate single array dimension */
   generateArrayDimension(dim: Parser.ArrayDimensionContext): string {
-    if (dim.expression()) {
-      // Bug #8: At file scope, resolve const values to numeric literals
-      // because C doesn't allow const variables as array sizes at file scope
-      if (!this.host.state.inFunctionBody) {
-        const constValue = this.tryEvaluateConstant(dim.expression()!);
-        if (constValue !== undefined) {
-          return `[${constValue}]`;
-        }
-      }
-      return `[${this.generateExpression(dim.expression()!)}]`;
+    // Bug #8 folded only at file scope, where C requires a constant size.
+    // #1175: a dimension is a constant wherever it is written (ADR-023: no
+    // VLAs), so it folds everywhere, by the one rule
+    const expression = dim.expression();
+    if (expression) {
+      return `[${this.renderDimension(expression)}]`;
     }
     return "[]";
   }
@@ -1505,10 +1532,7 @@ class CodeGenWalker {
     // three lookups. This is the orchestrator entry point that
     // ArrayDimensionUtils uses to emit declaration dimensions, so it is on the
     // hot path for exactly the divergences this work closes.
-    return ArrayDimensionParser.parseSingleDimension(
-      ctx,
-      dimensionEvalOptions(this.transpileState, ParserUtils.getPosition(ctx)),
-    );
+    return this.dimensionValue(ctx);
   }
 
   /**
@@ -2527,13 +2551,15 @@ class CodeGenWalker {
 
     // C-style first, which E0874 admits only for `main(string args[])`.
     if (cStyleDimensions.length > 0) {
-      return ArrayDimensionParser.parseDimensions(
-        cStyleDimensions,
-        dimensionEvalOptions(
-          this.transpileState,
-          ParserUtils.getPosition(cStyleDimensions[0]),
-        ),
-      );
+      // One entry per dimension: its value, or UNRESOLVED_DIMENSION for an
+      // unsized `[]` -- never omitted, or every later dimension shifts
+      return cStyleDimensions.map((dimension) => {
+        const expression = dimension.expression();
+        return (
+          (expression && this.dimensionValue(expression)) ??
+          UNRESOLVED_DIMENSION
+        );
+      });
     }
 
     if (!arrayType) return [];
@@ -2541,14 +2567,7 @@ class CodeGenWalker {
     return arrayType.arrayTypeDimension().flatMap((dimension) => {
       const expression = dimension.expression();
       if (!expression) return [];
-      const size = ArrayDimensionParser.parseSingleDimension(
-        expression,
-        dimensionEvalOptions(
-          this.transpileState,
-          ParserUtils.getPosition(expression),
-        ),
-      );
-      return [size ?? UNRESOLVED_DIMENSION];
+      return [this.dimensionValue(expression) ?? UNRESOLVED_DIMENSION];
     });
   }
 
@@ -2926,14 +2945,7 @@ class CodeGenWalker {
               if (!expr) {
                 return "[]";
               }
-              const folded = ArrayDimensionParser.parseSingleDimension(
-                expr,
-                dimensionEvalOptions(
-                  this.transpileState,
-                  ParserUtils.getPosition(expr),
-                ),
-              );
-              return `[${folded ?? this.generateExpression(expr)}]`;
+              return `[${this.renderDimension(expr)}]`;
             })
             .join("");
         } else {
@@ -3663,12 +3675,7 @@ class CodeGenWalker {
       }
 
       return {
-        renderSize: () => {
-          const folded = this.tryEvaluateConstant(expression);
-          return folded === undefined
-            ? this.generateExpression(expression)
-            : String(folded);
-        },
+        renderSize: () => this.renderDimension(expression),
       };
     });
   }
@@ -4123,16 +4130,41 @@ class CodeGenWalker {
       return "";
     }
 
-    const folded = ArrayDimensionParser.parseSingleDimension(
-      expression,
-      dimensionEvalOptions(
-        this.transpileState,
-        ParserUtils.getPosition(expression),
-      ),
+    return this.renderDimension(expression);
+  }
+
+  /**
+   * #1175: a dimension as the .c writes it -- its value, or, for one only C
+   * can evaluate (a header macro), the C the .h writes too, from the one
+   * printer. It used to fall back to the runtime expression generator, which
+   * wrote `cnx_clamp_add_u8(A, A)` where the .h wrote `A+A`, and `2` where
+   * the .h wrote `1--1`. `ConstantFold.settled` is the .h's decision too. A
+   * dimension with no value never reaches render: 2.1 rejects it (E0909,
+   * E0910).
+   */
+  private renderDimension(expression: Parser.ExpressionContext): string {
+    // ADR-036: a dimension is a constant expression in every context, so a
+    // fixture occupies the matrix cell it is written in
+    AdrProvenance.record("036", expression.start?.line);
+    const dimension = ConstantFold.settled(
+      ConstExprLowering.lower(expression),
+      dimensionEvalOptions(this.transpileState),
     );
-    return folded === undefined
-      ? this.generateExpression(expression)
-      : String(folded);
+    invariant(
+      dimension !== null,
+      `2.1 rejects a dimension with no value (E0909, E0910) before render: '${expression.getText()}'`,
+    );
+    return String(dimension);
+  }
+
+  /** A dimension's value, by the one evaluator; undefined when it has none */
+  private dimensionValue(
+    expression: Parser.ExpressionContext,
+  ): number | undefined {
+    return ConstExprLowering.valueOf(
+      expression,
+      dimensionEvalOptions(this.transpileState),
+    );
   }
 
   /**
@@ -4482,7 +4514,7 @@ class CodeGenWalker {
   /**
    * The folded value of the first dimension in a list, or null.
    *
-   * Through `ArrayDimensionParser`, which is the single evaluator: the size
+   * Through the one evaluator (`dimensionValue`): the size
    * used to expand a fill-all must equal the size emitted in the declarator, or
    * the array is the declared length with the wrong contents (#1644).
    */
@@ -4495,15 +4527,7 @@ class CodeGenWalker {
     if (!sizeExpr) {
       return null;
     }
-    return (
-      ArrayDimensionParser.parseSingleDimension(
-        sizeExpr,
-        dimensionEvalOptions(
-          this.transpileState,
-          ParserUtils.getPosition(sizeExpr),
-        ),
-      ) ?? null
-    );
+    return this.dimensionValue(sizeExpr) ?? null;
   }
 
   /**

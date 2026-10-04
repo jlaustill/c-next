@@ -1,0 +1,4 @@
+9:4 error[E0909]: Enum member value must be known at compile time (ELate.A): 'ELate.B' is declared below it
+       help: A member's value is built from literals, consts, sizeof, casts and the members of its enum declared above it (ADR-017)
+11:4 error[E0909]: Enum member value must be known at compile time (ELate.C): 'ELate.C' is the member itself
+       help: A member's value is built from literals, consts, sizeof, casts and the members of its enum declared above it (ADR-017)

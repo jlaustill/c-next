@@ -1,0 +1,17 @@
+// test-error
+// test-adr: 017
+// Issue #1669: `-0x1` emitted E__A = 0 at exit 0. It reached the decimal branch,
+// which read it as -0, and -0 passed E0894's sign check. It is -1, and E0894
+// rejects it exactly as it rejects `-1`.
+//
+// NEGATIVE CONTROL: EPos's member is a positive hex literal and must stay silent.
+
+enum ENeg {
+    A <- -0x1
+}
+
+enum EPos {
+    B <- 0x1
+}
+
+void main() {}

@@ -1,0 +1,42 @@
+// test-execution
+// test-no-warnings
+// Issue #1462: a parameter dimensioned by a scope enum reached the .h as the
+// source text `uint8_t data[State.COUNT]`, which C cannot read, while the .c
+// wrote `Motor__State__COUNT`. The parameter path had its own const-only
+// resolver. Both files write the member's value now.
+//
+// NEGATIVE CONTROL: `first`'s parameter is dimensioned by a const, and must
+// keep folding to its value.
+
+scope Motor {
+    public enum State {
+        IDLE,
+        RUN,
+        COUNT
+    }
+    public const u8 SIZE <- 3;
+
+    public u32 sum(u8[State.COUNT] data) {
+        u32 total <- data[0];
+        total +<- data[1];
+        return total;
+    }
+
+    public u32 first(u8[SIZE] data) {
+        return data[0];
+    }
+}
+
+u32 main() {
+    u8[2] two <- [1, 2];
+    u8[3] three <- [5, 6, 7];
+    u32 s <- Motor.sum(two);
+    if (s != 3) {
+        return 1;
+    }
+    u32 f <- Motor.first(three);
+    if (f != 5) {
+        return 2;
+    }
+    return 0;
+}

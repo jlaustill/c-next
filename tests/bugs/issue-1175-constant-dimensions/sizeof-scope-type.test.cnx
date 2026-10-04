@@ -1,0 +1,22 @@
+// #1863 review: a type in a constant expression only C can evaluate was
+// written by its source spelling. Inside scope S, `sizeof(P)` reached C as
+// `sizeof(P)`, but the struct is `S__P`: gcc reported 'P' undeclared, at exit
+// 0. A type in `sizeof` or a cast is named by ADR-057, as every type is.
+//
+// NEGATIVE CONTROL: `plain`, sizeof of a primitive, which folds to 4.
+#include "mac.h"
+
+scope S {
+    struct P {
+        u32 a;
+    }
+    u8[MACRO_N + sizeof(P)] buf;
+
+    public u8 first() {
+        return this.buf[0];
+    }
+}
+
+u8[MACRO_N + sizeof(u32)] plain;
+
+void main() {}

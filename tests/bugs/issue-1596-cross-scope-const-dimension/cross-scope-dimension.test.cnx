@@ -1,0 +1,33 @@
+// test-execution
+// test-no-warnings
+// Issue #1596: an array dimension naming a const from ANOTHER scope
+// (`u8[Motor.MAX]`) reached the .c and the .h as the C identifier
+// `outside[Motor__MAX]` -- a variably modified array at file scope, which C
+// rejects -- at exit 0. It is the const's value in both files now.
+//
+// NEGATIVE CONTROL: `inside`, sized by the same const from inside its own
+// scope, already resolved and must keep resolving.
+
+scope Motor {
+    public const u8 MAX <- 4;
+    u8[MAX] inside;
+
+    public u32 insideCount() {
+        this.inside[0] <- 1;
+        return this.inside.element_count;
+    }
+}
+
+u8[Motor.MAX] outside;
+
+u32 main() {
+    outside[0] <- 1;
+    if (outside.element_count != 4) {
+        return 1;
+    }
+    u32 n <- Motor.insideCount();
+    if (n != 4) {
+        return 2;
+    }
+    return 0;
+}

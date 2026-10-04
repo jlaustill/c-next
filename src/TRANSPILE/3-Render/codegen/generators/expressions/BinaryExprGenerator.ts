@@ -164,12 +164,17 @@ const renderArithmetic = (
   const effects: TGeneratorEffect[] = [];
   const operandCodes = renderOperands(plan.renderOperands, effects);
 
-  // Issue #235: Try constant folding for compile-time constant expressions
-  const foldedResult = BinaryExprUtils.tryFoldConstants(operandCodes, [
-    ...plan.operators,
-  ]);
-  if (foldedResult !== undefined) {
-    return { code: String(foldedResult), effects };
+  // Issue #235 / #1175: a constant chain is written as its value, which 2.2
+  // decided by the one evaluator. Where any operand rendered as anything but a
+  // plain integer -- a name, or a literal the context gave a `U` suffix -- the
+  // chain is written as it always was.
+  if (
+    plan.constantValue !== null &&
+    operandCodes.every(
+      (code) => BinaryExprUtils.tryParseNumericLiteral(code) !== undefined,
+    )
+  ) {
+    return { code: plan.constantValue, effects };
   }
 
   // Issue #1152: saturate when the operands are of a clamp integer type

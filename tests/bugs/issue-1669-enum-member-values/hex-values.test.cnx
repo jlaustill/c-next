@@ -1,0 +1,21 @@
+// test-execution
+// test-adr: 017
+// Issue #1669: a hexadecimal operand in a member's value. `0x10 + 1` emitted 16,
+// because the hex branch read the prefix and ignored the rest.
+//
+// NEGATIVE CONTROL: LONE is a single hex literal.
+
+enum EHex {
+    SUM <- 0x10 + 1,
+    LONE <- 0x20
+}
+
+u32 main() {
+    if ((u32)EHex.SUM != 17) {
+        return 1;
+    }
+    if ((u32)EHex.LONE != 32) {
+        return 2;
+    }
+    return 0;
+}

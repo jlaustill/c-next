@@ -1,0 +1,9 @@
+// Helper for cross-file-variable-transitive.test.cnx (#1175): the middle hop,
+// so `libCount` is two includes away from the entry file.
+//
+// MID_UNUSED exists only so this file gets a header: a C-Next file that declares
+// nothing gets none, though its includers still #include it (#1868).
+
+#include "var-lib.cnx"
+
+const u32 MID_UNUSED <- 0;

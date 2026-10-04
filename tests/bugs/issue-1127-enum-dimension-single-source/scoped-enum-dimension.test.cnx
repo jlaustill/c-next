@@ -1,6 +1,8 @@
 // Issue #1127: every qualification form must produce the same identifier in the
 // .c and the .h, for struct fields as well as variables. Snapshot test so the
 // two files can be compared directly for all four forms.
+// #1175: each form folds to the member's value now, once, so both files write
+// the same number rather than a name each derived.
 enum Top {
     A,
     B,

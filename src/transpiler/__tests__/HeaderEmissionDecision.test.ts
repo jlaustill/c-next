@@ -161,15 +161,18 @@ scope S {
     // `extern u8 v[S__State__COUNT]` needs the enum even though no declaration
     // names `S__State`. Walking types alone left four corpus headers
     // referencing an undeclared constant.
-    it("promotes a private enum that a public variable names only as an array dimension", async () => {
+    it("keeps private an enum that a public variable names only as an array dimension", async () => {
+      // The header used to write `S__table[S__State__COUNT]`, so the private
+      // enum had to be promoted into it. #1175: the size is folded once, by
+      // 1.4, and the header writes the value -- which names nothing private.
       const { headerCode } = await transpileSource(`
 scope S {
     enum State { IDLE, RUN, COUNT }
     public u8[State.COUNT] table;
 }
 `);
-      expect(headerCode).toContain("S__State__COUNT");
-      expect(headerCode).toContain("} S__State;");
+      expect(headerCode).toContain("S__table[2]");
+      expect(headerCode).not.toContain("S__State");
     });
 
     // A register never reaches the header in either case, so its visibility is

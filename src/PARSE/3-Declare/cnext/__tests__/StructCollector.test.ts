@@ -4,6 +4,8 @@ import TestScopeUtils from "./testUtils";
 import StructCollector from "../collectors/StructCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TypeResolver from "../../../../utils/TypeResolver";
+import ConstExprShape from "../../../../utils/__testUtils__/ConstExprShape";
+import UNRESOLVED_DIMENSION from "../../../../types/UNRESOLVED_DIMENSION";
 
 describe("StructCollector", () => {
   beforeEach(() => {
@@ -133,7 +135,7 @@ describe("StructCollector", () => {
       expect(field?.dimensions).toEqual([4, 4]);
     });
 
-    it("keeps a const-named dimension as text, for 1.4 to fold (#1664 box 7)", () => {
+    it("keeps a const-named dimension as written, for 1.4 to fold (#1664 box 7)", () => {
       const code = `
         struct Buffer {
           u8 data[BUFFER_SIZE];
@@ -150,10 +152,13 @@ describe("StructCollector", () => {
 
       const field = symbol.fields.get("data");
       expect(field?.isArray).toBe(true);
-      expect(field?.dimensions).toEqual(["BUFFER_SIZE"]);
+      expect(field?.dimensions).toEqual([UNRESOLVED_DIMENSION]);
+      expect(ConstExprShape.list(field?.dimensionExprs)).toEqual([
+        "BUFFER_SIZE",
+      ]);
     });
 
-    it("keeps several const-named dimensions as text", () => {
+    it("keeps several const-named dimensions as written", () => {
       const code = `
         struct Matrix {
           i16 values[ROWS][COLS];
@@ -170,10 +175,17 @@ describe("StructCollector", () => {
 
       const field = symbol.fields.get("values");
       expect(field?.isArray).toBe(true);
-      expect(field?.dimensions).toEqual(["ROWS", "COLS"]);
+      expect(field?.dimensions).toEqual([
+        UNRESOLVED_DIMENSION,
+        UNRESOLVED_DIMENSION,
+      ]);
+      expect(ConstExprShape.list(field?.dimensionExprs)).toEqual([
+        "ROWS",
+        "COLS",
+      ]);
     });
 
-    it("keeps a const-named dimension as text, whatever its value", () => {
+    it("keeps a const-named dimension as written, whatever its value", () => {
       const code = `
         struct Flags {
           bool bits[HEX_SIZE];
@@ -190,7 +202,8 @@ describe("StructCollector", () => {
 
       const field = symbol.fields.get("bits");
       expect(field?.isArray).toBe(true);
-      expect(field?.dimensions).toEqual(["HEX_SIZE"]);
+      expect(field?.dimensions).toEqual([UNRESOLVED_DIMENSION]);
+      expect(ConstExprShape.list(field?.dimensionExprs)).toEqual(["HEX_SIZE"]);
     });
   });
 
@@ -257,7 +270,12 @@ describe("StructCollector", () => {
       const field = symbol.fields.get("items");
       expect(TypeResolver.getTypeName(field!.type)).toBe("string<16>");
       expect(field?.isArray).toBe(true);
-      expect(field?.dimensions).toEqual(["MAX_NAMES", 17]); // the const as text, then 16+1 for string
+      // the const as written, for 1.4; then 16+1 for the string
+      expect(field?.dimensions).toEqual([UNRESOLVED_DIMENSION, 17]);
+      expect(ConstExprShape.list(field?.dimensionExprs)).toEqual([
+        "MAX_NAMES",
+        null,
+      ]);
     });
   });
 

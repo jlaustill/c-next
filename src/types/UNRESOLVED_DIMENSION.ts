@@ -10,8 +10,8 @@
  * `grid[i]` against 4.
  *
  * `0` is the value because `checkArrayBounds` already skips non-positive
- * dimensions, and `ArrayDimensionParser.parseDimensions` established the
- * same convention. It means "size unknown, cannot validate" — never "size
+ * dimensions, and `ArrayDimensionParser.parseDimensions` (deleted by #1175)
+ * established the same convention. It means "size unknown, cannot validate" — never "size
  * zero". A dimension that IS statically known must never be recorded as this;
  * conflating the two is what silently disabled bounds checking for hex-sized
  * arrays before #1159.

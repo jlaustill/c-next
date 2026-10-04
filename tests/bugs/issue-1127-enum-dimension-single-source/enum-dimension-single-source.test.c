@@ -23,7 +23,7 @@
 // The rule now lives on QualifiedCName.resolveDimensionName and is applied once,
 // in a second pass over the collected symbols -- after every enum is known, so
 // the answer does not depend on whether the enum is declared above the struct.
-uint8_t globalSlots[EColor__COUNT] = {0};
+uint8_t globalSlots[3] = {0};
 
 // EColor.COUNT is 3, so both arrays hold 3 elements and index 2 is the last
 // valid one. An earlier draft of this test indexed [3] and overflowed the

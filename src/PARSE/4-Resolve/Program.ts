@@ -51,6 +51,7 @@ import type IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import type IBindingFacts from "./types/IBindingFacts";
 import ConflictDetector from "./ConflictDetector";
 import type IForeignSymbols from "./types/IForeignSymbols";
+import type IForeignValue from "./types/IForeignValue";
 import type IConflict from "../../types/IConflict";
 import ModificationFacts from "./ModificationFacts";
 import CallbackCompatibility from "./CallbackCompatibility";
@@ -61,6 +62,19 @@ import type IVisibilityInput from "./types/IVisibilityInput";
 import TSymbolInfoAdapter from "../3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import TransitiveEnumCollector from "./TransitiveEnumCollector";
 import VisibleSymbols from "./VisibleSymbols";
+import ConstantNames from "./ConstantNames";
+import ConstantEvaluator from "../../utils/ConstantEvaluator";
+import EnumMemberValues from "../../utils/EnumMemberValues";
+import type IConstantEnvironment from "../../utils/types/IConstantEnvironment";
+import type IConstantNameFacts from "./types/IConstantNameFacts";
+import type ISettledConstants from "./types/ISettledConstants";
+import type IFileConstantFacts from "./types/IFileConstantFacts";
+import type IEnumSymbol from "../../types/symbols/IEnumSymbol";
+import type ISourcePosition from "../../utils/types/ISourcePosition";
+import type TConstExpr from "../../types/TConstExpr";
+import type TConstResult from "../../types/TConstResult";
+import type TEnumMemberValue from "../../types/TEnumMemberValue";
+import type TSettledConst from "../../types/TSettledConst";
 
 /** Shared empty result, so a miss does not allocate. */
 const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
@@ -73,6 +87,9 @@ const EMPTY_HEADER_FIELDS: ReadonlyMap<
  * A local as the finished program's frames hold it: already settled. Only
  * 1.4, binding over the frames while it settles them, needs another answer.
  */
+/** The position a binding's value is asked with: none is read */
+const NO_POSITION: ISourcePosition = { line: 0, column: 0 };
+
 const SETTLED = (declaration: ILocalDeclaration): ILocalDeclaration =>
   declaration;
 
@@ -154,6 +171,12 @@ class Program {
     // Opacity is a fact of the headers alone, so it is ready before the settle,
     // which stamps each opaque parameter with it (#1722).
     const opaqueTypes = Program.deriveOpaqueTypes(foreign);
+    // #1175: what a constant name's facts read of the files, beside the binder
+    const fileFacts: IFileConstantFacts = {
+      isScopeTypeVisibleFrom,
+      reachesForeignHeader: (sourceFile) =>
+        (inputs.filesReachingForeignHeaders ?? EMPTY_NAMES).has(sourceFile),
+    };
     const settledByFile = Program.settleEveryFile(
       files,
       isScopeTypeVisibleFrom,
@@ -163,6 +186,7 @@ class Program {
       ...foreign.c.map((symbol) => symbol.name),
       ...foreign.cpp.map((symbol) => symbol.name),
     ]);
+    const foreignValues = Program.foreignValues(foreign);
     // What a spelling means while the consts fold: the declarations as 1.3
     // recorded them, bound in the same order every later pass binds in.
     const declared: IBindingFacts = {
@@ -172,17 +196,21 @@ class Program {
       symbolsByCName: Program.indexByCName(settledByFile),
       registry,
       foreignNames,
+      foreignValues,
       visibleFiles,
     };
-    const derivedConsts = Program.deriveConstValues(settledByFile, declared);
-    const symbolsByFile = Program.resolveDimensions(
-      settledByFile,
-      declared,
-      derivedConsts,
-    );
-    const symbolsByCName = Program.indexByCName(symbolsByFile);
+    const values = Program.settleValues(settledByFile, declared, fileFacts);
+    const constants = values.constants;
+    // What a spelling means once every array is sized: a local sized by a
+    // global's property (`u8[table.element_count]`) measures the settled global
+    // (#1863 review: the frames read 1.3's unsized one)
+    const dimensioned: IBindingFacts = {
+      ...declared,
+      symbolsByCName: Program.indexByCName(values.symbolsByFile),
+    };
     // #1668: each file's lexical frames, settled against the scope types THAT
     // file can see (#1724) and the program's consts, then frozen with it.
+    const settledLocals = new Map<ILocalDeclaration, ILocalDeclaration>();
     const framesByFile = new Map(
       files.map((file) => [
         file.sourceFile,
@@ -190,20 +218,43 @@ class Program {
           file.lexicalScopes,
           (qualifiedName) =>
             isScopeTypeVisibleFrom(file.sourceFile, qualifiedName),
-          (name, at, settled) =>
-            Program.constantOf(
-              Program.bindValue(declared, file.sourceFile, null, name, at),
-              derivedConsts,
-              settled,
+          (name, settled) =>
+            ConstantNames.valueOf(
+              name,
+              Program.nameFacts(dimensioned, file.sourceFile, constants, {
+                settledLocal: settled,
+                files: fileFacts,
+              }),
             ),
+          (typeName, at) =>
+            ConstantNames.cTypeName(
+              typeName,
+              at,
+              Program.nameFacts(dimensioned, file.sourceFile, constants, {
+                settledLocal: SETTLED,
+                files: fileFacts,
+              }),
+            ),
+          settledLocals,
         ),
       ]),
     );
+    // A parameter sized by an earlier one (`u8[a.element_count] b`) is the
+    // frame's to settle: the header writes the same answer the .c does
+    const symbolsByFile = Program.withSettledParameters(
+      values.symbolsByFile,
+      dimensioned,
+      constants,
+      fileFacts,
+      (declaration) => settledLocals.get(declaration),
+    );
+    const symbolsByCName = Program.indexByCName(symbolsByFile);
     const bound: IBindingFacts = {
       framesByFile,
       symbolsByCName,
       registry,
       foreignNames,
+      foreignValues,
       visibleFiles,
     };
     const knownEnums = Program.deriveKnownEnums(symbolsByFile);
@@ -245,8 +296,20 @@ class Program {
       knownEnums: (): ReadonlySet<string> => knownEnums,
       externalStructFields: (): ReadonlyMap<string, ReadonlySet<string>> =>
         externalStructFields,
+      // A bound name's value is its binding's alone: the walk asks no file
+      // and reports no position, so neither is given
       constantOf: (binding: TValueBinding): IFoldedConstant | null =>
-        Program.constantOf(binding, derivedConsts, SETTLED) ?? null,
+        Program.foldedOf(
+          ConstantNames.ofBinding(
+            binding,
+            "",
+            NO_POSITION,
+            Program.nameFacts(bound, null, constants, {
+              settledLocal: SETTLED,
+              files: fileFacts,
+            }),
+          ),
+        ),
       conflicts: (): ReadonlyArray<IConflict> => conflicts,
       typesDeclaredIn: (sourceFile: string): ReadonlySet<string> =>
         typesByFile.get(sourceFile) ?? EMPTY_NAMES,
@@ -283,16 +346,32 @@ class Program {
         at: TPosition,
       ): TValueBinding | null =>
         Program.bindValue(bound, sourceFile, root, name, at),
-      constantAt: (
+      constantValueOf: (
         sourceFile: string,
-        name: string,
-        at: TPosition,
-      ): IFoldedConstant | null =>
-        Program.constantOf(
-          Program.bindValue(bound, sourceFile, null, name, at),
-          derivedConsts,
-          SETTLED,
-        ) ?? null,
+        name: Extract<TConstExpr, { kind: "name" }>,
+      ): TConstResult =>
+        ConstantNames.valueOf(
+          name,
+          Program.nameFacts(bound, sourceFile, constants, {
+            settledLocal: SETTLED,
+            files: fileFacts,
+          }),
+        ),
+      cTypeNameAt: (
+        sourceFile: string,
+        typeName: string,
+        at: ISourcePosition,
+      ): string =>
+        ConstantNames.cTypeName(
+          typeName,
+          at,
+          Program.nameFacts(bound, sourceFile, constants, {
+            settledLocal: SETTLED,
+            files: fileFacts,
+          }),
+        ),
+      enumMemberValues: (enumCName: string): ReadonlyArray<TEnumMemberValue> =>
+        constants.enums.get(enumCName) ?? [],
       target: (): TRunTarget => {
         invariant(
           target,
@@ -615,14 +694,16 @@ class Program {
   }
 
   /**
-   * Every file-scope and scope const's integer value, by C name, folded once
-   * for the whole program.
+   * Every file-scope and scope const's integer value, and every C-Next
+   * enum's member values, by C name, settled once for the whole program
+   * (#1175, #1669).
    *
-   * A const's initializer folds with the one evaluator, and each name in it
-   * means what the binder says it means where the const is declared: the
-   * scope's own member, then a file-scope global (ADR-057). Neither
-   * declaration order nor file order decides whether `const B <- A * 2` has a
-   * value (#1668, C11).
+   * Consts and enums settle in ONE worklist because each may name the other:
+   * `const u32 N <- (u32)EColor.COUNT` and `A <- N + 1`. A value folds with the
+   * one evaluator, and each name in it means what the binder says it means
+   * where it is written: the scope's own member, then a file-scope global
+   * (ADR-057). Neither declaration order nor file order decides whether
+   * `const B <- A * 2` has a value (#1668, C11).
    *
    * #1664 review: the fold used to look names up in a map of the consts that
    * had folded SO FAR. A scope's `N` that did not fold, or had not folded
@@ -631,130 +712,441 @@ class Program {
    * declaration instead, an unfolded `N` leaves everything built on it
    * unfolded until `N` folds.
    *
-   * A worklist, not repeated rounds (#1760 second review): a const is tried
-   * again only when a const it waited on folds. A binding does not depend on
-   * the values, so that is the only event that can change its answer. The
+   * A worklist, not repeated rounds (#1760 second review): an item is tried
+   * again only when something it waited on settles. A binding does not depend
+   * on the values, so that is the only event that can change its answer. The
    * rounds retried every pending const each time, which is O(n^2) when
    * consts are declared in reverse dependency order: 4000 of them took 6.3s
-   * against 1.7s in forward order.
+   * against 1.7s in forward order. An enum whose wait can never end -- it
+   * names a const that has no value, or one in a cycle -- settles last, with
+   * what it waited on counted as having no value, and wakes what waited on it.
    */
-  private static deriveConstValues(
+  private static deriveConstants(
     settledByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
     declared: IBindingFacts,
-  ): ReadonlyMap<string, number> {
-    const values = new Map<string, number>();
-    const waitingOn = new Map<string, IVariableSymbol[]>();
-    const queue = [...settledByFile.values()]
-      .flat()
-      .filter(
-        (symbol): symbol is IVariableSymbol =>
-          symbol.kind === "variable" &&
-          symbol.isConst &&
-          symbol.initialValue !== undefined,
-      );
-    for (let symbol = queue.pop(); symbol; symbol = queue.pop()) {
-      const unfolded: string[] = [];
-      const value = ConstantFold.declared(
-        symbol.initialValue!,
-        symbol.type,
-        Program.constantsIn(declared, symbol, values, unfolded),
-      );
-      if (value === undefined) {
-        for (const cName of unfolded) {
-          waitingOn.set(cName, [...(waitingOn.get(cName) ?? []), symbol]);
+    files: IFileConstantFacts,
+  ): ISettledConstants {
+    const consts = new Map<string, TSettledConst>();
+    const enums = new Map<string, ReadonlyArray<TEnumMemberValue>>();
+    const partialEnums = new Map<string, ReadonlyArray<TEnumMemberValue>>();
+    const settled: ISettledConstants = { consts, enums, partialEnums };
+    const symbols = [...settledByFile.values()].flat();
+    const enumSymbols = symbols.filter(
+      (symbol): symbol is IEnumSymbol => symbol.kind === "enum",
+    );
+    const queue: TSymbol[] = [
+      ...symbols.filter(Program.hasConstInitializer),
+      ...enumSymbols,
+    ];
+    const waitingOn = new Map<string, TSymbol[]>();
+    const wake = (cName: string): void => {
+      queue.push(...(waitingOn.get(cName) ?? []));
+      waitingOn.delete(cName);
+    };
+    const settle = (symbol: TSymbol, final: boolean): void => {
+      const pending: string[] = [];
+      const facts = Program.nameFacts(declared, symbol.sourceFile, settled, {
+        settledLocal: SETTLED,
+        files,
+        pending,
+      });
+      const cName = symbol.fullyQualifiedCName;
+      if (symbol.kind === "variable") {
+        const settledConst = ConstantFold.constValue(
+          symbol.initialValueExpr!,
+          Program.environment(facts),
+          symbol.type,
+        );
+        // A const waiting on another settles when that one does; one with no
+        // value for any other reason has settled, and keeps why
+        const waits = settledConst?.kind !== "value" && pending.length > 0;
+        if (settledConst !== null && !waits) consts.set(cName, settledConst);
+      } else if (symbol.kind === "enum" && !enums.has(cName)) {
+        const values = Program.enumValues(symbol, facts);
+        if (pending.length > 0 && !final) {
+          // Publish the members that settled, so what waits on one of them
+          // can go on; the rest settle when what they wait on does
+          const before = partialEnums.get(cName);
+          partialEnums.set(cName, values);
+          Program.wait(waitingOn, pending, symbol);
+          if (!Program.sameValues(before, values)) wake(cName);
+          return;
         }
-        continue;
+        partialEnums.delete(cName);
+        enums.set(cName, values);
       }
-      values.set(symbol.fullyQualifiedCName, value);
-      queue.push(...(waitingOn.get(symbol.fullyQualifiedCName) ?? []));
-      waitingOn.delete(symbol.fullyQualifiedCName);
+      if (consts.has(cName) || enums.has(cName)) {
+        wake(cName);
+      } else {
+        Program.wait(waitingOn, pending, symbol);
+      }
+    };
+    for (;;) {
+      for (let symbol = queue.pop(); symbol; symbol = queue.pop()) {
+        settle(symbol, false);
+      }
+      const stuck = enumSymbols.find(
+        (symbol) => !enums.has(symbol.fullyQualifiedCName),
+      );
+      if (stuck === undefined) return settled;
+      settle(stuck, true);
     }
-    return values;
+  }
+
+  /** Whether an enum's published member values are unchanged */
+  private static sameValues(
+    before: ReadonlyArray<TEnumMemberValue> | undefined,
+    after: ReadonlyArray<TEnumMemberValue>,
+  ): boolean {
+    return (
+      before !== undefined &&
+      before.every((value, i) => value.kind === after[i].kind)
+    );
+  }
+
+  private static hasConstInitializer(symbol: TSymbol): boolean {
+    return (
+      symbol.kind === "variable" &&
+      symbol.isConst &&
+      symbol.initialValueExpr !== undefined
+    );
+  }
+
+  private static wait(
+    waitingOn: Map<string, TSymbol[]>,
+    pending: ReadonlyArray<string>,
+    symbol: TSymbol,
+  ): void {
+    for (const cName of pending) {
+      waitingOn.set(cName, [...(waitingOn.get(cName) ?? []), symbol]);
+    }
   }
 
   /**
-   * A name's value as `symbol`'s declaration sees it -- a file-scope or
-   * scope-level declaration, where no local can be in view -- from its own
-   * file. `unfolded` collects each const it binds that has not folded yet.
+   * One enum's member values (ADR-017 "Member Values"): each member's value
+   * written where the enum is, with the members above it already settled.
    */
-  private static constantsIn(
-    facts: IBindingFacts,
-    symbol: TSymbol,
-    values: ReadonlyMap<string, number>,
-    unfolded: string[] = [],
-  ): (name: string) => IFoldedConstant | undefined {
-    return (name) => {
-      const binding = Program.bindOutside(
-        facts,
-        symbol.sourceFile,
-        symbol.scopePath,
-        null,
-        name,
+  private static enumValues(
+    symbol: IEnumSymbol,
+    facts: IConstantNameFacts,
+  ): TEnumMemberValue[] {
+    const members = [...symbol.members.values()];
+    const names = members.map((member) => member.name);
+    return EnumMemberValues.compute(members, (index, done) =>
+      Program.environment({
+        ...facts,
+        enumMember: (enumCName, member, spelling, at) =>
+          enumCName === symbol.fullyQualifiedCName
+            ? EnumMemberValues.ownMember(
+                names,
+                index,
+                done,
+                member,
+                spelling,
+                at,
+              )
+            : facts.enumMember(enumCName, member, spelling, at),
+      }),
+    );
+  }
+
+  /** Each enum rebuilt with its settled member values */
+  private static withEnumValues(
+    settledByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
+    constants: ISettledConstants,
+  ): Map<string, ReadonlyArray<TSymbol>> {
+    const withValues = new Map<string, ReadonlyArray<TSymbol>>();
+    for (const [sourceFile, symbols] of settledByFile) {
+      withValues.set(
+        sourceFile,
+        symbols.map((symbol) => {
+          if (symbol.kind !== "enum") return symbol;
+          const values = constants.enums.get(symbol.fullyQualifiedCName) ?? [];
+          const members = new Map(
+            [...symbol.members].map(([name, member], index) => {
+              const settled = values[index];
+              const value =
+                settled?.kind === "value"
+                  ? (ConstantEvaluator.toNumber(settled.value) ?? null)
+                  : null;
+              return [name, { ...member, value }];
+            }),
+          );
+          return { ...symbol, members };
+        }),
       );
-      const folded = Program.constantOf(binding, values, SETTLED);
-      // A const not folded yet: the one event that can change this answer
-      if (
-        folded === undefined &&
-        binding?.kind === "variable" &&
-        binding.symbol.isConst
-      ) {
-        unfolded.push(binding.symbol.fullyQualifiedCName);
-      }
-      return folded;
+    }
+    return withValues;
+  }
+
+  /**
+   * What `ConstantNames` asks, answered from `facts` as `sourceFile` sees
+   * them and from the values settled so far. `pending` collects each const
+   * and enum a name waited on, for the worklist.
+   */
+  private static nameFacts(
+    facts: IBindingFacts,
+    sourceFile: string | null,
+    constants: ISettledConstants,
+    options: {
+      settledLocal: (
+        declaration: ILocalDeclaration,
+      ) => ILocalDeclaration | undefined;
+      files: IFileConstantFacts;
+      pending?: string[];
+    },
+  ): IConstantNameFacts {
+    const file = (): string => {
+      invariant(
+        sourceFile !== null,
+        "a bound name's value is its binding's: the walk asks no file of it",
+      );
+      return sourceFile;
+    };
+    return {
+      bind: (root, name, at) =>
+        Program.bindValue(facts, file(), root, name, at),
+      scopePathAt: (at) =>
+        LexicalFrames.frameAt(Program.framesOf(facts, file()), at).scopePath,
+      visibleSymbol: (cName) => Program.visibleSymbolIn(facts, file(), cName),
+      isScopeTypeVisible: (name) =>
+        options.files.isScopeTypeVisibleFrom(file(), name),
+      get reachesForeignHeader() {
+        return options.files.reachesForeignHeader(file());
+      },
+      foreignValue: (name) => facts.foreignValues.get(name) ?? null,
+      constValue: (symbol) => {
+        const value = constants.consts.get(symbol.fullyQualifiedCName);
+        if (value === undefined)
+          options.pending?.push(symbol.fullyQualifiedCName);
+        return value;
+      },
+      settledLocal: options.settledLocal,
+      enumMember: (enumCName, member, spelling, at) =>
+        Program.settledMember(facts, constants, enumCName, member, {
+          spelling,
+          at,
+          pending: options.pending,
+        }),
     };
   }
 
+  /** A member of an enum other than the one being computed */
+  private static settledMember(
+    facts: IBindingFacts,
+    constants: ISettledConstants,
+    enumCName: string,
+    member: string,
+    where: { spelling: string; at: ISourcePosition; pending?: string[] },
+  ): TConstResult {
+    const without = (
+      reason: "unfolded" | "undeclaredMember",
+    ): TConstResult => ({
+      kind: "notConstant",
+      reason,
+      spelling: where.spelling,
+      at: where.at,
+    });
+    const symbol = facts.symbolsByCName.get(enumCName);
+    const index =
+      symbol?.kind === "enum" ? [...symbol.members.keys()].indexOf(member) : -1;
+    if (index < 0) return without("undeclaredMember");
+    const final = constants.enums.get(enumCName);
+    const settled = (final ?? constants.partialEnums?.get(enumCName))?.[index];
+    if (settled?.kind === "value") {
+      return { kind: "value", value: settled.value, typeName: null };
+    }
+    // Not settled yet, or settled with no value
+    if (final === undefined) where.pending?.push(enumCName);
+    return without("unfolded");
+  }
+
+  private static environment(facts: IConstantNameFacts): IConstantEnvironment {
+    return {
+      valueOf: (name) => ConstantNames.valueOf(name, facts),
+      cTypeName: (typeName, at) => ConstantNames.cTypeName(typeName, at, facts),
+    };
+  }
+
+  /** A value as the compile-time constant `IProgram.constantOf` returns */
+  private static foldedOf(result: TConstResult): IFoldedConstant | null {
+    if (result.kind !== "value") return null;
+    const value = ConstantEvaluator.toNumber(result.value);
+    return value === undefined ? null : { value, typeName: result.typeName };
+  }
+
   /**
-   * What a binding is worth at compile time: a local's settled value, or a
-   * global's or scope member's folded one, with the declared type that holds
-   * it. Anything else -- a variable, a parameter, an unfolded const, a scope,
-   * a header name -- has none.
-   *
-   * @param settled a local's settled declaration; 1.4 binds over the
-   *        unsettled frames while it settles them
+   * #1175: consts, enum values and dimensions settle together, because each
+   * may need another: a dimension names a const, and a const may read a
+   * dimension through a length property (`const u32 K <- arr.element_count`).
+   * Consts settle again only while one has no value and a dimension moved,
+   * so a program that converges in one round costs one round (#1863 review:
+   * consts settled once, before any dimension, and K had no value). Values
+   * only go from none to one, so the rounds are bounded, and the bound is
+   * asserted.
    */
-  private static constantOf(
-    binding: TValueBinding | null,
-    values: ReadonlyMap<string, number>,
-    settled: (declaration: ILocalDeclaration) => ILocalDeclaration | undefined,
-  ): IFoldedConstant | undefined {
-    if (binding?.kind === "local") {
-      const declaration = settled(binding.declaration);
-      return declaration?.constValue === null || declaration === undefined
-        ? undefined
-        : {
-            value: declaration.constValue,
-            typeName: ConstantFold.typeNameOf(declaration.type),
-          };
+  private static settleValues(
+    settledByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
+    declared: IBindingFacts,
+    files: IFileConstantFacts,
+  ): {
+    readonly constants: ISettledConstants;
+    readonly symbolsByFile: Map<string, ReadonlyArray<TSymbol>>;
+  } {
+    let symbols: ReadonlyMap<string, ReadonlyArray<TSymbol>> = settledByFile;
+    const bound = [...settledByFile.values()].flat().length + 2;
+    for (let round = 0; ; round += 1) {
+      invariant(
+        round <= bound,
+        "1.4's consts and dimensions settle in a bounded number of rounds",
+      );
+      const constants = Program.deriveConstants(
+        symbols,
+        { ...declared, symbolsByCName: Program.indexByCName(symbols) },
+        files,
+      );
+      const next = Program.resolveDimensions(
+        Program.withEnumValues(symbols, constants),
+        declared,
+        constants,
+        files,
+      );
+      const constLacksValue = [...constants.consts.values()].some(
+        (settled) => settled.kind !== "value",
+      );
+      if (!constLacksValue || Program.sameDimensions(symbols, next)) {
+        return { constants, symbolsByFile: next };
+      }
+      symbols = next;
     }
-    if (binding?.kind === "variable" && binding.symbol.isConst) {
-      const value = values.get(binding.symbol.fullyQualifiedCName);
-      return value === undefined
-        ? undefined
-        : { value, typeName: ConstantFold.typeNameOf(binding.symbol.type) };
+  }
+
+  /**
+   * Each function's parameter dimensions, settled through the frames' own
+   * settled declarations, so a parameter sized by an earlier one reads the
+   * value its frame settled -- one answer for the .c and the .h
+   */
+  private static withSettledParameters(
+    symbolsByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
+    facts: IBindingFacts,
+    constants: ISettledConstants,
+    files: IFileConstantFacts,
+    settledLocal: (
+      declaration: ILocalDeclaration,
+    ) => ILocalDeclaration | undefined,
+  ): Map<string, ReadonlyArray<TSymbol>> {
+    const result = new Map<string, ReadonlyArray<TSymbol>>();
+    for (const [sourceFile, symbols] of symbolsByFile) {
+      const env = Program.environment(
+        Program.nameFacts(facts, sourceFile, constants, {
+          settledLocal,
+          files,
+        }),
+      );
+      result.set(
+        sourceFile,
+        symbols.map((symbol) =>
+          symbol.kind === "function"
+            ? Program.withResolvedDimensions(symbol, env)
+            : symbol,
+        ),
+      );
     }
-    return undefined;
+    return result;
   }
 
   /** Tier 2: resolved array dimensions, per file. */
   private static resolveDimensions(
     settledByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
     declared: IBindingFacts,
-    values: ReadonlyMap<string, number>,
+    constants: ISettledConstants,
+    files: IFileConstantFacts,
   ): Map<string, ReadonlyArray<TSymbol>> {
-    const symbolsByFile = new Map<string, ReadonlyArray<TSymbol>>();
-    for (const [sourceFile, settled] of settledByFile) {
-      symbolsByFile.set(
-        sourceFile,
-        settled.map((symbol) =>
-          Program.withResolvedDimensions(
-            symbol,
-            Program.constantsIn(declared, symbol, values),
-          ),
-        ),
+    // #1175: an array may be sized by another's property
+    // (`u8[src.element_count]`), whose own size may need settling first. So
+    // dimensions settle to a fixpoint: each pass binds names over the previous
+    // pass's symbols. A size only ever goes from unresolved to a value, so the
+    // passes are bounded by the number of symbols; the bound is asserted, so a
+    // fault here fails rather than hangs.
+    let current = settledByFile;
+    const bound = [...settledByFile.values()].flat().length + 2;
+    for (let pass = 0; ; pass += 1) {
+      invariant(
+        pass <= bound,
+        "1.4's dimensions settle in a bounded number of passes",
       );
+      const facts: IBindingFacts = {
+        ...declared,
+        symbolsByCName: Program.indexByCName(current),
+      };
+      const next = new Map<string, ReadonlyArray<TSymbol>>();
+      for (const [sourceFile, symbols] of current) {
+        const env = Program.environment(
+          Program.nameFacts(facts, sourceFile, constants, {
+            settledLocal: SETTLED,
+            files,
+          }),
+        );
+        next.set(
+          sourceFile,
+          symbols.map((symbol) => Program.withResolvedDimensions(symbol, env)),
+        );
+      }
+      if (Program.sameDimensions(current, next)) return next;
+      current = next;
     }
-    return symbolsByFile;
+  }
+
+  /** Whether two passes settled every dimension alike, compared by value */
+  private static sameDimensions(
+    before: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
+    after: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
+  ): boolean {
+    const sizes = (symbols: ReadonlyMap<string, ReadonlyArray<TSymbol>>) =>
+      JSON.stringify(
+        [...symbols.values()].flat().map((symbol) => {
+          if (symbol.kind === "variable") return symbol.arrayDimensions;
+          if (symbol.kind === "function") {
+            return symbol.parameters.map((p) => p.arrayDimensions);
+          }
+          if (symbol.kind === "struct") {
+            return [...symbol.fields.values()].map((f) => f.dimensions);
+          }
+          return null;
+        }),
+      );
+    return sizes(before) === sizes(after);
+  }
+
+  /**
+   * A file's frames. #1760 review: a file this program does not hold is a
+   * caller's bug, not a file with no locals -- falling back would lose every
+   * shadowing decision silently, where lexicalFrameAt already asserts
+   */
+  private static framesOf(
+    facts: IBindingFacts,
+    sourceFile: string,
+  ): ILexicalFrame {
+    const frames = facts.framesByFile.get(sourceFile);
+    invariant(frames, `${sourceFile} is a file of this program`);
+    return frames;
+  }
+
+  /**
+   * A declaration `sourceFile` can see, by C name. One it cannot see binds
+   * nothing there (#1760 second review): a reopened scope's member from an
+   * un-included sibling beat the visible global, and sized `u8[N]` by it
+   */
+  private static visibleSymbolIn(
+    facts: IBindingFacts,
+    sourceFile: string,
+    cName: string,
+  ): TSymbol | undefined {
+    const symbol = facts.symbolsByCName.get(cName);
+    return symbol !== undefined &&
+      facts.visibleFiles.get(sourceFile)?.has(symbol.sourceFile)
+      ? symbol
+      : undefined;
   }
 
   /**
@@ -775,11 +1167,7 @@ class Program {
     name: string,
     at: TPosition,
   ): TValueBinding | null {
-    // #1760 review: a file this program does not hold is a caller's bug, not
-    // a file with no locals -- falling back would lose every shadowing
-    // decision silently, where lexicalFrameAt already asserts
-    const frames = facts.framesByFile.get(sourceFile);
-    invariant(frames, `${sourceFile} is a file of this program`);
+    const frames = Program.framesOf(facts, sourceFile);
     const scopePath = LexicalFrames.frameAt(frames, at).scopePath;
     const local =
       root === null ? LexicalFrames.declarationAt(frames, name, at) : null;
@@ -801,16 +1189,8 @@ class Program {
     root: TChainRoot,
     name: string,
   ): TValueBinding | null {
-    // A declaration in a file `sourceFile` cannot see binds nothing there
-    // (#1760 second review): a reopened scope's member from an un-included
-    // sibling beat the visible global, and sized `u8[N]` by it
-    const visible = facts.visibleFiles.get(sourceFile);
-    const visibleSymbol = (cName: string): TSymbol | undefined => {
-      const symbol = facts.symbolsByCName.get(cName);
-      return symbol !== undefined && visible?.has(symbol.sourceFile)
-        ? symbol
-        : undefined;
-    };
+    const visibleSymbol = (cName: string): TSymbol | undefined =>
+      Program.visibleSymbolIn(facts, sourceFile, cName);
     const declared = (cName: string): TValueBinding | null => {
       const symbol = visibleSymbol(cName);
       if (symbol?.kind === "variable") return { kind: "variable", symbol };
@@ -843,6 +1223,29 @@ class Program {
       return declared(memberCName);
     }
     return declared(name) ?? scope() ?? foreign();
+  }
+
+  /**
+   * #1175: the header variables and functions, by name -- what a constant
+   * expression naming one is worth (a length property of an array; no value
+   * otherwise)
+   */
+  private static foreignValues(
+    foreign: IForeignSymbols,
+  ): ReadonlyMap<string, IForeignValue> {
+    const values = new Map<string, IForeignValue>();
+    for (const symbol of [...foreign.c, ...foreign.cpp]) {
+      if (symbol.kind === "variable") {
+        values.set(symbol.name, {
+          kind: "variable",
+          type: symbol.type,
+          dimensions: symbol.arrayDimensions ?? [],
+        });
+      } else if (symbol.kind === "function") {
+        values.set(symbol.name, { kind: "function" });
+      }
+    }
+    return values;
   }
 
   /**
@@ -929,8 +1332,9 @@ class Program {
    * variably-modified, which MISRA C:2012 Rule 18.8 forbids, so this has to
    * happen before anything renders the type -- and it cannot happen in 1.3,
    * because the const may be declared in another file. Each dimension folds
-   * with the one evaluator, so `N+1` and `sizeof(u32)` settle here as they do
-   * in the .c; one a C macro names stays its text for the C compiler.
+   * from its plain-data form by the one evaluator (#1175), so the .c and the
+   * .h read one size; one a C macro names is written for C to evaluate, from
+   * its structure, never from source text.
    *
    * REBUILT, not mutated. Identity is preserved when nothing moved, so the
    * common case allocates nothing and a consumer comparing by reference still
@@ -938,7 +1342,7 @@ class Program {
    */
   private static withResolvedDimensions(
     symbol: TSymbol,
-    constantOf: (name: string) => IFoldedConstant | undefined,
+    env: IConstantEnvironment,
   ): TSymbol {
     if (
       symbol.kind === "variable" &&
@@ -947,7 +1351,8 @@ class Program {
     ) {
       const dimensions = Program.resolvedDimensions(
         symbol.arrayDimensions,
-        constantOf,
+        symbol.arrayDimensionExprs,
+        env,
       );
       return dimensions === symbol.arrayDimensions
         ? symbol
@@ -959,7 +1364,8 @@ class Program {
         if (!parameter.arrayDimensions) return parameter;
         const dimensions = Program.resolvedDimensions(
           parameter.arrayDimensions,
-          constantOf,
+          parameter.arrayDimensionExprs,
+          env,
         );
         if (dimensions === parameter.arrayDimensions) return parameter;
         changed = true;
@@ -974,7 +1380,8 @@ class Program {
           if (!field.dimensions) return [name, field];
           const dimensions = Program.resolvedDimensions(
             field.dimensions,
-            constantOf,
+            field.dimensionExprs,
+            env,
           );
           if (dimensions === field.dimensions) return [name, field];
           changed = true;
@@ -986,20 +1393,20 @@ class Program {
     return symbol;
   }
 
-  /** Dimensions folded where they can be, or the same array when none moved */
+  /**
+   * Each dimension 1.3 could not size, settled from what was written; the same
+   * array when 1.3 sized them all
+   */
   private static resolvedDimensions(
     dimensions: ReadonlyArray<number | string>,
-    constantOf: (name: string) => IFoldedConstant | undefined,
+    exprs: ReadonlyArray<TConstExpr | null> | undefined,
+    env: IConstantEnvironment,
   ): ReadonlyArray<number | string> {
-    let changed = false;
-    const resolved = dimensions.map((dimension) => {
-      if (typeof dimension === "number") return dimension;
-      const value = ConstantFold.value(dimension, constantOf);
-      if (value === undefined) return dimension;
-      changed = true;
-      return value;
+    if (!exprs?.some((expr) => expr !== null)) return dimensions;
+    return dimensions.map((dimension, i) => {
+      const expr = exprs[i];
+      return expr ? ConstantFold.dimension(expr, env) : dimension;
     });
-    return changed ? resolved : dimensions;
   }
 }
 

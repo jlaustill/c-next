@@ -1,0 +1,2 @@
+12:3 error[E0909]: Array dimension must be known at compile time: 'count' is a variable
+       help: An array's size is built from literals, consts, sizeof and casts (ADR-023). C-Next has no variable-length arrays

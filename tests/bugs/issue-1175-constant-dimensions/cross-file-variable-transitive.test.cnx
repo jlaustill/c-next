@@ -1,0 +1,30 @@
+// test-error
+// test-adr: 036
+// Issue #1175 / ADR-036: a dimension must be a constant expression in every
+// context, whatever file the name it uses is declared in. `libCount` is a
+// variable declared two includes away, so each dimension below is rejected where it is
+// written -- one in each context the scope-context matrix tracks.
+//
+// NEGATIVE CONTROL: `fine` names LIB_SIZE, a const from the same file, and
+// must stay silent.
+
+#include "var-mid.cnx"
+
+u8[libCount] shared;
+u8[LIB_SIZE] fine;
+
+scope Store {
+    u8[libCount] slots;
+
+    public void fill() {
+        u8[libCount] scratch;
+        scratch[0] <- 1;
+    }
+}
+
+void f() {
+    u8[libCount] local;
+    local[0] <- 1;
+}
+
+void main() {}

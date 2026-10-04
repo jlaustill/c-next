@@ -10,10 +10,18 @@
 // Issue #1127: every qualification form must produce the same identifier in the
 // .c and the .h, for struct fields as well as variables. Snapshot test so the
 // two files can be compared directly for all four forms.
+// #1175: each form folds to the member's value now, once, so both files write
+// the same number rather than a name each derived.
 /* Scope: Motor */
-uint8_t Motor__varBare[Motor__State__COUNT] = {};
-uint8_t Motor__varThis[Motor__State__COUNT] = {};
-uint8_t Motor__varGlobal[Top__COUNT] = {};
+
+typedef enum {
+    Motor__State__IDLE = 0,
+    Motor__State__RUN = 1,
+    Motor__State__COUNT = 2
+} Motor__State;
+uint8_t Motor__varBare[2] = {};
+uint8_t Motor__varThis[2] = {};
+uint8_t Motor__varGlobal[2] = {};
 
 int main(void) {
     return 0;

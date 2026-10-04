@@ -1,0 +1,19 @@
+// test-error
+// #1863 review: a member an enum does not have, and a divisor that is zero
+// only once computed, were reported by nothing -- E0427 reports a bare
+// undeclared name, E0800 a literal or const divisor. The header dropped the
+// enum's members at exit 0. Each is E0909 at the member.
+//
+// NEGATIVE CONTROL: `C`, which names a member F has.
+
+enum F {
+    X
+}
+enum E {
+    A,
+    B <- F.NOPE,
+    C <- (i32)F.X + 1,
+    D <- 4 / (2 - 2)
+}
+
+void main() {}

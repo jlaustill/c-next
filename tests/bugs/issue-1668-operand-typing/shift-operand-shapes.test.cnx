@@ -14,10 +14,10 @@ void main() {
     u32 w <- 1;
     const u8 NINE <- 9;
 
-    // NEGATIVE CONTROLS -- in range, and a leading-zero amount, whose value
-    // the emitted C and the transpiler disagree on (#1728), is not judged.
+    // NEGATIVE CONTROLS -- in range. (A leading-zero amount was one too, under
+    // #1728's interim rule; it is E0912 now, as ADR-044 has no octal literal.)
     u8 ok1 <- a << 7;
-    u32 ok2 <- w << 037;
+    u32 ok2 <- w << 31;
     for (u32 i <- 0; i < 3; i +<- 1) {
         a <<<- 1;
     }

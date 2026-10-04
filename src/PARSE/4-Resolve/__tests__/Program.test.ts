@@ -12,9 +12,33 @@ import TypeResolver from "../../../utils/TypeResolver";
 import type IFileSymbols from "../../../types/IFileSymbols";
 import type TSymbol from "../../../types/symbols/TSymbol";
 import type TCSymbol from "../../../types/symbols/c/TCSymbol";
+import type IProgram from "../../../types/IProgram";
+import type IFoldedConstant from "../../../types/IFoldedConstant";
+import UNRESOLVED_DIMENSION from "../../../types/UNRESOLVED_DIMENSION";
 import SymbolTable from "../../3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
+
+/**
+ * #1175: a bare name's compile-time value where it is used -- what
+ * `constantAt` answered, asked of `constantValueOf` with the name written there
+ */
+function constantAt(
+  program: IProgram,
+  sourceFile: string,
+  name: string,
+  at: { line: number; column: number },
+): IFoldedConstant | null {
+  const result = program.constantValueOf(sourceFile, {
+    kind: "name",
+    root: null,
+    path: [name],
+    at,
+  });
+  return result.kind === "value"
+    ? { value: Number(result.value), typeName: result.typeName }
+    : null;
+}
 
 /**
  * 1.4 Resolve's artifact, built from real Declare output rather than hand-made
@@ -312,7 +336,7 @@ describe("Program", () => {
       );
 
       expect(
-        program.constantAt("use.cnx", "SIZE", { line: 1, column: 0 }),
+        constantAt(program, "use.cnx", "SIZE", { line: 1, column: 0 }),
       ).toEqual({ value: 4, typeName: "u32" });
     });
 
@@ -335,11 +359,11 @@ describe("Program", () => {
           { length: n },
           (_, i) => `const u32 C${i} <- ${initializer(i, n)};`,
         ).join("\n");
-        const attempts = vi.spyOn(ConstantFold, "declared");
+        const attempts = vi.spyOn(ConstantFold, "constValue");
         try {
           const program = Program.build([declare(source, "lib.cnx")]);
           expect(
-            program.constantAt("lib.cnx", "C0", { line: n + 1, column: 0 })
+            constantAt(program, "lib.cnx", "C0", { line: n + 1, column: 0 })
               ?.value,
           ).toBeGreaterThan(0);
           expect(attempts.mock.calls.length).toBeLessThanOrEqual(2 * n);
@@ -356,7 +380,7 @@ describe("Program", () => {
       const program = Program.build([lib, use]);
 
       expect(
-        program.constantAt("use.cnx", "SIZE", { line: 1, column: 0 }),
+        constantAt(program, "use.cnx", "SIZE", { line: 1, column: 0 }),
       ).toBeNull();
     });
 
@@ -378,13 +402,13 @@ describe("Program", () => {
       expect(valueOf("Board__STEP")).toBe(12);
       expect(valueOf("Other__STEP")).toBe(3);
       expect(
-        program.constantAt("lib.cnx", "STEP", { line: 2, column: 4 })?.value,
+        constantAt(program, "lib.cnx", "STEP", { line: 2, column: 4 })?.value,
       ).toBe(12);
       expect(
-        program.constantAt("lib.cnx", "STEP", { line: 5, column: 4 })?.value,
+        constantAt(program, "lib.cnx", "STEP", { line: 5, column: 4 })?.value,
       ).toBe(3);
       expect(
-        program.constantAt("lib.cnx", "STEP", { line: 7, column: 0 }),
+        constantAt(program, "lib.cnx", "STEP", { line: 7, column: 0 }),
       ).toBeNull();
     });
 
@@ -393,8 +417,10 @@ describe("Program", () => {
       const program = Program.build([lib]);
       const at = { line: 2, column: 0 };
 
-      expect(program.constantAt("lib.cnx", "mutable", at)).toBeNull();
-      expect(program.constantAt("lib.cnx", "nothingCalledThis", at)).toBeNull();
+      expect(constantAt(program, "lib.cnx", "mutable", at)).toBeNull();
+      expect(
+        constantAt(program, "lib.cnx", "nothingCalledThis", at),
+      ).toBeNull();
     });
 
     it("gives a name that binds to a parameter no value, whatever a const of that name holds (#1664 review)", () => {
@@ -407,11 +433,11 @@ describe("Program", () => {
       const program = Program.build([lib]);
 
       expect(
-        program.constantAt("lib.cnx", "N", { line: 3, column: 13 }),
+        constantAt(program, "lib.cnx", "N", { line: 3, column: 13 }),
       ).toBeNull();
       // NEGATIVE CONTROL: outside `f`, `N` is the const
       expect(
-        program.constantAt("lib.cnx", "N", { line: 5, column: 0 })?.value,
+        constantAt(program, "lib.cnx", "N", { line: 5, column: 0 })?.value,
       ).toBe(10);
     });
   });
@@ -447,7 +473,9 @@ describe("Program", () => {
       const buffer = find(program.symbolsInFile("use.cnx"), "buffer");
       expect(SymbolGuards.isVariable(buffer)).toBe(true);
       if (SymbolGuards.isVariable(buffer)) {
-        expect(buffer.arrayDimensions).toEqual(["SIZE"]);
+        // Not the unseen file's value. #1175: it stays unresolved, which 2.1
+        // rejects (E0427), where its source text used to reach the header
+        expect(buffer.arrayDimensions).toEqual([UNRESOLVED_DIMENSION]);
       }
     });
 
@@ -455,15 +483,21 @@ describe("Program", () => {
       // The negative control, and the identity check that pins the "allocates
       // nothing when nothing moved" claim -- a rebuild that always copied would
       // pass the assertion above and fail this one.
-      const use = declare(`u32[SOME_MACRO] buffer;`, "use.cnx");
-      const program = Program.build([use]);
+      // #1175: in a file that includes a header, a name nothing binds may be
+      // a macro, so C evaluates it -- written as C, never as source text
+      const use = declare(`u32[SOME_MACRO] buffer;\nu32[4] plain;`, "use.cnx");
+      const program = Program.build([use], {
+        filesReachingForeignHeaders: new Set(["use.cnx"]),
+      });
 
       const rebuilt = find(program.symbolsInFile("use.cnx"), "buffer");
-      const declared = find(use.symbols, "buffer");
       if (SymbolGuards.isVariable(rebuilt)) {
         expect(rebuilt.arrayDimensions).toEqual(["SOME_MACRO"]);
       }
-      expect(rebuilt).toBe(declared);
+      // A symbol 1.3 already sized has nothing to settle, and is the same object
+      expect(find(program.symbolsInFile("use.cnx"), "plain")).toBe(
+        find(use.symbols, "plain"),
+      );
     });
 
     // #1664 box 7: 1.4 is the one place a const-named dimension folds, for
@@ -498,15 +532,22 @@ describe("Program", () => {
     });
 
     it("lets a scope's own const shadow a file-scope one even when it does not fold (#1664 review)", () => {
-      // `7 % 4` does not fold here, so the view of folded consts had no scope
+      // `7 % 4` did not fold here, so the view of folded consts had no scope
       // `N` and gave the global's 1: `S__buf[1]` for a program whose `S.N`
-      // is 3.
+      // is 3. #1175: it folds now, to the scope's own 3.
       expect(
         dimensionsOf(
           `const u32 N <- 1;\nscope S {\nconst u32 N <- 7 % 4;\npublic u8[N] buf;\n}`,
           "buf",
         ),
-      ).toEqual(["N"]);
+      ).toEqual([3]);
+      // And a scope `N` that has no value still shadows: never the global's 1
+      expect(
+        dimensionsOf(
+          `const u32 N <- 1;\nu32 seed <- 7;\nscope S {\nconst u32 N <- seed;\npublic u8[N] buf;\n}`,
+          "buf",
+        ),
+      ).toEqual([UNRESOLVED_DIMENSION]);
     });
 
     it("folds a scope const with its own scope's names, whichever is declared first (#1664 review)", () => {
@@ -522,14 +563,14 @@ describe("Program", () => {
       // ADR-044: `A - 3` on a u8 is 0 in C, and `E + E` is 255
       expect(
         dimensionsOf(`const u8 A <- 2;\nconst u8 B <- A - 3;\nu8[B] g;`, "g"),
-      ).toEqual(["B"]);
+      ).toEqual([UNRESOLVED_DIMENSION]);
       expect(
         dimensionsOf(`const u8 E <- 200;\nconst u8 F <- E + E;\nu8[F] g;`, "g"),
-      ).toEqual(["F"]);
+      ).toEqual([UNRESOLVED_DIMENSION]);
       // Literal operands have no type of their own, so the const's declared
       // type is the one that must hold the result: C stores 260 in a u8 as 4
       expect(dimensionsOf(`const u8 X <- 250 + 10;\nu8[X] g;`, "g")).toEqual([
-        "X",
+        UNRESOLVED_DIMENSION,
       ]);
       // NEGATIVE CONTROL: a result every operand's type holds
       expect(
@@ -891,11 +932,13 @@ scope Gauge {
 
       expect(keys).toEqual([
         "bindValue",
+        "cTypeNameAt",
         "callbackCompatibleFunctions",
         "codeGenSymbolsFor",
         "conflicts",
-        "constantAt",
         "constantOf",
+        "constantValueOf",
+        "enumMemberValues",
         "externalStructFields",
         "functionParamLists",
         "isOpaqueType",

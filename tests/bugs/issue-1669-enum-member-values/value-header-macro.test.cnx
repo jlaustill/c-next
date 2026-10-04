@@ -1,0 +1,19 @@
+// test-error
+// test-adr: 017
+// Issue #1669 / ADR-017 "Member Values" (owner ruling 2026-10-03): a name a C
+// or C++ header defines is rejected as a member's value for now. C-Next needs
+// the value itself, for auto-increment, E0894 and the i32 range.
+//
+// NEGATIVE CONTROL: EOk's member is a literal and must stay silent.
+
+#include "modes.h"
+
+enum EMac {
+    A <- MODE_FAST
+}
+
+enum EOk {
+    B <- 2
+}
+
+void main() {}

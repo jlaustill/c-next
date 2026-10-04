@@ -1,0 +1,15 @@
+// test-error
+// test-adr: 017
+// Issue #1669 / ADR-017 "Member Values": a member may name only members declared
+// ABOVE it. A names B, declared below it; C names itself. Neither has a value yet.
+//
+// NEGATIVE CONTROL: D names B, which is declared above D, and must stay silent.
+
+enum ELate {
+    A <- ELate.B,
+    B <- 1,
+    C <- ELate.C,
+    D <- ELate.B
+}
+
+void main() {}

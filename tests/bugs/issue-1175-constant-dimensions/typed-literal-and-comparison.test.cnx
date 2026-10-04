@@ -1,0 +1,15 @@
+// test-error
+// #1863 review: a suffixed literal was never checked against its type, so
+// `u8[300u8]` sized 300; and a comparison ignored its operands' types, so
+// `N > -1` with a u32 N was true at compile time while C, comparing against
+// UINT_MAX, computes false. Both are E0910.
+//
+// NEGATIVE CONTROLS: `255u8` fits, and `N > 1` compares in range.
+
+const u32 N <- 5;
+u8[300u8] wide;
+u8[(N > -1) ? 8 : 1] signedCompare;
+u8[255u8] fits;
+u8[(N > 1) ? 8 : 1] inRange;
+
+void main() {}

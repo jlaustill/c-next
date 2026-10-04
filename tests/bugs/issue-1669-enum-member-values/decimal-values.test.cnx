@@ -1,0 +1,47 @@
+// test-execution
+// test-adr: 017
+// Issue #1669 / ADR-017 "Member Values": a member's value is an integer
+// expression computed at compile time. The decimal probes from the issue:
+// `A <- 1 + 2` emitted 1 (a prefix parser stopped at the `+`) and `A <- FOO`
+// failed uncoded at 1:0. B continues from A, so it is 4, not 2.
+//
+// NEGATIVE CONTROL: PLAIN keeps a single literal, which every reading agrees on.
+
+const u32 FOO <- 3;
+
+enum ESum {
+    A <- 1 + 2,
+    B,
+    C <- 7 * 2
+}
+
+enum EConst {
+    X <- FOO,
+    Y <- FOO + 1
+}
+
+enum EPlain {
+    PLAIN <- 5
+}
+
+u32 main() {
+    if ((u32)ESum.A != 3) {
+        return 1;
+    }
+    if ((u32)ESum.B != 4) {
+        return 2;
+    }
+    if ((u32)ESum.C != 14) {
+        return 3;
+    }
+    if ((u32)EConst.X != 3) {
+        return 4;
+    }
+    if ((u32)EConst.Y != 4) {
+        return 5;
+    }
+    if ((u32)EPlain.PLAIN != 5) {
+        return 6;
+    }
+    return 0;
+}

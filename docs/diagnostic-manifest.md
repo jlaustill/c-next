@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-464 fixture(s) assert a diagnostic; 451 carry a code.
+487 fixture(s) assert a diagnostic; 474 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -272,6 +272,19 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1145-atomic-bool-clamp-helper/atomic-bool-compound.test.cnx                     | E0806               |
 | tests/bugs/issue-1159-dimension-notation-bounds/binary-dimension-bounds.test.cnx                 | E0854               |
 | tests/bugs/issue-1159-dimension-notation-bounds/hex-dimension-bounds.test.cnx                    | E0854               |
+| tests/bugs/issue-1175-constant-dimensions/const-cause.test.cnx                                   | E0909               |
+| tests/bugs/issue-1175-constant-dimensions/cross-file-variable-direct.test.cnx                    | E0909               |
+| tests/bugs/issue-1175-constant-dimensions/cross-file-variable-transitive.test.cnx                | E0909               |
+| tests/bugs/issue-1175-constant-dimensions/dimension-missing-member.test.cnx                      | E0909               |
+| tests/bugs/issue-1175-constant-dimensions/enum-missing-member.test.cnx                           | E0909               |
+| tests/bugs/issue-1175-constant-dimensions/foreign-condition.test.cnx                             | E0909               |
+| tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx                            | E0910               |
+| tests/bugs/issue-1175-constant-dimensions/property-bounds.test.cnx                               | E0854               |
+| tests/bugs/issue-1175-constant-dimensions/sizeof-expression.test.cnx                             | E0909               |
+| tests/bugs/issue-1175-constant-dimensions/stage-order.test.cnx                                   | E0909               |
+| tests/bugs/issue-1175-constant-dimensions/typed-literal-and-comparison.test.cnx                  | E0910               |
+| tests/bugs/issue-1175-constant-dimensions/variable-dimension-global.test.cnx                     | E0909               |
+| tests/bugs/issue-1175-constant-dimensions/variable-dimension-local.test.cnx                      | E0909               |
 | tests/bugs/issue-1183-bool-operand/bool-array-element-compound.test.cnx                          | E0806               |
 | tests/bugs/issue-1183-bool-operand/bool-compound-right-hand-side.test.cnx                        | E0807               |
 | tests/bugs/issue-1183-bool-operand/bool-division.test.cnx                                        | E0807               |
@@ -382,6 +395,13 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1668-targets/unknown-pragma.test.cnx                                            | E0510               |
 | tests/bugs/issue-1668-ternary-arms/arms.test.cnx                                                 | E0810               |
 | tests/bugs/issue-1668-ternary-arms/transitive/transitive.test.cnx                                | E0810               |
+| tests/bugs/issue-1669-enum-member-values/value-call.test.cnx                                     | E0909               |
+| tests/bugs/issue-1669-enum-member-values/value-header-macro.test.cnx                             | E0909               |
+| tests/bugs/issue-1669-enum-member-values/value-i32-range.test.cnx                                | E0911               |
+| tests/bugs/issue-1669-enum-member-values/value-negative-hex.test.cnx                             | E0894               |
+| tests/bugs/issue-1669-enum-member-values/value-overflow.test.cnx                                 | E0910               |
+| tests/bugs/issue-1669-enum-member-values/value-self-later.test.cnx                               | E0909               |
+| tests/bugs/issue-1669-enum-member-values/value-variable.test.cnx                                 | E0909               |
 | tests/bugs/issue-1694-e0850-scoped-name/signed-then-loop.test.cnx                                | E0850               |
 | tests/bugs/issue-1698-bare-scope-call/mix-error.test.cnx                                         | E0810               |
 | tests/bugs/issue-1698-bare-scope-call/narrow-error.test.cnx                                      | E0869               |
@@ -394,8 +414,11 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1702-declaration-position/fl-fn-error.test.cnx                                  | E0810               |
 | tests/bugs/issue-1724-sibling-scope-type-not-included/frames-see-own-closure-error.test.cnx      | E0810               |
 | tests/bugs/issue-1724-sibling-scope-type-not-included/typer-sees-own-closure-error.test.cnx      | E0428               |
+| tests/bugs/issue-1728-leading-zero/leading-zero.test.cnx                                         | E0912               |
 | tests/bugs/issue-1745-include-directive-agreement/commented-out-header-error.test.cnx            | E0422               |
 | tests/bugs/issue-1745-include-directive-agreement/commented-out-include-error.test.cnx           | E0426               |
+| tests/bugs/issue-1768-variable-dimension/header-variable.test.cnx                                | E0909               |
+| tests/bugs/issue-1768-variable-dimension/variable-dimension.test.cnx                             | E0909               |
 | tests/bugs/issue-1800-float-to-integer/for-header-rejected.test.cnx                              | E0868, E0869, E0891 |
 | tests/bugs/issue-1800-float-to-integer/implicit-rejected.test.cnx                                | E0891               |
 | tests/bugs/issue-1800-float-to-integer/positions-rejected.test.cnx                               | E0891               |

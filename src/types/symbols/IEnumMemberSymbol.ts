@@ -1,4 +1,5 @@
 import type IBaseSymbol from "./IBaseSymbol";
+import type TConstExpr from "../TConstExpr";
 
 /**
  * Symbol representing one member of an enum.
@@ -34,12 +35,22 @@ interface IEnumMemberSymbol extends IBaseSymbol {
   readonly kind: "enum_member";
 
   /**
-   * The member's numeric value, after ADR auto-increment has been applied.
-   *
-   * Resolved at collection, so a consumer never re-runs the increment: the
-   * value a member carries is the value C is emitted with.
+   * The member's value as written (`A <- FOO + 1`), or null when it continues
+   * from the member before it.
    */
-  readonly value: number;
+  readonly valueExpr: TConstExpr | null;
+
+  /**
+   * The member's numeric value, after ADR-017's auto-increment.
+   *
+   * Null out of 1.3 Declare, which cannot know it: a value may name a const or
+   * an earlier member, and those settle across the whole program (#1669). 1.4
+   * Resolve settles it, once, so a consumer never re-runs the increment and
+   * the value a member carries is the value C is emitted with. Still null
+   * after 1.4 only when the value has none -- it names a variable, overflows,
+   * or leaves `i32` -- which 2.1 Analyze reports before anything emits it.
+   */
+  readonly value: number | null;
 }
 
 export default IEnumMemberSymbol;

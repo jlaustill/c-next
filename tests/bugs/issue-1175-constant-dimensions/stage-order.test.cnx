@@ -1,0 +1,17 @@
+// test-error
+// #1863 review: the dimension check ran after the slice check, so a slice
+// into an array a variable sizes reported E0858 ("cannot determine the
+// size") and never the E0909 that causes it.
+//
+// NEGATIVE CONTROL: `fixed`, sized by a literal.
+
+u32 n <- 4;
+u8[n] buf;
+u8[4] fixed;
+
+void f(u32 v) {
+    buf[0, 4] <- v;
+    fixed[0, 4] <- v;
+}
+
+void main() {}

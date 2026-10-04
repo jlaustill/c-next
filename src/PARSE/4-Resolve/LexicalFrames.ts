@@ -12,7 +12,9 @@
  */
 import ConstantFold from "../../utils/ConstantFold";
 import DeferredTypes from "./DeferredTypes";
-import type IFoldedConstant from "../../types/IFoldedConstant";
+import type IConstantEnvironment from "../../utils/types/IConstantEnvironment";
+import type TConstExpr from "../../types/TConstExpr";
+import type TConstResult from "../../types/TConstResult";
 import type ILexicalFrame from "../../types/ILexicalFrame";
 import type ILocalDeclaration from "../../types/ILocalDeclaration";
 import type ISourceSpan from "../../types/ISourceSpan";
@@ -21,38 +23,44 @@ import type ISourceSpan from "../../types/ISourceSpan";
 type TPosition = Pick<ISourceSpan, "line" | "column">;
 
 /**
- * A name's compile-time value where it is used, as the program's binder
- * decides it. `settled` answers for a local the binder returns: the frames
- * the binder walks are the unsettled ones, and a local's value is known
- * once its own declaration has been settled, which source order guarantees
- * for every local a use can bind.
+ * What a name in a constant expression is worth where it is written, as the
+ * program's binder decides it (#1175: the whole chain, not a bare name).
+ * `settled` answers for a local the binder returns: the frames the binder
+ * walks are the unsettled ones, and a local's value is known once its own
+ * declaration has been settled, which source order guarantees for every
+ * local a use can bind.
  */
-type TConstantAt = (
-  name: string,
-  at: TPosition,
+type TValueOf = (
+  name: Extract<TConstExpr, { kind: "name" }>,
   settled: (declaration: ILocalDeclaration) => ILocalDeclaration | undefined,
-) => IFoldedConstant | undefined;
+) => TConstResult;
 
 class LexicalFrames {
   /**
    * The settled, frozen copy of a file's frames.
    *
    * @param isScopeType the whole program's ADR-057 answer
-   * @param constantAt a name's value where it is used, from the one binder
+   * @param valueOf a name's value where it is written, from the one binder
    */
   static settle(
     frame: ILexicalFrame,
     isScopeType: (qualifiedName: string) => boolean,
-    constantAt: TConstantAt,
+    valueOf: TValueOf,
+    /** A type name as C spells it where it is written (ADR-057) */
+    cTypeName: IConstantEnvironment["cTypeName"],
+    /**
+     * Filled with each declaration's settled copy, for a caller that must read
+     * the same answer -- a function's parameters, which the header writes
+     * (#1863 review: settled twice, `b[4]` in the .c was `b[0]` in the .h)
+     */
+    settledOf: Map<ILocalDeclaration, ILocalDeclaration> = new Map(),
   ): ILexicalFrame {
-    const settledOf = new Map<ILocalDeclaration, ILocalDeclaration>();
-    return LexicalFrames.settleFrame(
-      frame,
-      isScopeType,
-      (name, at) =>
-        constantAt(name, at, (declaration) => settledOf.get(declaration)),
-      settledOf,
-    );
+    const env: IConstantEnvironment = {
+      valueOf: (name) =>
+        valueOf(name, (declaration) => settledOf.get(declaration)),
+      cTypeName,
+    };
+    return LexicalFrames.settleFrame(frame, isScopeType, env, settledOf);
   }
 
   /** The innermost frame containing `at`; the file frame if none does */
@@ -137,7 +145,7 @@ class LexicalFrames {
   private static settleFrame(
     frame: ILexicalFrame,
     isScopeType: (qualifiedName: string) => boolean,
-    constantAt: (name: string, at: TPosition) => IFoldedConstant | undefined,
+    env: IConstantEnvironment,
     settledOf: Map<ILocalDeclaration, ILocalDeclaration>,
   ): ILexicalFrame {
     // Declarations and child frames in source order, so each local is
@@ -152,19 +160,14 @@ class LexicalFrames {
     for (const item of items) {
       if ("child" in item) {
         children.push(
-          LexicalFrames.settleFrame(
-            item.child,
-            isScopeType,
-            constantAt,
-            settledOf,
-          ),
+          LexicalFrames.settleFrame(item.child, isScopeType, env, settledOf),
         );
         continue;
       }
       const settled = LexicalFrames.settleDeclaration(
         item.declaration,
         isScopeType,
-        constantAt,
+        env,
       );
       settledOf.set(item.declaration, settled);
       declarations.push(settled);
@@ -184,32 +187,25 @@ class LexicalFrames {
    * so a const that names itself has no value; whether it is allowed at all
    * is #1643's. Folding both at the name's start gave `const u16 N <- N + 1`
    * the value 5 while the C read the uninitialized local.
+   *
+   * #1175: each name in a dimension or an initializer carries its own
+   * position, and binds there -- which is that rule, with nothing to pick.
    */
   private static settleDeclaration(
     declaration: ILocalDeclaration,
     isScopeType: (qualifiedName: string) => boolean,
-    constantAt: (name: string, at: TPosition) => IFoldedConstant | undefined,
+    env: IConstantEnvironment,
   ): ILocalDeclaration {
-    const nameStart = declaration.span;
-    const nameEnd = {
-      line: declaration.span.endLine,
-      column: declaration.span.endColumn,
-    };
-    const arrayDimensions = declaration.arrayDimensions.map((dimension) =>
-      typeof dimension === "string" && dimension !== ""
-        ? (ConstantFold.value(dimension, (name) =>
-            constantAt(name, nameStart),
-          ) ?? dimension)
-        : dimension,
-    );
+    const arrayDimensions = declaration.arrayDimensions.map((dimension, i) => {
+      const expr = declaration.arrayDimensionExprs[i];
+      return expr ? ConstantFold.dimension(expr, env) : dimension;
+    });
     const type = DeferredTypes.settleType(declaration.type, isScopeType);
     const constValue =
       declaration.isConst &&
-      declaration.initialValue !== null &&
+      declaration.initialValueExpr !== null &&
       arrayDimensions.length === 0
-        ? (ConstantFold.declared(declaration.initialValue, type, (name) =>
-            constantAt(name, nameEnd),
-          ) ?? null)
+        ? ConstantFold.constValue(declaration.initialValueExpr, env, type)
         : null;
     return Object.freeze({
       ...declaration,

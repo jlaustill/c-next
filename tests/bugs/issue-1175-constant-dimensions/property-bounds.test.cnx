@@ -1,0 +1,15 @@
+// test-error
+// #1863 review: `loc`, sized by a global's length property, was recorded as
+// unsized in its frame, so E0854 skipped an index past its end: `loc[9]`
+// reached C at exit 0, writing outside `uint8_t loc[4]`.
+//
+// NEGATIVE CONTROL: `loc[3]`, the last element.
+
+const u32 N <- 4;
+u8[N] garr;
+
+void main() {
+    u8[garr.element_count] loc;
+    loc[3] <- 1;
+    loc[9] <- 1;
+}

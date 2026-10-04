@@ -1,0 +1,17 @@
+// test-error
+// test-adr: 017
+// Issue #1669 / ADR-017 "Member Values" (owner ruling 2026-10-03): a member's
+// value is an i32. 0x80000000 is one past i32's maximum. It was emitted as
+// 2147483648, which C's enumerator constraint rejects (#1862).
+//
+// NEGATIVE CONTROL: EMax holds i32's maximum and must stay silent.
+
+enum EOver {
+    A <- 0x80000000
+}
+
+enum EMax {
+    MAX <- 0x7FFFFFFF
+}
+
+void main() {}

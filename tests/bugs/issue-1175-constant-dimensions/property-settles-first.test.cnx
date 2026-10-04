@@ -1,0 +1,30 @@
+// test-execution
+// #1863 review: a const read a length property before 1.4 had sized the
+// array (`K <- loc.element_count`), and a local was sized against 1.3's
+// unsized global, so each had no value -- a false E0909. Consts and
+// dimensions now settle together, and the frames read the sized symbols.
+//
+// NEGATIVE CONTROL: `direct`, sized by a literal.
+
+const u32 N <- 4;
+u8[N] garr;
+const u32 FILE_K <- garr.element_count;
+u8[FILE_K] other;
+
+u32 main() {
+    u8[garr.element_count] loc;
+    const u32 K <- loc.element_count;
+    u8[K + 1] after;
+    u8[2] direct;
+    loc[0] <- 1;
+    after[0] <- 1;
+    other[0] <- 1;
+    direct[0] <- 1;
+    if (after.element_count != 5) {
+        return 1;
+    }
+    if (other.element_count != 4) {
+        return 2;
+    }
+    return 0;
+}

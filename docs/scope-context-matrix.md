@@ -126,9 +126,21 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-2 linked fixtures with no derivable context:
+14 linked fixtures with no derivable context:
 
 - `bugs/issue-1531-declaration-rejections/cross-file-enum.test.cnx`
+- `bugs/issue-1669-enum-member-values/binary-values.test.cnx`
+- `bugs/issue-1669-enum-member-values/cross-file-const.test.cnx`
+- `bugs/issue-1669-enum-member-values/decimal-values.test.cnx`
+- `bugs/issue-1669-enum-member-values/earlier-members.test.cnx`
+- `bugs/issue-1669-enum-member-values/hex-values.test.cnx`
+- `bugs/issue-1669-enum-member-values/value-call.test.cnx`
+- `bugs/issue-1669-enum-member-values/value-header-macro.test.cnx`
+- `bugs/issue-1669-enum-member-values/value-i32-range.test.cnx`
+- `bugs/issue-1669-enum-member-values/value-negative-hex.test.cnx`
+- `bugs/issue-1669-enum-member-values/value-overflow.test.cnx`
+- `bugs/issue-1669-enum-member-values/value-self-later.test.cnx`
+- `bugs/issue-1669-enum-member-values/value-variable.test.cnx`
 - `enum/enum-error-negative.test.cnx`
 
 ## ADR-022
@@ -267,10 +279,10 @@ cell is declared by the ADR that owns it.
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
-| global variable    | ok        | -      | -          | n/a         | n/a        |
-| top-level function | ok        | ok     | -          | n/a         | n/a        |
-| scope member       | ok        | -      | -          | n/a         | n/a        |
-| scope method       | ok        | -      | -          | n/a         | n/a        |
+| global variable    | ok        | ok     | ok         | n/a         | n/a        |
+| top-level function | ok        | ok     | ok         | n/a         | n/a        |
+| scope member       | ok        | ok     | ok         | n/a         | n/a        |
+| scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-037
 
@@ -294,10 +306,14 @@ cell is declared by the ADR that owns it.
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
-| global variable    | warn      | warn   | warn       | n/a         | n/a        |
+| global variable    | ok        | warn   | warn       | n/a         | n/a        |
 | top-level function | ok        | ok     | warn       | n/a         | n/a        |
 | scope member       | warn      | warn   | warn       | n/a         | n/a        |
 | scope method       | ok        | warn   | warn       | n/a         | n/a        |
+
+1 linked fixture with no derivable context:
+
+- `bugs/issue-1669-enum-member-values/value-overflow.test.cnx`
 
 ## ADR-045
 

@@ -28,11 +28,11 @@ as counted at audit time" rather than a literal.
 
 | bucket | meaning                                                                        | count  |
 | ------ | ------------------------------------------------------------------------------ | ------ |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **3**  |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **2**  |
 | **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **3**  |
 | **3**  | dead — unreachable or subsumed; delete                                         | **0**  |
 | **4**  | about the run, not a line — no source position exists; needs a code (#1847)    | **5**  |
-|        | **total**                                                                      | **11** |
+|        | **total**                                                                      | **10** |
 
 ## How to recount
 
@@ -83,7 +83,7 @@ bucket sections below, not in this table (#1531):
 
 | area                                                     | sites |
 | -------------------------------------------------------- | ----- |
-| `src/PARSE/` (1.1 Discover, 1.3 Declare, 1.4 Resolve)    | 7     |
+| `src/PARSE/` (1.1 Discover, 1.3 Declare, 1.4 Resolve)    | 6     |
 | `src/TRANSPILE/` (2.1 to 2.3; #1322 emptied `3-Render/`) | 0     |
 | `src/transpiler/` (the orchestrator)                     | 1     |
 | `src/utils/`                                             | 3     |
@@ -240,18 +240,21 @@ questions and only the first was asked.
   **parse error**, so it never reaches codegen at all. That leaves four live copies plus the
   factory, which is what makes unification tractable.
 
-## Bucket 1 — user-facing diagnostics (3)
+## Bucket 1 — user-facing diagnostics (2)
 
-### Outside `3-Render/` — 3
+### Outside `3-Render/` — 2
 
 Each is a rejection a user can see. It is thrown rather than reported, so it reaches them at
 `1:0`, behind `Pipeline failed:` or `Code generation failed:`. Each has a card.
 
-| file:line                               | anchor                                         | what                                                                              | card  |
-| --------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------- | ----- |
-| `transpiler/Transpiler.ts:2099`         | `this run does not target C++`                 | E0507: a C++ header in a run that does not target C++                             | #1542 |
-| `1-Discover/Discover.ts:271`            | `A generated header records the C-Next source` | E0509: a generated header names a C-Next source that is not there                 | #1542 |
-| `cnext/utils/ExpressionEvaluator.ts:32` | `Invalid constant expression`                  | an enum member value that is not one integer literal (`A <- FOO`), at 1.3 Declare | #1669 |
+| file:line                       | anchor                                         | what                                                              | card  |
+| ------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------- | ----- |
+| `transpiler/Transpiler.ts:2106` | `this run does not target C++`                 | E0507: a C++ header in a run that does not target C++             | #1542 |
+| `1-Discover/Discover.ts:271`    | `A generated header records the C-Next source` | E0509: a generated header names a C-Next source that is not there | #1542 |
+
+#1669 (2026-10-03): `ExpressionEvaluator`'s `Invalid constant expression` is gone. An enum member's
+value is recorded as written in 1.3 and settled in 1.4; one with no value is reported in pass 2.1,
+at the member, with a code (E0909, E0910, E0911).
 
 ### `output/` — 0
 

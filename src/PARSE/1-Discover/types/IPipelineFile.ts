@@ -46,7 +46,7 @@ interface IPipelineFile {
    * token text in the analyzer made a third spelling of "is this a C-Next
    * include?" and that spelling missed `.cnext`.
    */
-  readonly reachesForeignHeader?: boolean;
+  readonly reachesForeignHeader: boolean;
 
   /** Override for source-relative path (used in source mode) */
   readonly sourceRelativePath?: string;

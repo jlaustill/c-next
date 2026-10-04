@@ -1,0 +1,25 @@
+// Issue #1175 / ADR-058: a length property is a constant wherever its array's
+// dimensions are, including through an element and on a header's array.
+//
+// On main each of these was its value in the .c and source text in the .h --
+// `whole[m__element_count]`, `row[m[0]__element_count]`,
+// `x[table__element_count]`, `cols[table[0]__element_count]` -- and the .c
+// includes its own header, so nothing compiled. Both files write the value now.
+//
+// `whole` is the form 1.4 measured first; it must stay a value while the
+// element (`m[0]`) and header (`table`) forms are measured the same way.
+#include "table.h"
+
+u8[4][8] m;
+u8[m.element_count] whole;
+u8[m[0].element_count] row;
+u8[table.element_count] x;
+u8[table[0].element_count] cols;
+
+void main() {
+    m[0][0] <- 1;
+    whole[0] <- 1;
+    row[0] <- 1;
+    x[0] <- 1;
+    cols[0] <- 1;
+}

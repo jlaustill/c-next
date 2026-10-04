@@ -185,14 +185,23 @@ class LiteralUtils {
   }
 
   /**
+   * ADR-044 "Integer Literals" (owner ruling, 2026-10-03, #1728): whether a
+   * decimal literal, with or without its type suffix, has a leading zero.
+   * C-Next has no octal literal, so 2.1 reports one (E0912), and no reading
+   * gives it a value before then -- not the decimal one, which C, reading
+   * octal, would disagree with. The one rule every reading asks.
+   */
+  static hasLeadingZero(decimalText: string): boolean {
+    return /^0\d/.test(decimalText);
+  }
+
+  /**
    * The value of an integer literal as written in C-Next source, with any
    * width suffix (`9u8`, `3i32`): decimal, hex or binary. Null for anything
-   * else, and for a leading-zero literal (`010`), which the emitted C reads as
-   * octal while `parseIntegerLiteral` reads decimal -- #1728 owns what it
-   * means; until then no rule asserts a value C may disagree with (#1076).
+   * else, and for a leading-zero literal (`010`, E0912).
    */
   static integerValue(text: string): number | null {
-    if (/^0\d/.test(text)) return null;
+    if (LiteralUtils.hasLeadingZero(text)) return null;
     const match = /^(0[xX][\da-fA-F]+|0[bB][01]+|\d+)([uUiI]\d+)?$/.exec(text);
     if (match === null) return null;
     return LiteralUtils.parseIntegerLiteral(match[1]) ?? null;

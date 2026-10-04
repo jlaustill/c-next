@@ -1,6 +1,7 @@
 /**
- * A declared type whose own shape is invalid: E0893 (ADR-034) and E0894
- * (ADR-017).
+ * A declared type whose own shape is invalid: E0893 (ADR-034), and an enum
+ * member's value that is negative (E0894), has no value (E0909), overflows
+ * (E0910) or leaves `i32` (E0911) -- ADR-017 "Member Values", #1669.
  *
  * #1531. Both rules were throws in 1.3 Declare's collectors, so each reached
  * the user as `1:0 Code generation failed: Error: ...` -- no code, no
@@ -17,8 +18,11 @@
  * extra: 1.3 registers it under the file like any other.
  */
 
+import ConstantDiagnostics from "./helpers/ConstantDiagnostics";
 import type IBitmapSymbol from "../../types/symbols/IBitmapSymbol";
+import type IEnumMemberSymbol from "../../types/symbols/IEnumMemberSymbol";
 import type IEnumSymbol from "../../types/symbols/IEnumSymbol";
+import type TEnumMemberValue from "../../types/TEnumMemberValue";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type ITypeDeclarationError from "./types/ITypeDeclarationError";
 
@@ -34,7 +38,7 @@ class TypeDeclarationAnalyzer {
       if (symbol.kind === "bitmap") {
         found.push(...TypeDeclarationAnalyzer.bitmapWidth(symbol));
       } else if (symbol.kind === "enum") {
-        found.push(...TypeDeclarationAnalyzer.enumValues(symbol));
+        found.push(...this.enumValues(symbol));
       }
     }
     // The table's order is registration order, not the source's.
@@ -63,22 +67,75 @@ class TypeDeclarationAnalyzer {
     ];
   }
 
-  private static enumValues(enumSymbol: IEnumSymbol): ITypeDeclarationError[] {
-    const found: ITypeDeclarationError[] = [];
-    for (const member of enumSymbol.members.values()) {
-      if (member.value >= 0) {
-        continue;
+  /**
+   * #1669: each member's value as 1.4 Resolve settled it (ADR-017 "Member
+   * Values") -- the symbol table holds what 1.3 recorded, which is the value
+   * as written, not its number.
+   */
+  private enumValues(enumSymbol: IEnumSymbol): ITypeDeclarationError[] {
+    const settled = this.context.program.enumMemberValues(
+      enumSymbol.fullyQualifiedCName,
+    );
+    return [...enumSymbol.members.values()].flatMap((member, index) => {
+      const error = TypeDeclarationAnalyzer.memberError(
+        enumSymbol,
+        member,
+        settled[index],
+      );
+      return error === null ? [] : [error];
+    });
+  }
+
+  private static memberError(
+    enumSymbol: IEnumSymbol,
+    member: IEnumMemberSymbol,
+    settled: TEnumMemberValue | undefined,
+  ): ITypeDeclarationError | null {
+    const named = `${enumSymbol.cnxScopedName}.${member.name}`;
+    const at = { line: member.span.line, column: member.span.column };
+    switch (settled?.kind) {
+      case "value":
+        return settled.value >= 0n
+          ? null
+          : {
+              code: "E0894",
+              ...at,
+              message: `Negative values not allowed in enum (found ${settled.value} in ${named})`,
+              helpText:
+                "An enum member's value is 0 or more (ADR-017). Use a non-negative value",
+            };
+      case "notConstant":
+      case "foreign": {
+        const why = ConstantDiagnostics.why(settled);
+        return why === null
+          ? null
+          : {
+              code: "E0909",
+              ...at,
+              message: `Enum member value must be known at compile time (${named}): ${why}`,
+              helpText:
+                "A member's value is built from literals, consts, sizeof, casts and the members of its enum declared above it (ADR-017)",
+            };
       }
-      found.push({
-        code: "E0894",
-        line: member.span.line,
-        column: member.span.column,
-        message: `Negative values not allowed in enum (found ${member.value} in ${enumSymbol.cnxScopedName}.${member.name})`,
-        helpText:
-          "An enum member's value is 0 or more (ADR-017). Use a non-negative value",
-      });
+      case "overflow":
+        return {
+          code: "E0910",
+          ...at,
+          message: `Enum member value overflows ${settled.typeName} at compile time (${named}): the arithmetic would clamp or wrap (ADR-044)`,
+          helpText: ConstantDiagnostics.OVERFLOW_HELP,
+        };
+      case "outOfRange":
+        return {
+          code: "E0911",
+          ...at,
+          message: `Enum member value does not fit i32 (found ${settled.value} in ${named})`,
+          helpText:
+            "A member's value is an i32 (ADR-017). Use a value of at most 2147483647",
+        };
+      default:
+        // `follows`: its value is the member above's, reported there
+        return null;
     }
-    return found;
   }
 }
 

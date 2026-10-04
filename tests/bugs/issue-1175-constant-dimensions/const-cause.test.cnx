@@ -1,0 +1,14 @@
+// test-error
+// #1863 review: a const with no value was reported at its use only as
+// "has no value", though 1.4 knew why. The use now says the const's own
+// cause.
+//
+// NEGATIVE CONTROL: `C`, which has a value.
+
+const u8 A <- 200;
+const u8 B <- A + A;
+const u8 C <- 100;
+u8[B] arrB;
+u8[C] arrC;
+
+void main() {}

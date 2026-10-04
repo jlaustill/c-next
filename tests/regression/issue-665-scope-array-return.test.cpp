@@ -31,7 +31,7 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 // instead of array access when array is sized by enum
 // Test 1: Basic enum-sized array with enum index (original bug)
 /* Scope: Test */
-static float Test__values[EIndex__COUNT] = {};
+static float Test__values[3] = {};
 
 void Test__set(EIndex idx, float value) {
     Test__values[idx] = value;
@@ -43,7 +43,7 @@ float Test__get(EIndex idx) {
 
 // Test 2: Enum-sized array with integer index
 /* Scope: TestIntIndex */
-static int32_t TestIntIndex__data[EIndex__COUNT] = {};
+static int32_t TestIntIndex__data[3] = {};
 
 void TestIntIndex__set(uint8_t idx, int32_t value) {
     TestIntIndex__data[idx] = value;
@@ -67,8 +67,8 @@ uint16_t TestLiteral__get(uint8_t idx) {
 
 // Test 4: Multiple arrays in same scope
 /* Scope: TestMultiple */
-static uint8_t TestMultiple__first[EIndex__COUNT] = {};
-static uint8_t TestMultiple__second[EIndex__COUNT] = {};
+static uint8_t TestMultiple__first[3] = {};
+static uint8_t TestMultiple__second[3] = {};
 
 void TestMultiple__setFirst(EIndex idx, uint8_t value) {
     TestMultiple__first[idx] = value;
@@ -88,7 +88,7 @@ uint8_t TestMultiple__getSecond(EIndex idx) {
 
 // Test 5: Return with index arithmetic
 /* Scope: TestArithmetic */
-static int32_t TestArithmetic__arr[EIndex__COUNT] = {};
+static int32_t TestArithmetic__arr[3] = {};
 
 void TestArithmetic__set(uint8_t idx, int32_t value) {
     TestArithmetic__arr[idx] = value;

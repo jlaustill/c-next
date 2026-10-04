@@ -20,6 +20,7 @@ import IComment from "../../types/IComment";
 import CppClassInitializerAnalyzer from "./CppClassInitializerAnalyzer";
 import DefineDirectiveAnalyzer from "./DefineDirectiveAnalyzer";
 import IdentifierSyntaxAnalyzer from "./IdentifierSyntaxAnalyzer";
+import LiteralFormAnalyzer from "./LiteralFormAnalyzer";
 import ParameterNamingAnalyzer from "./ParameterNamingAnalyzer";
 import StructFieldAnalyzer from "./StructFieldAnalyzer";
 import TypeDeclarationAnalyzer from "./TypeDeclarationAnalyzer";
@@ -44,6 +45,7 @@ import ScopeAccessAnalyzer from "./ScopeAccessAnalyzer";
 import RegisterAccessAnalyzer from "./RegisterAccessAnalyzer";
 import BareEnumMemberAnalyzer from "./BareEnumMemberAnalyzer";
 import ArrayDeclarationAnalyzer from "./ArrayDeclarationAnalyzer";
+import ConstantDimensionAnalyzer from "./ConstantDimensionAnalyzer";
 import ArrayIndexBoundsAnalyzer from "./ArrayIndexBoundsAnalyzer";
 import CallbackAssignmentAnalyzer from "./CallbackAssignmentAnalyzer";
 import BitmapAccessAnalyzer from "./BitmapAccessAnalyzer";
@@ -235,6 +237,12 @@ function runAnalyzers(
       run: () => new IdentifierSyntaxAnalyzer().analyze(tree),
     },
     {
+      // ADR-044: a malformed literal, like a malformed name, feeds every later
+      // analysis -- a dimension or an enum value would report a consequence
+      label: "integer literal form (ADR-044: no octal literal, E0912)",
+      run: () => new LiteralFormAnalyzer().analyze(tree),
+    },
+    {
       label: "parameter naming (Issue #227: reserved naming patterns)",
       run: () => new ParameterNamingAnalyzer().analyze(tree),
       // Carries its own message text rather than a code.
@@ -249,7 +257,7 @@ function runAnalyzers(
       // A declaration whose own shape is wrong is the cause; a later step
       // reading it would report a consequence.
       label:
-        "declared type shape (ADR-034 bitmap width E0893, ADR-017 enum values E0894)",
+        "declared type shape (ADR-034 bitmap width E0893, ADR-017 enum values E0894, E0909-E0911)",
       run: () => new TypeDeclarationAnalyzer(context).analyze(),
     },
     {
@@ -280,6 +288,16 @@ function runAnalyzers(
     {
       label: "division by zero (ADR-051: compile-time detection)",
       run: () => new DivisionByZeroAnalyzer(context).analyze(tree),
+    },
+    {
+      // #1175: before anything that reads a dimension's size -- a slice's
+      // bounds (E0858), a count against it, a value's width -- since one with
+      // no size is the cause, and those would report a consequence (#1863
+      // review). After E0427 and E0800, which own an undeclared bare name and
+      // a literal or const divisor of zero.
+      label:
+        "constant array dimensions (ADR-023 no VLAs, ADR-044, E0909/E0910)",
+      run: () => new ConstantDimensionAnalyzer(context).analyze(tree),
     },
     {
       label: "float modulo (% with f32/f64)",

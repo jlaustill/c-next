@@ -10,6 +10,30 @@ import Program from "../Program";
 import type ILexicalFrame from "../../../types/ILexicalFrame";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 import LexicalFrames from "../LexicalFrames";
+import type IProgram from "../../../types/IProgram";
+import type IFoldedConstant from "../../../types/IFoldedConstant";
+import UNRESOLVED_DIMENSION from "../../../types/UNRESOLVED_DIMENSION";
+
+/**
+ * #1175: a bare name's compile-time value where it is used -- what
+ * `constantAt` answered, asked of `constantValueOf` with the name written there
+ */
+function constantAt(
+  program: IProgram,
+  sourceFile: string,
+  name: string,
+  at: { line: number; column: number },
+): IFoldedConstant | null {
+  const result = program.constantValueOf(sourceFile, {
+    kind: "name",
+    root: null,
+    path: [name],
+    at,
+  });
+  return result.kind === "value"
+    ? { value: Number(result.value), typeName: result.typeName }
+    : null;
+}
 
 /** Build a program from path -> source, in dependency order */
 function build(files: Record<string, string>) {
@@ -129,7 +153,7 @@ void f(u8 p) {
       isConst: true,
       isVolatile: true,
       overflowBehavior: "clamp",
-      constValue: 2,
+      constValue: { kind: "value", digits: "2", typeName: "u16" },
     });
   });
 });
@@ -293,9 +317,12 @@ void g() {
       kind: "function",
       symbol: { fullyQualifiedCName: "S__LIMIT" },
     });
-    expect(program.constantAt("a.cnx", "LIMIT", inScope)).toBeNull();
+    expect(constantAt(program, "a.cnx", "LIMIT", inScope)).toBeNull();
+    // The function binds, so the global's 8 must not size it. #1175: it is
+    // left unresolved, which 2.1 rejects (E0909: 'LIMIT' is a function),
+    // where its source text used to reach the header
     expect(program.symbolByCName("S__buf")).toMatchObject({
-      arrayDimensions: ["LIMIT"],
+      arrayDimensions: [UNRESOLVED_DIMENSION],
     });
     // Controls: outside the scope the global answers, and a scope that
     // declares nothing of the name still reaches a global
@@ -304,7 +331,7 @@ void g() {
       kind: "variable",
       symbol: { fullyQualifiedCName: "LIMIT" },
     });
-    expect(program.constantAt("a.cnx", "LIMIT", outside)?.value).toBe(8);
+    expect(constantAt(program, "a.cnx", "LIMIT", outside)?.value).toBe(8);
     expect(program.bindValue("a.cnx", null, "total", inScope)).toMatchObject({
       kind: "variable",
       symbol: { fullyQualifiedCName: "total" },
@@ -372,7 +399,7 @@ describe("binding against the include closure", () => {
       kind: "variable",
       symbol: { fullyQualifiedCName: "N" },
     });
-    expect(program.constantAt("b.cnx", "N", use)?.value).toBe(8);
+    expect(constantAt(program, "b.cnx", "N", use)?.value).toBe(8);
     // A declaration folds against what its own file sees, too
     expect(program.symbolByCName("S__buf")).toMatchObject({
       arrayDimensions: [8],
@@ -386,7 +413,7 @@ describe("binding against the include closure", () => {
       kind: "variable",
       symbol: { fullyQualifiedCName: "S__N" },
     });
-    expect(program.constantAt("d.cnx", "N", use)?.value).toBe(2);
+    expect(constantAt(program, "d.cnx", "N", use)?.value).toBe(2);
   });
 });
 
@@ -400,12 +427,14 @@ void f() {
 }`;
     const program = build({ "a.cnx": source });
     const use = at(source, "buf[0]");
-    expect(program.lexicalDeclarationAt("a.cnx", "N", use)?.constValue).toBe(6);
+    expect(program.lexicalDeclarationAt("a.cnx", "N", use)?.constValue).toEqual(
+      { kind: "value", digits: "6", typeName: "u32" },
+    );
     expect(
       program.lexicalDeclarationAt("a.cnx", "buf", use)?.arrayDimensions,
     ).toEqual([6]);
-    expect(program.constantAt("a.cnx", "N", use)?.value).toBe(6);
-    expect(program.constantAt("a.cnx", "BASE", use)?.value).toBe(4);
+    expect(constantAt(program, "a.cnx", "N", use)?.value).toBe(6);
+    expect(constantAt(program, "a.cnx", "BASE", use)?.value).toBe(4);
   });
 
   it("gives a local that is not a folded const no value, and lets it shadow (#1664 review)", () => {
@@ -420,8 +449,8 @@ void f(u32 a) {
 }`;
     const program = build({ "a.cnx": source });
     const use = at(source, "u8 last");
-    expect(program.constantAt("a.cnx", "N", use)).toBeNull();
-    expect(program.constantAt("a.cnx", "D", use)).toBeNull();
+    expect(constantAt(program, "a.cnx", "N", use)).toBeNull();
+    expect(constantAt(program, "a.cnx", "D", use)).toBeNull();
   });
 
   it("does not fold a const local whose value its type cannot hold (#1664 review)", () => {
@@ -434,8 +463,8 @@ void f(u32 a) {
 }`;
     const program = build({ "a.cnx": source });
     const use = at(source, "u8 last");
-    expect(program.constantAt("a.cnx", "B", use)).toBeNull();
-    expect(program.constantAt("a.cnx", "C", use)?.value).toBe(5);
+    expect(constantAt(program, "a.cnx", "B", use)).toBeNull();
+    expect(constantAt(program, "a.cnx", "C", use)?.value).toBe(5);
   });
 
   it("folds an initializer where its names bind, after the declared name (#1760 review)", () => {
@@ -449,9 +478,10 @@ void f() {
 }`;
     const program = build({ "a.cnx": source });
     const use = at(source, "u8 last");
+    // It settled with no value, and keeps why for a use to say (#1863 review)
     expect(
       program.lexicalDeclarationAt("a.cnx", "N", use)?.constValue,
-    ).toBeNull();
+    ).toMatchObject({ kind: "notConstant" });
     expect(
       program.bindValue("a.cnx", null, "N", at(source, "N + 1"))?.kind,
     ).toBe("local");
@@ -477,7 +507,7 @@ void f() {
     const u32 N <- 3;
 }`;
     const program = build({ "a.cnx": source });
-    expect(program.constantAt("a.cnx", "N", at(source, "u8 a"))).toBeNull();
+    expect(constantAt(program, "a.cnx", "N", at(source, "u8 a"))).toBeNull();
   });
 
   it("settles a local typed by a scope type another file declares", () => {

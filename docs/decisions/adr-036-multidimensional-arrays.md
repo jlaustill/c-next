@@ -423,11 +423,13 @@ Compiler flags:
 
 ## Diagnostics
 
-| Code  | Reported when                                                                       | Asserted by                                                                                        |
-| ----- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| E0854 | A constant index is negative or not below the dimension it indexes, read or written | `tests/adr-036/bounds-error.test.cnx`, `tests/adr-036/array-bounds-uncovered-arms-error.test.cnx`  |
-| E0874 | A variable declaration or a parameter puts a dimension after the name (`u8 arr[4]`) | `tests/adr-036/c-style-error.test.cnx`, `tests/adr-036/c-style-trailing-bracket-rejected.test.cnx` |
-| E0875 | A parameter's array type leaves a dimension unbounded (`u8[] data`)                 | `tests/adr-036/array-shape-uncovered-arms-error.test.cnx`                                          |
+| Code  | Reported when                                                                                                               | Asserted by                                                                                                         |
+| ----- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| E0854 | A constant index is negative or not below the dimension it indexes, read or written                                         | `tests/adr-036/bounds-error.test.cnx`, `tests/adr-036/array-bounds-uncovered-arms-error.test.cnx`                   |
+| E0874 | A variable declaration or a parameter puts a dimension after the name (`u8 arr[4]`)                                         | `tests/adr-036/c-style-error.test.cnx`, `tests/adr-036/c-style-trailing-bracket-rejected.test.cnx`                  |
+| E0875 | A parameter's array type leaves a dimension unbounded (`u8[] data`)                                                         | `tests/adr-036/array-shape-uncovered-arms-error.test.cnx`                                                           |
+| E0909 | A dimension is not known at compile time -- a variable or a parameter, since C-Next has no variable-length arrays (ADR-023) | `tests/bugs/issue-1175-constant-dimensions/variable-dimension-local.test.cnx`, `variable-dimension-global.test.cnx` |
+| E0910 | A dimension is arithmetic that would clamp or wrap (ADR-044)                                                                | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`                                             |
 
 The bound is the dimension the subscript indexes: `grid[i][9]` is checked
 against `grid[i]`'s shape. A field of a struct is bounded like a variable
@@ -456,22 +458,27 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
 | top-level function | imported direct     | error    |
-| scope method       | imported direct     | off      |
-| global variable    | imported direct     | off      |
-| scope member       | imported direct     | off      |
-| top-level function | imported transitive | off      |
-| scope method       | imported transitive | off      |
-| global variable    | imported transitive | off      |
-| scope member       | imported transitive | off      |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
 
 A subscript is an expression, so it reaches an initializer as well as a
 function body; a C-style declaration stands at file scope; both occupy the
 four same-file cells. The bound of an array declared in an included file is
 read from that declaration, which the `imported direct` top-level cell asserts
-(`tests/bugs/issue-1360-read-path-bounds/cross-file-macro-dimension`). The
-other imported cells are `off`: a C-style declaration is judged where it is
-written, and no fixture yet reaches a bound two hops away -- an obligation to
-add with the first such fixture, not a claim that it cannot exist.
+(`tests/bugs/issue-1360-read-path-bounds/cross-file-macro-dimension`).
+
+The other imported cells were `off` until #1175, which recorded that no fixture
+yet reached them -- an obligation, not a claim that they cannot exist. #1175
+meets it. A dimension must be a constant expression in every context, whatever
+file the names it uses are declared in: a dimension naming a variable from an
+included file is rejected where it is written, and one naming a const from it
+folds to that const's value. `tests/bugs/issue-1175-constant-dimensions/`
+occupies each imported cell, one and two includes away, in all four contexts.
 
 ## Open Questions
 

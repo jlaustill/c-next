@@ -1,5 +1,9 @@
 import type IFunctionSymbol from "./symbols/IFunctionSymbol";
 import type IFoldedConstant from "./IFoldedConstant";
+import type TConstExpr from "./TConstExpr";
+import type TConstResult from "./TConstResult";
+import type TEnumMemberValue from "./TEnumMemberValue";
+import type ISourcePosition from "../utils/types/ISourcePosition";
 import type ILexicalFrame from "./ILexicalFrame";
 import type ILocalDeclaration from "./ILocalDeclaration";
 import type ISourceSpan from "./ISourceSpan";
@@ -204,16 +208,36 @@ interface IProgram {
   ): TValueBinding | null;
 
   /**
-   * A bare name's compile-time value where it is used: `constantOf` of what
-   * `bindValue` binds it to. The one question every constant fold asks, so a
-   * parameter, a variable or an unfolded const shadows a folded const of the
-   * same name exactly as it does for typing (#1664 review).
+   * What a name in a constant expression is worth where it is written: the
+   * whole chain (`N`, `this.N`, `Scope.N`, `EColor.COUNT`), from what
+   * `bindValue` binds its head to. The one question every constant fold asks,
+   * so a parameter, a variable or an unfolded const shadows a folded const of
+   * the same name exactly as it does for typing (#1664 review), and 1.4's own
+   * settling asked it with the same facts (#1175).
    */
-  constantAt(
+  constantValueOf(
     sourceFile: string,
-    name: string,
-    at: Pick<ISourceSpan, "line" | "column">,
-  ): IFoldedConstant | null;
+    name: Extract<TConstExpr, { kind: "name" }>,
+  ): TConstResult;
+
+  /**
+   * A C-Next type name as C spells it at `at` in `sourceFile` (ADR-057), for a
+   * constant expression C evaluates (`sizeof`, a cast) -- the same answer 1.4
+   * wrote into the header (#1863 review)
+   */
+  cTypeNameAt(
+    sourceFile: string,
+    typeName: string,
+    at: ISourcePosition,
+  ): string;
+
+  /**
+   * What each member of the enum with C name `enumCName` settled to, in
+   * declaration order (#1669, ADR-017 "Member Values") -- for 2.1 to report
+   * a value that has none, overflows, or leaves `i32`. Empty for a name that
+   * is not a C-Next enum.
+   */
+  enumMemberValues(enumCName: string): ReadonlyArray<TEnumMemberValue>;
 
   /**
    * ADR-049: the run's one target, settled from every file's pragmas and the
