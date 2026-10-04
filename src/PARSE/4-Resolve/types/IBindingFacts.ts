@@ -1,7 +1,7 @@
 import type SymbolRegistry from "../../3-Declare/SymbolRegistry";
 import type ILexicalFrame from "../../../types/ILexicalFrame";
 import type TSymbol from "../../../types/symbols/TSymbol";
-import type IForeignArray from "./IForeignArray";
+import type IForeignValue from "./IForeignValue";
 
 /**
  * What `Program.bindValue` reads to decide what a spelling means.
@@ -19,10 +19,10 @@ interface IBindingFacts {
   readonly registry: SymbolRegistry | null;
   readonly foreignNames: ReadonlySet<string>;
   /**
-   * #1175: the header arrays among `foreignNames`, as their headers declare
-   * them -- what a length property of one measures (`cArr.element_count`)
+   * #1175: the variables and functions among `foreignNames` -- what a
+   * constant expression naming one is worth
    */
-  readonly foreignArrays: ReadonlyMap<string, IForeignArray>;
+  readonly foreignValues: ReadonlyMap<string, IForeignValue>;
   /**
    * The files each file can see: itself and its include closure. A scope
    * member or global declared anywhere else binds nothing there (#1760

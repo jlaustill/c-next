@@ -1,0 +1,2 @@
+11:3 error[E0909]: Array dimension must be known at compile time: 'B' has no value known at compile time: its initializer overflows u8 (ADR-044)
+       help: An array's size is built from literals, consts, sizeof and casts (ADR-023). C-Next has no variable-length arrays

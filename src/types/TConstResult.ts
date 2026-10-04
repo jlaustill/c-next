@@ -41,6 +41,7 @@ type TConstResult =
         | "member"
         | "undeclaredMember"
         | "leadingZero"
+        | "sizeofExpression"
         | "divisionByZero"
         | "negativeShift";
       /** The offending part as the source spells it, for a message */

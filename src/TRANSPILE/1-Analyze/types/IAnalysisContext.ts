@@ -53,11 +53,10 @@ interface IAnalysisContext {
    * Whether this file can see a C/C++ header, which is what decides if an
    * unresolved name is a defect or a type the compiler will supply.
    *
-   * The orchestrator computes it per file in `_analyzeFile`, as
-   * `file.reachesForeignHeader ?? true`. #1430 forced it into a single site,
-   * which was `_establishPerFileCodeGenState` -- and then this interface became
-   * that site: the write onto the state had no reader left and is gone, so the
-   * expression here is the only one. It travels on the context rather than on
+   * 1.1 Discover decides it once per file (`IPipelineFile.reachesForeignHeader`,
+   * required since the #1863 review, when 1.4 began reading it too and the
+   * orchestrator had come to default it at two sites). #1430 had forced it into
+   * a single site; discovery is that site, and this copies its answer. It travels on the context rather than on
    * the state for the same reason as the rest: 2.1 reads it, and 2.3 happens to
    * be where it was parked.
    */

@@ -29,12 +29,12 @@ one.
 
 | Layer             | Modules |
 | ----------------- | ------: |
-| `src/TRANSPILE/`  |      63 |
+| `src/TRANSPILE/`  |      64 |
 | `src/PARSE/`      |      23 |
 | `src/utils/`      |      12 |
 | `src/types/`      |       2 |
 | `src/transpiler/` |       1 |
-| **total**         | **101** |
+| **total**         | **102** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -105,6 +105,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/1-Analyze/InitializationAnalyzer.ts`             | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`          | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts`             | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/LiteralFormAnalyzer.ts`                | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/LoopAnalyzer.ts`                       | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/MixedTypeCategoryAnalyzer.ts`          | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/NestedTernaryAnalyzer.ts`              | antlr4ng, grammar |
@@ -146,4 +147,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/ParserUtils.ts`                                      | antlr4ng, grammar |
 | `src/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-101 module(s).
+102 module(s).

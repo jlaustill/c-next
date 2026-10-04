@@ -1,0 +1,36 @@
+// test-execution
+// #1863 review: 1.4 settled a whole enum at a time and locked the first that
+// could not finish, so an enum and a const naming each other -- or two enums
+// -- were rejected depending on declaration order. Each member settles when
+// what it names does.
+//
+// NEGATIVE CONTROL: `E.X`, which names nothing.
+
+enum E {
+    X <- 1,
+    Y <- (i32)N + 1
+}
+const i32 N <- (i32)E.X;
+enum E2 {
+    Y2 <- (i32)E3.A
+}
+enum E3 {
+    A <- 1,
+    B <- (i32)E2.Y2
+}
+
+u32 main() {
+    if ((u32)E.X != 1) {
+        return 1;
+    }
+    if ((u32)E.Y != 2) {
+        return 2;
+    }
+    if ((u32)E2.Y2 != 1) {
+        return 3;
+    }
+    if ((u32)E3.B != 1) {
+        return 4;
+    }
+    return 0;
+}

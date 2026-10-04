@@ -46,8 +46,13 @@ class LexicalFrames {
     frame: ILexicalFrame,
     isScopeType: (qualifiedName: string) => boolean,
     valueOf: TValueOf,
+    /**
+     * Filled with each declaration's settled copy, for a caller that must read
+     * the same answer -- a function's parameters, which the header writes
+     * (#1863 review: settled twice, `b[4]` in the .c was `b[0]` in the .h)
+     */
+    settledOf: Map<ILocalDeclaration, ILocalDeclaration> = new Map(),
   ): ILexicalFrame {
-    const settledOf = new Map<ILocalDeclaration, ILocalDeclaration>();
     const env: IConstantEnvironment = {
       valueOf: (name) =>
         valueOf(name, (declaration) => settledOf.get(declaration)),

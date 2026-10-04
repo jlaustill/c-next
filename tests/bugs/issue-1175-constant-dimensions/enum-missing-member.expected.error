@@ -1,0 +1,4 @@
+14:4 error[E0909]: Enum member value must be known at compile time (E.B): 'F.NOPE' is not declared
+       help: A member's value is built from literals, consts, sizeof, casts and the members of its enum declared above it (ADR-017)
+16:4 error[E0909]: Enum member value must be known at compile time (E.D): it divides by zero
+       help: A member's value is built from literals, consts, sizeof, casts and the members of its enum declared above it (ADR-017)

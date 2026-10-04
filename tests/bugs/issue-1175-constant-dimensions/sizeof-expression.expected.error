@@ -1,0 +1,2 @@
+10:3 error[E0909]: Array dimension must be known at compile time: 'sizeof(word - -1)' is the size of an expression, which C-Next does not write for C: use sizeof of its type
+       help: An array's size is built from literals, consts, sizeof and casts (ADR-023). C-Next has no variable-length arrays

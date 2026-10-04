@@ -691,11 +691,11 @@ class Transpiler {
           // typedefs up in it. It holds the headers' symbols only until the
           // files are published below, which is the state they need.
           symbolTable: this.codeGenerator.transpileState.symbolTable,
-          // #1175: where a name nothing binds may be a macro -- the same
-          // reach 2.1's E0427 is given, defaulted the same way
+          // #1175: where a name nothing binds may be a macro -- discovery's
+          // one answer, the same 2.1's E0427 reads
           filesReachingForeignHeaders: new Set(
             declared
-              .filter((entry) => entry.file.reachesForeignHeader ?? true)
+              .filter((entry) => entry.file.reachesForeignHeader)
               .map((entry) => entry.fileSymbols.sourceFile),
           ),
           visibility: {
@@ -925,7 +925,7 @@ class Transpiler {
           symbols,
           program: this.program,
           symbolTable: this.codeGenerator.transpileState.symbolTable,
-          reachesForeignHeader: file.reachesForeignHeader ?? true,
+          reachesForeignHeader: file.reachesForeignHeader,
           sourceFile: sourcePath,
         },
         includes: {

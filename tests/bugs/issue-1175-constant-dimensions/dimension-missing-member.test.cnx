@@ -1,0 +1,19 @@
+// test-error
+// #1863 review: a member a scope does not have sized a struct field `f[0]`,
+// which GNU C accepts -- a silently different layout -- and a computed zero
+// divisor reached render's internal invariant. Each is E0909.
+//
+// NEGATIVE CONTROL: `ok`, sized by a member the scope has.
+
+scope S {
+    public const u8 MAX <- 4;
+}
+
+struct T {
+    u8[S.NOPE] f;
+    u8[S.MAX] ok;
+}
+
+u8[4 / (2 - 2)] g;
+
+void main() {}

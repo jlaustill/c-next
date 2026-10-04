@@ -1,0 +1,4 @@
+10:3 error[E0909]: Array dimension must be known at compile time: 'q[0]' is an array element
+       help: An array's size is built from literals, consts, sizeof and casts (ADR-023). C-Next has no variable-length arrays
+14:7 error[E0909]: Array dimension must be known at compile time: 'n' is a parameter
+       help: An array's size is built from literals, consts, sizeof and casts (ADR-023). C-Next has no variable-length arrays

@@ -1,0 +1,18 @@
+// test-error
+// #1863 review: a condition only C can evaluate hid its arms, so a variable
+// arm reached C as a variable-length array (`d[(MACRO_N > 2) ? 4 : n]`), and
+// an element arm crashed render. Each is E0909 at the dimension.
+//
+// NEGATIVE CONTROL: `ok`, whose arms both have values: C evaluates it.
+#include "mac.h"
+
+u8[4] q;
+u8[(MACRO_N > 2) ? 4 : q[0]] fromElement;
+u8[(MACRO_N > 2) ? 4 : 1] ok;
+
+void f(u32 n) {
+    u8[(MACRO_N > 2) ? 4 : n] d;
+    d[0] <- 1;
+}
+
+void main() {}

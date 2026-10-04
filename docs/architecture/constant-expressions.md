@@ -67,8 +67,12 @@ the same expression has when the program runs (ADR-044):
 
 - arithmetic is exact (`bigint`);
 - an operation happens at its typed operands' width, the wider of two
-  (ADR-024); an untyped literal takes the other operand's type, or `i32` when
-  nothing gives it one;
+  (ADR-024); an untyped literal takes the other operand's type, else its
+  context's -- the type it is written into, passed as `context` -- else `i32`
+  (ADR-044 "Integer Literals": the smallest type that fits the context at
+  compile time). A cast is the context of what it encloses;
+- a suffixed literal must fit its type (`300u8` does not), and a comparison
+  happens at its operands' type too (`N > -1` with a u32 `N` has no value);
 - where that type cannot hold the result, the answer is `overflow`, not a
   value -- the program would clamp or wrap there;
 - division or modulo by zero, and a negative shift, have no value;
@@ -76,7 +80,9 @@ the same expression has when the program runs (ADR-044):
 
 A name is the environment's to answer (`IConstantEnvironment`), because only
 the pass evaluating knows what is in view. A name only C knows makes the whole
-expression `foreign`.
+expression `foreign` -- unless an operand beside it has no value: a ternary
+whose condition only C knows still needs both arms, so `MACRO ? 4 : n` is no
+value, not a variable-length array.
 
 ### `ConstantNames`: what a name is worth
 
@@ -99,9 +105,25 @@ what makes `u8[N]` one size in the `.c` and the `.h`.
 `Program.deriveConstants` settles every file-scope and scope const and every
 C-Next enum in one worklist, because each may name the other
 (`const u32 N <- (u32)EColor.COUNT`, `A <- N + 1`). An item waits on the C names
-it found unsettled and is retried only when one settles. An enum whose wait
-cannot end -- it names a const with no value, or a cycle -- settles last, with
-what it waited on counted as having none.
+it found unsettled and is retried only when one settles. An enum publishes the
+members that have settled while the rest wait (`partialEnums`), so an enum and a
+const, or two enums, that name each other's settled members settle in either
+order (#1863 review: settling a whole enum at a time made declaration order
+decide). An enum whose wait cannot end -- it names a const with no value, or a
+cycle -- settles last, with what it waited on counted as having none.
+
+A const settles by `ConstantFold.constValue`, the one rule for a file-scope,
+scope and local const: its initializer evaluated at its declared type, its
+context, and a value only when that type holds it. What settles is a
+`TSettledConst`: the value as decimal digits, exact for a u64 and JSON-safe, or
+why there is none, which a use of the const repeats ("its initializer overflows
+u8").
+
+`Program.settleValues` runs the consts and the dimensions in rounds, because a
+const may read a dimension through a length property
+(`const u32 K <- arr.element_count`). The consts settle again only while one has
+no value and a dimension moved, so a program that converges in one round costs
+one.
 
 An enum's members are computed by `EnumMemberValues` (`src/utils`), shared
 with nothing else: ADR-017's auto-increment, the `i32` range, and "a member may
@@ -109,10 +131,14 @@ name members of its enum declared above it, with no cast". `ownMember` is how
 the environment answers a member of the enum being computed: the member itself
 and those below it have no value yet.
 
-Then `Program.resolveDimensions` settles each dimension 1.3 could not size, and
-`LexicalFrames.settle` does the same for locals, both by `ConstantFold.dimension`:
-its value; for a `foreign` one, its C from `ConstExprPrinter`; otherwise
-`UNRESOLVED_DIMENSION`, which 2.1 reports before anything emits it.
+`Program.resolveDimensions` settles each dimension 1.3 could not size, and
+`LexicalFrames.settle` does the same for locals, against the sized symbols,
+both by `ConstantFold.dimension`: its value; for a `foreign` one, its C from
+`ConstExprPrinter`; otherwise `UNRESOLVED_DIMENSION`, which 2.1 reports before
+anything emits it. A function's parameter dimensions are settled once more
+through the frames' own settled declarations (`settledOf`), so a parameter
+sized by an earlier one (`u8[a.element_count] b`) reads what its frame settled,
+and the header writes the same size the `.c` does.
 
 ### Reporting in 2.1
 
@@ -124,8 +150,17 @@ its value; for a `foreign` one, its C from `ConstExprPrinter`; otherwise
 - `TypeDeclarationAnalyzer` reads each enum's settled members through
   `IProgram.enumMemberValues` (the symbol table holds 1.3's record, with no
   number): E0894 (negative), E0909, E0910, E0911 (outside `i32`).
-- `ConstantDiagnostics` holds the wording once for both. A division by zero is
-  E0800's and an undeclared name E0427's, so neither is reported twice.
+- `ConstantDiagnostics` holds the wording once for both. An undeclared bare
+  name is E0427's, so it is not reported twice. A member a scope or an enum
+  lacks (`S.NOPE`) and a divisor that is zero only once computed
+  (`4 / (2 - 2)`) are reported by nothing else, so E0909 says them (#1863
+  review: they reached the header as `f[0]`, or render's invariant).
+- `LiteralFormAnalyzer` reports a leading-zero decimal literal (E0912), in a
+  stage before any of these: ADR-044 has no octal literal, so no reading gives
+  `010` a value.
+- The dimension stage runs right after E0427's and E0800's, before anything
+  that reads a dimension's size, so a slice into an array a variable sizes is
+  told the cause (E0909), not that its size is unknown (E0858).
 
 ### Emitting in 2.3
 

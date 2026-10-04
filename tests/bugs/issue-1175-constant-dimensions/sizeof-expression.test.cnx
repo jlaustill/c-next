@@ -1,0 +1,13 @@
+// test-error
+// #1863 review: `sizeof` of an expression was lowered from its text, which
+// joins tokens, so `word - -1` reached the .c as `sizeof(word--1)` -- the
+// token join #1175 exists to remove. It has no value at compile time now.
+//
+// NEGATIVE CONTROL: `ok`, `sizeof` of a bare name, which C sizes.
+#include "mac.h"
+
+u32 word;
+u8[MACRO_N + sizeof(word - -1)] buf;
+u8[sizeof(word)] ok;
+
+void main() {}

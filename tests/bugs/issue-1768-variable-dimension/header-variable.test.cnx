@@ -1,0 +1,18 @@
+// test-error
+// test-adr: 036
+// Issue #1768 (#1863 review): a header's variable, even an `extern const`
+// one, or a function is not a constant expression in C, so a dimension that
+// names one declared a C variable-length array, which gcc rejects:
+// `uint8_t g1[runtime_count] = {0};` at exit 0. Each is E0909 now.
+//
+// NEGATIVE CONTROLS stay silent: a header macro and a C enum constant, which
+// are C's to evaluate.
+#include "vars.h"
+
+u8[runtime_count] g1;
+u8[const_count] g2;
+u8[get_count] g3;
+u8[VARS_N] macroSized;
+u8[COLOR_COUNT] enumSized;
+
+void main() {}

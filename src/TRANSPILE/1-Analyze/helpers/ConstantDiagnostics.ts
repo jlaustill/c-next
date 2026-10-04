@@ -34,6 +34,8 @@ const REASON: Readonly<
   leadingZero:
     "is a leading-zero literal, which has no value: C-Next has no octal literal (E0912)",
   divisionByZero: "divides by zero",
+  sizeofExpression:
+    "is the size of an expression, which C-Next does not write for C: use sizeof of its type",
   negativeShift:
     "shifts by a negative amount, or shifts a negative value right",
 };

@@ -21,6 +21,9 @@ import type IConstantEnvironment from "./types/IConstantEnvironment";
 import type { ParserRuleContext } from "antlr4ng";
 import type TConstExpr from "../types/TConstExpr";
 
+/** A name with no member, subscript or operator: C reads it as written */
+const BARE_NAME = /^[A-Za-z_]\w*$/;
+
 type TBinaryOp = Extract<TConstExpr, { kind: "binary" }>["op"];
 type TOtherWhat = Extract<TConstExpr, { kind: "other" }>["what"];
 
@@ -198,6 +201,19 @@ class ConstExprLowering {
     return op.LBRACKET() !== null && op.expression().length === 1;
   }
 
+  /**
+   * `sizeof` of a type, or of a bare name C reads the same way, is C's to
+   * size. Any other expression has no value here: its text joins tokens
+   * (`sizeof(word - -1)` read back as `word--1`), and C-Next does not write an
+   * expression for C structurally inside `sizeof` (#1863 review).
+   */
+  private static sizeOf(ctx: Parser.SizeofExpressionContext): TConstExpr {
+    const named = ctx.type() ?? ctx.expression()!;
+    return ctx.type() || BARE_NAME.test(named.getText())
+      ? { kind: "sizeof", typeName: named.getText() }
+      : ConstExprLowering.other("sizeofExpression", ctx);
+  }
+
   private static root(
     ctx: Parser.PrimaryExpressionContext,
   ): "this" | "global" | null {
@@ -208,12 +224,7 @@ class ConstExprLowering {
 
   private static primary(ctx: Parser.PrimaryExpressionContext): TConstExpr {
     const sizeOf = ctx.sizeofExpression();
-    if (sizeOf) {
-      return {
-        kind: "sizeof",
-        typeName: (sizeOf.type() ?? sizeOf.expression())!.getText(),
-      };
-    }
+    if (sizeOf) return ConstExprLowering.sizeOf(sizeOf);
     const cast = ctx.castExpression();
     if (cast) {
       return {
@@ -285,9 +296,20 @@ class ConstExprLowering {
     return {
       kind: "other",
       what,
-      spelling: ctx.getText(),
+      spelling: ConstExprLowering.asWritten(ctx),
       at: ParserUtils.getPosition(ctx),
     };
+  }
+
+  /**
+   * A node's source text, spaces and all, for a message: `getText()` joins
+   * tokens, so `word - -1` would read back as `word--1`
+   */
+  private static asWritten(ctx: ParserRuleContext): string {
+    const stream = ctx.start?.inputStream;
+    return stream && ctx.start && ctx.stop
+      ? stream.getTextFromRange(ctx.start.start, ctx.stop.stop)
+      : ctx.getText();
   }
 }
 

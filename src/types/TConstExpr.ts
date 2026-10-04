@@ -93,7 +93,8 @@ type TConstExpr =
         | "initializer"
         | "address"
         | "member"
-        | "leadingZero";
+        | "leadingZero"
+        | "sizeofExpression";
       /** The source spelling, for a diagnostic's message only -- never emitted */
       readonly spelling: string;
       readonly at: ISourcePosition;

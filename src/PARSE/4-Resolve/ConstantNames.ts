@@ -89,9 +89,7 @@ class ConstantNames {
       case "scope":
         return ConstantNames.ofScopeMember(binding.scopePath, rest, walk);
       case "foreign":
-        return rest.length === 0
-          ? { kind: "foreign", spelling: walk.spelling, why: "header" }
-          : ConstantNames.ofForeignArray(binding.name, rest, walk);
+        return ConstantNames.ofForeign(binding.name, rest, walk);
     }
   }
 
@@ -193,28 +191,37 @@ class ConstantNames {
   }
 
   /**
-   * A length property of a header's array, measured from its declared
-   * dimensions: `cArr.element_count`. Only a bare name is C's to evaluate as
-   * written, so a member of anything else a header declares has no value.
-   * The element's width is the target's to decide, so a `bit_length` has none
-   * either.
+   * A name a header declares. A variable -- even an `extern const` -- or a
+   * function is not a constant expression in C, so it has no value, and as a
+   * dimension it would be a VLA (#1768, #1863 review); a length property of an
+   * array is measured from its declared dimensions (`cArr.element_count`),
+   * though the element's width is the target's to decide, so a `bit_length`
+   * has none. Anything else bare -- a C enum constant -- is C's to evaluate as
+   * written; C has no spelling of `X.y` C-Next could write for the rest.
    */
-  private static ofForeignArray(
+  private static ofForeign(
     name: string,
     rest: ReadonlyArray<string>,
     walk: IWalk,
   ): TConstResult {
-    const array = walk.facts.foreignArray(name);
-    return array === null
-      ? ConstantNames.without("member", walk)
-      : ConstantNames.ofMember(
-          {
-            type: { kind: "external", name: array.type },
-            dimensions: array.dimensions,
-          },
-          rest,
-          walk,
-        );
+    const value = walk.facts.foreignValue(name);
+    if (value?.kind === "function") {
+      return ConstantNames.without("function", walk);
+    }
+    if (value === null) {
+      return rest.length === 0
+        ? { kind: "foreign", spelling: walk.spelling, why: "header" }
+        : ConstantNames.without("member", walk);
+    }
+    if (rest.length === 0) return ConstantNames.without("variable", walk);
+    return ConstantNames.ofMember(
+      {
+        type: { kind: "external", name: value.type },
+        dimensions: value.dimensions,
+      },
+      rest,
+      walk,
+    );
   }
 
   /** One step of a measured walk: into an element, or into a field */

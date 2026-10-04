@@ -177,19 +177,47 @@ void f() {
   });
 
   describe("a name a C header declares", () => {
-    const HEADER = [
+    const HEADER: TCSymbol[] = [
       cVariable("table", "uint8_t", [10, 4]),
-      cVariable("BUF_SIZE", "int"),
+      cVariable("runtime_count", "uint32_t"),
       cVariable("macroSized", "uint8_t", ["N_ITEMS"]),
+      {
+        kind: "function",
+        name: "get_count",
+        type: "uint32_t",
+        parameters: [],
+        sourceFile: "header.h",
+        span: { line: 1, column: 0, endLine: 1, endColumn: 0 },
+        sourceLanguage: ESourceLanguage.C,
+        visibility: "public",
+      },
+      {
+        kind: "enum_member",
+        name: "COUNT",
+        parent: "EColor",
+        sourceFile: "header.h",
+        span: { line: 1, column: 0, endLine: 1, endColumn: 0 },
+        sourceLanguage: ESourceLanguage.C,
+        visibility: "public",
+      },
     ];
     const program = () => build("u8 x;", true, HEADER);
 
-    it("is C's to evaluate as written, when it is a bare name", () => {
-      expect(ask(program(), ["BUF_SIZE"])).toEqual({
+    it("is C's to evaluate as written, when it is a C enum constant", () => {
+      expect(ask(program(), ["COUNT"])).toEqual({
         kind: "foreign",
-        spelling: "BUF_SIZE",
+        spelling: "COUNT",
         why: "header",
       });
+    });
+
+    // #1768, #1863 review: neither is a constant expression in C, so as a
+    // dimension each would be a VLA
+    it.each([
+      ["a header variable", ["runtime_count"], "variable"],
+      ["a header function", ["get_count"], "function"],
+    ])("has no value for %s", (_label, path, expected) => {
+      expect(answer(ask(program(), path))).toBe(expected);
     });
 
     it.each([
@@ -206,7 +234,11 @@ void f() {
       ],
       // The element's width is the target's to decide
       ["an array's bit_length", ["table", "bit_length"], "unfolded"],
-      ["a member of a header scalar", ["BUF_SIZE", "element_count"], "member"],
+      [
+        "a header scalar's element_count",
+        ["runtime_count", "element_count"],
+        "unfolded",
+      ],
     ])("measures %s from its declared dimensions", (_label, path, expected) => {
       expect(answer(ask(program(), path))).toBe(expected);
     });

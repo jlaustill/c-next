@@ -51,8 +51,11 @@ describe("ConstExprLowering", () => {
     ["m[0].element_count", "m[].element_count"],
     ["m[i][j].bit_length", "m[][].bit_length"],
     ["m[0].data", "<subscript m[0].data>"],
-    ["m[0, 4].element_count", "<subscript m[0,4].element_count>"],
+    ["m[0, 4].element_count", "<subscript m[0, 4].element_count>"],
     ["pick().element_count", "<call pick().element_count>"],
+    // #1863 review: its text joined tokens (`word--1`); no value, spelt as written
+    ["sizeof(word - -1)", "<sizeofExpression sizeof(word - -1)>"],
+    ["sizeof(word)", "sizeof(word)"],
     ["1.5", "<float 1.5>"],
     ['"s"', '<string "s">'],
     ["'c'", "<character 'c'>"],
