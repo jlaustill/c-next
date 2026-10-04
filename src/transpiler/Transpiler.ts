@@ -22,8 +22,6 @@ import HeaderParser from "../PARSE/2-Parse/HeaderParser";
 
 import CodeGenWalker from "../TRANSPILE/CodeGenWalker";
 import invariant from "../utils/invariant";
-import ModificationFacts from "../PARSE/4-Resolve/ModificationFacts";
-import CallbackCompatibility from "../PARSE/4-Resolve/CallbackCompatibility";
 import AutoConstRule from "../utils/AutoConstRule";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
@@ -667,69 +665,55 @@ class Transpiler {
       // reading the set any earlier would drop it from `externalStructFields` --
       // silently exempting it from ADR-016 init-completeness checking, which is
       // the one consumer of the fact.
-      // #1511: one derivation over every file, before the artifact exists.
-      // This used to run per file inside the loop below, each pass injecting
-      // the running total, extracting its own contribution and restoring the
-      // globals it clobbered -- so "does this callee modify its parameter?"
-      // answered differently depending on how many files had gone before.
-      // #1825: from what 1.3 recorded, so no later pass's code runs here.
-      const fileSymbols = declared.map((entry) => entry.fileSymbols);
-      const modifications = ModificationFacts.derive(
-        fileSymbols,
-        this.symbolRegistry,
-        this.codeGenerator.transpileState.symbolTable,
+      this.program = Program.build(
+        declared.map((entry) => entry.fileSymbols),
+        {
+          headerStructFields:
+            this.codeGenerator.transpileState.symbolTable.getAllStructFields(),
+          // #1511: everything the C/C++ headers contributed. The opacity inputs
+          // are the RAW bookkeeping, not the verdict -- `Program` resolves which
+          // typedefs never received a body. Read here because #985 phantom-body
+          // recovery has already run (Stage 2), so the state is final.
+          foreign: {
+            c: this.codeGenerator.transpileState.symbolTable.getAllCSymbols(),
+            cpp: this.codeGenerator.transpileState.symbolTable.getAllCppSymbols(),
+            opaqueTypedefs: new Set(
+              this.codeGenerator.transpileState.symbolTable.getAllOpaqueTypes(),
+            ),
+            typedefToTag: new Map(
+              this.codeGenerator.transpileState.symbolTable.getAllTypedefToTag(),
+            ),
+            structTagsWithBodies: new Set(
+              this.codeGenerator.transpileState.symbolTable.getAllStructTagsWithBodies(),
+            ),
+          },
+          // #1825: ADR-006's and ADR-029's derivations look callees and
+          // typedefs up in it. It holds the headers' symbols only until the
+          // files are published below, which is the state they need.
+          symbolTable: this.codeGenerator.transpileState.symbolTable,
+          visibility: {
+            cnextIncludesByFile: new Map(
+              declared.map((entry) => [
+                entry.file.path,
+                entry.file.cnextIncludes,
+              ]),
+            ),
+          },
+          registry: this.symbolRegistry,
+          target: {
+            option: this.config.target,
+            // ADR-049's build-system rung, read once by 1.1 from the text its
+            // include discovery used (#1444, owner ruling 3)
+            platformio: this._requireSourceGraph().anchor.platformio,
+            pioEnv: this.config.pioEnv || undefined,
+            catalog: TargetCatalogFile.targets(this.fs),
+            files: declared.map((entry) => ({
+              sourcePath: entry.file.path,
+              directives: entry.parsed.targetDirectives,
+            })),
+          },
+        },
       );
-      // #1511: derived over every file before anything renders. Accumulated
-      // during rendering, this map was partial for whichever file went first.
-      const callbackCompatible = CallbackCompatibility.derive(
-        fileSymbols,
-        this.codeGenerator.transpileState.symbolTable,
-      );
-
-      this.program = Program.build(fileSymbols, {
-        headerStructFields:
-          this.codeGenerator.transpileState.symbolTable.getAllStructFields(),
-        // #1511: everything the C/C++ headers contributed. The opacity inputs
-        // are the RAW bookkeeping, not the verdict -- `Program` resolves which
-        // typedefs never received a body. Read here because #985 phantom-body
-        // recovery has already run (Stage 2), so the state is final.
-        foreign: {
-          c: this.codeGenerator.transpileState.symbolTable.getAllCSymbols(),
-          cpp: this.codeGenerator.transpileState.symbolTable.getAllCppSymbols(),
-          opaqueTypedefs: new Set(
-            this.codeGenerator.transpileState.symbolTable.getAllOpaqueTypes(),
-          ),
-          typedefToTag: new Map(
-            this.codeGenerator.transpileState.symbolTable.getAllTypedefToTag(),
-          ),
-          structTagsWithBodies: new Set(
-            this.codeGenerator.transpileState.symbolTable.getAllStructTagsWithBodies(),
-          ),
-        },
-        modifications,
-        visibility: {
-          cnextIncludesByFile: new Map(
-            declared.map((entry) => [
-              entry.file.path,
-              entry.file.cnextIncludes,
-            ]),
-          ),
-        },
-        callbackCompatibleFunctions: callbackCompatible,
-        registry: this.symbolRegistry,
-        target: {
-          option: this.config.target,
-          // ADR-049's build-system rung, read once by 1.1 from the text its
-          // include discovery used (#1444, owner ruling 3)
-          platformio: this._requireSourceGraph().anchor.platformio,
-          pioEnv: this.config.pioEnv || undefined,
-          catalog: TargetCatalogFile.targets(this.fs),
-          files: declared.map((entry) => ({
-            sourcePath: entry.file.path,
-            directives: entry.parsed.targetDirectives,
-          })),
-        },
-      });
       // Passes after 1.4 read cross-file facts from the artifact rather than
       // re-deriving them. Set once per run, not per file.
       this.codeGenerator.transpileState.program = this.program;

@@ -52,7 +52,9 @@ import type IBindingFacts from "./types/IBindingFacts";
 import ConflictDetector from "./ConflictDetector";
 import type IForeignSymbols from "./types/IForeignSymbols";
 import type IConflict from "../../types/IConflict";
-import type IModificationFacts from "./types/IModificationFacts";
+import ModificationFacts from "./ModificationFacts";
+import CallbackCompatibility from "./CallbackCompatibility";
+import SymbolTable from "../3-Declare/SymbolTable";
 import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import type IProgramInputs from "./types/IProgramInputs";
 import type IVisibilityInput from "./types/IVisibilityInput";
@@ -66,7 +68,6 @@ const EMPTY_HEADER_FIELDS: ReadonlyMap<
   string,
   ReadonlyMap<string, IStructFieldInfo>
 > = new Map();
-const EMPTY_CALLBACKS: ReadonlyMap<string, string> = new Map();
 
 /**
  * A local as the finished program's frames hold it: already settled. Only
@@ -88,12 +89,6 @@ const NO_FOREIGN: IForeignSymbols = {
   opaqueTypedefs: EMPTY_NAMES,
   typedefToTag: new Map<string, string>(),
   structTagsWithBodies: EMPTY_NAMES,
-};
-
-/** A program whose parameter-modification facts were not derived. */
-const NO_MODIFICATIONS: IModificationFacts = {
-  modifiedParameters: new Map<string, ReadonlySet<string>>(),
-  functionParamLists: new Map<string, ReadonlyArray<string>>(),
 };
 
 /** A program built without include information: each file sees only itself. */
@@ -121,11 +116,28 @@ class Program {
     // were positional. `IProgramInputs` says why they travel together.
     const headerStructFields = inputs.headerStructFields ?? EMPTY_HEADER_FIELDS;
     const foreign = inputs.foreign ?? NO_FOREIGN;
-    const modifications = inputs.modifications ?? NO_MODIFICATIONS;
     const visibility = inputs.visibility ?? NO_VISIBILITY;
-    const callbackCompatibleFunctions =
-      inputs.callbackCompatibleFunctions ?? EMPTY_CALLBACKS;
     const registry = inputs.registry ?? null;
+
+    // #1511: one derivation over every file, before the artifact exists. Each
+    // file used to be analyzed with the running total injected and its own
+    // contribution extracted back out, so "does this callee modify its
+    // parameter?" answered differently depending on how many files had gone
+    // before; and the callback map, accumulated while rendering, was partial
+    // for whichever file went first.
+    // #1825: derived HERE, from what 1.3 recorded, rather than by each caller
+    // and handed in. The orchestrator and the test harness both did, and the
+    // harness's copy had already dropped the callback map.
+    const symbolTable = inputs.symbolTable ?? new SymbolTable();
+    const modifications = ModificationFacts.derive(
+      files,
+      registry,
+      symbolTable,
+    );
+    const callbackCompatibleFunctions = CallbackCompatibility.derive(
+      files,
+      symbolTable,
+    );
 
     // Each derivation is its own step, in dependency order: the scope types
     // each file can see settle the types, settled types yield const values,

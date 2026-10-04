@@ -8,13 +8,10 @@
  *
  * #1825: this used to sit in the orchestration layer, running 2.2 Plan's
  * collector over every tree, because it was the one place both halves were
- * reachable and `PARSE/` may not import `TRANSPILE/`.
- *
- * Extracted from the transpiler so the test harness can build a `Program` the
- * way production does instead of repeating the sequence. Two spellings of
- * "derive the facts" would be free to drift, and these facts decide generated
- * signatures — #1161's fixture caught exactly that divergence between a `.c`
- * and its `.h` (#1511).
+ * reachable and `PARSE/` may not import `TRANSPILE/`. `Program.build` is its
+ * one caller now, so the orchestrator and the test harness cannot each spell
+ * the sequence -- these facts decide generated signatures, and #1161's fixture
+ * caught exactly that kind of divergence between a `.c` and its `.h` (#1511).
  */
 
 import type SymbolTable from "../3-Declare/SymbolTable";
@@ -38,10 +35,12 @@ class ModificationFacts {
    * every tree that preceded this did.
    *
    * @param files every file's `IFileSymbols`, in declaration order
+   * @param registry the run's scope graph; null where a test builds a program
+   *        without one, which resolves every bare callee as written
    */
   static derive(
     files: ReadonlyArray<IFileSymbols>,
-    registry: SymbolRegistry,
+    registry: SymbolRegistry | null,
     symbolTable: SymbolTable,
   ): IModificationFacts {
     const functionParamLists = new Map<string, ReadonlyArray<string>>();
@@ -115,10 +114,11 @@ class ModificationFacts {
    * the name as written.
    */
   private static resolveBareCallee(
-    registry: SymbolRegistry,
+    registry: SymbolRegistry | null,
     callerFuncName: string,
     bareCalleeName: string,
   ): string {
+    if (!registry) return bareCalleeName;
     const callerScope = registry.getScopeByCFunctionName(callerFuncName);
     if (!callerScope) return bareCalleeName;
     const callee = registry.resolveFunction(bareCalleeName, callerScope);

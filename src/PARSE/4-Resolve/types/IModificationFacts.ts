@@ -9,8 +9,9 @@
  * injected first, its own contribution extracted back out, and the global maps
  * saved and restored around the whole thing — so the answer to "does this
  * callee modify its parameter?" depended on how many files had been processed
- * when it was asked. Derived once over every tree instead, and handed to
- * `Program`, which is the artifact later passes read (#1511).
+ * when it was asked. Derived once over every tree instead (#1511), by
+ * `Program.build` itself since #1825, so `Program` is both where they are
+ * derived and the artifact later passes read them from.
  *
  * #1825: the call graph propagation runs over is not one of them. `Program`
  * exposed it, and nothing read it -- it is an input to the derivation, which

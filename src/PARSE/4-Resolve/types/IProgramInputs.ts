@@ -21,10 +21,10 @@
  */
 import type IRunTargetInputs from "./IRunTargetInputs";
 import type IForeignSymbols from "./IForeignSymbols";
-import type IModificationFacts from "./IModificationFacts";
 import type IStructFieldInfo from "../../../types/symbols/IStructFieldInfo";
 import type IVisibilityInput from "./IVisibilityInput";
 import type SymbolRegistry from "../../3-Declare/SymbolRegistry";
+import type SymbolTable from "../../3-Declare/SymbolTable";
 
 interface IProgramInputs {
   /** Struct fields the C and C++ headers contributed, by type name. */
@@ -37,19 +37,16 @@ interface IProgramInputs {
   readonly foreign?: IForeignSymbols;
 
   /**
-   * ADR-006's modification facts.
+   * The C and C++ headers' symbols, as the run's table holds them before any
+   * C-Next file is published to it (#1825). ADR-006's and ADR-029's
+   * derivations look callees and typedefs up in it by name.
    *
-   * Derived BEFORE this artifact exists -- `ModificationFacts.derive` runs
-   * ahead of `Program.build` and takes the scope graph directly for that
-   * reason. A fact needed to build the program cannot be reached through it.
+   * Absent only where a test builds a program with no headers behind it.
    */
-  readonly modifications?: IModificationFacts;
+  readonly symbolTable?: SymbolTable;
 
   /** ADR-016 visibility inputs. */
   readonly visibility?: IVisibilityInput;
-
-  /** Functions used as an ADR-029 callback, to the typedef they are used as. */
-  readonly callbackCompatibleFunctions?: ReadonlyMap<string, string>;
 
   /**
    * The run's scope graph (#1452 box 3).

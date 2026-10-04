@@ -252,8 +252,9 @@ class CallbackUseCollector {
       );
     }
 
-    // Pattern 3: Bare identifier or simple Scope.member
-    const simpleMatch = /^(\w+)(?:\.(\w+))?$/.exec(text);
+    // Pattern 3: Bare identifier or simple Scope.member. An identifier cannot
+    // start with a digit, and `\w` alone would read `5` as one.
+    const simpleMatch = /^([A-Za-z_]\w*)(?:\.(\w+))?$/.exec(text);
     if (simpleMatch) {
       return simpleMatch[2]
         ? ScopeUtils.qualifyPathInScope([simpleMatch[1], simpleMatch[2]], "")

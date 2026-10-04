@@ -12,6 +12,9 @@ import TypeResolver from "../../../utils/TypeResolver";
 import type IFileSymbols from "../../../types/IFileSymbols";
 import type TSymbol from "../../../types/symbols/TSymbol";
 import type TCSymbol from "../../../types/symbols/c/TCSymbol";
+import SymbolTable from "../../3-Declare/SymbolTable";
+import ESourceLanguage from "../../../utils/types/ESourceLanguage";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 /**
  * 1.4 Resolve's artifact, built from real Declare output rather than hand-made
@@ -784,6 +787,65 @@ scope Gauge {
       expect(program().resolveFunction("get", "NoSuchScope")?.scopePath).toBe(
         "",
       );
+    });
+  });
+
+  describe("ADR-006 and ADR-029 facts (#1825)", () => {
+    // Derived by `build` from what 1.3 recorded, not handed in: no caller can
+    // supply a stale or partial copy, which is how the test harness once
+    // dropped the callback map.
+    it("derives which parameters each function modifies, through a call into another file", () => {
+      const program = Program.build(
+        [
+          declare(`void sink(u32 v) { v <- 1; }`, "b.cnx"),
+          declare(
+            `void forward(u32 v) { sink(v); }
+             void reader(u32 v) { u32 y <- v; }`,
+            "a.cnx",
+          ),
+        ],
+        { registry },
+      );
+
+      expect(program.modifiedParameters().get("forward")?.has("v")).toBe(true);
+      expect(program.modifiedParameters().get("reader")?.has("v")).toBe(false);
+      expect(program.functionParamLists().get("forward")).toEqual(["v"]);
+    });
+
+    it("derives which functions are used as callbacks, from the headers' typedefs", () => {
+      const symbolTable = new SymbolTable();
+      const typedef = (name: string, type: string): void =>
+        symbolTable.addCSymbol({
+          name,
+          kind: "type",
+          sourceLanguage: ESourceLanguage.C,
+          sourceFile: "callbacks.h",
+          span: TestSourceSpan.at(1),
+          visibility: "public",
+          type,
+        });
+      typedef("PointCallback", "void (*)(uint32_t)");
+      typedef("Count", "uint32_t");
+
+      const program = Program.build(
+        [
+          declare(
+            `void on_point(u32 x) { u32 y <- x; }
+             void counted(u32 x) { u32 y <- x; }
+             void main() {
+               PointCallback cb <- on_point;
+               Count c <- counted;
+             }`,
+            "a.cnx",
+          ),
+        ],
+        { registry, symbolTable },
+      );
+
+      expect(program.callbackCompatibleFunctions().get("on_point")).toBe(
+        "PointCallback",
+      );
+      expect(program.callbackCompatibleFunctions().has("counted")).toBe(false);
     });
   });
 
