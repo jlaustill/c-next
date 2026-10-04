@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import ConstExprPrinter from "../ConstExprPrinter";
 import type TConstExpr from "../../types/TConstExpr";
 import type IConstantEnvironment from "../types/IConstantEnvironment";
+import CNEXT_TO_C_TYPE_MAP from "../constants/TypeMappings";
+import QualifiedCName from "../QualifiedCName";
 
 const AT = { line: 1, column: 0 };
 const lit = (digits: string): TConstExpr => ({
@@ -27,6 +29,10 @@ const ENV: IConstantEnvironment = {
     n.path[0] === "LOCAL"
       ? { kind: "value", value: 8n, typeName: "u8" }
       : { kind: "foreign", spelling: n.path[0], why: "header" },
+  // The printer writes what the environment names; ConstantNames.cTypeName
+  // is the rule (ConstantNames.test.ts)
+  cTypeName: (t) =>
+    CNEXT_TO_C_TYPE_MAP[t] ?? QualifiedCName.fromParts(t.split(".")),
 };
 
 describe("ConstExprPrinter (#1175)", () => {
@@ -64,12 +70,12 @@ describe("ConstExprPrinter (#1175)", () => {
     ],
     [
       "a cast is to the C type",
-      { kind: "cast", typeName: "u32", operand: name("BUF_SIZE") },
+      { kind: "cast", typeName: "u32", operand: name("BUF_SIZE"), at: AT },
       "(uint32_t)BUF_SIZE",
     ],
     [
       "sizeof a scope's type is its C name",
-      { kind: "sizeof", typeName: "Motor.Config" },
+      { kind: "sizeof", typeName: "Motor.Config", at: AT },
       "sizeof(Motor__Config)",
     ],
   ])("%s", (_label, expr, expected) => {

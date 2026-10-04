@@ -3,6 +3,7 @@ import type IFoldedConstant from "./IFoldedConstant";
 import type TConstExpr from "./TConstExpr";
 import type TConstResult from "./TConstResult";
 import type TEnumMemberValue from "./TEnumMemberValue";
+import type ISourcePosition from "../utils/types/ISourcePosition";
 import type ILexicalFrame from "./ILexicalFrame";
 import type ILocalDeclaration from "./ILocalDeclaration";
 import type ISourceSpan from "./ISourceSpan";
@@ -218,6 +219,17 @@ interface IProgram {
     sourceFile: string,
     name: Extract<TConstExpr, { kind: "name" }>,
   ): TConstResult;
+
+  /**
+   * A C-Next type name as C spells it at `at` in `sourceFile` (ADR-057), for a
+   * constant expression C evaluates (`sizeof`, a cast) -- the same answer 1.4
+   * wrote into the header (#1863 review)
+   */
+  cTypeNameAt(
+    sourceFile: string,
+    typeName: string,
+    at: ISourcePosition,
+  ): string;
 
   /**
    * What each member of the enum with C name `enumCName` settled to, in

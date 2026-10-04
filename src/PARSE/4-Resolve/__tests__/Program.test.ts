@@ -932,6 +932,7 @@ scope Gauge {
 
       expect(keys).toEqual([
         "bindValue",
+        "cTypeNameAt",
         "callbackCompatibleFunctions",
         "codeGenSymbolsFor",
         "conflicts",

@@ -176,6 +176,31 @@ void f() {
     });
   });
 
+  describe("a type name as C spells it where it is written (#1863 review)", () => {
+    const SOURCE = `
+scope Motor {
+    struct Config {
+        u32 a;
+    }
+    u8[4] buf;
+}
+u8 after;`;
+    const INSIDE = { line: 6, column: 4 };
+    const OUTSIDE = { line: 8, column: 0 };
+
+    it.each([
+      ["a primitive", "u32", INSIDE, "uint32_t"],
+      // ADR-057: a bare name means the scope's own type inside the scope
+      ["a scope's type, bare, inside it", "Config", INSIDE, "Motor__Config"],
+      ["the same bare name outside it", "Config", OUTSIDE, "Config"],
+      ["a `this.` type", "this.Config", INSIDE, "Motor__Config"],
+      ["a qualified type", "Motor.Config", OUTSIDE, "Motor__Config"],
+      ["a `global.` type", "global.Config", INSIDE, "Config"],
+    ])("names %s", (_label, typeName, at, expected) => {
+      expect(build(SOURCE).cTypeNameAt(FILE, typeName, at)).toBe(expected);
+    });
+  });
+
   describe("a name a C header declares", () => {
     const HEADER: TCSymbol[] = [
       cVariable("table", "uint8_t", [10, 4]),

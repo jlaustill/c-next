@@ -226,6 +226,15 @@ class Program {
                 files: fileFacts,
               }),
             ),
+          (typeName, at) =>
+            ConstantNames.cTypeName(
+              typeName,
+              at,
+              Program.nameFacts(dimensioned, file.sourceFile, constants, {
+                settledLocal: SETTLED,
+                files: fileFacts,
+              }),
+            ),
           settledLocals,
         ),
       ]),
@@ -343,6 +352,19 @@ class Program {
       ): TConstResult =>
         ConstantNames.valueOf(
           name,
+          Program.nameFacts(bound, sourceFile, constants, {
+            settledLocal: SETTLED,
+            files: fileFacts,
+          }),
+        ),
+      cTypeNameAt: (
+        sourceFile: string,
+        typeName: string,
+        at: ISourcePosition,
+      ): string =>
+        ConstantNames.cTypeName(
+          typeName,
+          at,
           Program.nameFacts(bound, sourceFile, constants, {
             settledLocal: SETTLED,
             files: fileFacts,
@@ -940,7 +962,10 @@ class Program {
   }
 
   private static environment(facts: IConstantNameFacts): IConstantEnvironment {
-    return { valueOf: (name) => ConstantNames.valueOf(name, facts) };
+    return {
+      valueOf: (name) => ConstantNames.valueOf(name, facts),
+      cTypeName: (typeName, at) => ConstantNames.cTypeName(typeName, at, facts),
+    };
   }
 
   /** A value as the compile-time constant `IProgram.constantOf` returns */

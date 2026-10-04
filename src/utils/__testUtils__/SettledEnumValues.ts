@@ -12,6 +12,7 @@ class SettledEnumValues {
     const members = [...symbol.members.values()];
     const names = members.map((member) => member.name);
     return EnumMemberValues.compute(members, (index, done) => ({
+      cTypeName: (t) => t,
       valueOf: (name) =>
         EnumMemberValues.ownMember(
           names,

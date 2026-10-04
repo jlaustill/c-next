@@ -1,5 +1,6 @@
 import type TConstExpr from "../../types/TConstExpr";
 import type TConstResult from "../../types/TConstResult";
+import type ISourcePosition from "./ISourcePosition";
 
 /**
  * What a name in a constant expression is worth where it is written (#1175).
@@ -13,6 +14,12 @@ import type TConstResult from "../../types/TConstResult";
  */
 interface IConstantEnvironment {
   valueOf(name: Extract<TConstExpr, { kind: "name" }>): TConstResult;
+  /**
+   * A C-Next type name as C spells it where it is written (`sizeof`, a cast):
+   * ADR-057 qualifies a bare name to the scope type it means there (#1863
+   * review: `sizeof(P)` inside scope S reached C as `P`, not `S__P`)
+   */
+  cTypeName(typeName: string, at: ISourcePosition): string;
 }
 
 export default IConstantEnvironment;

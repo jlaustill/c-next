@@ -15,6 +15,7 @@
  * facts. That is what makes `u8[N]` one size in the .c and the .h.
  */
 import QualifiedCName from "../../utils/QualifiedCName";
+import CNEXT_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
 import ScopeUtils from "../../utils/ScopeUtils";
 import LengthProperty from "../../utils/LengthProperty";
 import type TType from "../../types/TType";
@@ -91,6 +92,37 @@ class ConstantNames {
       case "foreign":
         return ConstantNames.ofForeign(binding.name, rest, walk);
     }
+  }
+
+  /**
+   * #1863 review: a C-Next type name as C spells it where it is written -- a
+   * primitive's C type, or the scope type ADR-057 qualifies a bare name to
+   * (`sizeof(P)` inside scope S is `sizeof(S__P)`). Through
+   * `ScopeUtils.qualifyScopeType`, the rule every type position uses.
+   */
+  static cTypeName(
+    typeName: string,
+    at: ISourcePosition,
+    facts: IConstantNameFacts,
+  ): string {
+    const primitive = CNEXT_TO_C_TYPE_MAP[typeName];
+    if (primitive !== undefined) return primitive;
+    const scopePath = facts.scopePathAt(at);
+    const parts = typeName.split(".");
+    if (parts[0] === "this") {
+      return ScopeUtils.getTranspiledCName({
+        name: parts.slice(1).join("."),
+        scopePath,
+      });
+    }
+    if (parts[0] === "global") return QualifiedCName.fromParts(parts.slice(1));
+    const qualified =
+      parts.length === 1
+        ? ScopeUtils.qualifyScopeType(typeName, scopePath, (name) =>
+            facts.isScopeTypeVisible(name),
+          )
+        : typeName;
+    return QualifiedCName.fromParts(qualified.split("."));
   }
 
   /** `this.N`, `global.N`, `Scope.N`, `m[].element_count` */

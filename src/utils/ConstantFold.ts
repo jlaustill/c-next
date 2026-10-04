@@ -32,7 +32,11 @@ class ConstantFold {
     program: IProgram,
     sourceFile: string,
   ): IConstantEnvironment {
-    return { valueOf: (name) => program.constantValueOf(sourceFile, name) };
+    return {
+      valueOf: (name) => program.constantValueOf(sourceFile, name),
+      cTypeName: (typeName, at) =>
+        program.cTypeNameAt(sourceFile, typeName, at),
+    };
   }
 
   /**

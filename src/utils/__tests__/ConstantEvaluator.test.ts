@@ -26,7 +26,7 @@ function un(
   return { kind: "unary", op, operand };
 }
 function cast(typeName: string, operand: TConstExpr): TConstExpr {
-  return { kind: "cast", typeName, operand };
+  return { kind: "cast", typeName, operand, at: AT };
 }
 
 /** A name table standing in for the binder: what each spelling is worth */
@@ -39,6 +39,7 @@ function env(table: Record<string, TConstResult>): IConstantEnvironment {
         spelling: n.path.join("."),
         at: n.at,
       },
+    cTypeName: (t) => t,
   };
 }
 const NONE = env({});
@@ -202,10 +203,12 @@ describe("ConstantEvaluator", () => {
       );
     });
     it("sizeof a type whose size the target decides is foreign", () => {
-      expect(valueOf({ kind: "sizeof", typeName: "Point" })).toBe("foreign");
+      expect(valueOf({ kind: "sizeof", typeName: "Point", at: AT })).toBe(
+        "foreign",
+      );
     });
     it("sizeof a primitive is its width in bytes", () => {
-      expect(valueOf({ kind: "sizeof", typeName: "u32" })).toBe(4n);
+      expect(valueOf({ kind: "sizeof", typeName: "u32", at: AT })).toBe(4n);
     });
     it("a missing value still wins over a foreign name", () => {
       const expr = bin("+", name("BUF_SIZE"), name("limit"));

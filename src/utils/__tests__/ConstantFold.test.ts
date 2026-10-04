@@ -20,6 +20,7 @@ const ENV: IConstantEnvironment = {
     n.path[0] === "BUF_SIZE"
       ? { kind: "foreign", spelling: "BUF_SIZE", why: "header" }
       : { kind: "notConstant", reason: "variable", spelling: "n", at: AT },
+  cTypeName: (t) => t,
 };
 
 const PLUS_ONE = (operand: TConstExpr): TConstExpr => ({

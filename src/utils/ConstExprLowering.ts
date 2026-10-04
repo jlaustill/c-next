@@ -210,7 +210,11 @@ class ConstExprLowering {
   private static sizeOf(ctx: Parser.SizeofExpressionContext): TConstExpr {
     const named = ctx.type() ?? ctx.expression()!;
     return ctx.type() || BARE_NAME.test(named.getText())
-      ? { kind: "sizeof", typeName: named.getText() }
+      ? {
+          kind: "sizeof",
+          typeName: named.getText(),
+          at: ParserUtils.getPosition(ctx),
+        }
       : ConstExprLowering.other("sizeofExpression", ctx);
   }
 
@@ -231,6 +235,7 @@ class ConstExprLowering {
         kind: "cast",
         typeName: cast.type().getText(),
         operand: ConstExprLowering.unary(cast.unaryExpression()),
+        at: ParserUtils.getPosition(cast),
       };
     }
     if (ctx.structInitializer() || ctx.arrayInitializer()) {

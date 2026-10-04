@@ -16,6 +16,7 @@
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ConstExprLowering from "../../../../utils/ConstExprLowering";
 import ConstantEvaluator from "../../../../utils/ConstantEvaluator";
+import invariant from "../../../../utils/invariant";
 import UNRESOLVED_DIMENSION from "../../../../types/UNRESOLVED_DIMENSION";
 import type IConstantEnvironment from "../../../../utils/types/IConstantEnvironment";
 import type IDeclaredDimension from "../types/IDeclaredDimension";
@@ -28,6 +29,10 @@ const NO_NAMES: IConstantEnvironment = {
     spelling: name.path.join("."),
     at: name.at,
   }),
+  // 1.3 only folds what needs no name; writing C for the rest is 1.4's
+  cTypeName: (typeName): string => {
+    invariant(false, `1.3 writes no constant expression as C: ${typeName}`);
+  },
 };
 
 class DimensionResolver {

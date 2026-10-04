@@ -97,8 +97,12 @@ describe("dimensionEvalOptions", () => {
     // not change any answer, so callers that omitted it agreed only because
     // the difference was inert -- the latent divergence this helper exists to
     // prevent. It was removed rather than propagated. #1175: the evaluator
-    // asks one thing, what a name is worth where it is written.
+    // asks what a name is worth where it is written, and the printer how C
+    // spells a type there (#1863 review), both of the program.
     const { state } = setUp(SHADOWED);
-    expect(Object.keys(dimensionEvalOptions(state))).toEqual(["valueOf"]);
+    expect(Object.keys(dimensionEvalOptions(state))).toEqual([
+      "valueOf",
+      "cTypeName",
+    ]);
   });
 });

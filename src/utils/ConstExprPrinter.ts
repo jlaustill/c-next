@@ -10,8 +10,6 @@
  * dimension here, so they cannot disagree about it.
  */
 import ConstantEvaluator from "./ConstantEvaluator";
-import QualifiedCName from "./QualifiedCName";
-import CNEXT_TO_C_TYPE_MAP from "./constants/TypeMappings";
 import invariant from "./invariant";
 import type IConstantEnvironment from "./types/IConstantEnvironment";
 import type TConstExpr from "../types/TConstExpr";
@@ -28,9 +26,9 @@ class ConstExprPrinter {
         // Only a header's name is left unvalued here, and C spells it as is
         return expr.path.join(".");
       case "sizeof":
-        return `sizeof(${ConstExprPrinter.cType(expr.typeName)})`;
+        return `sizeof(${env.cTypeName(expr.typeName, expr.at)})`;
       case "cast":
-        return `(${ConstExprPrinter.cType(expr.typeName)})${ConstExprPrinter.operand(expr.operand, env)}`;
+        return `(${env.cTypeName(expr.typeName, expr.at)})${ConstExprPrinter.operand(expr.operand, env)}`;
       case "unary":
         return `${expr.op}${ConstExprPrinter.operand(expr.operand, env)}`;
       case "binary":
@@ -49,13 +47,6 @@ class ConstExprPrinter {
   private static operand(expr: TConstExpr, env: IConstantEnvironment): string {
     const text = ConstExprPrinter.toC(expr, env);
     return /^\w+$/.test(text) ? text : `(${text})`;
-  }
-
-  private static cType(typeName: string): string {
-    return (
-      CNEXT_TO_C_TYPE_MAP[typeName] ??
-      QualifiedCName.fromParts(typeName.split("."))
-    );
   }
 }
 

@@ -31,6 +31,7 @@ function computed(
   return EnumMemberValues.compute(
     members,
     (index, settled): IConstantEnvironment => ({
+      cTypeName: (t) => t,
       valueOf: (name) => {
         if (name.path[0] === "E") {
           return EnumMemberValues.ownMember(

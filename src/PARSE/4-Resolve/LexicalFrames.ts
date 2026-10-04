@@ -46,6 +46,8 @@ class LexicalFrames {
     frame: ILexicalFrame,
     isScopeType: (qualifiedName: string) => boolean,
     valueOf: TValueOf,
+    /** A type name as C spells it where it is written (ADR-057) */
+    cTypeName: IConstantEnvironment["cTypeName"],
     /**
      * Filled with each declaration's settled copy, for a caller that must read
      * the same answer -- a function's parameters, which the header writes
@@ -56,6 +58,7 @@ class LexicalFrames {
     const env: IConstantEnvironment = {
       valueOf: (name) =>
         valueOf(name, (declaration) => settledOf.get(declaration)),
+      cTypeName,
     };
     return LexicalFrames.settleFrame(frame, isScopeType, env, settledOf);
   }
