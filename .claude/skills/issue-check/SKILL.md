@@ -171,7 +171,8 @@ FOR each issue whose BLOCKED_BY is non-empty:
   NEVER key this on "does the text contain a #NNNN". A field mixing a reference
   with a prose blocker would then go available the moment the reference closed,
   silently dropping a blocker no query can see. OPEN_BLOCKERS is assigned on
-  every blocked branch, because both consumers below print it.
+  every blocked branch, because both consumers below print it, and Phase 3's
+  UNBLOCKS factor reads it in reverse.
 
 BLOCKED_BY ANSWERS ONLY HALF THE QUESTION. It records whether a CARD WAS NAMED,
 not whether the work CAN BE FINISHED. A card whose definition of done requires an
@@ -241,9 +242,14 @@ Higher score = recommend first.
 
 **Note:** there are no `status:` labels. Where an issue sits, what blocks it, and
 which release it ships in live on the project board — read in Phase 1d and applied
-as *exclusions* in Phase 2, not as score. By the time an issue reaches this rubric it
+as *exclusions* in Phase 2. By the time an issue reaches this rubric it
 is already known unblocked, triaged, and in the active sprint. Scoring only ranks
 what can actually be started.
+
+The board feeds one score as well: **UNBLOCKS**, read from the *other* cards' fields.
+A card's own `Blocked by` decides whether it can be picked; every other card's
+`Blocked by` says what picking it frees. Without that, a card holding back the
+sprint's biggest bug scores the same as one that frees nothing.
 
 #### Scoring Rubric
 
@@ -297,6 +303,27 @@ FOR each available issue, compute SCORE:
       Short body (<100 chars)             → +5 (likely small fix)
       Medium body (100-500 chars)         → +10 (well-scoped)
       Long body (500+ chars)              → +3 (may be complex)
+
+  UNBLOCKS (0-20 points):
+    What closing this card frees. It is a REVERSE index over Phase 1d: the
+    OPEN_BLOCKERS of every OTHER open card, not anything on this card.
+
+    FOR each open card X whose OPEN_BLOCKERS name this issue:
+      SKIP X if it has the "epic" label. #1324's field names "every open
+        v0.3.1-milestone card", so counting epics and release trackers would give
+        every sprint card the same points, and the factor would rank nothing.
+      SKIP X if it is outside ACTIVE_MILESTONE (unless --all), the same as the
+        sprint filter in Phase 2.
+      this issue is X's ONLY open blocker   → +10  (closing it frees X)
+      X has other open blockers as well     → +5   (closing it shortens X's chain)
+    Cap at 20.
+
+    Use OPEN_BLOCKERS exactly as Phase 1d derived it, not a regex over the field.
+    A field quotes issues it does not wait on: #1443's names #1313 inside a quote
+    ("#1313 correction 4"), and #1668's names #1780 next to "#1780 no longer gates
+    it". Counting those references would credit cards that free nothing.
+    A blocker that exists only as prose, or one Phase 3.5 derived but nobody has
+    appended yet, names no card here and scores nothing.
 ```
 
 ```
@@ -456,12 +483,13 @@ two cleared fields from, and `git show 21823602` still carries them.
 ```
 ## Recommended: #<number> — <title>
 
-**Score**: <N>/100
+**Score**: <N>/120
 **Type**: <bug|validation-bug|enhancement|feature|docs|test-coverage>
 **Domain**: <parser|code-generator|types|scope|safety|MISRA|... if labeled>
 **Board**: <BOARD_STATUS> · <milestone> · unblocked
 **Why this one**:
   - <reason 1: e.g., "priority: high + bug — correctness over convenience">
+  - <unblocks, when it scored: e.g., "unblocks #1668 (+5, which also waits on #1737)">
   - <reason 2: e.g., "bug label — correctness over convenience">
   - <reason 3: e.g., "8 comments indicate active discussion">
   - <reason 4: e.g., "Well-scoped description suggests medium effort">
