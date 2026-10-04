@@ -1,0 +1,39 @@
+// test-execution
+// test-adr: 044
+// #1647 same-type control: the counter is a `u8`, exactly as in
+// update-and-init-clamp, and only its overflow modifier differs. `wrap` opts
+// out of ADR-044's clamp, so the header must wrap and emit no clamp helper.
+// The header renders what the statement form renders -- the `u8` narrowed back
+// after integer promotion (MISRA C:2012 Rule 10.3) -- and `stepped` below is
+// that statement form, kept beside the loop so the two snapshots line up.
+
+u8 wrapPasses() {
+    u8 n <- 0;
+    u8 step <- 10;
+    wrap u8 w <- 0;
+    for (w <- 250; w > 200; w +<- step) {
+        n <- n + 1;
+        if (n > 3) {
+            return n;
+        }
+    }
+    return n;
+}
+
+u8 stepped() {
+    u8 step <- 10;
+    wrap u8 w <- 250;
+    w +<- step;
+    return w;
+}
+
+u8 main() {
+    // ASSERTION: 250 + 10 wraps to 4, ending the loop after one pass.
+    u8 wraps <- wrapPasses();
+    if (wraps != 1) return 1;
+
+    // CONTROL: the same compound assignment as a statement wraps as well.
+    u8 w <- stepped();
+    if (w != 4) return 2;
+    return 0;
+}

@@ -27,7 +27,7 @@ int main(void) {
     uint32_t sum = 0U;
     bool condition = true;
     if (condition == true) {
-        for (uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1)) {
+        for (uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1U)) {
             sum = cnx_clamp_add_u32(sum, i);
         }
     }
@@ -37,7 +37,7 @@ int main(void) {
     if (condition == true) {
         sum = 100U;
     } else {
-        for (uint32_t i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1)) {
+        for (uint32_t i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1U)) {
             sum = cnx_clamp_add_u32(sum, 10U);
         }
     }
@@ -46,11 +46,11 @@ int main(void) {
     uint32_t resultB = 0U;
     bool flag = true;
     if (flag == true) {
-        for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1)) {
+        for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U)) {
             resultA = cnx_clamp_add_u32(resultA, 1U);
         }
     } else {
-        for (uint32_t i = 0U; i < 2; i = cnx_clamp_add_u32(i, 1)) {
+        for (uint32_t i = 0U; i < 2; i = cnx_clamp_add_u32(i, 1U)) {
             resultB = cnx_clamp_add_u32(resultB, 1U);
         }
     }
@@ -61,7 +61,7 @@ int main(void) {
     flag = true;
     if (condition == true) {
         if (flag == true) {
-            for (uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1)) {
+            for (uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1U)) {
                 sum = cnx_clamp_add_u32(sum, 2U);
             }
         }

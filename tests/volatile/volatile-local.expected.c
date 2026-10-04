@@ -52,7 +52,7 @@ int main(void) {
     volatile uint8_t c = cnx_clamp_add_u8(a, b);
     if (c != 30) return 5U;
     volatile uint32_t loop_count = 0U;
-    for (volatile uint32_t j = 0U; j < 5; j += 1) {
+    for (volatile uint32_t j = 0U; j < 5; j = cnx_clamp_add_u32(j, 1U)) {
         loop_count = cnx_clamp_add_u32(loop_count, 1U);
     }
     if (loop_count != 5) return 6U;

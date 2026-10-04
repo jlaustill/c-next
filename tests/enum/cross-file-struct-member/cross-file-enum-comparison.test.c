@@ -29,7 +29,7 @@ int main(void) {
     if (config.items[0U].assigned != MyEnum__A) return 1U;
     if (config.items[1U].assigned != MyEnum__NONE) return 2U;
     uint8_t noneCount = 0U;
-    for (uint8_t i = 0U; i < 2; i += 1) {
+    for (uint8_t i = 0U; i < 2; i = cnx_clamp_add_u8(i, 1U)) {
         if (config.items[i].assigned == MyEnum__NONE) {
             noneCount = cnx_clamp_add_u8(noneCount, 1U);
         }

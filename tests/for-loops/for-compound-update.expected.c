@@ -18,6 +18,16 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
+}
+
+static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)a) return 0;
+    return (uint32_t)(a - (uint32_t)b);
+}
+
 // test-execution
 // Coverage: Section 7.4 - for loop with compound update
 // Tests: for loops using compound assignment operators in update
@@ -25,25 +35,25 @@ int main(void) {
     uint32_t sum = 0U;
     uint32_t i = 0U;
     sum = 0U;
-    for (i = 0; i < 10; i += 1) {
+    for (i = 0U; i < 10; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, i);
     }
     if (sum != 45) return 1U;
     sum = 0U;
-    for (i = 0; i < 10; i += 2) {
+    for (i = 0U; i < 10; i = cnx_clamp_add_u32(i, 2U)) {
         sum = cnx_clamp_add_u32(sum, i);
     }
     if (sum != 20) return 2U;
     sum = 0U;
     uint32_t count = 0U;
-    for (i = 1; i < 100; i *= 2) {
+    for (i = 1U; i < 100; i = cnx_clamp_mul_u32(i, 2U)) {
         sum = cnx_clamp_add_u32(sum, i);
         count = cnx_clamp_add_u32(count, 1U);
     }
     if (sum != 127) return 3U;
     if (count != 7) return 4U;
     sum = 0U;
-    for (i = 10; i > 0; i -= 1) {
+    for (i = 10U; i > 0; i = cnx_clamp_sub_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, i);
     }
     if (sum != 55) return 5U;

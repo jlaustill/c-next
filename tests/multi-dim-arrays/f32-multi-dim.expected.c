@@ -7,6 +7,19 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // test-execution
 // Tests: multi-dimensional f32 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
@@ -41,8 +54,8 @@ int main(void) {
     if (3 != 3) return 14U;
     if (4 != 4) return 15U;
     if (32 != 32) return 16U;
-    for (uint32_t i = 0U; i < 4; i += 1) {
-        for (uint32_t j = 0U; j < 8; j += 1) {
+    for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U)) {
+        for (uint32_t j = 0U; j < 8; j = cnx_clamp_add_u32(j, 1U)) {
             matrix2d[i][j] = (float)i * 2.5 + (float)j * 0.5;
         }
     }
@@ -51,9 +64,9 @@ int main(void) {
     if (matrix2d[1U][3U] != 4.0) return 19U;
     if (matrix2d[3U][7U] != 11.0) return 20U;
     float sum = 0.0;
-    for (uint32_t i = 0U; i < 2; i += 1) {
-        for (uint32_t j = 0U; j < 3; j += 1) {
-            for (uint32_t k = 0U; k < 4; k += 1) {
+    for (uint32_t i = 0U; i < 2; i = cnx_clamp_add_u32(i, 1U)) {
+        for (uint32_t j = 0U; j < 3; j = cnx_clamp_add_u32(j, 1U)) {
+            for (uint32_t k = 0U; k < 4; k = cnx_clamp_add_u32(k, 1U)) {
                 cube3d[i][j][k] = (float)i * 10.5 + (float)j * 2.25 + (float)k * 0.5;
                 sum += cube3d[i][j][k];
             }
@@ -65,8 +78,8 @@ int main(void) {
     matrix2d[3][7] = 42.5;
     if (matrix2d[3U][7U] != 42.5) return 23U;
     float testArray[4][2] = {0};
-    for (uint32_t ti = 0U; ti < 4; ti += 1) {
-        for (uint32_t tj = 0U; tj < 2; tj += 1) {
+    for (uint32_t ti = 0U; ti < 4; ti = cnx_clamp_add_u32(ti, 1U)) {
+        for (uint32_t tj = 0U; tj < 2; tj = cnx_clamp_add_u32(tj, 1U)) {
             testArray[ti][tj] = 0.0;
         }
     }
@@ -83,8 +96,8 @@ int main(void) {
     if (testArray[2U][0U] != 0.125) return 28U;
     if (testArray[3U][1U] != -0.125) return 29U;
     float temps[3][3] = {0};
-    for (uint32_t tei = 0U; tei < 3; tei += 1) {
-        for (uint32_t tej = 0U; tej < 3; tej += 1) {
+    for (uint32_t tei = 0U; tei < 3; tei = cnx_clamp_add_u32(tei, 1U)) {
+        for (uint32_t tej = 0U; tej < 3; tej = cnx_clamp_add_u32(tej, 1U)) {
             temps[tei][tej] = 0.0;
         }
     }
@@ -101,8 +114,8 @@ int main(void) {
     if (temps[1U][0U] != 37.0) return 33U;
     if (temps[2U][0U] != -40.0) return 34U;
     float precise[2][2] = {0};
-    for (uint32_t pi = 0U; pi < 2; pi += 1) {
-        for (uint32_t pj = 0U; pj < 2; pj += 1) {
+    for (uint32_t pi = 0U; pi < 2; pi = cnx_clamp_add_u32(pi, 1U)) {
+        for (uint32_t pj = 0U; pj < 2; pj = cnx_clamp_add_u32(pj, 1U)) {
             precise[pi][pj] = 0.0;
         }
     }
@@ -115,8 +128,8 @@ int main(void) {
     if (precise[1U][0U] != 1000.0) return 37U;
     if (precise[1U][1U] != -123.5) return 38U;
     float calc[2][2] = {0};
-    for (uint32_t ci = 0U; ci < 2; ci += 1) {
-        for (uint32_t cj = 0U; cj < 2; cj += 1) {
+    for (uint32_t ci = 0U; ci < 2; ci = cnx_clamp_add_u32(ci, 1U)) {
+        for (uint32_t cj = 0U; cj < 2; cj = cnx_clamp_add_u32(cj, 1U)) {
             calc[ci][cj] = 0.0;
         }
     }
@@ -125,8 +138,8 @@ int main(void) {
     float calcSum = calc[0U][0U] + calc[0U][1U];
     if (calcSum != 15.75) return 39U;
     float coords[2][4] = {0};
-    for (uint32_t coi = 0U; coi < 2; coi += 1) {
-        for (uint32_t coj = 0U; coj < 4; coj += 1) {
+    for (uint32_t coi = 0U; coi < 2; coi = cnx_clamp_add_u32(coi, 1U)) {
+        for (uint32_t coj = 0U; coj < 4; coj = cnx_clamp_add_u32(coj, 1U)) {
             coords[coi][coj] = 0.0;
         }
     }

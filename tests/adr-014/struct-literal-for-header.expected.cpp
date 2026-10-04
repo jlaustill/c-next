@@ -42,7 +42,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // other, which is why both exist.
 int main(void) {
     uint32_t total = 0U;
-    for (Point p = (Point){ .x = 0U, .y = 3U }; p.x < 4; p.x += 1) {
+    for (Point p = (Point){ .x = 0U, .y = 3U }; p.x < 4; p.x += 1U) {
         total = cnx_clamp_add_u32(total, p.y);
     }
     if (total != 12) return 1U;

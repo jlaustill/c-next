@@ -59,8 +59,8 @@ int main(void) {
     if (cube3d[1U][2U][3U] != 250) return 9U;
     if (4 != 4) return 10U;
     if (2 != 2) return 11U;
-    for (uint32_t i = 0U; i < 4; i += 1) {
-        for (uint32_t j = 0U; j < 8; j += 1) {
+    for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U)) {
+        for (uint32_t j = 0U; j < 8; j = cnx_clamp_add_u32(j, 1U)) {
             matrix2d[i][j] = (uint8_t)(((cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 10U), j))) & 0xFFU);
         }
     }
@@ -69,9 +69,9 @@ int main(void) {
     if (matrix2d[1U][3U] != 13) return 14U;
     if (matrix2d[3U][7U] != 37) return 15U;
     uint16_t sum = 0U;
-    for (uint32_t i = 0U; i < 2; i += 1) {
-        for (uint32_t j = 0U; j < 3; j += 1) {
-            for (uint32_t k = 0U; k < 4; k += 1) {
+    for (uint32_t i = 0U; i < 2; i = cnx_clamp_add_u32(i, 1U)) {
+        for (uint32_t j = 0U; j < 3; j = cnx_clamp_add_u32(j, 1U)) {
+            for (uint32_t k = 0U; k < 4; k = cnx_clamp_add_u32(k, 1U)) {
                 cube3d[i][j][k] = (uint8_t)(((cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 10U), cnx_clamp_mul_u32(j, 5U)), k))) & 0xFFU);
                 sum = cnx_clamp_add_u16(sum, cube3d[i][j][k]);
             }
@@ -83,8 +83,8 @@ int main(void) {
     matrix2d[3][7] = 111U;
     if (matrix2d[3U][7U] != 111) return 23U;
     uint8_t testArray[3][2] = {0};
-    for (uint32_t ti = 0U; ti < 3; ti += 1) {
-        for (uint32_t tj = 0U; tj < 2; tj += 1) {
+    for (uint32_t ti = 0U; ti < 3; ti = cnx_clamp_add_u32(ti, 1U)) {
+        for (uint32_t tj = 0U; tj < 2; tj = cnx_clamp_add_u32(tj, 1U)) {
             testArray[ti][tj] = 0U;
         }
     }
@@ -97,8 +97,8 @@ int main(void) {
     if (testArray[1U][0U] != 128) return 26U;
     if (testArray[2U][1U] != 1) return 27U;
     uint8_t buffer[4][4] = {0};
-    for (uint32_t bi = 0U; bi < 4; bi += 1) {
-        for (uint32_t bj = 0U; bj < 4; bj += 1) {
+    for (uint32_t bi = 0U; bi < 4; bi = cnx_clamp_add_u32(bi, 1U)) {
+        for (uint32_t bj = 0U; bj < 4; bj = cnx_clamp_add_u32(bj, 1U)) {
             buffer[bi][bj] = 0U;
         }
     }

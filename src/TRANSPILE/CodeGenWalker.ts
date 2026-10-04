@@ -60,6 +60,7 @@ import generatePostfixExpression from "./3-Render/codegen/generators/expressions
 import controlFlowGenerators from "./3-Render/codegen/generators/statements/ControlFlowGenerator";
 import IPlannedFor from "./3-Render/codegen/types/IPlannedFor";
 import IPlannedForAssignment from "./3-Render/codegen/types/IPlannedForAssignment";
+import type TAssignmentSite from "./1-Analyze/types/TAssignmentSite";
 import IPlannedForVarDecl from "./3-Render/codegen/types/IPlannedForVarDecl";
 import IPlannedForever from "./3-Render/codegen/types/IPlannedForever";
 import IPlannedIf from "./3-Render/codegen/types/IPlannedIf";
@@ -4889,7 +4890,7 @@ class CodeGenWalker {
         );
   }
 
-  private generateAssignment(ctx: Parser.AssignmentStatementContext): string {
+  private generateAssignment(ctx: TAssignmentSite): string {
     const targetCtx = ctx.assignmentTarget();
 
     // #1668 (C7): what the target writes, bound once -- the expected type
@@ -5170,22 +5171,22 @@ class CodeGenWalker {
    * An assignment in a `for` header -- the init form and the update form
    * alike.
    *
-   * #1445: it takes the three CHILDREN rather than a context, which is what
-   * lets one planner and one renderer serve `forAssignment` and `forUpdate`.
-   * The grammar gives them the same three parts and `generateFor` used to
-   * open-code the update, so the operator mapping lived in two places with
-   * nothing saying they had to agree.
+   * #1647: rendered by `generateAssignment`, the statement path itself, so
+   * the header is classified and handled exactly as a statement is: ADR-044's
+   * clamp and MISRA C:2012 Rule 7.2's suffix included. Only the terminator
+   * differs, since a header clause is an expression, not a statement.
    */
-  private planForAssignment(
-    target: Parser.AssignmentTargetContext,
-    expression: Parser.ExpressionContext,
-    operator: Parser.AssignmentOperatorContext,
-  ): IPlannedForAssignment {
+  private planForAssignment(site: TAssignmentSite): IPlannedForAssignment {
     return {
-      renderTarget: () => this.generateAssignmentTarget(target),
-      renderValue: () => this.generateExpression(expression),
-      operatorText: operator.getText(),
-      operatorLine: operator.start?.line,
+      render: () => {
+        const statement = this.generateAssignment(site);
+        if (!statement.endsWith(";")) {
+          throw new Error(
+            `Internal error: a for-header assignment rendered as '${statement}', not one statement`,
+          );
+        }
+        return statement.slice(0, -1);
+      },
     };
   }
 
@@ -5198,13 +5199,7 @@ class CodeGenWalker {
       // `for (;;)` is E0707 in pass 2.1, so the controlling expression is
       // guaranteed present here.
       renderCondition: () => this.generateExpression(ctx.expression()!),
-      update: forUpdate
-        ? this.planForAssignment(
-            forUpdate.assignmentTarget(),
-            forUpdate.expression(),
-            forUpdate.assignmentOperator(),
-          )
-        : null,
+      update: forUpdate ? this.planForAssignment(forUpdate) : null,
       renderBody: () => this.generateStatement(ctx.statement()),
     };
   }
@@ -5220,11 +5215,7 @@ class CodeGenWalker {
     if (assignment) {
       return {
         kind: "assignment",
-        plan: this.planForAssignment(
-          assignment.assignmentTarget(),
-          assignment.expression(),
-          assignment.assignmentOperator(),
-        ),
+        plan: this.planForAssignment(assignment),
       };
     }
 

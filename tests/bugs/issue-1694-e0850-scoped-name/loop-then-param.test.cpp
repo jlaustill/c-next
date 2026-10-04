@@ -31,7 +31,7 @@ uint32_t data[4] = {};
 
 uint32_t sum(void) {
     uint32_t total = 0U;
-    for (uint32_t i = 0U; i < 4; i += 1) {
+    for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U)) {
         total = cnx_clamp_add_u32(total, data[i]);
     }
     return total;

@@ -52,7 +52,7 @@ uint8_t viaLocal(void) {
 uint8_t viaFor(void) {
     uint8_t arr[4] = {5U, 6U, 7U, 8U};
     uint8_t last = 0U;
-    for (uint32_t viaFor__i = 0U; viaFor__i < 4; viaFor__i += 1) {
+    for (uint32_t viaFor__i = 0U; viaFor__i < 4; viaFor__i = cnx_clamp_add_u32(viaFor__i, 1U)) {
         last = arr[viaFor__i];
     }
     return last;

@@ -1,0 +1,50 @@
+// test-execution
+// test-adr: 044
+// #1647 negative control: a `for` header assignment where no clamp applies
+// keeps the output it had before the header shared the statement path, so the
+// fix cannot pass by wrapping every update in a helper. A `wrap` counter
+// wraps (ADR-044's opt-in), and a float compound stays a plain `+=`. No
+// literal appears in either header, so Rule 7.2's suffix does not change them.
+// The counter is a `u32` because a narrower one is cast back after integer
+// promotion (MISRA C:2012 Rule 10.3) on the statement path, which the header
+// now shares.
+
+u8 wrapPasses() {
+    u8 n <- 0;
+    u32 start <- 4294967290;
+    u32 step <- 10;
+    wrap u32 w <- 0;
+    for (w <- start; w > 4294967200; w +<- step) {
+        n <- n + 1;
+        if (n > 3) {
+            return n;
+        }
+    }
+    return n;
+}
+
+u8 floatPasses() {
+    u8 n <- 0;
+    f32 start <- 0.5;
+    f32 one <- 1.0;
+    f32 limit <- 3.0;
+    f32 x <- 0.0;
+    for (x <- start; x < limit; x +<- one) {
+        n <- n + 1;
+        if (n > 5) {
+            return n;
+        }
+    }
+    return n;
+}
+
+u8 main() {
+    // ASSERTION: 4294967290 + 10 wraps to 4, ending the loop after one pass.
+    u8 wraps <- wrapPasses();
+    if (wraps != 1) return 1;
+
+    // ASSERTION: 0.5, 1.5, 2.5 -- three passes.
+    u8 floats <- floatPasses();
+    if (floats != 3) return 2;
+    return 0;
+}

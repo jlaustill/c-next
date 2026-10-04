@@ -1,0 +1,34 @@
+// test-execution
+// test-adr: 044
+// #1647 in a scope method: a `for` header whose update writes a scope member
+// through `this.` saturates exactly as the same compound statement does. The
+// loop is bounded by a pass count, so a regression to wrapping returns a
+// failure code instead of hanging.
+
+scope Ramp {
+    u8 level <- 0;
+
+    public u8 passes() {
+        u8 n <- 0;
+        for (this.level <- 250; this.level < 255; this.level +<- 10) {
+            n <- n + 1;
+            if (n > 3) {
+                return n;
+            }
+        }
+        return n;
+    }
+
+    public u8 getLevel() {
+        return this.level;
+    }
+}
+
+u8 main() {
+    // ASSERTION: the member saturates at 255, so the loop runs exactly once.
+    u8 count <- Ramp.passes();
+    if (count != 1) return 1;
+    u8 level <- Ramp.getLevel();
+    if (level != 255) return 2;
+    return 0;
+}

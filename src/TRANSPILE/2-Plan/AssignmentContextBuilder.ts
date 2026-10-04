@@ -26,6 +26,7 @@ import IBitAccessAnalysis from "../../types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../types/TPlannedTargetOp";
 import type IChainBase from "./types/IChainBase";
 import type TranspileState from "../TranspileState";
+import type TAssignmentSite from "../1-Analyze/types/TAssignmentSite";
 
 /**
  * Dependencies for building context.
@@ -200,10 +201,13 @@ function processPostfixOps(
 
 /**
  * Build an IAssignmentContext from a parse tree.
+ *
+ * #1647: any assignment site -- a statement, or a `for` header's init or
+ * update -- so the header is classified and handled exactly as a statement is.
  * SonarCloud S3776: Refactored to use helper functions.
  */
 function buildAssignmentContext(
-  ctx: Parser.AssignmentStatementContext,
+  ctx: TAssignmentSite,
   deps: IContextBuilderDeps,
 ): IAssignmentContext {
   const targetCtx = ctx.assignmentTarget();

@@ -55,7 +55,7 @@ int main(void) {
     uint32_t sum = 0U;
     uint8_t maxVal = 3U;
     uint32_t check3 = checkValue(cnx_clamp_add_u8(maxVal, 1U));
-    for (uint8_t i = 0U; i < check3; i = cnx_clamp_add_u8(i, 1)) {
+    for (uint8_t i = 0U; i < check3; i = cnx_clamp_add_u8(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
     if (sum != 4) return 4U;

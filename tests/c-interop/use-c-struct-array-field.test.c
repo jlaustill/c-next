@@ -32,7 +32,7 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 int main(void) {
     DataBuffer buf = {0};
     buf.len = 4U;
-    for (uint32_t i = 0U; i < buf.len; i += 1) {
+    for (uint32_t i = 0U; i < buf.len; i = cnx_clamp_add_u32(i, 1U)) {
         uint32_t value = cnx_clamp_mul_u32(i, 10U);
         buf.data[i] = (uint8_t)((value) & 0xFFU);
     }
@@ -42,14 +42,14 @@ int main(void) {
     if (buf.data[3U] != 30) return 4U;
     ValueArray va = {0};
     va.count = 8U;
-    for (uint32_t i = 0U; i < va.count; i += 1) {
+    for (uint32_t i = 0U; i < va.count; i = cnx_clamp_add_u32(i, 1U)) {
         va.values[i] = cnx_clamp_mul_u32(i, 100U);
     }
     if (va.values[0U] != 0) return 5U;
     if (va.values[1U] != 100) return 6U;
     if (va.values[7U] != 700) return 7U;
     uint32_t sum = 0U;
-    for (uint32_t i = 0U; i < va.count; i += 1) {
+    for (uint32_t i = 0U; i < va.count; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, va.values[i]);
     }
     if (sum != 2800) return 8U;

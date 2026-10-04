@@ -64,8 +64,8 @@ int main(void) {
     if (3 != 3) return 14U;
     if (4 != 4) return 15U;
     if (64 != 64) return 16U;
-    for (uint32_t i = 0U; i < 4; i += 1) {
-        for (uint32_t j = 0U; j < 8; j += 1) {
+    for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U)) {
+        for (uint32_t j = 0U; j < 8; j = cnx_clamp_add_u32(j, 1U)) {
             matrix2d[i][j] = (((cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100ULL), j))) & 0xFFFFFFFFFFFFFFFFU);
         }
     }
@@ -74,9 +74,9 @@ int main(void) {
     if (matrix2d[1U][3U] != 103) return 19U;
     if (matrix2d[3U][7U] != 307) return 20U;
     uint64_t sum = 0ULL;
-    for (uint32_t i = 0U; i < 2; i += 1) {
-        for (uint32_t j = 0U; j < 3; j += 1) {
-            for (uint32_t k = 0U; k < 4; k += 1) {
+    for (uint32_t i = 0U; i < 2; i = cnx_clamp_add_u32(i, 1U)) {
+        for (uint32_t j = 0U; j < 3; j = cnx_clamp_add_u32(j, 1U)) {
+            for (uint32_t k = 0U; k < 4; k = cnx_clamp_add_u32(k, 1U)) {
                 cube3d[i][j][k] = (((cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100ULL), cnx_clamp_mul_u32(j, 10ULL)), k))) & 0xFFFFFFFFFFFFFFFFU);
                 sum = cnx_clamp_add_u64(sum, cube3d[i][j][k]);
             }

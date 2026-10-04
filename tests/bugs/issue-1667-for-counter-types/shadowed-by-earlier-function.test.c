@@ -37,7 +37,7 @@ void first(void) {
 
 uint32_t probe(void) {
     uint32_t w = 0U;
-    for (uint8_t k = 0U; k < 3; k = cnx_clamp_add_u8(k, 1)) {
+    for (uint8_t k = 0U; k < 3; k = cnx_clamp_add_u8(k, 1U)) {
         w = 8;
     }
     return w;
@@ -47,7 +47,7 @@ uint32_t probe(void) {
 // Clamped as a u32, 260 truncates to 4 in the u8 and the loop runs on.
 uint32_t passes(void) {
     uint32_t n = 0U;
-    for (uint8_t k = 250U; k < 255; k = cnx_clamp_add_u8(k, 10)) {
+    for (uint8_t k = 250U; k < 255; k = cnx_clamp_add_u8(k, 10U)) {
         n = cnx_clamp_add_u32(n, 1U);
         if (n > 3) {
             return n;
