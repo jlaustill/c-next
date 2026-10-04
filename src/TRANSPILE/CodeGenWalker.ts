@@ -5180,11 +5180,10 @@ class CodeGenWalker {
     return {
       render: () => {
         const statement = this.generateAssignment(site);
-        if (!statement.endsWith(";")) {
-          throw new Error(
-            `Internal error: a for-header assignment rendered as '${statement}', not one statement`,
-          );
-        }
+        invariant(
+          statement.endsWith(";"),
+          `a for-header assignment renders as one statement, not '${statement}'`,
+        );
         return statement.slice(0, -1);
       },
     };

@@ -31,7 +31,7 @@ static uint8_t Ramp__level = 0U;
 
 uint8_t Ramp__passes(void) {
     uint8_t n = 0U;
-    for (Ramp__level = 250; Ramp__level < 255; Ramp__level += 10) {
+    for (Ramp__level = 250U; Ramp__level < 255; Ramp__level = cnx_clamp_add_u8(Ramp__level, 10U)) {
         n = cnx_clamp_add_u8(n, 1U);
         if (n > 3) {
             return n;

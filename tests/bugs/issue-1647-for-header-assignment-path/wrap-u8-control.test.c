@@ -32,7 +32,7 @@ uint8_t wrapPasses(void) {
     uint8_t n = 0U;
     uint8_t step = 10U;
     uint8_t w = 0U;
-    for (w = 250; w > 200; w += step) {
+    for (w = 250U; w > 200; w = (uint8_t)(w + step)) {
         n = cnx_clamp_add_u8(n, 1U);
         if (n > 3) {
             return n;

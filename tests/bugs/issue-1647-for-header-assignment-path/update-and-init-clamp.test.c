@@ -34,7 +34,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 uint8_t updatePasses(void) {
     uint8_t n = 0U;
     uint8_t i = 0U;
-    for (i = 250; i < 255; i += 10) {
+    for (i = 250U; i < 255; i = cnx_clamp_add_u8(i, 10U)) {
         n = cnx_clamp_add_u8(n, 1U);
         if (n > 3) {
             return n;
@@ -48,7 +48,7 @@ uint8_t updatePasses(void) {
 uint8_t initPasses(void) {
     uint8_t n = 0U;
     uint8_t i = 250U;
-    for (i += 10; i < 255; i += 1) {
+    for (i = cnx_clamp_add_u8(i, 10U); i < 255; i = cnx_clamp_add_u8(i, 1U)) {
         n = cnx_clamp_add_u8(n, 1U);
         if (n > 3) {
             return n;
