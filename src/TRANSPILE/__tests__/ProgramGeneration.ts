@@ -1,7 +1,6 @@
 import type * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import type SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
-import ModificationFacts from "../../transpiler/ModificationFacts";
 import Program from "../../PARSE/4-Resolve/Program";
 import TargetCatalogFile from "../../PARSE/1-Discover/TargetCatalogFile";
 import TargetResolver from "../../utils/TargetResolver";
@@ -15,9 +14,9 @@ import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
  * #1511: pass-by-value eligibility is a whole-program fact -- is this parameter
  * modified anywhere down the call chain? -- so a generator with no `Program`
  * behind it answers "not eligible" for everything and emits pointers where the
- * real run emits values. Built from the real resolver output and through the
- * same `ModificationFacts.derive` production uses, so a single-file test agrees
- * with a real run rather than approximating one.
+ * real run emits values. Built from the real resolver output by the same
+ * `Program.build` production uses, which derives those facts itself (#1825), so
+ * a single-file test agrees with a real run rather than approximating one.
  *
  * #1668: the program also carries the run's ONE target (ADR-049), which the
  * operand typer reads for a C type's width, and it is the target the render is
@@ -43,13 +42,8 @@ class ProgramGeneration {
     const state = generator.transpileState;
 
     const declared = CNextResolver.resolve(tree, sourcePath, registry);
-    const modifications = ModificationFacts.derive(
-      [{ parsed: { tree } as never, fileSymbols: declared }],
-      registry,
-      state.symbolTable,
-    );
     state.program = Program.build([declared], {
-      modifications,
+      symbolTable: state.symbolTable,
       registry,
       target: {
         option: targetDescription.name,

@@ -1,5 +1,7 @@
 import type TSymbol from "./symbols/TSymbol";
 import type ILexicalFrame from "./ILexicalFrame";
+import type IFileModifications from "./IFileModifications";
+import type TCallbackUse from "./TCallbackUse";
 
 /**
  * What ONE FILE DECLARES — the artifact of pass 1.3 Declare (#1472).
@@ -62,6 +64,20 @@ interface IFileSymbols {
    * consts, and every later pass reads the settled frames from `Program`.
    */
   readonly lexicalScopes: ILexicalFrame;
+  /**
+   * #1825: what this file's functions do to their own parameters, and the
+   * calls they pass them to -- ADR-006's per-file half. Whether a callee
+   * modifies what it is passed is 1.4's, since the callee is routinely in
+   * another file.
+   */
+  readonly modifications: IFileModifications;
+  /**
+   * #1825: where this file names what may be a function, in a position a C
+   * callback could be expected -- ADR-029's per-file half. Which of these are
+   * callbacks is 1.4's, since it needs the headers' typedefs and every file's
+   * functions (#1544).
+   */
+  readonly callbackUses: ReadonlyArray<TCallbackUse>;
 }
 
 export default IFileSymbols;

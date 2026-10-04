@@ -1,5 +1,7 @@
 /**
- * What 2.2 Plan accumulates while deriving ADR-006's modification facts.
+ * What the per-file modification walk accumulates while collecting ADR-006's
+ * facts for one file (#1825). `ModificationCollector` returns it as the
+ * file's `IFileModifications`, the read-only view of the same maps.
  *
  * ## Why this exists (#1452)
  *
@@ -13,29 +15,26 @@
  *
  * Box 4 of #1452 forbids exactly that -- a module reachable from the pipeline
  * holding state written in one pass and read in another. So the collection gets
- * its own object, created by `derive` and discarded when it returns, and 2.3
- * keeps its working copy on the walker rather than in a global both passes can
- * reach.
+ * its own object, created for one walk and discarded when it returns.
  *
- * The registry travels with it because the collectors need both and threading
- * two parameters through the same thirteen walker methods would be the same
- * journey twice.
+ * ## Why it carries no registry (#1825)
+ *
+ * It used to, because the walk resolved a bare callee through the run's scope
+ * graph. That is a question about every file -- a scope can be reopened in
+ * another one (#1333) -- so the walk now records the call as written and 1.4
+ * Resolve answers it.
  */
-import type ICallGraphEntry from "../../../types/ICallGraphEntry";
-import type SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
+import type IDeclaredCall from "../../../../types/IDeclaredCall";
 
 interface IModificationCollector {
-  /** The run's scope graph, for resolving a callee to its declaring scope. */
-  readonly registry: SymbolRegistry;
-
   /** Parameters each function modifies, by transpiled C name. */
   readonly modifiedParameters: Map<string, Set<string>>;
 
   /** Each function's parameter names, in declaration order. */
   readonly functionParamLists: Map<string, string[]>;
 
-  /** Which functions each function calls, and with what arguments. */
-  readonly functionCallGraph: Map<string, ICallGraphEntry[]>;
+  /** The calls each function passes one of its parameters to, as written. */
+  readonly functionCallGraph: Map<string, IDeclaredCall[]>;
 }
 
 export default IModificationCollector;

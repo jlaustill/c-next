@@ -9,16 +9,7 @@
  * Issue #269: Extracted from CodeGenerator for improved testability.
  */
 
-/**
- * Call info entry in the function call graph.
- * Represents a call from one function to another, tracking which parameter
- * of the caller was passed to which parameter position of the callee.
- */
-interface ICallInfo {
-  callee: string;
-  paramIndex: number;
-  argParamName: string;
-}
+import type ICallGraphEntry from "../../types/ICallGraphEntry";
 
 class TransitiveModificationPropagator {
   /**
@@ -33,8 +24,8 @@ class TransitiveModificationPropagator {
    * @param modifiedParameters - Map of function name to modified parameter set (mutated in place)
    */
   static propagate(
-    functionCallGraph: ReadonlyMap<string, readonly ICallInfo[]>,
-    functionParamLists: ReadonlyMap<string, string[]>,
+    functionCallGraph: ReadonlyMap<string, ReadonlyArray<ICallGraphEntry>>,
+    functionParamLists: ReadonlyMap<string, ReadonlyArray<string>>,
     modifiedParameters: Map<string, Set<string>>,
     resolveCalleeMayMutate: (
       callerName: string,
@@ -68,8 +59,8 @@ class TransitiveModificationPropagator {
    */
   private static propagateCall(
     callerName: string,
-    call: ICallInfo,
-    functionParamLists: ReadonlyMap<string, string[]>,
+    call: ICallGraphEntry,
+    functionParamLists: ReadonlyMap<string, ReadonlyArray<string>>,
     modifiedParameters: Map<string, Set<string>>,
     resolveCalleeMayMutate: (
       callerName: string,

@@ -12,7 +12,6 @@ import type TRunTarget from "./TRunTarget";
 import type IScopeSymbol from "./symbols/IScopeSymbol";
 import type TSymbol from "./symbols/TSymbol";
 import type IConflict from "./IConflict";
-import type ICallGraphEntry from "./ICallGraphEntry";
 import type ICodeGenSymbols from "./ICodeGenSymbols";
 
 /**
@@ -144,9 +143,6 @@ interface IProgram {
 
   /** Each function's parameter names, in declaration order. */
   functionParamLists(): ReadonlyMap<string, ReadonlyArray<string>>;
-
-  /** Who calls whom, as transitive modification propagation reads it. */
-  callGraph(): ReadonlyMap<string, ReadonlyArray<ICallGraphEntry>>;
 
   /**
    * The symbol view a file's code generation reads: what it declares, plus

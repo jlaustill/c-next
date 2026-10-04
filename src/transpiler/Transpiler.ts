@@ -22,8 +22,6 @@ import HeaderParser from "../PARSE/2-Parse/HeaderParser";
 
 import CodeGenWalker from "../TRANSPILE/CodeGenWalker";
 import invariant from "../utils/invariant";
-import ModificationFacts from "./ModificationFacts";
-import CallbackCompatibility from "./CallbackCompatibility";
 import AutoConstRule from "../utils/AutoConstRule";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
@@ -667,24 +665,6 @@ class Transpiler {
       // reading the set any earlier would drop it from `externalStructFields` --
       // silently exempting it from ADR-016 init-completeness checking, which is
       // the one consumer of the fact.
-      // #1511: one derivation over every tree, before the artifact exists.
-      // This used to run per file inside the loop below, each pass injecting
-      // the running total, extracting its own contribution and restoring the
-      // globals it clobbered -- so "does this callee modify its parameter?"
-      // answered differently depending on how many files had gone before.
-      const modifications = ModificationFacts.derive(
-        declared,
-        this.symbolRegistry,
-        this.codeGenerator.transpileState.symbolTable,
-      );
-      // #1511: derived over every tree before anything renders. Accumulated
-      // during rendering, this map was partial for whichever file went first.
-      const callbackCompatible = CallbackCompatibility.derive(
-        declared,
-        this.codeGenerator.transpileState.symbolTable,
-        this.symbolRegistry,
-      );
-
       this.program = Program.build(
         declared.map((entry) => entry.fileSymbols),
         {
@@ -707,7 +687,10 @@ class Transpiler {
               this.codeGenerator.transpileState.symbolTable.getAllStructTagsWithBodies(),
             ),
           },
-          modifications,
+          // #1825: ADR-006's and ADR-029's derivations look callees and
+          // typedefs up in it. It holds the headers' symbols only until the
+          // files are published below, which is the state they need.
+          symbolTable: this.codeGenerator.transpileState.symbolTable,
           // #1175: where a name nothing binds may be a macro -- the same
           // reach 2.1's E0427 is given, defaulted the same way
           filesReachingForeignHeaders: new Set(
@@ -723,7 +706,6 @@ class Transpiler {
               ]),
             ),
           },
-          callbackCompatibleFunctions: callbackCompatible,
           registry: this.symbolRegistry,
           target: {
             option: this.config.target,
