@@ -10,18 +10,18 @@ codes that already have a fixture.
 
 ## Error Code Ranges
 
-| Range     | Category                         | Count   |
-| --------- | -------------------------------- | ------- |
-| E00xx     | Reserved/Test                    | 1       |
-| E02xx     | Identifier/Param Naming          | 5       |
-| E03xx     | Struct Fields/Init               | 5       |
-| E04xx     | Symbol Resolution                | 16      |
-| E05xx     | Include/Preprocessor             | 15      |
-| E06xx     | Sizeof Expressions               | 2       |
-| E07xx     | Control Flow                     | 12      |
-| E08xx     | Arithmetic/Array Safety          | 54      |
-| E09xx     | NULL Safety, Compile-Time Values | 11      |
-| **Total** |                                  | **121** |
+| Range     | Category                                       | Count   |
+| --------- | ---------------------------------------------- | ------- |
+| E00xx     | Reserved/Test                                  | 1       |
+| E02xx     | Identifier/Param Naming                        | 5       |
+| E03xx     | Struct Fields/Init                             | 5       |
+| E04xx     | Symbol Resolution                              | 16      |
+| E05xx     | Include/Preprocessor                           | 15      |
+| E06xx     | Sizeof Expressions                             | 2       |
+| E07xx     | Control Flow                                   | 12      |
+| E08xx     | Arithmetic/Array Safety                        | 54      |
+| E09xx     | NULL Safety, Compile-Time Values, Literal Form | 12      |
+| **Total** |                                                | **122** |
 
 ---
 
@@ -378,6 +378,12 @@ base: bare, `this.` and `global.`.
 | E0909 | An array dimension or an enum member's value is not known at compile time            | Build it from literals, consts, sizeof and casts; an enum member may also name the members of its enum declared above it | `TRANSPILE/1-Analyze/ConstantDimensionAnalyzer.ts`, `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts` |
 | E0910 | A value fixed at compile time overflows the type its arithmetic happens at (ADR-044) | Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type                  | `TRANSPILE/1-Analyze/ConstantDimensionAnalyzer.ts`, `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts` |
 | E0911 | An enum member's value does not fit `i32` (ADR-017)                                  | Use a value of at most 2147483647                                                                                        | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts`                                                     |
+
+## E0912 — Integer Literal Form (ADR-044)
+
+| Code  | Message                                                                             | Help                                                                      | Source                                       |
+| ----- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------- |
+| E0912 | A decimal integer literal has a leading zero; C-Next has no octal literal (ADR-044) | Write the value in decimal without the leading zero, or as `0x…` or `0b…` | `TRANSPILE/1-Analyze/LiteralFormAnalyzer.ts` |
 
 ---
 

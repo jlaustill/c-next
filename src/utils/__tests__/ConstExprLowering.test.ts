@@ -21,6 +21,11 @@ describe("ConstExprLowering", () => {
     ["0b101", "5"],
     // #1728: a leading-zero literal has no value until #1728 says what it is
     ["010", "<leadingZero 010>"],
+    // ADR-044: no octal literal, suffixed or not -- this one read as 10
+    ["010u8", "<leadingZero 010u8>"],
+    ["00", "<leadingZero 00>"],
+    ["0", "0"],
+    ["0x010", "16"],
     ["9u8", "9:u8"],
     ["0xFFu16", "255:u16"],
     ["0b11i8", "3:i8"],

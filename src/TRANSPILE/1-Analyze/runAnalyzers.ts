@@ -20,6 +20,7 @@ import IComment from "../../types/IComment";
 import CppClassInitializerAnalyzer from "./CppClassInitializerAnalyzer";
 import DefineDirectiveAnalyzer from "./DefineDirectiveAnalyzer";
 import IdentifierSyntaxAnalyzer from "./IdentifierSyntaxAnalyzer";
+import LiteralFormAnalyzer from "./LiteralFormAnalyzer";
 import ParameterNamingAnalyzer from "./ParameterNamingAnalyzer";
 import StructFieldAnalyzer from "./StructFieldAnalyzer";
 import TypeDeclarationAnalyzer from "./TypeDeclarationAnalyzer";
@@ -234,6 +235,12 @@ function runAnalyzers(
       // A malformed identifier feeds a bad name into every later analysis.
       label: "identifier syntax (ADR-063: no trailing or consecutive '_')",
       run: () => new IdentifierSyntaxAnalyzer().analyze(tree),
+    },
+    {
+      // ADR-044: a malformed literal, like a malformed name, feeds every later
+      // analysis -- a dimension or an enum value would report a consequence
+      label: "integer literal form (ADR-044: no octal literal, E0912)",
+      run: () => new LiteralFormAnalyzer().analyze(tree),
     },
     {
       label: "parameter naming (Issue #227: reserved naming patterns)",

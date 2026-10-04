@@ -632,6 +632,19 @@ describe("LiteralUtils", () => {
   });
 
   // #1668: the one reading of an integer literal's value as written
+  describe("hasLeadingZero (ADR-044: no octal literal, E0912)", () => {
+    it.each([
+      ["010", true],
+      ["00", true],
+      ["07u8", true],
+      ["0", false],
+      ["0u8", false],
+      ["10", false],
+    ])("%j -> %j", (text, expected) => {
+      expect(LiteralUtils.hasLeadingZero(text)).toBe(expected);
+    });
+  });
+
   describe("integerValue", () => {
     it.each([
       ["9", 9],
@@ -640,8 +653,9 @@ describe("LiteralUtils", () => {
       ["3i32", 3],
       ["0x1F", 31],
       ["0b101", 5],
-      // C reads a leading-zero literal as octal; its value is #1728's
+      // ADR-044 has no octal literal: a leading zero is E0912, with no value
       ["010", null],
+      ["010u8", null],
       ["1.5", null],
       ["true", null],
       ["N", null],

@@ -31,7 +31,7 @@ const REASON: Readonly<
   address: "is an address",
   member: "is a member access",
   leadingZero:
-    "is a leading-zero literal, which has no value until #1728 decides whether it is octal",
+    "is a leading-zero literal, which has no value: C-Next has no octal literal (E0912)",
   divisionByZero: "divides by zero",
   negativeShift:
     "shifts by a negative amount, or shifts a negative value right",

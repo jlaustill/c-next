@@ -14,6 +14,7 @@ import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "./ParserUtils";
 import invariant from "./invariant";
 import ConstantEvaluator from "./ConstantEvaluator";
+import LiteralUtils from "./LiteralUtils";
 import LengthProperty from "./LengthProperty";
 import ELEMENT_STEP from "../types/ELEMENT_STEP";
 import type IConstantEnvironment from "./types/IConstantEnvironment";
@@ -245,6 +246,14 @@ class ConstExprLowering {
         typeName: "bool",
       };
     }
+    // ADR-044: there is no octal literal, so a leading zero is E0912 in 2.1;
+    // until then it has no value, suffixed (`010u8`) or not
+    if (
+      (ctx.INTEGER_LITERAL() || ctx.SUFFIXED_DECIMAL()) &&
+      LiteralUtils.hasLeadingZero(ctx.getText())
+    ) {
+      return ConstExprLowering.other("leadingZero", ctx);
+    }
     if (ctx.SUFFIXED_DECIMAL() || ctx.SUFFIXED_HEX() || ctx.SUFFIXED_BINARY()) {
       const match = SUFFIXED.exec(ctx.getText());
       invariant(
@@ -256,12 +265,6 @@ class ConstExprLowering {
         digits: BigInt(match[1]).toString(),
         typeName: match[2].toLowerCase(),
       };
-    }
-    // #1728's interim answer, the one every reading shares: a leading-zero
-    // literal is octal to C and decimal to the transpiler, so until #1728 says
-    // which it is, it has no value -- not one C may disagree with
-    if (ctx.INTEGER_LITERAL() && /^0\d/.test(ctx.getText())) {
-      return ConstExprLowering.other("leadingZero", ctx);
     }
     if (ctx.INTEGER_LITERAL() || ctx.HEX_LITERAL() || ctx.BINARY_LITERAL()) {
       return {

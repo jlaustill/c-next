@@ -1,0 +1,31 @@
+// test-error
+// test-adr: 044
+// Issue #1728 / ADR-044 "Integer Literals" (owner ruling, 2026-10-03): there is
+// no octal literal, so a decimal literal never has a leading zero. C reads `010`
+// as 8, where the transpiler read it as 10 in some places and as no value in
+// others. Each literal below is E0912, wherever it is written.
+//
+// NEGATIVE CONTROLS stay silent: `0`, `0u8`, leading zeros after a `0x` or `0b`
+// prefix, a float, and `10`.
+
+const u8 C <- 010;
+u8[010] dim;
+enum E {
+    A <- 010u8
+}
+
+u32 run(u32 x) {
+    u32 shifted <- x << 03;
+    u32 sum <- 010 + 1;
+    i32 negative <- -07;
+    u32 zeros <- 00;
+    u32 zero <- 0;
+    u8 zeroTyped <- 0u8;
+    u32 hex <- 0x010;
+    u32 bin <- 0b0010;
+    f32 half <- 0.5;
+    u32 ten <- 10;
+    return shifted + sum + zero + hex + bin + ten + zeros;
+}
+
+void main() {}
