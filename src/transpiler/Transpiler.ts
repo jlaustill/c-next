@@ -167,6 +167,12 @@ class Transpiler {
   private anyHeaderPreprocessFailed = false;
 
   /**
+   * #1688: each header's own text, recorded where it is read, so its macros
+   * are typed without reading it again. A header that could not be read has none.
+   */
+  private readonly headerTexts = new Map<string, string>();
+
+  /**
    * #1323: one file's fully-resolved header-render input, captured while its
    * `CodeGenState` was warm. `_renderHeaders` (Stage 5.5) reads this map ONCE,
    * after every file has been transpiled, to render every header -- see
@@ -690,9 +696,10 @@ class Transpiler {
             // #1688: from each header's own text, so a cached header and one
             // whose preprocessing failed are read as a parsed one is
             macros: HeaderMacros.collect(
-              Array.from(this._requireSourceGraph().headerFiles, (file) =>
-                this.fs.readFile(file.path),
-              ),
+              this._requireSourceGraph().headerFiles.flatMap((file) => {
+                const text = this.headerTexts.get(file.path);
+                return text === undefined ? [] : [text];
+              }),
             ),
           },
           // #1825: ADR-006's and ADR-029's derivations look callees and
@@ -1220,6 +1227,7 @@ class Transpiler {
     // result copies it with a spread, so nothing holds the array itself.
     this.warnings.length = 0;
     this.anyHeaderPreprocessFailed = false;
+    this.headerTexts.clear();
     // #1323: a stale entry here would let one run's header content leak into
     // the next, the same shape #1143's toolchain-requirements leak was.
     this.headerEmissionFactsByPath.clear();
@@ -1353,6 +1361,18 @@ class Transpiler {
   }
 
   /**
+   * #1688: a cached header's symbols need no read, but its macros do. One that
+   * cannot be read is left without macros, as its symbols come from the cache.
+   */
+  private _recordCachedHeaderText(file: IDiscoveredFile): void {
+    try {
+      this.headerTexts.set(file.path, this.fs.readFile(file.path));
+    } catch {
+      // No macros: nothing here is a failure of the header's symbols
+    }
+  }
+
+  /**
    * #1817: one header's cache entry or content. It never rejects: a failure is
    * returned as `failed` and re-thrown by `_collectHeaderSymbols` in header
    * order, where the #1319 catch decides whether it is a diagnostic.
@@ -1366,6 +1386,7 @@ class Transpiler {
     try {
       const cached = this._readCachedHeader(file);
       if (cached) {
+        this._recordCachedHeaderText(file);
         return {
           file,
           kind: "cached",
@@ -2004,6 +2025,7 @@ class Transpiler {
     limit: TPreprocessLimit,
   ): Promise<{ content: string; usable: boolean; preprocessError?: string }> {
     const rawContent = this.fs.readFile(file.path);
+    this.headerTexts.set(file.path, rawContent);
 
     // Check if preprocessing is disabled
     if (this.config.preprocess === false) {
