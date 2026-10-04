@@ -39,17 +39,46 @@ describe("ConstantDiagnostics (#1175, #1669)", () => {
     expect(ConstantDiagnostics.why(result)).toBe(expected);
   });
 
-  it.each([
-    ["a division by zero, which is E0800's", "divisionByZero" as const],
-    ["an undeclared name, which is E0427's", "unknown" as const],
-  ])("leaves %s to its own code", (_label, reason) => {
+  it("leaves an undeclared bare name to E0427", () => {
     expect(
       ConstantDiagnostics.why({
         kind: "notConstant",
-        reason,
+        reason: "unknown",
         spelling: "x",
         at: AT,
       }),
     ).toBeNull();
+  });
+
+  // #1863 review: neither E0427 nor E0800 reports these, so E0909 does
+  it.each([
+    [
+      "a divisor that is zero only once computed",
+      { reason: "divisionByZero" as const, spelling: "" },
+      "it divides by zero",
+    ],
+    [
+      "a member a scope or an enum does not have",
+      { reason: "undeclaredMember" as const, spelling: "S.NOPE" },
+      "'S.NOPE' is not declared",
+    ],
+  ])("says %s", (_label, part, expected) => {
+    expect(
+      ConstantDiagnostics.why({ kind: "notConstant", at: AT, ...part }),
+    ).toBe(expected);
+  });
+
+  it("says a const's own cause at a use of it", () => {
+    expect(
+      ConstantDiagnostics.why({
+        kind: "notConstant",
+        reason: "unfolded",
+        spelling: "B",
+        at: AT,
+        because: { kind: "overflow", typeName: "u8" },
+      }),
+    ).toBe(
+      "'B' has no value known at compile time: its initializer overflows u8 (ADR-044)",
+    );
   });
 });

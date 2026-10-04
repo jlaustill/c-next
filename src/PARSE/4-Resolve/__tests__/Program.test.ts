@@ -359,7 +359,7 @@ describe("Program", () => {
           { length: n },
           (_, i) => `const u32 C${i} <- ${initializer(i, n)};`,
         ).join("\n");
-        const attempts = vi.spyOn(ConstantFold, "declaredValue");
+        const attempts = vi.spyOn(ConstantFold, "constValue");
         try {
           const program = Program.build([declare(source, "lib.cnx")]);
           expect(

@@ -74,6 +74,7 @@ import type ISourcePosition from "../../utils/types/ISourcePosition";
 import type TConstExpr from "../../types/TConstExpr";
 import type TConstResult from "../../types/TConstResult";
 import type TEnumMemberValue from "../../types/TEnumMemberValue";
+import type TSettledConst from "../../types/TSettledConst";
 
 /** Shared empty result, so a miss does not allocate. */
 const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
@@ -694,7 +695,7 @@ class Program {
     declared: IBindingFacts,
     files: IFileConstantFacts,
   ): ISettledConstants {
-    const consts = new Map<string, number>();
+    const consts = new Map<string, TSettledConst>();
     const enums = new Map<string, ReadonlyArray<TEnumMemberValue>>();
     const settled: ISettledConstants = { consts, enums };
     const symbols = [...settledByFile.values()].flat();
@@ -715,14 +716,15 @@ class Program {
       });
       const cName = symbol.fullyQualifiedCName;
       if (symbol.kind === "variable") {
-        const value = ConstantFold.declaredValue(
-          ConstantEvaluator.evaluate(
-            symbol.initialValueExpr!,
-            Program.environment(facts),
-          ),
+        const settledConst = ConstantFold.constValue(
+          symbol.initialValueExpr!,
+          Program.environment(facts),
           symbol.type,
         );
-        if (value !== undefined) consts.set(cName, value);
+        // A const waiting on another settles when that one does; one with no
+        // value for any other reason has settled, and keeps why
+        const waits = settledConst?.kind !== "value" && pending.length > 0;
+        if (settledConst !== null && !waits) consts.set(cName, settledConst);
       } else if (symbol.kind === "enum" && !enums.has(cName)) {
         const values = Program.enumValues(symbol, facts);
         if (pending.length > 0 && !final) {
@@ -885,7 +887,9 @@ class Program {
     member: string,
     where: { spelling: string; at: ISourcePosition; pending?: string[] },
   ): TConstResult {
-    const without = (reason: "unfolded" | "unknown"): TConstResult => ({
+    const without = (
+      reason: "unfolded" | "undeclaredMember",
+    ): TConstResult => ({
       kind: "notConstant",
       reason,
       spelling: where.spelling,
@@ -899,7 +903,7 @@ class Program {
     const symbol = facts.symbolsByCName.get(enumCName);
     const index =
       symbol?.kind === "enum" ? [...symbol.members.keys()].indexOf(member) : -1;
-    if (index < 0) return without("unknown");
+    if (index < 0) return without("undeclaredMember");
     const settled = values[index];
     return settled.kind === "value"
       ? { kind: "value", value: settled.value, typeName: null }

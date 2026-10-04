@@ -250,6 +250,101 @@ describe("ConstantEvaluator", () => {
     });
   });
 
+  describe("a literal takes the smallest type that fits its context at compile time (ADR-044)", () => {
+    const at = (expr: TConstExpr, context: string | null, e = NONE) => {
+      const result = ConstantEvaluator.evaluate(expr, e, context);
+      return result.kind === "value" ? result.value : result.kind;
+    };
+
+    it.each<[string, TConstExpr, string | null, bigint | string]>([
+      // #1863 review: main folded this to 2147483648; at i32 it overflows
+      [
+        "2147483647 + 1 in an i64",
+        bin("+", lit("2147483647"), lit("1")),
+        "i64",
+        2147483648n,
+      ],
+      [
+        "2147483647 + 1 with no context",
+        bin("+", lit("2147483647"), lit("1")),
+        null,
+        "overflow",
+      ],
+      [
+        "3000000000 + 1 in a u32",
+        bin("+", lit("3000000000"), lit("1")),
+        "u32",
+        3000000001n,
+      ],
+      ["~0 in a u32", un("~", lit("0")), "u32", 4294967295n],
+      ["~0 with no context", un("~", lit("0")), null, -1n],
+      ["0 - 1 in a u32", bin("-", lit("0"), lit("1")), "u32", "overflow"],
+      // A cast is the context of what it encloses
+      [
+        "(u64)(1 << 40)",
+        cast("u64", bin("<<", lit("1"), lit("40"))),
+        null,
+        1099511627776n,
+      ],
+    ])("%s", (_label, expr, context, expected) => {
+      expect(at(expr, context)).toBe(expected);
+    });
+
+    it("leaves a typed operand at its own width: A + A for u8 A overflows in a u16", () => {
+      const withA = env({ A: U8_200 });
+      expect(at(bin("+", name("A"), name("A")), "u16", withA)).toBe("overflow");
+    });
+  });
+
+  describe("a suffixed literal must fit its type (#1863 review)", () => {
+    it.each<[string, TConstExpr, bigint | string]>([
+      ["300u8", lit("300", "u8"), "overflow"],
+      ["255u8", lit("255", "u8"), 255n],
+    ])("%s", (_label, expr, expected) => {
+      expect(valueOf(expr)).toBe(expected);
+    });
+  });
+
+  describe("a comparison happens at its operands' type (#1863 review)", () => {
+    const withN = env({ N: { kind: "value", value: 5n, typeName: "u32" } });
+    it.each<[string, TConstExpr, bigint | string]>([
+      // C compares against UINT_MAX there; the value would disagree
+      [
+        "N > -1 for a u32 N",
+        bin(">", name("N"), un("-", lit("1"))),
+        "overflow",
+      ],
+      ["N > 1 for a u32 N", bin(">", name("N"), lit("1")), 1n],
+    ])("%s", (_label, expr, expected) => {
+      expect(valueOf(expr, withN)).toBe(expected);
+    });
+  });
+
+  describe("a name only C knows does not make the operand beside it constant (#1863 review)", () => {
+    const withMacroAndVar = env({
+      MACRO_N: { kind: "foreign", spelling: "MACRO_N", why: "maybeHeader" },
+      n: { kind: "notConstant", reason: "parameter", spelling: "n", at: AT },
+    });
+    const ternary = (whenFalse: TConstExpr): TConstExpr => ({
+      kind: "ternary",
+      condition: bin(">", name("MACRO_N"), lit("2")),
+      whenTrue: lit("4"),
+      whenFalse,
+    });
+    it.each<[string, TConstExpr, string]>([
+      ["MACRO_N > 2 ? 4 : n", ternary(name("n")), "notConstant"],
+      ["MACRO_N > 2 ? 4 : 1 (control)", ternary(lit("1")), "foreign"],
+      ["MACRO_N && n", bin("&&", name("MACRO_N"), name("n")), "notConstant"],
+      [
+        "MACRO_N && 1 (control)",
+        bin("&&", name("MACRO_N"), lit("1")),
+        "foreign",
+      ],
+    ])("%s", (_label, expr, expected) => {
+      expect(valueOf(expr, withMacroAndVar)).toBe(expected);
+    });
+  });
+
   describe("toNumber", () => {
     it.each<[bigint, number | undefined]>([
       [3n, 3],

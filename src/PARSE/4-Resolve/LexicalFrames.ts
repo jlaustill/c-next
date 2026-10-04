@@ -10,7 +10,6 @@
  * Positions compare as `(line, column)`. Stage 4d and Stage 5 reuse Stage 3's
  * parse, so a node's position is the same in every pass.
  */
-import ConstantEvaluator from "../../utils/ConstantEvaluator";
 import ConstantFold from "../../utils/ConstantFold";
 import DeferredTypes from "./DeferredTypes";
 import type IConstantEnvironment from "../../utils/types/IConstantEnvironment";
@@ -198,10 +197,7 @@ class LexicalFrames {
       declaration.isConst &&
       declaration.initialValueExpr !== null &&
       arrayDimensions.length === 0
-        ? (ConstantFold.declaredValue(
-            ConstantEvaluator.evaluate(declaration.initialValueExpr, env),
-            type,
-          ) ?? null)
+        ? ConstantFold.constValue(declaration.initialValueExpr, env, type)
         : null;
     return Object.freeze({
       ...declaration,

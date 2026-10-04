@@ -39,12 +39,15 @@ type TConstResult =
         | "initializer"
         | "address"
         | "member"
+        | "undeclaredMember"
         | "leadingZero"
         | "divisionByZero"
         | "negativeShift";
       /** The offending part as the source spells it, for a message */
       readonly spelling: string;
       readonly at: ISourcePosition | null;
+      /** For an `unfolded` const: why its own initializer has no value */
+      readonly because?: Exclude<TConstResult, { readonly kind: "value" }>;
     }
   | { readonly kind: "overflow"; readonly typeName: string }
   | {

@@ -40,32 +40,41 @@ const COMPARISONS: ReadonlySet<string> = new Set<TComparison>([
 ]);
 
 class ConstantEvaluator {
-  static evaluate(expr: TConstExpr, env: IConstantEnvironment): TConstResult {
+  /**
+   * `context` is the type the expression is written into, when it has one: a
+   * declaration's or a parameter's type, a const's declared type. ADR-044
+   * "Integer Literals" (owner ruling, 2026-10-03): a literal takes the
+   * smallest type that fits its context at compile time, or `i32` when there
+   * is none -- so an operation between untyped literals happens at it.
+   */
+  static evaluate(
+    expr: TConstExpr,
+    env: IConstantEnvironment,
+    context: string | null = null,
+  ): TConstResult {
     switch (expr.kind) {
       case "literal":
-        return {
-          kind: "value",
-          value: BigInt(expr.digits),
-          typeName: expr.typeName,
-        };
+        return ConstantEvaluator.literal(expr.digits, expr.typeName);
       case "name":
         return env.valueOf(expr);
       case "sizeof":
         return ConstantEvaluator.sizeOf(expr.typeName);
       case "cast":
+        // A cast is the context of what it encloses
         return ConstantEvaluator.cast(
           expr.typeName,
-          ConstantEvaluator.evaluate(expr.operand, env),
+          ConstantEvaluator.evaluate(expr.operand, env, expr.typeName),
         );
       case "unary":
         return ConstantEvaluator.unary(
           expr.op,
-          ConstantEvaluator.evaluate(expr.operand, env),
+          ConstantEvaluator.evaluate(expr.operand, env, context),
+          context,
         );
       case "binary":
-        return ConstantEvaluator.binary(expr, env);
+        return ConstantEvaluator.binary(expr, env, context);
       case "ternary":
-        return ConstantEvaluator.ternary(expr, env);
+        return ConstantEvaluator.ternary(expr, env, context);
       case "other":
         return {
           kind: "notConstant",
@@ -82,6 +91,18 @@ class ConstantEvaluator {
       value <= BigInt(Number.MAX_SAFE_INTEGER)
       ? Number(value)
       : undefined;
+  }
+
+  /** A suffixed literal is its type, and must fit it: `300u8` does not */
+  private static literal(
+    digits: string,
+    typeName: string | null,
+  ): TConstResult {
+    const value = BigInt(digits);
+    const integer = ConstantEvaluator.integerType(typeName);
+    return integer === null
+      ? { kind: "value", value, typeName }
+      : ConstantEvaluator.held(value, integer, integer);
   }
 
   /** A primitive's size in bytes; any other type's is the target's to decide */
@@ -111,6 +132,7 @@ class ConstantEvaluator {
   private static unary(
     op: Extract<TConstExpr, { kind: "unary" }>["op"],
     operand: TConstResult,
+    context: string | null,
   ): TConstResult {
     if (operand.kind !== "value") return operand;
     if (op === "!") {
@@ -120,49 +142,77 @@ class ConstantEvaluator {
         typeName: BOOL,
       };
     }
+    // An untyped operand stays untyped, at its context's width (ADR-044)
     const at = ConstantEvaluator.integerType(operand.typeName);
+    const width = at ?? ConstantEvaluator.integerType(context) ?? DEFAULT_TYPE;
     if (op === "-") {
-      return ConstantEvaluator.held(-operand.value, at ?? DEFAULT_TYPE, at);
+      return ConstantEvaluator.held(-operand.value, width, at);
     }
     // `~` flips every bit of the operand's width; an unsigned result is the
-    // complement within it, a signed or untyped one is two's complement
+    // complement within it, a signed one is two's complement
     const flipped = ~operand.value;
-    const value =
-      at !== null && TypeCheckUtils.isUnsigned(at)
-        ? flipped & ((1n << BigInt(TYPE_WIDTH[at])) - 1n)
-        : flipped;
-    return ConstantEvaluator.held(value, at ?? DEFAULT_TYPE, at);
+    const value = TypeCheckUtils.isUnsigned(width)
+      ? flipped & ((1n << BigInt(TYPE_WIDTH[width])) - 1n)
+      : flipped;
+    return ConstantEvaluator.held(value, width, at);
   }
 
   private static ternary(
     expr: Extract<TConstExpr, { kind: "ternary" }>,
     env: IConstantEnvironment,
+    context: string | null,
   ): TConstResult {
     const condition = ConstantEvaluator.evaluate(expr.condition, env);
+    if (condition.kind === "foreign") {
+      // C evaluates the condition, so either arm may be the size: both must
+      // have one, or the whole is not a constant C can evaluate either
+      return ConstantEvaluator.foreignUnless(condition, [
+        ConstantEvaluator.evaluate(expr.whenTrue, env, context),
+        ConstantEvaluator.evaluate(expr.whenFalse, env, context),
+      ]);
+    }
     if (condition.kind !== "value") return condition;
     return ConstantEvaluator.evaluate(
       condition.value === 0n ? expr.whenFalse : expr.whenTrue,
       env,
+      context,
+    );
+  }
+
+  /**
+   * `foreign`, when every other operand has a value or is C's too; otherwise
+   * the first that has none. A name only C knows does not make an operand
+   * beside it constant (a variable arm of `MACRO ? 4 : n` is still a VLA).
+   */
+  private static foreignUnless(
+    foreign: TConstResult,
+    others: ReadonlyArray<TConstResult>,
+  ): TConstResult {
+    return (
+      others.find((o) => o.kind === "notConstant" || o.kind === "overflow") ??
+      foreign
     );
   }
 
   private static binary(
     expr: TBinary,
     env: IConstantEnvironment,
+    context: string | null,
   ): TConstResult {
     if (expr.op === "&&" || expr.op === "||") {
       return ConstantEvaluator.logical(expr, env);
     }
-    const left = ConstantEvaluator.evaluate(expr.left, env);
-    const right = ConstantEvaluator.evaluate(expr.right, env);
+    const op = expr.op;
+    // A comparison's operands are not written into its context (a `bool`)
+    const comparison = ConstantEvaluator.isComparison(op);
+    const operandContext = comparison ? null : context;
+    const left = ConstantEvaluator.evaluate(expr.left, env, operandContext);
+    const right = ConstantEvaluator.evaluate(expr.right, env, operandContext);
     if (left.kind !== "value" || right.kind !== "value") {
       return ConstantEvaluator.firstWithoutValue(left, right);
     }
-    const op = expr.op;
-    if (ConstantEvaluator.isComparison(op)) {
-      return ConstantEvaluator.compare(op, left.value, right.value);
-    }
-    return ConstantEvaluator.arithmetic(op, left, right);
+    if (comparison) return ConstantEvaluator.compare(op, left, right);
+    return ConstantEvaluator.arithmetic(op, left, right, context);
   }
 
   /** `&&` and `||` evaluate their right operand only when C would */
@@ -171,6 +221,11 @@ class ConstantEvaluator {
     env: IConstantEnvironment,
   ): TConstResult {
     const left = ConstantEvaluator.evaluate(expr.left, env);
+    if (left.kind === "foreign") {
+      return ConstantEvaluator.foreignUnless(left, [
+        ConstantEvaluator.evaluate(expr.right, env),
+      ]);
+    }
     if (left.kind !== "value") return left;
     const decided = expr.op === "&&" ? left.value === 0n : left.value !== 0n;
     if (decided) {
@@ -210,7 +265,28 @@ class ConstantEvaluator {
     return COMPARISONS.has(op);
   }
 
-  private static compare(op: TComparison, left: bigint, right: bigint): TValue {
+  /**
+   * A comparison happens at its operands' type too: an untyped operand takes
+   * the other's, and must fit it. `N > -1` with a u32 `N` has no value, as C
+   * would compare against UINT_MAX there.
+   */
+  private static compare(
+    op: TComparison,
+    leftOperand: TValue,
+    rightOperand: TValue,
+  ): TConstResult {
+    const at = ConstantEvaluator.operationType(
+      leftOperand.typeName,
+      rightOperand.typeName,
+    );
+    if (at !== null) {
+      for (const operand of [leftOperand, rightOperand]) {
+        const fits = ConstantEvaluator.held(operand.value, at, at);
+        if (fits.kind !== "value") return fits;
+      }
+    }
+    const left = leftOperand.value;
+    const right = rightOperand.value;
     const holds = {
       "<": left < right,
       ">": left > right,
@@ -226,12 +302,15 @@ class ConstantEvaluator {
     op: TArithmetic,
     left: TValue,
     right: TValue,
+    context: string | null,
   ): TConstResult {
     const typeName = ConstantEvaluator.operationType(
       left.typeName,
       right.typeName,
     );
-    const width = typeName ?? DEFAULT_TYPE;
+    // Untyped operands meet at their context's type, or i32 (ADR-044)
+    const width =
+      typeName ?? ConstantEvaluator.integerType(context) ?? DEFAULT_TYPE;
     const exact = ConstantEvaluator.apply(op, left.value, right.value, width);
     if (exact.kind !== "value") return exact;
     return ConstantEvaluator.held(exact.value, width, typeName);

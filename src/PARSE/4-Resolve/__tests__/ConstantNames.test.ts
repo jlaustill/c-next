@@ -105,7 +105,7 @@ u8 after;`;
       ["a const", ["Motor", "MAX"], 4],
       ["an enum's member", ["Motor", "EMode", "FAST"], 1],
       ["a function, which has no value", ["Motor", "speed"], "function"],
-      ["nothing the scope declares", ["Motor", "NOPE"], "unknown"],
+      ["nothing the scope declares", ["Motor", "NOPE"], "undeclaredMember"],
       ["the scope itself", ["Motor"], "scope"],
     ])("answers %s", (_label, path, expected) => {
       expect(answer(ask(build(SCOPE), path, { at: BELOW }))).toBe(expected);

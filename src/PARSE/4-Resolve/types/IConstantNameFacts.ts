@@ -6,6 +6,7 @@ import type TValueBinding from "../../../types/TValueBinding";
 import type IVariableSymbol from "../../../types/symbols/IVariableSymbol";
 import type ISourcePosition from "../../../utils/types/ISourcePosition";
 import type IForeignArray from "./IForeignArray";
+import type TSettledConst from "../../../types/TSettledConst";
 
 /**
  * What `ConstantNames` asks while it walks a name's chain (#1175, #1669), as
@@ -26,8 +27,8 @@ interface IConstantNameFacts {
   visibleSymbol(cName: string): TSymbol | undefined;
   /** Whether a qualified C-Next type name is a scope type this file can see */
   isScopeTypeVisible(qualifiedName: string): boolean;
-  /** A const's folded value; undefined when it has none (yet) */
-  constValue(symbol: IVariableSymbol): number | undefined;
+  /** A const's settled value, or why it has none; undefined until it settles */
+  constValue(symbol: IVariableSymbol): TSettledConst | undefined;
   /** A local as settled; undefined when it has not settled (yet) */
   settledLocal(declaration: ILocalDeclaration): ILocalDeclaration | undefined;
   /**

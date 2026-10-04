@@ -31,6 +31,17 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
       "u8 n <- 3;\nscope M {\n    u8[n] slots;\n}",
       "'n' is a variable",
     ],
+    // #1863 review: reported by nothing else, these reached render's invariant
+    [
+      "a divisor that is zero only once computed",
+      "u8[4 / (2 - 2)] g;",
+      "it divides by zero",
+    ],
+    [
+      "a member the scope does not have",
+      "scope S {\n    public const u8 MAX <- 4;\n}\nu8[S.NOPE] g;",
+      "'S.NOPE' is not declared",
+    ],
   ])("rejects a dimension with no value: %s", (_label, source, why) => {
     const [found] = errors(source);
     expect(found?.code).toBe("E0909");
@@ -50,9 +61,8 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
     ["sizeof of a primitive", "u8[sizeof(u32)] a;"],
     ["an enum member", "enum E { A, B, COUNT }\nu8[E.COUNT] a;"],
     ["a property", "u8[3] src;\nu8[src.element_count] a;"],
-    // not this analyzer's: E0427 reports an undeclared name, E0800 a zero divisor
+    // not this analyzer's: E0427 reports an undeclared bare name
     ["an undeclared name", "u8[NOT_DECLARED] a;"],
-    ["a division by zero", "u8[4 / 0] a;"],
   ])("accepts %s", (_label, source) => {
     expect(errors(source)).toEqual([]);
   });

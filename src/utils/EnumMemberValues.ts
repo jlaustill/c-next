@@ -66,9 +66,9 @@ class EnumMemberValues {
   ): TConstResult {
     const position = names.indexOf(member);
     const without = (
-      reason: "unknown" | "selfMember" | "laterMember" | "unfolded",
+      reason: "undeclaredMember" | "selfMember" | "laterMember" | "unfolded",
     ) => ({ kind: "notConstant", reason, spelling, at }) as const;
-    if (position < 0) return without("unknown");
+    if (position < 0) return without("undeclaredMember");
     if (position === index) return without("selfMember");
     if (position > index) return without("laterMember");
     const above = settled[position];

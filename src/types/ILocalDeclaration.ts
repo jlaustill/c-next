@@ -2,6 +2,7 @@ import type ISourceSpan from "./ISourceSpan";
 import type TOverflowBehavior from "./TOverflowBehavior";
 import type TType from "./TType";
 import type TConstExpr from "./TConstExpr";
+import type TSettledConst from "./TSettledConst";
 
 /**
  * One declaration inside a function: a local, a parameter, a `for` variable
@@ -36,8 +37,11 @@ interface ILocalDeclaration {
   readonly initialValueExpr: TConstExpr | null;
   /** #895: what the initializer calls (`VariableCollector.calleeOf`) */
   readonly initializerCallee: string | null;
-  /** A const local's value, folded by 1.4 in the lexical environment */
-  readonly constValue: number | null;
+  /**
+   * A const local's value, settled by 1.4 in the lexical environment, or why
+   * it has none; null for anything else
+   */
+  readonly constValue: TSettledConst | null;
 }
 
 export default ILocalDeclaration;

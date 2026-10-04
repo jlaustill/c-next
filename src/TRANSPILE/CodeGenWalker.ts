@@ -203,6 +203,9 @@ import CodeGenerator from "./3-Render/codegen/CodeGenerator";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 import type TranspileState from "./TranspileState";
 
+/** What render folds a constant chain at: wide enough to hold any i64 */
+const WIDEST_SIGNED = "i64";
+
 class CodeGenWalker {
   /**
    * The render-side services. Generators receive THIS object as their
@@ -892,13 +895,19 @@ class CodeGenWalker {
   /**
    * #1175: an arithmetic chain's value when it is a constant expression, by
    * the one evaluator, where the tree is in hand. Render used to fold the
-   * generated C operand text with `parseInt`, so `i32 a <- 010 + 1` was
-   * written as `11` where C reads `010` as octal and computes 9.
+   * generated C operand text with `parseInt`.
+   *
+   * Whether the chain overflows is 2.1's decision, at its destination's type
+   * (E0910, ADR-044): one that reaches here fits it. So the value is computed
+   * at the widest signed type, which then holds it exactly, and render needs
+   * no destination of its own -- `i64 big <- 2147483647 + 1` is 2147483648,
+   * which no i32 step could give (#1863 review).
    */
   private constantValue(ctx: ParserRuleContext): string | null {
     const result = ConstantEvaluator.evaluate(
       ConstExprLowering.lowerNode(ctx),
       dimensionEvalOptions(this.transpileState),
+      WIDEST_SIGNED,
     );
     const value =
       result.kind === "value"

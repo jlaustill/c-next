@@ -290,6 +290,16 @@ function runAnalyzers(
       run: () => new DivisionByZeroAnalyzer(context).analyze(tree),
     },
     {
+      // #1175: before anything that reads a dimension's size -- a slice's
+      // bounds (E0858), a count against it, a value's width -- since one with
+      // no size is the cause, and those would report a consequence (#1863
+      // review). After E0427 and E0800, which own an undeclared bare name and
+      // a literal or const divisor of zero.
+      label:
+        "constant array dimensions (ADR-023 no VLAs, ADR-044, E0909/E0910)",
+      run: () => new ConstantDimensionAnalyzer(context).analyze(tree),
+    },
+    {
       label: "float modulo (% with f32/f64)",
       run: () => new FloatModuloAnalyzer(context).analyze(tree),
     },
@@ -409,14 +419,6 @@ function runAnalyzers(
       // already guaranteed a comparison, as it did in codegen.
       label: "loops and break/continue (ADR-068/ADR-026, E0703/E0705/E0707)",
       run: () => new LoopAnalyzer().analyze(tree),
-    },
-    {
-      // #1175: before the declaration-shape rules, which read a dimension's
-      // size -- one with no size is the cause, and a count against it would
-      // report a consequence.
-      label:
-        "constant array dimensions (ADR-023 no VLAs, ADR-044, E0909/E0910)",
-      run: () => new ConstantDimensionAnalyzer(context).analyze(tree),
     },
     {
       label:

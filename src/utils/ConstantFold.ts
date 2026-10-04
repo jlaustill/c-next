@@ -23,7 +23,7 @@ import UNRESOLVED_DIMENSION from "../types/UNRESOLVED_DIMENSION";
 import type IConstantEnvironment from "./types/IConstantEnvironment";
 import type IProgram from "../types/IProgram";
 import type TConstExpr from "../types/TConstExpr";
-import type TConstResult from "../types/TConstResult";
+import type TSettledConst from "../types/TSettledConst";
 import type TType from "../types/TType";
 
 class ConstantFold {
@@ -65,19 +65,26 @@ class ConstantFold {
   }
 
   /**
-   * #1175: a const's value, from what its initializer evaluated to -- when
-   * the declared type holds it. `const u8 B <- 300` has no value, whatever
-   * E0868 says of it, and neither does a float or other non-integer const.
+   * #1175: what a const's initializer settles to -- the one rule for a
+   * file-scope, scope and local const alike. Evaluated at the declared type,
+   * which is the initializer's context (ADR-044 "Integer Literals"), and a
+   * value only when that type holds it: `const u8 B <- 300` overflows u8.
+   * Null for a const that is not an integer, which has no value here.
    */
-  static declaredValue(result: TConstResult, type: TType): number | undefined {
-    if (result.kind !== "value") return undefined;
+  static constValue(
+    expr: TConstExpr,
+    env: IConstantEnvironment,
+    type: TType,
+  ): TSettledConst | null {
     const typeName = ConstantFold.typeNameOf(type);
-    const range =
-      typeName === null ? null : TypeCheckUtils.integerRange(typeName);
-    if (range === null || result.value < range[0] || result.value > range[1]) {
-      return undefined;
+    if (typeName === null || !TypeCheckUtils.isInteger(typeName)) return null;
+    const result = ConstantEvaluator.evaluate(expr, env, typeName);
+    if (result.kind !== "value") return result;
+    const range = TypeCheckUtils.integerRange(typeName)!;
+    if (result.value < range[0] || result.value > range[1]) {
+      return { kind: "overflow", typeName };
     }
-    return ConstantEvaluator.toNumber(result.value);
+    return { kind: "value", digits: result.value.toString(), typeName };
   }
 
   /** A declared type's C-Next name, for the range a folded value must fit */

@@ -174,6 +174,7 @@ u8 b <- 256;         // ERROR: 256 doesn't fit in u8
 i32 c <- 42;         // Default to i32
 u8 d <- 010;         // ERROR: a leading zero; there is no octal literal
 u8 e <- 0x0A;        // OK: 10
+i64 f <- 2147483647 + 1; // 2147483648: each literal takes i64, its context's type
 ```
 
 ### Floating Point Literals
@@ -389,7 +390,7 @@ the single signed case (`INT_MIN / -1`) is left to the safe-division path.
 #### Values fixed at compile time
 
 Owner ruling, 2026-10-03 (#1175): some values are fixed while the program compiles, such as an
-array's size, an enum member's value and a const's value. They use the same arithmetic as every
+array's size and an enum member's value. They use the same arithmetic as every
 other expression: an operation happens at its operands' width, and a literal takes the smallest
 type that fits its context at compile time, or `i32` when unspecified (see Integer Literals
 above). **Where that arithmetic would
@@ -402,8 +403,6 @@ const u8 A <- 200;
 
 u8[A + A] buf;              // ERROR: A + A overflows u8 (clamp would give 255, C would give 400)
 u8[(u16)A + (u16)A] wide;   // OK: 400, added at u16
-const u8 B <- A + A;        // ERROR: a const's value is fixed at compile time too
-i64 big <- 2147483647 + 1;  // OK: 2147483648; each literal takes i64, its context's type
 ```
 
 A clamped size is a buffer smaller than its arithmetic says, and a wrapped one is smaller
@@ -640,10 +639,10 @@ of a width table is three chances for them to disagree.
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                                                                                                                                                    | Asserted by                                                                                                                                                                                                      |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E0910 | A value fixed at compile time -- an array's size, an enum member's value, a const's value, arithmetic on literals and consts alone -- would clamp or wrap at the type its arithmetic happens at ("Values fixed at compile time") | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`, `tests/bugs/issue-1669-enum-member-values/value-overflow.test.cnx`, `tests/bugs/issue-1175-constant-dimensions/const-overflow.test.cnx` |
-| E0912 | A decimal integer literal has a leading zero: there is no octal literal ("Integer Literals")                                                                                                                                     | `tests/bugs/issue-1728-leading-zero/leading-zero.test.cnx`                                                                                                                                                       |
+| Code  | Reported when                                                                                                                                                              | Asserted by                                                                                                                                 |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0910 | A value fixed at compile time -- an array's size, an enum member's value -- is arithmetic that would clamp or wrap at its operands' width ("Values fixed at compile time") | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`, `tests/bugs/issue-1669-enum-member-values/value-overflow.test.cnx` |
+| E0912 | A decimal integer literal has a leading zero: there is no octal literal ("Integer Literals")                                                                               | `tests/bugs/issue-1728-leading-zero/leading-zero.test.cnx`                                                                                  |
 
 ## Scope-Context Matrix
 

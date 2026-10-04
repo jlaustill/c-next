@@ -14,7 +14,6 @@
  * and every later pass asks it through the settled `Program`, with the same
  * facts. That is what makes `u8[N]` one size in the .c and the .h.
  */
-import ConstantFold from "../../utils/ConstantFold";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import LengthProperty from "../../utils/LengthProperty";
@@ -28,6 +27,7 @@ import ELEMENT_STEP from "../../types/ELEMENT_STEP";
 import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
+import type TSettledConst from "../../types/TSettledConst";
 
 type TConstName = Extract<TConstExpr, { kind: "name" }>;
 type TReason = Extract<TConstResult, { kind: "notConstant" }>["reason"];
@@ -116,14 +116,9 @@ class ConstantNames {
         walk,
       );
     }
-    if (settled?.constValue !== null && settled?.constValue !== undefined) {
-      return {
-        kind: "value",
-        value: BigInt(settled.constValue),
-        typeName: ConstantFold.typeNameOf(settled.type),
-      };
+    if (declaration.isConst) {
+      return ConstantNames.ofSettled(settled?.constValue ?? undefined, walk);
     }
-    if (declaration.isConst) return ConstantNames.without("unfolded", walk);
     return ConstantNames.without(
       declaration.kind === "parameter" ? "parameter" : "variable",
       walk,
@@ -143,14 +138,28 @@ class ConstantNames {
       );
     }
     if (!symbol.isConst) return ConstantNames.without("variable", walk);
-    const value = walk.facts.constValue(symbol);
-    return value === undefined
-      ? ConstantNames.without("unfolded", walk)
-      : {
-          kind: "value",
-          value: BigInt(value),
-          typeName: ConstantFold.typeNameOf(symbol.type),
-        };
+    return ConstantNames.ofSettled(walk.facts.constValue(symbol), walk);
+  }
+
+  /**
+   * A const, by what 1.4 settled it to: its value, or no value -- with its
+   * own initializer's cause, so a use can say why (#1863 review)
+   */
+  private static ofSettled(
+    settled: TSettledConst | undefined,
+    walk: IWalk,
+  ): TConstResult {
+    if (settled?.kind === "value") {
+      return {
+        kind: "value",
+        value: BigInt(settled.digits),
+        typeName: settled.typeName,
+      };
+    }
+    return {
+      ...ConstantNames.without("unfolded", walk),
+      ...(settled === undefined ? {} : { because: settled }),
+    };
   }
 
   /**
@@ -255,8 +264,12 @@ class ConstantNames {
     if (symbol?.kind === "enum" && more.length === 1) {
       return walk.facts.enumMember(cName, more[0], walk.spelling, walk.at);
     }
+    if (symbol === undefined) {
+      return ConstantNames.without("undeclaredMember", walk);
+    }
+    // A function or a type the scope declares has no value
     return ConstantNames.without(
-      symbol?.kind === "function" ? "function" : "unknown",
+      symbol.kind === "function" ? "function" : "member",
       walk,
     );
   }

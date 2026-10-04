@@ -30,6 +30,7 @@ const REASON: Readonly<
   initializer: "is an initializer",
   address: "is an address",
   member: "is a member access",
+  undeclaredMember: "is not declared",
   leadingZero:
     "is a leading-zero literal, which has no value: C-Next has no octal literal (E0912)",
   divisionByZero: "divides by zero",
@@ -51,12 +52,28 @@ class ConstantDiagnostics {
         targetSize: `'${result.spelling}' is decided by the target`,
       }[result.why];
     }
-    if (result.reason === "divisionByZero" || result.reason === "unknown") {
-      return null;
+    // A bare name nothing declares is E0427's. A member a scope or an enum does
+    // not have, and a divisor that is zero only once computed, are reported by
+    // nothing else (#1863 review), so E0909 says them
+    if (result.reason === "unknown") return null;
+    const subject = result.spelling === "" ? "it" : `'${result.spelling}'`;
+    if (result.reason === "unfolded" && result.because) {
+      return `${subject} has no value known at compile time: ${ConstantDiagnostics.cause(result.because)}`;
     }
-    return result.spelling === ""
-      ? `it ${REASON[result.reason]}`
-      : `'${result.spelling}' ${REASON[result.reason]}`;
+    return `${subject} ${REASON[result.reason]}`;
+  }
+
+  /** Why a const's own initializer has no value, said at a use of the const */
+  private static cause(
+    because: Exclude<TConstResult, { readonly kind: "value" }>,
+  ): string {
+    if (because.kind === "overflow") {
+      return `its initializer overflows ${because.typeName} (ADR-044)`;
+    }
+    const inner = ConstantDiagnostics.why(because);
+    return inner === null
+      ? "its initializer names something not declared"
+      : `in its initializer, ${inner}`;
   }
 
   /** E0910's help: the fix ADR-044 offers */

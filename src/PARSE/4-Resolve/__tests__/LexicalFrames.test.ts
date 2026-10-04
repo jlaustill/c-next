@@ -153,7 +153,7 @@ void f(u8 p) {
       isConst: true,
       isVolatile: true,
       overflowBehavior: "clamp",
-      constValue: 2,
+      constValue: { kind: "value", digits: "2", typeName: "u16" },
     });
   });
 });
@@ -427,7 +427,9 @@ void f() {
 }`;
     const program = build({ "a.cnx": source });
     const use = at(source, "buf[0]");
-    expect(program.lexicalDeclarationAt("a.cnx", "N", use)?.constValue).toBe(6);
+    expect(program.lexicalDeclarationAt("a.cnx", "N", use)?.constValue).toEqual(
+      { kind: "value", digits: "6", typeName: "u32" },
+    );
     expect(
       program.lexicalDeclarationAt("a.cnx", "buf", use)?.arrayDimensions,
     ).toEqual([6]);
@@ -476,9 +478,10 @@ void f() {
 }`;
     const program = build({ "a.cnx": source });
     const use = at(source, "u8 last");
+    // It settled with no value, and keeps why for a use to say (#1863 review)
     expect(
       program.lexicalDeclarationAt("a.cnx", "N", use)?.constValue,
-    ).toBeNull();
+    ).toMatchObject({ kind: "notConstant" });
     expect(
       program.bindValue("a.cnx", null, "N", at(source, "N + 1"))?.kind,
     ).toBe("local");
