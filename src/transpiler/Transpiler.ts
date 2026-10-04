@@ -65,7 +65,7 @@ import IFileResult from "../types/IFileResult";
 import type IRunAnchor from "../PARSE/1-Discover/types/IRunAnchor";
 import IPipelineFile from "../PARSE/1-Discover/types/IPipelineFile";
 import type ISourceGraph from "../PARSE/1-Discover/types/ISourceGraph";
-import HeaderMacros from "../PARSE/1-Discover/HeaderMacros";
+import HeaderMacros from "../PARSE/4-Resolve/HeaderMacros";
 import type IFileIncludes from "../PARSE/1-Discover/types/IFileIncludes";
 import Discover from "../PARSE/1-Discover/Discover";
 import RunAnchor from "../PARSE/1-Discover/RunAnchor";

@@ -249,7 +249,7 @@ Each is a rejection a user can see. It is thrown rather than reported, so it rea
 
 | file:line                       | anchor                                         | what                                                              | card  |
 | ------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------- | ----- |
-| `transpiler/Transpiler.ts:2106` | `this run does not target C++`                 | E0507: a C++ header in a run that does not target C++             | #1542 |
+| `transpiler/Transpiler.ts:2136` | `this run does not target C++`                 | E0507: a C++ header in a run that does not target C++             | #1542 |
 | `1-Discover/Discover.ts:271`    | `A generated header records the C-Next source` | E0509: a generated header names a C-Next source that is not there | #1542 |
 
 #1669 (2026-10-03): `ExpressionEvaluator`'s `Invalid constant expression` is gone. An enum member's
