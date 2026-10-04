@@ -133,7 +133,7 @@ describe("LoopAnalyzer", () => {
     const codes = (source: string) =>
       errors(source).map((e) => [e.code, e.line, e.column, e.message]);
 
-    it("rejects a string copy, a slice and an atomic read-modify-write", () => {
+    it("rejects a string copy, a slice and any write to an atomic", () => {
       const source = [
         "atomic u32 counter <- 0;",
         "void run() {",
@@ -141,16 +141,17 @@ describe("LoopAnalyzer", () => {
         '    string<8> s <- "a";',
         "    u8[8] buf;",
         '    for (s <- "b"; n < 2; buf[0, 2] <- n) { n +<- 1; }',
-        "    for (n <- 0; n < 2; counter +<- 1) { n +<- 1; }",
+        "    for (counter <- 0; n < 2; counter +<- 1) { n +<- 1; }",
         "}",
       ].join("\n");
       expect(codes(source)).toEqual([
         ["E0715", 6, 9, expect.stringContaining("a string copy")],
         ["E0715", 6, 26, expect.stringContaining("a slice write")],
+        ["E0715", 7, 9, expect.stringContaining("an atomic store")],
         [
           "E0715",
           7,
-          24,
+          30,
           expect.stringContaining("an atomic read-modify-write"),
         ],
       ]);
@@ -162,7 +163,7 @@ describe("LoopAnalyzer", () => {
         "void run() {",
         "    u8 n <- 0;",
         "    u32 bits <- 0;",
-        "    for (counter <- 0; n < 2; bits[0, 4] <- 3) { n +<- 1; }",
+        "    for (n <- 0; n < 2; bits[0, 4] <- 3) { counter <- 1; }",
         "    for (bits[5] <- true; n < 4; n +<- 1) { bits[6] <- false; }",
         "}",
       ].join("\n");

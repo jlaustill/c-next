@@ -1,8 +1,9 @@
 // test-error
 // test-adr: 068
-// #1647: a `for` header clause is one C expression, and three assignment forms
-// lower to more than one statement -- a string copy, a slice, and a compound
-// operator on an atomic. Each is E0715, in the init and in the update alike.
+// #1647: a `for` header clause is one C expression, and four assignment forms
+// lower to more than one statement -- a string copy, a slice, any write to an
+// atomic, and a bit write on a float. Each is E0715, in the init and in the
+// update alike.
 struct Packet {
     string<8> name;
 }
@@ -10,15 +11,15 @@ struct Packet {
 atomic u32 counter <- 0;
 
 // NEGATIVE CONTROL -- forms that lower to one expression stay legal in a
-// header: a plain store to an atomic, a bit range, a bit index, a clamped
-// compound, and a string or slice written in the body.
+// header: a bit range, a bit index, a clamped compound, and a string, slice or
+// atomic written in the body.
 void controls() {
     u8 n <- 0;
     u32 bits <- 0;
     string<8> s <- "a";
     u8[8] buf;
-    for (counter <- 0; n < 2; bits[0, 4] <- 3) {
-        n +<- 1;
+    for (n <- 0; n < 2; bits[0, 4] <- 3) {
+        counter <- 1;
         s <- "b";
         buf[0, 1] <- n;
     }
@@ -55,7 +56,9 @@ void slices() {
     }
 }
 
-// ASSERTION 6 -- a compound operator on an atomic.
+// ASSERTIONS 6-7 -- a plain store to an atomic (ADR-049 Q4: a critical section
+// on a word-size-wide atomic; #1414 tracks that it is not yet) and a compound
+// operator on one.
 void atomics() {
     u8 n <- 0;
     for (counter <- 0; counter < 5; counter +<- 1) {

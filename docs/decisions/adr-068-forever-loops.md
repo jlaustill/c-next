@@ -360,12 +360,12 @@ statement is (#1647), so the header gets ADR-044's clamp and MISRA C:2012
 Rule 7.2's suffix as a statement does. But a header clause is a C
 **expression**, and four assignment forms lower to more than one statement:
 
-| form in a header                              | lowers to                                                     |
-| --------------------------------------------- | ------------------------------------------------------------- |
-| a string target (`s <- "x"`, `p.name <- "x"`) | `strncpy` plus the terminator write (ADR-045)                 |
-| a slice (`buf[offset, length] <- v`)          | per-element writes, and a source temp (ADR-052, #1081)        |
-| a compound operator on an `atomic` target     | an LDREX/STREX loop or a PRIMASK critical section (ADR-049)   |
-| a bit index or bit range on a float target    | a write through a `union` of the float and its bits (ADR-007) |
+| form in a header                                   | lowers to                                                          |
+| -------------------------------------------------- | ------------------------------------------------------------------ |
+| a string target (`s <- "x"`, `p.name <- "x"`)      | `strncpy` plus the terminator write (ADR-045)                      |
+| a slice (`buf[offset, length] <- v`)               | per-element writes, and a source temp (ADR-052, #1081)             |
+| any write to an `atomic` target (`<-` or compound) | an LDREX/STREX loop or a PRIMASK critical section (ADR-049 Q4, Q7) |
+| a bit index or bit range on a float target         | a write through a `union` of the float and its bits (ADR-007)      |
 
 Before #1647 the header concatenated target, operator and value, so each form
 emitted C that either failed to compile (`s = "abc"`, `f[31] = true`) or
@@ -395,7 +395,11 @@ so nothing can skip it.
 - **Compound operators** on a string or slice are E0857 already, reported
   earlier in the same pass. E0715 does not report them again, so one mistake
   gets one diagnostic.
-- **Plain `<-` on an atomic** is one store and stays legal.
+- **Plain `<-` on an atomic** is rejected too. ADR-049 Q4 puts every access,
+  stores included, in a critical section for an `atomic u64`/`i64`/`f64` on a
+  32-bit MCU and an `atomic u16`/`u32` on AVR. That a store lowers to one write
+  today is #1414's defect. The rule names the form, so it does not depend on
+  the target's word size.
 - **Bit indexes and bit ranges on an integer** lower to one expression and stay
   legal.
 

@@ -163,8 +163,8 @@ for (u32 i <- 0; i < 10; i +<- 1) {
     buffer[i] <- 0;
 }
 // A header clause is one expression, so it cannot hold an assignment that is
-// more than one statement (E0715): a string copy, a slice write, a compound
-// operator on an atomic, or a bit write on a float. Assign before the loop, or
+// more than one statement (E0715): a string copy, a slice write, any write
+// to an atomic, or a bit write on a float. Assign before the loop, or
 // at the end of its body as a while loop.
 // for (name <- "x"; i < 10; i +<- 1) { }   // ERROR E0715: a string copy
 

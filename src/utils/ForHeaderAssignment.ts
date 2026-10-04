@@ -2,8 +2,8 @@
  * ADR-068 (E0715, #1647): which assignment forms a `for` header clause cannot
  * hold. A clause is one C expression, and these forms lower to more than one
  * statement: a string copy (`strncpy` and a terminator), a slice (one write per
- * element), a compound operator on an atomic (an LDREX/STREX loop or a PRIMASK
- * section), and a bit write on a float (through a union).
+ * element), any write to an atomic (an LDREX/STREX loop or a PRIMASK section,
+ * ADR-049 Q4/Q7), and a bit write on a float (through a union).
  *
  * One decision, read off the operand typer: 2.1 reports it as E0715, and the
  * header renderer asserts it, so neither derives it again.
@@ -29,11 +29,11 @@ class ForHeaderAssignment {
       return "a float bit write";
     }
     const written = OperandTyper.typeOfTarget(target, ctx);
-    if (!site.assignmentOperator().ASSIGN()) {
-      return ForHeaderAssignment.isAtomic(written)
-        ? "an atomic read-modify-write"
-        : null;
+    const isPlain = site.assignmentOperator().ASSIGN() !== null;
+    if (ForHeaderAssignment.isAtomic(written)) {
+      return isPlain ? "an atomic store" : "an atomic read-modify-write";
     }
+    if (!isPlain) return null;
     if (steps.some((step) => step.subscript === "array_slice")) {
       return "a slice write";
     }
