@@ -24,12 +24,10 @@
  *
  * ## A header clause is one C expression (E0715, #1647)
  *
- * The init and update render through the statement assignment path, and three
- * forms lower to more than one statement there: a string copy, a slice write,
- * and a compound operator on an atomic. Each is read off the one operand
- * typer -- the target's type, its subscripts, its binding -- not decided
- * again. A compound on a string or slice is E0857's, which runs earlier and
- * halts. 2.3 asserts the same fact on the classified kind.
+ * The init and update render through the statement assignment path, and some
+ * forms lower to more than one statement there. `ForHeaderAssignment` decides
+ * which; this reports it and the header renderer asserts it. A compound on a
+ * string or slice is E0857's, which runs earlier and halts.
  */
 
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
@@ -39,17 +37,17 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import REJECTED_KEYWORDS from "./REJECTED_KEYWORDS";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
-import OperandTyper from "../../utils/OperandTyper";
-import CompoundAssignmentAnalyzer from "./CompoundAssignmentAnalyzer";
+import ForHeaderAssignment from "../../utils/ForHeaderAssignment";
 import ILoopError from "./types/ILoopError";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type IOperandType from "../../types/IOperandType";
-import type TAssignmentSite from "./types/TAssignmentSite";
+import type TAssignmentSite from "../../types/TAssignmentSite";
 
 const FOREVER_HELP = "write 'forever { ... }' for an intentional infinite loop";
 
-const WHILE_HELP =
-  "assign before the loop and at the end of its body, and write it as a while loop";
+const INIT_HELP = "assign before the loop and leave the init clause empty";
+
+const UPDATE_HELP =
+  "assign at the end of the loop body and write it as a while loop";
 
 /** A single comparison of two compile-time literals. */
 interface ILiteralComparison {
@@ -113,48 +111,23 @@ class LoopListener extends CNextListener {
   };
 
   override enterForAssignment = (ctx: Parser.ForAssignmentContext): void => {
-    this.checkHeaderAssignment(ctx);
+    this.checkHeaderAssignment(ctx, INIT_HELP);
   };
 
   override enterForUpdate = (ctx: Parser.ForUpdateContext): void => {
-    this.checkHeaderAssignment(ctx);
+    this.checkHeaderAssignment(ctx, UPDATE_HELP);
   };
 
   /** E0715: a header clause holds one expression; these forms lower to more. */
-  private checkHeaderAssignment(site: TAssignmentSite): void {
-    const form = this.multiStatementForm(site);
+  private checkHeaderAssignment(site: TAssignmentSite, help: string): void {
+    const form = ForHeaderAssignment.multiStatementForm(site, this.context);
     if (form === null) return;
     this.report(
       site,
       "E0715",
       `a for-loop header cannot hold this assignment: ${form} is more than one statement`,
-      WHILE_HELP,
+      help,
     );
-  }
-
-  private multiStatementForm(site: TAssignmentSite): string | null {
-    const target = site.assignmentTarget();
-    const written = OperandTyper.typeOfTarget(target, this.context);
-    if (!site.assignmentOperator().ASSIGN()) {
-      return LoopListener.isAtomic(written)
-        ? "an atomic read-modify-write"
-        : null;
-    }
-    const steps = OperandTyper.chainOf(target, this.context).steps;
-    if (steps.some((step) => step.subscript === "array_slice")) {
-      return "a slice write";
-    }
-    return CompoundAssignmentAnalyzer.isString(written)
-      ? "a string copy"
-      : null;
-  }
-
-  /** Declared `atomic`, by the declaration the target binds to */
-  private static isAtomic(t: IOperandType | null): boolean {
-    const binding = t?.binding;
-    if (binding?.kind === "local") return binding.declaration.isAtomic;
-    if (binding?.kind === "variable") return binding.symbol.isAtomic;
-    return false;
   }
 
   override enterWhileStatement = (ctx: Parser.WhileStatementContext): void => {

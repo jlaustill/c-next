@@ -1,12 +1,20 @@
 34:9 error[E0715]: a for-loop header cannot hold this assignment: a string copy is more than one statement
-       help: assign before the loop and at the end of its body, and write it as a while loop
+       help: assign before the loop and leave the init clause empty
 34:28 error[E0715]: a for-loop header cannot hold this assignment: a string copy is more than one statement
-       help: assign before the loop and at the end of its body, and write it as a while loop
+       help: assign at the end of the loop body and write it as a while loop
 43:9 error[E0715]: a for-loop header cannot hold this assignment: a string copy is more than one statement
-       help: assign before the loop and at the end of its body, and write it as a while loop
+       help: assign before the loop and leave the init clause empty
 53:9 error[E0715]: a for-loop header cannot hold this assignment: a slice write is more than one statement
-       help: assign before the loop and at the end of its body, and write it as a while loop
+       help: assign before the loop and leave the init clause empty
 53:32 error[E0715]: a for-loop header cannot hold this assignment: a slice write is more than one statement
-       help: assign before the loop and at the end of its body, and write it as a while loop
+       help: assign at the end of the loop body and write it as a while loop
 61:36 error[E0715]: a for-loop header cannot hold this assignment: an atomic read-modify-write is more than one statement
-       help: assign before the loop and at the end of its body, and write it as a while loop
+       help: assign at the end of the loop body and write it as a while loop
+77:9 error[E0715]: a for-loop header cannot hold this assignment: a float bit write is more than one statement
+       help: assign before the loop and leave the init clause empty
+77:31 error[E0715]: a for-loop header cannot hold this assignment: a float bit write is more than one statement
+       help: assign at the end of the loop body and write it as a while loop
+79:24 error[E0715]: a for-loop header cannot hold this assignment: a float bit write is more than one statement
+       help: assign at the end of the loop body and write it as a while loop
+81:9 error[E0715]: a for-loop header cannot hold this assignment: a float bit write is more than one statement
+       help: assign before the loop and leave the init clause empty

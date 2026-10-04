@@ -1,0 +1,29 @@
+// test-error
+// test-adr: 068
+// E0715 across ONE include hop -- matrix cells: imported direct.
+//
+// The rule asks the target's TYPE and atomic binding, and the target is
+// declared elsewhere. A check reading only this file finds no type for it, so
+// the rule would go quiet across an include rather than reject.
+
+#include "for-header-declarations.cnx"
+
+scope Logger {
+    public void run() {
+        u8 n <- 0;
+        // NEGATIVE CONTROL -- a bit index on an imported integer is one expression.
+        for (n <- 0; n < 2; global.sharedFlags[0] <- true) {}
+        // ASSERTION -- scope method context.
+        for (n <- 0; n < 2; global.sharedCounter +<- 1) {}
+    }
+}
+
+u8 main() {
+    u8 n <- 0;
+    // ASSERTION -- top-level function context: string, slice, atomic, float bit.
+    for (sharedName <- "b"; n < 4; n +<- 1) {}
+    for (n <- 0; n < 2; sharedBuffer[0, 1] <- n) {}
+    for (n <- 0; n < 2; sharedCounter +<- 1) {}
+    for (sharedLevel[31] <- true; n < 2; n +<- 1) {}
+    return n;
+}

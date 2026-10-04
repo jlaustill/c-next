@@ -60,7 +60,7 @@ import generatePostfixExpression from "./3-Render/codegen/generators/expressions
 import controlFlowGenerators from "./3-Render/codegen/generators/statements/ControlFlowGenerator";
 import IPlannedFor from "./3-Render/codegen/types/IPlannedFor";
 import IPlannedForAssignment from "./3-Render/codegen/types/IPlannedForAssignment";
-import type TAssignmentSite from "./1-Analyze/types/TAssignmentSite";
+import type TAssignmentSite from "../types/TAssignmentSite";
 import IPlannedForVarDecl from "./3-Render/codegen/types/IPlannedForVarDecl";
 import IPlannedForever from "./3-Render/codegen/types/IPlannedForever";
 import IPlannedIf from "./3-Render/codegen/types/IPlannedIf";
@@ -111,7 +111,7 @@ import memberAccessChain from "./3-Render/codegen/memberAccessChain";
 import type IRootHolding from "./3-Render/codegen/types/IRootHolding";
 import AssignmentHandlerRegistry from "./3-Render/codegen/assignment/index";
 import AssignmentClassifier from "./2-Plan/AssignmentClassifier";
-import AssignmentKind from "../types/AssignmentKind";
+import ForHeaderAssignment from "../utils/ForHeaderAssignment";
 import AssignmentOperatorMapper from "./3-Render/codegen/helpers/AssignmentOperatorMapper";
 import buildAssignmentContext from "./2-Plan/AssignmentContextBuilder";
 import StringLengthCounter from "./2-Plan/StringLengthCounter";
@@ -204,18 +204,6 @@ interface FunctionSignature {
 import CodeGenerator from "./3-Render/codegen/CodeGenerator";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 import type TranspileState from "./TranspileState";
-
-/** Kinds that lower to more than one C statement, so no `for` header holds one */
-const MULTI_STATEMENT_KINDS: ReadonlySet<AssignmentKind> = new Set([
-  AssignmentKind.STRING_SIMPLE,
-  AssignmentKind.STRING_THIS_MEMBER,
-  AssignmentKind.STRING_GLOBAL,
-  AssignmentKind.STRING_STRUCT_FIELD,
-  AssignmentKind.STRING_ARRAY_ELEMENT,
-  AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT,
-  AssignmentKind.ARRAY_SLICE,
-  AssignmentKind.ATOMIC_RMW,
-]);
 
 /** What render folds a constant chain at: wide enough to hold any i64 */
 const WIDEST_SIGNED = "i64";
@@ -4904,14 +4892,6 @@ class CodeGenWalker {
   }
 
   private generateAssignment(ctx: TAssignmentSite): string {
-    return this.renderAssignment(ctx).code;
-  }
-
-  /** The assignment rendered, with the kind it was classified as */
-  private renderAssignment(ctx: TAssignmentSite): {
-    kind: AssignmentKind;
-    code: string;
-  } {
     const targetCtx = ctx.assignmentTarget();
 
     // #1668 (C7): what the target writes, bound once -- the expected type
@@ -4973,7 +4953,7 @@ class CodeGenWalker {
       this.host.state,
     );
     const handler = AssignmentHandlerRegistry.getHandler(assignmentKind);
-    return { kind: assignmentKind, code: handler(assignCtx) };
+    return handler(assignCtx);
   }
 
   /**
@@ -5200,11 +5180,15 @@ class CodeGenWalker {
   private planForAssignment(site: TAssignmentSite): IPlannedForAssignment {
     return {
       render: () => {
-        const { kind, code } = this.renderAssignment(site);
-        // E0715 rejects these kinds in pass 2.1; reaching here means it missed one
+        const form = ForHeaderAssignment.multiStatementForm(
+          site,
+          this.host.state.typingContext(),
+        );
+        invariant(form === null, `E0715 rejects ${form} in a for header`);
+        const code = this.generateAssignment(site);
         invariant(
-          !MULTI_STATEMENT_KINDS.has(kind) && code.endsWith(";"),
-          `a for-header assignment renders as one expression, not '${code}'`,
+          code.endsWith(";"),
+          `a for-header assignment renders as one statement, not '${code}'`,
         );
         return code.slice(0, -1);
       },

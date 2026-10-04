@@ -26,7 +26,7 @@ import IBitAccessAnalysis from "../../types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../types/TPlannedTargetOp";
 import type IChainBase from "./types/IChainBase";
 import type TranspileState from "../TranspileState";
-import type TAssignmentSite from "../1-Analyze/types/TAssignmentSite";
+import type TAssignmentSite from "../../types/TAssignmentSite";
 
 /**
  * Dependencies for building context.

@@ -1,0 +1,7 @@
+// Helper (not a test): puts for-header-declarations.cnx two hops away,
+// covering the `imported transitive` column. It declares something of its own
+// so a header is written for it (#1234).
+
+#include "for-header-declarations.cnx"
+
+const u32 FOR_HEADER_RELAY_MARKER <- 2;

@@ -62,3 +62,19 @@ void atomics() {
         n +<- 1;
     }
 }
+
+struct Sample {
+    f32 value;
+}
+
+// ASSERTION -- a bit write on a float goes through a union (ADR-007): a
+// variable, an array element, a struct field.
+void floatBits() {
+    u8 n <- 0;
+    f32 f <- 1.0;
+    f32[2] values;
+    Sample sample;
+    for (f[31] <- true; n < 2; f[0, 4] <- 3) {}
+    for (n <- 0; n < 2; values[1][0] <- true) {}
+    for (sample.value[0] <- true; n < 2; n +<- 1) {}
+}

@@ -7,6 +7,7 @@ scope Link {
     string<8> label <- "a";
     u8[8] frame;
     atomic u32 ticks <- 0;
+    f32 level <- 1.0;
 
     // NEGATIVE CONTROL -- a plain store to an atomic member and a clamped
     // compound stay legal in a header.
@@ -17,9 +18,9 @@ scope Link {
         }
     }
 
-    // ASSERTIONS 1-4 -- string member, slice member, atomic member (ADR-049
+    // ASSERTIONS 1-5 -- string member, slice member, atomic member (ADR-049
     // Q7 makes `this.ticks +<- 1` atomic; #1179 tracks that it is not yet),
-    // and a `global.` atomic.
+    // a `global.` atomic, and a bit write on a float member.
     public void offenders() {
         u8 n <- 0;
         for (this.label <- "x"; n < 2; n +<- 1) {
@@ -31,5 +32,6 @@ scope Link {
         for (n <- 0; n < 2; global.shared +<- 1) {
             n +<- 1;
         }
+        for (this.level[31] <- true; n < 2; n +<- 1) {}
     }
 }

@@ -1,0 +1,10 @@
+18:28 error[E0715]: a for-loop header cannot hold this assignment: an atomic read-modify-write is more than one statement
+       help: assign at the end of the loop body and write it as a while loop
+26:9 error[E0715]: a for-loop header cannot hold this assignment: a string copy is more than one statement
+       help: assign before the loop and leave the init clause empty
+28:24 error[E0715]: a for-loop header cannot hold this assignment: a slice write is more than one statement
+       help: assign at the end of the loop body and write it as a while loop
+30:24 error[E0715]: a for-loop header cannot hold this assignment: an atomic read-modify-write is more than one statement
+       help: assign at the end of the loop body and write it as a while loop
+32:9 error[E0715]: a for-loop header cannot hold this assignment: a float bit write is more than one statement
+       help: assign before the loop and leave the init clause empty

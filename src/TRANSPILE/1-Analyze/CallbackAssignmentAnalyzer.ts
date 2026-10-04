@@ -54,7 +54,7 @@ import StructInitializerType from "./helpers/StructInitializerType";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import ICallbackAssignmentError from "./types/ICallbackAssignmentError";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type TAssignmentSite from "./types/TAssignmentSite";
+import type TAssignmentSite from "../../types/TAssignmentSite";
 
 /** Where a function name landed, for the message. */
 interface ISlot {
