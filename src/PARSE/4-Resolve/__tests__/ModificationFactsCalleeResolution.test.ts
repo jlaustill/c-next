@@ -1,7 +1,7 @@
 /**
  * Issue #1178: resolving a callee the C-Next call graph cannot see.
  *
- * The propagator reaches PassByValueAnalyzer's resolver only when
+ * The propagator reaches ModificationFacts' resolver only when
  * functionParamLists has no entry for the callee. Before #1178 that returned
  * "not modified", which is the same answer as "the callee is pure" -- so
  * auto-const was applied on the strength of an absent answer.
@@ -10,14 +10,12 @@
  * for a callee nothing declares.
  */
 
-import type IModificationCollector from "../types/IModificationCollector";
-import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import PassByValueAnalyzer from "../PassByValueAnalyzer";
-import TranspileState from "../../TranspileState";
-import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
+import { describe, it, expect, beforeEach } from "vitest";
+import ModificationFacts from "../ModificationFacts";
+import SymbolTable from "../../3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import type TCSymbol from "../../../types/symbols/c/TCSymbol";
+import type ICallGraphEntry from "../../../types/ICallGraphEntry";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 interface IParameterShape {
@@ -53,48 +51,56 @@ const declareCTypedef = (name: string, aliased: string): TCSymbol =>
     type: aliased,
   }) as TCSymbol;
 
+let symbolTable = new SymbolTable();
+
 /**
- * Drive one forwarded call through the propagator and report whether the
- * caller's parameter came back marked as modified (auto-const withheld).
+ * What production supplies when no C-Next symbol is in play: a value is a
+ * variable the table declares.
  */
-const callerParameterIsModified = (callee: string): boolean => {
-  // #1452: the accumulation is the call's own object now, not three statics,
-  // so the setup and the read-back are the same collector rather than a global
-  // both happen to reach.
-  const collect: IModificationCollector = {
-    registry: new SymbolRegistry(),
-    modifiedParameters: new Map(),
-    functionParamLists: new Map(),
-    functionCallGraph: new Map(),
-  };
+const isValueSymbol = (name: string): boolean =>
+  symbolTable
+    .getOverloadsByCName(name)
+    .some((symbol) => symbol.kind === "variable");
 
-  // The caller is known; the callee deliberately is not, so the propagator
-  // must fall through to the resolver.
-  collect.functionParamLists.set("Caller__forward", ["value"]);
-  collect.modifiedParameters.set("Caller__forward", new Set());
-  collect.functionCallGraph.set("Caller__forward", [
-    { callee, paramIndex: 0, argParamName: "value" },
-  ]);
-
-  PassByValueAnalyzer.propagateModifications(collect, state.symbolTable);
-
-  return collect.modifiedParameters.get("Caller__forward")!.has("value");
+/**
+ * Propagate one caller's calls and report which of its parameters came back
+ * marked as modified (auto-const withheld).
+ */
+const modifiedAfterPropagation = (
+  caller: string,
+  params: string[],
+  calls: ICallGraphEntry[],
+): ReadonlySet<string> => {
+  const modifiedParameters = new Map([[caller, new Set<string>()]]);
+  ModificationFacts.propagate(
+    new Map([[caller, calls]]),
+    new Map([[caller, params]]),
+    modifiedParameters,
+    symbolTable,
+    isValueSymbol,
+  );
+  return modifiedParameters.get(caller)!;
 };
 
-let state = new TranspileState();
+/**
+ * Drive one forwarded call through the propagator. The caller is known; the
+ * callee deliberately is not, so the propagator must fall through to the
+ * resolver.
+ */
+const callerParameterIsModified = (callee: string): boolean =>
+  modifiedAfterPropagation(
+    "Caller__forward",
+    ["value"],
+    [{ callee, paramIndex: 0, argParamName: "value" }],
+  ).has("value");
 
-describe("PassByValueAnalyzer callee resolution (#1178)", () => {
+describe("ModificationFacts callee resolution (#1178)", () => {
   beforeEach(() => {
-    state.symbolTable = new SymbolTable();
-  });
-
-  afterEach(() => {
-    state = new TranspileState();
-    state.symbolTable = new SymbolTable();
+    symbolTable = new SymbolTable();
   });
 
   it("keeps auto-const when the C parameter is passed by value", () => {
-    state.symbolTable.addCSymbol(
+    symbolTable.addCSymbol(
       declareCFunction("c_read_value", [
         { name: "v", type: "uint8_t", isConst: false, isArray: false },
       ]),
@@ -104,7 +110,7 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("withholds auto-const when the C parameter is a pointer", () => {
-    state.symbolTable.addCSymbol(
+    symbolTable.addCSymbol(
       declareCFunction("c_bump", [
         { name: "s", type: "Sample*", isConst: false, isArray: false },
       ]),
@@ -114,7 +120,7 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("keeps auto-const for a pointer to const, which cannot be written through", () => {
-    state.symbolTable.addCSymbol(
+    symbolTable.addCSymbol(
       declareCFunction("c_read", [
         { name: "s", type: "Sample*", isConst: true, isArray: false },
       ]),
@@ -124,7 +130,7 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("withholds auto-const when the C parameter is an array", () => {
-    state.symbolTable.addCSymbol(
+    symbolTable.addCSymbol(
       declareCFunction("c_fill", [
         { name: "buffer", type: "uint8_t", isConst: false, isArray: true },
       ]),
@@ -135,10 +141,10 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
 
   it("sees through a typedef that hides the pointer", () => {
     // typedef struct spi_device_t *spi_device_handle_t;
-    state.symbolTable.addCSymbol(
+    symbolTable.addCSymbol(
       declareCTypedef("spi_device_handle_t", "struct spi_device_t*"),
     );
-    state.symbolTable.addCSymbol(
+    symbolTable.addCSymbol(
       declareCFunction("spi_send", [
         {
           name: "handle",
@@ -153,8 +159,8 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("does not treat a typedef of a plain value as indirection", () => {
-    state.symbolTable.addCSymbol(declareCTypedef("byte_t", "unsigned char"));
-    state.symbolTable.addCSymbol(
+    symbolTable.addCSymbol(declareCTypedef("byte_t", "unsigned char"));
+    symbolTable.addCSymbol(
       declareCFunction("take_byte", [
         { name: "b", type: "byte_t", isConst: false, isArray: false },
       ]),
@@ -164,9 +170,9 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("terminates on a self-referential typedef chain", () => {
-    state.symbolTable.addCSymbol(declareCTypedef("loop_a", "loop_b"));
-    state.symbolTable.addCSymbol(declareCTypedef("loop_b", "loop_a"));
-    state.symbolTable.addCSymbol(
+    symbolTable.addCSymbol(declareCTypedef("loop_a", "loop_b"));
+    symbolTable.addCSymbol(declareCTypedef("loop_b", "loop_a"));
+    symbolTable.addCSymbol(
       declareCFunction("take_loop", [
         { name: "v", type: "loop_a", isConst: false, isArray: false },
       ]),
@@ -183,7 +189,7 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("fails safe when the declaration has no parameter at that position", () => {
-    state.symbolTable.addCSymbol(declareCFunction("c_no_args", []));
+    symbolTable.addCSymbol(declareCFunction("c_no_args", []));
 
     expect(callerParameterIsModified("c_no_args")).toBe(true);
   });
@@ -204,9 +210,9 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
     ];
     links.forEach((name, index) => {
       const target = index === links.length - 1 ? "uint8_t*" : links[index + 1];
-      state.symbolTable.addCSymbol(declareCTypedef(name, target));
+      symbolTable.addCSymbol(declareCTypedef(name, target));
     });
-    state.symbolTable.addCSymbol(
+    symbolTable.addCSymbol(
       declareCFunction("take_deep_alias", [
         { name: "v", type: "link0", isConst: false, isArray: false },
       ]),
@@ -220,12 +226,12 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   it("folds across overloads instead of answering from the first", () => {
     // Declaration order must not decide the answer. The const overload is
     // declared first; the mutating one still wins.
-    state.symbolTable.addCSymbol(
+    symbolTable.addCSymbol(
       declareCFunction("store", [
         { name: "s", type: "Sample*", isConst: true, isArray: false },
       ]),
     );
-    state.symbolTable.addCSymbol(
+    symbolTable.addCSymbol(
       declareCFunction("store", [
         { name: "s", type: "Sample*", isConst: false, isArray: false },
       ]),
@@ -235,12 +241,12 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("gives the same answer when the overloads are declared in the other order", () => {
-    state.symbolTable.addCSymbol(
+    symbolTable.addCSymbol(
       declareCFunction("store", [
         { name: "s", type: "Sample*", isConst: false, isArray: false },
       ]),
     );
-    state.symbolTable.addCSymbol(
+    symbolTable.addCSymbol(
       declareCFunction("store", [
         { name: "s", type: "Sample*", isConst: true, isArray: false },
       ]),
@@ -250,12 +256,12 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
   });
 
   it("keeps auto-const when every overload takes the parameter by value", () => {
-    state.symbolTable.addCSymbol(
+    symbolTable.addCSymbol(
       declareCFunction("emit", [
         { name: "v", type: "uint8_t", isConst: false, isArray: false },
       ]),
     );
-    state.symbolTable.addCSymbol(
+    symbolTable.addCSymbol(
       declareCFunction("emit", [
         { name: "v", type: "uint16_t", isConst: false, isArray: false },
       ]),
@@ -280,27 +286,17 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
       // `void forward(handler cb, u8 value) { cb(value); }` -- `cb` is a value,
       // so no declaration will ever match it. Failing safe here fired on every
       // callback by construction.
-      const collect: IModificationCollector = {
-        registry: new SymbolRegistry(),
-        modifiedParameters: new Map(),
-        functionParamLists: new Map(),
-        functionCallGraph: new Map(),
-      };
-      collect.functionParamLists.set("forward", ["cb", "value"]);
-      collect.modifiedParameters.set("forward", new Set());
-      collect.functionCallGraph.set("forward", [
-        { callee: "cb", paramIndex: 0, argParamName: "value" },
-      ]);
-
-      PassByValueAnalyzer.propagateModifications(collect, state.symbolTable);
-
-      expect(collect.modifiedParameters.get("forward")!.has("value")).toBe(
-        false,
+      const modified = modifiedAfterPropagation(
+        "forward",
+        ["cb", "value"],
+        [{ callee: "cb", paramIndex: 0, argParamName: "value" }],
       );
+
+      expect(modified.has("value")).toBe(false);
     });
 
     it("keeps auto-const when the callee is a variable rather than a function", () => {
-      state.symbolTable.addCSymbol(declareCVariable("listener"));
+      symbolTable.addCSymbol(declareCVariable("listener"));
 
       expect(callerParameterIsModified("listener")).toBe(false);
     });
@@ -334,8 +330,8 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
           isArray: false,
         },
       ],
-    } as unknown as Parameters<typeof state.symbolTable.addTSymbol>[0];
-    state.symbolTable.addTSymbol(cnextFunction);
+    } as unknown as Parameters<SymbolTable["addTSymbol"]>[0];
+    symbolTable.addTSymbol(cnextFunction);
 
     // Must not throw, and must fall through to the fail-safe rather than
     // answering from a shape it cannot read.

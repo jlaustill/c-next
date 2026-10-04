@@ -989,8 +989,8 @@ This used to name a third, `buildStructParamMemberAccess()`, "for chains". It ha
 
 ### Const Inference
 
-`PassByValueAnalyzer.walkStatementForModifications()` (2.2 Plan) uses two collectors
-in `src/utils/ast/`:
+`ModificationCollector.walkStatementForModifications()` (1.3 Declare, #1825) uses two
+collectors in `src/utils/ast/`:
 
 - `StatementExpressionCollector.collectAll()` — returns all expressions from any statement type
 - `ChildStatementCollector.collectAll()` — returns child statements/blocks for recursion
