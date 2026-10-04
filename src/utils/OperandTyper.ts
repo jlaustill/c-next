@@ -1051,21 +1051,25 @@ class OperandTyper {
     // replacement tokens (#1688, ADR-024); the preprocessor replaces it
     // before C sees any declaration of the name. An integer one keeps the
     // untyped path it had, so an unsuffixed literal's rules still apply
-    const macro =
-      ops.length === 0
-        ? OperandTyper.macroOperand(ctx.program.headerMacro(name))
-        : null;
-    if (macro) {
-      return {
-        binding: null,
-        value: { k: "value", t: macro, register: false },
-        ops,
-      };
-    }
+    const macro = OperandTyper.macroStart(name, ops, ctx);
+    if (macro) return macro;
     if (binding?.kind === "foreign") {
       return OperandTyper.foreignStart(binding, name, ops, ctx);
     }
     return { binding: null, value: { k: "foreignPath", parts: [name] }, ops };
+  }
+
+  /** A chain that is a floating or unreadable header macro named alone */
+  private static macroStart(
+    name: string,
+    ops: TChainOps,
+    ctx: ITypingContext,
+  ): IChainStart | null {
+    if (ops.length !== 0) return null;
+    const t = OperandTyper.macroOperand(ctx.program.headerMacro(name));
+    return t
+      ? { binding: null, value: { k: "value", t, register: false }, ops }
+      : null;
   }
 
   /** A floating or unreadable header macro's operand type; null for others */

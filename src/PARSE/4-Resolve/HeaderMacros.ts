@@ -23,12 +23,12 @@ type TMacroToken =
 
 /** `#define NAME body`; a function-like macro's `(` follows its name directly */
 const OBJECT_LIKE_DEFINE =
-  /^[ \t]*#[ \t]*define[ \t]+([A-Za-z_]\w*)(?:[ \t]+(.*?))?[ \t\r]*$/gm;
+  /^[ \t]*#[ \t]*define[ \t]+([A-Za-z_]\w*)(?:[ \t]+(.*))?$/gm;
 
 const FLOATING_LITERAL = String.raw`0[xX][0-9a-fA-F]*\.?[0-9a-fA-F]*[pP][+-]?\d+[fFlL]?|(?:\d+\.\d*|\.\d+)(?:[eE][+-]?\d+)?[fFlL]?|\d+[eE][+-]?\d+[fFlL]?`;
 const INTEGER_LITERAL = String.raw`0[xX][0-9a-fA-F]+[uUlL]*|0[bB][01]+[uUlL]*|\d+[uUlL]*`;
 /** The operators an integer expansion may hold: arithmetic and bitwise */
-const INTEGER_OPERATOR = String.raw`<<|>>|[-+*/%&|^~()]`;
+const INTEGER_OPERATOR = "<<|>>|[-+*/%&|^~()]";
 
 /** One token per match; `other` takes any character no other group does */
 const MACRO_TOKEN = new RegExp(
@@ -68,7 +68,7 @@ class HeaderMacros {
       .replaceAll(/\/\/[^\n]*/g, "");
     return [...logical.matchAll(OBJECT_LIKE_DEFINE)].map((match) => ({
       name: match[1],
-      body: match[2] ?? "",
+      body: (match[2] ?? "").trim(),
     }));
   }
 
