@@ -75,6 +75,7 @@ import type TConstExpr from "../../types/TConstExpr";
 import type TConstResult from "../../types/TConstResult";
 import type TEnumMemberValue from "../../types/TEnumMemberValue";
 import type TSettledConst from "../../types/TSettledConst";
+import type THeaderMacro from "../../types/THeaderMacro";
 
 /** Shared empty result, so a miss does not allocate. */
 const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
@@ -106,6 +107,7 @@ const NO_FOREIGN: IForeignSymbols = {
   opaqueTypedefs: EMPTY_NAMES,
   typedefToTag: new Map<string, string>(),
   structTagsWithBodies: EMPTY_NAMES,
+  macros: new Map(),
 };
 
 /** A program built without include information: each file sees only itself. */
@@ -315,6 +317,8 @@ class Program {
         typesByFile.get(sourceFile) ?? EMPTY_NAMES,
       isOpaqueType: (typeName: string): boolean => opaqueTypes.has(typeName),
       opaqueTypes: (): ReadonlySet<string> => opaqueTypes,
+      headerMacro: (name: string): THeaderMacro | null =>
+        foreign.macros.get(name) ?? null,
       modifiedParameters: (): ReadonlyMap<string, ReadonlySet<string>> =>
         modifications.modifiedParameters,
       functionParamLists: (): ReadonlyMap<string, ReadonlyArray<string>> =>

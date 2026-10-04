@@ -1,0 +1,21 @@
+// test-execution
+// test-adr: 024
+// #1688 (ADR-024): what typing a macro from its replacement tokens must NOT
+// change. A float macro with no integer operand stays plain float arithmetic,
+// and an integer macro keeps ADR-044's integer clamp.
+#include "float_macros.h"
+
+u32 main() {
+    u32 i <- 3;
+    f32 k <- 1.0;
+
+    // A float macro times a float: no clamp helper
+    f32 a <- k * SCALE_F;
+    if (a != 2.5) return 1;
+
+    // An integer macro with an integer: the clamp helper, unchanged
+    u32 b <- i + LIMIT;
+    if (b != 13) return 2;
+
+    return 0;
+}

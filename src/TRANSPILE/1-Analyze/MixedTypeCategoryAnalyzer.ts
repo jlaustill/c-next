@@ -65,6 +65,12 @@ import type IOperandType from "../../types/IOperandType";
  */
 type Category = string | null;
 
+/**
+ * #1688 (ADR-024): a header macro C-Next cannot type. Not a Rule 10.4
+ * category -- it is rejected beside an integer only, as E0811
+ */
+const UNREADABLE_MACRO = "unreadable macro";
+
 /** Assignments that are not arithmetic, so not Rule 10.4 operands */
 const NOT_RULE_10_4_ASSIGNMENTS: ReadonlySet<string> = new Set([
   "<-",
@@ -105,6 +111,7 @@ class MixedCategoryCheck {
     if (t.form.kind === "bitIndex" || t.form.kind === "bitRange") return null;
     // Which overload a call selects is C++'s decision, not ours (C03)
     if (t.form.kind === "foreign" && t.form.indeterminate) return null;
+    if (t.form.kind === "unreadableMacro") return UNREADABLE_MACRO;
     if (t.category === "enum") return `enum:${t.enumTypeName ?? t.typeName}`;
     return t.category === "none" ? null : t.category;
   }
@@ -189,8 +196,8 @@ class MixedCategoryCheck {
     right: Category,
     operator: string,
   ): Category {
-    if (right === null) return running;
-    if (running === null) return right;
+    if (right === null || right === UNREADABLE_MACRO) return running ?? right;
+    if (running === null || running === UNREADABLE_MACRO) return right;
     if (
       running !== right &&
       !MixedCategoryCheck.differ(running, right, operator)
@@ -245,6 +252,12 @@ class MixedCategoryCheck {
     const left = this.operandCategory(arms[0]);
     const right = this.operandCategory(arms[1]);
     if (left === null || right === null || left === right) return;
+    if (
+      (left === UNREADABLE_MACRO || right === UNREADABLE_MACRO) &&
+      !MixedCategoryCheck.differ(left, right, ":")
+    ) {
+      return;
+    }
     const { line, column } = ParserUtils.getPosition(arms[1]);
     this.analyzer.addError(line, column, left, right, "conditional");
   }
@@ -257,6 +270,11 @@ class MixedCategoryCheck {
   ): boolean {
     if (left === null || right === null || left === right) return false;
     const integer = (c: string) => c === "signed" || c === "unsigned";
+    // ADR-024 (#1688): an unreadable macro needs a cast beside an integer
+    // only; beside anything else it is C's to evaluate, as it always was
+    if (left === UNREADABLE_MACRO || right === UNREADABLE_MACRO) {
+      return integer(left) || integer(right);
+    }
     const characterExempt =
       CHARACTER_ARITHMETIC.has(operator) &&
       ((left === "character" && integer(right)) ||
@@ -342,6 +360,19 @@ class MixedTypeCategoryAnalyzer {
     return `Binary operator combines operands of different essential type categories (${pair})`;
   }
 
+  /** E0811's text for each place an integer meets an unreadable macro */
+  private static unreadableMacroMessage(
+    what: "binary" | "conditional" | "compound",
+  ): string {
+    if (what === "conditional") {
+      return "Conditional operator's value arms combine an integer and a header macro whose type C-Next cannot read";
+    }
+    if (what === "compound") {
+      return "Compound assignment combines an integer target and a header macro whose type C-Next cannot read";
+    }
+    return "Binary operator combines an integer operand and a header macro whose type C-Next cannot read";
+  }
+
   /** How a category reads in a message */
   private static label(category: string): string {
     if (category.startsWith("enum:")) return `enum ${category.slice(5)}`;
@@ -355,6 +386,17 @@ class MixedTypeCategoryAnalyzer {
     right: string,
     what: "binary" | "conditional" | "compound" = "binary",
   ): void {
+    if (left === UNREADABLE_MACRO || right === UNREADABLE_MACRO) {
+      this.errors.push({
+        code: "E0811",
+        line,
+        column,
+        message: MixedTypeCategoryAnalyzer.unreadableMacroMessage(what),
+        helpText:
+          "ADR-024: a header macro is typed from its replacement tokens, and this one's are not a literal expression. Cast the macro to the type it has, e.g. (u32)MACRO or (f32)MACRO.",
+      });
+      return;
+    }
     const integer = (c: string) => c === "signed" || c === "unsigned";
     const floating =
       (left === "floating" && integer(right)) ||

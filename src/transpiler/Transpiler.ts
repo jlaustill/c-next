@@ -65,6 +65,7 @@ import IFileResult from "../types/IFileResult";
 import type IRunAnchor from "../PARSE/1-Discover/types/IRunAnchor";
 import IPipelineFile from "../PARSE/1-Discover/types/IPipelineFile";
 import type ISourceGraph from "../PARSE/1-Discover/types/ISourceGraph";
+import HeaderMacros from "../PARSE/1-Discover/HeaderMacros";
 import type IFileIncludes from "../PARSE/1-Discover/types/IFileIncludes";
 import Discover from "../PARSE/1-Discover/Discover";
 import RunAnchor from "../PARSE/1-Discover/RunAnchor";
@@ -685,6 +686,13 @@ class Transpiler {
             ),
             structTagsWithBodies: new Set(
               this.codeGenerator.transpileState.symbolTable.getAllStructTagsWithBodies(),
+            ),
+            // #1688: from each header's own text, so a cached header and one
+            // whose preprocessing failed are read as a parsed one is
+            macros: HeaderMacros.collect(
+              Array.from(this._requireSourceGraph().headerFiles, (file) =>
+                this.fs.readFile(file.path),
+              ),
             ),
           },
           // #1825: ADR-006's and ADR-029's derivations look callees and

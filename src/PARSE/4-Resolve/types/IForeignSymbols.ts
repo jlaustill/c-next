@@ -1,5 +1,6 @@
 import type TCSymbol from "../../../types/symbols/c/TCSymbol";
 import type TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
+import type THeaderMacro from "../../../types/THeaderMacro";
 
 /**
  * The symbols this program's C and C++ headers declare.
@@ -32,6 +33,12 @@ interface IForeignSymbols {
 
   /** Struct tags a header gave a full definition. */
   readonly structTagsWithBodies: ReadonlySet<string>;
+
+  /**
+   * #1688: the headers' object-like macros, each typed from its replacement
+   * tokens (ADR-024). A `#define` is in no symbol list above.
+   */
+  readonly macros: ReadonlyMap<string, THeaderMacro>;
 }
 
 export default IForeignSymbols;

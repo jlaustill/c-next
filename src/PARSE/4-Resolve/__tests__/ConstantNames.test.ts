@@ -40,6 +40,7 @@ function build(
       cpp: [],
       opaqueTypedefs: new Set(),
       typedefToTag: new Map(),
+      macros: new Map(),
       structTagsWithBodies: new Set(),
     },
   });

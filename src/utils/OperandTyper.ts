@@ -35,6 +35,7 @@ import ScopeUtils from "./ScopeUtils";
 import SubscriptClassifier from "./SubscriptClassifier";
 import TypeResolver from "./TypeResolver";
 import TypeBinding from "../PARSE/3-Declare/TypeBinding";
+import type THeaderMacro from "../types/THeaderMacro";
 import type IChainStep from "../types/IChainStep";
 import type IChainTyping from "../types/IChainTyping";
 import type IOperandType from "../types/IOperandType";
@@ -572,12 +573,20 @@ class OperandTyper {
     if (cast) return OperandTyper.castType(cast, ctx);
     const identifier = node.IDENTIFIER();
     if (!identifier) return null;
+    const name = identifier.getText();
     const binding = ctx.program.bindValue(
       ctx.sourceFile,
       null,
-      identifier.getText(),
+      name,
       ParserUtils.getPosition(node),
     );
+    if (binding !== null && binding.kind !== "foreign") {
+      return OperandTyper.boundValue(binding, ctx);
+    }
+    // A header macro before a header declaration of the name, as in
+    // `namedStart`: the preprocessor replaces it first (#1688)
+    const macro = OperandTyper.macroOperand(ctx.program.headerMacro(name));
+    if (macro) return macro;
     return binding ? OperandTyper.boundValue(binding, ctx) : null;
   }
 
@@ -1038,10 +1047,38 @@ class OperandTyper {
         ops,
       };
     }
+    // A header's object-like macro, named alone, is typed from its
+    // replacement tokens (#1688, ADR-024); the preprocessor replaces it
+    // before C sees any declaration of the name. An integer one keeps the
+    // untyped path it had, so an unsuffixed literal's rules still apply
+    const macro =
+      ops.length === 0
+        ? OperandTyper.macroOperand(ctx.program.headerMacro(name))
+        : null;
+    if (macro) {
+      return {
+        binding: null,
+        value: { k: "value", t: macro, register: false },
+        ops,
+      };
+    }
     if (binding?.kind === "foreign") {
       return OperandTyper.foreignStart(binding, name, ops, ctx);
     }
     return { binding: null, value: { k: "foreignPath", parts: [name] }, ops };
+  }
+
+  /** A floating or unreadable header macro's operand type; null for others */
+  private static macroOperand(macro: THeaderMacro | null): IOperandType | null {
+    if (macro === null || macro.kind === "integer") return null;
+    if (macro.kind === "unreadable") {
+      return { ...OperandTyper.plain(null), form: { kind: "unreadableMacro" } };
+    }
+    return {
+      ...OperandTyper.plain(macro.typeName),
+      category: "floating",
+      form: { kind: "foreign", indeterminate: false },
+    };
   }
 
   /**

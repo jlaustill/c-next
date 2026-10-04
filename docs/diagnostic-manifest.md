@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-487 fixture(s) assert a diagnostic; 474 carry a code.
+489 fixture(s) assert a diagnostic; 476 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -402,6 +402,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1669-enum-member-values/value-overflow.test.cnx                                 | E0910               |
 | tests/bugs/issue-1669-enum-member-values/value-self-later.test.cnx                               | E0909               |
 | tests/bugs/issue-1669-enum-member-values/value-variable.test.cnx                                 | E0909               |
+| tests/bugs/issue-1688-float-macro/float-macro-error.test.cnx                                     | E0810               |
+| tests/bugs/issue-1688-float-macro/unreadable-macro-error.test.cnx                                | E0811               |
 | tests/bugs/issue-1694-e0850-scoped-name/signed-then-loop.test.cnx                                | E0850               |
 | tests/bugs/issue-1698-bare-scope-call/mix-error.test.cnx                                         | E0810               |
 | tests/bugs/issue-1698-bare-scope-call/narrow-error.test.cnx                                      | E0869               |

@@ -1,0 +1,17 @@
+// test-execution
+// test-adr: 024
+// #1688 (ADR-024): the cast E0811 asks for. An unreadable macro cast to the
+// type it has combines with an integer as that type does.
+#include "unreadable_macros.h"
+
+u32 main() {
+    u32 i <- 3;
+
+    u32 a <- i * (u32)SCALED_CALL;
+    if (a != 18) return 1;
+
+    u32 b <- (u32)CAST_LIMIT + i;
+    if (b != 10) return 2;
+
+    return 0;
+}

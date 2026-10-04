@@ -284,7 +284,13 @@ A subscript into a scalar is a bit index and has no declared type, so the bit-in
 - A register member has its declared category, as a variable does. A bitmap field wider than one bit is unsigned, and a one-bit field is Boolean.
 - A call to a C++ overload set whose candidates return different categories is not classified, because which candidate C++ chooses is not decided here. It is never taken into integer saturating arithmetic either, so `u * choose(y)` is computed in the category of the candidate C++ picks.
 
-**A float macro has no type C-Next can read.** `u32 i * SCALE_F`, with `#define SCALE_F 2.5f` in a header, is not rejected. How such an operand is typed is open, and is tracked as #1688.
+**A header macro is typed from its replacement tokens** _(owner ruling 2026-10-04, #1688)_. An object-like macro named as an operand is read as the preprocessor will expand it, following the macros it names:
+
+- **Floating:** a floating literal anywhere in the expansion, such as `2.5f`, `(2.5)`, `1e3` or `(VREF / 4096.0)`. Combined with an integer it is E0810, as any integer and floating mix is, so `u32 i * SCALE_F` with `#define SCALE_F 2.5f` is rejected. Its type is C's: `float` when every floating literal in it is `f`-suffixed, `double` otherwise.
+- **Integer:** only integer literals, arithmetic and bitwise operators, parentheses and other integer macros, such as `#define LIMIT 10`. It keeps the handling it had, an unsuffixed literal's, ADR-044 clamping included.
+- **Unreadable:** anything else, such as a call, a cast, a pointer dereference like avr-libc's `PINB`, or a name no header defines. Combined with an integer it is E0811, which asks for a cast, `(u32)M` or `(f32)M`, so it never reaches an integer clamp helper untyped. Beside any other operand it is left to C, as before.
+
+Including a header is not an error by itself. A macro defined differently under two `#if` arms has a type only when both definitions agree. A name that no header C-Next reads defines, such as one from an unresolved `<system.h>`, is not a macro here and stays untyped. Whether a macro that dereferences a pointer should be rejected outright is a separate question, not decided here.
 
 **Three header operands are not typed yet.** Each has a declared C type, so each is an operand with a category under the ruling above. C-Next does not read that type yet, so an integer combined with one that is floating is not rejected:
 

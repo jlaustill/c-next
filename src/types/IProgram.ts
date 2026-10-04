@@ -14,6 +14,7 @@ import type IScopeSymbol from "./symbols/IScopeSymbol";
 import type TSymbol from "./symbols/TSymbol";
 import type IConflict from "./IConflict";
 import type ICodeGenSymbols from "./ICodeGenSymbols";
+import type THeaderMacro from "./THeaderMacro";
 
 /**
  * `Program` — the artifact 1.4 Resolve emits, and the only place a cross-file
@@ -131,6 +132,12 @@ interface IProgram {
 
   /** Every truly opaque typedef, resolved. */
   opaqueTypes(): ReadonlySet<string>;
+
+  /**
+   * #1688: an object-like macro a header defines, typed from its replacement
+   * tokens (ADR-024), or null when no header defines one of the name.
+   */
+  headerMacro(name: string): THeaderMacro | null;
 
   /**
    * Which parameters each function modifies, direct and transitive.
