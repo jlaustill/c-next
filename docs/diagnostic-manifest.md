@@ -409,7 +409,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1688-float-macro/comment-glob-error.test.cnx                                    | E0810               |
 | tests/bugs/issue-1688-float-macro/float-macro-error.test.cnx                                     | E0810               |
 | tests/bugs/issue-1688-float-macro/system-macro-error.test.cnx                                    | E0810               |
-| tests/bugs/issue-1688-float-macro/unreadable-macro-error.test.cnx                                | E0811, E0812        |
+| tests/bugs/issue-1688-float-macro/unreadable-macro-error.test.cnx                                | E0810, E0811, E0812 |
 | tests/bugs/issue-1694-e0850-scoped-name/signed-then-loop.test.cnx                                | E0850               |
 | tests/bugs/issue-1698-bare-scope-call/mix-error.test.cnx                                         | E0810               |
 | tests/bugs/issue-1698-bare-scope-call/narrow-error.test.cnx                                      | E0869               |
