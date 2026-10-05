@@ -1,14 +1,14 @@
 /**
- * #1688: the object-like macros the headers define, each typed from its
- * replacement tokens (ADR-024). A `#define` never reaches the symbol model --
- * a header is parsed raw or preprocessed, and either way its directives are
- * gone -- so a macro operand had no type, and `u32 i * SCALE_F` was routed
- * into the integer clamp helper.
+ * #1688: the object-like macros a file sees, each typed from its replacement
+ * tokens (ADR-024). A `#define` never reaches the symbol model -- a header is
+ * parsed raw or preprocessed, and either way its directives are gone -- so a
+ * macro operand had no type, and `u32 i * SCALE_F` was routed into the
+ * integer clamp helper.
  *
- * Read from each header's own text, so a header served from the symbol cache,
- * or one whose preprocessing failed, is read the same way. A macro defined
- * more than once (under `#if` arms) has one type only when every definition
- * agrees; otherwise it is unreadable.
+ * Read from the preprocessor's macro dump (`-dM`) of the file's C includes,
+ * which has already applied comments, line splicing, `#if`, `#undef`, system
+ * headers and the compiler's builtins: one definition per name, the one C
+ * sees.
  */
 import type THeaderMacro from "../../types/THeaderMacro";
 
@@ -39,37 +39,17 @@ const MACRO_TOKEN = new RegExp(
 const UNREADABLE: THeaderMacro = { kind: "unreadable" };
 
 class HeaderMacros {
-  /** Every object-like macro the headers define, by name */
-  static collect(
-    headerTexts: Iterable<string>,
-  ): ReadonlyMap<string, THeaderMacro> {
-    const bodies = new Map<string, string[]>();
-    for (const text of headerTexts) {
-      for (const definition of HeaderMacros.definitions(text)) {
-        const list = bodies.get(definition.name) ?? [];
-        list.push(definition.body);
-        bodies.set(definition.name, list);
-      }
+  /** Every object-like macro a `-dM` dump defines, by name */
+  static collect(dump: string): ReadonlyMap<string, THeaderMacro> {
+    const bodies = new Map<string, string>();
+    for (const match of dump.matchAll(OBJECT_LIKE_DEFINE)) {
+      bodies.set(match[1], (match[2] ?? "").trim());
     }
     const typed = new Map<string, THeaderMacro>();
     for (const name of bodies.keys()) {
       HeaderMacros.typeOf(name, bodies, typed, new Set());
     }
     return typed;
-  }
-
-  /** A header's object-like definitions, after C's line splicing and comments */
-  private static definitions(
-    text: string,
-  ): Array<{ name: string; body: string }> {
-    const logical = text
-      .replaceAll(/\\\r?\n/g, "")
-      .replaceAll(/\/\*[\s\S]*?\*\//g, " ")
-      .replaceAll(/\/\/[^\n]*/g, "");
-    return [...logical.matchAll(OBJECT_LIKE_DEFINE)].map((match) => ({
-      name: match[1],
-      body: (match[2] ?? "").trim(),
-    }));
   }
 
   /**
@@ -79,27 +59,24 @@ class HeaderMacros {
    */
   private static typeOf(
     name: string,
-    bodies: ReadonlyMap<string, readonly string[]>,
+    bodies: ReadonlyMap<string, string>,
     typed: Map<string, THeaderMacro>,
     expanding: Set<string>,
   ): THeaderMacro {
     const known = typed.get(name);
     if (known !== undefined) return known;
-    const definitions = bodies.get(name);
-    if (definitions === undefined || expanding.has(name)) return UNREADABLE;
+    const body = bodies.get(name);
+    if (body === undefined || expanding.has(name)) return UNREADABLE;
     expanding.add(name);
-    const each = definitions.map((body) =>
-      HeaderMacros.typeOfBody(body, bodies, typed, expanding),
-    );
+    const result = HeaderMacros.typeOfBody(body, bodies, typed, expanding);
     expanding.delete(name);
-    const result = HeaderMacros.agreed(each);
     typed.set(name, result);
     return result;
   }
 
   private static typeOfBody(
     body: string,
-    bodies: ReadonlyMap<string, readonly string[]>,
+    bodies: ReadonlyMap<string, string>,
     typed: Map<string, THeaderMacro>,
     expanding: Set<string>,
   ): THeaderMacro {
@@ -167,21 +144,6 @@ class HeaderMacros {
   ): TFloatingTypeName {
     if (leaves.includes(null)) return null;
     return leaves.includes("f64") ? "f64" : "f32";
-  }
-
-  /** One type for a macro's definitions, or unreadable when they disagree */
-  private static agreed(each: readonly THeaderMacro[]): THeaderMacro {
-    const first = each[0];
-    if (first === undefined) return UNREADABLE;
-    if (each.some((t) => t.kind !== first.kind)) return UNREADABLE;
-    if (first.kind !== "floating") return first;
-    const names = new Set(
-      each.map((t) => (t.kind === "floating" ? t.typeName : null)),
-    );
-    return {
-      kind: "floating",
-      typeName: names.size === 1 ? first.typeName : null,
-    };
   }
 }
 

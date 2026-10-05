@@ -317,8 +317,8 @@ class Program {
         typesByFile.get(sourceFile) ?? EMPTY_NAMES,
       isOpaqueType: (typeName: string): boolean => opaqueTypes.has(typeName),
       opaqueTypes: (): ReadonlySet<string> => opaqueTypes,
-      headerMacro: (name: string): THeaderMacro | null =>
-        foreign.macros.get(name) ?? null,
+      headerMacro: (sourceFile: string, name: string): THeaderMacro | null =>
+        foreign.macros.get(sourceFile)?.get(name) ?? null,
       modifiedParameters: (): ReadonlyMap<string, ReadonlySet<string>> =>
         modifications.modifiedParameters,
       functionParamLists: (): ReadonlyMap<string, ReadonlyArray<string>> =>

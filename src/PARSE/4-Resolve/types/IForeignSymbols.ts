@@ -38,7 +38,7 @@ interface IForeignSymbols {
    * #1688: the headers' object-like macros, each typed from its replacement
    * tokens (ADR-024). A `#define` is in no symbol list above.
    */
-  readonly macros: ReadonlyMap<string, THeaderMacro>;
+  readonly macros: ReadonlyMap<string, ReadonlyMap<string, THeaderMacro>>;
 }
 
 export default IForeignSymbols;

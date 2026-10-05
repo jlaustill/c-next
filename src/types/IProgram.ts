@@ -137,7 +137,7 @@ interface IProgram {
    * #1688: an object-like macro a header defines, typed from its replacement
    * tokens (ADR-024), or null when no header defines one of the name.
    */
-  headerMacro(name: string): THeaderMacro | null;
+  headerMacro(sourceFile: string, name: string): THeaderMacro | null;
 
   /**
    * Which parameters each function modifies, direct and transitive.

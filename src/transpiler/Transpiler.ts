@@ -66,6 +66,7 @@ import type IRunAnchor from "../PARSE/1-Discover/types/IRunAnchor";
 import IPipelineFile from "../PARSE/1-Discover/types/IPipelineFile";
 import type ISourceGraph from "../PARSE/1-Discover/types/ISourceGraph";
 import HeaderMacros from "../PARSE/4-Resolve/HeaderMacros";
+import type THeaderMacro from "../types/THeaderMacro";
 import type IFileIncludes from "../PARSE/1-Discover/types/IFileIncludes";
 import Discover from "../PARSE/1-Discover/Discover";
 import RunAnchor from "../PARSE/1-Discover/RunAnchor";
@@ -166,11 +167,11 @@ class Transpiler {
    */
   private anyHeaderPreprocessFailed = false;
 
-  /**
-   * #1688: each header's own text, recorded where it is read, so its macros
-   * are typed without reading it again. A header that could not be read has none.
-   */
-  private readonly headerTexts = new Map<string, string>();
+  /** #1688: each C-Next file's header macros, by the file's path */
+  private readonly headerMacrosByFile = new Map<
+    string,
+    ReadonlyMap<string, THeaderMacro>
+  >();
 
   /**
    * #1323: one file's fully-resolved header-render input, captured while its
@@ -429,6 +430,9 @@ class Transpiler {
     // Issue #985 recovery: when standalone header preprocessing missed framework
     // symbols, recover their declared names via translation-unit preprocessing.
     await this._collectExternalDeclarations(input);
+
+    // #1688: the macros each file's C includes define, typed (ADR-024)
+    await this._collectHeaderMacros(input);
 
     if (!this._passesProgramChecks(input, result)) {
       return;
@@ -693,14 +697,8 @@ class Transpiler {
             structTagsWithBodies: new Set(
               this.codeGenerator.transpileState.symbolTable.getAllStructTagsWithBodies(),
             ),
-            // #1688: from each header's own text, so a cached header and one
-            // whose preprocessing failed are read as a parsed one is
-            macros: HeaderMacros.collect(
-              this._requireSourceGraph().headerFiles.flatMap((file) => {
-                const text = this.headerTexts.get(file.path);
-                return text === undefined ? [] : [text];
-              }),
-            ),
+            // #1688: each file's own, from its C includes' macro dump
+            macros: this.headerMacrosByFile,
           },
           // #1825: ADR-006's and ADR-029's derivations look callees and
           // typedefs up in it. It holds the headers' symbols only until the
@@ -1227,7 +1225,7 @@ class Transpiler {
     // result copies it with a spread, so nothing holds the array itself.
     this.warnings.length = 0;
     this.anyHeaderPreprocessFailed = false;
-    this.headerTexts.clear();
+    this.headerMacrosByFile.clear();
     // #1323: a stale entry here would let one run's header content leak into
     // the next, the same shape #1143's toolchain-requirements leak was.
     this.headerEmissionFactsByPath.clear();
@@ -1361,18 +1359,6 @@ class Transpiler {
   }
 
   /**
-   * #1688: a cached header's symbols need no read, but its macros do. One that
-   * cannot be read is left without macros, as its symbols come from the cache.
-   */
-  private _recordCachedHeaderText(file: IDiscoveredFile): void {
-    try {
-      this.headerTexts.set(file.path, this.fs.readFile(file.path));
-    } catch {
-      // No macros: nothing here is a failure of the header's symbols
-    }
-  }
-
-  /**
    * #1817: one header's cache entry or content. It never rejects: a failure is
    * returned as `failed` and re-thrown by `_collectHeaderSymbols` in header
    * order, where the #1319 catch decides whether it is a diagnostic.
@@ -1386,7 +1372,6 @@ class Transpiler {
     try {
       const cached = this._readCachedHeader(file);
       if (cached) {
-        this._recordCachedHeaderText(file);
         return {
           file,
           kind: "cached",
@@ -1455,20 +1440,7 @@ class Transpiler {
     const seen = new Set<string>();
     const directives: string[] = [];
     for (const file of input.cnextFiles) {
-      // #1830 review: the directives 1.1 reads, so a commented-out header adds
-      // nothing to the recovered translation unit. The regex this replaced did
-      // not know about comments, missed `#include"x.h"`, which the grammar
-      // allows, and skipped `.cnx` but sent a `.cnext` include in as a header.
-      // #1444: and read from 1.1's answer, rather than lexed and classified
-      // again here from the file's text.
-      for (const text of this._includesOf(file.path).cHeaderIncludes) {
-        const include = IncludeDirectiveText.split(text);
-        if (include === null) {
-          continue;
-        }
-        const directive = include.isLocal
-          ? `"${include.path}"`
-          : `<${include.path}>`;
+      for (const directive of this._cIncludeDirectivesOf(file.path)) {
         if (!seen.has(directive)) {
           seen.add(directive);
           directives.push(directive);
@@ -1476,6 +1448,62 @@ class Transpiler {
       }
     }
     return directives;
+  }
+
+  /** One .cnx file's C header includes, as `"x.h"` or `<x.h>`, in source order */
+  private _cIncludeDirectivesOf(sourcePath: string): string[] {
+    // #1830 review: the directives 1.1 reads, so a commented-out header adds
+    // nothing to the translation unit. The regex this replaced did not know
+    // about comments, missed `#include"x.h"`, which the grammar allows, and
+    // skipped `.cnx` but sent a `.cnext` include in as a header.
+    // #1444: and read from 1.1's answer, rather than lexed and classified
+    // again here from the file's text.
+    const directives: string[] = [];
+    for (const text of this._includesOf(sourcePath).cHeaderIncludes) {
+      const include = IncludeDirectiveText.split(text);
+      if (include !== null) {
+        directives.push(
+          include.isLocal ? `"${include.path}"` : `<${include.path}>`,
+        );
+      }
+    }
+    return directives;
+  }
+
+  /**
+   * #1688: each file's header macros, from the preprocessor's macro dump of
+   * that file's own C includes -- so a file sees the macros C sees for it,
+   * system headers and compiler builtins included, and no other file's.
+   * Without a preprocessor a macro has no type, as before #1688.
+   */
+  private async _collectHeaderMacros(input: ISourceGraph): Promise<void> {
+    if (this.config.preprocess === false) return;
+    if (!this.anchor.preprocessor.isAvailable()) return;
+    const limit = ConcurrencyLimit.create(availableParallelism());
+    const defines = { ...this._requireSourceGraph().anchor.defines };
+    await Promise.all(
+      input.cnextFiles.map(async (file) => {
+        const directives = this._cIncludeDirectivesOf(file.path);
+        if (directives.length === 0) return;
+        const dump = await limit(() =>
+          ExternalDeclarationOracle.macroDump(
+            directives,
+            this.anchor.preprocessor,
+            {
+              // The file's own directory first, as C searches a quoted include
+              includePaths: [
+                this._includesOf(file.path).quotedIncludeDirectory,
+                ...input.includeSearchPaths,
+              ],
+              defines,
+            },
+          ),
+        );
+        if (dump !== null) {
+          this.headerMacrosByFile.set(file.path, HeaderMacros.collect(dump));
+        }
+      }),
+    );
   }
 
   /**
@@ -2025,7 +2053,6 @@ class Transpiler {
     limit: TPreprocessLimit,
   ): Promise<{ content: string; usable: boolean; preprocessError?: string }> {
     const rawContent = this.fs.readFile(file.path);
-    this.headerTexts.set(file.path, rawContent);
 
     // Check if preprocessing is disabled
     if (this.config.preprocess === false) {

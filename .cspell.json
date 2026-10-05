@@ -617,6 +617,8 @@
     "Verilog",
     "VHDL",
     "vitest",
+    "lround",
+    "GNUC",
     "VREF",
     "vsce",
     "vsix",

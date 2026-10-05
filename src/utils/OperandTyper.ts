@@ -1081,7 +1081,9 @@ class OperandTyper {
     ctx: ITypingContext,
   ): IOperandType | null {
     if (binding !== null && binding.kind !== "foreign") return null;
-    return OperandTyper.macroOperand(ctx.program.headerMacro(name));
+    return OperandTyper.macroOperand(
+      ctx.program.headerMacro(ctx.sourceFile, name),
+    );
   }
 
   /** A floating or unreadable header macro's operand type; null for others */

@@ -7,10 +7,10 @@ import HeaderMacros from "../HeaderMacros";
 
 describe("HeaderMacros.collect", () => {
   const typeOf = (text: string, name: string) =>
-    HeaderMacros.collect([text]).get(name);
+    HeaderMacros.collect(text).get(name);
 
   it("types a floating literal anywhere as floating, with its C type", () => {
-    const macros = HeaderMacros.collect([
+    const macros = HeaderMacros.collect(
       [
         "#define SCALE_F 2.5f",
         "#define SCALE_D (2.5)",
@@ -21,7 +21,7 @@ describe("HeaderMacros.collect", () => {
         "#define LONG_D 1.5L",
         "#define HEX_F 0x1.8p1f",
       ].join("\n"),
-    ]);
+    );
     expect(macros.get("SCALE_F")).toEqual({
       kind: "floating",
       typeName: "f32",
@@ -49,7 +49,7 @@ describe("HeaderMacros.collect", () => {
   });
 
   it("types integer literals, operators and integer macros as integer", () => {
-    const macros = HeaderMacros.collect([
+    const macros = HeaderMacros.collect(
       [
         "#define LIMIT 10",
         "#define MASK (0xFFu << 4)",
@@ -57,14 +57,14 @@ describe("HeaderMacros.collect", () => {
         "#define DERIVED ((LIMIT * 2) | MASK)",
         "#define HEXF 0x1F",
       ].join("\n"),
-    ]);
+    );
     for (const name of ["LIMIT", "MASK", "BITS", "DERIVED", "HEXF"]) {
       expect(macros.get(name)).toEqual({ kind: "integer" });
     }
   });
 
   it("leaves a call, cast, dereference, string or unknown name unreadable, whatever a cast or call holds", () => {
-    const macros = HeaderMacros.collect([
+    const macros = HeaderMacros.collect(
       [
         "#include <stdint.h>",
         "#define _MMIO_BYTE(mem_addr) (*(volatile uint8_t *)(mem_addr))",
@@ -85,7 +85,7 @@ describe("HeaderMacros.collect", () => {
         "#define ROUNDED lround(1.5)",
         "#define TICKS_PLUS (TICKS + 1)",
       ].join("\n"),
-    ]);
+    );
     for (const name of [
       "PINB",
       "CAST",
@@ -107,34 +107,26 @@ describe("HeaderMacros.collect", () => {
   });
 
   it("does not collect a function-like macro", () => {
-    const macros = HeaderMacros.collect(["#define SQUARE(x) ((x) * (x))"]);
+    const macros = HeaderMacros.collect("#define SQUARE(x) ((x) * (x))");
     expect(macros.has("SQUARE")).toBe(false);
   });
 
-  it("reads spliced lines and ignores comments", () => {
-    const text = [
-      "#define SPLIT \\",
-      "    (1 + \\",
-      "     2)",
-      "#define COMMENTED 4 /* not 4.0 */ // nor 2.5",
-      "  #  define INDENTED 1.0\r",
-    ].join("\n");
-    const macros = HeaderMacros.collect([text]);
-    expect(macros.get("SPLIT")).toEqual({ kind: "integer" });
-    expect(macros.get("COMMENTED")).toEqual({ kind: "integer" });
-    expect(macros.get("INDENTED")).toEqual({
+  it("reads a -dM dump, builtins included", () => {
+    const macros = HeaderMacros.collect(
+      [
+        "#define __FLT_EPSILON__ 1.19209289550781250000000000000000000e-7F",
+        "#define FLT_EPSILON __FLT_EPSILON__",
+        "#define M_PI 3.14159265358979323846",
+        '#define NAN (__builtin_nanf (""))',
+        "#define __GNUC__ 11",
+      ].join("\n"),
+    );
+    expect(macros.get("FLT_EPSILON")).toEqual({
       kind: "floating",
-      typeName: "f64",
+      typeName: "f32",
     });
-  });
-
-  it("types a macro defined differently in two headers only when they agree", () => {
-    const macros = HeaderMacros.collect([
-      "#define SAME 1\n#define WIDTH 1.0f\n#define SPLIT 1",
-      "#define SAME 2\n#define WIDTH 1.0\n#define SPLIT 1.0",
-    ]);
-    expect(macros.get("SAME")).toEqual({ kind: "integer" });
-    expect(macros.get("WIDTH")).toEqual({ kind: "floating", typeName: null });
-    expect(macros.get("SPLIT")).toEqual({ kind: "unreadable" });
+    expect(macros.get("M_PI")).toEqual({ kind: "floating", typeName: "f64" });
+    expect(macros.get("NAN")).toEqual({ kind: "unreadable" });
+    expect(macros.get("__GNUC__")).toEqual({ kind: "integer" });
   });
 });

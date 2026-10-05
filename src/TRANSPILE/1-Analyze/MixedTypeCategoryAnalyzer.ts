@@ -70,9 +70,26 @@ type TOperatorSite = "binary" | "conditional" | "compound";
 
 /**
  * #1688 (ADR-024): a header macro C-Next cannot type. Not a Rule 10.4
- * category -- it is rejected beside an integer only, as E0811
+ * category -- it is rejected beside an integer only, as E0811 or E0812
  */
 const UNREADABLE_MACRO = "unreadable macro";
+
+/**
+ * The operators that hand an integer operand to a clamp helper (ADR-044), so
+ * an unreadable macro beside one is E0811; beside any other it is E0812
+ */
+const CLAMPED_ARITHMETIC: ReadonlySet<string> = new Set([
+  "+",
+  "-",
+  "*",
+  "/",
+  "%",
+  "+<-",
+  "-<-",
+  "*<-",
+  "/<-",
+  "%<-",
+]);
 
 /** Assignments that are not arithmetic, so not Rule 10.4 operands */
 const NOT_RULE_10_4_ASSIGNMENTS: ReadonlySet<string> = new Set([
@@ -164,7 +181,14 @@ class MixedCategoryCheck {
       if (this.reportsPair(operands[i - 1], operands[i], level)) {
         if (MixedCategoryCheck.differ(running, right, operator)) {
           const { line, column } = ParserUtils.getPosition(operands[i]);
-          this.analyzer.addError(line, column, running!, right!);
+          this.analyzer.addError(
+            line,
+            column,
+            running!,
+            right!,
+            "binary",
+            operator,
+          );
           mixed = true;
         }
       }
@@ -297,7 +321,7 @@ class MixedCategoryCheck {
     if (MixedCategoryCheck.ownedElsewhere(left, right, "compound")) return;
     if (MixedCategoryCheck.differ(left, right, text)) {
       const { line, column } = ParserUtils.getPosition(value);
-      this.analyzer.addError(line, column, left!, right!, "compound");
+      this.analyzer.addError(line, column, left!, right!, "compound", text);
     }
   }
 }
@@ -360,7 +384,7 @@ class MixedTypeCategoryAnalyzer {
     return `Binary operator combines operands of different essential type categories (${pair})`;
   }
 
-  /** E0811's text for each place an integer meets an unreadable macro */
+  /** E0811's and E0812's text for each place an integer meets an unreadable macro */
   private static unreadableMacroMessage(what: TOperatorSite): string {
     if (what === "conditional") {
       return "Conditional operator's value arms combine an integer and a header macro whose type C-Next cannot read";
@@ -383,15 +407,20 @@ class MixedTypeCategoryAnalyzer {
     left: string,
     right: string,
     what: TOperatorSite = "binary",
+    operator?: string,
   ): void {
     if (left === UNREADABLE_MACRO || right === UNREADABLE_MACRO) {
+      const clamped =
+        operator !== undefined && CLAMPED_ARITHMETIC.has(operator);
+      const why = clamped
+        ? "this operator would hand it to an integer clamp helper untyped"
+        : "C's usual arithmetic conversions decide this result from the type it really has, which can change a comparison or a bit operation (an unsigned 3 < -1 is true)";
       this.errors.push({
-        code: "E0811",
+        code: clamped ? "E0811" : "E0812",
         line,
         column,
         message: MixedTypeCategoryAnalyzer.unreadableMacroMessage(what),
-        helpText:
-          "ADR-024: a header macro is typed from its replacement tokens, and this one's are not a literal expression. Cast the macro to the type it has, e.g. (u32)MACRO or (f32)MACRO.",
+        helpText: `ADR-024: a header macro is typed from its replacement tokens, and this one's are not a literal expression; ${why}. Cast the macro to the type it has, e.g. (u32)MACRO or (f32)MACRO.`,
       });
       return;
     }
