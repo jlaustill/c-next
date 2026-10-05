@@ -286,7 +286,7 @@ A subscript into a scalar is a bit index and has no declared type, so the bit-in
 
 **A header macro is typed from its replacement tokens** _(owner ruling 2026-10-04, #1688)_. An object-like macro named as an operand is read as the preprocessor will expand it, following the macros it names:
 
-- **Floating:** a floating literal anywhere in the expansion, such as `2.5f`, `(2.5)`, `1e3` or `(VREF / 4096.0)`. Combined with an integer it is E0810, as any integer and floating mix is, so `u32 i * SCALE_F` with `#define SCALE_F 2.5f` is rejected. Its type is C's: `float` when every floating literal in it is `f`-suffixed, `double` otherwise.
+- **Floating:** a floating literal anywhere in the expansion, such as `2.5f`, `(2.5)`, `1e3` or `(VREF / 4096.0)`. Combined with an integer it is E0810, as any integer and floating mix is, so `u32 i * SCALE_F` with `#define SCALE_F 2.5f` is rejected. Its type is C's: `float` when every floating literal in it is `f`-suffixed, `long double` (which C-Next does not name) when any is `L`-suffixed, `double` otherwise.
 - **Integer:** only integer literals, arithmetic and bitwise operators, parentheses and other integer macros, such as `#define LIMIT 10`. It keeps the handling it had, an unsuffixed literal's, ADR-044 clamping included.
 - **Unreadable:** anything else, such as a call, a cast, a pointer dereference like avr-libc's `PINB`, or a name no header defines. Combined with an integer it is E0811, which asks for a cast, `(u32)M` or `(f32)M`, so it never reaches an integer clamp helper untyped. Beside any other operand it is left to C, as before.
 

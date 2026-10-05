@@ -585,12 +585,7 @@ class OperandTyper {
       name,
       ParserUtils.getPosition(node),
     );
-    if (binding !== null && binding.kind !== "foreign") {
-      return OperandTyper.boundValue(binding, ctx);
-    }
-    // A header macro before a header declaration of the name, as in
-    // `namedStart`: the preprocessor replaces it first (#1688)
-    const macro = OperandTyper.macroOperand(ctx.program.headerMacro(name));
+    const macro = OperandTyper.headerMacroType(binding, name, ctx);
     if (macro) return macro;
     return binding ? OperandTyper.boundValue(binding, ctx) : null;
   }
@@ -1052,11 +1047,7 @@ class OperandTyper {
         ops,
       };
     }
-    // A header's object-like macro, named alone, is typed from its
-    // replacement tokens (#1688, ADR-024); the preprocessor replaces it
-    // before C sees any declaration of the name. An integer one keeps the
-    // untyped path it had, so an unsuffixed literal's rules still apply
-    const macro = OperandTyper.macroStart(name, ops, ctx);
+    const macro = OperandTyper.macroStart(binding, name, ops, ctx);
     if (macro) return macro;
     if (binding?.kind === "foreign") {
       return OperandTyper.foreignStart(binding, name, ops, ctx);
@@ -1066,15 +1057,31 @@ class OperandTyper {
 
   /** A chain that is a floating or unreadable header macro named alone */
   private static macroStart(
+    binding: TValueBinding | null,
     name: string,
     ops: TChainOps,
     ctx: ITypingContext,
   ): IChainStart | null {
     if (ops.length !== 0) return null;
-    const t = OperandTyper.macroOperand(ctx.program.headerMacro(name));
+    const t = OperandTyper.headerMacroType(binding, name, ctx);
     return t
       ? { binding: null, value: { k: "value", t, register: false }, ops }
       : null;
+  }
+
+  /**
+   * The one precedence for a name a header macro may define (#1688, ADR-024):
+   * a C-Next declaration of the name wins; a macro wins over a header
+   * declaration, as the preprocessor replaces it before C sees one. Null for
+   * an integer macro, which keeps an unsuffixed literal's untyped path
+   */
+  private static headerMacroType(
+    binding: TValueBinding | null,
+    name: string,
+    ctx: ITypingContext,
+  ): IOperandType | null {
+    if (binding !== null && binding.kind !== "foreign") return null;
+    return OperandTyper.macroOperand(ctx.program.headerMacro(name));
   }
 
   /** A floating or unreadable header macro's operand type; null for others */
