@@ -63,7 +63,7 @@ describe("HeaderMacros.collect", () => {
     }
   });
 
-  it("leaves a call, cast, dereference, string or unknown name unreadable", () => {
+  it("leaves a call, cast, dereference, string or unknown name unreadable, whatever a cast or call holds", () => {
     const macros = HeaderMacros.collect([
       [
         "#include <stdint.h>",
@@ -78,6 +78,12 @@ describe("HeaderMacros.collect", () => {
         "#define SELF SELF",
         "#define CYCLE_A CYCLE_B",
         "#define CYCLE_B CYCLE_A",
+        "#define F_CPU 16000000UL",
+        "#define TICKS ((uint16_t)(F_CPU / 1000.0))",
+        "#define TRUNC ((int)2.5)",
+        "#define WIDENED ((double)2.5f)",
+        "#define ROUNDED lround(1.5)",
+        "#define TICKS_PLUS (TICKS + 1)",
       ].join("\n"),
     ]);
     for (const name of [
@@ -90,6 +96,11 @@ describe("HeaderMacros.collect", () => {
       "SELF",
       "CYCLE_A",
       "CYCLE_B",
+      "TICKS",
+      "TRUNC",
+      "WIDENED",
+      "ROUNDED",
+      "TICKS_PLUS",
     ]) {
       expect(macros.get(name), name).toEqual({ kind: "unreadable" });
     }

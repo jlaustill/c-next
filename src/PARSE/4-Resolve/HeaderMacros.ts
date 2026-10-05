@@ -104,7 +104,7 @@ class HeaderMacros {
     expanding: Set<string>,
   ): THeaderMacro {
     const floating: TFloatingTypeName[] = [];
-    let integerOnly = true;
+    let readable = true;
     let tokenCount = 0;
     for (const token of HeaderMacros.tokens(body)) {
       tokenCount += 1;
@@ -113,18 +113,21 @@ class HeaderMacros {
       } else if (token.kind === "name") {
         const named = HeaderMacros.typeOf(token.name, bodies, typed, expanding);
         if (named.kind === "floating") floating.push(named.typeName);
-        if (named.kind !== "integer") integerOnly = false;
+        if (named.kind === "unreadable") readable = false;
       } else if (token.kind === "other") {
-        integerOnly = false;
+        readable = false;
       }
     }
+    // A cast or call decides the type whatever it holds, so a floating
+    // literal inside one does not make the expansion floating (#1688 review)
+    if (!readable || tokenCount === 0) return UNREADABLE;
     if (floating.length > 0) {
       return {
         kind: "floating",
         typeName: HeaderMacros.usualFloating(floating),
       };
     }
-    return tokenCount > 0 && integerOnly ? { kind: "integer" } : UNREADABLE;
+    return { kind: "integer" };
   }
 
   private static tokens(body: string): TMacroToken[] {
