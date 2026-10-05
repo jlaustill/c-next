@@ -1,8 +1,10 @@
-17:17 error[E0811]: Binary operator combines an integer operand and a header macro whose type C-Next cannot read
+18:17 error[E0811]: Binary operator combines an integer operand and a header macro whose type C-Next cannot read
        help: ADR-024: a header macro is typed from its replacement tokens, and this one's are not a literal expression. Cast the macro to the type it has, e.g. (u32)MACRO or (f32)MACRO.
-18:26 error[E0811]: Binary operator combines an integer operand and a header macro whose type C-Next cannot read
+19:26 error[E0811]: Binary operator combines an integer operand and a header macro whose type C-Next cannot read
        help: ADR-024: a header macro is typed from its replacement tokens, and this one's are not a literal expression. Cast the macro to the type it has, e.g. (u32)MACRO or (f32)MACRO.
-19:23 error[E0811]: Binary operator combines an integer operand and a header macro whose type C-Next cannot read
+20:23 error[E0811]: Binary operator combines an integer operand and a header macro whose type C-Next cannot read
        help: ADR-024: a header macro is typed from its replacement tokens, and this one's are not a literal expression. Cast the macro to the type it has, e.g. (u32)MACRO or (f32)MACRO.
-20:10 error[E0811]: Compound assignment combines an integer target and a header macro whose type C-Next cannot read
+21:10 error[E0811]: Compound assignment combines an integer and a header macro whose type C-Next cannot read
+       help: ADR-024: a header macro is typed from its replacement tokens, and this one's are not a literal expression. Cast the macro to the type it has, e.g. (u32)MACRO or (f32)MACRO.
+22:17 error[E0811]: Compound assignment combines an integer and a header macro whose type C-Next cannot read
        help: ADR-024: a header macro is typed from its replacement tokens, and this one's are not a literal expression. Cast the macro to the type it has, e.g. (u32)MACRO or (f32)MACRO.

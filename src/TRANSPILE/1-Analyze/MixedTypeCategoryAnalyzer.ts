@@ -65,6 +65,9 @@ import type IOperandType from "../../types/IOperandType";
  */
 type Category = string | null;
 
+/** The places two operands meet: a binary operator, a ternary, a compound assignment */
+type TOperatorSite = "binary" | "conditional" | "compound";
+
 /**
  * #1688 (ADR-024): a header macro C-Next cannot type. Not a Rule 10.4
  * category -- it is rejected beside an integer only, as E0811
@@ -347,10 +350,7 @@ class MixedTypeCategoryAnalyzer {
   }
 
   /** The diagnostic's text for each place two categories meet */
-  private static message(
-    what: "binary" | "conditional" | "compound",
-    pair: string,
-  ): string {
+  private static message(what: TOperatorSite, pair: string): string {
     if (what === "conditional") {
       return `Conditional operator's value arms have different essential type categories (${pair})`;
     }
@@ -361,14 +361,12 @@ class MixedTypeCategoryAnalyzer {
   }
 
   /** E0811's text for each place an integer meets an unreadable macro */
-  private static unreadableMacroMessage(
-    what: "binary" | "conditional" | "compound",
-  ): string {
+  private static unreadableMacroMessage(what: TOperatorSite): string {
     if (what === "conditional") {
       return "Conditional operator's value arms combine an integer and a header macro whose type C-Next cannot read";
     }
     if (what === "compound") {
-      return "Compound assignment combines an integer target and a header macro whose type C-Next cannot read";
+      return "Compound assignment combines an integer and a header macro whose type C-Next cannot read";
     }
     return "Binary operator combines an integer operand and a header macro whose type C-Next cannot read";
   }
@@ -384,7 +382,7 @@ class MixedTypeCategoryAnalyzer {
     column: number,
     left: string,
     right: string,
-    what: "binary" | "conditional" | "compound" = "binary",
+    what: TOperatorSite = "binary",
   ): void {
     if (left === UNREADABLE_MACRO || right === UNREADABLE_MACRO) {
       this.errors.push({

@@ -13,9 +13,11 @@ void main() {
     // NEGATIVE CONTROL -- no integer operand beside it
     u32 a <- SCALED_CALL;
 
-    // ERRORS -- a call, a cast, a dereference, and a compound assignment
+    // ERRORS -- a call, a cast, a dereference, and compound assignments with
+    // the macro as value and as target
     u32 b <- i * SCALED_CALL;
     u32 c <- CAST_LIMIT + i;
     u8 d <- REG_BYTE & m;
     i +<- SCALED_CALL;
+    REG_BYTE +<- m;
 }
