@@ -40,7 +40,13 @@ type TOperandForm =
    * A C or C++ header's value. `indeterminate`: a C++ overload set whose
    * return categories disagree, so the call's category is unknown here.
    */
-  | { readonly kind: "foreign"; readonly indeterminate: boolean };
+  | { readonly kind: "foreign"; readonly indeterminate: boolean }
+  /**
+   * A header macro whose replacement tokens are not a literal expression --
+   * a call, a cast, a pointer dereference -- so it has no type C-Next can
+   * read (#1688, ADR-024)
+   */
+  | { readonly kind: "unreadableMacro" };
 
 /**
  * The value type of one operand, as the one operand typer decided it

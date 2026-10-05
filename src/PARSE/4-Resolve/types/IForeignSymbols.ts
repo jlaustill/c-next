@@ -1,5 +1,6 @@
 import type TCSymbol from "../../../types/symbols/c/TCSymbol";
 import type TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
+import type THeaderMacro from "../../../types/THeaderMacro";
 
 /**
  * The symbols this program's C and C++ headers declare.
@@ -32,6 +33,19 @@ interface IForeignSymbols {
 
   /** Struct tags a header gave a full definition. */
   readonly structTagsWithBodies: ReadonlySet<string>;
+
+  /**
+   * #1688: each C-Next file's header macros, keyed by the file's path, each
+   * typed from its replacement tokens (ADR-024). A `#define` is in no symbol
+   * list above.
+   */
+  readonly macros: ReadonlyMap<string, ReadonlyMap<string, THeaderMacro>>;
+
+  /**
+   * #1688: the C-Next files whose C includes' macros were not all read -- no
+   * preprocessor, `--no-preprocess`, or a header it could not preprocess.
+   */
+  readonly macrosUnread: ReadonlySet<string>;
 }
 
 export default IForeignSymbols;

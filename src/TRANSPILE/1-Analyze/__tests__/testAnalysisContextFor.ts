@@ -82,6 +82,8 @@ function testAnalysisContextFor(
         cpp: symbolTable.getAllCppSymbols(),
         opaqueTypedefs: new Set(symbolTable.getAllOpaqueTypes()),
         typedefToTag: new Map(symbolTable.getAllTypedefToTag()),
+        macros: new Map(),
+        macrosUnread: new Set<string>(),
         structTagsWithBodies: new Set(symbolTable.getAllStructTagsWithBodies()),
       },
       headerStructFields: symbolTable.getAllStructFields(),

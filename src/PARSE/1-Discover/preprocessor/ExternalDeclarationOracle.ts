@@ -105,6 +105,29 @@ class ExternalDeclarationOracle {
   }
 
   /**
+   * #1688: the macro dump (`-dM`) of `includeDirectives` as one TU: every
+   * macro C sees after them, builtins included. A header that cannot be
+   * preprocessed is dropped, as for recovery, and `complete` says whether
+   * any was; null when none can be preprocessed.
+   */
+  static async macroDump(
+    includeDirectives: readonly string[],
+    preprocessor: Preprocessor,
+    options: IPreprocessOptions,
+  ): Promise<{ dump: string; complete: boolean } | null> {
+    const working = await ExternalDeclarationOracle.preprocessLargestWorkingTu(
+      [...includeDirectives],
+      preprocessor,
+      { ...options, keepLineDirectives: false, dumpMacros: true },
+    );
+    if (!working) return null;
+    return {
+      dump: working.content,
+      complete: working.directives.length === includeDirectives.length,
+    };
+  }
+
+  /**
    * Bucket preprocessed output by originating source file using its `#line`
    * markers. Synthetic units (`<built-in>`, `<command-line>`, the TU itself) are
    * skipped. Each real header maps to the concatenation of its own emitted lines.

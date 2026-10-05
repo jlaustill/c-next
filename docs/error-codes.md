@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor                           | 15      |
 | E06xx     | Sizeof Expressions                             | 2       |
 | E07xx     | Control Flow                                   | 13      |
-| E08xx     | Arithmetic/Array Safety                        | 54      |
+| E08xx     | Arithmetic/Array Safety                        | 56      |
 | E09xx     | NULL Safety, Compile-Time Values, Literal Form | 12      |
-| **Total** |                                                | **123** |
+| **Total** |                                                | **125** |
 
 ---
 
@@ -225,12 +225,14 @@ include-visibility is not derivable for a C or C++ name.
 
 ### Essential Type Safety (MISRA C:2012)
 
-| Code  | Message                                                                                                             | Help                                                                                                                                                  | Source                                             |
-| ----- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| E0805 | Shift operator used on a signed integer type (MISRA C:2012 Rule 10.1)                                               | Shift an unsigned value; signed shifts are UB / implementation-defined in C                                                                           | `TRANSPILE/1-Analyze/ShiftAnalyzer.ts`             |
-| E0806 | Compound assignment used on a `bool` (MISRA C:2012 Rule 10.1)                                                       | Only `<-` is valid on a bool; flip a flag with `flag <- !flag`                                                                                        | `logic/analysis/BooleanOperandAnalyzer.ts`         |
-| E0807 | Arithmetic, bitwise, shift or relational operator applied to a `bool` operand (MISRA C:2012 Rule 10.1)              | A bool is not a number; combine flags with `&&` / `\|\|` / `!`, compare them with `=` / `!=`                                                          | `logic/analysis/BooleanOperandAnalyzer.ts`         |
-| E0810 | Operands of different essential type categories: a binary operator's, or a conditional's two value arms (Rule 10.4) | Integer and floating: cast the integer, e.g. `(f32)value`. Signed and unsigned: reinterpret one operand's bits with bit indexing, e.g. `value[0, 32]` | `TRANSPILE/1-Analyze/MixedTypeCategoryAnalyzer.ts` |
+| Code  | Message                                                                                                                                                                                                                                                   | Help                                                                                                                                                  | Source                                             |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| E0805 | Shift operator used on a signed integer type (MISRA C:2012 Rule 10.1)                                                                                                                                                                                     | Shift an unsigned value; signed shifts are UB / implementation-defined in C                                                                           | `TRANSPILE/1-Analyze/ShiftAnalyzer.ts`             |
+| E0806 | Compound assignment used on a `bool` (MISRA C:2012 Rule 10.1)                                                                                                                                                                                             | Only `<-` is valid on a bool; flip a flag with `flag <- !flag`                                                                                        | `logic/analysis/BooleanOperandAnalyzer.ts`         |
+| E0807 | Arithmetic, bitwise, shift or relational operator applied to a `bool` operand (MISRA C:2012 Rule 10.1)                                                                                                                                                    | A bool is not a number; combine flags with `&&` / `\|\|` / `!`, compare them with `=` / `!=`                                                          | `logic/analysis/BooleanOperandAnalyzer.ts`         |
+| E0810 | Operands of different essential type categories: a binary operator's, or a conditional's two value arms (Rule 10.4)                                                                                                                                       | Integer and floating: cast the integer, e.g. `(f32)value`. Signed and unsigned: reinterpret one operand's bits with bit indexing, e.g. `value[0, 32]` | `TRANSPILE/1-Analyze/MixedTypeCategoryAnalyzer.ts` |
+| E0811 | An integer operand combined by `+`, `-` or `*` with a header macro whose replacement is not a literal expression -- a call, a cast, a pointer dereference -- or, where the file's macros were not all read, with a name nothing declares (ADR-024, #1688) | Cast the macro to the type it has, e.g. `(u32)MACRO` or `(f32)MACRO`                                                                                  | `TRANSPILE/1-Analyze/MixedTypeCategoryAnalyzer.ts` |
+| E0812 | An integer operand combined with such a header macro by `/`, `%`, a comparison, bitwise or shift operator, or in a conditional's value arms (ADR-024, #1688)                                                                                              | Cast the macro to the type it has, e.g. `(u32)MACRO` or `(f32)MACRO`                                                                                  | `TRANSPILE/1-Analyze/MixedTypeCategoryAnalyzer.ts` |
 
 ### Array Index Type Safety
 

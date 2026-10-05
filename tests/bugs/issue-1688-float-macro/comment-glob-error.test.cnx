@@ -1,0 +1,10 @@
+// test-error
+// test-adr: 024
+// #1688 review: a block-comment opener inside a line comment does not hide
+// the #define after it; the preprocessor reads comments as C does.
+#include "comment_glob.h"
+
+void main() {
+    u32 i <- 3;
+    f32 x <- i * GLOB_SCALE;
+}
