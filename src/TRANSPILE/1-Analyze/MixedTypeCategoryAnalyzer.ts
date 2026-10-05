@@ -410,18 +410,7 @@ class MixedTypeCategoryAnalyzer {
     operator?: string,
   ): void {
     if (left === UNREADABLE_MACRO || right === UNREADABLE_MACRO) {
-      const clamped =
-        operator !== undefined && CLAMPED_ARITHMETIC.has(operator);
-      const why = clamped
-        ? "this operator would hand it to an integer clamp helper untyped"
-        : "C's usual arithmetic conversions decide this result from the type it really has, which can change a comparison or a bit operation (an unsigned 3 < -1 is true)";
-      this.errors.push({
-        code: clamped ? "E0811" : "E0812",
-        line,
-        column,
-        message: MixedTypeCategoryAnalyzer.unreadableMacroMessage(what),
-        helpText: `ADR-024: a header macro is typed from its replacement tokens, and this one's are not a literal expression; ${why}. Cast the macro to the type it has, e.g. (u32)MACRO or (f32)MACRO.`,
-      });
+      this.addUnreadableMacroError(line, column, what, operator);
       return;
     }
     const integer = (c: string) => c === "signed" || c === "unsigned";
@@ -452,6 +441,26 @@ class MixedTypeCategoryAnalyzer {
       column,
       message: MixedTypeCategoryAnalyzer.message(what, pair),
       helpText,
+    });
+  }
+
+  /** E0811 or E0812: an integer beside a header macro C-Next cannot type (#1688, ADR-024) */
+  private addUnreadableMacroError(
+    line: number,
+    column: number,
+    what: TOperatorSite,
+    operator: string | undefined,
+  ): void {
+    const clamped = operator !== undefined && CLAMPED_ARITHMETIC.has(operator);
+    const why = clamped
+      ? "this operator would hand it to an integer clamp helper untyped"
+      : "C's usual arithmetic conversions decide this result from the type it really has, which can change a comparison or a bit operation (an unsigned 3 < -1 is true)";
+    this.errors.push({
+      code: clamped ? "E0811" : "E0812",
+      line,
+      column,
+      message: MixedTypeCategoryAnalyzer.unreadableMacroMessage(what),
+      helpText: `ADR-024: a header macro is typed from its replacement tokens, and this one's are not a literal expression; ${why}. Cast the macro to the type it has, e.g. (u32)MACRO or (f32)MACRO.`,
     });
   }
 }

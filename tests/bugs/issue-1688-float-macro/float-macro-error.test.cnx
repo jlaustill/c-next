@@ -1,11 +1,23 @@
 // test-error
 // test-adr: 024
 // #1688 (ADR-024, owner decision 2026-10-04): a macro operand is typed from
-// its replacement tokens, and a floating literal anywhere in them makes it
-// floating. Combined with an integer it is E0810, as any int x float mix is.
+// its replacement tokens, and a floating literal makes it floating unless a
+// cast or call makes it unreadable. Combined with an integer it is E0810, as
+// any int x float mix is.
 // Before, a macro had no type, so `u32 i * SCALE_F` was routed into the
 // integer clamp helper and 3 x 2.5 evaluated to 6.0, exit 0.
 #include "float_macros.h"
+
+// `global.SCALE_F` names the header's macro past the member that shadows it
+// (ADR-057), and is typed as the bare name is (#1688 review)
+scope Motor {
+    f32 SCALE_F <- 1.0;
+
+    public f32 run(u32 i) {
+        f32 x <- i * global.SCALE_F;
+        return x;
+    }
+}
 
 void main() {
     u32 i <- 3;

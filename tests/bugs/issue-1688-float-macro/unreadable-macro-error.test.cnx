@@ -7,9 +7,21 @@
 // E0812 where C's conversions alone decide the result (#1688 review).
 #include "unreadable_macros.h"
 
+// E0811 -- `global.` names the header's macro as the bare name does; the
+// `this.` member that shadows it is the scope's own u8 (control)
+scope Port {
+    u8 REG_BYTE <- 0;
+
+    public void poke(u8 m) {
+        global.REG_BYTE +<- m;
+        this.REG_BYTE +<- m;
+    }
+}
+
 void main() {
     u32 i <- 3;
     u8 m <- 0x0F;
+    f32 k <- 1.0;
 
     // NEGATIVE CONTROL -- no integer operand beside it
     u32 a <- SCALED_CALL;
@@ -27,4 +39,11 @@ void main() {
     bool lt <- i < CAST_LIMIT;
     m |<- REG_BYTE;
     u32 e <- (lt = true) ? i : SCALED_CALL;
+
+    // NEGATIVE CONTROLS -- beside a float, an unreadable macro is C's
+    f32 f <- k * SCALED_CALL;
+    f32 g <- (lt = true) ? k : SCALED_CALL;
+
+    // E0810, not E0811 -- the float, not the macro, meets the integer
+    f32 h <- k * SCALED_CALL * i;
 }

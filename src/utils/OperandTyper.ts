@@ -953,6 +953,12 @@ class OperandTyper {
     ctx: ITypingContext,
   ): IChainStart {
     const binding = ctx.program.bindValue(ctx.sourceFile, root, name, at);
+    // `global.NAME` names what a bare NAME names at file scope, a header
+    // macro included (#1688); a `this.` name is the scope's own member
+    if (root === "global") {
+      const macro = OperandTyper.macroStart(binding, name, ops, ctx);
+      if (macro) return macro;
+    }
     if (binding?.kind === "scope") {
       return {
         binding,
