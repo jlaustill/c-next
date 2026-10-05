@@ -85,27 +85,27 @@ class HeaderMacros {
     typed: Map<string, THeaderMacro>,
     expanding: Set<string>,
   ): THeaderMacro {
-    const floating: TFloatingTypeName[] = [];
-    let readable = true;
-    let characters = 0;
-    let operands = 0;
-    for (const token of HeaderMacros.tokens(body)) {
-      if (token.kind === "paren") continue;
-      operands += 1;
-      const kind =
+    const kinds = HeaderMacros.tokens(body)
+      .filter((token) => token.kind !== "paren")
+      .map((token) =>
         token.kind === "name"
           ? HeaderMacros.typeOf(token.name, bodies, typed, expanding)
-          : token;
-      if (kind.kind === "floating") floating.push(kind.typeName);
-      if (kind.kind === "character") characters += 1;
-      if (kind.kind === "unreadable" || kind.kind === "other") readable = false;
-    }
+          : token,
+      );
     // A cast or call decides the type whatever it holds, so a floating
     // literal inside one does not make the expansion floating (#1688 review)
-    if (!readable || operands === 0) return UNREADABLE;
+    const unreadable = kinds.some(
+      (kind) => kind.kind === "unreadable" || kind.kind === "other",
+    );
+    if (unreadable || kinds.length === 0) return UNREADABLE;
     // A character constant alone, parenthesized or not, is one as written
     // inline; mixed with anything else, its type is not read (#1688 review)
-    if (characters > 0) return operands === 1 ? CHARACTER : UNREADABLE;
+    if (kinds.some((kind) => kind.kind === "character")) {
+      return kinds.length === 1 ? CHARACTER : UNREADABLE;
+    }
+    const floating = kinds.flatMap((kind) =>
+      kind.kind === "floating" ? [kind.typeName] : [],
+    );
     if (floating.length > 0) {
       return {
         kind: "floating",
