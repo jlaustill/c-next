@@ -66,8 +66,8 @@ int main(void) {
     if (3 != 3) return 14U;
     if (4 != 4) return 15U;
     if (16 != 16) return 16U;
-    for (uint32_t i = 0U; i < 4; i += 1) {
-        for (uint32_t j = 0U; j < 8; j += 1) {
+    for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U)) {
+        for (uint32_t j = 0U; j < 8; j = cnx_clamp_add_u32(j, 1U)) {
             matrix2d[i][j] = static_cast<int16_t>((((cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100), j))) & 0xFFFFU));
         }
     }
@@ -76,9 +76,9 @@ int main(void) {
     if (matrix2d[1U][3U] != 103) return 19U;
     if (matrix2d[3U][7U] != 307) return 20U;
     int32_t sum = 0;
-    for (uint32_t i = 0U; i < 2; i += 1) {
-        for (uint32_t j = 0U; j < 3; j += 1) {
-            for (uint32_t k = 0U; k < 4; k += 1) {
+    for (uint32_t i = 0U; i < 2; i = cnx_clamp_add_u32(i, 1U)) {
+        for (uint32_t j = 0U; j < 3; j = cnx_clamp_add_u32(j, 1U)) {
+            for (uint32_t k = 0U; k < 4; k = cnx_clamp_add_u32(k, 1U)) {
                 cube3d[i][j][k] = static_cast<int16_t>((((cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100), cnx_clamp_mul_u32(j, 10)), k))) & 0xFFFFU));
                 sum = cnx_clamp_add_i32(sum, cube3d[i][j][k]);
             }
@@ -90,8 +90,8 @@ int main(void) {
     matrix2d[3][7] = -1000;
     if (matrix2d[3U][7U] != -1000) return 23U;
     int16_t testArray[4][2] = {};
-    for (uint32_t ti = 0U; ti < 4; ti += 1) {
-        for (uint32_t tj = 0U; tj < 2; tj += 1) {
+    for (uint32_t ti = 0U; ti < 4; ti = cnx_clamp_add_u32(ti, 1U)) {
+        for (uint32_t tj = 0U; tj < 2; tj = cnx_clamp_add_u32(tj, 1U)) {
             testArray[ti][tj] = 0;
         }
     }
@@ -108,8 +108,8 @@ int main(void) {
     if (testArray[2U][0U] != 1) return 28U;
     if (testArray[3U][1U] != -15000) return 29U;
     int16_t coords[3][3] = {};
-    for (uint32_t ci = 0U; ci < 3; ci += 1) {
-        for (uint32_t cj = 0U; cj < 3; cj += 1) {
+    for (uint32_t ci = 0U; ci < 3; ci = cnx_clamp_add_u32(ci, 1U)) {
+        for (uint32_t cj = 0U; cj < 3; cj = cnx_clamp_add_u32(cj, 1U)) {
             coords[ci][cj] = 0;
         }
     }
@@ -126,8 +126,8 @@ int main(void) {
     if (coords[2U][0U] != 2000) return 34U;
     if (coords[2U][1U] != -3000) return 35U;
     int16_t deltas[2][2] = {};
-    for (uint32_t di = 0U; di < 2; di += 1) {
-        for (uint32_t dj = 0U; dj < 2; dj += 1) {
+    for (uint32_t di = 0U; di < 2; di = cnx_clamp_add_u32(di, 1U)) {
+        for (uint32_t dj = 0U; dj < 2; dj = cnx_clamp_add_u32(dj, 1U)) {
             deltas[di][dj] = 0;
         }
     }
@@ -136,8 +136,8 @@ int main(void) {
     int32_t deltaSum = deltas[0U][0U] + deltas[0U][1U];
     if (deltaSum != -2000) return 36U;
     int16_t altitudes[2][3] = {};
-    for (uint32_t ai = 0U; ai < 2; ai += 1) {
-        for (uint32_t aj = 0U; aj < 3; aj += 1) {
+    for (uint32_t ai = 0U; ai < 2; ai = cnx_clamp_add_u32(ai, 1U)) {
+        for (uint32_t aj = 0U; aj < 3; aj = cnx_clamp_add_u32(aj, 1U)) {
             altitudes[ai][aj] = 0;
         }
     }

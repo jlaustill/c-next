@@ -54,7 +54,7 @@ int main(void) {
     if (s.x != 30) return 9U;
     if (s.y != 40) return 10U;
     uint32_t total = 0U;
-    for (Point p = (Point){ .x = 2U, .y = 3U }; p.x < 4; p.x += 1) {
+    for (Point p = (Point){ .x = 2U, .y = 3U }; p.x < 4; p.x += 1U) {
         total = cnx_clamp_add_u32(total, p.y);
     }
     if (total != 6) return 11U;

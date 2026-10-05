@@ -49,7 +49,7 @@ import IBitAccessError from "./types/IBitAccessError";
 import TChainRoot from "../../types/TChainRoot";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
-import type TAssignmentSite from "./types/TAssignmentSite";
+import type TAssignmentSite from "../../types/TAssignmentSite";
 import SHARED_FLOAT_TYPES from "../../types/FLOAT_TYPES";
 import type IAnalysisContext from "./types/IAnalysisContext";
 

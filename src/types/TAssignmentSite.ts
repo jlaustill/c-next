@@ -1,4 +1,4 @@
-import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
+import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 
 /**
  * An assignment, however the grammar spells it: a statement, a for-loop

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import LoopAnalyzer from "../LoopAnalyzer";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. ADR-068's loop rules -- E0705 (`forever` in a non-void function),
@@ -9,11 +9,12 @@ import LoopAnalyzer from "../LoopAnalyzer";
  * (`break`/`continue`), replacing four throws across three codegen files,
  * three of which reported `1:0`.
  *
- * Every fact is in the parse tree, so no symbol view is needed.
+ * E0715 (#1647, a `for` header assignment that lowers to more than one
+ * statement) reads the target's type, so the analyzer takes the symbol view.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new LoopAnalyzer().analyze(tree);
+  const { tree, context } = testAnalysisContextFor(source);
+  return new LoopAnalyzer(context).analyze(tree);
 };
 
 const inRun = (body: string): string =>
@@ -126,6 +127,47 @@ describe("LoopAnalyzer", () => {
       expect(
         errors(inRun("    while (state < 10) {\n        state +<- 1;\n    }")),
       ).toEqual([]);
+    });
+  });
+  describe("E0715 -- a for header assignment that is more than one statement", () => {
+    const codes = (source: string) =>
+      errors(source).map((e) => [e.code, e.line, e.column, e.message]);
+
+    it("rejects a string copy, a slice and any write to an atomic", () => {
+      const source = [
+        "atomic u32 counter <- 0;",
+        "void run() {",
+        "    u8 n <- 0;",
+        '    string<8> s <- "a";',
+        "    u8[8] buf;",
+        '    for (s <- "b"; n < 2; buf[0, 2] <- n) { n +<- 1; }',
+        "    for (counter <- 0; n < 2; counter +<- 1) { n +<- 1; }",
+        "}",
+      ].join("\n");
+      expect(codes(source)).toEqual([
+        ["E0715", 6, 9, expect.stringContaining("a string copy")],
+        ["E0715", 6, 26, expect.stringContaining("a slice write")],
+        ["E0715", 7, 9, expect.stringContaining("an atomic store")],
+        [
+          "E0715",
+          7,
+          30,
+          expect.stringContaining("an atomic read-modify-write"),
+        ],
+      ]);
+    });
+
+    it("accepts forms that lower to one expression", () => {
+      const source = [
+        "atomic u32 counter <- 0;",
+        "void run() {",
+        "    u8 n <- 0;",
+        "    u32 bits <- 0;",
+        "    for (n <- 0; n < 2; bits[0, 4] <- 3) { counter <- 1; }",
+        "    for (bits[5] <- true; n < 4; n +<- 1) { bits[6] <- false; }",
+        "}",
+      ].join("\n");
+      expect(codes(source)).toEqual([]);
     });
   });
 });

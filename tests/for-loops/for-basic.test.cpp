@@ -23,7 +23,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: standard for loop with all three parts
 int main(void) {
     uint32_t sum = 0U;
-    for (uint32_t i = 0U; i < 10; i = cnx_clamp_add_u32(i, 1)) {
+    for (uint32_t i = 0U; i < 10; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, i);
     }
     if (sum == 45) {

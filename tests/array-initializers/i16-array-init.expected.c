@@ -20,6 +20,11 @@ static inline int16_t cnx_clamp_add_i16(int16_t a, int32_t b) {
     return (int16_t)result;
 }
 
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // test-execution
 // Tests: i16 as array element type
 // Coverage: Section 1.2 i16 array element type
@@ -45,7 +50,7 @@ int main(void) {
     if (inferred[2U] != 300) return 12U;
     int16_t loop_arr[3] = {100, 200, 300};
     int16_t sum = 0;
-    for (uint32_t i = 0U; i < 3; i += 1) {
+    for (uint32_t i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_i16(sum, loop_arr[i]);
     }
     if (sum != 600) return 13U;

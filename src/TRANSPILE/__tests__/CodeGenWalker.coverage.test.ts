@@ -1722,7 +1722,9 @@ describe("CodeGenWalker Coverage Tests", () => {
         }
       `);
 
-      expect(code).toContain("for (uint32_t i = 0U; i < 4; i += 1)");
+      expect(code).toContain(
+        "for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U))",
+      );
     });
 
     it("plans a for loop whose init is an assignment to an existing variable", () => {
@@ -1737,7 +1739,9 @@ describe("CodeGenWalker Coverage Tests", () => {
         }
       `);
 
-      expect(code).toContain("for (i = 0; i < 4; i += 1)");
+      expect(code).toContain(
+        "for (i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U))",
+      );
     });
 
     it("plans a for loop with neither init nor update", () => {
@@ -1767,7 +1771,9 @@ describe("CodeGenWalker Coverage Tests", () => {
         }
       `);
 
-      expect(code).toContain("for (i *= 2; i < 16; i *= 2)");
+      expect(code).toContain(
+        "for (i = cnx_clamp_mul_u32(i, 2U); i < 16; i = cnx_clamp_mul_u32(i, 2U))",
+      );
     });
 
     it("carries a for variable's modifiers (#696)", () => {

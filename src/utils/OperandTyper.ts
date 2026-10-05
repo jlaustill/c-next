@@ -331,6 +331,11 @@ class OperandTyper {
    * only this one's callers ask it; the subscript shape knew only a capacity,
    * so the element of `args[0]` was read as a bit rather than a character.
    */
+  /** A bounded string value -- not an array of them, nor an element of one, which is a char */
+  static isScalarString(t: IOperandType | null): boolean {
+    return t !== null && t.dimensions.length === 0 && OperandTyper.isString(t);
+  }
+
   static isString(t: IOperandType | null): boolean {
     if (t === null) return false;
     const name = t.typeName ?? "";

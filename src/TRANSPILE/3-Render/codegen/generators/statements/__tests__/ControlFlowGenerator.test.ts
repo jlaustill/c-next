@@ -117,10 +117,7 @@ function assignment(
   overrides: Partial<IPlannedForAssignment> = {},
 ): IPlannedForAssignment {
   return {
-    renderTarget: () => "i",
-    renderValue: () => "0",
-    operatorText: "<-",
-    operatorLine: 1,
+    render: () => "i = 0",
     ...overrides,
   };
 }
@@ -499,43 +496,18 @@ describe("ControlFlowGenerator", () => {
   });
 
   describe("generateForAssignment", () => {
-    it.each([
-      ["<-", "i = 0"],
-      ["+<-", "i += 0"],
-      ["-<-", "i -= 0"],
-      ["*<-", "i *= 0"],
-      ["/<-", "i /= 0"],
-    ])("maps the %s operator", (operatorText, expected) => {
+    // #1647: the header renders what the statement path renders, less its
+    // terminator. Mapping or concatenating here is what dropped ADR-044's
+    // clamp, so the generator must pass the render through untouched.
+    it("emits the plan's render unchanged", () => {
       expect(
         generateForAssignment(
-          assignment({ operatorText }),
+          assignment({ render: () => "i = cnx_clamp_add_u8(i, 10U)" }),
           INPUT,
           STATE,
           createMockOrchestrator(),
         ).code,
-      ).toBe(expected);
-    });
-
-    it("renders the target before the value", () => {
-      const order: string[] = [];
-
-      generateForAssignment(
-        assignment({
-          renderTarget: () => {
-            order.push("target");
-            return "i";
-          },
-          renderValue: () => {
-            order.push("value");
-            return "0";
-          },
-        }),
-        INPUT,
-        STATE,
-        createMockOrchestrator(),
-      );
-
-      expect(order).toEqual(["target", "value"]);
+      ).toBe("i = cnx_clamp_add_u8(i, 10U)");
     });
   });
 
@@ -547,7 +519,7 @@ describe("ControlFlowGenerator", () => {
             kind: "varDecl",
             plan: varDecl({ renderInitializer: () => "0" }),
           },
-          update: assignment({ operatorText: "+<-", renderValue: () => "1" }),
+          update: assignment({ render: () => "i += 1" }),
         }),
         INPUT,
         STATE,
@@ -587,7 +559,7 @@ describe("ControlFlowGenerator", () => {
         forPlan({
           init: {
             kind: "assignment",
-            plan: assignment({ operatorText: "+<-" }),
+            plan: assignment({ render: () => "i += 0" }),
           },
         }),
         INPUT,
@@ -595,7 +567,7 @@ describe("ControlFlowGenerator", () => {
         createMockOrchestrator(),
       );
       const asUpdate = generateFor(
-        forPlan({ update: assignment({ operatorText: "+<-" }) }),
+        forPlan({ update: assignment({ render: () => "i += 0" }) }),
         INPUT,
         STATE,
         createMockOrchestrator(),
@@ -619,16 +591,10 @@ describe("ControlFlowGenerator", () => {
         forPlan({
           init: {
             kind: "assignment",
-            plan: assignment({
-              renderTarget: note("init", "i"),
-              renderValue: () => "0",
-            }),
+            plan: assignment({ render: note("init", "i = 0") }),
           },
           renderCondition: note("condition", "i < 10"),
-          update: assignment({
-            renderTarget: note("update", "i"),
-            renderValue: () => "1",
-          }),
+          update: assignment({ render: note("update", "i += 1") }),
           renderBody: note("body", "{ body }"),
         }),
         INPUT,

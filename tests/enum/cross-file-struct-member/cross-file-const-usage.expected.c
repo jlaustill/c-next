@@ -33,7 +33,7 @@ int main(void) {
     if (doubled != 8) return 1U;
     if (COUNT != 4) return 2U;
     uint8_t sum = 0U;
-    for (uint8_t i = 0U; i < COUNT; i += 1) {
+    for (uint8_t i = 0U; i < COUNT; i = cnx_clamp_add_u8(i, 1U)) {
         sum = cnx_clamp_add_u8(sum, 1U);
     }
     if (sum != 4) return 3U;

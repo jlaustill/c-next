@@ -36,7 +36,7 @@ import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type TAssignmentSite from "./types/TAssignmentSite";
+import type TAssignmentSite from "../../types/TAssignmentSite";
 import type IOperandType from "../../types/IOperandType";
 
 class ShiftCheck {

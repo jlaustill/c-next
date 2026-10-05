@@ -25,49 +25,56 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a - b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 // test-execution
 // Tests: i32 as loop counter
 // Coverage: Section 1.2 i32 as loop counter
 int main(void) {
     uint32_t sum = 0U;
-    for (int32_t i = 0; i < 10; i += 1) {
+    for (int32_t i = 0; i < 10; i = cnx_clamp_add_i32(i, 1)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
     if (sum != 10) return 1U;
     sum = 0U;
-    for (int32_t j = 100; j < 110; j += 1) {
+    for (int32_t j = 100; j < 110; j = cnx_clamp_add_i32(j, 1)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
     if (sum != 10) return 2U;
     sum = 0U;
-    for (int32_t k = 10; k > 0; k -= 1) {
+    for (int32_t k = 10; k > 0; k = cnx_clamp_sub_i32(k, 1)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
     if (sum != 10) return 3U;
     sum = 0U;
-    for (int32_t m = -5; m < 5; m += 1) {
+    for (int32_t m = -5; m < 5; m = cnx_clamp_add_i32(m, 1)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
     if (sum != 10) return 4U;
     int32_t cross_count = 0;
-    for (int32_t n = -3; n <= 3; n += 1) {
+    for (int32_t n = -3; n <= 3; n = cnx_clamp_add_i32(n, 1)) {
         cross_count = cnx_clamp_add_i32(cross_count, 1);
     }
     if (cross_count != 7) return 5U;
     sum = 0U;
-    for (int32_t p = 0; p < 20; p += 2) {
+    for (int32_t p = 0; p < 20; p = cnx_clamp_add_i32(p, 2)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
     if (sum != 10) return 6U;
     sum = 0U;
-    for (int32_t outer = 0; outer < 3; outer += 1) {
-        for (int32_t inner = 0; inner < 4; inner += 1) {
+    for (int32_t outer = 0; outer < 3; outer = cnx_clamp_add_i32(outer, 1)) {
+        for (int32_t inner = 0; inner < 4; inner = cnx_clamp_add_i32(inner, 1)) {
             sum = cnx_clamp_add_u32(sum, 1U);
         }
     }
     if (sum != 12) return 7U;
     int32_t calc_sum = 0;
-    for (int32_t q = 1; q <= 5; q += 1) {
+    for (int32_t q = 1; q <= 5; q = cnx_clamp_add_i32(q, 1)) {
         calc_sum = cnx_clamp_add_i32(calc_sum, q);
     }
     if (calc_sum != 15) return 8U;

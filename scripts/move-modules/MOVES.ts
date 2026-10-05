@@ -1412,6 +1412,11 @@ const MOVES: readonly IMove[] = [
       "`PassByValueAnalyzer` into `ModificationFacts` with the propagation it " +
       "serves.",
   },
+  {
+    from: "src/TRANSPILE/1-Analyze/types/TAssignmentSite.ts",
+    to: "src/types/TAssignmentSite.ts",
+    because: SHARED_CONTRACT,
+  },
 ];
 
 export default MOVES;

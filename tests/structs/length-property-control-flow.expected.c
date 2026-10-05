@@ -42,7 +42,7 @@ int main(void) {
     }
     if (counter != 32) return 4U;
     uint32_t totalBits = 0U;
-    for (uint32_t i = 0U; (i < 4) != false; i += 1) {
+    for (uint32_t i = 0U; (i < 4) != false; i = cnx_clamp_add_u32(i, 1U)) {
         totalBits = cnx_clamp_add_u32(totalBits, 8);
     }
     if (totalBits != 32) return 5U;

@@ -18,31 +18,36 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)a) return 0;
+    return (uint32_t)(a - (uint32_t)b);
+}
+
 // test-execution
 // test-coverage: 30a-volatile-for-loop
 // Tests: Volatile variable in for loop (iteration variable)
 // ADR-064: Prevent loop optimization in timing-critical code
 int main(void) {
     uint32_t sum = 0U;
-    for (volatile uint32_t i = 0U; i < 5; i += 1) {
+    for (volatile uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, i);
     }
     if (sum != 10) return 1U;
     volatile uint32_t iterations = 0U;
-    for (volatile uint32_t j = 10U; j > 0; j -= 1) {
+    for (volatile uint32_t j = 10U; j > 0; j = cnx_clamp_sub_u32(j, 1U)) {
         iterations = cnx_clamp_add_u32(iterations, 1U);
     }
     if (iterations != 10) return 2U;
     uint32_t total = 0U;
-    for (volatile uint32_t outer = 0U; outer < 3; outer += 1) {
-        for (volatile uint32_t inner = 0U; inner < 4; inner += 1) {
+    for (volatile uint32_t outer = 0U; outer < 3; outer = cnx_clamp_add_u32(outer, 1U)) {
+        for (volatile uint32_t inner = 0U; inner < 4; inner = cnx_clamp_add_u32(inner, 1U)) {
             total = cnx_clamp_add_u32(total, 1U);
         }
     }
     if (total != 12) return 3U;
     volatile uint32_t step = 2U;
     uint32_t count = 0U;
-    for (volatile uint32_t k = 0U; k < 10; k += step) {
+    for (volatile uint32_t k = 0U; k < 10; k = cnx_clamp_add_u32(k, step)) {
         count = cnx_clamp_add_u32(count, 1U);
     }
     if (count != 5) return 4U;

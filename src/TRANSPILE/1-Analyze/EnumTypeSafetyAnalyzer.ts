@@ -59,7 +59,7 @@ import AssignmentSiteListener from "./AssignmentSiteListener";
 import IEnumTypeSafetyError from "./types/IEnumTypeSafetyError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IOperandType from "../../types/IOperandType";
-import type TAssignmentSite from "./types/TAssignmentSite";
+import type TAssignmentSite from "../../types/TAssignmentSite";
 
 const ASSIGN_HELP =
   "ADR-017: an enum is its own type, not an integer. Assign one of its members, or convert explicitly with a cast.";

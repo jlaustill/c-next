@@ -18,10 +18,10 @@ codes that already have a fixture.
 | E04xx     | Symbol Resolution                              | 16      |
 | E05xx     | Include/Preprocessor                           | 15      |
 | E06xx     | Sizeof Expressions                             | 2       |
-| E07xx     | Control Flow                                   | 12      |
+| E07xx     | Control Flow                                   | 13      |
 | E08xx     | Arithmetic/Array Safety                        | 55      |
 | E09xx     | NULL Safety, Compile-Time Values, Literal Form | 12      |
-| **Total** |                                                | **123** |
+| **Total** |                                                | **124** |
 
 ---
 
@@ -191,22 +191,23 @@ include-visibility is not derivable for a C or C++ name.
 
 ## E07xx — Control Flow Validation
 
-| Code  | Message                                                             | Help                                                                          | Source                                                       |
-| ----- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| E0701 | Condition must be a boolean expression                              | Use explicit comparison: `expr > 0` or `expr != 0`                            | `output/codegen/TypeValidator.ts`                            |
-| E0702 | Function call in condition not allowed                              | Store function result in a variable first                                     | `output/codegen/TypeValidator.ts`, `ControlFlowGenerator.ts` |
-| E0703 | `break`/`continue` not supported                                    | Use structured conditions instead                                             | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                        |
-| E0704 | Non-void function must return on all paths                          | Add an explicit `return <value>;` so every path returns a value               | `logic/analysis/ReturnPathAnalyzer.ts`                       |
-| E0705 | `forever` loop in non-void function                                 | Make the function return `void`, or use a `while` loop with an exit condition | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                        |
-| E0707 | Disguised infinite loop (`for(;;)` / always-true literal condition) | Write `forever { ... }` for an intentional infinite loop                      | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                        |
-| E0708 | Return value of non-void function discarded                         | Use the value, or discard it explicitly: `(void) f(...);`                     | `logic/analysis/ReturnValueUseAnalyzer.ts`                   |
-| E0710 | Nested ternary not allowed in a ternary's condition or branches     | Use `if`/`else`, or lift the inner expression into a named variable first     | `TRANSPILE/1-Analyze/NestedTernaryAnalyzer.ts`               |
-| E0711 | Switch on a `bool` (MISRA C:2012 Rule 16.7)                         | Use `if`/`else`; a bool has two states and a switch implies more              | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`             |
-| E0712 | Switch has fewer than two clauses (MISRA C:2012 Rule 16.6)          | Use an `if` statement; a one-clause switch is an if written the long way      | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`             |
-| E0713 | Duplicate case value in a switch                                    | Remove one of them; the second is unreachable                                 | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`             |
-| E0714 | Switch clauses do not account for the enum's variants exactly       | Add the missing cases, or a `default(N)` stating how many variants it absorbs | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`             |
+| Code  | Message                                                                               | Help                                                                          | Source                                                       |
+| ----- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| E0701 | Condition must be a boolean expression                                                | Use explicit comparison: `expr > 0` or `expr != 0`                            | `output/codegen/TypeValidator.ts`                            |
+| E0702 | Function call in condition not allowed                                                | Store function result in a variable first                                     | `output/codegen/TypeValidator.ts`, `ControlFlowGenerator.ts` |
+| E0703 | `break`/`continue` not supported                                                      | Use structured conditions instead                                             | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                        |
+| E0704 | Non-void function must return on all paths                                            | Add an explicit `return <value>;` so every path returns a value               | `logic/analysis/ReturnPathAnalyzer.ts`                       |
+| E0705 | `forever` loop in non-void function                                                   | Make the function return `void`, or use a `while` loop with an exit condition | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                        |
+| E0707 | Disguised infinite loop (`for(;;)` / always-true literal condition)                   | Write `forever { ... }` for an intentional infinite loop                      | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                        |
+| E0708 | Return value of non-void function discarded                                           | Use the value, or discard it explicitly: `(void) f(...);`                     | `logic/analysis/ReturnValueUseAnalyzer.ts`                   |
+| E0710 | Nested ternary not allowed in a ternary's condition or branches                       | Use `if`/`else`, or lift the inner expression into a named variable first     | `TRANSPILE/1-Analyze/NestedTernaryAnalyzer.ts`               |
+| E0711 | Switch on a `bool` (MISRA C:2012 Rule 16.7)                                           | Use `if`/`else`; a bool has two states and a switch implies more              | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`             |
+| E0712 | Switch has fewer than two clauses (MISRA C:2012 Rule 16.6)                            | Use an `if` statement; a one-clause switch is an if written the long way      | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`             |
+| E0713 | Duplicate case value in a switch                                                      | Remove one of them; the second is unreachable                                 | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`             |
+| E0714 | Switch clauses do not account for the enum's variants exactly                         | Add the missing cases, or a `default(N)` stating how many variants it absorbs | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`             |
+| E0715 | `for` header assignment is more than one statement (string, slice, atomic, float bit) | Assign before the loop, or at the end of its body as a `while` loop           | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                        |
 
-**Related:** MISRA C:2012 Rule 14.4 (E0701), Rule 13.5 / Issue #254 (E0702), ADR-026 / Issue #1011 (E0703), ADR-067 / Issue #1040 (E0704), ADR-068 / Issue #1074 (E0705), ADR-068 / Issue #1075 (E0707; E0706 reserved for ADR-069 unreachable code; ADR-070 / Issue #847 (E0708); E0709 reserved for ADR-069 unused variable / Issue #1107; ADR-022 / Issue #1322 (E0710))
+**Related:** MISRA C:2012 Rule 14.4 (E0701), Rule 13.5 / Issue #254 (E0702), ADR-026 / Issue #1011 (E0703), ADR-067 / Issue #1040 (E0704), ADR-068 / Issue #1074 (E0705), ADR-068 / Issue #1075 (E0707; E0706 reserved for ADR-069 unreachable code; ADR-070 / Issue #847 (E0708); E0709 reserved for ADR-069 unused variable / Issue #1107; ADR-022 / Issue #1322 (E0710); ADR-068 / Issue #1647 (E0715))
 
 ---
 

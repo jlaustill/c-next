@@ -29,6 +29,11 @@
    the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
    uint8_t parameter would return 0 -- the opposite of saturation. */
 
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
     if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
     return (uint8_t)(a + (uint8_t)b);
@@ -53,7 +58,7 @@ uint32_t Cfg__check(void) {
     uint8_t seen = 0U;
     seen = FIVE;
     uint32_t i = 0U;
-    for (i = 0; i < 1; i += 1) {
+    for (i = 0U; i < 1; i = cnx_clamp_add_u32(i, 1U)) {
         seen = cnx_clamp_add_u8(seen, FIVE);
     }
     if (seen == 6) return 8U;

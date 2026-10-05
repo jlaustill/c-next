@@ -47,7 +47,6 @@ import IPlannedForever from "../../types/IPlannedForever";
 import IPlannedIf from "../../types/IPlannedIf";
 import IPlannedLoop from "../../types/IPlannedLoop";
 import TPlannedReturn from "../../types/TPlannedReturn";
-import AssignmentOperatorMapper from "../../helpers/AssignmentOperatorMapper";
 
 /**
  * Generate C code for a return statement.
@@ -248,35 +247,16 @@ const generateForVarDecl = (
 /**
  * Generate an assignment in a `for` header, for the init and the update alike.
  *
- * #1445: ONE renderer, where there were two. `generateFor` open-coded the
- * update form inline with the same three reads and the same
- * `AssignmentOperatorMapper` call, which is the duplicate-code-path
- * anti-pattern at its smallest -- a change to the operator mapping needed two
- * edits and nothing said so.
- *
- * #1647: it is still a THIRD path beside the one a statement assignment takes.
- * Concatenating target, operator and value skips ADR-065's classification, so
- * ADR-044's overflow lowering and MISRA C:2012 Rule 7.2's literal suffix never
- * run here -- `i +<- 10` on a `u8` saturates as a statement and WRAPS in a
- * `for` update, which turns a terminating loop into an infinite one.
- * Pre-existing and preserved exactly: this slice's oracle is a byte-identical
- * corpus, and that fix changes the emitted C of every `for` header.
+ * #1647: the plan renders through the statement assignment path, so the
+ * header gets the same classification, ADR-044 lowering and Rule 7.2 suffix a
+ * statement does. Nothing is mapped or concatenated here.
  */
 const generateForAssignment = (
   plan: IPlannedForAssignment,
   _input: IGeneratorInput,
   _state: IGeneratorState,
   _orchestrator: IOrchestrator,
-): IGeneratorOutput => {
-  const effects: TGeneratorEffect[] = [];
-  const target = plan.renderTarget();
-  const value = plan.renderValue();
-  const cOp = AssignmentOperatorMapper.toCOperator(
-    plan.operatorText,
-    plan.operatorLine,
-  );
-  return { code: `${target} ${cOp} ${value}`, effects };
-};
+): IGeneratorOutput => ({ code: plan.render(), effects: [] });
 
 /**
  * Generate C code for a for statement.

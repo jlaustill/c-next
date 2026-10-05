@@ -37,7 +37,7 @@ int main(void) {
     MyEnum val = config.items[0U].assigned;
     if (val != MyEnum__A) return 1U;
     uint8_t countAssigned = 0U;
-    for (uint8_t i = 0U; i < COUNT; i += 1) {
+    for (uint8_t i = 0U; i < COUNT; i = cnx_clamp_add_u8(i, 1U)) {
         MyEnum current = config.items[i].assigned;
         if (current != MyEnum__NONE) {
             countAssigned = cnx_clamp_add_u8(countAssigned, 1U);

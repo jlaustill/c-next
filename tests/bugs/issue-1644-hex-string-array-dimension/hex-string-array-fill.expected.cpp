@@ -6,6 +6,19 @@
 #include <stdint.h>
 #include <string.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // test-execution
 // test-no-warnings
 // #1644: ADR-035's fill-all form filled ONE slot instead of every slot whenever
@@ -66,22 +79,22 @@ int main(void) {
     char dec[4][9] = {"ab", "ab", "ab", "ab"};
     uint8_t conPlain[4] = {7U, 7U, 7U, 7U};
     uint8_t decPlain[4] = {7U, 7U, 7U, 7U};
-    for (uint32_t i = 0U; i < 4; i += 1) {
+    for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U)) {
         if (strcmp(hex[i], "ab") != 0) return 1U;
     }
-    for (uint32_t j = 0U; j < 4; j += 1) {
+    for (uint32_t j = 0U; j < 4; j = cnx_clamp_add_u32(j, 1U)) {
         if (strcmp(bin[j], "ab") != 0) return 2U;
     }
-    for (uint32_t k = 0U; k < 4; k += 1) {
+    for (uint32_t k = 0U; k < 4; k = cnx_clamp_add_u32(k, 1U)) {
         if (strcmp(con[k], "ab") != 0) return 3U;
     }
-    for (uint32_t m = 0U; m < 4; m += 1) {
+    for (uint32_t m = 0U; m < 4; m = cnx_clamp_add_u32(m, 1U)) {
         if (strcmp(dec[m], "ab") != 0) return 4U;
     }
-    for (uint32_t n = 0U; n < 4; n += 1) {
+    for (uint32_t n = 0U; n < 4; n = cnx_clamp_add_u32(n, 1U)) {
         if (conPlain[n] != 7) return 5U;
     }
-    for (uint32_t p = 0U; p < 4; p += 1) {
+    for (uint32_t p = 0U; p < 4; p = cnx_clamp_add_u32(p, 1U)) {
         if (decPlain[p] != 7) return 6U;
     }
     return 0U;

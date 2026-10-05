@@ -51,7 +51,7 @@ void executeParamHandler(ISR cb) {
 
 // Function that accepts ISR and invokes it multiple times
 void executeParamMultiple(ISR fn, uint32_t times) {
-    for (uint32_t i = 0U; i < times; i += 1) {
+    for (uint32_t i = 0U; i < times; i = cnx_clamp_add_u32(i, 1U)) {
         (*fn)();
     }
 }

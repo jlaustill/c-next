@@ -29,7 +29,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // `for` header does not go through the assignment pipeline.
 uint32_t steps(void) {
     uint32_t n = 0U;
-    for (uint32_t i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1)) {
+    for (uint32_t i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1U)) {
         n = cnx_clamp_add_u32(n, 1U);
     }
     return n;
@@ -37,7 +37,7 @@ uint32_t steps(void) {
 
 uint32_t passes(void) {
     uint32_t n = 0U;
-    for (uint32_t i = 4294967290U; i < 4294967295; i = cnx_clamp_add_u32(i, 10)) {
+    for (uint32_t i = 4294967290U; i < 4294967295; i = cnx_clamp_add_u32(i, 10U)) {
         n = cnx_clamp_add_u32(n, 1U);
         if (n > 3) {
             return n;

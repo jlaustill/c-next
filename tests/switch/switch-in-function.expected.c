@@ -152,7 +152,7 @@ uint64_t getLargeValue(uint8_t index) {
 // Switch inside loop body
 uint32_t sumWithSwitchInLoop(uint32_t count, uint32_t mode) {
     uint32_t sum = 0U;
-    for (uint32_t i = 0U; i < count; i += 1) {
+    for (uint32_t i = 0U; i < count; i = cnx_clamp_add_u32(i, 1U)) {
         switch (mode) {
                 case 0: {
                         sum = cnx_clamp_add_u32(sum, 1U);

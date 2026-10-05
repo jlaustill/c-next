@@ -48,7 +48,7 @@ const uint8_t ITEM_COUNT = 3U;
 
 int main(void) {
     uint32_t total = 0U;
-    for (uint8_t i = 0U; i < ITEM_COUNT; i = cnx_clamp_add_u8(i, 1)) {
+    for (uint8_t i = 0U; i < ITEM_COUNT; i = cnx_clamp_add_u8(i, 1U)) {
         ConstInferred__TItem item = ITEMS[i];
         total = cnx_clamp_add_u32(total, item.value);
     }
