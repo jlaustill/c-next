@@ -107,19 +107,24 @@ class ExternalDeclarationOracle {
   /**
    * #1688: the macro dump (`-dM`) of `includeDirectives` as one TU: every
    * macro C sees after them, builtins included. A header that cannot be
-   * preprocessed is dropped, as for recovery; null when none can.
+   * preprocessed is dropped, as for recovery, and `complete` says whether
+   * any was; null when none can be preprocessed.
    */
   static async macroDump(
     includeDirectives: readonly string[],
     preprocessor: Preprocessor,
     options: IPreprocessOptions,
-  ): Promise<string | null> {
+  ): Promise<{ dump: string; complete: boolean } | null> {
     const working = await ExternalDeclarationOracle.preprocessLargestWorkingTu(
       [...includeDirectives],
       preprocessor,
       { ...options, keepLineDirectives: false, dumpMacros: true },
     );
-    return working?.content ?? null;
+    if (!working) return null;
+    return {
+      dump: working.content,
+      complete: working.directives.length === includeDirectives.length,
+    };
   }
 
   /**

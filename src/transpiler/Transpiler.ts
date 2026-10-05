@@ -173,6 +173,9 @@ class Transpiler {
     ReadonlyMap<string, THeaderMacro>
   >();
 
+  /** #1688: the C-Next files whose C includes' macros were not all read */
+  private readonly headerMacrosUnread = new Set<string>();
+
   /**
    * #1323: one file's fully-resolved header-render input, captured while its
    * `CodeGenState` was warm. `_renderHeaders` (Stage 5.5) reads this map ONCE,
@@ -699,6 +702,7 @@ class Transpiler {
             ),
             // #1688: each file's own, from its C includes' macro dump
             macros: this.headerMacrosByFile,
+            macrosUnread: this.headerMacrosUnread,
           },
           // #1825: ADR-006's and ADR-029's derivations look callees and
           // typedefs up in it. It holds the headers' symbols only until the
@@ -1226,6 +1230,7 @@ class Transpiler {
     this.warnings.length = 0;
     this.anyHeaderPreprocessFailed = false;
     this.headerMacrosByFile.clear();
+    this.headerMacrosUnread.clear();
     // #1323: a stale entry here would let one run's header content leak into
     // the next, the same shape #1143's toolchain-requirements leak was.
     this.headerEmissionFactsByPath.clear();
@@ -1477,15 +1482,24 @@ class Transpiler {
    * Without a preprocessor a macro has no type, as before #1688.
    */
   private async _collectHeaderMacros(input: ISourceGraph): Promise<void> {
-    if (this.config.preprocess === false) return;
-    if (!this.anchor.preprocessor.isAvailable()) return;
+    const withIncludes = input.cnextFiles.flatMap((file) => {
+      const directives = this._cIncludeDirectivesOf(file.path);
+      return directives.length === 0 ? [] : [{ file, directives }];
+    });
+    // Unread is not "no macros": a name the file uses may be one (#1688 review)
+    if (
+      this.config.preprocess === false ||
+      !this.anchor.preprocessor.isAvailable()
+    ) {
+      for (const { file } of withIncludes)
+        this.headerMacrosUnread.add(file.path);
+      return;
+    }
     const limit = ConcurrencyLimit.create(availableParallelism());
     const defines = { ...this._requireSourceGraph().anchor.defines };
     await Promise.all(
-      input.cnextFiles.map(async (file) => {
-        const directives = this._cIncludeDirectivesOf(file.path);
-        if (directives.length === 0) return;
-        const dump = await limit(() =>
+      withIncludes.map(async ({ file, directives }) => {
+        const read = await limit(() =>
           ExternalDeclarationOracle.macroDump(
             directives,
             this.anchor.preprocessor,
@@ -1499,8 +1513,12 @@ class Transpiler {
             },
           ),
         );
-        if (dump !== null) {
-          this.headerMacrosByFile.set(file.path, HeaderMacros.collect(dump));
+        if (read?.complete !== true) this.headerMacrosUnread.add(file.path);
+        if (read !== null) {
+          this.headerMacrosByFile.set(
+            file.path,
+            HeaderMacros.collect(read.dump),
+          );
         }
       }),
     );

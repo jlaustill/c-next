@@ -106,6 +106,25 @@ describe("HeaderMacros.collect", () => {
     }
   });
 
+  it("types a character constant alone as character, and mixed as unreadable", () => {
+    const macros = HeaderMacros.collect(
+      [
+        "#define LETTER_A 'A'",
+        "#define CR ('\\r')",
+        "#define QUOTE '\\''",
+        "#define ALIAS LETTER_A",
+        "#define NEXT ('A' + 1)",
+        "#define WIDE L'A'",
+      ].join("\n"),
+    );
+    for (const name of ["LETTER_A", "CR", "QUOTE", "ALIAS"]) {
+      expect(macros.get(name), name).toEqual({ kind: "character" });
+    }
+    for (const name of ["NEXT", "WIDE"]) {
+      expect(macros.get(name), name).toEqual({ kind: "unreadable" });
+    }
+  });
+
   it("does not collect a function-like macro", () => {
     const macros = HeaderMacros.collect("#define SQUARE(x) ((x) * (x))");
     expect(macros.has("SQUARE")).toBe(false);

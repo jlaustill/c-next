@@ -83,6 +83,9 @@ type TOperandForm = IOperandType["form"];
 
 const DECLARED: TOperandForm = { kind: "declared" };
 
+/** A name that may be a macro C-Next could not read (#1688, ADR-024) */
+const UNREAD_MACRO: THeaderMacro = { kind: "unreadable" };
+
 class OperandTyper {
   /**
    * Whether evaluating an expression has a side effect: it calls a function
@@ -594,21 +597,24 @@ class OperandTyper {
   // Leaves
   // --------------------------------------------------------------------------
 
+  /** A character constant, written inline or as a header macro's expansion */
+  private static characterLiteral(): IOperandType {
+    return {
+      ...OperandTyper.plain("char"),
+      category: "character",
+      bitWidth: 8,
+      form: {
+        kind: "literal",
+        literal: "char",
+        suffixed: false,
+        negated: false,
+      },
+    };
+  }
+
   private static literalType(node: Parser.LiteralContext): IOperandType | null {
     const text = node.getText();
-    if (text.startsWith("'")) {
-      return {
-        ...OperandTyper.plain("char"),
-        category: "character",
-        bitWidth: 8,
-        form: {
-          kind: "literal",
-          literal: "char",
-          suffixed: false,
-          negated: false,
-        },
-      };
-    }
+    if (text.startsWith("'")) return OperandTyper.characterLiteral();
     const typeName = LiteralUtils.typeOf(node);
     if (typeName === null) return null;
     if (typeName === "bool") {
@@ -1079,7 +1085,9 @@ class OperandTyper {
    * The one precedence for a name a header macro may define (#1688, ADR-024):
    * a C-Next declaration of the name wins; a macro wins over a header
    * declaration, as the preprocessor replaces it before C sees one. Null for
-   * an integer macro, which keeps an unsuffixed literal's untyped path
+   * an integer macro, which keeps an unsuffixed literal's untyped path. A
+   * name nothing declares, in a file whose macros were not all read, may be
+   * a macro of any type, so it is unreadable (#1688 review)
    */
   private static headerMacroType(
     binding: TValueBinding | null,
@@ -1087,14 +1095,18 @@ class OperandTyper {
     ctx: ITypingContext,
   ): IOperandType | null {
     if (binding !== null && binding.kind !== "foreign") return null;
-    return OperandTyper.macroOperand(
-      ctx.program.headerMacro(ctx.sourceFile, name),
-    );
+    const macro = ctx.program.headerMacro(ctx.sourceFile, name);
+    const unread =
+      macro === null &&
+      binding === null &&
+      ctx.program.headerMacrosUnread(ctx.sourceFile);
+    return OperandTyper.macroOperand(unread ? UNREAD_MACRO : macro);
   }
 
-  /** A floating or unreadable header macro's operand type; null for others */
+  /** A floating, character or unreadable header macro's type; null for others */
   private static macroOperand(macro: THeaderMacro | null): IOperandType | null {
     if (macro === null || macro.kind === "integer") return null;
+    if (macro.kind === "character") return OperandTyper.characterLiteral();
     if (macro.kind === "unreadable") {
       return { ...OperandTyper.plain(null), form: { kind: "unreadableMacro" } };
     }

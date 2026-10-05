@@ -41,6 +41,7 @@ function build(
       opaqueTypedefs: new Set(),
       typedefToTag: new Map(),
       macros: new Map(),
+      macrosUnread: new Set<string>(),
       structTagsWithBodies: new Set(),
     },
   });

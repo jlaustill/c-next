@@ -82,13 +82,9 @@ const CLAMPED_ARITHMETIC: ReadonlySet<string> = new Set([
   "+",
   "-",
   "*",
-  "/",
-  "%",
   "+<-",
   "-<-",
   "*<-",
-  "/<-",
-  "%<-",
 ]);
 
 /** Assignments that are not arithmetic, so not Rule 10.4 operands */
@@ -454,7 +450,7 @@ class MixedTypeCategoryAnalyzer {
     const clamped = operator !== undefined && CLAMPED_ARITHMETIC.has(operator);
     const why = clamped
       ? "this operator would hand it to an integer clamp helper untyped"
-      : "C's usual arithmetic conversions decide this result from the type it really has, which can change a comparison or a bit operation (an unsigned 3 < -1 is true)";
+      : "C's usual arithmetic conversions decide this result from the type it really has, which can change a comparison, a bit operation or a quotient (an unsigned 3 < -1 is true)";
     this.errors.push({
       code: clamped ? "E0811" : "E0812",
       line,

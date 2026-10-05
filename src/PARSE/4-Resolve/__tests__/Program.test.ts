@@ -53,6 +53,7 @@ const noForeign = {
   opaqueTypedefs: new Set<string>(),
   typedefToTag: new Map<string, string>(),
   macros: new Map(),
+  macrosUnread: new Set<string>(),
   structTagsWithBodies: new Set<string>(),
 };
 
@@ -699,6 +700,7 @@ describe("Program", () => {
               ["Full", "_Full"],
             ]),
             macros: new Map(),
+            macrosUnread: new Set<string>(),
             structTagsWithBodies: new Set(structTagsWithBodies),
           },
         },
@@ -749,6 +751,7 @@ describe("Program", () => {
           opaqueTypedefs: new Set(opaqueTypedefs),
           typedefToTag: new Map(typedefToTag),
           macros: new Map(),
+          macrosUnread: new Set<string>(),
           structTagsWithBodies: new Set(structTagsWithBodies),
         },
       });
@@ -945,6 +948,7 @@ scope Gauge {
         "externalStructFields",
         "functionParamLists",
         "headerMacro",
+        "headerMacrosUnread",
         "isOpaqueType",
         "isScopeTypeVisibleFrom",
         "knownEnums",

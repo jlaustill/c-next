@@ -34,7 +34,10 @@ void main() {
     REG_BYTE +<- m;
 
     // E0812 -- a bitwise operator, a comparison, a bitwise compound
-    // assignment, and a conditional's value arms
+    // assignment, a conditional's value arms, and `/` and `%`, which reach
+    // no clamp helper (owner ruling 2026-10-05)
+    u32 q <- i / SCALED_CALL;
+    i %<- SCALED_CALL;
     u8 d <- REG_BYTE & m;
     bool lt <- i < CAST_LIMIT;
     m |<- REG_BYTE;

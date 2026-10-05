@@ -140,6 +140,12 @@ interface IProgram {
   headerMacro(sourceFile: string, name: string): THeaderMacro | null;
 
   /**
+   * #1688: whether some of the file's C includes' macros could not be read,
+   * so a name `headerMacro` does not know may still be one.
+   */
+  headerMacrosUnread(sourceFile: string): boolean;
+
+  /**
    * Which parameters each function modifies, direct and transitive.
    *
    * Decides whether a caller's argument may take ADR-013 auto-const, and the
