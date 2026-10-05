@@ -1,0 +1,52 @@
+// test-error
+// test-adr: 024
+// #1688 (ADR-024, owner decision 2026-10-04): a macro whose replacement
+// tokens are not a literal expression -- a call, a cast, a pointer
+// dereference -- has no type C-Next can read. Combined with an integer it
+// asks for a cast: E0811 where the operator reaches an integer clamp helper,
+// E0812 where C's conversions alone decide the result (#1688 review).
+#include "unreadable_macros.h"
+
+// E0811 -- `global.` names the header's macro as the bare name does; the
+// `this.` member that shadows it is the scope's own u8 (control)
+scope Port {
+    u8 REG_BYTE <- 0;
+
+    public void poke(u8 m) {
+        global.REG_BYTE +<- m;
+        this.REG_BYTE +<- m;
+    }
+}
+
+void main() {
+    u32 i <- 3;
+    u8 m <- 0x0F;
+    f32 k <- 1.0;
+
+    // NEGATIVE CONTROL -- no integer operand beside it
+    u32 a <- SCALED_CALL;
+
+    // E0811 -- arithmetic: a call, a cast, and compound assignments with the
+    // macro as value and as target
+    u32 b <- i * SCALED_CALL;
+    u32 c <- CAST_LIMIT + i;
+    i +<- SCALED_CALL;
+    REG_BYTE +<- m;
+
+    // E0812 -- a bitwise operator, a comparison, a bitwise compound
+    // assignment, a conditional's value arms, and `/` and `%`, which reach
+    // no clamp helper (owner ruling 2026-10-05)
+    u32 q <- i / SCALED_CALL;
+    i %<- SCALED_CALL;
+    u8 d <- REG_BYTE & m;
+    bool lt <- i < CAST_LIMIT;
+    m |<- REG_BYTE;
+    u32 e <- (lt = true) ? i : SCALED_CALL;
+
+    // NEGATIVE CONTROLS -- beside a float, an unreadable macro is C's
+    f32 f <- k * SCALED_CALL;
+    f32 g <- (lt = true) ? k : SCALED_CALL;
+
+    // E0810, not E0811 -- the float, not the macro, meets the integer
+    f32 h <- k * SCALED_CALL * i;
+}

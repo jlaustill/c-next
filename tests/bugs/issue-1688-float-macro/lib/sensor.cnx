@@ -1,0 +1,7 @@
+#include "sensor_cfg.h"
+
+scope Sensor {
+    public u32 scaled(u32 raw) {
+        return raw + OFFSET;
+    }
+}

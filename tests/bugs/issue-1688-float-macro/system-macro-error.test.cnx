@@ -1,0 +1,13 @@
+// test-error
+// test-adr: 024
+// #1688 review: a float macro from a system header, or one that names a
+// compiler builtin, is typed as one from the run's own header. Macros come
+// from the preprocessor (-dM), which reads system headers and builtins.
+#include <math.h>
+#include <float.h>
+
+void main() {
+    u32 i <- 3;
+    f64 x <- i * M_PI;
+    f32 y <- i * FLT_EPSILON;
+}

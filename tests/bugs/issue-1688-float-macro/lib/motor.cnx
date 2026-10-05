@@ -1,0 +1,7 @@
+#include "motor_cfg.h"
+
+scope Motor {
+    public f32 torque(u32 raw) {
+        return (f32)raw * OFFSET;
+    }
+}

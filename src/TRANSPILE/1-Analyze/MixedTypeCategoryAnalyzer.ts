@@ -65,6 +65,28 @@ import type IOperandType from "../../types/IOperandType";
  */
 type Category = string | null;
 
+/** The places two operands meet: a binary operator, a ternary, a compound assignment */
+type TOperatorSite = "binary" | "conditional" | "compound";
+
+/**
+ * #1688 (ADR-024): a header macro C-Next cannot type. Not a Rule 10.4
+ * category -- it is rejected beside an integer only, as E0811 or E0812
+ */
+const UNREADABLE_MACRO = "unreadable macro";
+
+/**
+ * The operators that hand an integer operand to a clamp helper (ADR-044), so
+ * an unreadable macro beside one is E0811; beside any other it is E0812
+ */
+const CLAMPED_ARITHMETIC: ReadonlySet<string> = new Set([
+  "+",
+  "-",
+  "*",
+  "+<-",
+  "-<-",
+  "*<-",
+]);
+
 /** Assignments that are not arithmetic, so not Rule 10.4 operands */
 const NOT_RULE_10_4_ASSIGNMENTS: ReadonlySet<string> = new Set([
   "<-",
@@ -105,6 +127,7 @@ class MixedCategoryCheck {
     if (t.form.kind === "bitIndex" || t.form.kind === "bitRange") return null;
     // Which overload a call selects is C++'s decision, not ours (C03)
     if (t.form.kind === "foreign" && t.form.indeterminate) return null;
+    if (t.form.kind === "unreadableMacro") return UNREADABLE_MACRO;
     if (t.category === "enum") return `enum:${t.enumTypeName ?? t.typeName}`;
     return t.category === "none" ? null : t.category;
   }
@@ -154,7 +177,14 @@ class MixedCategoryCheck {
       if (this.reportsPair(operands[i - 1], operands[i], level)) {
         if (MixedCategoryCheck.differ(running, right, operator)) {
           const { line, column } = ParserUtils.getPosition(operands[i]);
-          this.analyzer.addError(line, column, running!, right!);
+          this.analyzer.addError(
+            line,
+            column,
+            running!,
+            right!,
+            "binary",
+            operator,
+          );
           mixed = true;
         }
       }
@@ -189,8 +219,8 @@ class MixedCategoryCheck {
     right: Category,
     operator: string,
   ): Category {
-    if (right === null) return running;
-    if (running === null) return right;
+    if (right === null || right === UNREADABLE_MACRO) return running ?? right;
+    if (running === null || running === UNREADABLE_MACRO) return right;
     if (
       running !== right &&
       !MixedCategoryCheck.differ(running, right, operator)
@@ -245,6 +275,12 @@ class MixedCategoryCheck {
     const left = this.operandCategory(arms[0]);
     const right = this.operandCategory(arms[1]);
     if (left === null || right === null || left === right) return;
+    if (
+      (left === UNREADABLE_MACRO || right === UNREADABLE_MACRO) &&
+      !MixedCategoryCheck.differ(left, right, ":")
+    ) {
+      return;
+    }
     const { line, column } = ParserUtils.getPosition(arms[1]);
     this.analyzer.addError(line, column, left, right, "conditional");
   }
@@ -257,6 +293,11 @@ class MixedCategoryCheck {
   ): boolean {
     if (left === null || right === null || left === right) return false;
     const integer = (c: string) => c === "signed" || c === "unsigned";
+    // ADR-024 (#1688): an unreadable macro needs a cast beside an integer
+    // only; beside anything else it is C's to evaluate, as it always was
+    if (left === UNREADABLE_MACRO || right === UNREADABLE_MACRO) {
+      return integer(left) || integer(right);
+    }
     const characterExempt =
       CHARACTER_ARITHMETIC.has(operator) &&
       ((left === "character" && integer(right)) ||
@@ -276,7 +317,7 @@ class MixedCategoryCheck {
     if (MixedCategoryCheck.ownedElsewhere(left, right, "compound")) return;
     if (MixedCategoryCheck.differ(left, right, text)) {
       const { line, column } = ParserUtils.getPosition(value);
-      this.analyzer.addError(line, column, left!, right!, "compound");
+      this.analyzer.addError(line, column, left!, right!, "compound", text);
     }
   }
 }
@@ -329,10 +370,7 @@ class MixedTypeCategoryAnalyzer {
   }
 
   /** The diagnostic's text for each place two categories meet */
-  private static message(
-    what: "binary" | "conditional" | "compound",
-    pair: string,
-  ): string {
+  private static message(what: TOperatorSite, pair: string): string {
     if (what === "conditional") {
       return `Conditional operator's value arms have different essential type categories (${pair})`;
     }
@@ -340,6 +378,17 @@ class MixedTypeCategoryAnalyzer {
       return `Compound assignment combines a target and a value of different essential type categories (${pair})`;
     }
     return `Binary operator combines operands of different essential type categories (${pair})`;
+  }
+
+  /** E0811's and E0812's text for each place an integer meets an unreadable macro */
+  private static unreadableMacroMessage(what: TOperatorSite): string {
+    if (what === "conditional") {
+      return "Conditional operator's value arms combine an integer and a header macro whose type C-Next cannot read";
+    }
+    if (what === "compound") {
+      return "Compound assignment combines an integer and a header macro whose type C-Next cannot read";
+    }
+    return "Binary operator combines an integer operand and a header macro whose type C-Next cannot read";
   }
 
   /** How a category reads in a message */
@@ -353,8 +402,13 @@ class MixedTypeCategoryAnalyzer {
     column: number,
     left: string,
     right: string,
-    what: "binary" | "conditional" | "compound" = "binary",
+    what: TOperatorSite = "binary",
+    operator?: string,
   ): void {
+    if (left === UNREADABLE_MACRO || right === UNREADABLE_MACRO) {
+      this.addUnreadableMacroError(line, column, what, operator);
+      return;
+    }
     const integer = (c: string) => c === "signed" || c === "unsigned";
     const floating =
       (left === "floating" && integer(right)) ||
@@ -383,6 +437,26 @@ class MixedTypeCategoryAnalyzer {
       column,
       message: MixedTypeCategoryAnalyzer.message(what, pair),
       helpText,
+    });
+  }
+
+  /** E0811 or E0812: an integer beside a header macro C-Next cannot type (#1688, ADR-024) */
+  private addUnreadableMacroError(
+    line: number,
+    column: number,
+    what: TOperatorSite,
+    operator: string | undefined,
+  ): void {
+    const clamped = operator !== undefined && CLAMPED_ARITHMETIC.has(operator);
+    const why = clamped
+      ? "this operator would hand it to an integer clamp helper untyped"
+      : "C's usual arithmetic conversions decide this result from the type it really has, which can change a comparison, a bit operation or a quotient (an unsigned 3 < -1 is true)";
+    this.errors.push({
+      code: clamped ? "E0811" : "E0812",
+      line,
+      column,
+      message: MixedTypeCategoryAnalyzer.unreadableMacroMessage(what),
+      helpText: `ADR-024: a header macro is typed from its replacement tokens, and this one's are not a literal expression; ${why}. Cast the macro to the type it has, e.g. (u32)MACRO or (f32)MACRO.`,
     });
   }
 }

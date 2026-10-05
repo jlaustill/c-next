@@ -65,6 +65,8 @@ import IFileResult from "../types/IFileResult";
 import type IRunAnchor from "../PARSE/1-Discover/types/IRunAnchor";
 import IPipelineFile from "../PARSE/1-Discover/types/IPipelineFile";
 import type ISourceGraph from "../PARSE/1-Discover/types/ISourceGraph";
+import HeaderMacros from "../PARSE/4-Resolve/HeaderMacros";
+import type THeaderMacro from "../types/THeaderMacro";
 import type IFileIncludes from "../PARSE/1-Discover/types/IFileIncludes";
 import Discover from "../PARSE/1-Discover/Discover";
 import RunAnchor from "../PARSE/1-Discover/RunAnchor";
@@ -164,6 +166,15 @@ class Transpiler {
    * only projects with unresolvable framework headers pay its cost.
    */
   private anyHeaderPreprocessFailed = false;
+
+  /** #1688: each C-Next file's header macros, by the file's path */
+  private readonly headerMacrosByFile = new Map<
+    string,
+    ReadonlyMap<string, THeaderMacro>
+  >();
+
+  /** #1688: the C-Next files whose C includes' macros were not all read */
+  private readonly headerMacrosUnread = new Set<string>();
 
   /**
    * #1323: one file's fully-resolved header-render input, captured while its
@@ -422,6 +433,9 @@ class Transpiler {
     // Issue #985 recovery: when standalone header preprocessing missed framework
     // symbols, recover their declared names via translation-unit preprocessing.
     await this._collectExternalDeclarations(input);
+
+    // #1688: the macros each file's C includes define, typed (ADR-024)
+    await this._collectHeaderMacros(input);
 
     if (!this._passesProgramChecks(input, result)) {
       return;
@@ -686,6 +700,9 @@ class Transpiler {
             structTagsWithBodies: new Set(
               this.codeGenerator.transpileState.symbolTable.getAllStructTagsWithBodies(),
             ),
+            // #1688: each file's own, from its C includes' macro dump
+            macros: this.headerMacrosByFile,
+            macrosUnread: this.headerMacrosUnread,
           },
           // #1825: ADR-006's and ADR-029's derivations look callees and
           // typedefs up in it. It holds the headers' symbols only until the
@@ -1212,6 +1229,8 @@ class Transpiler {
     // result copies it with a spread, so nothing holds the array itself.
     this.warnings.length = 0;
     this.anyHeaderPreprocessFailed = false;
+    this.headerMacrosByFile.clear();
+    this.headerMacrosUnread.clear();
     // #1323: a stale entry here would let one run's header content leak into
     // the next, the same shape #1143's toolchain-requirements leak was.
     this.headerEmissionFactsByPath.clear();
@@ -1426,20 +1445,7 @@ class Transpiler {
     const seen = new Set<string>();
     const directives: string[] = [];
     for (const file of input.cnextFiles) {
-      // #1830 review: the directives 1.1 reads, so a commented-out header adds
-      // nothing to the recovered translation unit. The regex this replaced did
-      // not know about comments, missed `#include"x.h"`, which the grammar
-      // allows, and skipped `.cnx` but sent a `.cnext` include in as a header.
-      // #1444: and read from 1.1's answer, rather than lexed and classified
-      // again here from the file's text.
-      for (const text of this._includesOf(file.path).cHeaderIncludes) {
-        const include = IncludeDirectiveText.split(text);
-        if (include === null) {
-          continue;
-        }
-        const directive = include.isLocal
-          ? `"${include.path}"`
-          : `<${include.path}>`;
+      for (const directive of this._cIncludeDirectivesOf(file.path)) {
         if (!seen.has(directive)) {
           seen.add(directive);
           directives.push(directive);
@@ -1447,6 +1453,75 @@ class Transpiler {
       }
     }
     return directives;
+  }
+
+  /** One .cnx file's C header includes, as `"x.h"` or `<x.h>`, in source order */
+  private _cIncludeDirectivesOf(sourcePath: string): string[] {
+    // #1830 review: the directives 1.1 reads, so a commented-out header adds
+    // nothing to the translation unit. The regex this replaced did not know
+    // about comments, missed `#include"x.h"`, which the grammar allows, and
+    // skipped `.cnx` but sent a `.cnext` include in as a header.
+    // #1444: and read from 1.1's answer, rather than lexed and classified
+    // again here from the file's text.
+    const directives: string[] = [];
+    for (const text of this._includesOf(sourcePath).cHeaderIncludes) {
+      const include = IncludeDirectiveText.split(text);
+      if (include !== null) {
+        directives.push(
+          include.isLocal ? `"${include.path}"` : `<${include.path}>`,
+        );
+      }
+    }
+    return directives;
+  }
+
+  /**
+   * #1688: each file's header macros, from the preprocessor's macro dump of
+   * that file's own C includes -- so a file sees the macros C sees for it,
+   * system headers and compiler builtins included, and no other file's.
+   * Without a preprocessor a macro has no type, as before #1688.
+   */
+  private async _collectHeaderMacros(input: ISourceGraph): Promise<void> {
+    const withIncludes = input.cnextFiles.flatMap((file) => {
+      const directives = this._cIncludeDirectivesOf(file.path);
+      return directives.length === 0 ? [] : [{ file, directives }];
+    });
+    // Unread is not "no macros": a name the file uses may be one (#1688 review)
+    if (
+      this.config.preprocess === false ||
+      !this.anchor.preprocessor.isAvailable()
+    ) {
+      for (const { file } of withIncludes)
+        this.headerMacrosUnread.add(file.path);
+      return;
+    }
+    const limit = ConcurrencyLimit.create(availableParallelism());
+    const defines = { ...this._requireSourceGraph().anchor.defines };
+    await Promise.all(
+      withIncludes.map(async ({ file, directives }) => {
+        const read = await limit(() =>
+          ExternalDeclarationOracle.macroDump(
+            directives,
+            this.anchor.preprocessor,
+            {
+              // The file's own directory first, as C searches a quoted include
+              includePaths: [
+                this._includesOf(file.path).quotedIncludeDirectory,
+                ...input.includeSearchPaths,
+              ],
+              defines,
+            },
+          ),
+        );
+        if (read?.complete !== true) this.headerMacrosUnread.add(file.path);
+        if (read !== null) {
+          this.headerMacrosByFile.set(
+            file.path,
+            HeaderMacros.collect(read.dump),
+          );
+        }
+      }),
+    );
   }
 
   /**

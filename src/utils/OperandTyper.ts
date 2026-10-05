@@ -35,6 +35,7 @@ import ScopeUtils from "./ScopeUtils";
 import SubscriptClassifier from "./SubscriptClassifier";
 import TypeResolver from "./TypeResolver";
 import TypeBinding from "../PARSE/3-Declare/TypeBinding";
+import type THeaderMacro from "../types/THeaderMacro";
 import type IChainStep from "../types/IChainStep";
 import type IChainTyping from "../types/IChainTyping";
 import type IOperandType from "../types/IOperandType";
@@ -81,6 +82,9 @@ interface IChainStart {
 type TOperandForm = IOperandType["form"];
 
 const DECLARED: TOperandForm = { kind: "declared" };
+
+/** A name that may be a macro C-Next could not read (#1688, ADR-024) */
+const UNREAD_MACRO: THeaderMacro = { kind: "unreadable" };
 
 class OperandTyper {
   /**
@@ -577,12 +581,15 @@ class OperandTyper {
     if (cast) return OperandTyper.castType(cast, ctx);
     const identifier = node.IDENTIFIER();
     if (!identifier) return null;
+    const name = identifier.getText();
     const binding = ctx.program.bindValue(
       ctx.sourceFile,
       null,
-      identifier.getText(),
+      name,
       ParserUtils.getPosition(node),
     );
+    const macro = OperandTyper.headerMacroType(binding, name, ctx);
+    if (macro) return macro;
     return binding ? OperandTyper.boundValue(binding, ctx) : null;
   }
 
@@ -590,21 +597,24 @@ class OperandTyper {
   // Leaves
   // --------------------------------------------------------------------------
 
+  /** A character constant, written inline or as a header macro's expansion */
+  private static characterLiteral(): IOperandType {
+    return {
+      ...OperandTyper.plain("char"),
+      category: "character",
+      bitWidth: 8,
+      form: {
+        kind: "literal",
+        literal: "char",
+        suffixed: false,
+        negated: false,
+      },
+    };
+  }
+
   private static literalType(node: Parser.LiteralContext): IOperandType | null {
     const text = node.getText();
-    if (text.startsWith("'")) {
-      return {
-        ...OperandTyper.plain("char"),
-        category: "character",
-        bitWidth: 8,
-        form: {
-          kind: "literal",
-          literal: "char",
-          suffixed: false,
-          negated: false,
-        },
-      };
-    }
+    if (text.startsWith("'")) return OperandTyper.characterLiteral();
     const typeName = LiteralUtils.typeOf(node);
     if (typeName === null) return null;
     if (typeName === "bool") {
@@ -949,6 +959,12 @@ class OperandTyper {
     ctx: ITypingContext,
   ): IChainStart {
     const binding = ctx.program.bindValue(ctx.sourceFile, root, name, at);
+    // `global.NAME` names what a bare NAME names at file scope, a header
+    // macro included (#1688); a `this.` name is the scope's own member
+    if (root === "global") {
+      const macro = OperandTyper.macroStart(binding, name, ops, ctx);
+      if (macro) return macro;
+    }
     if (binding?.kind === "scope") {
       return {
         binding,
@@ -1043,10 +1059,62 @@ class OperandTyper {
         ops,
       };
     }
+    const macro = OperandTyper.macroStart(binding, name, ops, ctx);
+    if (macro) return macro;
     if (binding?.kind === "foreign") {
       return OperandTyper.foreignStart(binding, name, ops, ctx);
     }
     return { binding: null, value: { k: "foreignPath", parts: [name] }, ops };
+  }
+
+  /** A chain that is a floating or unreadable header macro named alone */
+  private static macroStart(
+    binding: TValueBinding | null,
+    name: string,
+    ops: TChainOps,
+    ctx: ITypingContext,
+  ): IChainStart | null {
+    if (ops.length !== 0) return null;
+    const t = OperandTyper.headerMacroType(binding, name, ctx);
+    return t
+      ? { binding: null, value: { k: "value", t, register: false }, ops }
+      : null;
+  }
+
+  /**
+   * The one precedence for a name a header macro may define (#1688, ADR-024):
+   * a C-Next declaration of the name wins; a macro wins over a header
+   * declaration, as the preprocessor replaces it before C sees one. Null for
+   * an integer macro, which keeps an unsuffixed literal's untyped path. A
+   * name nothing declares, in a file whose macros were not all read, may be
+   * a macro of any type, so it is unreadable (#1688 review)
+   */
+  private static headerMacroType(
+    binding: TValueBinding | null,
+    name: string,
+    ctx: ITypingContext,
+  ): IOperandType | null {
+    if (binding !== null && binding.kind !== "foreign") return null;
+    const macro = ctx.program.headerMacro(ctx.sourceFile, name);
+    const unread =
+      macro === null &&
+      binding === null &&
+      ctx.program.headerMacrosUnread(ctx.sourceFile);
+    return OperandTyper.macroOperand(unread ? UNREAD_MACRO : macro);
+  }
+
+  /** A floating, character or unreadable header macro's type; null for others */
+  private static macroOperand(macro: THeaderMacro | null): IOperandType | null {
+    if (macro === null || macro.kind === "integer") return null;
+    if (macro.kind === "character") return OperandTyper.characterLiteral();
+    if (macro.kind === "unreadable") {
+      return { ...OperandTyper.plain(null), form: { kind: "unreadableMacro" } };
+    }
+    return {
+      ...OperandTyper.plain(macro.typeName),
+      category: "floating",
+      form: { kind: "foreign", indeterminate: false },
+    };
   }
 
   /**

@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-491 fixture(s) assert a diagnostic; 481 carry a code.
+496 fixture(s) assert a diagnostic; 486 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -406,6 +406,11 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1669-enum-member-values/value-overflow.test.cnx                                 | E0910               |
 | tests/bugs/issue-1669-enum-member-values/value-self-later.test.cnx                               | E0909               |
 | tests/bugs/issue-1669-enum-member-values/value-variable.test.cnx                                 | E0909               |
+| tests/bugs/issue-1688-float-macro/char-macro-error.test.cnx                                      | E0810, E0811        |
+| tests/bugs/issue-1688-float-macro/comment-glob-error.test.cnx                                    | E0810               |
+| tests/bugs/issue-1688-float-macro/float-macro-error.test.cnx                                     | E0810               |
+| tests/bugs/issue-1688-float-macro/system-macro-error.test.cnx                                    | E0810               |
+| tests/bugs/issue-1688-float-macro/unreadable-macro-error.test.cnx                                | E0810, E0811, E0812 |
 | tests/bugs/issue-1694-e0850-scoped-name/signed-then-loop.test.cnx                                | E0850               |
 | tests/bugs/issue-1698-bare-scope-call/mix-error.test.cnx                                         | E0810               |
 | tests/bugs/issue-1698-bare-scope-call/narrow-error.test.cnx                                      | E0869               |

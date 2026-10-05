@@ -170,13 +170,17 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-5 linked fixtures with no derivable context:
+9 linked fixtures with no derivable context:
 
 - `bugs/issue-1668-c-integers/subscript-cpp.test.cnx`
 - `bugs/issue-1668-c-integers/subscript.test.cnx`
 - `bugs/issue-1668-c-integers/unknown-width.test.cnx`
 - `bugs/issue-1668-c-integers/width.test.cnx`
 - `bugs/issue-1668-suffixed-literals/width.test.cnx`
+- `bugs/issue-1688-float-macro/char-macro-controls.test.cnx`
+- `bugs/issue-1688-float-macro/macro-controls.test.cnx`
+- `bugs/issue-1688-float-macro/per-file-macros.test.cnx`
+- `bugs/issue-1688-float-macro/unreadable-macro-cast.test.cnx`
 
 ## ADR-025
 

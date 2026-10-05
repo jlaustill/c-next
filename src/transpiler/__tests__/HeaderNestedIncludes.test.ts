@@ -109,8 +109,14 @@ describe("a C header's own includes (#1723)", () => {
     const handed: string[][] = [];
     vi.spyOn(Preprocessor.prototype, "isAvailable").mockReturnValue(true);
     vi.spyOn(Preprocessor.prototype, "preprocess").mockImplementation(
-      async (file: string, options?: { includePaths?: string[] }) => {
-        handed.push([...(options?.includePaths ?? [])]);
+      async (
+        file: string,
+        options?: { includePaths?: string[]; dumpMacros?: boolean },
+      ) => {
+        // #1688's macro dump of the file's includes is not a header's run
+        if (!options?.dumpMacros) {
+          handed.push([...(options?.includePaths ?? [])]);
+        }
         return {
           content: readFileSync(file, "utf-8"),
           sourceMappings: [],

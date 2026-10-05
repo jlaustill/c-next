@@ -1,0 +1,21 @@
+// test-execution
+// test-no-warnings
+// test-adr: 024
+// #1688 review: a file sees the macros of its own includes only. `OFFSET`
+// is a `u32` constant in sensor.cnx's header and a float macro in
+// motor.cnx's; read run-wide, the macro won in sensor.cnx too and
+// `raw + OFFSET` was rejected as an integer and floating mix (E0810).
+#include "lib/sensor.cnx"
+#include "lib/motor.cnx"
+
+u32 main() {
+    u32 scaled <- Sensor.scaled(4);
+    f32 torque <- Motor.torque(2);
+    if (scaled != 7) {
+        return 1;
+    }
+    if (torque != 5.0) {
+        return 2;
+    }
+    return 0;
+}

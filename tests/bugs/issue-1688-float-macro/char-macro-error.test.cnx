@@ -1,0 +1,16 @@
+// test-error
+// test-adr: 024
+// #1688 review (owner ruling 2026-10-05): a character constant macro meets
+// an integer as the inline constant does, and one mixed with anything else
+// is unreadable.
+#include "char_macros.h"
+
+void main() {
+    u8 b <- 1;
+
+    // E0810 -- as `(b = 'A')` is
+    bool e <- (b = LETTER_A);
+
+    // E0811 -- a character constant mixed with an integer is not read
+    u8 x <- b + LETTER_NEXT;
+}

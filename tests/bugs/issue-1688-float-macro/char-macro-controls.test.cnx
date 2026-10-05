@@ -1,0 +1,18 @@
+// test-execution
+// test-adr: 024
+// #1688 review (owner ruling 2026-10-05): a macro whose expansion is a
+// character constant, parenthesized or not, is typed as the constant written
+// inline, so `b + LETTER_A` is accepted as `b + 'A'` is.
+#include "char_macros.h"
+
+u32 main() {
+    u8 b <- 1;
+
+    u8 r <- b + LETTER_A;
+    if (r != 66) return 1;
+
+    u8 s <- b + CR;
+    if (s != 14) return 2;
+
+    return 0;
+}
