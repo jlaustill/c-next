@@ -141,9 +141,8 @@ interface IAnalyzerError {
 function collectErrors(
   analyzerErrors: IAnalyzerError[],
   target: ITranspileError[],
-  formatMessage?: (err: IAnalyzerError) => string,
+  formatMessage: (err: IAnalyzerError) => string,
 ): boolean {
-  const formatter = formatMessage ?? ((e) => e.message);
   for (const err of analyzerErrors) {
     // #1306: `helpText` was set at 21 analyzer sites and read at none -- it was
     // dropped here, so the "Help" column in docs/error-codes.md documented output
@@ -153,7 +152,7 @@ function collectErrors(
     target.push({
       line: err.line,
       column: err.column,
-      message: formatter(err),
+      message: formatMessage(err),
       severity: "error",
       helpText: err.helpText,
     });

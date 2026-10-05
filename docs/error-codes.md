@@ -35,13 +35,13 @@ codes that already have a fixture.
 
 ## E02xx — Identifier and Parameter Naming
 
-| Code  | Message                                                                      | Help                                                              | Source                                               |
-| ----- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------- |
-| E0201 | Identifier ends with, or contains consecutive, underscores                   | Remove the trailing underscore, or collapse `__` to `_`           | `logic/analysis/IdentifierSyntaxAnalyzer.ts`         |
-| E0202 | Identifier begins with the reserved prefix `cnx_`                            | Drop the reserved prefix                                          | `logic/analysis/IdentifierSyntaxAnalyzer.ts`         |
-| E0203 | Two source files produce the same include guard                              | Rename one so the generated headers stay distinguishable          | `Transpiler.ts`                                      |
-| E0204 | External identifiers not distinct within the target's significant characters | Shorten the scope name or the member names                        | `Transpiler.ts`, `logic/symbols/SymbolTable.ts`      |
-| E0227 | Parameter cannot start with function name prefix                             | Consider renaming to a name that doesn't start with function name | `src/TRANSPILE/1-Analyze/ParameterNamingAnalyzer.ts` |
+| Code  | Message                                                                      | Help                                                              | Source                                            |
+| ----- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------- |
+| E0201 | Identifier ends with, or contains consecutive, underscores                   | Remove the trailing underscore, or collapse `__` to `_`           | `TRANSPILE/1-Analyze/IdentifierSyntaxAnalyzer.ts` |
+| E0202 | Identifier begins with the reserved prefix `cnx_`                            | Drop the reserved prefix                                          | `TRANSPILE/1-Analyze/IdentifierSyntaxAnalyzer.ts` |
+| E0203 | Two source files produce the same include guard                              | Rename one so the generated headers stay distinguishable          | `Transpiler.ts`                                   |
+| E0204 | External identifiers not distinct within the target's significant characters | Shorten the scope name or the member names                        | `Transpiler.ts`, `logic/symbols/SymbolTable.ts`   |
+| E0227 | Parameter cannot start with function name prefix                             | Consider renaming to a name that doesn't start with function name | `TRANSPILE/1-Analyze/ParameterNamingAnalyzer.ts`  |
 
 **Related:** ADR-063 and Issue #1117 (E0201); ADR-063 and Issues #1131/#1132 (E0202);
 ADR-063 and Issues #1133/#1134 (E0203); ADR-063 and Issue #1307 (E0204); Issue #227 (E0227)
