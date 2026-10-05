@@ -156,6 +156,8 @@ describe("runAnalyzers", () => {
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
+      // Registered WITH formatWithCode, so the code reaches the message
+      expect(errors[0].message).toContain("error[E0227]");
       expect(errors[0].message).toContain("process_data");
     });
   });

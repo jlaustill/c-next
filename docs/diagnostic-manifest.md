@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-495 fixture(s) assert a diagnostic; 482 carry a code.
+495 fixture(s) assert a diagnostic; 485 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -229,7 +229,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/analysis/misra-3-1-nested-line-comment.test.cnx                                            | MISRA-3.1           |
 | tests/analysis/misra-3-2-line-splice.test.cnx                                                    | MISRA-3.2           |
 | tests/analysis/modulo-by-zero.test.cnx                                                           | E0802               |
-| tests/analysis/reserved-parameter-name.test.cnx                                                  | (uncoded)           |
+| tests/analysis/reserved-parameter-name.test.cnx                                                  | E0227               |
 | tests/analysis/return-value-discarded.test.cnx                                                   | E0708               |
 | tests/analysis/self-recursion.test.cnx                                                           | E0423               |
 | tests/analysis/signed-arithmetic-index.test.cnx                                                  | E0850               |
@@ -497,8 +497,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/preprocessor/include-impl-file-error.test.cnx                                              | E0503               |
 | tests/register/register-bits-syntax-error.test.cnx                                               | (uncoded)           |
 | tests/scope/nested-scope-error.test.cnx                                                          | E0430               |
-| tests/scope/param-prefix-naming-error.test.cnx                                                   | (uncoded)           |
-| tests/scope/param-prefix-naming-scope-error.test.cnx                                             | (uncoded)           |
+| tests/scope/param-prefix-naming-error.test.cnx                                                   | E0227               |
+| tests/scope/param-prefix-naming-scope-error.test.cnx                                             | E0227               |
 | tests/static-allocation/aligned-alloc-error.test.cnx                                             | E0902               |
 | tests/static-allocation/calloc-error.test.cnx                                                    | E0902               |
 | tests/static-allocation/free-error.test.cnx                                                      | E0902               |
