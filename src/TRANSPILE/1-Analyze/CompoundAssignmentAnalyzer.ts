@@ -35,8 +35,7 @@ import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import ICompoundAssignmentError from "./types/ICompoundAssignmentError";
-import type IOperandType from "../../types/IOperandType";
-import type TAssignmentSite from "./types/TAssignmentSite";
+import type TAssignmentSite from "../../types/TAssignmentSite";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** What made a target unusable, in words the message can name. */
@@ -100,18 +99,13 @@ class CompoundAssignmentCheck {
     // `strncpy`, not a value `+` can be applied to, wherever it is reached
     // from.
     const last = OperandTyper.typeOfTarget(target, this.context);
-    return CompoundAssignmentAnalyzer.isString(last) ? "string" : null;
+    return OperandTyper.isScalarString(last) ? "string" : null;
   }
 }
 
 class CompoundAssignmentAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
-
-  /** A bounded string value -- not an element of one, which is a char */
-  public static isString(t: IOperandType | null): boolean {
-    return t !== null && t.dimensions.length === 0 && OperandTyper.isString(t);
-  }
 
   public analyze(tree: Parser.ProgramContext): ICompoundAssignmentError[] {
     const check = new CompoundAssignmentCheck(this.context);

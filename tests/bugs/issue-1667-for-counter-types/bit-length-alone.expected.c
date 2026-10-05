@@ -26,7 +26,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // at 1:0 with an internal error.
 uint32_t probe(void) {
     uint32_t w = 0U;
-    for (uint8_t k = 0U; k < 3; k = cnx_clamp_add_u8(k, 1)) {
+    for (uint8_t k = 0U; k < 3; k = cnx_clamp_add_u8(k, 1U)) {
         w = 8;
     }
     return w;

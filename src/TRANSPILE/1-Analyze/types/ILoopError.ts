@@ -6,6 +6,8 @@
  * - E0705: `forever` in a non-void function
  * - E0707: a disguised infinite loop -- `for (;;)`, or an always-true
  *   literal condition
+ * - E0715: a `for` header assignment that lowers to more than one C
+ *   statement -- a string copy, a slice write, an atomic read-modify-write
  */
 import IBaseAnalysisError from "./IBaseAnalysisError";
 

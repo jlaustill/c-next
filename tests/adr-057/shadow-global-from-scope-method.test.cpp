@@ -77,7 +77,7 @@ uint32_t Counter__arrayShadow(void) {
 
 uint32_t Counter__loopShadow(void) {
     uint32_t sum = 0U;
-    for (uint32_t Counter__loopShadow__tick = 0U; Counter__loopShadow__tick < 2; Counter__loopShadow__tick += 1) {
+    for (uint32_t Counter__loopShadow__tick = 0U; Counter__loopShadow__tick < 2; Counter__loopShadow__tick = cnx_clamp_add_u32(Counter__loopShadow__tick, 1U)) {
         sum = cnx_clamp_add_u32(sum, tick);
     }
     return sum;

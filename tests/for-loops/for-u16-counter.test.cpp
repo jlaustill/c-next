@@ -23,7 +23,7 @@ static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
 // Tests: u16 type can be used as for-loop counter
 int main(void) {
     uint16_t sum = 0U;
-    for (uint16_t i = 0U; i < 10; i += 1) {
+    for (uint16_t i = 0U; i < 10; i = cnx_clamp_add_u16(i, 1U)) {
         sum = cnx_clamp_add_u16(sum, i);
     }
     if (sum == 45) {

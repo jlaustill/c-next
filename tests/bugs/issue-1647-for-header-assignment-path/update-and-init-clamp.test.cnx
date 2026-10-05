@@ -1,0 +1,53 @@
+// test-execution
+// test-adr: 044
+// #1647: a `for` header's init and update are assignments, and render through
+// the same path a statement assignment does. Before the fix the header
+// concatenated target, operator and value, so ADR-044's clamp and MISRA C:2012
+// Rule 7.2's suffix were dropped there: `i +<- 10` on a `u8` saturated as a
+// statement and WRAPPED in the update, so `i < 255` held for every value and
+// the loop never ended. Each loop is bounded by a pass count, so a regression
+// returns a failure code instead of hanging.
+
+// The update clause: 250 saturates to 255 and the loop ends after one pass.
+// Wrapping visits 250, 4, 14, ... and the guard stops it at the fourth pass.
+u8 updatePasses() {
+    u8 n <- 0;
+    u8 i <- 0;
+    for (i <- 250; i < 255; i +<- 10) {
+        n <- n + 1;
+        if (n > 3) {
+            return n;
+        }
+    }
+    return n;
+}
+
+// The init clause: 250 +<- 10 saturates to 255, so the body never runs.
+// Wrapping starts the loop at 4.
+u8 initPasses() {
+    u8 n <- 0;
+    u8 i <- 250;
+    for (i +<- 10; i < 255; i +<- 1) {
+        n <- n + 1;
+        if (n > 3) {
+            return n;
+        }
+    }
+    return n;
+}
+
+u8 main() {
+    // ASSERTION: the update saturates, so the loop runs exactly once.
+    u8 updates <- updatePasses();
+    if (updates != 1) return 1;
+
+    // ASSERTION: the init saturates, so the loop never runs.
+    u8 inits <- initPasses();
+    if (inits != 0) return 2;
+
+    // CONTROL: the same compound assignment as a statement, clamped all along.
+    u8 j <- 250;
+    j +<- 10;
+    if (j != 255) return 3;
+    return 0;
+}

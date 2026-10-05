@@ -23,7 +23,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 int main(void) {
     uint8_t buffer[16] = {0};
     buffer[0] = 0U;
-    for (uint32_t i = 0U; i < 16; i = cnx_clamp_add_u32(i, 1)) {
+    for (uint32_t i = 0U; i < 16; i = cnx_clamp_add_u32(i, 1U)) {
         buffer[i] = 0U;
     }
 }

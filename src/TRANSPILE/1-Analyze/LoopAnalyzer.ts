@@ -1,5 +1,5 @@
 /**
- * ADR-068 loops and ADR-026 break/continue: E0703, E0705, E0707.
+ * ADR-068 loops and ADR-026 break/continue: E0703, E0705, E0707, E0715.
  *
  * #1322. Four throws in `output/` -- `CodeGenerator` for `break`/`continue`,
  * `ControlFlowGenerator` for `for (;;)` and for `forever` in a non-void
@@ -21,6 +21,13 @@
  * E0701 (a condition must be a comparison) runs earlier in the same pass and
  * halts, so a condition reaching the always-true check is already a
  * comparison -- the ordering codegen relied on, kept by the step order.
+ *
+ * ## A header clause is one C expression (E0715, #1647)
+ *
+ * The init and update render through the statement assignment path, and some
+ * forms lower to more than one statement there. `ForHeaderAssignment` decides
+ * which; this reports it and the header renderer asserts it. A compound on a
+ * string or slice is E0857's, which runs earlier and halts.
  */
 
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
@@ -30,9 +37,17 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import REJECTED_KEYWORDS from "./REJECTED_KEYWORDS";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
+import ForHeaderAssignment from "../../utils/ForHeaderAssignment";
 import ILoopError from "./types/ILoopError";
+import type IAnalysisContext from "./types/IAnalysisContext";
+import type TAssignmentSite from "../../types/TAssignmentSite";
 
 const FOREVER_HELP = "write 'forever { ... }' for an intentional infinite loop";
+
+const INIT_HELP = "assign before the loop and leave the init clause empty";
+
+const UPDATE_HELP =
+  "assign at the end of the loop body and write it as a while loop";
 
 /** A single comparison of two compile-time literals. */
 interface ILiteralComparison {
@@ -43,6 +58,10 @@ interface ILiteralComparison {
 
 class LoopListener extends CNextListener {
   private readonly found: ILoopError[] = [];
+
+  public constructor(private readonly context: IAnalysisContext) {
+    super();
+  }
 
   public errors(): ILoopError[] {
     return this.found;
@@ -90,6 +109,26 @@ class LoopListener extends CNextListener {
     }
     this.checkAlwaysTrue(condition);
   };
+
+  override enterForAssignment = (ctx: Parser.ForAssignmentContext): void => {
+    this.checkHeaderAssignment(ctx, INIT_HELP);
+  };
+
+  override enterForUpdate = (ctx: Parser.ForUpdateContext): void => {
+    this.checkHeaderAssignment(ctx, UPDATE_HELP);
+  };
+
+  /** E0715: a header clause holds one expression; these forms lower to more. */
+  private checkHeaderAssignment(site: TAssignmentSite, help: string): void {
+    const form = ForHeaderAssignment.multiStatementForm(site, this.context);
+    if (form === null) return;
+    this.report(
+      site,
+      "E0715",
+      `a for-loop header cannot hold this assignment: ${form} is more than one statement`,
+      help,
+    );
+  }
 
   override enterWhileStatement = (ctx: Parser.WhileStatementContext): void => {
     this.checkAlwaysTrue(ctx.expression());
@@ -218,8 +257,10 @@ class LoopListener extends CNextListener {
 }
 
 class LoopAnalyzer {
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): ILoopError[] {
-    const listener = new LoopListener();
+    const listener = new LoopListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

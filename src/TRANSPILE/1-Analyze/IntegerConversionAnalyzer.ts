@@ -70,7 +70,7 @@ import StructInitializerType from "./helpers/StructInitializerType";
 import IIntegerConversionError from "./types/IIntegerConversionError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IOperandType from "../../types/IOperandType";
-import type TAssignmentSite from "./types/TAssignmentSite";
+import type TAssignmentSite from "../../types/TAssignmentSite";
 
 const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
 

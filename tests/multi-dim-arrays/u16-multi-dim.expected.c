@@ -59,8 +59,8 @@ int main(void) {
     if (3 != 3) return 14U;
     if (4 != 4) return 15U;
     if (16 != 16) return 16U;
-    for (uint32_t i = 0U; i < 4; i += 1) {
-        for (uint32_t j = 0U; j < 8; j += 1) {
+    for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U)) {
+        for (uint32_t j = 0U; j < 8; j = cnx_clamp_add_u32(j, 1U)) {
             matrix2d[i][j] = (uint16_t)(((cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100U), j))) & 0xFFFFU);
         }
     }
@@ -69,9 +69,9 @@ int main(void) {
     if (matrix2d[1U][3U] != 103) return 19U;
     if (matrix2d[3U][7U] != 307) return 20U;
     uint32_t sum = 0U;
-    for (uint32_t i = 0U; i < 2; i += 1) {
-        for (uint32_t j = 0U; j < 3; j += 1) {
-            for (uint32_t k = 0U; k < 4; k += 1) {
+    for (uint32_t i = 0U; i < 2; i = cnx_clamp_add_u32(i, 1U)) {
+        for (uint32_t j = 0U; j < 3; j = cnx_clamp_add_u32(j, 1U)) {
+            for (uint32_t k = 0U; k < 4; k = cnx_clamp_add_u32(k, 1U)) {
                 cube3d[i][j][k] = (uint16_t)(((cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100U), cnx_clamp_mul_u32(j, 10U)), k))) & 0xFFFFU);
                 sum = cnx_clamp_add_u32(sum, cube3d[i][j][k]);
             }
@@ -83,8 +83,8 @@ int main(void) {
     matrix2d[3][7] = 555U;
     if (matrix2d[3U][7U] != 555) return 23U;
     uint16_t testArray[3][2] = {0};
-    for (uint32_t ti = 0U; ti < 3; ti += 1) {
-        for (uint32_t tj = 0U; tj < 2; tj += 1) {
+    for (uint32_t ti = 0U; ti < 3; ti = cnx_clamp_add_u32(ti, 1U)) {
+        for (uint32_t tj = 0U; tj < 2; tj = cnx_clamp_add_u32(tj, 1U)) {
             testArray[ti][tj] = 0U;
         }
     }
@@ -97,8 +97,8 @@ int main(void) {
     if (testArray[1U][0U] != 32768) return 26U;
     if (testArray[2U][1U] != 1000) return 27U;
     uint16_t ports[3][3] = {0};
-    for (uint32_t pi = 0U; pi < 3; pi += 1) {
-        for (uint32_t pj = 0U; pj < 3; pj += 1) {
+    for (uint32_t pi = 0U; pi < 3; pi = cnx_clamp_add_u32(pi, 1U)) {
+        for (uint32_t pj = 0U; pj < 3; pj = cnx_clamp_add_u32(pj, 1U)) {
             ports[pi][pj] = 0U;
         }
     }
@@ -115,8 +115,8 @@ int main(void) {
     if (ports[2U][0U] != 5432) return 32U;
     if (ports[2U][1U] != 8080) return 33U;
     uint16_t data[2][2] = {0};
-    for (uint32_t di = 0U; di < 2; di += 1) {
-        for (uint32_t dj = 0U; dj < 2; dj += 1) {
+    for (uint32_t di = 0U; di < 2; di = cnx_clamp_add_u32(di, 1U)) {
+        for (uint32_t dj = 0U; dj < 2; dj = cnx_clamp_add_u32(dj, 1U)) {
             data[di][dj] = 0U;
         }
     }

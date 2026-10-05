@@ -353,11 +353,62 @@ full MISRA 14.3 effort (#1076). MISRA 14.3 moves Not Enforced → **Partial**. R
 zero pre-existing `for (;;)` or `while (1 = 1)` in source (only the one already migrated in #1074),
 so this breaking change flags nothing existing.
 
+## For-Header Assignments (#1647, 2026-10-04)
+
+A `for` header's init and update are written exactly as an assignment
+statement is (#1647), so the header gets ADR-044's clamp and MISRA C:2012
+Rule 7.2's suffix as a statement does. But a header clause is a C
+**expression**, and four assignment forms lower to more than one statement:
+
+| form in a header                                   | lowers to                                                          |
+| -------------------------------------------------- | ------------------------------------------------------------------ |
+| a string target (`s <- "x"`, `p.name <- "x"`)      | `strncpy` plus the terminator write (ADR-045)                      |
+| a slice (`buf[offset, length] <- v`)               | per-element writes, and a source temp (ADR-052, #1081)             |
+| any write to an `atomic` target (`<-` or compound) | an LDREX/STREX loop or a PRIMASK critical section (ADR-049 Q4, Q7) |
+| a bit index or bit range on a float target         | a write through a `union` of the float and its bits (ADR-007)      |
+
+Before #1647 the header concatenated target, operator and value, so each form
+emitted C that either failed to compile (`s = "abc"`, `f[31] = true`) or
+compiled to the wrong program: `buf[0, 4] = v` is C's comma operator, and
+`counter += 1` on an atomic is a read-modify-write an interrupt can split.
+
+**Decision:** each form is rejected at compile time as **E0715**, at the clause
+that holds it. The help says where the assignment goes instead, which differs
+by clause:
+
+```
+error[E0715]: a for-loop header cannot hold this assignment: a string copy is more than one statement
+  help: assign before the loop and leave the init clause empty
+error[E0715]: a for-loop header cannot hold this assignment: a slice write is more than one statement
+  help: assign at the end of the loop body and write it as a while loop
+```
+
+Moving an update to the end of the body is exact: ADR-026 rejects `continue`,
+so nothing can skip it.
+
+- **Scope:** the form is the rule, not how many statements it currently lowers
+  to. A one-element slice happens to lower to one write today. It is rejected
+  anyway, so the rule never depends on the slice's element arithmetic.
+- **Atomic scope members:** `this.c +<- 1` is rejected as well. ADR-049 Q7 makes
+  it an atomic read-modify-write. That it lowers non-atomically today is
+  #1179's defect, not a reason to accept it in a header.
+- **Compound operators** on a string or slice are E0857 already, reported
+  earlier in the same pass. E0715 does not report them again, so one mistake
+  gets one diagnostic.
+- **Plain `<-` on an atomic** is rejected too. ADR-049 Q4 puts every access,
+  stores included, in a critical section for an `atomic u64`/`i64`/`f64` on a
+  32-bit MCU and an `atomic u16`/`u32` on AVR. That a store lowers to one write
+  today is #1414's defect. The rule names the form, so it does not depend on
+  the target's word size.
+- **Bit indexes and bit ranges on an integer** lower to one expression and stay
+  legal.
+
 ## Scope-Context Matrix (#1219)
 
-Declared for the loop rules #1322 moved out of codegen: `forever` in a
-non-void function (E0705), `for (;;)` and an always-true literal condition
-(E0707). Severity follows the eslint model: `off` records that a cell **cannot
+Declared for the loop rules: `forever` in a non-void function (E0705),
+`for (;;)` and an always-true literal condition (E0707), all three moved out of
+codegen by #1322, and a for-header assignment that is more than one statement
+(E0715). Severity follows the eslint model: `off` records that a cell **cannot
 exist**, `warn` that it should be covered and is not, `error` that it must be.
 
 <!-- MATRIX-SEVERITY -->
@@ -368,24 +419,25 @@ exist**, `warn` that it should be covered and is not, `error` that it must be.
 | scope method       | same file           | error    |
 | global variable    | same file           | off      |
 | scope member       | same file           | off      |
-| top-level function | imported direct     | off      |
-| scope method       | imported direct     | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
 | global variable    | imported direct     | off      |
 | scope member       | imported direct     | off      |
-| top-level function | imported transitive | off      |
-| scope method       | imported transitive | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
 
 A loop is a **statement**: it stands in a function body and nowhere else, so the
-two declaration contexts are `off`. Every fact the rules read -- the keyword,
-the header's condition, the two literals, the enclosing function's declared
-type -- sits in the file holding the loop, so nothing crosses an include and the
-imported columns are `off` as well.
+two declaration contexts are `off`. E0705 and E0707 read only facts in the file
+holding the loop -- the keyword, the header's condition, the two literals, the
+enclosing function's declared type. E0715 also reads the header target's type
+and whether it is declared `atomic`, and the target may be declared in an
+included file, so the imported cells of both function contexts are `error`.
 
-Since #1322 the three rules are decided during analysis, each at the position
-of the loop or condition that commits it, and every offense in a file is
-reported. The always-true check is still the LITERAL slice described above;
+Since #1322 the four rules are decided during analysis, each at the position
+of the loop, condition or clause that commits it, and every offense in a file
+is reported. The always-true check is still the LITERAL slice described above;
 #1076 owns the rest.
 
 ## Remaining

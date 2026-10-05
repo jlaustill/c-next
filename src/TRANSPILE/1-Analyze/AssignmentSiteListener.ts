@@ -12,7 +12,7 @@
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import type TAssignmentSite from "./types/TAssignmentSite";
+import type TAssignmentSite from "../../types/TAssignmentSite";
 
 class AssignmentSiteListener extends CNextListener {
   constructor(private readonly onAssignment: (site: TAssignmentSite) => void) {

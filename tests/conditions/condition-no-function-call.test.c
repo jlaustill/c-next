@@ -51,7 +51,7 @@ int main(void) {
     if (count != 0) return 2U;
     uint32_t sum = 0U;
     uint32_t limit = 5U;
-    for (uint32_t i = 0U; i < limit; i += 1) {
+    for (uint32_t i = 0U; i < limit; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
     if (sum != 5) return 3U;

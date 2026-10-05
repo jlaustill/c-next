@@ -66,8 +66,8 @@ int main(void) {
     if (3 != 3) return 14U;
     if (4 != 4) return 15U;
     if (32 != 32) return 16U;
-    for (uint32_t i = 0U; i < 4; i += 1) {
-        for (uint32_t j = 0U; j < 8; j += 1) {
+    for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U)) {
+        for (uint32_t j = 0U; j < 8; j = cnx_clamp_add_u32(j, 1U)) {
             matrix2d[i][j] = (((cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 1000), j))) & 0xFFFFFFFFU);
         }
     }
@@ -76,9 +76,9 @@ int main(void) {
     if (matrix2d[1U][3U] != 1003) return 19U;
     if (matrix2d[3U][7U] != 3007) return 20U;
     int64_t sum = 0;
-    for (uint32_t i = 0U; i < 2; i += 1) {
-        for (uint32_t j = 0U; j < 3; j += 1) {
-            for (uint32_t k = 0U; k < 4; k += 1) {
+    for (uint32_t i = 0U; i < 2; i = cnx_clamp_add_u32(i, 1U)) {
+        for (uint32_t j = 0U; j < 3; j = cnx_clamp_add_u32(j, 1U)) {
+            for (uint32_t k = 0U; k < 4; k = cnx_clamp_add_u32(k, 1U)) {
                 cube3d[i][j][k] = (((cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 1000), cnx_clamp_mul_u32(j, 100)), k))) & 0xFFFFFFFFU);
                 sum = cnx_clamp_add_i64(sum, cube3d[i][j][k]);
             }
@@ -90,8 +90,8 @@ int main(void) {
     matrix2d[3][7] = -100000;
     if (matrix2d[3U][7U] != -100000) return 23U;
     int32_t testArray[4][2] = {};
-    for (uint32_t ti = 0U; ti < 4; ti += 1) {
-        for (uint32_t tj = 0U; tj < 2; tj += 1) {
+    for (uint32_t ti = 0U; ti < 4; ti = cnx_clamp_add_u32(ti, 1U)) {
+        for (uint32_t tj = 0U; tj < 2; tj = cnx_clamp_add_u32(tj, 1U)) {
             testArray[ti][tj] = 0;
         }
     }
@@ -108,8 +108,8 @@ int main(void) {
     if (testArray[2U][0U] != 1) return 28U;
     if (testArray[3U][1U] != -1000000) return 29U;
     int32_t balances[3][3] = {};
-    for (uint32_t bi = 0U; bi < 3; bi += 1) {
-        for (uint32_t bj = 0U; bj < 3; bj += 1) {
+    for (uint32_t bi = 0U; bi < 3; bi = cnx_clamp_add_u32(bi, 1U)) {
+        for (uint32_t bj = 0U; bj < 3; bj = cnx_clamp_add_u32(bj, 1U)) {
             balances[bi][bj] = 0;
         }
     }
@@ -126,8 +126,8 @@ int main(void) {
     if (balances[2U][0U] != -250000) return 34U;
     if (balances[2U][1U] != 500000000) return 35U;
     int32_t deltas[2][2] = {};
-    for (uint32_t di = 0U; di < 2; di += 1) {
-        for (uint32_t dj = 0U; dj < 2; dj += 1) {
+    for (uint32_t di = 0U; di < 2; di = cnx_clamp_add_u32(di, 1U)) {
+        for (uint32_t dj = 0U; dj < 2; dj = cnx_clamp_add_u32(dj, 1U)) {
             deltas[di][dj] = 0;
         }
     }
@@ -136,8 +136,8 @@ int main(void) {
     int64_t deltaSum = deltas[0U][0U] + deltas[0U][1U];
     if (deltaSum != -250000) return 36U;
     int32_t offsets[2][3] = {};
-    for (uint32_t oi = 0U; oi < 2; oi += 1) {
-        for (uint32_t oj = 0U; oj < 3; oj += 1) {
+    for (uint32_t oi = 0U; oi < 2; oi = cnx_clamp_add_u32(oi, 1U)) {
+        for (uint32_t oj = 0U; oj < 3; oj = cnx_clamp_add_u32(oj, 1U)) {
             offsets[oi][oj] = 0;
         }
     }

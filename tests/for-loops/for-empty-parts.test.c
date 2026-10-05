@@ -27,7 +27,7 @@ uint32_t globalCounter = 0U;
 // Test 1: Empty init (variable declared outside)
 void testEmptyInit(void) {
     uint32_t i = 0U;
-    for (; i < 5; i = cnx_clamp_add_u32(i, 1)) {
+    for (; i < 5; i = cnx_clamp_add_u32(i, 1U)) {
         globalCounter = cnx_clamp_add_u32(globalCounter, 1U);
     }
 }
@@ -53,7 +53,7 @@ void testEmptyInitAndUpdate(void) {
 // C-Next doesn't have break; use structured conditions
 void testExplicitCondition(void) {
     uint32_t count = 0U;
-    for (uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1)) {
+    for (uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1U)) {
         count = cnx_clamp_add_u32(count, 1U);
     }
     globalCounter = cnx_clamp_add_u32(globalCounter, count);

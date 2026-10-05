@@ -1,0 +1,83 @@
+// test-error
+// test-adr: 068
+// #1647: a `for` header clause is one C expression, and four assignment forms
+// lower to more than one statement -- a string copy, a slice, any write to an
+// atomic, and a bit write on a float. Each is E0715, in the init and in the
+// update alike.
+struct Packet {
+    string<8> name;
+}
+
+atomic u32 counter <- 0;
+
+// NEGATIVE CONTROL -- forms that lower to one expression stay legal in a
+// header: a bit range, a bit index, a clamped compound, and a string, slice or
+// atomic written in the body.
+void controls() {
+    u8 n <- 0;
+    u32 bits <- 0;
+    string<8> s <- "a";
+    u8[8] buf;
+    for (n <- 0; n < 2; bits[0, 4] <- 3) {
+        counter <- 1;
+        s <- "b";
+        buf[0, 1] <- n;
+    }
+    for (bits[5] <- true; n < 4; n +<- 1) {
+        bits[6] <- false;
+    }
+}
+
+// ASSERTIONS 1-2 -- a string target, in the init and in the update.
+void strings() {
+    u8 n <- 0;
+    string<8> s <- "a";
+    for (s <- "abc"; n < 2; s <- "de") {
+        n +<- 1;
+    }
+}
+
+// ASSERTION 3 -- a string reached through a struct field.
+void fields() {
+    u8 n <- 0;
+    Packet p;
+    for (p.name <- "a"; n < 2; n +<- 1) {
+        n +<- 1;
+    }
+}
+
+// ASSERTIONS 4-5 -- a slice, one element and several.
+void slices() {
+    u8 n <- 0;
+    u8[8] buf;
+    u32 v <- 7;
+    for (buf[0, 1] <- n; n < 2; buf[4, 4] <- v) {
+        n +<- 1;
+    }
+}
+
+// ASSERTIONS 6-7 -- a plain store to an atomic (ADR-049 Q4: a critical section
+// on a word-size-wide atomic; #1414 tracks that it is not yet) and a compound
+// operator on one.
+void atomics() {
+    u8 n <- 0;
+    for (counter <- 0; counter < 5; counter +<- 1) {
+        n +<- 1;
+    }
+}
+
+struct Sample {
+    f32 value;
+}
+
+// ASSERTION -- a bit write on a float goes through a union (ADR-007): a
+// variable, an array element, a struct field.
+void floatBits() {
+    u8 n <- 0;
+    f32 f <- 1.0;
+    f32[2] values;
+    Sample sample;
+    for (f[31] <- true; n < 2; f[0, 4] <- 3) {}
+    for (n <- 0; n < 2; values[1][0] <- true) {}
+    for (sample.value[0] <- true; n < 2; n +<- 1) {}
+}

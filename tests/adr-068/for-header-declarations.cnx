@@ -1,0 +1,8 @@
+// Helper (not a test): the targets the cross-file E0715 fixtures write in a
+// for header. The rule needs each target's TYPE and atomic binding, which
+// live here.
+atomic u32 sharedCounter <- 0;
+string<8> sharedName <- "a";
+u8[8] sharedBuffer;
+f32 sharedLevel <- 1.0;
+u8 sharedFlags <- 0;

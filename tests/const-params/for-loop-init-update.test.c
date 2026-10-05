@@ -44,7 +44,7 @@ void handleForUpdate(Config* config) {
 // For loop with modifying call in the INIT part (via forAssignment)
 void handleForInit(Config* config) {
     uint32_t start = 0U;
-    for (start = Handler__setValue(config, 10U); start < 1; start = cnx_clamp_add_u32(start, 1)) {
+    for (start = Handler__setValue(config, 10U); start < 1; start = cnx_clamp_add_u32(start, 1U)) {
     }
 }
 

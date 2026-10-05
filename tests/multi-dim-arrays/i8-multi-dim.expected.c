@@ -66,8 +66,8 @@ int main(void) {
     if (3 != 3) return 14U;
     if (4 != 4) return 15U;
     if (8 != 8) return 16U;
-    for (uint32_t i = 0U; i < 4; i += 1) {
-        for (uint32_t j = 0U; j < 8; j += 1) {
+    for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U)) {
+        for (uint32_t j = 0U; j < 8; j = cnx_clamp_add_u32(j, 1U)) {
             matrix2d[i][j] = (int8_t)(((cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 5), j))) & 0xFFU);
         }
     }
@@ -76,9 +76,9 @@ int main(void) {
     if (matrix2d[1U][3U] != 8) return 19U;
     if (matrix2d[3U][7U] != 22) return 20U;
     int16_t sum = 0;
-    for (uint32_t i = 0U; i < 2; i += 1) {
-        for (uint32_t j = 0U; j < 3; j += 1) {
-            for (uint32_t k = 0U; k < 4; k += 1) {
+    for (uint32_t i = 0U; i < 2; i = cnx_clamp_add_u32(i, 1U)) {
+        for (uint32_t j = 0U; j < 3; j = cnx_clamp_add_u32(j, 1U)) {
+            for (uint32_t k = 0U; k < 4; k = cnx_clamp_add_u32(k, 1U)) {
                 cube3d[i][j][k] = (int8_t)(((cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 5), cnx_clamp_mul_u32(j, 2)), k))) & 0xFFU);
                 sum = cnx_clamp_add_i16(sum, cube3d[i][j][k]);
             }
@@ -90,8 +90,8 @@ int main(void) {
     matrix2d[3][7] = -1;
     if (matrix2d[3U][7U] != -1) return 23U;
     int8_t testArray[4][2] = {0};
-    for (uint32_t ti = 0U; ti < 4; ti += 1) {
-        for (uint32_t tj = 0U; tj < 2; tj += 1) {
+    for (uint32_t ti = 0U; ti < 4; ti = cnx_clamp_add_u32(ti, 1U)) {
+        for (uint32_t tj = 0U; tj < 2; tj = cnx_clamp_add_u32(tj, 1U)) {
             testArray[ti][tj] = 0;
         }
     }
@@ -108,8 +108,8 @@ int main(void) {
     if (testArray[2U][0U] != 1) return 28U;
     if (testArray[3U][1U] != -50) return 29U;
     int8_t temps[3][3] = {0};
-    for (uint32_t tei = 0U; tei < 3; tei += 1) {
-        for (uint32_t tej = 0U; tej < 3; tej += 1) {
+    for (uint32_t tei = 0U; tei < 3; tei = cnx_clamp_add_u32(tei, 1U)) {
+        for (uint32_t tej = 0U; tej < 3; tej = cnx_clamp_add_u32(tej, 1U)) {
             temps[tei][tej] = 0;
         }
     }
@@ -126,8 +126,8 @@ int main(void) {
     if (temps[2U][0U] != 37) return 34U;
     if (temps[2U][1U] != 100) return 35U;
     int8_t deltas[2][2] = {0};
-    for (uint32_t di = 0U; di < 2; di += 1) {
-        for (uint32_t dj = 0U; dj < 2; dj += 1) {
+    for (uint32_t di = 0U; di < 2; di = cnx_clamp_add_u32(di, 1U)) {
+        for (uint32_t dj = 0U; dj < 2; dj = cnx_clamp_add_u32(dj, 1U)) {
             deltas[di][dj] = 0;
         }
     }
