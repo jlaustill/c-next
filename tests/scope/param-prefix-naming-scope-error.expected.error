@@ -1,2 +1,2 @@
-9:23 Parameter 'add_value' cannot start with function name prefix 'add_'. This naming pattern is reserved for scope-level variables.
+9:23 error[E0227]: Parameter 'add_value' cannot start with function name prefix 'add_'. This naming pattern is reserved for scope-level variables.
        help: Consider renaming to a name that doesn't start with 'add_'

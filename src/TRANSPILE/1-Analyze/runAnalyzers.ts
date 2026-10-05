@@ -245,8 +245,6 @@ function runAnalyzers(
     {
       label: "parameter naming (Issue #227: reserved naming patterns)",
       run: () => new ParameterNamingAnalyzer().analyze(tree),
-      // Carries its own message text rather than a code.
-      format: (e) => e.message,
     },
     {
       label: "struct fields (reserved field names like 'length')",
