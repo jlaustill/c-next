@@ -10,6 +10,7 @@ const ERROR_PARSE = -32700;
 const ERROR_INVALID_REQUEST = -32600;
 const ERROR_METHOD_NOT_FOUND = -32601;
 const ERROR_INVALID_PARAMS = -32602;
+const ERROR_INTERNAL = -32603;
 
 /**
  * Result of parsing a JSON-RPC request
@@ -32,6 +33,8 @@ class JsonRpcHandler {
   static readonly ERROR_METHOD_NOT_FOUND = ERROR_METHOD_NOT_FOUND;
   /** Invalid params code */
   static readonly ERROR_INVALID_PARAMS = ERROR_INVALID_PARAMS;
+  /** Internal error code */
+  static readonly ERROR_INTERNAL = ERROR_INTERNAL;
 
   /**
    * Parse a JSON-RPC request from a line of input

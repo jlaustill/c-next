@@ -475,6 +475,43 @@ describe("ServeCommand", () => {
     });
   });
 
+  describe("a handler that throws", () => {
+    it("answers its request with an internal error", async () => {
+      await sendRequest({
+        id: 64,
+        method: "initialize",
+        params: { workspacePath: "/tmp" },
+      });
+      const transpiler = (
+        ServeCommand as unknown as {
+          transpiler: { transpile: (...args: unknown[]) => unknown };
+        }
+      ).transpiler;
+      const transpileSpy = vi
+        .spyOn(transpiler, "transpile")
+        .mockRejectedValue(new Error("transpiler exploded"));
+      stdoutWriteSpy.mockClear();
+
+      try {
+        const response = await sendRequest({
+          id: 65,
+          method: "transpile",
+          params: { source: "void main() { }" },
+        });
+
+        expect(response).toMatchObject({
+          id: 65,
+          error: {
+            code: JsonRpcHandler.ERROR_INTERNAL,
+            message: "transpiler exploded",
+          },
+        });
+      } finally {
+        transpileSpy.mockRestore();
+      }
+    });
+  });
+
   describe("unknown method", () => {
     it("returns method not found error", async () => {
       const response = await sendRequest({

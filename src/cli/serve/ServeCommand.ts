@@ -19,11 +19,12 @@ import parseCHeader from "../../lib/parseCHeader";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /**
- * Method handler type (async to support Transpiler.transpile)
+ * Method handler type. Only transpile awaits anything (Transpiler.transpile),
+ * so a handler may answer synchronously.
  */
 type MethodHandler = (
   params?: Record<string, unknown>,
-) => Promise<IMethodResult>;
+) => IMethodResult | Promise<IMethodResult>;
 
 /**
  * Result from a method handler
@@ -127,9 +128,11 @@ class ServeCommand {
    * Eliminates duplicate validation code across handlers.
    */
   private static _withSourceValidation(
-    handler: (params: ISourceParams) => Promise<IMethodResult>,
+    handler: (params: ISourceParams) => IMethodResult | Promise<IMethodResult>,
   ): MethodHandler {
-    return async (params?: Record<string, unknown>): Promise<IMethodResult> => {
+    return (
+      params?: Record<string, unknown>,
+    ): IMethodResult | Promise<IMethodResult> => {
       if (!params || typeof params.source !== "string") {
         return {
           success: false,
@@ -169,15 +172,24 @@ class ServeCommand {
     const request = parseResult.request!;
     this.log(`method: ${request.method}`);
 
-    // Dispatch to method handler (async)
-    this.dispatch(request).then((response) => {
-      this.writeResponse(response);
+    // Dispatch to method handler (async). A handler that throws still
+    // answers its request, with JSON-RPC's internal error.
+    void this.dispatch(request)
+      .catch((error: unknown) =>
+        JsonRpcHandler.formatError(
+          request.id,
+          JsonRpcHandler.ERROR_INTERNAL,
+          error instanceof Error ? error.message : String(error),
+        ),
+      )
+      .then((response) => {
+        this.writeResponse(response);
 
-      // Handle shutdown after response is written
-      if (this.shouldShutdown) {
-        this.readline?.close();
-      }
-    });
+        // Handle shutdown after response is written
+        if (this.shouldShutdown) {
+          this.readline?.close();
+        }
+      });
   }
 
   /**
@@ -219,7 +231,7 @@ class ServeCommand {
   /**
    * Handle getVersion method
    */
-  private static async handleGetVersion(): Promise<IMethodResult> {
+  private static handleGetVersion(): IMethodResult {
     return {
       success: true,
       result: { version: ConfigPrinter.getVersion() },
@@ -230,9 +242,9 @@ class ServeCommand {
    * Handle initialize method
    * Loads project config and creates a Transpiler instance
    */
-  private static async handleInitialize(
+  private static handleInitialize(
     params?: Record<string, unknown>,
-  ): Promise<IMethodResult> {
+  ): IMethodResult {
     if (!params || typeof params.workspacePath !== "string") {
       return {
         success: false,
@@ -337,9 +349,7 @@ class ServeCommand {
    * reads only the text and a registry of its own, so the run was a whole
    * discovery, header parse and codegen per request that nothing read.
    */
-  private static async _handleParseSymbols(
-    params: ISourceParams,
-  ): Promise<IMethodResult> {
+  private static _handleParseSymbols(params: ISourceParams): IMethodResult {
     // Delegate symbol extraction to parseWithSymbols (shared with WorkspaceIndex)
     const result = parseWithSymbols(params.source);
 
@@ -353,9 +363,7 @@ class ServeCommand {
    * Handle parseCHeader method (called via _withSourceValidation wrapper)
    * Parses C/C++ header files and extracts symbols
    */
-  private static async _handleParseCHeader(
-    params: ISourceParams,
-  ): Promise<IMethodResult> {
+  private static _handleParseCHeader(params: ISourceParams): IMethodResult {
     const { source, filePath } = params;
 
     const result = parseCHeader(source, filePath);
@@ -369,7 +377,7 @@ class ServeCommand {
   /**
    * Handle shutdown method
    */
-  private static async handleShutdown(): Promise<IMethodResult> {
+  private static handleShutdown(): IMethodResult {
     ServeCommand.shouldShutdown = true;
     return {
       success: true,

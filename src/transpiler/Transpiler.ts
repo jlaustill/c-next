@@ -338,7 +338,7 @@ class Transpiler {
     const result = this._initResult();
 
     try {
-      await this._initializeRun();
+      this._initializeRun();
 
       // Stage 1: 1.1 Discover
       const discovered = Discover.run(
@@ -361,7 +361,7 @@ class Transpiler {
       }
 
       await this._executePipeline(pipelineInput, result);
-      return await this._finalizeResult(result);
+      return this._finalizeResult(result);
     } catch (err) {
       return this._handleRunError(result, err);
     } finally {
@@ -1195,9 +1195,9 @@ class Transpiler {
     return !file.symbolOnly;
   }
 
-  private async _initializeRun(): Promise<void> {
+  private _initializeRun(): void {
     if (this.cacheManager) {
-      await this.cacheManager.initialize();
+      this.cacheManager.initialize();
     }
     // Issue #587: Reset accumulated state for new run
     // #1662: both are run-scoped and both were initialized ONCE, in the
@@ -1810,10 +1810,10 @@ class Transpiler {
   /**
    * Finalize result: merge warnings, flush cache
    */
-  private async _finalizeResult(
+  private _finalizeResult(
     result: ITranspilerResult,
     warning?: string,
-  ): Promise<ITranspilerResult> {
+  ): ITranspilerResult {
     if (warning) {
       result.warnings.push(warning);
     }
@@ -1826,7 +1826,7 @@ class Transpiler {
     result.adrSites = AdrProvenance.collect();
 
     if (this.cacheManager) {
-      await this.cacheManager.flush();
+      this.cacheManager.flush();
     }
     return result;
   }
