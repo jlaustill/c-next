@@ -116,7 +116,8 @@ interface IShapeSite {
  * exactly.
  *
  * Note what this inherits: knip ignores `tests/**`, so the dozen authored
- * harnesses there are outside the scan. That is the repo's existing definition
+ * harnesses there are outside the scan, and since #1418 its `project` negates
+ * the unit-test globs, so test files are outside it too. That is the repo's existing definition
  * of authored source, and following it is the point -- one list to change.
  */
 function authoredGlobs(): { positive: string[]; all: string[] } {
@@ -124,8 +125,15 @@ function authoredGlobs(): { positive: string[]; all: string[] } {
     readFileSync(join(repoRoot, "knip.json"), "utf-8"),
   ) as { project: string[]; ignore: string[] };
 
-  const positive = knip.project.map((pattern) => join(repoRoot, pattern));
-  const negative = knip.ignore.map((pattern) => `!${join(repoRoot, pattern)}`);
+  const positive = knip.project
+    .filter((pattern) => !pattern.startsWith("!"))
+    .map((pattern) => join(repoRoot, pattern));
+  const negative = [
+    ...knip.project
+      .filter((pattern) => pattern.startsWith("!"))
+      .map((pattern) => pattern.slice(1)),
+    ...knip.ignore,
+  ].map((pattern) => `!${join(repoRoot, pattern)}`);
   return { positive, all: [...positive, ...negative] };
 }
 
