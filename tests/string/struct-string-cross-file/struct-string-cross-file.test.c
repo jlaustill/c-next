@@ -24,7 +24,7 @@ int main(void) {
     (void) strncpy(cfg.name, "remote", 8); cfg.name[8] = '\0';
     (void) strncpy(cfg.tags[1], "ab", 4);
     if (strcmp(cfg.name, "remote") != 0) return 1;
-    uint32_t length = lengthOf(&cfg.name);
+    uint32_t length = lengthOf(cfg.name);
     if (length != 6) return 2;
     if (strcmp(cfg.tags[1U], "ab") != 0) return 3;
     if (strlen(cfg.tags[1U]) != 2) return 4;

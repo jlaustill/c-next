@@ -20,7 +20,7 @@ void fill(uint8_t buf[6]) {
 }
 
 int main(void) {
-    fill(&o.inner.data);
+    fill(o.inner.data);
     if (o.inner.data[0U] != 1) return 1;
     if (o.inner.data[5U] != 6) return 2;
     if (o.data != 0) return 3;
