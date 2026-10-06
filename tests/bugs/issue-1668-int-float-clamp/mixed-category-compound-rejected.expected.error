@@ -1,10 +1,12 @@
-11:10 error[E0810]: Compound assignment combines a target and a value of different essential type categories (integer and floating)
+14:10 error[E0810]: Compound assignment combines a target and a value of different essential type categories (integer and floating)
        help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. The target cannot be converted: write the assignment out with explicit conversions, e.g. x <- (u32)((f32)x * k) (ADR-024).
-17:10 error[E0810]: Compound assignment combines a target and a value of different essential type categories (integer and floating)
+20:10 error[E0810]: Compound assignment combines a target and a value of different essential type categories (integer and floating)
        help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. The target cannot be converted: write the assignment out with explicit conversions, e.g. x <- (u32)((f32)x * k) (ADR-024).
-24:10 error[E0810]: Compound assignment combines a target and a value of different essential type categories (integer and floating)
+26:10 error[E0810]: Compound assignment combines a target and a value of different essential type categories (integer and floating)
+       help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. The target cannot be converted: write the assignment out with explicit conversions, e.g. x <- (u32)((f32)x * k) (ADR-024).
+33:10 error[E0810]: Compound assignment combines a target and a value of different essential type categories (integer and floating)
        help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. Convert the integer operand with an explicit cast, e.g. (f32)value (ADR-024).
-30:10 error[E0810]: Compound assignment combines a target and a value of different essential type categories (signed and unsigned)
+39:10 error[E0810]: Compound assignment combines a target and a value of different essential type categories (signed and unsigned)
        help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. Reinterpret one operand's bits to match the other with bit indexing, e.g. value[0, 32] (ADR-007/ADR-024).
-36:34 error[E0810]: Compound assignment combines a target and a value of different essential type categories (signed and unsigned)
+45:34 error[E0810]: Compound assignment combines a target and a value of different essential type categories (signed and unsigned)
        help: MISRA C:2012 Rule 10.4: both operands must share an essential type category. Reinterpret one operand's bits to match the other with bit indexing, e.g. value[0, 32] (ADR-007/ADR-024).

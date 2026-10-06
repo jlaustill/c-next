@@ -11,10 +11,13 @@
 // an ADR-029 callback (#1092 item 1, folded into #1668) or a header float
 // macro (#1688). The explicit spelling casts the integer, and it must evaluate
 // in floating arithmetic -- none of these may reach an integer clamp helper.
-// `i * 2.5` used to evaluate to 6.0.
+// `i * 2.5` used to evaluate to 6.0. The cast alone makes each product
+// floating, so the macro rows check the spelling E0810's hint asks for, not
+// how the macro is typed -- the E0810 fixtures guard that.
 #include "scale_macros.h"
 
 #include <stdint.h>
+#include <limits.h>
 
 float half(void) {
     return 2.5;
@@ -63,8 +66,8 @@ int main(void) {
     if (macroFirst != 7.5) return 9U;
     double macroExpr = (double)i * SCALE_D;
     if (macroExpr != 7.5) return 10U;
-    float macroCompound = SCALE_F;
-    macroCompound *= (float)i;
-    if (macroCompound != 7.5) return 11U;
+    uint32_t macroCompound = 2U;
+    macroCompound = ((((float)macroCompound * SCALE_F)) >= ((float)UINT32_MAX) ? (uint32_t)UINT32_MAX : (((float)macroCompound * SCALE_F)) < 0.0f ? (uint32_t)0 : (uint32_t)(((float)macroCompound * SCALE_F)));
+    if (macroCompound != 5) return 11U;
     return 0U;
 }
