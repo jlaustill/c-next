@@ -5,14 +5,17 @@
 
 #include "float-operand-never-clamped.test.h"
 
-#include <stdint.h>
-
 // test-execution
 // Issue #1668: every integer x float mix is E0810 now, whatever the path to the
 // operand: a struct field, an array element, a call result, a scope member or
-// an ADR-029 callback (#1092 item 1, folded into #1668). The explicit spelling
-// casts the integer, and it must evaluate in floating arithmetic -- none of
-// these may reach an integer clamp helper. `i * 2.5` used to evaluate to 6.0.
+// an ADR-029 callback (#1092 item 1, folded into #1668) or a header float
+// macro (#1688). The explicit spelling casts the integer, and it must evaluate
+// in floating arithmetic -- none of these may reach an integer clamp helper.
+// `i * 2.5` used to evaluate to 6.0.
+#include "scale_macros.h"
+
+#include <stdint.h>
+
 float half(void) {
     return 2.5;
 }
@@ -54,5 +57,14 @@ int main(void) {
     float compound = 2.5;
     compound *= (float)i;
     if (compound != 7.5) return 7U;
+    float macro = (float)i * SCALE_F;
+    if (macro != 7.5) return 8U;
+    float macroFirst = SCALE_F * (float)i;
+    if (macroFirst != 7.5) return 9U;
+    double macroExpr = (double)i * SCALE_D;
+    if (macroExpr != 7.5) return 10U;
+    float macroCompound = SCALE_F;
+    macroCompound *= (float)i;
+    if (macroCompound != 7.5) return 11U;
     return 0U;
 }
