@@ -175,6 +175,7 @@ describe("JsonRpcHandler", () => {
       expect(JsonRpcHandler.ERROR_INVALID_REQUEST).toBe(-32600);
       expect(JsonRpcHandler.ERROR_METHOD_NOT_FOUND).toBe(-32601);
       expect(JsonRpcHandler.ERROR_INVALID_PARAMS).toBe(-32602);
+      expect(JsonRpcHandler.ERROR_INTERNAL).toBe(-32603);
     });
   });
 });

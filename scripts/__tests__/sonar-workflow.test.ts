@@ -54,9 +54,9 @@ function stepUsing(action: string): IStep[] {
  * that is safe; each assertion names the attack it stops.
  */
 describe("sonar.yml — scans every pull request and push from a trusted context", () => {
-  it("scans every pull request and every push PR Quality Checks runs on", () => {
+  it("scans every pull request and every push PR Quality Checks runs on, except a cancelled run", () => {
     expect(scanJob.if).toBe(
-      "github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'push'",
+      "github.event.workflow_run.conclusion != 'cancelled' && (github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'push')",
     );
   });
 

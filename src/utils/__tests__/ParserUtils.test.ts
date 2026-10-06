@@ -106,29 +106,27 @@ describe("ParserUtils", () => {
   });
 
   describe("parseErrorLocation", () => {
-    it("should extract line:column prefix from error message", () => {
-      const result = ParserUtils.parseErrorLocation(
+    it.each([
+      [
+        "should extract line:column prefix from error message",
         "8:4 Error: Cannot assign u32 to u8 (narrowing)",
-      );
-      expect(result.line).toBe(8);
-      expect(result.column).toBe(4);
-      expect(result.message).toBe("Error: Cannot assign u32 to u8 (narrowing)");
-    });
-
-    it("should handle line 1 column 0", () => {
-      const result = ParserUtils.parseErrorLocation("1:0 Some error");
-      expect(result.line).toBe(1);
-      expect(result.column).toBe(0);
-      expect(result.message).toBe("Some error");
-    });
-
-    it("should handle large line numbers", () => {
-      const result = ParserUtils.parseErrorLocation(
+        8,
+        4,
+        "Error: Cannot assign u32 to u8 (narrowing)",
+      ],
+      ["should handle line 1 column 0", "1:0 Some error", 1, 0, "Some error"],
+      [
+        "should handle large line numbers",
         "999:42 Overflow at boundary",
-      );
-      expect(result.line).toBe(999);
-      expect(result.column).toBe(42);
-      expect(result.message).toBe("Overflow at boundary");
+        999,
+        42,
+        "Overflow at boundary",
+      ],
+    ])("%s", (_label, source, line, column, message) => {
+      const result = ParserUtils.parseErrorLocation(source);
+      expect(result.line).toBe(line);
+      expect(result.column).toBe(column);
+      expect(result.message).toBe(message);
     });
 
     it("should default to line 1 column 0 when no prefix found", () => {

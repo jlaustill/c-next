@@ -487,7 +487,7 @@ There is one snapshot set per mode.
 
 ### A6.7 Runtime and CI (`pr-checks.yml:358-420`)
 
-**One job, not legs.** The 8 runners share one machine (`pr-checks.yml:36-50`), and each harness spawns `cpus().length` workers (`test.ts:558`), so parallel legs would contend for the same cores.
+**One job, not legs.** The 8 runners share one machine (`pr-checks.yml:46-63`), and each harness spawns a worker per core it may use (`availableParallelism()`, `test.ts:652`), so parallel legs would contend for the same cores.
 
 - Before `npm test` (`:388`), add a guard: `command -v clang >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq clang)`.
 - The warm re-run (`:406`) and `gate.sh:91` become `npm test -- --transpile-only --targets host`. `gate:roster:check` is unchanged, because the `run_check` count stays the same.

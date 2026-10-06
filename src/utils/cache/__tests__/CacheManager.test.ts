@@ -127,15 +127,15 @@ describe("CacheManager", () => {
   });
 
   describe("initialize", () => {
-    it("should create .cnx directory structure", async () => {
-      await cacheManager.initialize();
+    it("should create .cnx directory structure", () => {
+      cacheManager.initialize();
 
       expect(existsSync(join(testDir, ".cnx"))).toBe(true);
       expect(existsSync(join(testDir, ".cnx", "cache"))).toBe(true);
     });
 
-    it("should create config.json with correct structure", async () => {
-      await cacheManager.initialize();
+    it("should create config.json with correct structure", () => {
+      cacheManager.initialize();
 
       const configPath = join(testDir, ".cnx", "config.json");
       expect(existsSync(configPath)).toBe(true);
@@ -149,20 +149,20 @@ describe("CacheManager", () => {
       expect(typeof config.transpilerVersion).toBe("string");
     });
 
-    it("should preserve existing valid cache", async () => {
+    it("should preserve existing valid cache", () => {
       // First initialization
-      await cacheManager.initialize();
+      cacheManager.initialize();
 
       // Add some data
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
       const symbol = createTestSymbol({ sourceFile: testFile });
       storeSymbols(testFile, [symbol], new Map());
-      await cacheManager.flush();
+      cacheManager.flush();
 
       // Create new manager and reinitialize
       const newManager = new CacheManager(testDir, NodeFileSystem.instance);
-      await newManager.initialize();
+      newManager.initialize();
 
       // Data should still be there
       const cached = newManager.getSymbols(testFile);
@@ -173,15 +173,15 @@ describe("CacheManager", () => {
   });
 
   describe("version invalidation", () => {
-    it("should invalidate cache when version changes", async () => {
+    it("should invalidate cache when version changes", () => {
       // Create initial cache
-      await cacheManager.initialize();
+      cacheManager.initialize();
 
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
       const symbol = createTestSymbol({ sourceFile: testFile });
       storeSymbols(testFile, [symbol], new Map());
-      await cacheManager.flush();
+      cacheManager.flush();
 
       // Modify config to have old version
       const configPath = join(testDir, ".cnx", "config.json");
@@ -191,25 +191,25 @@ describe("CacheManager", () => {
 
       // Reinitialize - should detect version mismatch and invalidate
       const newManager = new CacheManager(testDir, NodeFileSystem.instance);
-      await newManager.initialize();
+      newManager.initialize();
 
       // Cache should be empty
       const cached = newManager.getSymbols(testFile);
       expect(cached).toBeNull();
     });
 
-    it("invalidates the cache when the struct-state shape changes (#1225 review)", async () => {
+    it("invalidates the cache when the struct-state shape changes (#1225 review)", () => {
       // TJsonSafe<Required<...>> forces the WRITER to persist a new field, but
       // nothing forced already-written entries to be discarded -- that was
       // CACHE_VERSION, bumped by hand, so the compile error told the next person
       // to write the field without mentioning a second step. The fingerprint is
       // derived from the serializer, so it closes that loop on its own.
-      await cacheManager.initialize();
+      cacheManager.initialize();
 
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
       storeSymbols(testFile, [createTestSymbol({ sourceFile: testFile })]);
-      await cacheManager.flush();
+      cacheManager.flush();
 
       const configPath = join(testDir, ".cnx", "config.json");
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
@@ -222,15 +222,15 @@ describe("CacheManager", () => {
       writeFileSync(configPath, JSON.stringify(config));
 
       const newManager = new CacheManager(testDir, NodeFileSystem.instance);
-      await newManager.initialize();
+      newManager.initialize();
 
       expect(newManager.getSymbols(testFile)).toBeNull();
     });
 
-    it("treats an entry with unreadable struct state as a miss (#1225 review)", async () => {
+    it("treats an entry with unreadable struct state as a miss (#1225 review)", () => {
       // Not a throw, and not a silently-empty restore: both of those are the
       // defect. A miss costs a re-parse.
-      await cacheManager.initialize();
+      cacheManager.initialize();
 
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
@@ -246,15 +246,15 @@ describe("CacheManager", () => {
       expect(cacheManager.getSymbols(testFile)).toBeNull();
     });
 
-    it("should invalidate cache when transpiler version changes", async () => {
+    it("should invalidate cache when transpiler version changes", () => {
       // Create initial cache
-      await cacheManager.initialize();
+      cacheManager.initialize();
 
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
       const symbol = createTestSymbol({ sourceFile: testFile });
       storeSymbols(testFile, [symbol], new Map());
-      await cacheManager.flush();
+      cacheManager.flush();
 
       // Modify config to have old transpiler version
       const configPath = join(testDir, ".cnx", "config.json");
@@ -264,7 +264,7 @@ describe("CacheManager", () => {
 
       // Reinitialize - should detect version mismatch and invalidate
       const newManager = new CacheManager(testDir, NodeFileSystem.instance);
-      await newManager.initialize();
+      newManager.initialize();
 
       // Cache should be empty
       const cached = newManager.getSymbols(testFile);
@@ -273,11 +273,11 @@ describe("CacheManager", () => {
   });
 
   describe("symbol round-trip", () => {
-    beforeEach(async () => {
-      await cacheManager.initialize();
+    beforeEach(() => {
+      cacheManager.initialize();
     });
 
-    it("should store and retrieve basic symbols", async () => {
+    it("should store and retrieve basic symbols", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
@@ -297,7 +297,7 @@ describe("CacheManager", () => {
       });
     });
 
-    it("defaults preprocessFailed to false and round-trips it when set", async () => {
+    it("defaults preprocessFailed to false and round-trips it when set", () => {
       const cleanFile = join(testDir, "clean.h");
       const failedFile = join(testDir, "failed.h");
       writeFileSync(cleanFile, "// test");
@@ -365,7 +365,7 @@ describe("CacheManager", () => {
       });
     });
 
-    it("should handle multiple symbols", async () => {
+    it("should handle multiple symbols", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
@@ -391,17 +391,17 @@ describe("CacheManager", () => {
       ]);
     });
 
-    it("should persist symbols across flush and reload", async () => {
+    it("should persist symbols across flush and reload", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
       const symbol = createTestSymbol({ sourceFile: testFile });
       storeSymbols(testFile, [symbol], new Map());
-      await cacheManager.flush();
+      cacheManager.flush();
 
       // Create new manager and reload
       const newManager = new CacheManager(testDir, NodeFileSystem.instance);
-      await newManager.initialize();
+      newManager.initialize();
 
       const cached = newManager.getSymbols(testFile);
       expect(cached).not.toBeNull();
@@ -410,11 +410,11 @@ describe("CacheManager", () => {
   });
 
   describe("struct fields serialization", () => {
-    beforeEach(async () => {
-      await cacheManager.initialize();
+    beforeEach(() => {
+      cacheManager.initialize();
     });
 
-    it("should store and retrieve struct fields", async () => {
+    it("should store and retrieve struct fields", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
@@ -431,7 +431,7 @@ describe("CacheManager", () => {
       expect(pointFields.get("y")).toEqual({ type: "int32_t" });
     });
 
-    it("should handle struct fields with array dimensions", async () => {
+    it("should handle struct fields with array dimensions", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
@@ -455,17 +455,17 @@ describe("CacheManager", () => {
       });
     });
 
-    it("should persist struct fields across flush and reload", async () => {
+    it("should persist struct fields across flush and reload", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
       const structFields = createTestStructFields();
       storeSymbols(testFile, [], structFields);
-      await cacheManager.flush();
+      cacheManager.flush();
 
       // Reload
       const newManager = new CacheManager(testDir, NodeFileSystem.instance);
-      await newManager.initialize();
+      newManager.initialize();
 
       const cached = newManager.getSymbols(testFile);
       expect(cached!.structFields.get("Point")!.get("x")).toEqual({
@@ -475,11 +475,11 @@ describe("CacheManager", () => {
   });
 
   describe("needsStructKeyword serialization", () => {
-    beforeEach(async () => {
-      await cacheManager.initialize();
+    beforeEach(() => {
+      cacheManager.initialize();
     });
 
-    it("should store and retrieve needsStructKeyword list", async () => {
+    it("should store and retrieve needsStructKeyword list", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
@@ -491,7 +491,7 @@ describe("CacheManager", () => {
       expect(cached!.needsStructKeyword).toEqual(["Point", "Rectangle"]);
     });
 
-    it("should default to empty array when not provided", async () => {
+    it("should default to empty array when not provided", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
@@ -503,11 +503,11 @@ describe("CacheManager", () => {
   });
 
   describe("enumBitWidth serialization (Issue #208)", () => {
-    beforeEach(async () => {
-      await cacheManager.initialize();
+    beforeEach(() => {
+      cacheManager.initialize();
     });
 
-    it("should store and retrieve enum bit widths", async () => {
+    it("should store and retrieve enum bit widths", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
@@ -522,7 +522,7 @@ describe("CacheManager", () => {
       expect(cached!.enumBitWidth.get("Mode")).toBe(16);
     });
 
-    it("should persist enum bit widths across flush and reload", async () => {
+    it("should persist enum bit widths across flush and reload", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
@@ -530,17 +530,17 @@ describe("CacheManager", () => {
       enumBitWidth.set("Priority", 32);
 
       storeSymbols(testFile, [], new Map(), { enumBitWidth });
-      await cacheManager.flush();
+      cacheManager.flush();
 
       // Reload
       const newManager = new CacheManager(testDir, NodeFileSystem.instance);
-      await newManager.initialize();
+      newManager.initialize();
 
       const cached = newManager.getSymbols(testFile);
       expect(cached!.enumBitWidth.get("Priority")).toBe(32);
     });
 
-    it("should handle missing enumBitWidth in old cache entries", async () => {
+    it("should handle missing enumBitWidth in old cache entries", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
@@ -553,15 +553,15 @@ describe("CacheManager", () => {
   });
 
   describe("isValid", () => {
-    beforeEach(async () => {
-      await cacheManager.initialize();
+    beforeEach(() => {
+      cacheManager.initialize();
     });
 
     it("should return false for uncached file", () => {
       expect(cacheManager.isValid("/nonexistent/file.h")).toBe(false);
     });
 
-    it("should return true for unchanged cached file", async () => {
+    it("should return true for unchanged cached file", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
@@ -585,8 +585,8 @@ describe("CacheManager", () => {
   });
 
   describe("invalidate", () => {
-    beforeEach(async () => {
-      await cacheManager.initialize();
+    beforeEach(() => {
+      cacheManager.initialize();
     });
 
     it("should remove specific file from cache", () => {
@@ -632,8 +632,8 @@ describe("CacheManager", () => {
   });
 
   describe("invalidateAll", () => {
-    beforeEach(async () => {
-      await cacheManager.initialize();
+    beforeEach(() => {
+      cacheManager.initialize();
     });
 
     it("should clear all cached entries", () => {
@@ -653,21 +653,21 @@ describe("CacheManager", () => {
   });
 
   describe("flush", () => {
-    beforeEach(async () => {
-      await cacheManager.initialize();
+    beforeEach(() => {
+      cacheManager.initialize();
     });
 
-    it("should not write when cache is not dirty", async () => {
+    it("should not write when cache is not dirty", () => {
       const symbolsPath = join(testDir, ".cnx", "cache", "symbols.json");
 
       // Flush without any changes
-      await cacheManager.flush();
+      cacheManager.flush();
 
       // symbols file should not exist (no data written)
       expect(existsSync(symbolsPath)).toBe(false);
     });
 
-    it("should write symbols file when cache is dirty", async () => {
+    it("should write symbols file when cache is dirty", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
@@ -676,24 +676,24 @@ describe("CacheManager", () => {
         [createTestSymbol({ sourceFile: testFile })],
         new Map(),
       );
-      await cacheManager.flush();
+      cacheManager.flush();
 
       const symbolsPath = join(testDir, ".cnx", "cache", "symbols.json");
       expect(existsSync(symbolsPath)).toBe(true);
     });
 
-    it("should clear dirty flag after flush", async () => {
+    it("should clear dirty flag after flush", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
       const symbolsPath = join(testDir, ".cnx", "cache", "symbols.json");
 
       storeSymbols(testFile, [], new Map());
-      await cacheManager.flush();
+      cacheManager.flush();
 
       const mtime1 = readFileSync(symbolsPath, "utf-8");
 
       // Second flush should not write (not dirty)
-      await cacheManager.flush();
+      cacheManager.flush();
 
       const mtime2 = readFileSync(symbolsPath, "utf-8");
       expect(mtime1).toBe(mtime2);
@@ -701,35 +701,35 @@ describe("CacheManager", () => {
   });
 
   describe("corrupt cache handling", () => {
-    it("should handle corrupt config.json gracefully", async () => {
+    it("should handle corrupt config.json gracefully", () => {
       // Create corrupt config
       const cnxDir = join(testDir, ".cnx");
       mkdirSync(cnxDir, { recursive: true });
       writeFileSync(join(cnxDir, "config.json"), "not valid json{{{");
 
       // Should not throw, should create new config
-      await cacheManager.initialize();
+      cacheManager.initialize();
 
       const configPath = join(cnxDir, "config.json");
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config).toHaveProperty("version");
     });
 
-    it("should handle corrupt symbols.json gracefully", async () => {
+    it("should handle corrupt symbols.json gracefully", () => {
       // Create valid config but corrupt symbols
       const cnxDir = join(testDir, ".cnx");
       const cacheDir = join(cnxDir, "cache");
       mkdirSync(cacheDir, { recursive: true });
 
       // Create a valid config first (we need to match version)
-      await cacheManager.initialize();
+      cacheManager.initialize();
 
       // Now corrupt the symbols file
       writeFileSync(join(cacheDir, "symbols.json"), "invalid json");
 
       // Reinitialize - should handle gracefully
       const newManager = new CacheManager(testDir, NodeFileSystem.instance);
-      await newManager.initialize();
+      newManager.initialize();
 
       // Should have empty cache, not throw
       expect(newManager.getSymbols("/any/file.h")).toBeNull();
@@ -745,20 +745,20 @@ describe("CacheManager", () => {
     // #1653: CACHE_VERSION 16 moved the entries from flat-cache's `symbols`
     // (flatted) to `symbols.json`. Invalidation removes the old file, so an
     // upgrade does not leave it behind.
-    it("removes flat-cache's legacy symbols file when it invalidates", async () => {
+    it("removes flat-cache's legacy symbols file when it invalidates", () => {
       // An upgrade: a version-15 config beside the file flat-cache wrote.
       const fs = new MockFileSystem()
         .addFile("/proj/.cnx/config.json", JSON.stringify({ version: 15 }))
         .addFile("/proj/.cnx/cache/symbols", '[{"flatted":"legacy"}]');
 
-      await new CacheManager("/proj", fs).initialize();
+      new CacheManager("/proj", fs).initialize();
 
       expect(fs.exists("/proj/.cnx/cache/symbols")).toBe(false);
     });
 
-    it("treats an entry that is not an object as outdated rather than throwing", async () => {
+    it("treats an entry that is not an object as outdated rather than throwing", () => {
       const fs = new MockFileSystem();
-      await new CacheManager("/proj", fs).initialize();
+      new CacheManager("/proj", fs).initialize();
       fs.addFile(
         "/proj/.cnx/cache/symbols.json",
         JSON.stringify({
@@ -769,18 +769,18 @@ describe("CacheManager", () => {
       );
 
       const manager = new CacheManager("/proj", fs);
-      await expect(manager.initialize()).resolves.toBeUndefined();
+      expect(() => manager.initialize()).not.toThrow();
       expect(manager.isValid("/proj/nul.h")).toBe(false);
-      await manager.flush();
+      manager.flush();
 
       expect(
         Object.keys(JSON.parse(fs.readFile("/proj/.cnx/cache/symbols.json"))),
       ).toEqual(["/proj/kept.h"]);
     });
 
-    it("drops every entry written without a cacheKey on load, and keeps the rest", async () => {
+    it("drops every entry written without a cacheKey on load, and keeps the rest", () => {
       const fs = new MockFileSystem();
-      await new CacheManager("/proj", fs).initialize();
+      new CacheManager("/proj", fs).initialize();
       fs.addFile(
         "/proj/.cnx/cache/symbols.json",
         JSON.stringify({
@@ -791,8 +791,8 @@ describe("CacheManager", () => {
       );
 
       const manager = new CacheManager("/proj", fs);
-      await manager.initialize();
-      await manager.flush();
+      manager.initialize();
+      manager.flush();
 
       const kept = Object.keys(
         JSON.parse(fs.readFile("/proj/.cnx/cache/symbols.json")),
@@ -805,8 +805,8 @@ describe("CacheManager", () => {
     // Since #1653 symbols.json is plain JSON read through the port, so they can
     // write the file directly.
 
-    it("should persist and reload cache entries correctly", async () => {
-      await cacheManager.initialize();
+    it("should persist and reload cache entries correctly", () => {
+      cacheManager.initialize();
 
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test content");
@@ -817,11 +817,11 @@ describe("CacheManager", () => {
         [createTestSymbol({ sourceFile: testFile, name: "persistedFunc" })],
         new Map(),
       );
-      await cacheManager.flush();
+      cacheManager.flush();
 
       // Reload with new manager - entry should be accessible
       const newManager = new CacheManager(testDir, NodeFileSystem.instance);
-      await newManager.initialize();
+      newManager.initialize();
 
       // Entry should be accessible
       const cached = newManager.getSymbols(testFile);
@@ -829,8 +829,8 @@ describe("CacheManager", () => {
       expect(readSymbols(cached!.symbols)[0].name).toBe("persistedFunc");
     });
 
-    it("should return null for non-existent entries", async () => {
-      await cacheManager.initialize();
+    it("should return null for non-existent entries", () => {
+      cacheManager.initialize();
 
       // Non-existent entry should be null
       expect(cacheManager.getSymbols("/some/nonexistent/file.h")).toBeNull();
@@ -838,8 +838,8 @@ describe("CacheManager", () => {
   });
 
   describe("setSymbols error handling", () => {
-    beforeEach(async () => {
-      await cacheManager.initialize();
+    beforeEach(() => {
+      cacheManager.initialize();
     });
 
     it("should not cache non-existent file", () => {
@@ -859,8 +859,8 @@ describe("CacheManager", () => {
   });
 
   describe("all symbol kinds", () => {
-    beforeEach(async () => {
-      await cacheManager.initialize();
+    beforeEach(() => {
+      cacheManager.initialize();
     });
 
     // Issue #1225: these are the kinds TSymbolKindC and TSymbolKindCpp
@@ -868,7 +868,7 @@ describe("CacheManager", () => {
     // kinds (bitmap, register_member, ...) because the flat legacy shape could
     // hold any string -- but no C-Next symbol is ever cached, so it asserted a
     // capability of the serializer rather than of the transpiler.
-    it("round-trips every C symbol kind", async () => {
+    it("round-trips every C symbol kind", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
@@ -894,10 +894,10 @@ describe("CacheManager", () => {
       ];
 
       storeSymbols(testFile, symbols, new Map());
-      await cacheManager.flush();
+      cacheManager.flush();
 
       const newManager = new CacheManager(testDir, NodeFileSystem.instance);
-      await newManager.initialize();
+      newManager.initialize();
       const restored = readSymbols(newManager.getSymbols(testFile)!.symbols);
 
       expect(restored.map((symbol) => symbol.kind)).toEqual([
@@ -917,7 +917,7 @@ describe("CacheManager", () => {
       expect(cEnum.members).toEqual([{ name: "A", value: 0 }]);
     });
 
-    it("round-trips every C++ symbol kind", async () => {
+    it("round-trips every C++ symbol kind", () => {
       const testFile = join(testDir, "test.hpp");
       writeFileSync(testFile, "// test");
 
@@ -939,10 +939,10 @@ describe("CacheManager", () => {
       ];
 
       storeSymbols(testFile, symbols, new Map());
-      await cacheManager.flush();
+      cacheManager.flush();
 
       const newManager = new CacheManager(testDir, NodeFileSystem.instance);
-      await newManager.initialize();
+      newManager.initialize();
       const restored = readSymbols(newManager.getSymbols(testFile)!.symbols);
 
       expect(restored.map((symbol) => symbol.kind)).toEqual([
@@ -964,11 +964,11 @@ describe("CacheManager", () => {
   });
 
   describe("all source languages", () => {
-    beforeEach(async () => {
-      await cacheManager.initialize();
+    beforeEach(() => {
+      cacheManager.initialize();
     });
 
-    it("round-trips C and C++ symbols", async () => {
+    it("round-trips C and C++ symbols", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
 
@@ -986,10 +986,10 @@ describe("CacheManager", () => {
       ];
 
       storeSymbols(testFile, symbols, new Map());
-      await cacheManager.flush();
+      cacheManager.flush();
 
       const newManager = new CacheManager(testDir, NodeFileSystem.instance);
-      await newManager.initialize();
+      newManager.initialize();
       const restored = readSymbols(newManager.getSymbols(testFile)!.symbols);
 
       expect(restored.map((symbol) => symbol.sourceLanguage)).toEqual([
@@ -1021,8 +1021,8 @@ describe("CacheManager", () => {
   describe("setSymbolsFromTable (Issue #590)", () => {
     let symbolTable: SymbolTable;
 
-    beforeEach(async () => {
-      await cacheManager.initialize();
+    beforeEach(() => {
+      cacheManager.initialize();
       symbolTable = new SymbolTable();
     });
 
@@ -1094,7 +1094,7 @@ describe("CacheManager", () => {
       expect(restored.map((symbol) => symbol.name)).toEqual(["cFunction"]);
     });
 
-    it("should extract struct fields for structs defined in the file", async () => {
+    it("should extract struct fields for structs defined in the file", () => {
       const testFile = join(testDir, "structs.h");
       writeFileSync(testFile, "// test");
 
@@ -1131,7 +1131,7 @@ describe("CacheManager", () => {
       });
     });
 
-    it("should only extract struct fields for structs in the specified file", async () => {
+    it("should only extract struct fields for structs in the specified file", () => {
       const file1 = join(testDir, "file1.cnx");
       const file2 = join(testDir, "file2.cnx");
       writeFileSync(file1, "// file1");
@@ -1171,7 +1171,7 @@ describe("CacheManager", () => {
       expect(cached!.structFields.has("PointB")).toBe(false);
     });
 
-    it("should extract needsStructKeyword for structs in the file", async () => {
+    it("should extract needsStructKeyword for structs in the file", () => {
       const testFile = join(testDir, "cstructs.cnx");
       writeFileSync(testFile, "// test");
 
@@ -1211,7 +1211,7 @@ describe("CacheManager", () => {
       expect(cached!.needsStructKeyword).toEqual(["NamedStruct"]);
     });
 
-    it("should only extract needsStructKeyword for structs in the specified file", async () => {
+    it("should only extract needsStructKeyword for structs in the specified file", () => {
       const file1 = join(testDir, "file1.cnx");
       const file2 = join(testDir, "file2.cnx");
       writeFileSync(file1, "// file1");
@@ -1255,7 +1255,7 @@ describe("CacheManager", () => {
       expect(cached!.needsStructKeyword).not.toContain("StructB");
     });
 
-    it("should extract enum bit widths for enums in the file", async () => {
+    it("should extract enum bit widths for enums in the file", () => {
       const testFile = join(testDir, "enums.h");
       writeFileSync(testFile, "// test");
 
@@ -1293,7 +1293,7 @@ describe("CacheManager", () => {
       expect(cached!.enumBitWidth.get("Priority")).toBe(16);
     });
 
-    it("should only extract enum bit widths for enums in the specified file", async () => {
+    it("should only extract enum bit widths for enums in the specified file", () => {
       const file1 = join(testDir, "file1.cnx");
       const file2 = join(testDir, "file2.cnx");
       writeFileSync(file1, "// file1");
@@ -1333,7 +1333,7 @@ describe("CacheManager", () => {
       expect(cached!.enumBitWidth.has("EnumB")).toBe(false);
     });
 
-    it("should handle file with all data types (symbols, structs, enums)", async () => {
+    it("should handle file with all data types (symbols, structs, enums)", () => {
       const testFile = join(testDir, "complete.h");
       writeFileSync(testFile, "// test");
 
@@ -1405,7 +1405,7 @@ describe("CacheManager", () => {
       expect(cached!.enumBitWidth.get("DataType")).toBe(8);
     });
 
-    it("should persist data from setSymbolsFromTable across flush and reload", async () => {
+    it("should persist data from setSymbolsFromTable across flush and reload", () => {
       const testFile = join(testDir, "persist.h");
       writeFileSync(testFile, "// test");
 
@@ -1435,11 +1435,11 @@ describe("CacheManager", () => {
 
       // Cache and flush
       cacheManager.setSymbolsFromTable(testFile, symbolTable);
-      await cacheManager.flush();
+      cacheManager.flush();
 
       // Reload with new manager
       const newManager = new CacheManager(testDir, NodeFileSystem.instance);
-      await newManager.initialize();
+      newManager.initialize();
 
       // Verify all data persisted
       const cached = newManager.getSymbols(testFile);
@@ -1472,7 +1472,7 @@ describe("CacheManager", () => {
       expect(cacheManager.getSymbols(nonExistent)).toBeNull();
     });
 
-    it("should handle empty SymbolTable", async () => {
+    it("should handle empty SymbolTable", () => {
       const testFile = join(testDir, "empty.cnx");
       writeFileSync(testFile, "// empty file");
 
@@ -1488,7 +1488,7 @@ describe("CacheManager", () => {
       expect(cached!.enumBitWidth.size).toBe(0);
     });
 
-    it("should handle structs without fields", async () => {
+    it("should handle structs without fields", () => {
       const testFile = join(testDir, "emptystructs.h");
       writeFileSync(testFile, "// test");
 
@@ -1514,7 +1514,7 @@ describe("CacheManager", () => {
       expect(cached!.structFields.has("EmptyStruct")).toBe(false);
     });
 
-    it("should handle enums without bit width", async () => {
+    it("should handle enums without bit width", () => {
       const testFile = join(testDir, "simpleenums.h");
       writeFileSync(testFile, "// test");
 
@@ -1538,7 +1538,7 @@ describe("CacheManager", () => {
       expect(cached!.enumBitWidth.has("SimpleEnum")).toBe(false);
     });
 
-    it("should handle multiple symbols of same kind", async () => {
+    it("should handle multiple symbols of same kind", () => {
       const testFile = join(testDir, "multifuncs.h");
       writeFileSync(testFile, "// test");
 
@@ -1615,8 +1615,8 @@ describe("CacheManager", () => {
       cacheManager = new CacheManager("/project", mockFs);
     });
 
-    it("should create cache directories via IFileSystem", async () => {
-      await cacheManager.initialize();
+    it("should create cache directories via IFileSystem", () => {
+      cacheManager.initialize();
 
       const mkdirCalls = mockFs.getMkdirLog();
       expect(mkdirCalls.some((c) => c.path === "/project/.cnx")).toBe(true);
@@ -1625,8 +1625,8 @@ describe("CacheManager", () => {
       );
     });
 
-    it("should write config.json via IFileSystem", async () => {
-      await cacheManager.initialize();
+    it("should write config.json via IFileSystem", () => {
+      cacheManager.initialize();
 
       const content = mockFs.getWrittenContent("/project/.cnx/config.json");
       expect(content).toBeDefined();
@@ -1637,8 +1637,8 @@ describe("CacheManager", () => {
       expect(config).toHaveProperty("transpilerVersion");
     });
 
-    it("should store and retrieve symbols in memory (before flush)", async () => {
-      await cacheManager.initialize();
+    it("should store and retrieve symbols in memory (before flush)", () => {
+      cacheManager.initialize();
 
       // Add a virtual test file
       mockFs.addFile("/project/test.h", "// test header");
@@ -1662,8 +1662,8 @@ describe("CacheManager", () => {
       expect(readSymbols(cached!.symbols)[0].name).toBe("testFunc");
     });
 
-    it("should validate cache using mtime from IFileSystem", async () => {
-      await cacheManager.initialize();
+    it("should validate cache using mtime from IFileSystem", () => {
+      cacheManager.initialize();
 
       // Add file with specific mtime
       mockFs.addFile("/project/test.h", "// test header", 1000);
@@ -1676,7 +1676,7 @@ describe("CacheManager", () => {
       expect(cacheManager.isValid("/project/test.h")).toBe(false);
     });
 
-    it("should invalidate cache when version changes", async () => {
+    it("should invalidate cache when version changes", () => {
       // Pre-populate with old version config
       mockFs.addDirectory("/project/.cnx");
       mockFs.addDirectory("/project/.cnx/cache");
@@ -1688,7 +1688,7 @@ describe("CacheManager", () => {
       };
       mockFs.addFile("/project/.cnx/config.json", JSON.stringify(oldConfig));
 
-      await cacheManager.initialize();
+      cacheManager.initialize();
 
       // Config should be updated with new version
       const content = mockFs.getWrittenContent("/project/.cnx/config.json");
@@ -1697,8 +1697,8 @@ describe("CacheManager", () => {
       expect(newConfig.version).toBe(16); // Current CACHE_VERSION (C pointer depth, #1668, #1760's volatile spellings, field declarators, then #1653's plain-JSON symbols.json)
     });
 
-    it("should not cache files that do not exist in IFileSystem", async () => {
-      await cacheManager.initialize();
+    it("should not cache files that do not exist in IFileSystem", () => {
+      cacheManager.initialize();
 
       // Try to cache non-existent file
       storeMockSymbols("/project/nonexistent.h", [

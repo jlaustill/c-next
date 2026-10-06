@@ -8,6 +8,7 @@ import IFileConfig from "./types/IFileConfig";
 import PathNormalizer from "./PathNormalizer";
 import NodeFileSystem from "../PARSE/1-Discover/NodeFileSystem";
 import IFileSystem from "../types/IFileSystem";
+import CaughtError from "../utils/CaughtError";
 
 /**
  * Searched in this order in each directory. `cnext --help` documents these
@@ -37,7 +38,7 @@ class ConfigLoader {
     try {
       config = JSON.parse(found.content);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = CaughtError.messageOf(err);
       console.error(`Warning: Failed to parse config: ${message}`);
       return {};
     }
@@ -93,7 +94,7 @@ class ConfigLoader {
     try {
       return fs.readFile(path);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = CaughtError.messageOf(err);
       console.error(`Warning: Failed to read config ${path}: ${message}`);
       return null;
     }
