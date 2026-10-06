@@ -1,4 +1,5 @@
 import IExecFailure from "./types/IExecFailure";
+import CaughtError from "./CaughtError";
 
 /**
  * Reads a failed `execFileSync` / `execSync` / promisified `execFile` from the
@@ -17,7 +18,7 @@ import IExecFailure from "./types/IExecFailure";
  */
 class ExecFailure {
   static of(error: unknown): IExecFailure {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = CaughtError.messageOf(error);
     if (typeof error !== "object" || error === null) {
       return {
         message,

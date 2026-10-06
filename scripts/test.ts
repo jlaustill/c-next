@@ -34,7 +34,7 @@ import { existsSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync, fork, ChildProcess } from "node:child_process";
-import { cpus } from "node:os";
+import { availableParallelism } from "node:os";
 import ITools from "./types/ITools";
 import ITestOptions from "./types/ITestOptions";
 import ITestResult from "./types/ITestResult";
@@ -647,7 +647,9 @@ async function main(): Promise<void> {
   };
 
   // Parse --jobs argument
-  let numJobs = cpus().length; // Default to CPU count
+  // availableParallelism, not cpus().length: a runner pinned to some cores
+  // sees only those, so it does not start a worker per core of the machine.
+  let numJobs = availableParallelism();
   const jobsIndex = args.findIndex((arg) => arg === "--jobs" || arg === "-j");
   if (jobsIndex !== -1 && args[jobsIndex + 1]) {
     const parsed = Number.parseInt(args[jobsIndex + 1], 10);

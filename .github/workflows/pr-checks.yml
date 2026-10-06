@@ -30,6 +30,19 @@ on:
     # report the PR red rather than leaving it untouched.
     types: [opened, synchronize, reopened, edited]
 
+# A newer run of the same pull request cancels the one still in progress. A
+# push fires `synchronize` and a body edit fires `edited`, and each used to
+# start a full run of its own on the shared self-hosted runners. That overlap
+# is what pushed full-transpile tests past vitest's 5s default (#1564, #1752).
+# Pushes to main are grouped per commit, so none of them is ever cancelled.
+#
+# all-checks-passed keeps `if: always()`, so a cancelled run still reports a
+# red "All Checks Passed" rather than a skip -- a cancellation must never read
+# as a pass. The newer run's check of the same name supersedes it.
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 # Self-hosted runner for trusted code (your branches, pushes to main)
 # GitHub runners for untrusted code (fork PRs)
 #

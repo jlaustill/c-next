@@ -28,6 +28,7 @@
 import HeaderGenerator from "./HeaderGenerator";
 import IHeaderEmissionFacts from "./types/IHeaderEmissionFacts";
 import IHeaderRenderResult from "./types/IHeaderRenderResult";
+import CaughtError from "../../../utils/CaughtError";
 
 class HeaderRenderer {
   /**
@@ -61,7 +62,7 @@ class HeaderRenderer {
         );
         headersBySourcePath.set(sourcePath, headerCode);
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
+        const message = CaughtError.messageOf(err);
         errorsBySourcePath.set(sourcePath, message);
       }
     }

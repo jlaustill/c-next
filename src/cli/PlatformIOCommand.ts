@@ -7,6 +7,7 @@ import { resolve } from "node:path";
 import NodeFileSystem from "../PARSE/1-Discover/NodeFileSystem";
 import Write from "../WRITE/1-Write/Write";
 import IFileConfig from "./types/IFileConfig";
+import CaughtError from "../utils/CaughtError";
 
 /**
  * Resolved paths for PlatformIO project.
@@ -189,7 +190,7 @@ transpile_cnext()
         const content = NodeFileSystem.instance.readFile(configPath);
         config = JSON.parse(content) as IFileConfig;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
+        const msg = CaughtError.messageOf(e);
         console.log(
           `⚠ Could not parse existing cnext.config.json (${msg}), creating new one`,
         );

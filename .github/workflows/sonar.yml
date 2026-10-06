@@ -36,7 +36,10 @@ jobs:
   scan:
     name: SonarCloud
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'push'
+    # Not a cancelled run: pr-checks.yml cancels a PR's older run when a newer
+    # one starts, and that run left no coverage to scan. The newer run's scan
+    # reports on the same context.
+    if: github.event.workflow_run.conclusion != 'cancelled' && (github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'push')
 
     steps:
       # A push is analyzed as its branch. A pull request is found by its head,

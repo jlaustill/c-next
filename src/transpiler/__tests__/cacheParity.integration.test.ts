@@ -154,27 +154,27 @@ describe("cache parity (integration, #1225)", () => {
    * this run writes a new entry. Each test starts here, so none depends on the
    * entry an earlier test left behind.
    */
-  async function coldOutput(): Promise<TGenerated> {
+  function coldOutput(): Promise<TGenerated> {
     rmSync(join(dir, ".cnx"), { recursive: true, force: true });
     return transpileOnce();
   }
 
-  async function rewriteEntry(
+  function rewriteEntry(
     rewrite: (cache: CacheManager, path: string, entry: TEntry) => void,
-  ): Promise<CacheManager> {
+  ): CacheManager {
     const path = join(dir, "external.hpp");
     const cache = new CacheManager(dir, NodeFileSystem.instance);
-    await cache.initialize();
+    cache.initialize();
     const entry = cache.getSymbols(path);
     expect(entry, "the run before left a usable entry").not.toBeNull();
     rewrite(cache, path, entry!);
-    await cache.flush();
+    cache.flush();
     return cache;
   }
 
   it("parses the header again when its entry's struct state cannot be read", async () => {
     const expected = await coldOutput();
-    const cache = await rewriteEntry((c, path, entry) =>
+    const cache = rewriteEntry((c, path, entry) =>
       c.setSymbols(path, entry.symbols, entry.structFields, {
         structState: { opaqueTypes: 5 } as never,
       }),
@@ -187,7 +187,7 @@ describe("cache parity (integration, #1225)", () => {
 
   it("parses the header again when its entry's symbols do not validate", async () => {
     const expected = await coldOutput();
-    const cache = await rewriteEntry((c, path, entry) =>
+    const cache = rewriteEntry((c, path, entry) =>
       c.setSymbols(path, [{ kind: "not-a-symbol" }], entry.structFields, {
         structState: entry.structState,
         needsStructKeyword: entry.needsStructKeyword,

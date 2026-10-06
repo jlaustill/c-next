@@ -87,6 +87,7 @@ import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../utils/RequirementAggregator";
 import TargetCatalogFile from "../PARSE/1-Discover/TargetCatalogFile";
 import Write from "../WRITE/1-Write/Write";
+import CaughtError from "../utils/CaughtError";
 
 /** A header's cache entry, as `CacheManager` returns it. */
 type TCachedHeader = NonNullable<ReturnType<CacheManager["getSymbols"]>>;
@@ -349,7 +350,7 @@ class Transpiler {
     const result = this._initResult();
 
     try {
-      await this._initializeRun();
+      this._initializeRun();
 
       // Stage 1: 1.1 Discover
       const discovered = Discover.run(
@@ -372,7 +373,7 @@ class Transpiler {
       }
 
       await this._executePipeline(pipelineInput, result);
-      return await this._finalizeResult(result);
+      return this._finalizeResult(result);
     } catch (err) {
       return this._handleRunError(result, err);
     } finally {
@@ -852,7 +853,7 @@ class Transpiler {
    * the way a `.c` generation failure is, so both loops report one shape.
    */
   private static _collectionError(err: unknown): ITranspileError {
-    const rawMessage = err instanceof Error ? err.message : String(err);
+    const rawMessage = CaughtError.messageOf(err);
     const parsed = ParserUtils.parseErrorLocation(rawMessage);
     return {
       line: parsed.line,
@@ -1212,9 +1213,9 @@ class Transpiler {
     return !file.symbolOnly;
   }
 
-  private async _initializeRun(): Promise<void> {
+  private _initializeRun(): void {
     if (this.cacheManager) {
-      await this.cacheManager.initialize();
+      this.cacheManager.initialize();
     }
     // Issue #587: Reset accumulated state for new run
     // #1662: both are run-scoped and both were initialized ONCE, in the
@@ -1885,10 +1886,10 @@ class Transpiler {
   /**
    * Finalize result: merge warnings, flush cache
    */
-  private async _finalizeResult(
+  private _finalizeResult(
     result: ITranspilerResult,
     warning?: string,
-  ): Promise<ITranspilerResult> {
+  ): ITranspilerResult {
     if (warning) {
       result.warnings.push(warning);
     }
@@ -1901,7 +1902,7 @@ class Transpiler {
     result.adrSites = AdrProvenance.collect();
 
     if (this.cacheManager) {
-      await this.cacheManager.flush();
+      this.cacheManager.flush();
     }
     return result;
   }
@@ -1920,7 +1921,7 @@ class Transpiler {
       // "Error: <message>", so a diagnostic surfaced here read
       // "Pipeline failed: Error: E0507: ..." with a doubled prefix the sibling
       // "Code generation failed" wrapper does not have.
-      message: `Pipeline failed: ${err instanceof Error ? err.message : String(err)}`,
+      message: `Pipeline failed: ${CaughtError.messageOf(err)}`,
       severity: "error",
     });
     result.success = false;

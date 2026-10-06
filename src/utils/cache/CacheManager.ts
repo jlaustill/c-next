@@ -98,7 +98,7 @@ class CacheManager {
   /**
    * Initialize the cache directory and load existing cache
    */
-  async initialize(): Promise<void> {
+  initialize(): void {
     // Create .cnx directory structure
     Write.directory(this.fs, this.cacheDir);
     Write.directory(this.fs, this.cacheSubdir);
@@ -403,7 +403,7 @@ class CacheManager {
   /**
    * Flush cache to disk if modified
    */
-  async flush(): Promise<void> {
+  flush(): void {
     if (!this.dirty || !this.cache) {
       return;
     }

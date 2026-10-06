@@ -13,6 +13,7 @@ import IPreprocessOptions from "./types/IPreprocessOptions";
 import ToolchainDetector from "./ToolchainDetector";
 import ExecFailure from "../../../utils/ExecFailure";
 import IFileSystem from "../../../types/IFileSystem";
+import CaughtError from "../../../utils/CaughtError";
 
 const execFileAsync = promisify(execFile);
 
@@ -87,7 +88,7 @@ class Preprocessor {
         content: "",
         sourceMappings: [],
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: CaughtError.messageOf(error),
         originalFile: filePath,
         toolchain: this.toolchain.name,
       };
