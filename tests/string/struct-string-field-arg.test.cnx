@@ -1,0 +1,31 @@
+// test-execution
+// test-no-warnings
+// #1737: a struct's string<N> field passed to a string<N> parameter goes out
+// as the buffer itself -- a string is a C array and decays -- never &p.name,
+// which C rejects as an incompatible pointer type
+struct Person {
+    string<8> name;
+    u8 age;
+}
+
+u32 lengthOf(string<8> s) {
+    return s.char_count;
+}
+
+bool isBob(string<8> s) {
+    return s = "bob";
+}
+
+i32 main() {
+    Person p;
+    p.name <- "bob";
+    p.age <- 7;
+
+    u32 length <- lengthOf(p.name);
+    bool bob <- isBob(p.name);
+    if (length != 3) return 1;
+    if (bob = false) return 2;
+    if (p.age != 7) return 3;
+
+    return 0;
+}

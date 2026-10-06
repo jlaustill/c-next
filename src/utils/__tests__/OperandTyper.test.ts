@@ -450,6 +450,42 @@ void main() {
     expect(tags).toMatchObject({ stringCapacity: 8, dimensions: [] });
   });
 
+  it("decays a string field like an array, though its buffer is no dimension (#1737)", () => {
+    const struct = "struct Config {\nstring<32> name;\nu8 count;\n}\n";
+    const name = typeOf(
+      `${struct}void main() {\nConfig c;\nstring<32> r <- c.name;\n}`,
+    );
+    expect(OperandTyper.decaysToPointer(name)).toBe(true);
+    const count = typeOf(
+      `${struct}void main() {\nConfig c;\nu8 r <- c.count;\n}`,
+    );
+    expect(OperandTyper.decaysToPointer(count)).toBe(false);
+  });
+
+  it("gives a scalar string's capacity, and none for an array of them (#1737)", () => {
+    const decls = "string<8>[2][3] grid;\nstring<8> one;\n";
+    expect(
+      OperandTyper.scalarStringCapacity(
+        typeOf(`${decls}void main() {\nstring<8> r <- grid[0][1];\n}`),
+      ),
+    ).toBe(8);
+    expect(
+      OperandTyper.scalarStringCapacity(
+        typeOf(`${decls}void main() {\nstring<8> r <- one;\n}`),
+      ),
+    ).toBe(8);
+    expect(
+      OperandTyper.scalarStringCapacity(
+        typeOf(`${decls}void main() {\nstring<8>[3] row <- grid[0];\n}`, "row"),
+      ),
+    ).toBeNull();
+    expect(
+      OperandTyper.scalarStringCapacity(
+        typeOf(`${decls}void main() {\nu8 r <- one[0];\n}`),
+      ),
+    ).toBeNull();
+  });
+
   it("does not call an array of bools a Boolean", () => {
     const row = typeOf(inMain("bool[2][3] f;\nbool r <- f[0];"));
     expect(row).toMatchObject({ typeName: "bool", dimensions: [3] });

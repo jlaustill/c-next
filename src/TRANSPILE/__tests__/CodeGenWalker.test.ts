@@ -8407,6 +8407,55 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("cfg.data");
       });
 
+      it("passes a struct's string field bare: a string decays (#1737)", () => {
+        const source = `
+          struct Person { string<8> name; }
+          void show(string<8> s) { }
+          void test() {
+            Person p;
+            show(p.name);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
+        const tSymbols = declareAndResolve(tree);
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generateWithProgram(generator, tree, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("show(p.name)");
+        expect(code).not.toContain("&p.name");
+      });
+
+      it("types a nested member argument as the inner field (#1737)", () => {
+        const source = `
+          struct Inner { u8[6] data; }
+          struct Outer { Inner inner; u8 data; }
+          void fill(u8[6] buf) { }
+          void test() {
+            Outer o;
+            fill(o.inner.data);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
+        const tSymbols = declareAndResolve(tree);
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generateWithProgram(generator, tree, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("fill(o.inner.data)");
+        expect(code).not.toContain("&o.inner.data");
+      });
+
       it("should handle literal argument", () => {
         const source = `
           void callee(u32 val) { }

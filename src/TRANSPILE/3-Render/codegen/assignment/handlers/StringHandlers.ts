@@ -15,6 +15,7 @@ import StringUtils from "../../../../../utils/StringUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import invariant from "../../../../../utils/invariant";
 import type IOperandType from "../../../../../types/IOperandType";
+import OperandTyper from "../../../../../utils/OperandTyper";
 
 // #1322: `validateNotCompound` is gone -- E0857 in pass 2.1. It was defined
 // here AND in the sibling handler, verbatim: one rule, two copies, in a group
@@ -88,7 +89,7 @@ function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
  * the field-dimensions map, keyed by a struct name the handler re-derived.
  */
 function fieldCapacityOf(field: IOperandType | null | undefined): number {
-  const capacity = field?.stringCapacity ?? null;
+  const capacity = OperandTyper.scalarStringCapacity(field);
   invariant(
     capacity !== null,
     "the classifier routes a write to a string<N> field here",
@@ -143,7 +144,7 @@ function handleStringStructArrayElement(ctx: IAssignmentContext): string {
   const structName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
 
-  const capacity = fieldCapacityOf(ctx.target.last?.before);
+  const capacity = fieldCapacityOf(ctx.target.last?.after);
 
   const index = ctx.renderSubscript(0);
   return StringUtils.copyToStructFieldArrayElement(

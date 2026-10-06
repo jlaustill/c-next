@@ -252,6 +252,26 @@ describe("StructCollector", () => {
       expect(field?.dimensions).toEqual([5, 17]); // [5] array, then 16+1 for string
     });
 
+    it("collects an ADR-045 array of strings, its capacity last (#1569)", () => {
+      const code = `
+        struct Names {
+          string<16>[5] items;
+          string<4>[2][3] cells;
+        }
+      `;
+      const tree = parse(code);
+      const structCtx = tree.declaration(0)!.structDeclaration()!;
+      const symbol = StructCollector.collect(
+        structCtx,
+        "test.cnx",
+        "",
+        "public",
+      );
+
+      expect(symbol.fields.get("items")?.dimensions).toEqual([5, 17]);
+      expect(symbol.fields.get("cells")?.dimensions).toEqual([2, 3, 5]);
+    });
+
     it("resolves constant dimensions in string array fields", () => {
       const code = `
         struct Names {

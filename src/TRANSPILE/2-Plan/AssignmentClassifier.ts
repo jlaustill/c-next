@@ -12,7 +12,6 @@ import IAssignmentContext from "./types/IAssignmentContext";
 import invariant from "../../utils/invariant";
 import SubscriptDepthValidator from "./SubscriptDepthValidator";
 import TTypeInfo from "../../types/TTypeInfo";
-import type IOperandType from "../../types/IOperandType";
 import type IChainBase from "./types/IChainBase";
 import OperandTyper from "../../utils/OperandTyper";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
@@ -81,18 +80,6 @@ class AssignmentClassifier {
       typeInfo.stringCapacity !== undefined &&
       (!typeInfo.arrayDimensions || typeInfo.arrayDimensions.length <= 1)
     );
-  }
-
-  /**
-   * Extract struct name and field name from a 2-identifier context.
-   */
-  private static getStructFieldNames(
-    ctx: IAssignmentContext,
-  ): { structName: string; fieldName: string } | null {
-    if (ctx.identifiers.length !== 2) {
-      return null;
-    }
-    return { structName: ctx.identifiers[0], fieldName: ctx.identifiers[1] };
   }
 
   /**
@@ -252,7 +239,7 @@ class AssignmentClassifier {
     }
 
     // Check if struct member bitmap field: struct.bitmapMember.field
-    if (!AssignmentClassifier._resolveStructType(target.rootTypeInfo, state)) {
+    if (!AssignmentClassifier._isStructRoot(target.rootTypeInfo, state)) {
       return null;
     }
 
@@ -925,84 +912,37 @@ class AssignmentClassifier {
       : null;
   }
 
-  /**
-   * Resolve struct type from variable name.
-   * Returns the base struct type if valid, null if not a known struct.
-   */
-  private static _resolveStructType(
-    structTypeInfo: TTypeInfo | undefined,
+  /** Whether a chain's root is a variable of a known struct type */
+  private static _isStructRoot(
+    rootTypeInfo: TTypeInfo | undefined,
     state: TranspileState,
-  ): string | null {
-    if (!structTypeInfo || !state.isKnownStruct(structTypeInfo.baseType)) {
-      return null;
-    }
-    return structTypeInfo.baseType;
+  ): boolean {
+    return (
+      rootTypeInfo !== undefined && state.isKnownStruct(rootTypeInfo.baseType)
+    );
   }
 
   /**
-   * A `string<N>` as the one operand typer types it: a sized string, which a
-   * struct field always is.
+   * `struct.field <- "…"` (no subscript) or `struct.arr[i] <- "…"` (one): a
+   * two-name chain on a struct variable that writes one `string<N>`.
    *
-   * #1737: the field's type, its array shape and its capacity are the typer's
-   * step for `.field`, read once; this used to re-derive them from the
+   * #1737: whether the written value is a `string<N>`, and its capacity, are
+   * the typer's last step, read once; this used to re-derive them from the
    * struct-field registry, the accessor beside it, and two maps beside that.
    */
-  private static isSizedString(
-    t: IOperandType | null | undefined,
-  ): t is IOperandType {
-    return t !== null && t !== undefined && t.stringCapacity !== null;
-  }
-
-  /**
-   * Check if struct.field is a string field.
-   */
-  private static _classifyStructFieldString(
+  private static _writesStructString(
     ctx: IAssignmentContext,
-    structFieldNames: { structName: string; fieldName: string } | null,
+    subscripts: number,
     state: TranspileState,
-  ): AssignmentKind | null {
-    if (!ctx.hasMemberAccess || ctx.hasArrayAccess || !structFieldNames) {
-      return null;
-    }
-    if (
-      !AssignmentClassifier._resolveStructType(ctx.target.rootTypeInfo, state)
-    ) {
-      return null;
-    }
-    const field = ctx.target.last?.after;
-    return AssignmentClassifier.isSizedString(field) &&
-      field.dimensions.length === 0
-      ? AssignmentKind.STRING_STRUCT_FIELD
-      : null;
-  }
-
-  /**
-   * Check if struct.arr[i] is a string array element.
-   */
-  private static _classifyStructArrayElementString(
-    ctx: IAssignmentContext,
-    structFieldNames: { structName: string; fieldName: string } | null,
-    state: TranspileState,
-  ): AssignmentKind | null {
-    if (
-      !ctx.hasMemberAccess ||
-      !ctx.hasArrayAccess ||
-      !structFieldNames ||
-      ctx.subscriptCount !== 1
-    ) {
-      return null;
-    }
-    if (
-      !AssignmentClassifier._resolveStructType(ctx.target.rootTypeInfo, state)
-    ) {
-      return null;
-    }
-    // `.items` is what the final subscript indexes
-    const field = ctx.target.last?.before;
-    return AssignmentClassifier.isSizedString(field) &&
-      field.dimensions.length > 0
-      ? AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT
-      : null;
+  ): boolean {
+    return (
+      ctx.hasMemberAccess &&
+      ctx.identifiers.length === 2 &&
+      ctx.subscriptCount === subscripts &&
+      ctx.hasArrayAccess === subscripts > 0 &&
+      AssignmentClassifier._isStructRoot(ctx.target.rootTypeInfo, state) &&
+      OperandTyper.scalarStringCapacity(ctx.target.last?.after) !== null
+    );
   }
 
   /**
@@ -1028,21 +968,12 @@ class AssignmentClassifier {
     if (globalMember) return globalMember;
 
     // struct.field or struct.arr[i] string
-    const structFieldNames = AssignmentClassifier.getStructFieldNames(ctx);
-    const structField = AssignmentClassifier._classifyStructFieldString(
-      ctx,
-      structFieldNames,
-      state,
-    );
-    if (structField) return structField;
-
-    const structArrayElement =
-      AssignmentClassifier._classifyStructArrayElementString(
-        ctx,
-        structFieldNames,
-        state,
-      );
-    if (structArrayElement) return structArrayElement;
+    if (AssignmentClassifier._writesStructString(ctx, 0, state)) {
+      return AssignmentKind.STRING_STRUCT_FIELD;
+    }
+    if (AssignmentClassifier._writesStructString(ctx, 1, state)) {
+      return AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT;
+    }
 
     return null;
   }

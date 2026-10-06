@@ -1,0 +1,26 @@
+// test-execution
+// test-no-warnings
+// #1569: a scope's string<N>[M] variable is declared char Lab__tags[2][9],
+// each element a string<8>, not char Lab__tags[2]; an unsized const one too
+scope Lab {
+    string<8>[2] tags <- ["alpha", "seven c"];
+    const string<4>[] codes <- ["ab", "xyz"];
+
+    public u32 codeLength(u32 i) {
+        return codes[i].char_count;
+    }
+
+    public u32 lengthOf(u32 i) {
+        return this.tags[i].char_count;
+    }
+}
+
+i32 main() {
+    u32 first <- Lab.lengthOf(0);
+    u32 second <- Lab.lengthOf(1);
+    if (first != 5) return 1;
+    if (second != 7) return 2;
+    u32 code <- Lab.codeLength(1);
+    if (code != 3) return 3;
+    return 0;
+}

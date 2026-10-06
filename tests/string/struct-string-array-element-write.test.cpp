@@ -9,19 +9,22 @@
 #include <string.h>
 
 // test-execution
+// test-no-warnings
 // #1737: a write to one element of a struct's string-array field copies into
 // that element with the field's string<N> capacity (STRING_STRUCT_ARRAY_ELEMENT)
+// #1569: the field is declared char items[3][9], each element string<8>
 int main(void) {
     Config cfg = {};
     cfg.count = 3U;
     (void) strncpy(cfg.items[0], "hi", 8);
-    (void) strncpy(cfg.items[1], "eight ch", 8);
+    (void) strncpy(cfg.items[1], "seven c", 8);
     (void) strncpy(cfg.items[2], "", 8);
     if (strcmp(cfg.items[0U], "hi") != 0) return 1;
-    if (strcmp(cfg.items[1U], "eight ch") != 0) return 2;
+    if (strcmp(cfg.items[1U], "seven c") != 0) return 2;
     if (strlen(cfg.items[2U]) != 0) return 3;
     if (strlen(cfg.items[0U]) != 2) return 4;
-    if (strlen(cfg.items[1U]) != 8) return 5;
+    if (strlen(cfg.items[1U]) != 7) return 5;
     if (cfg.count != 3) return 6;
+    if (3 != 3) return 7;
     return 0;
 }

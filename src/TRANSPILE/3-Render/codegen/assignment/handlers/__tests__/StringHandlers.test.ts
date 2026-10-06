@@ -254,10 +254,10 @@ describe("StringHandlers", () => {
         identifiers: ["config", "items"],
         ...HandlerTestUtils.subscriptsOf([{} as never]),
       });
-      // #1737: the capacity is the typer's step for the `.items` it indexes
-      const items = {
+      // #1737: the capacity is the typer's step for the element written
+      const element = {
         ...HandlerTestUtils.operandOf("string<32>", false, false),
-        dimensions: [10],
+        dimensions: [],
         stringCapacity: 32,
       };
       const ctx: IAssignmentContext = {
@@ -265,9 +265,9 @@ describe("StringHandlers", () => {
         target: {
           ...base.target,
           last: {
-            before: items,
+            before: { ...element, dimensions: [10] },
             subscript: "array_element",
-            after: null,
+            after: element,
             property: null,
           },
         },

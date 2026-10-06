@@ -115,9 +115,9 @@ function typedLast(
 }
 
 /**
- * #1737: the typer's final step for a struct-field target -- the field it
- * reads (`after`), or the field its subscript indexes (`before`). The case's
- * INPUT, as `typedLast`'s is.
+ * #1737: the typer's final step for a struct-field target -- what the write
+ * lands in (`after`): the field, or the element its subscript selects; and
+ * what the step reads from (`before`). The case's INPUT, as `typedLast`'s is.
  */
 function typedStep(
   ctx: IAssignmentContext,
@@ -1460,16 +1460,40 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
       memberAccessDepth: 1,
       isSimpleIdentifier: false,
     });
-    const element = (field: IOperandType) =>
-      typedStep(ctx, { before: field }, "array_element");
+    const element = (written: IOperandType) =>
+      typedStep(
+        ctx,
+        { before: stringField(8, [4]), after: written },
+        "array_element",
+      );
 
-    // #1737: `.items`' type and shape are the step its subscript indexes
+    // #1737: what the subscript selects is one string<8>, the typer's step
+    expect(AssignmentClassifier.classify(element(stringField(8)), state)).toBe(
+      AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT,
+    );
+    // Control: the subscript selects a row of strings (`string<8>[2][3]`)
     expect(
-      AssignmentClassifier.classify(element(stringField(8, [4])), state),
-    ).toBe(AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT);
-    // Control: the typer says the field is no array
+      AssignmentClassifier.classify(element(stringField(8, [3])), state),
+    ).not.toBe(AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT);
+    // Control: two subscripts reach one string, but the kind renders one
+    const twoDeep = createMockContext(state, {
+      identifiers: ["config", "items"],
+      generatedValue: '"hi"',
+      subscriptCount: 2,
+      hasMemberAccess: true,
+      hasArrayAccess: true,
+      memberAccessDepth: 1,
+      isSimpleIdentifier: false,
+    });
     expect(
-      AssignmentClassifier.classify(element(stringField(8)), state),
+      AssignmentClassifier.classify(
+        typedStep(
+          twoDeep,
+          { before: stringField(8, [3]), after: stringField(8) },
+          "array_element",
+        ),
+        state,
+      ),
     ).not.toBe(AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT);
   });
 
