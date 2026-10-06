@@ -10,6 +10,7 @@ import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
 import TSymbolKind from "./types/TSymbolKind";
 import TCSymbol from "../types/symbols/c/TCSymbol";
 import SymbolPathUtils from "./utils/SymbolPathUtils";
+import CaughtError from "../utils/CaughtError";
 
 /**
  * Map TCSymbol kind to library TSymbolKind
@@ -140,7 +141,7 @@ function parseCHeader(
     errors.push({
       line: 1,
       column: 0,
-      message: err instanceof Error ? err.message : String(err),
+      message: CaughtError.messageOf(err),
       severity: "error",
     });
 

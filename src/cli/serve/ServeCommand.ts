@@ -17,14 +17,15 @@ import Transpiler from "../../transpiler/Transpiler";
 import parseWithSymbols from "../../lib/parseWithSymbols";
 import parseCHeader from "../../lib/parseCHeader";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
+import CaughtError from "../../utils/CaughtError";
 
 /**
- * Method handler type. Only transpile awaits anything (Transpiler.transpile),
- * so a handler may answer synchronously.
+ * What a method handler returns. Only transpile awaits anything
+ * (Transpiler.transpile), so a handler may answer synchronously.
  */
-type MethodHandler = (
-  params?: Record<string, unknown>,
-) => IMethodResult | Promise<IMethodResult>;
+type TMethodResponse = IMethodResult | Promise<IMethodResult>;
+
+type MethodHandler = (params?: Record<string, unknown>) => TMethodResponse;
 
 /**
  * Result from a method handler
@@ -128,11 +129,9 @@ class ServeCommand {
    * Eliminates duplicate validation code across handlers.
    */
   private static _withSourceValidation(
-    handler: (params: ISourceParams) => IMethodResult | Promise<IMethodResult>,
+    handler: (params: ISourceParams) => TMethodResponse,
   ): MethodHandler {
-    return (
-      params?: Record<string, unknown>,
-    ): IMethodResult | Promise<IMethodResult> => {
+    return (params?: Record<string, unknown>): TMethodResponse => {
       if (!params || typeof params.source !== "string") {
         return {
           success: false,
@@ -173,13 +172,15 @@ class ServeCommand {
     this.log(`method: ${request.method}`);
 
     // Dispatch to method handler (async). A handler that throws still
-    // answers its request, with JSON-RPC's internal error.
+    // answers its request, with JSON-RPC's internal error. A reply that
+    // cannot be written is reported on stderr: an unhandled rejection
+    // would end the server for every later request.
     void this.dispatch(request)
       .catch((error: unknown) =>
         JsonRpcHandler.formatError(
           request.id,
           JsonRpcHandler.ERROR_INTERNAL,
-          error instanceof Error ? error.message : String(error),
+          CaughtError.messageOf(error),
         ),
       )
       .then((response) => {
@@ -189,6 +190,11 @@ class ServeCommand {
         if (this.shouldShutdown) {
           this.readline?.close();
         }
+      })
+      .catch((error: unknown) => {
+        process.stderr.write(
+          `[serve] could not write the reply to request ${String(request.id)}: ${CaughtError.messageOf(error)}\n`,
+        );
       });
   }
 

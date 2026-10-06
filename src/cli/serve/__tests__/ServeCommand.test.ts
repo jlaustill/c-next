@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import ServeCommand from "../ServeCommand";
 import JsonRpcHandler from "../JsonRpcHandler";
+import ConfigPrinter from "../../ConfigPrinter";
 
 // We need to test the private dispatch method indirectly by simulating line handling
 // Since the methods are private, we test them via their JSON-RPC responses
@@ -516,6 +517,60 @@ describe("ServeCommand", () => {
         }
       },
     );
+  });
+
+  describe("a synchronous handler that throws", () => {
+    it("answers its request with an internal error", async () => {
+      const getVersionSpy = vi
+        .spyOn(ConfigPrinter, "getVersion")
+        .mockImplementation(() => {
+          throw new Error("version unreadable");
+        });
+      stdoutWriteSpy.mockClear();
+
+      try {
+        const response = await sendRequest({ id: 66, method: "getVersion" });
+
+        expect(response).toMatchObject({
+          id: 66,
+          error: {
+            code: JsonRpcHandler.ERROR_INTERNAL,
+            message: "version unreadable",
+          },
+        });
+      } finally {
+        getVersionSpy.mockRestore();
+      }
+    });
+  });
+
+  describe("a reply that cannot be written", () => {
+    it("is reported on stderr instead of rejecting", async () => {
+      const getVersionSpy = vi
+        .spyOn(ConfigPrinter, "getVersion")
+        .mockReturnValue(BigInt(1) as unknown as string);
+      const stderrWriteSpy = vi
+        .spyOn(process.stderr, "write")
+        .mockImplementation(() => true);
+      stdoutWriteSpy.mockClear();
+
+      try {
+        const handleLine = (
+          ServeCommand as unknown as { handleLine: (line: string) => void }
+        ).handleLine.bind(ServeCommand);
+        handleLine(JSON.stringify({ id: 67, method: "getVersion" }));
+
+        await vi.waitFor(() => {
+          expect(stderrWriteSpy).toHaveBeenCalledWith(
+            expect.stringContaining("could not write the reply to request 67"),
+          );
+        });
+        expect(stdoutWriteSpy).not.toHaveBeenCalled();
+      } finally {
+        stderrWriteSpy.mockRestore();
+        getVersionSpy.mockRestore();
+      }
+    });
   });
 
   describe("unknown method", () => {

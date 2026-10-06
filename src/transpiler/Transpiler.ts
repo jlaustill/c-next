@@ -87,6 +87,7 @@ import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../utils/RequirementAggregator";
 import TargetCatalogFile from "../PARSE/1-Discover/TargetCatalogFile";
 import Write from "../WRITE/1-Write/Write";
+import CaughtError from "../utils/CaughtError";
 
 /** A header's cache entry, as `CacheManager` returns it. */
 type TCachedHeader = NonNullable<ReturnType<CacheManager["getSymbols"]>>;
@@ -852,7 +853,7 @@ class Transpiler {
    * the way a `.c` generation failure is, so both loops report one shape.
    */
   private static _collectionError(err: unknown): ITranspileError {
-    const rawMessage = err instanceof Error ? err.message : String(err);
+    const rawMessage = CaughtError.messageOf(err);
     const parsed = ParserUtils.parseErrorLocation(rawMessage);
     return {
       line: parsed.line,
@@ -1920,7 +1921,7 @@ class Transpiler {
       // "Error: <message>", so a diagnostic surfaced here read
       // "Pipeline failed: Error: E0507: ..." with a doubled prefix the sibling
       // "Code generation failed" wrapper does not have.
-      message: `Pipeline failed: ${err instanceof Error ? err.message : String(err)}`,
+      message: `Pipeline failed: ${CaughtError.messageOf(err)}`,
       severity: "error",
     });
     result.success = false;
