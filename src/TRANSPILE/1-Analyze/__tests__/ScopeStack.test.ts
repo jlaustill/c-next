@@ -27,39 +27,38 @@ describe("ScopeStack", () => {
   describe("scope management", () => {
     it("should start with no active scope", () => {
       expect(stack.hasActiveScope()).toBe(false);
-      expect(stack.getDepth()).toBe(0);
     });
 
     it("should create scope on enterScope", () => {
       stack.enterScope();
       expect(stack.hasActiveScope()).toBe(true);
-      expect(stack.getDepth()).toBe(1);
     });
 
     it("should nest scopes correctly", () => {
       stack.enterScope();
       stack.enterScope();
       stack.enterScope();
-      expect(stack.getDepth()).toBe(3);
+
+      expect(stack.exitScope()).not.toBeNull();
+      expect(stack.exitScope()).not.toBeNull();
+      expect(stack.exitScope()).not.toBeNull();
+      expect(stack.exitScope()).toBeNull();
     });
 
     it("should exit scopes correctly", () => {
       stack.enterScope();
       stack.enterScope();
-      expect(stack.getDepth()).toBe(2);
 
       stack.exitScope();
-      expect(stack.getDepth()).toBe(1);
+      expect(stack.hasActiveScope()).toBe(true);
 
       stack.exitScope();
-      expect(stack.getDepth()).toBe(0);
       expect(stack.hasActiveScope()).toBe(false);
     });
 
     it("should handle exitScope when no scope exists", () => {
       const result = stack.exitScope();
       expect(result).toBeNull();
-      expect(stack.getDepth()).toBe(0);
     });
 
     it("should return exited scope from exitScope", () => {
@@ -81,7 +80,7 @@ describe("ScopeStack", () => {
       stack.enterScope();
       stack.declare("x", { initialized: false, value: 0 });
 
-      expect(stack.has("x")).toBe(true);
+      expect(stack.lookup("x")).not.toBeNull();
       expect(stack.lookup("x")).toEqual({ initialized: false, value: 0 });
     });
 
@@ -159,48 +158,6 @@ describe("ScopeStack", () => {
   // has / hasInCurrentScope
   // ========================================================================
 
-  describe("has", () => {
-    it("should return true for existing variable", () => {
-      stack.enterScope();
-      stack.declare("x", { initialized: true, value: 0 });
-      expect(stack.has("x")).toBe(true);
-    });
-
-    it("should return false for non-existing variable", () => {
-      stack.enterScope();
-      expect(stack.has("x")).toBe(false);
-    });
-
-    it("should find variable in parent scope", () => {
-      stack.enterScope();
-      stack.declare("x", { initialized: true, value: 0 });
-      stack.enterScope();
-
-      expect(stack.has("x")).toBe(true);
-    });
-  });
-
-  describe("hasInCurrentScope", () => {
-    it("should return true for variable in current scope", () => {
-      stack.enterScope();
-      stack.declare("x", { initialized: true, value: 0 });
-      expect(stack.hasInCurrentScope("x")).toBe(true);
-    });
-
-    it("should return false for variable in parent scope", () => {
-      stack.enterScope();
-      stack.declare("x", { initialized: true, value: 0 });
-      stack.enterScope();
-
-      expect(stack.hasInCurrentScope("x")).toBe(false);
-      expect(stack.has("x")).toBe(true); // But has() finds it
-    });
-
-    it("should return false when no scope exists", () => {
-      expect(stack.hasInCurrentScope("x")).toBe(false);
-    });
-  });
-
   // ========================================================================
   // Update
   // ========================================================================
@@ -262,40 +219,6 @@ describe("ScopeStack", () => {
   // ========================================================================
   // getAllVisible
   // ========================================================================
-
-  describe("getAllVisible", () => {
-    it("should return all variables from all scopes", () => {
-      stack.enterScope();
-      stack.declare("a", { initialized: true, value: 1 });
-
-      stack.enterScope();
-      stack.declare("b", { initialized: true, value: 2 });
-
-      const visible = stack.getAllVisible();
-
-      expect(visible.size).toBe(2);
-      expect(visible.get("a")?.value).toBe(1);
-      expect(visible.get("b")?.value).toBe(2);
-    });
-
-    it("should respect shadowing (inner wins)", () => {
-      stack.enterScope();
-      stack.declare("x", { initialized: true, value: 1 });
-
-      stack.enterScope();
-      stack.declare("x", { initialized: false, value: 2 });
-
-      const visible = stack.getAllVisible();
-
-      expect(visible.size).toBe(1);
-      expect(visible.get("x")?.value).toBe(2); // Inner value
-    });
-
-    it("should return empty map when no scope", () => {
-      const visible = stack.getAllVisible();
-      expect(visible.size).toBe(0);
-    });
-  });
 
   // ========================================================================
   // cloneState / restoreState
@@ -386,27 +309,6 @@ describe("ScopeStack", () => {
   // currentScopeVariables iterator
   // ========================================================================
 
-  describe("currentScopeVariables", () => {
-    it("should iterate over current scope only", () => {
-      stack.enterScope();
-      stack.declare("outer", { initialized: true, value: 1 });
-
-      stack.enterScope();
-      stack.declare("inner1", { initialized: true, value: 2 });
-      stack.declare("inner2", { initialized: true, value: 3 });
-
-      const names = [...stack.currentScopeVariables()].map(([name]) => name);
-
-      expect(names).toEqual(["inner1", "inner2"]);
-      expect(names).not.toContain("outer");
-    });
-
-    it("should yield nothing when no scope", () => {
-      const result = [...stack.currentScopeVariables()];
-      expect(result).toHaveLength(0);
-    });
-  });
-
   // ========================================================================
   // Real-world scenarios
   // ========================================================================
@@ -426,13 +328,13 @@ describe("ScopeStack", () => {
 
       stack.enterScope(); // if block
       stack.declare("y", { initialized: false, value: 0 });
-      expect(stack.has("x")).toBe(true);
-      expect(stack.has("y")).toBe(true);
+      expect(stack.lookup("x")).not.toBeNull();
+      expect(stack.lookup("y")).not.toBeNull();
 
       stack.exitScope(); // exit if block
 
-      expect(stack.has("x")).toBe(true);
-      expect(stack.has("y")).toBe(false); // y out of scope
+      expect(stack.lookup("x")).not.toBeNull();
+      expect(stack.lookup("y")).toBeNull(); // y out of scope
     });
 
     it("should handle control flow state save/restore", () => {

@@ -115,34 +115,6 @@ describe("ExpressionUnwrapper", () => {
     });
   });
 
-  describe("isSimpleIdentifier", () => {
-    it("should return true for simple identifier", () => {
-      const expr = parseExpression("myVar");
-      expect(ExpressionUnwrapper.isSimpleIdentifier(expr)).toBe(true);
-    });
-
-    it("should return false for complex expression", () => {
-      const expr = parseExpression("obj.field");
-      expect(ExpressionUnwrapper.isSimpleIdentifier(expr)).toBe(false);
-    });
-  });
-
-  describe("getUnaryExpression", () => {
-    it("should extract unary from simple expression", () => {
-      const expr = parseExpression("myVar");
-      const unary = ExpressionUnwrapper.getUnaryExpression(expr);
-
-      expect(unary).not.toBeNull();
-    });
-
-    it("should return null for binary expression", () => {
-      const expr = parseExpression("a + b");
-      const unary = ExpressionUnwrapper.getUnaryExpression(expr);
-
-      expect(unary).toBeNull();
-    });
-  });
-
   describe("getAdditiveExpression", () => {
     it("should extract additive from simple expression", () => {
       const expr = parseExpression("myVar");

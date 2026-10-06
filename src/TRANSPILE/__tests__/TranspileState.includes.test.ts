@@ -96,17 +96,6 @@ describe("TranspileState", () => {
       state.markClampOpUsed("add", "u8");
       expect(state.usedClampOps.has("add_u8")).toBe(true);
     });
-    it("markSafeDivOpUsed adds to usedSafeDivOps", () => {
-      state.markSafeDivOpUsed("div", "i32");
-      expect(state.usedSafeDivOps.has("div_i32")).toBe(true);
-    });
-  });
-
-  it("registerCallbackFieldType adds to callbackFieldTypes", () => {
-    state.registerCallbackFieldType("MyStruct_onClick", "ClickHandler");
-    expect(state.callbackFieldTypes.get("MyStruct_onClick")).toBe(
-      "ClickHandler",
-    );
   });
 
   // Opaque scope variables used to be tracked here by generated name, a second

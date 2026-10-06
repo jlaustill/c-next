@@ -136,29 +136,6 @@ describe("TypeCheckUtils.isSizedStringName", () => {
 });
 
 // ========================================================================
-// getStringCapacity
-// ========================================================================
-describe("TypeCheckUtils.getStringCapacity", () => {
-  it("returns 32 for string<32>", () => {
-    expect(TypeCheckUtils.getStringCapacity("string<32>")).toBe(32);
-  });
-
-  it("returns 1 for string<1>", () => {
-    expect(TypeCheckUtils.getStringCapacity("string<1>")).toBe(1);
-  });
-
-  it("returns 256 for string<256>", () => {
-    expect(TypeCheckUtils.getStringCapacity("string<256>")).toBe(256);
-  });
-
-  it("returns null for non-string types", () => {
-    expect(TypeCheckUtils.getStringCapacity("u32")).toBeNull();
-    expect(TypeCheckUtils.getStringCapacity("string")).toBeNull();
-    expect(TypeCheckUtils.getStringCapacity("MyStruct")).toBeNull();
-  });
-});
-
-// ========================================================================
 // isStandardWidth
 // ========================================================================
 describe("TypeCheckUtils.isStandardWidth", () => {

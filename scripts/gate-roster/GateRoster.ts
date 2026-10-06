@@ -299,9 +299,13 @@ function evaluate(
 }
 
 export default class GateRoster {
+  /** @public test seam: gate-roster.test.ts drives this module function directly */
   static numeralToInt = numeralToInt;
+  /** @public test seam: gate-roster.test.ts drives this module function directly */
   static scriptsIn = scriptsIn;
+  /** @public test seam: gate-roster.test.ts drives this module function directly */
   static gateInvocations = gateInvocations;
+  /** @public test seam: gate-roster.test.ts drives this module function directly */
   static workflowScripts = workflowScripts;
   static evaluate = evaluate;
 }

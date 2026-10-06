@@ -197,14 +197,6 @@ class TranspileState {
     // HelperGenerator splits this on a single underscore.
     this.usedClampOps.add(`${operation}_${cnxType}`);
   }
-  /**
-   * Mark a safe div operation as used.
-   */
-  markSafeDivOpUsed(operation: string, cnxType: string): void {
-    // Internal helper-op key (e.g. "div_u32"), not a scope-qualified C name.
-    // HelperGenerator matches these with a single underscore.
-    this.usedSafeDivOps.add(`${operation}_${cnxType}`);
-  }
 
   /**
    * #1668: mark a single-evaluation saturating cast as used -- the helper a
@@ -384,12 +376,6 @@ class TranspileState {
       result.set(funcName, unmodified);
     }
     return result;
-  }
-  /**
-   * Register a callback field type.
-   */
-  registerCallbackFieldType(key: string, typeName: string): void {
-    this.callbackFieldTypes.set(key, typeName);
   }
   /**
    * Record a callback type named by a declaration that APPEARS IN THE HEADER.
@@ -754,7 +740,7 @@ class TranspileState {
   pendingTempDeclarations: string[] = [];
 
   /** Counter for unique temp variable names */
-  tempVarCounter: number = 0;
+  private tempVarCounter: number = 0;
 
   /** Issue #517: Pending field assignments for C++ class struct init */
   pendingCppClassAssignments: string[] = [];
@@ -1076,13 +1062,6 @@ class TranspileState {
   }
 
   /**
-   * Check if a name is a local variable.
-   */
-  isLocalVariable(name: string): boolean {
-    return this.localVariables.has(name);
-  }
-
-  /**
    * Get members of a scope.
    */
   getScopeMembers(scopePath: string): Set<string> | undefined {
@@ -1104,19 +1083,6 @@ class TranspileState {
   }
 
   /**
-   * Check if an identifier is a member of the current scope.
-   */
-  isCurrentScopeMember(identifier: string): boolean {
-    if (this.currentScopePath === "") return false;
-    // #1295: `scopeMembers` is keyed by the scope's IDENTITY -- its dotted
-    // source path -- which is exactly what `currentScopePath` holds. No
-    // conversion, and `Outer.Inner` no longer collides with `Other.Inner`.
-    return (
-      this.scopeMembers.get(this.currentScopePath)?.has(identifier) ?? false
-    );
-  }
-
-  /**
    * Resolve an identifier to its fully-scoped name.
    * Inside a scope, checks if the identifier is a scope member first.
    */
@@ -1133,20 +1099,6 @@ class TranspileState {
       }
     }
     return identifier;
-  }
-
-  /**
-   * Get enum members for an enum.
-   */
-  getEnumMembers(enumName: string): ReadonlyMap<string, number> | undefined {
-    return this.symbols?.enumMembers.get(enumName);
-  }
-
-  /**
-   * Get function return type.
-   */
-  getFunctionReturnType(funcName: string): string | undefined {
-    return this.symbols?.functionReturnTypes.get(funcName);
   }
 
   // ===========================================================================
@@ -1301,45 +1253,6 @@ class TranspileState {
     );
   }
 
-  /**
-   * Register a callback type.
-   */
-  registerCallbackType(name: string, info: ICallbackTypeInfo): void {
-    this.callbackTypes.set(name, info);
-  }
-
-  // ===========================================================================
-  // FLOAT BIT SHADOW HELPERS
-  // ===========================================================================
-
-  /**
-   * Register a float bit shadow variable.
-   */
-  registerFloatBitShadow(name: string): void {
-    this.floatBitShadows.add(name);
-  }
-
-  /**
-   * Check if a float bit shadow exists.
-   */
-  hasFloatBitShadow(name: string): boolean {
-    return this.floatBitShadows.has(name);
-  }
-
-  /**
-   * Mark a float shadow as having current value.
-   */
-  markFloatShadowCurrent(name: string): void {
-    this.floatShadowCurrent.add(name);
-  }
-
-  /**
-   * Check if a float shadow has current value.
-   */
-  isFloatShadowCurrent(name: string): boolean {
-    return this.floatShadowCurrent.has(name);
-  }
-
   // ===========================================================================
   // OPAQUE SCOPE VARIABLE HELPERS (Issue #948)
   // ===========================================================================
@@ -1347,22 +1260,6 @@ class TranspileState {
   // ===========================================================================
   // C++ MODE HELPERS
   // ===========================================================================
-
-  /**
-   * Add a pending temp declaration for C++ mode.
-   */
-  addPendingTempDeclaration(decl: string): void {
-    this.pendingTempDeclarations.push(decl);
-  }
-
-  /**
-   * Flush and return pending temp declarations.
-   */
-  flushPendingTempDeclarations(): string[] {
-    const decls = this.pendingTempDeclarations;
-    this.pendingTempDeclarations = [];
-    return decls;
-  }
 
   /**
    * Get a unique temp variable name.

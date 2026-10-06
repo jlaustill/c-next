@@ -23,21 +23,6 @@ class FormatUtils {
   }
 
   /**
-   * Indent each line of a multi-line string (skips empty lines).
-   *
-   * @param text - The text to indent (may contain newlines)
-   * @param level - The indentation level
-   * @returns Text with each non-empty line indented
-   */
-  static indentLines(text: string, level: number): string {
-    const prefix = FormatUtils.indent(level);
-    return text
-      .split("\n")
-      .map((line) => (line.length > 0 ? prefix + line : line))
-      .join("\n");
-  }
-
-  /**
    * Indent ALL lines of a multi-line string (including empty lines).
    *
    * @param text - The text to indent (may contain newlines)
@@ -50,32 +35,6 @@ class FormatUtils {
       .split("\n")
       .map((line) => prefix + line)
       .join("\n");
-  }
-
-  /**
-   * Join strings with separator, filtering out empty strings.
-   *
-   * @param parts - Array of strings to join
-   * @param separator - Separator between parts
-   * @returns Joined string with empty parts removed
-   */
-  static joinNonEmpty(parts: string[], separator: string): string {
-    return parts.filter((p) => p.length > 0).join(separator);
-  }
-
-  /**
-   * Wrap text in braces with proper formatting.
-   * Used for generating C blocks like: { content }
-   *
-   * @param content - The content to wrap
-   * @param inline - If true, format as "{ content }" on one line
-   * @returns Formatted block string
-   */
-  static wrapInBraces(content: string, inline: boolean = false): string {
-    if (inline) {
-      return `{ ${content} }`;
-    }
-    return `{\n${content}\n}`;
   }
 
   /**

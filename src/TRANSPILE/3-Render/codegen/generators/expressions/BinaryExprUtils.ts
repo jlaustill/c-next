@@ -32,28 +32,6 @@ class BinaryExprUtils {
     const cmpOp = isNotEqual ? "!= 0" : "== 0";
     return `strcmp(${left}, ${right}) ${cmpOp}`;
   }
-
-  /**
-   * Build a chained binary expression from operands and operators.
-   * Used by relational, shift, additive, and multiplicative generators.
-   */
-  static buildChainedExpression(
-    operands: string[],
-    operators: string[],
-    defaultOp: string,
-  ): string {
-    if (operands.length === 0) {
-      return "";
-    }
-
-    let result = operands[0];
-    for (let i = 1; i < operands.length; i++) {
-      const op = operators[i - 1] || defaultOp;
-      result += ` ${op} ${operands[i]}`;
-    }
-
-    return result;
-  }
 }
 
 export default BinaryExprUtils;

@@ -270,6 +270,7 @@ class ScopeJoinSites {
    *
    * Scans for the matching delimiter rather than matching a regex: several of
    * these calls span four lines and contain nested calls with their own commas.
+   * @public test seam: scope-join-sites.test.ts pins the #1357 gate's call scanner through it
    */
   static firstElements(rawSource: string): readonly string[] {
     return ScopeJoinSites.calls(rawSource).map((call) => call.element);

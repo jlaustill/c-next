@@ -272,7 +272,6 @@ describe("ArgumentGenerator", () => {
   describe("createCppMemberConversionTemp", () => {
     it("creates temp variable with static_cast in C++ mode", () => {
       state.cppMode = true;
-      state.tempVarCounter = 0;
       const callbacks = createMockCallbacks({
         generateExpression: () => "cfg.value",
       });
@@ -287,12 +286,12 @@ describe("ArgumentGenerator", () => {
       expect(state.pendingTempDeclarations).toContain(
         "uint8_t cnx_tmp0 = static_cast<uint8_t>(cfg.value);",
       );
-      expect(state.tempVarCounter).toBe(1);
+      expect(state.getNextTempVarName()).toBe("cnx_tmp1");
     });
 
     it("increments temp counter for multiple temps", () => {
       state.cppMode = true;
-      state.tempVarCounter = 5;
+      for (let i = 0; i < 5; i++) state.getNextTempVarName();
       const callbacks = createMockCallbacks({
         generateExpression: () => "x",
       });
@@ -304,7 +303,7 @@ describe("ArgumentGenerator", () => {
       );
 
       expect(result).toBe("cnx_tmp5");
-      expect(state.tempVarCounter).toBe(6);
+      expect(state.getNextTempVarName()).toBe("cnx_tmp6");
     });
   });
 
@@ -385,7 +384,6 @@ describe("ArgumentGenerator", () => {
 
     it("creates temp for C++ conversion when needed", () => {
       state.cppMode = true;
-      state.tempVarCounter = 0;
       const callbacks = createMockCallbacks({
         getMemberAccessArrayStatus: () => "not-array",
         isCppMemberConversionRequired: () => true,

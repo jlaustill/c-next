@@ -4,7 +4,7 @@
  */
 
 import { execSync } from "node:child_process";
-import { basename, join } from "node:path";
+import { basename } from "node:path";
 import IToolchain from "./types/IToolchain";
 import IFileSystem from "../../../types/IFileSystem";
 
@@ -40,24 +40,6 @@ class ToolchainDetector {
     if (gcc) return gcc;
 
     return null;
-  }
-
-  /**
-   * Detect all available toolchains
-   */
-  static detectAll(fs: IFileSystem): IToolchain[] {
-    const toolchains: IToolchain[] = [];
-
-    const arm = this.detectArmToolchain(fs);
-    if (arm) toolchains.push(arm);
-
-    const clang = this.detectClang(fs);
-    if (clang) toolchains.push(clang);
-
-    const gcc = this.detectGcc(fs);
-    if (gcc) toolchains.push(gcc);
-
-    return toolchains;
   }
 
   /**
@@ -221,50 +203,6 @@ class ToolchainDetector {
     } catch {
       return [];
     }
-  }
-
-  /**
-   * Parse PlatformIO environment for include paths
-   * Looks for platformio.ini in project root
-   */
-  static getPlatformIOIncludePaths(
-    projectRoot: string,
-    fs: IFileSystem,
-  ): string[] {
-    const paths: string[] = [];
-    const pioIniPath = join(projectRoot, "platformio.ini");
-
-    if (!fs.exists(pioIniPath)) {
-      return paths;
-    }
-
-    try {
-      // Use pio to get the include paths
-      const result = execSync("pio project config --json-output", {
-        cwd: projectRoot,
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-
-      const config = JSON.parse(result) as Record<
-        string,
-        { build_flags?: string[] }
-      >;
-
-      // Extract include directories from build flags
-      for (const env of Object.values(config)) {
-        const buildFlags = env.build_flags ?? [];
-        for (const flag of buildFlags) {
-          if (flag.startsWith("-I")) {
-            paths.push(flag.slice(2));
-          }
-        }
-      }
-    } catch {
-      // PlatformIO not available or project not configured
-    }
-
-    return paths;
   }
 }
 

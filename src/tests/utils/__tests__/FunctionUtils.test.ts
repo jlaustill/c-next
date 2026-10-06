@@ -4,7 +4,6 @@
 import { describe, it, expect } from "vitest";
 import FunctionUtils from "../FunctionUtils";
 import ScopeUtils from "../../../utils/ScopeUtils";
-import ParameterUtils from "../../../utils/ParameterUtils";
 import TTypeUtils from "../../../utils/TTypeUtils";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
@@ -15,12 +14,12 @@ describe("IFunctionSymbol", () => {
         name: "fillData", // Bare name, NOT "Test__fillData"
         scopePath: "Test",
         parameters: [
-          ParameterUtils.create({
+          {
             name: "d",
             type: TTypeUtils.createPrimitive("u32"),
             isConst: false,
             isArray: false,
-          }),
+          },
         ],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
@@ -61,24 +60,24 @@ describe("IFunctionSymbol", () => {
         name: "calculate",
         scopePath: "",
         parameters: [
-          ParameterUtils.create({
+          {
             name: "a",
             type: TTypeUtils.createPrimitive("i32"),
             isConst: true,
             isArray: false,
-          }),
-          ParameterUtils.create({
+          },
+          {
             name: "b",
             type: TTypeUtils.createPrimitive("i32"),
             isConst: true,
             isArray: false,
-          }),
-          ParameterUtils.create({
+          },
+          {
             name: "result",
             type: TTypeUtils.createPrimitive("i32"),
             isConst: false,
             isArray: false,
-          }),
+          },
         ],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
@@ -97,18 +96,18 @@ describe("IFunctionSymbol", () => {
         name: "createPoint",
         scopePath: "",
         parameters: [
-          ParameterUtils.create({
+          {
             name: "x",
             type: TTypeUtils.createPrimitive("i32"),
             isConst: false,
             isArray: false,
-          }),
-          ParameterUtils.create({
+          },
+          {
             name: "y",
             type: TTypeUtils.createPrimitive("i32"),
             isConst: false,
             isArray: false,
-          }),
+          },
         ],
         returnType: TTypeUtils.createStruct("Point"),
         visibility: "public",

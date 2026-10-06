@@ -197,16 +197,6 @@ class TypeValidator {
     );
   }
 
-  static resolveForMemberAccess(
-    identifier: string,
-    state: TranspileState,
-  ): string | null {
-    if (state.symbols!.knownScopes.has(identifier)) {
-      return identifier;
-    }
-    return null;
-  }
-
   // ========================================================================
   // Critical Section Validation (ADR-050)
   // ========================================================================

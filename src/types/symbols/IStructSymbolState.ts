@@ -18,9 +18,7 @@ interface IStructSymbolState {
    * The one handle mark: `OpaqueTypeResolution` decides whether a body arrived.
    */
   opaqueTypes: Set<string>;
-  /** Struct tag → typedef name (e.g., "_widget_t" → "widget_t") */
-  structTagAliases: Map<string, string>;
-  /** Typedef name → struct tag (reverse of structTagAliases) */
+  /** Typedef name → struct tag (e.g., "widget_t" → "_widget_t") */
   typedefToTag: Map<string, string>;
   /** Struct tags that have full definitions (bodies) */
   structTagsWithBodies: Set<string>;

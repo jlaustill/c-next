@@ -115,7 +115,10 @@ class TestMarkers {
     return TestMarkers.spellingOf(marker).test(source);
   }
 
-  /** Every known marker name, in declaration order. */
+  /**
+   * Every known marker name, in declaration order.
+   * @public the marker list marker-spellings.test.ts enumerates; a hand-listed copy would be a second list
+   */
   static names(): string[] {
     return [...TestMarkers.SPELLINGS.keys()];
   }

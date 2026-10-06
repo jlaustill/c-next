@@ -23,35 +23,6 @@ describe("FormatUtils.indent", () => {
 });
 
 // ========================================================================
-// indentLines
-// ========================================================================
-describe("FormatUtils.indentLines", () => {
-  it("indents single line", () => {
-    expect(FormatUtils.indentLines("code;", 1)).toBe("    code;");
-  });
-
-  it("indents multiple lines", () => {
-    expect(FormatUtils.indentLines("line1;\nline2;", 1)).toBe(
-      "    line1;\n    line2;",
-    );
-  });
-
-  it("preserves empty lines without indentation", () => {
-    expect(FormatUtils.indentLines("line1;\n\nline2;", 1)).toBe(
-      "    line1;\n\n    line2;",
-    );
-  });
-
-  it("handles level 0 (no indent)", () => {
-    expect(FormatUtils.indentLines("code;", 0)).toBe("code;");
-  });
-
-  it("handles deeper indentation", () => {
-    expect(FormatUtils.indentLines("x = 1;", 2)).toBe("        x = 1;");
-  });
-});
-
-// ========================================================================
 // indentAllLines
 // ========================================================================
 describe("FormatUtils.indentAllLines", () => {
@@ -77,60 +48,6 @@ describe("FormatUtils.indentAllLines", () => {
 
   it("handles deeper indentation", () => {
     expect(FormatUtils.indentAllLines("x = 1;", 2)).toBe("        x = 1;");
-  });
-});
-
-// ========================================================================
-// joinNonEmpty
-// ========================================================================
-describe("FormatUtils.joinNonEmpty", () => {
-  it("joins non-empty strings", () => {
-    expect(FormatUtils.joinNonEmpty(["a", "b", "c"], ", ")).toBe("a, b, c");
-  });
-
-  it("filters out empty strings", () => {
-    expect(FormatUtils.joinNonEmpty(["a", "", "b", "", "c"], ", ")).toBe(
-      "a, b, c",
-    );
-  });
-
-  it("returns empty string for all empty parts", () => {
-    expect(FormatUtils.joinNonEmpty(["", "", ""], ", ")).toBe("");
-  });
-
-  it("handles single element", () => {
-    expect(FormatUtils.joinNonEmpty(["only"], "-")).toBe("only");
-  });
-
-  it("uses different separators", () => {
-    expect(FormatUtils.joinNonEmpty(["x", "y"], "\n")).toBe("x\ny");
-  });
-});
-
-// ========================================================================
-// wrapInBraces
-// ========================================================================
-describe("FormatUtils.wrapInBraces", () => {
-  it("wraps content in braces with newlines by default", () => {
-    expect(FormatUtils.wrapInBraces("code;")).toBe("{\ncode;\n}");
-  });
-
-  it("wraps content inline when specified", () => {
-    expect(FormatUtils.wrapInBraces("1", true)).toBe("{ 1 }");
-  });
-
-  it("handles multi-line content", () => {
-    expect(FormatUtils.wrapInBraces("line1;\nline2;")).toBe(
-      "{\nline1;\nline2;\n}",
-    );
-  });
-
-  it("handles empty content", () => {
-    expect(FormatUtils.wrapInBraces("")).toBe("{\n\n}");
-  });
-
-  it("handles empty content inline", () => {
-    expect(FormatUtils.wrapInBraces("", true)).toBe("{  }");
   });
 });
 

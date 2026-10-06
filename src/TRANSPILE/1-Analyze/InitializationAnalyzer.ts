@@ -257,7 +257,7 @@ class InitializationListener extends CNextListener {
    * Check if we should skip read checking in current context
    */
   private _shouldSkipReadCheck(): boolean {
-    return this.analyzer.isInWriteContext() || this.inFunctionCallArgs > 0;
+    return this.inFunctionCallArgs > 0;
   }
 
   /**
@@ -437,9 +437,6 @@ class InitializationAnalyzer {
    * External struct fields from C/C++ headers are accessed via CodeGenState.
    */
   private cnextStructFields: Map<string, Set<string>> = new Map();
-
-  /** Track if we're processing a write target (left side of assignment) */
-  private inWriteContext: boolean = false;
 
   /** Symbol table for checking C++ types (Issue #503) */
   private symbolTable: SymbolTable | null = null;
@@ -1030,18 +1027,6 @@ class InitializationAnalyzer {
       mayBeUninitialized,
       message: `use of ${certainty}uninitialized variable '${variable}'`,
     });
-  }
-
-  // ========================================================================
-  // Write Context Tracking
-  // ========================================================================
-
-  public setWriteContext(inWrite: boolean): void {
-    this.inWriteContext = inWrite;
-  }
-
-  public isInWriteContext(): boolean {
-    return this.inWriteContext;
   }
 
   // ========================================================================

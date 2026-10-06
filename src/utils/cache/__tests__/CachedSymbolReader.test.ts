@@ -121,7 +121,7 @@ describe("CachedSymbolReader", () => {
       // transpile rather than read as a miss.
       const corrupt = {
         ...(realStructState() as object),
-        structTagAliases: 5,
+        typedefToTag: 5,
       };
 
       expect(() =>

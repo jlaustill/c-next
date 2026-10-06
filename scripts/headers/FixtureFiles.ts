@@ -84,6 +84,7 @@ class FixtureFiles {
    * artifacts as orphans to delete -- naming neither markers nor prose, so the
    * obvious reading was "delete these four", which is #1149's damage in
    * reverse.
+   * @public read by snapshot-modes.test.ts, which is the check that enforces it (#1149)
    */
   static isModeOrphan(path: string, sourceText: string): boolean {
     return FixtureFiles.modeOf(path) === "cpp"

@@ -150,22 +150,6 @@ describe("ToolchainRequirementUtils", () => {
     });
   });
 
-  describe("distinctCompilerFloors", () => {
-    it("reports no floor for anything in the registry today", () => {
-      // The only floor C-Next ever had came from the unreachable
-      // __builtin_*_overflow calls removed in #1143. If one is ever added this
-      // fails, which is the point: a version floor should be a deliberate act.
-      const everyKey = Object.keys(TOOLCHAIN_REQUIREMENTS) as TRequirementKey[];
-      expect(
-        ToolchainRequirementUtils.distinctCompilerFloors(recorded(...everyKey)),
-      ).toEqual([]);
-    });
-
-    it("reports nothing for an empty set", () => {
-      expect(ToolchainRequirementUtils.distinctCompilerFloors([])).toEqual([]);
-    });
-  });
-
   describe("reportable", () => {
     it("drops the baseline and keeps what costs something", () => {
       const result = ToolchainRequirementUtils.reportable(

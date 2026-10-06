@@ -5,10 +5,7 @@
  * Maintains backward-compatible API.
  */
 
-import type TranspileState from "../../TranspileState";
 import IHeaderSymbol from "./types/IHeaderSymbol";
-import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
-import HeaderSymbolAdapter from "./adapters/HeaderSymbolAdapter";
 import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";
 import CHeaderGenerator from "./CHeaderGenerator";
@@ -58,37 +55,6 @@ class HeaderGenerator {
       allKnownEnums,
       sourcePath,
     );
-  }
-
-  /**
-   * Generate header from a symbol table, filtering by source file
-   */
-  generateFromSymbolTable(
-    symbolTable: SymbolTable,
-    sourceFile: string,
-    state: TranspileState,
-    options: IHeaderOptions = {},
-  ): string {
-    const tSymbols = symbolTable.getTSymbolsByFile(sourceFile);
-    const headerSymbols = HeaderSymbolAdapter.fromTSymbols(tSymbols, state);
-    const basename = sourceFile.replace(/\.[^.]+$/, "");
-    const headerName = `${basename}.h`;
-
-    return this.generate(headerSymbols, headerName, options);
-  }
-
-  /**
-   * Generate header for all C-Next symbols in the symbol table
-   */
-  generateCNextHeader(
-    symbolTable: SymbolTable,
-    filename: string,
-    state: TranspileState,
-    options: IHeaderOptions = {},
-  ): string {
-    const tSymbols = symbolTable.getAllTSymbols();
-    const headerSymbols = HeaderSymbolAdapter.fromTSymbols(tSymbols, state);
-    return this.generate(headerSymbols, filename, options);
   }
 }
 

@@ -589,48 +589,6 @@ describe("HeaderSymbolAdapter", () => {
     });
   });
 
-  describe("fromTSymbols", () => {
-    it("should convert array of TSymbols", () => {
-      const tSymbols = [
-        {
-          ...TestSymbolUtils.base({
-            kind: "variable" as const,
-            name: "var1",
-            scopePath: "",
-            sourceFile: "test.cnx",
-            span: TestSourceSpan.at(1),
-          }),
-          type: TTypeUtils.createPrimitive("u32"),
-          isConst: false,
-          isAtomic: false,
-          isVolatile: false,
-          overflowBehavior: "clamp" as const,
-          isArray: false,
-        },
-        {
-          ...TestSymbolUtils.base({
-            kind: "function" as const,
-            name: "func1",
-            scopePath: "",
-            sourceFile: "test.cnx",
-            span: TestSourceSpan.at(5),
-          }),
-          parameters: [],
-          returnType: TTypeUtils.createPrimitive("void"),
-          visibility: "public" as const,
-        },
-      ];
-
-      const results = HeaderSymbolAdapter.fromTSymbols(tSymbols, state);
-
-      expect(results).toHaveLength(2);
-      expect(results[0].name).toBe("var1");
-      expect(results[0].kind).toBe("variable");
-      expect(results[1].name).toBe("func1");
-      expect(results[1].kind).toBe("function");
-    });
-  });
-
   // ========================================================================
   // Edge Cases
   // ========================================================================

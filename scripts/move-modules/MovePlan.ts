@@ -23,7 +23,10 @@ class MovePlan {
     return superseded;
   }
 
-  /** The entries still to perform: final ones whose source is still there. */
+  /**
+   * The entries still to perform: final ones whose source is still there.
+   * @public read by move-plan.test.ts, which asserts against the live MOVES that nothing is left to perform
+   */
   static pending(
     moves: readonly IMove[],
     exists: (path: string) => boolean,

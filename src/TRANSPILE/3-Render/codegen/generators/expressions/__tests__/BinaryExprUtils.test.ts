@@ -82,64 +82,6 @@ describe("BinaryExprUtils", () => {
     });
   });
 
-  describe("buildChainedExpression", () => {
-    it("returns single operand unchanged", () => {
-      expect(BinaryExprUtils.buildChainedExpression(["x"], [], "+")).toBe("x");
-    });
-
-    it("joins two operands with operator", () => {
-      expect(
-        BinaryExprUtils.buildChainedExpression(["a", "b"], ["+"], "+"),
-      ).toBe("a + b");
-    });
-
-    it("chains multiple operands with their operators", () => {
-      expect(
-        BinaryExprUtils.buildChainedExpression(
-          ["a", "b", "c"],
-          ["+", "-"],
-          "+",
-        ),
-      ).toBe("a + b - c");
-    });
-
-    it("uses default operator when operator array is short", () => {
-      expect(
-        BinaryExprUtils.buildChainedExpression(["a", "b", "c"], ["+"], "*"),
-      ).toBe("a + b * c");
-    });
-
-    it("handles all bitwise operators", () => {
-      expect(
-        BinaryExprUtils.buildChainedExpression(["a", "b"], ["|"], "|"),
-      ).toBe("a | b");
-      expect(
-        BinaryExprUtils.buildChainedExpression(["a", "b"], ["^"], "^"),
-      ).toBe("a ^ b");
-      expect(
-        BinaryExprUtils.buildChainedExpression(["a", "b"], ["&"], "&"),
-      ).toBe("a & b");
-    });
-
-    it("handles shift operators", () => {
-      expect(
-        BinaryExprUtils.buildChainedExpression(["x", "2"], ["<<"], "<<"),
-      ).toBe("x << 2");
-      expect(
-        BinaryExprUtils.buildChainedExpression(["x", "2"], [">>"], ">>"),
-      ).toBe("x >> 2");
-    });
-
-    it("handles relational operators", () => {
-      expect(
-        BinaryExprUtils.buildChainedExpression(["a", "b"], ["<"], "<"),
-      ).toBe("a < b");
-      expect(
-        BinaryExprUtils.buildChainedExpression(["a", "b"], [">="], "<"),
-      ).toBe("a >= b");
-    });
-  });
-
   // #1322: the `validateEnumComparison` tests that stood here are gone with the
   // method. ADR-017's comparison rule is E0434 in pass 2.1, asked of resolved
   // types rather than of four booleans a caller had already computed by

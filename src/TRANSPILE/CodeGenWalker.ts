@@ -1752,7 +1752,6 @@ class CodeGenWalker {
       options?.includeKinds ?? new Map<string, EFileType>();
     this.host.state.cppMode = options?.cppMode ?? false;
     this.host.state.pendingTempDeclarations = [];
-    this.host.state.tempVarCounter = 0;
     this.host.state.pendingCppClassAssignments = [];
 
     this.tokenStream = tokenStream ?? null;

@@ -137,41 +137,6 @@ describe("SymbolLookupHelper", () => {
     });
   });
 
-  describe("isExternalCFunction", () => {
-    it("returns false when symbolTable is null", () => {
-      expect(SymbolLookupHelper.isExternalCFunction(null, "myFunc")).toBe(
-        false,
-      );
-    });
-
-    it("returns true for C function", () => {
-      const mockTable = makeSymbolTable([
-        { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
-      ]);
-      expect(SymbolLookupHelper.isExternalCFunction(mockTable, "myFunc")).toBe(
-        true,
-      );
-    });
-
-    it("returns true for C++ function", () => {
-      const mockTable = makeSymbolTable([
-        { kind: "function" as const, sourceLanguage: ESourceLanguage.Cpp },
-      ]);
-      expect(SymbolLookupHelper.isExternalCFunction(mockTable, "myFunc")).toBe(
-        true,
-      );
-    });
-
-    it("returns false for C-Next function", () => {
-      const mockTable = makeSymbolTable([
-        { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
-      ]);
-      expect(SymbolLookupHelper.isExternalCFunction(mockTable, "myFunc")).toBe(
-        false,
-      );
-    });
-  });
-
   describe("isNamespace", () => {
     it("returns false when symbolTable is null", () => {
       expect(SymbolLookupHelper.isNamespace(null, "MyNS")).toBe(false);

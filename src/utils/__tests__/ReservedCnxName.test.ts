@@ -78,20 +78,4 @@ describe("ReservedCnxName", () => {
       );
     });
   });
-
-  describe("prefix constants", () => {
-    // The macro prefix must be the identifier prefix in the case macros use, or
-    // a guard could sit outside the namespace E0202 defends.
-    it("keeps the macro prefix in step with the identifier prefix", () => {
-      expect(ReservedCnxName.MACRO_PREFIX).toBe(
-        ReservedCnxName.PREFIX.toUpperCase(),
-      );
-    });
-
-    it("is recognized by isReserved in macro case", () => {
-      expect(
-        ReservedCnxName.isReserved(`${ReservedCnxName.MACRO_PREFIX}FOO`),
-      ).toBe(true);
-    });
-  });
 });

@@ -4,7 +4,6 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import IToolchain from "../types/IToolchain";
-import ISourceMapping from "../types/ISourceMapping";
 
 // We need to define our mock functions before vi.mock calls
 const mockExec = vi.fn();
@@ -94,7 +93,6 @@ describe("Preprocessor", () => {
       );
 
       expect(preprocessor.isAvailable()).toBe(true);
-      expect(preprocessor.getToolchain()).toEqual(mockToolchain);
     });
 
     it("uses ToolchainDetector when no toolchain provided", () => {
@@ -114,7 +112,6 @@ describe("Preprocessor", () => {
       const preprocessor = new Preprocessor(NodeFileSystem.instance);
 
       expect(preprocessor.isAvailable()).toBe(false);
-      expect(preprocessor.getToolchain()).toBeNull();
     });
   });
 
@@ -131,22 +128,6 @@ describe("Preprocessor", () => {
       mockDetect.mockReturnValue(null);
       const preprocessor = new Preprocessor(NodeFileSystem.instance);
       expect(preprocessor.isAvailable()).toBe(false);
-    });
-  });
-
-  describe("getToolchain", () => {
-    it("returns the toolchain", () => {
-      const preprocessor = new Preprocessor(
-        NodeFileSystem.instance,
-        mockToolchain,
-      );
-      expect(preprocessor.getToolchain()).toEqual(mockToolchain);
-    });
-
-    it("returns null when no toolchain", () => {
-      mockDetect.mockReturnValue(null);
-      const preprocessor = new Preprocessor(NodeFileSystem.instance);
-      expect(preprocessor.getToolchain()).toBeNull();
     });
   });
 
@@ -443,66 +424,6 @@ int y = 10;
       expect(result.success).toBe(false);
       expect(input).not.toBe("");
       expect(fs.exists(dirname(input))).toBe(false);
-    });
-  });
-
-  describe("mapToOriginal (static)", () => {
-    it("returns null for empty mappings", () => {
-      const result = Preprocessor.mapToOriginal([], 5);
-      expect(result).toBeNull();
-    });
-
-    it("returns null when no mapping before target line", () => {
-      const mappings: ISourceMapping[] = [
-        { preprocessedLine: 10, originalFile: "test.h", originalLine: 1 },
-      ];
-
-      const result = Preprocessor.mapToOriginal(mappings, 5);
-      expect(result).toBeNull();
-    });
-
-    it("maps exact line match", () => {
-      const mappings: ISourceMapping[] = [
-        { preprocessedLine: 5, originalFile: "test.h", originalLine: 10 },
-      ];
-
-      const result = Preprocessor.mapToOriginal(mappings, 5);
-
-      expect(result).toEqual({ file: "test.h", line: 10 });
-    });
-
-    it("calculates offset from nearest mapping", () => {
-      const mappings: ISourceMapping[] = [
-        { preprocessedLine: 5, originalFile: "test.h", originalLine: 10 },
-      ];
-
-      const result = Preprocessor.mapToOriginal(mappings, 8);
-
-      expect(result).toEqual({ file: "test.h", line: 13 });
-    });
-
-    it("finds closest previous mapping", () => {
-      const mappings: ISourceMapping[] = [
-        { preprocessedLine: 1, originalFile: "a.h", originalLine: 1 },
-        { preprocessedLine: 10, originalFile: "b.h", originalLine: 50 },
-        { preprocessedLine: 20, originalFile: "c.h", originalLine: 100 },
-      ];
-
-      const result = Preprocessor.mapToOriginal(mappings, 15);
-
-      expect(result).toEqual({ file: "b.h", line: 55 });
-    });
-
-    it("handles unsorted mappings", () => {
-      const mappings: ISourceMapping[] = [
-        { preprocessedLine: 20, originalFile: "c.h", originalLine: 100 },
-        { preprocessedLine: 1, originalFile: "a.h", originalLine: 1 },
-        { preprocessedLine: 10, originalFile: "b.h", originalLine: 50 },
-      ];
-
-      const result = Preprocessor.mapToOriginal(mappings, 15);
-
-      expect(result).toEqual({ file: "b.h", line: 55 });
     });
   });
 

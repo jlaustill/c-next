@@ -120,18 +120,6 @@ class ExpressionUnwrapper {
   }
 
   /**
-   * Navigate from ExpressionContext to UnaryExpressionContext.
-   * Returns null if the expression has multiple terms at any level.
-   *
-   * Use this when you need access to unary operators (!, -, ~, etc.)
-   */
-  static getUnaryExpression(
-    ctx: Parser.ExpressionContext,
-  ): Parser.UnaryExpressionContext | null {
-    return this.navigateToUnary(ctx);
-  }
-
-  /**
    * Navigate from ExpressionContext to AdditiveExpressionContext.
    * Returns null if the expression has multiple terms at outer levels.
    *
@@ -170,14 +158,6 @@ class ExpressionUnwrapper {
     const primary = postfix.primaryExpression();
     const id = primary.IDENTIFIER();
     return id ? id.getText() : null;
-  }
-
-  /**
-   * Check if an expression is a simple identifier (variable reference).
-   * Convenience method for boolean checks.
-   */
-  static isSimpleIdentifier(ctx: Parser.ExpressionContext): boolean {
-    return this.getSimpleIdentifier(ctx) !== null;
   }
 
   /**

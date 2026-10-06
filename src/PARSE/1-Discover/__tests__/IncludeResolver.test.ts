@@ -260,38 +260,6 @@ describe("IncludeResolver", () => {
       const result2 = resolver.resolve('#include "types.h"');
       expect(result2.headers).toHaveLength(0);
     });
-
-    it("should reset deduplication state with reset()", () => {
-      const resolver = new IncludeResolver(
-        [includeDir],
-        ".h",
-        NodeFileSystem.instance,
-        null,
-        srcDir,
-      );
-
-      resolver.resolve('#include "types.h"');
-      resolver.reset();
-      const result = resolver.resolve('#include "types.h"');
-
-      expect(result.headers).toHaveLength(1);
-    });
-
-    it("should allow adding already-resolved paths", () => {
-      const resolver = new IncludeResolver(
-        [includeDir],
-        ".h",
-        NodeFileSystem.instance,
-        null,
-        srcDir,
-      );
-      const alreadyResolved = join(includeDir, "types.h");
-
-      resolver.addResolvedPaths([alreadyResolved]);
-      const result = resolver.resolve('#include "types.h"');
-
-      expect(result.headers).toHaveLength(0); // Already resolved, skipped
-    });
   });
 
   // ========================================================================

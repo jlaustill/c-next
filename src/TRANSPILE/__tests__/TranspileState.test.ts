@@ -109,25 +109,6 @@ describe("TranspileState", () => {
 
       expect(state.getScopeMembers("TestScope")).toBe(members);
     });
-
-    it("isCurrentScopeMember returns false when not in a scope", () => {
-      enterScope(state, null);
-      expect(state.isCurrentScopeMember("anyMember")).toBe(false);
-    });
-
-    it("isCurrentScopeMember returns false for non-member", () => {
-      enterScope(state, "TestScope");
-      state.setScopeMembers("TestScope", new Set(["member1"]));
-
-      expect(state.isCurrentScopeMember("nonMember")).toBe(false);
-    });
-
-    it("isCurrentScopeMember returns true for member", () => {
-      enterScope(state, "TestScope");
-      state.setScopeMembers("TestScope", new Set(["member1"]));
-
-      expect(state.isCurrentScopeMember("member1")).toBe(true);
-    });
   });
 
   describe("resolveIdentifier()", () => {
@@ -148,41 +129,6 @@ describe("TranspileState", () => {
       state.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(state.resolveIdentifier("member1")).toBe("TestScope__member1");
-    });
-  });
-
-  describe("getEnumMembers()", () => {
-    it("returns undefined without symbols", () => {
-      state.symbols = null;
-      expect(state.getEnumMembers("MyEnum")).toBeUndefined();
-    });
-
-    it("returns enum members when available", () => {
-      const enumMembers = new Map([
-        ["VALUE1", 0],
-        ["VALUE2", 1],
-      ]);
-      installMockSymbols(state, {
-        knownEnums: new Set(["MyEnum"]),
-        enumMembers: new Map([["MyEnum", enumMembers]]),
-      });
-
-      expect(state.getEnumMembers("MyEnum")).toBe(enumMembers);
-    });
-  });
-
-  describe("getFunctionReturnType()", () => {
-    it("returns undefined without symbols", () => {
-      state.symbols = null;
-      expect(state.getFunctionReturnType("myFunc")).toBeUndefined();
-    });
-
-    it("returns return type when available", () => {
-      installMockSymbols(state, {
-        functionReturnTypes: new Map([["myFunc", "u32"]]),
-      });
-
-      expect(state.getFunctionReturnType("myFunc")).toBe("u32");
     });
   });
 
@@ -288,30 +234,6 @@ describe("TranspileState", () => {
       expect(state.emittedLocalName("count")).toBe("count");
       expect(state.localVariables.size).toBe(0);
     });
-
-    it("registerCallbackType adds to callbackTypes", () => {
-      const info = {
-        functionName: "onClick",
-        returnType: "void",
-        parameters: [
-          {
-            name: "x",
-            type: "u32",
-            isArray: false,
-            isConst: false,
-            isStruct: false,
-            isString: false,
-            isOpaqueHandle: false,
-            arrayDims: "",
-          },
-        ],
-        typedefName: "ClickHandler",
-      };
-
-      state.registerCallbackType("MyCallback", info);
-
-      expect(state.callbackTypes.get("MyCallback")).toBe(info);
-    });
   });
 
   // #1668 (C8): the "Variable Type Info API" describe stood here and is
@@ -320,48 +242,7 @@ describe("TranspileState", () => {
   // #1360 dimension-slot cases this block asserted through the registry's
   // cross-file fallback.
 
-  describe("Float Bit Shadow Helpers", () => {
-    it("registerFloatBitShadow adds to floatBitShadows", () => {
-      state.registerFloatBitShadow("myFloat_bits");
-      expect(state.floatBitShadows.has("myFloat_bits")).toBe(true);
-    });
-
-    it("hasFloatBitShadow returns correct value", () => {
-      expect(state.hasFloatBitShadow("myFloat_bits")).toBe(false);
-      state.registerFloatBitShadow("myFloat_bits");
-      expect(state.hasFloatBitShadow("myFloat_bits")).toBe(true);
-    });
-
-    it("markFloatShadowCurrent adds to floatShadowCurrent", () => {
-      state.markFloatShadowCurrent("myFloat_bits");
-      expect(state.floatShadowCurrent.has("myFloat_bits")).toBe(true);
-    });
-
-    it("isFloatShadowCurrent returns correct value", () => {
-      expect(state.isFloatShadowCurrent("myFloat_bits")).toBe(false);
-      state.markFloatShadowCurrent("myFloat_bits");
-      expect(state.isFloatShadowCurrent("myFloat_bits")).toBe(true);
-    });
-  });
-
   describe("C++ Mode Helpers", () => {
-    it("addPendingTempDeclaration adds declaration", () => {
-      state.addPendingTempDeclaration("int cnx_tmp0 = x;");
-      expect(state.pendingTempDeclarations).toContain("int cnx_tmp0 = x;");
-    });
-
-    it("flushPendingTempDeclarations returns and clears declarations", () => {
-      state.addPendingTempDeclaration("int cnx_tmp0 = x;");
-      state.addPendingTempDeclaration("int cnx_tmp1 = y;");
-
-      const decls = state.flushPendingTempDeclarations();
-
-      expect(decls).toHaveLength(2);
-      expect(decls).toContain("int cnx_tmp0 = x;");
-      expect(decls).toContain("int cnx_tmp1 = y;");
-      expect(state.pendingTempDeclarations).toHaveLength(0);
-    });
-
     it("getNextTempVarName returns incrementing names", () => {
       state = new TranspileState(); // Reset counter
       expect(state.getNextTempVarName()).toBe("cnx_tmp0");
@@ -484,14 +365,6 @@ describe("TranspileState", () => {
     // scope's type is not reachable bare. What is gone with them is only the
     // binding to `currentScopePath`, which `scopeTypePredicate`'s own test
     // below covers.
-  });
-
-  describe("Local Variable Helpers", () => {
-    it("isLocalVariable returns correct value", () => {
-      expect(state.isLocalVariable("myVar")).toBe(false);
-      state.localVariables.add("myVar");
-      expect(state.isLocalVariable("myVar")).toBe(true);
-    });
   });
 
   // #1447: the derivation moved to `Program` -- which fields a header's struct
@@ -849,7 +722,6 @@ describe("TranspileState", () => {
       state.setCurrentScopeByPath("Outer.Inner");
 
       expect(state.currentScopePath).toBe("Outer.Inner");
-      expect(state.isCurrentScopeMember("token")).toBe(true);
       expect(state.resolveIdentifier("token")).toBe("Outer__Inner__token");
     });
 
@@ -862,7 +734,6 @@ describe("TranspileState", () => {
       state.setScopeMembers("Outer.Inner", new Set(["token"]));
       state.setCurrentScopeByPath("Outer.Inner");
 
-      expect(state.isCurrentScopeMember("hidden")).toBe(false);
       expect(state.resolveIdentifier("hidden")).toBe("hidden");
     });
   });

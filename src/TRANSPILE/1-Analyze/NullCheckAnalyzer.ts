@@ -17,7 +17,6 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import INullCheckError from "./types/INullCheckError";
 import ParserUtils from "../../utils/ParserUtils";
-import IncludeDirective from "./helpers/IncludeDirective";
 import BareIdentifier from "../../utils/BareIdentifier";
 
 /**
@@ -778,9 +777,6 @@ class NullCheckListener extends CNextListener {
 class NullCheckAnalyzer {
   private errors: INullCheckError[] = [];
 
-  /** Included headers (for context) */
-  private includedHeaders: Set<string> = new Set();
-
   /**
    * Analyze a parsed program for NULL safety errors
    * @param tree The parsed program AST
@@ -788,35 +784,12 @@ class NullCheckAnalyzer {
    */
   public analyze(tree: Parser.ProgramContext): INullCheckError[] {
     this.errors = [];
-    this.includedHeaders = new Set();
-
-    // Collect included headers
-    this.collectIncludes(tree);
 
     // Walk tree and check NULL usage
     const listener = new NullCheckListener(this);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
 
     return this.errors;
-  }
-
-  /**
-   * Collect included headers for context
-   */
-  private collectIncludes(tree: Parser.ProgramContext): void {
-    // #1322: one parse, shared with ADR-010's own rules. The spelling that
-    // stood here matched the two delimiters independently, so `<foo.h"` read
-    // as an include.
-    for (const path of IncludeDirective.pathsIn(tree)) {
-      this.includedHeaders.add(path);
-    }
-  }
-
-  /**
-   * Check if stdio.h is included (required for stream functions)
-   */
-  public hasStdioIncluded(): boolean {
-    return this.includedHeaders.has("stdio.h");
   }
 
   /**
@@ -968,22 +941,6 @@ class NullCheckAnalyzer {
     // Pointer types from C headers
     if (typeName.endsWith("*")) return true;
     return false;
-  }
-
-  /**
-   * Get metadata for a nullable C function (for VS Code tooltips)
-   */
-  public static getNullableFunctionInfo(
-    funcName: string,
-  ): ICLibraryFunction | null {
-    return NULLABLE_C_FUNCTIONS.get(funcName) ?? null;
-  }
-
-  /**
-   * Check if a function is a nullable C function
-   */
-  public static isNullableFunction(funcName: string): boolean {
-    return NULLABLE_C_FUNCTIONS.has(funcName);
   }
 }
 

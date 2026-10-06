@@ -166,13 +166,6 @@ class DivisionByZeroAnalyzer {
         : "Consider using safe_mod(output, numerator, divisor, defaultValue) for runtime safety",
     });
   }
-
-  /**
-   * Get all detected errors
-   */
-  public getErrors(): IDivisionByZeroError[] {
-    return this.errors;
-  }
 }
 
 export default DivisionByZeroAnalyzer;

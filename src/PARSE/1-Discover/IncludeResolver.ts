@@ -449,22 +449,6 @@ class IncludeResolver {
   }
 
   /**
-   * Reset the resolved paths set (for reuse across multiple files)
-   */
-  reset(): void {
-    this.resolvedPaths.clear();
-  }
-
-  /**
-   * Add already-resolved paths to prevent re-resolution
-   */
-  addResolvedPaths(paths: Iterable<string>): void {
-    for (const path of paths) {
-      this.resolvedPaths.add(path);
-    }
-  }
-
-  /**
    * Check if a resolved include is a header file to process.
    */
   private static isProcessableHeader(file: IDiscoveredFile | null): boolean {

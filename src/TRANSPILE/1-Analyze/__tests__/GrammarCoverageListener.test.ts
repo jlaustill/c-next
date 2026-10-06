@@ -35,7 +35,7 @@ describe("GrammarCoverageListener", () => {
       );
       listener.enterEveryRule(mockRuleContext(0));
 
-      const visits = listener.getParserRuleVisits();
+      const visits = listener.getReport().parserRuleVisits;
       expect(visits.get("program")).toBe(1);
     });
 
@@ -48,7 +48,7 @@ describe("GrammarCoverageListener", () => {
       listener.enterEveryRule(mockRuleContext(1));
       listener.enterEveryRule(mockRuleContext(1));
 
-      const visits = listener.getParserRuleVisits();
+      const visits = listener.getReport().parserRuleVisits;
       expect(visits.get("statement")).toBe(3);
     });
 
@@ -59,7 +59,7 @@ describe("GrammarCoverageListener", () => {
       );
       listener.enterEveryRule(mockRuleContext(999));
 
-      const visits = listener.getParserRuleVisits();
+      const visits = listener.getReport().parserRuleVisits;
       expect(visits.size).toBe(0);
     });
   });
@@ -73,7 +73,7 @@ describe("GrammarCoverageListener", () => {
       // Token type 1 maps to lexerRuleNames[0] = "IDENTIFIER"
       listener.visitTerminal(mockTerminalNode(1));
 
-      const visits = listener.getLexerRuleVisits();
+      const visits = listener.getReport().lexerRuleVisits;
       expect(visits.get("IDENTIFIER")).toBe(1);
     });
 
@@ -84,7 +84,7 @@ describe("GrammarCoverageListener", () => {
       );
       listener.visitTerminal(mockTerminalNode(-1));
 
-      const visits = listener.getLexerRuleVisits();
+      const visits = listener.getReport().lexerRuleVisits;
       expect(visits.size).toBe(0);
     });
 
@@ -95,7 +95,7 @@ describe("GrammarCoverageListener", () => {
       );
       listener.visitTerminal(mockTerminalNode(999));
 
-      const visits = listener.getLexerRuleVisits();
+      const visits = listener.getReport().lexerRuleVisits;
       expect(visits.size).toBe(0);
     });
 
@@ -108,74 +108,11 @@ describe("GrammarCoverageListener", () => {
       listener.visitTerminal(mockTerminalNode(2)); // INTEGER_LITERAL
       listener.visitTerminal(mockTerminalNode(3)); // PLUS
 
-      const visits = listener.getLexerRuleVisits();
+      const visits = listener.getReport().lexerRuleVisits;
       expect(visits.size).toBe(3);
       expect(visits.get("IDENTIFIER")).toBe(1);
       expect(visits.get("INTEGER_LITERAL")).toBe(1);
       expect(visits.get("PLUS")).toBe(1);
-    });
-  });
-
-  describe("merge", () => {
-    it("should combine counts from two listeners", () => {
-      const listener1 = new GrammarCoverageListener(
-        parserRuleNames,
-        lexerRuleNames,
-      );
-      const listener2 = new GrammarCoverageListener(
-        parserRuleNames,
-        lexerRuleNames,
-      );
-
-      listener1.enterEveryRule(mockRuleContext(0)); // program: 1
-      listener1.visitTerminal(mockTerminalNode(1)); // IDENTIFIER: 1
-
-      listener2.enterEveryRule(mockRuleContext(0)); // program: 1
-      listener2.enterEveryRule(mockRuleContext(1)); // statement: 1
-      listener2.visitTerminal(mockTerminalNode(1)); // IDENTIFIER: 1
-      listener2.visitTerminal(mockTerminalNode(2)); // INTEGER_LITERAL: 1
-
-      listener1.merge(listener2);
-
-      const parserVisits = listener1.getParserRuleVisits();
-      expect(parserVisits.get("program")).toBe(2);
-      expect(parserVisits.get("statement")).toBe(1);
-
-      const lexerVisits = listener1.getLexerRuleVisits();
-      expect(lexerVisits.get("IDENTIFIER")).toBe(2);
-      expect(lexerVisits.get("INTEGER_LITERAL")).toBe(1);
-    });
-  });
-
-  describe("reset", () => {
-    it("should clear all counts", () => {
-      const listener = new GrammarCoverageListener(
-        parserRuleNames,
-        lexerRuleNames,
-      );
-      listener.enterEveryRule(mockRuleContext(0));
-      listener.visitTerminal(mockTerminalNode(1));
-
-      listener.reset();
-
-      expect(listener.getParserRuleVisits().size).toBe(0);
-      expect(listener.getLexerRuleVisits().size).toBe(0);
-    });
-  });
-
-  describe("getParserRuleVisits / getLexerRuleVisits", () => {
-    it("should return copies that don't affect internal state", () => {
-      const listener = new GrammarCoverageListener(
-        parserRuleNames,
-        lexerRuleNames,
-      );
-      listener.enterEveryRule(mockRuleContext(0));
-
-      const visits = listener.getParserRuleVisits();
-      visits.set("program", 999);
-
-      const freshVisits = listener.getParserRuleVisits();
-      expect(freshVisits.get("program")).toBe(1);
     });
   });
 

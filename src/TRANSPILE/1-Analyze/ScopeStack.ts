@@ -83,23 +83,6 @@ class ScopeStack<T> {
   }
 
   /**
-   * Check if a variable exists in any scope
-   * @param name - Variable name to check
-   */
-  has(name: string): boolean {
-    return this.lookup(name) !== null;
-  }
-
-  /**
-   * Check if a variable is declared in the current (innermost) scope only
-   * Useful for detecting shadowing or redeclaration errors
-   * @param name - Variable name to check
-   */
-  hasInCurrentScope(name: string): boolean {
-    return this.currentScope?.variables.has(name) ?? false;
-  }
-
-  /**
    * Update a variable's state in the scope where it's defined
    * @param name - Variable name
    * @param updater - Function that receives current state and returns new state
@@ -116,26 +99,6 @@ class ScopeStack<T> {
       scope = scope.parent;
     }
     return false;
-  }
-
-  /**
-   * Get all variables visible from the current scope
-   * Variables in inner scopes shadow those in outer scopes.
-   * @returns Map of variable name to state
-   */
-  getAllVisible(): Map<string, T> {
-    const result = new Map<string, T>();
-    let scope = this.currentScope;
-    while (scope) {
-      for (const [name, state] of scope.variables) {
-        // Only add if not already shadowed by inner scope
-        if (!result.has(name)) {
-          result.set(name, state);
-        }
-      }
-      scope = scope.parent;
-    }
-    return result;
   }
 
   /**
@@ -174,34 +137,10 @@ class ScopeStack<T> {
   }
 
   /**
-   * Get the current scope depth (0 = no scope, 1 = one scope, etc.)
-   * Useful for debugging and determining if we're at global level
-   */
-  getDepth(): number {
-    let depth = 0;
-    let scope = this.currentScope;
-    while (scope) {
-      depth++;
-      scope = scope.parent;
-    }
-    return depth;
-  }
-
-  /**
    * Check if we're currently inside any scope
    */
   hasActiveScope(): boolean {
     return this.currentScope !== null;
-  }
-
-  /**
-   * Iterate over all variables in the current scope only (not parents)
-   * @returns Iterator of [name, state] pairs
-   */
-  *currentScopeVariables(): IterableIterator<[string, T]> {
-    if (this.currentScope) {
-      yield* this.currentScope.variables;
-    }
   }
 }
 

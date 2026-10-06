@@ -94,17 +94,6 @@ class TypeCheckUtils {
   }
 
   /**
-   * Extract capacity from a string type.
-   *
-   * @param typeName - The string type (e.g., "string<32>")
-   * @returns The capacity or null if not a string type
-   */
-  static getStringCapacity(typeName: string): number | null {
-    const match = /^string<(\d+)>$/.exec(typeName);
-    return match ? Number.parseInt(match[1], 10) : null;
-  }
-
-  /**
    * Check if a bit width is a standard MMIO-optimizable width.
    *
    * @param width - The bit width

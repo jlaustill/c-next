@@ -154,13 +154,6 @@ class ArrayIndexTypeAnalyzer {
         "Use an unsigned integer type (u8, u16, u32, u64) for array and bit subscript indexes.",
     });
   }
-
-  /**
-   * Get all detected errors
-   */
-  public getErrors(): IArrayIndexTypeError[] {
-    return this.errors;
-  }
 }
 
 export default ArrayIndexTypeAnalyzer;

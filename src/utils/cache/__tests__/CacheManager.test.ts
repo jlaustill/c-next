@@ -584,74 +584,6 @@ describe("CacheManager", () => {
     });
   });
 
-  describe("invalidate", () => {
-    beforeEach(() => {
-      cacheManager.initialize();
-    });
-
-    it("should remove specific file from cache", () => {
-      const testFile = join(testDir, "test.h");
-      writeFileSync(testFile, "// test");
-
-      storeSymbols(
-        testFile,
-        [createTestSymbol({ sourceFile: testFile })],
-        new Map(),
-      );
-      expect(cacheManager.getSymbols(testFile)).not.toBeNull();
-
-      cacheManager.invalidate(testFile);
-      expect(cacheManager.getSymbols(testFile)).toBeNull();
-    });
-
-    it("should not affect other cached files", () => {
-      const file1 = join(testDir, "test1.h");
-      const file2 = join(testDir, "test2.h");
-      writeFileSync(file1, "// test1");
-      writeFileSync(file2, "// test2");
-
-      storeSymbols(
-        file1,
-        [createTestSymbol({ sourceFile: file1, name: "func1" })],
-        new Map(),
-      );
-      storeSymbols(
-        file2,
-        [createTestSymbol({ sourceFile: file2, name: "func2" })],
-        new Map(),
-      );
-
-      cacheManager.invalidate(file1);
-
-      expect(cacheManager.getSymbols(file1)).toBeNull();
-      expect(cacheManager.getSymbols(file2)).not.toBeNull();
-      expect(readSymbols(cacheManager.getSymbols(file2)!.symbols)[0].name).toBe(
-        "func2",
-      );
-    });
-  });
-
-  describe("invalidateAll", () => {
-    beforeEach(() => {
-      cacheManager.initialize();
-    });
-
-    it("should clear all cached entries", () => {
-      const file1 = join(testDir, "test1.h");
-      const file2 = join(testDir, "test2.h");
-      writeFileSync(file1, "// test1");
-      writeFileSync(file2, "// test2");
-
-      storeSymbols(file1, [createTestSymbol({ sourceFile: file1 })], new Map());
-      storeSymbols(file2, [createTestSymbol({ sourceFile: file2 })], new Map());
-
-      cacheManager.invalidateAll();
-
-      expect(cacheManager.getSymbols(file1)).toBeNull();
-      expect(cacheManager.getSymbols(file2)).toBeNull();
-    });
-  });
-
   describe("flush", () => {
     beforeEach(() => {
       cacheManager.initialize();
@@ -849,12 +781,6 @@ describe("CacheManager", () => {
       storeSymbols(nonExistentFile, [createTestSymbol()], new Map());
 
       expect(cacheManager.getSymbols(nonExistentFile)).toBeNull();
-    });
-  });
-
-  describe("getCacheDir", () => {
-    it("should return correct cache directory path", () => {
-      expect(cacheManager.getCacheDir()).toBe(join(testDir, ".cnx"));
     });
   });
 

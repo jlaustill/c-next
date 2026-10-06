@@ -138,8 +138,11 @@ function renderDocument(
 }
 
 class MatrixRenderer {
+  /** @public test seam: matrix-renderer.test.ts drives this module value directly */
   static readonly BANNER = BANNER;
+  /** @public test seam: matrix-renderer.test.ts drives this module function directly */
   static renderCell = renderCell;
+  /** @public test seam: matrix-renderer.test.ts drives this module function directly */
   static renderGrid = renderGrid;
   static renderDocument = renderDocument;
 }
