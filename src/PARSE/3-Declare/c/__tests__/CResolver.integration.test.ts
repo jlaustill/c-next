@@ -818,7 +818,7 @@ describe("CResolver - Opaque Type Detection (Issue #948)", () => {
     const symbolTable = new SymbolTable();
     CResolver.resolve(tree!, "test.h", symbolTable);
 
-    expect(symbolTable.getStructTagAlias("_widget_t")).toBe("widget_t");
+    expect(symbolTable.getStructTagForTypedef("widget_t")).toBe("_widget_t");
   });
 });
 

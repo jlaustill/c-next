@@ -498,14 +498,8 @@ describe("SymbolTable", () => {
   describe("Struct Tag Aliases and Body Tracking", () => {
     it("should register and retrieve struct tag aliases", () => {
       symbolTable.registerStructTagAlias("_widget", "widget_t");
-      expect(symbolTable.getStructTagAlias("_widget")).toBe("widget_t");
-      expect(symbolTable.getStructTagAlias("_unknown")).toBeUndefined();
-    });
-
-    it("should populate forward and reverse alias maps", () => {
-      symbolTable.registerStructTagAlias("_foo", "foo_t");
-      expect(symbolTable.getStructTagAlias("_foo")).toBe("foo_t");
-      expect(symbolTable.getStructTagForTypedef("foo_t")).toBe("_foo");
+      expect(symbolTable.getStructTagForTypedef("widget_t")).toBe("_widget");
+      expect(symbolTable.getStructTagForTypedef("unknown_t")).toBeUndefined();
     });
 
     it("should track struct tags with bodies", () => {
@@ -521,8 +515,8 @@ describe("SymbolTable", () => {
 
       symbolTable.restoreStructState(source.serializeStructState());
 
-      expect(symbolTable.getStructTagAlias("_foo")).toBe("foo_t");
-      expect(symbolTable.getStructTagAlias("_bar")).toBe("bar_t");
+      expect(symbolTable.getStructTagForTypedef("foo_t")).toBe("_foo");
+      expect(symbolTable.getStructTagForTypedef("bar_t")).toBe("_bar");
     });
 
     it("should restore reverse map (typedefToTag) so isOpaqueType resolves after cache restore", () => {

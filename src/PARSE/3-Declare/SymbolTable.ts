@@ -32,7 +32,6 @@ enableMapSet();
 function createInitialStructState(): IStructSymbolState {
   return {
     opaqueTypes: new Set(),
-    structTagAliases: new Map(),
     typedefToTag: new Map(),
     structTagsWithBodies: new Set(),
     pointerTypedefs: new Set(),
@@ -120,7 +119,7 @@ class SymbolTable {
 
   /**
    * Issue #958: Immutable struct symbol state — additive only, query-time resolution.
-   * Replaces separate opaqueTypes and structTagAliases fields.
+   * Replaces the separate opaqueTypes field.
    */
   private structState: IStructSymbolState = createInitialStructState();
 
@@ -849,15 +848,10 @@ class SymbolTable {
    * replaces a hand-maintained capture list which silently omitted
    * `pointerTypedefs` when #1164 added it — a warm-cache build then emitted a
    * header that contradicted the real typedef.
-   *
-   * `typedefToTag` is captured even though it is the inverse of
-   * `structTagAliases` (`registerStructTagAlias` writes both): covering every
-   * key removes "is this one derived?" as something anyone has to remember.
    */
   serializeStructState(): TJsonSafe<Required<IStructSymbolState>> {
     return {
       opaqueTypes: Array.from(this.structState.opaqueTypes),
-      structTagAliases: Array.from(this.structState.structTagAliases),
       typedefToTag: Array.from(this.structState.typedefToTag),
       structTagsWithBodies: Array.from(this.structState.structTagsWithBodies),
       pointerTypedefs: Array.from(this.structState.pointerTypedefs),
@@ -889,7 +883,6 @@ class SymbolTable {
   restoreStructState(state: TJsonSafe<Required<IStructSymbolState>>): void {
     const revived: Required<IStructSymbolState> = {
       opaqueTypes: new Set(state.opaqueTypes),
-      structTagAliases: new Map(state.structTagAliases),
       typedefToTag: new Map(state.typedefToTag),
       structTagsWithBodies: new Set(state.structTagsWithBodies),
       pointerTypedefs: new Set(state.pointerTypedefs),
@@ -995,9 +988,7 @@ class SymbolTable {
    * Every typedef-to-struct-tag pairing, for whoever must resolve opacity.
    *
    * #1511: the resolution moved to 1.4 Resolve, which needs the mapping rather
-   * than one lookup at a time. Exposed as the pairs it is stored as, so the
-   * caller is not inverting `structTagAliases` and relying on the two staying
-   * reverses of one another.
+   * than one lookup at a time. Exposed as the pairs it is stored as.
    */
   getAllTypedefToTag(): Array<[string, string]> {
     return [...this.structState.typedefToTag.entries()];
@@ -1015,25 +1006,15 @@ class SymbolTable {
   /**
    * Issue #948: Register a struct tag -> typedef name relationship.
    * Called when processing: typedef struct _foo foo_t;
-   * Populates both forward (tag→typedef) and reverse (typedef→tag) maps.
+   * Stored typedef→tag: every decision reads it that way (#1418 deleted the
+   * tag→typedef copy, which nothing in production read).
    * @param structTag The struct tag name (e.g., "_foo")
    * @param typedefName The typedef alias name (e.g., "foo_t")
    */
   registerStructTagAlias(structTag: string, typedefName: string): void {
     this.structState = produce(this.structState, (draft) => {
-      draft.structTagAliases.set(structTag, typedefName);
       draft.typedefToTag.set(typedefName, structTag);
     });
-  }
-
-  /**
-   * Issue #948: Get the typedef alias for a struct tag, if any.
-   * @param structTag The struct tag name
-   * @returns The typedef alias name, or undefined if none registered
-   * @public inspection query: the resolver integration tests read what was registered through it
-   */
-  getStructTagAlias(structTag: string): string | undefined {
-    return this.structState.structTagAliases.get(structTag);
   }
 
   /**
