@@ -15,7 +15,6 @@ import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
 import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
-import TTypeInfo from "../../../../types/TTypeInfo";
 import type TranspileState from "../../../TranspileState";
 
 interface IOrchestrator {
@@ -236,9 +235,6 @@ interface IOrchestrator {
 
   /** Get the separator for scope access (:: for C++, _ for C-Next) */
   getScopeSeparator(isCppAccess: boolean): string;
-
-  /** Get member type info for struct access chains */
-  getMemberTypeInfo(structType: string, memberName: string): TTypeInfo | null;
 
   /** Add a pending temp variable declaration (for float bit indexing) */
   addPendingTempDeclaration(declaration: string): void;

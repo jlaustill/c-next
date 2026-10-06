@@ -1113,7 +1113,7 @@ class CodeGenWalker {
       return false;
     }
 
-    const [, varName, fieldName] = memberMatch;
+    const [, varName] = memberMatch;
 
     // Get the struct variable's type
     const typeInfo = this.host.state.declarationTypeInfo(
@@ -1125,24 +1125,10 @@ class CodeGenWalker {
       return false;
     }
 
-    // Get the struct type name - it might be directly the baseType
-    // or we might need to look it up by the variable's type
-    const structTypeName = typeInfo.baseType;
-    if (!structTypeName) {
-      return false;
-    }
-
-    // Look up the field type from the struct
-    const fieldType = this.host.state.getStructFieldType(
-      structTypeName,
-      fieldName,
+    // #1737: the field's type is the one operand typer's answer
+    return OperandTyper.isString(
+      OperandTyper.typeOf(ctx, this.host.state.typingContext()),
     );
-    if (!fieldType) {
-      return false;
-    }
-
-    // Check if the field is a string type (e.g., "string<64>")
-    return fieldType.startsWith("string");
   }
 
   /**
@@ -3233,16 +3219,16 @@ class CodeGenWalker {
 
     if (!structType) return "not-array";
 
-    // Check if this struct member is an array
-    const memberInfo = this.host.getMemberTypeInfo(structType, memberName);
+    // #1737: the member's shape is the one operand typer's answer
+    const member = OperandTyper.typeOf(ctx, this.host.state.typingContext());
 
-    // Issue #355: If memberInfo is undefined, we don't have struct field info
-    // This could mean the header wasn't parsed - return "unknown" for defensive generation
-    if (!memberInfo) {
+    // Issue #355: no type for the member means no struct field info -- a
+    // header that wasn't parsed -- so "unknown", for defensive generation
+    if (member === null) {
       return "unknown";
     }
 
-    return memberInfo.isArray ? "array" : "not-array";
+    return member.dimensions.length > 0 ? "array" : "not-array";
   }
 
   private generateDeclaration(ctx: Parser.DeclarationContext): string {

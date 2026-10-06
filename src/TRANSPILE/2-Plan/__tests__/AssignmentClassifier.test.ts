@@ -115,6 +115,42 @@ function typedLast(
 }
 
 /**
+ * #1737: the typer's final step for a struct-field target -- the field it
+ * reads (`after`), or the field its subscript indexes (`before`). The case's
+ * INPUT, as `typedLast`'s is.
+ */
+function typedStep(
+  ctx: IAssignmentContext,
+  step: { before?: IOperandType; after?: IOperandType },
+  subscript: TSubscriptKind | null = null,
+): IAssignmentContext {
+  return {
+    ...ctx,
+    target: {
+      ...ctx.target,
+      last: {
+        before: step.before ?? null,
+        subscript,
+        after: step.after ?? null,
+        property: null,
+      },
+    },
+  };
+}
+
+/** A `string<N>` field's operand type, as the typer gives it */
+function stringField(
+  capacity: number | null,
+  dimensions: number[] = [],
+): IOperandType {
+  return {
+    ...HandlerTestUtils.operandOf(`string<${capacity}>`, false, false),
+    dimensions,
+    stringCapacity: capacity,
+  };
+}
+
+/**
  * Create a minimal mock type info.
  */
 function createTypeInfo(overrides: Partial<TTypeInfo> = {}): TTypeInfo {
@@ -291,10 +327,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       ["DeviceFlags", new Map([["Active", { offset: 0, width: 1 }]])],
     ]);
     const knownStructs = new Set(["Device"]);
-    const structFields = new Map([
-      ["Device", new Map([["flags", "DeviceFlags"]])],
-    ]);
-    setupSymbols({ bitmapFields, knownStructs, structFields });
+    setupSymbols({ bitmapFields, knownStructs });
     declare("device", createTypeInfo({ baseType: "Device" }));
 
     const ctx = createMockContext(state, {
@@ -302,10 +335,19 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       hasMemberAccess: true,
       isSimpleIdentifier: false,
     });
+    const flags = HandlerTestUtils.operandOf("DeviceFlags", false, false);
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
-      AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD,
-    );
+    // #1737: the bitmap member's type is the typer's `.Active` step
+    expect(
+      AssignmentClassifier.classify(
+        typedStep(ctx, { before: { ...flags, bitmapTypeName: "DeviceFlags" } }),
+        state,
+      ),
+    ).toBe(AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD);
+    // Control: the typer says the member is no bitmap
+    expect(
+      AssignmentClassifier.classify(typedStep(ctx, { before: flags }), state),
+    ).not.toBe(AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD);
   });
 });
 
@@ -449,10 +491,7 @@ describe("AssignmentClassifier - String Assignments", () => {
 
   it("classifies struct field string", () => {
     const knownStructs = new Set(["Person"]);
-    const structFields = new Map([
-      ["Person", new Map([["name", "string<64>"]])],
-    ]);
-    setupSymbols({ knownStructs, structFields });
+    setupSymbols({ knownStructs });
     declare("person", createTypeInfo({ baseType: "Person" }));
 
     const ctx = createMockContext(state, {
@@ -461,9 +500,20 @@ describe("AssignmentClassifier - String Assignments", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
-      AssignmentKind.STRING_STRUCT_FIELD,
-    );
+    // #1737: the field's type is the typer's `.name` step
+    expect(
+      AssignmentClassifier.classify(
+        typedStep(ctx, { after: stringField(64) }),
+        state,
+      ),
+    ).toBe(AssignmentKind.STRING_STRUCT_FIELD);
+    // Control: the typer says the field is no string<N>
+    expect(
+      AssignmentClassifier.classify(
+        typedStep(ctx, { after: stringField(null) }),
+        state,
+      ),
+    ).not.toBe(AssignmentKind.STRING_STRUCT_FIELD);
   });
 });
 
@@ -1398,11 +1448,6 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
   it("classifies struct.field[i] string as STRING_STRUCT_ARRAY_ELEMENT", () => {
     setupSymbols({
       knownStructs: new Set(["Config"]),
-      structFields: new Map([["Config", new Map([["items", "string<8>"]])]]),
-      structFieldArrays: new Map([["Config", new Set(["items"])]]),
-      structFieldDimensions: new Map([
-        ["Config", new Map([["items", [4, 9]]])],
-      ]),
     });
     declare("config", createTypeInfo({ baseType: "Config" }));
 
@@ -1415,10 +1460,17 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
       memberAccessDepth: 1,
       isSimpleIdentifier: false,
     });
+    const element = (field: IOperandType) =>
+      typedStep(ctx, { before: field }, "array_element");
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
-      AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT,
-    );
+    // #1737: `.items`' type and shape are the step its subscript indexes
+    expect(
+      AssignmentClassifier.classify(element(stringField(8, [4])), state),
+    ).toBe(AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT);
+    // Control: the typer says the field is no array
+    expect(
+      AssignmentClassifier.classify(element(stringField(8)), state),
+    ).not.toBe(AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT);
   });
 
   it("classifies global.<struct>.<field>[i] as GLOBAL_ARRAY", () => {

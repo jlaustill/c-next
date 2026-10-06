@@ -30,9 +30,6 @@ interface ICodeGenApi {
   /** Generate a float bit write through a union (ADR-007) */
   generateFloatBitWrite(bitWrite: IFloatBitWrite): string;
 
-  /** Get type info for struct member */
-  getMemberTypeInfo(structType: string, fieldName: string): TTypeInfo | null;
-
   /** Check if name is a known scope */
   isKnownScope(name: string): boolean;
 

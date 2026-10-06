@@ -652,21 +652,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Get member type info for struct access chains.
-   * Part of IOrchestrator interface.
-   *
-   * Delegated for the same reason, plus #1127: this copy still dropped a
-   * non-numeric dimension with `filter(typeof d === "number")` instead of
-   * mapping it to `UNRESOLVED_DIMENSION`, which shifts every dimension after it
-   * -- so `u8[EColor.COUNT][3]` came back as `[3]` and put dimension 2's bound
-   * in dimension 1's slot. Both defects were fixed once on the state and left
-   * standing here.
-   */
-  getMemberTypeInfo(structType: string, memberName: string): TTypeInfo | null {
-    return this.state.getMemberTypeInfo(structType, memberName);
-  }
-
-  /**
    * Add a pending temp variable declaration (for float bit indexing).
    * Part of IOrchestrator interface.
    */

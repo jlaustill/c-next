@@ -173,7 +173,7 @@ class SymbolTable {
     SymbolTable.appendToIndex(this.tSymbolsByCName, cName, symbol);
     SymbolTable.appendToIndex(this.tSymbolsByFile, symbol.sourceFile, symbol);
 
-    // Auto-register struct fields for TypeResolver.getMemberTypeInfo()
+    // Auto-register struct fields for the operand typer's field lookups
     if (symbol.kind === "struct") {
       this.registerStructFields(symbol, cName);
     }
@@ -296,7 +296,7 @@ class SymbolTable {
     SymbolTable.appendToIndex(this.cSymbols, symbol.name, symbol);
     SymbolTable.appendToIndex(this.cSymbolsByFile, symbol.sourceFile, symbol);
 
-    // Issue #981: Register struct fields for getMemberTypeInfo() lookups
+    // Issue #981: Register struct fields for the operand typer's field lookups
     if (symbol.kind === "struct" && symbol.fields) {
       this.registerCStructFields(symbol.name, symbol.fields);
     }

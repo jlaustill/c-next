@@ -12,7 +12,6 @@ import installMockSymbols from "../../transpiler/__tests__/installMockSymbols";
 import TranspileState from "../TranspileState";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import ScopeUtils from "../../utils/ScopeUtils";
-import createMockSymbols from "../../transpiler/__tests__/codeGenSymbolsHelpers";
 import Program from "../../PARSE/4-Resolve/Program";
 import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import parse from "../../PARSE/3-Declare/cnext/__tests__/testHelpers";
@@ -149,24 +148,6 @@ describe("TranspileState", () => {
       state.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(state.resolveIdentifier("member1")).toBe("TestScope__member1");
-    });
-  });
-
-  describe("Struct Field Helpers", () => {
-    const mockSymbols = createMockSymbols({
-      knownStructs: new Set(["MyStruct"]),
-      structFields: new Map([["MyStruct", new Map([["field1", "u32"]])]]),
-      structFieldArrays: new Map([["MyStruct", new Set(["arrayField"])]]),
-    });
-
-    it("getStructFieldType returns undefined without symbols", () => {
-      state.symbols = null;
-      expect(state.getStructFieldType("MyStruct", "field1")).toBeUndefined();
-    });
-
-    it("getStructFieldType returns field type with symbols", () => {
-      state.symbols = mockSymbols;
-      expect(state.getStructFieldType("MyStruct", "field1")).toBe("u32");
     });
   });
 
