@@ -1,0 +1,25 @@
+// test-execution
+// #1737: a write to one element of a struct's string-array field copies into
+// that element with the field's string<N> capacity (STRING_STRUCT_ARRAY_ELEMENT)
+struct Config {
+    string<8> items[3];
+    u32 count;
+}
+
+i32 main() {
+    Config cfg;
+    cfg.count <- 3;
+
+    cfg.items[0] <- "hi";
+    cfg.items[1] <- "eight ch";
+    cfg.items[2] <- "";
+
+    if (cfg.items[0] != "hi") return 1;
+    if (cfg.items[1] != "eight ch") return 2;
+    if (cfg.items[2].char_count != 0) return 3;
+    if (cfg.items[0].char_count != 2) return 4;
+    if (cfg.items[1].char_count != 8) return 5;
+    if (cfg.count != 3) return 6;
+
+    return 0;
+}
