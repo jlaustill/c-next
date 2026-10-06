@@ -322,7 +322,7 @@ describe("SymbolTable", () => {
 
     it("Issue #981: addCSymbol should register struct fields with macro dimensions", () => {
       // When a C struct with macro-sized array fields is added via addCSymbol,
-      // the fields should be registered in structFields for getMemberTypeInfo lookups
+      // the fields should be registered in structFields for the operand typer's field lookups
       const cStructSymbol: TCSymbol = {
         kind: "struct",
         name: "msg_t",

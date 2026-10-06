@@ -1975,42 +1975,6 @@ describe("CodeGenWalker", () => {
     });
   });
 
-  describe("getMemberTypeInfo()", () => {
-    it("should return member type info for known struct", () => {
-      const { host } = createMinimalGenerator(`
-        struct Point { i32 x; i32 y; }
-      `);
-
-      const memberInfo = host.getMemberTypeInfo("Point", "x");
-      expect(memberInfo).not.toBeNull();
-      expect(memberInfo?.baseType).toBe("i32");
-      expect(memberInfo?.isArray).toBe(false);
-      expect(memberInfo?.bitWidth).toBe(32);
-      expect(memberInfo?.isConst).toBe(false);
-    });
-
-    it("should return full TTypeInfo for array struct field", () => {
-      const { host } = createMinimalGenerator(`
-        struct Buffer { u8 data[256]; u16 len; }
-      `);
-
-      const memberInfo = host.getMemberTypeInfo("Buffer", "data");
-      expect(memberInfo).not.toBeNull();
-      expect(memberInfo?.baseType).toBe("u8");
-      expect(memberInfo?.isArray).toBe(true);
-      expect(memberInfo?.bitWidth).toBe(8);
-      expect(memberInfo?.isConst).toBe(false);
-      expect(memberInfo?.arrayDimensions).toEqual([256]);
-    });
-
-    it("should return null for unknown struct", () => {
-      const { host } = createMinimalGenerator(`void foo() { }`);
-
-      const memberInfo = host.getMemberTypeInfo("Unknown", "field");
-      expect(memberInfo).toBeNull();
-    });
-  });
-
   describe("indent()", () => {
     it("should indent text with current level", () => {
       const { host } = createMinimalGenerator(`void foo() { }`);
@@ -8443,6 +8407,55 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("cfg.data");
       });
 
+      it("passes a struct's string field bare: a string decays (#1737)", () => {
+        const source = `
+          struct Person { string<8> name; }
+          void show(string<8> s) { }
+          void test() {
+            Person p;
+            show(p.name);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
+        const tSymbols = declareAndResolve(tree);
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generateWithProgram(generator, tree, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("show(p.name)");
+        expect(code).not.toContain("&p.name");
+      });
+
+      it("types a nested member argument as the inner field (#1737)", () => {
+        const source = `
+          struct Inner { u8[6] data; }
+          struct Outer { Inner inner; u8 data; }
+          void fill(u8[6] buf) { }
+          void test() {
+            Outer o;
+            fill(o.inner.data);
+          }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
+        const tSymbols = declareAndResolve(tree);
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        const code = generateWithProgram(generator, tree, tokenStream, {
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        expect(code).toContain("fill(o.inner.data)");
+        expect(code).not.toContain("&o.inner.data");
+      });
+
       it("should handle literal argument", () => {
         const source = `
           void callee(u32 val) { }
@@ -8941,10 +8954,9 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
         // Issue #1100: SymbolTable must be wired up (as the real Transpiler
-        // pipeline always does, see setupGenerator() above) so
-        // getMemberTypeInfo() can resolve struct field array-ness. Without
-        // this, getStructFieldInfo() always returns null and the struct
-        // field's array-ness is never determined via the correct path — this
+        // pipeline always does, see setupGenerator() above) so the operand
+        // typer can resolve struct field array-ness (#1737). Without this the
+        // struct field's array-ness is never determined via the correct path — this
         // test was previously passing only because a since-removed blanket
         // "parameter -> array access" rule (Issue #579) coincidentally
         // produced the right output for the wrong reason.

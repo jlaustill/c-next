@@ -7,10 +7,6 @@ import IFunctionSignature from "../../../../../types/IFunctionSignature";
 import SymbolTable from "../../../../../PARSE/3-Declare/SymbolTable";
 import TypeResolver from "../../../../../utils/TypeResolver";
 
-/**
- * Issue #315: Small primitive types that are always passed by value.
- * These match the types used in Issue #269 for pass-by-value optimization.
- */
 class CallExprUtils {
   /**
    * Issue #304: Map C-Next type to C type for static_cast.

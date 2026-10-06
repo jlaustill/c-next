@@ -116,9 +116,14 @@ interface IShapeSite {
  * exactly.
  *
  * Note what this inherits: knip ignores `tests/**`, so the dozen authored
- * harnesses there are outside the scan, and since #1418 its `project` negates
- * the unit-test globs, so test files are outside it too. That is the repo's existing definition
+ * harnesses there are outside the scan. That is the repo's existing definition
  * of authored source, and following it is the point -- one list to change.
+ *
+ * The `!` entries in `project` are not part of that definition. They are
+ * knip's USAGE classification (#1418: a call from a test is not a use), and a
+ * test file is still authored source -- `generateBitmapHeader.test.ts` was one
+ * of the two sites this gate was written to catch. So the scan drops them
+ * rather than negating them.
  */
 function authoredGlobs(): { positive: string[]; all: string[] } {
   const knip = JSON.parse(
@@ -128,12 +133,7 @@ function authoredGlobs(): { positive: string[]; all: string[] } {
   const positive = knip.project
     .filter((pattern) => !pattern.startsWith("!"))
     .map((pattern) => join(repoRoot, pattern));
-  const negative = [
-    ...knip.project
-      .filter((pattern) => pattern.startsWith("!"))
-      .map((pattern) => pattern.slice(1)),
-    ...knip.ignore,
-  ].map((pattern) => `!${join(repoRoot, pattern)}`);
+  const negative = knip.ignore.map((pattern) => `!${join(repoRoot, pattern)}`);
   return { positive, all: [...positive, ...negative] };
 }
 

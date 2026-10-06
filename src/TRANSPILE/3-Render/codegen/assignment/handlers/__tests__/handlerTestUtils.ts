@@ -100,7 +100,6 @@ function setupMockGenerator(
       .fn()
       .mockImplementation((ctx) => ctx?.mockValue ?? "0"),
     tryEvaluateConstant: vi.fn().mockReturnValue(undefined),
-    getMemberTypeInfo: vi.fn().mockReturnValue(null),
     analyzeMemberChainForBitAccess: vi
       .fn()
       .mockReturnValue({ isBitAccess: false }),

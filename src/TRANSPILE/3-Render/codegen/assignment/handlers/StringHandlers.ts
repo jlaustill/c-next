@@ -12,10 +12,10 @@
 import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import StringUtils from "../../../../../utils/StringUtils";
-import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import invariant from "../../../../../utils/invariant";
-import type TranspileState from "../../../../TranspileState";
+import type IOperandType from "../../../../../types/IOperandType";
+import OperandTyper from "../../../../../utils/OperandTyper";
 
 // #1322: `validateNotCompound` is gone -- E0857 in pass 2.1. It was defined
 // here AND in the sibling handler, verbatim: one rule, two copies, in a group
@@ -81,48 +81,20 @@ function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
 }
 
 /**
- * Get struct field type information.
+ * The capacity of the `string<N>` a struct-field write copies into.
  *
- * Shared helper for struct field string handlers.
+ * #1737: the typer's step for the field answers it -- `person.name`'s last
+ * step reads the field, `config.items[0]`'s indexes it -- the step the
+ * classifier routed on. This read a struct-field accessor and, for an array,
+ * the field-dimensions map, keyed by a struct name the handler re-derived.
  */
-function getStructFieldType(
-  ctx: IAssignmentContext,
-  fieldName: string,
-  state: TranspileState,
-): string {
-  // Issue #831: one source of truth for struct fields, reached through the
-  // accessor rather than the table -- #1322's scope-declared-struct key
-  // fallback lives there, and a bare table lookup misses it.
-  const structType = getStructType(ctx);
-  const fieldType = state.getStructFieldInfo(structType, fieldName)?.type;
-  // Same shape as the `structTypeInfo` guard `getStructType` carries: the
-  // classifier already required `getStructFieldType` truthy and
-  // `TypeCheckUtils.isString` before producing this kind, so a miss here is the
-  // transpiler contradicting itself, not the author's program.
+function fieldCapacityOf(field: IOperandType | null | undefined): number {
+  const capacity = OperandTyper.scalarStringCapacity(field);
   invariant(
-    fieldType,
-    "a classified string-field assignment names a field the struct declares",
+    capacity !== null,
+    "the classifier routes a write to a string<N> field here",
   );
-
-  return fieldType;
-}
-
-/**
- * Get struct type from a variable name.
- *
- * Shared helper for struct field handlers.
- */
-function getStructType(ctx: IAssignmentContext): string {
-  const structTypeInfo = ctx.target.rootTypeInfo;
-  // #1322: unreachable -- STRING_STRUCT_FIELD is produced only via
-  // `AssignmentClassifier._resolveStructType`, which reads the same bound
-  // root and returns null when it has no type -- and load-bearing, since it
-  // narrows the type for the next line. So it is an invariant.
-  invariant(
-    structTypeInfo,
-    "a classified struct assignment names a variable the symbol table knows",
-  );
-  return structTypeInfo.baseType;
+  return capacity;
 }
 
 /**
@@ -139,8 +111,7 @@ function handleStringStructField(ctx: IAssignmentContext): string {
   const structName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
 
-  const fieldType = getStructFieldType(ctx, fieldName, ctx.state);
-  const capacity = TypeCheckUtils.getStringCapacity(fieldType)!;
+  const capacity = fieldCapacityOf(ctx.target.last?.after);
 
   return StringUtils.copyToStructField(
     structName,
@@ -173,33 +144,7 @@ function handleStringStructArrayElement(ctx: IAssignmentContext): string {
   const structName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
 
-  const structType = getStructType(ctx);
-  const dimensions = ctx.state
-    .symbols!.structFieldDimensions.get(structType)
-    ?.get(fieldName);
-
-  // `_classifyStructArrayElementString` required `dimensions.length >= 1` from
-  // the same map with the same keys before producing this kind.
-  invariant(
-    dimensions && dimensions.length > 0,
-    "a classified struct-array string element has recorded dimensions",
-  );
-
-  // String arrays: dimensions are [array_size, string_capacity+1]
-  // -1 because we added +1 for null terminator during symbol collection.
-  //
-  // The capacity is always numeric: it comes from the INTEGER_LITERAL in
-  // `string<N>`, and the grammar restricts that token to [0-9]+. Since #1127
-  // widened dimensions to (number | string)[] to carry enum-qualified counts,
-  // assert that here rather than coercing -- a string in this slot would mean
-  // the string-array shape changed, and silently producing NaN capacity would
-  // corrupt every strncpy bound generated from it.
-  const rawCapacity = dimensions.at(-1);
-  invariant(
-    typeof rawCapacity === "number",
-    `a string<N> capacity is always numeric -- the grammar restricts that token to digits ('${structType}.${fieldName}' gave '${String(rawCapacity)}')`,
-  );
-  const capacity = rawCapacity - 1;
+  const capacity = fieldCapacityOf(ctx.target.last?.after);
 
   const index = ctx.renderSubscript(0);
   return StringUtils.copyToStructFieldArrayElement(

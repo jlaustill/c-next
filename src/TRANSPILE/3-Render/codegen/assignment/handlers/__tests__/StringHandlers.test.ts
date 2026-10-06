@@ -198,10 +198,19 @@ describe("StringHandlers", () => {
       HandlerTestUtils.declareTypes(state, [
         ["person", { baseType: "Person" }],
       ]);
-      HandlerTestUtils.setupMockSymbols(state, {
-        structFields: new Map([["Person", new Map([["name", "string<50>"]])]]),
-      });
-      const ctx = createMockContext({ identifiers: ["person", "name"] });
+      const base = createMockContext({ identifiers: ["person", "name"] });
+      // #1737: the capacity is the typer's `.name` step
+      const name = {
+        ...HandlerTestUtils.operandOf("string<50>", false, false),
+        stringCapacity: 50,
+      };
+      const ctx: IAssignmentContext = {
+        ...base,
+        target: {
+          ...base.target,
+          last: { before: null, subscript: null, after: name, property: null },
+        },
+      };
 
       const handler = stringHandlers.find(
         ([kind]) => kind === AssignmentKind.STRING_STRUCT_FIELD,
@@ -211,6 +220,7 @@ describe("StringHandlers", () => {
       expect(result).toContain("strncpy");
       expect(result).toContain("person");
       expect(result).toContain("name");
+      expect(result).toContain("50");
     });
   });
 
@@ -240,15 +250,28 @@ describe("StringHandlers", () => {
       HandlerTestUtils.declareTypes(state, [
         ["config", { baseType: "Config" }],
       ]);
-      HandlerTestUtils.setupMockSymbols(state, {
-        structFieldDimensions: new Map([
-          ["Config", new Map([["items", [10, 33]]])], // 10 items, capacity 32+1
-        ]),
-      });
-      const ctx = createMockContext({
+      const base = createMockContext({
         identifiers: ["config", "items"],
         ...HandlerTestUtils.subscriptsOf([{} as never]),
       });
+      // #1737: the capacity is the typer's step for the element written
+      const element = {
+        ...HandlerTestUtils.operandOf("string<32>", false, false),
+        dimensions: [],
+        stringCapacity: 32,
+      };
+      const ctx: IAssignmentContext = {
+        ...base,
+        target: {
+          ...base.target,
+          last: {
+            before: { ...element, dimensions: [10] },
+            subscript: "array_element",
+            after: element,
+            property: null,
+          },
+        },
+      };
 
       const handler = stringHandlers.find(
         ([kind]) => kind === AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT,
@@ -258,7 +281,6 @@ describe("StringHandlers", () => {
       expect(result).toContain("strncpy");
       expect(result).toContain("config");
       expect(result).toContain("items");
-      // Capacity should be 33 - 1 = 32
       expect(result).toContain("32");
     });
   });

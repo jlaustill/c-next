@@ -171,7 +171,7 @@ class SymbolTable {
     SymbolTable.appendToIndex(this.tSymbolsByCName, cName, symbol);
     SymbolTable.appendToIndex(this.tSymbolsByFile, symbol.sourceFile, symbol);
 
-    // Auto-register struct fields for TypeResolver.getMemberTypeInfo()
+    // Auto-register struct fields for the operand typer's field lookups
     if (symbol.kind === "struct") {
       this.registerStructFields(symbol, cName);
     }
@@ -267,7 +267,7 @@ class SymbolTable {
     SymbolTable.appendToIndex(this.cSymbols, symbol.name, symbol);
     SymbolTable.appendToIndex(this.cSymbolsByFile, symbol.sourceFile, symbol);
 
-    // Issue #981: Register struct fields for getMemberTypeInfo() lookups
+    // Issue #981: Register struct fields for the operand typer's field lookups
     if (symbol.kind === "struct" && symbol.fields) {
       this.registerCStructFields(symbol.name, symbol.fields);
     }
@@ -719,6 +719,7 @@ class SymbolTable {
    * @param structName Name of the struct
    * @param fieldName Name of the field
    * @returns Field info or undefined if not found
+   * @public reached by structural conformance through IForeignSymbolLookup; no caller names SymbolTable
    */
   getStructFieldInfo(
     structName: string,
@@ -732,7 +733,7 @@ class SymbolTable {
    * Get all fields for a struct
    * @param structName Name of the struct
    * @returns Map of field names to field info, or undefined if struct not found
-   * @public inspection query: the resolver integration tests read what was registered through it
+   * @public reached by structural conformance through IForeignSymbolLookup and IStructFieldLookup; no caller names SymbolTable
    */
   getStructFields(
     structName: string,
@@ -849,9 +850,9 @@ class SymbolTable {
    * `pointerTypedefs` when #1164 added it — a warm-cache build then emitted a
    * header that contradicted the real typedef.
    *
-   * `typedefToTag` is captured even though `restoreStructTagAliases` derives
-   * it: covering every key removes "is this one derived?" as something anyone
-   * has to remember.
+   * `typedefToTag` is captured even though it is the inverse of
+   * `structTagAliases` (`registerStructTagAlias` writes both): covering every
+   * key removes "is this one derived?" as something anyone has to remember.
    */
   serializeStructState(): TJsonSafe<Required<IStructSymbolState>> {
     return {

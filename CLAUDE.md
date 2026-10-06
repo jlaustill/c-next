@@ -538,15 +538,17 @@ A member whose only reason to exist is its own unit test is deleted. One kept on
 with no production caller carries `@public` and a one-line reason saying which kind it is:
 
 - **Dispatch knip cannot see** -- the members reached through `ICodeGenApi` via
-  `requireGenerator()`; `SymbolTable.getSymbol`, supplied to `ISymbolLookup` by
-  structural conformance; the `ParseTreeListener` callbacks `ParseTreeWalker` calls.
+  `requireGenerator()`; `SymbolTable.getSymbol`, `getStructFields` and
+  `getStructFieldInfo`, supplied to `ISymbolLookup`, `IForeignSymbolLookup` and
+  `IStructFieldLookup` by structural conformance; the `ParseTreeListener` callbacks
+  `ParseTreeWalker` calls.
 - **The one list a test enumerates** -- `DynamicAllocation.names`,
   `ComplianceAnnotations.all`, `TestMarkers.names`, the printer's `handledRuleIndices`.
   A hand-listed copy in the test would be a second list.
 - **A module function exposed to its own test, or read by a guard test that is the
   check** -- `GateRoster`, `MatrixRenderer`, `SourceScan.scan`, `MovePlan.pending`.
 - **A member of a guard or factory set** tests narrow or build with -- `SymbolGuards`,
-  `TTypeUtils`, and the `SymbolTable` queries the resolver integration tests read.
+  `TTypeUtils`.
 
 `yaml` is in `ignoreDependencies` because only `sonar-workflow.test.ts` imports it.
 

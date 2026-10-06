@@ -12,6 +12,7 @@ import IAssignmentContext from "./types/IAssignmentContext";
 import invariant from "../../utils/invariant";
 import SubscriptDepthValidator from "./SubscriptDepthValidator";
 import TTypeInfo from "../../types/TTypeInfo";
+import type IChainBase from "./types/IChainBase";
 import OperandTyper from "../../utils/OperandTyper";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import QualifiedCName from "../../utils/QualifiedCName";
@@ -79,18 +80,6 @@ class AssignmentClassifier {
       typeInfo.stringCapacity !== undefined &&
       (!typeInfo.arrayDimensions || typeInfo.arrayDimensions.length <= 1)
     );
-  }
-
-  /**
-   * Extract struct name and field name from a 2-identifier context.
-   */
-  private static getStructFieldNames(
-    ctx: IAssignmentContext,
-  ): { structName: string; fieldName: string } | null {
-    if (ctx.identifiers.length !== 2) {
-      return null;
-    }
-    return { structName: ctx.identifiers[0], fieldName: ctx.identifiers[1] };
   }
 
   /**
@@ -181,7 +170,7 @@ class AssignmentClassifier {
         ids[0],
         ids[1],
         ids[2],
-        ctx.target.rootTypeInfo,
+        ctx.target,
         state,
       );
     }
@@ -226,7 +215,7 @@ class AssignmentClassifier {
     firstName: string,
     secondName: string,
     fieldName: string,
-    structTypeInfo: TTypeInfo | undefined,
+    target: IChainBase,
     state: TranspileState,
   ): AssignmentKind | null {
     // Check if register member bitmap field: REG.MEMBER.field
@@ -250,20 +239,19 @@ class AssignmentClassifier {
     }
 
     // Check if struct member bitmap field: struct.bitmapMember.field
-    if (!structTypeInfo || !state.isKnownStruct(structTypeInfo.baseType)) {
+    if (!AssignmentClassifier._isStructRoot(target.rootTypeInfo, state)) {
       return null;
     }
 
-    const memberInfo = state.getMemberTypeInfo(
-      structTypeInfo.baseType,
-      secondName,
-    );
-    if (!memberInfo) {
+    // #1737: the bitmap member is what the typer's `.field` step reads, the
+    // step the bitmap handler renders from too
+    const bitmapType = target.last?.before?.bitmapTypeName;
+    if (!bitmapType) {
       return null;
     }
 
     const width = AssignmentClassifier.lookupBitmapFieldWidth(
-      memberInfo.baseType,
+      bitmapType,
       fieldName,
       state,
     );
@@ -924,119 +912,37 @@ class AssignmentClassifier {
       : null;
   }
 
-  /**
-   * Resolve struct type from variable name.
-   * Returns the base struct type if valid, null if not a known struct.
-   */
-  private static _resolveStructType(
-    structTypeInfo: TTypeInfo | undefined,
-    state: TranspileState,
-  ): string | null {
-    if (!structTypeInfo || !state.isKnownStruct(structTypeInfo.baseType)) {
-      return null;
-    }
-    return structTypeInfo.baseType;
-  }
-
-  /**
-   * Resolve struct field type from struct variable name and field name.
-   * Returns null if struct type can't be resolved or field doesn't exist.
-   */
-  private static _resolveStructFieldType(
-    structFieldNames: {
-      structName: string;
-      fieldName: string;
-    },
+  /** Whether a chain's root is a variable of a known struct type */
+  private static _isStructRoot(
     rootTypeInfo: TTypeInfo | undefined,
     state: TranspileState,
-  ): { structType: string; fieldType: string | undefined } | null {
-    const structType = AssignmentClassifier._resolveStructType(
-      rootTypeInfo,
-      state,
+  ): boolean {
+    return (
+      rootTypeInfo !== undefined && state.isKnownStruct(rootTypeInfo.baseType)
     );
-    if (!structType) {
-      return null;
-    }
-    // Issue #831: Use SymbolTable as single source of truth for struct fields
-    // Through the accessor, not `symbolTable` directly: #1322's
-    // scope-declared-struct key fallback lives there, so a bare table lookup
-    // answers `undefined` for a struct declared inside a scope. `fe474b3f5`
-    // moved two sibling lookups for exactly this reason and left three behind,
-    // which is three answers to "what type is this field".
-    const fieldType = state.getStructFieldInfo(
-      structType,
-      structFieldNames.fieldName,
-    )?.type;
-    return { structType, fieldType };
   }
 
   /**
-   * Check if struct.field is a string field.
+   * `struct.field <- "…"` (no subscript) or `struct.arr[i] <- "…"` (one): a
+   * two-name chain on a struct variable that writes one `string<N>`.
+   *
+   * #1737: whether the written value is a `string<N>`, and its capacity, are
+   * the typer's last step, read once; this used to re-derive them from the
+   * struct-field registry, the accessor beside it, and two maps beside that.
    */
-  private static _classifyStructFieldString(
+  private static _writesStructString(
     ctx: IAssignmentContext,
-    structFieldNames: { structName: string; fieldName: string } | null,
+    subscripts: number,
     state: TranspileState,
-  ): AssignmentKind | null {
-    if (!ctx.hasMemberAccess || ctx.hasArrayAccess || !structFieldNames) {
-      return null;
-    }
-    const resolved = AssignmentClassifier._resolveStructFieldType(
-      structFieldNames,
-      ctx.target.rootTypeInfo,
-      state,
+  ): boolean {
+    return (
+      ctx.hasMemberAccess &&
+      ctx.identifiers.length === 2 &&
+      ctx.subscriptCount === subscripts &&
+      ctx.hasArrayAccess === subscripts > 0 &&
+      AssignmentClassifier._isStructRoot(ctx.target.rootTypeInfo, state) &&
+      OperandTyper.scalarStringCapacity(ctx.target.last?.after) !== null
     );
-    if (!resolved) {
-      return null;
-    }
-    return resolved.fieldType &&
-      TypeCheckUtils.isSizedStringName(resolved.fieldType)
-      ? AssignmentKind.STRING_STRUCT_FIELD
-      : null;
-  }
-
-  /**
-   * Check if struct.arr[i] is a string array element.
-   */
-  private static _classifyStructArrayElementString(
-    ctx: IAssignmentContext,
-    structFieldNames: { structName: string; fieldName: string } | null,
-    state: TranspileState,
-  ): AssignmentKind | null {
-    if (
-      !ctx.hasMemberAccess ||
-      !ctx.hasArrayAccess ||
-      !structFieldNames ||
-      ctx.subscriptCount !== 1
-    ) {
-      return null;
-    }
-    const resolved = AssignmentClassifier._resolveStructFieldType(
-      structFieldNames,
-      ctx.target.rootTypeInfo,
-      state,
-    );
-    if (!resolved) {
-      return null;
-    }
-
-    const { structType, fieldType } = resolved;
-    const { fieldName } = structFieldNames;
-    const fieldArrays = state.symbols!.structFieldArrays.get(structType);
-    const dimensions = state
-      .symbols!.structFieldDimensions.get(structType)
-      ?.get(fieldName);
-
-    const isStringArrayField =
-      fieldType &&
-      TypeCheckUtils.isSizedStringName(fieldType) &&
-      fieldArrays?.has(fieldName) &&
-      dimensions &&
-      dimensions.length >= 1;
-
-    return isStringArrayField
-      ? AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT
-      : null;
   }
 
   /**
@@ -1062,21 +968,12 @@ class AssignmentClassifier {
     if (globalMember) return globalMember;
 
     // struct.field or struct.arr[i] string
-    const structFieldNames = AssignmentClassifier.getStructFieldNames(ctx);
-    const structField = AssignmentClassifier._classifyStructFieldString(
-      ctx,
-      structFieldNames,
-      state,
-    );
-    if (structField) return structField;
-
-    const structArrayElement =
-      AssignmentClassifier._classifyStructArrayElementString(
-        ctx,
-        structFieldNames,
-        state,
-      );
-    if (structArrayElement) return structArrayElement;
+    if (AssignmentClassifier._writesStructString(ctx, 0, state)) {
+      return AssignmentKind.STRING_STRUCT_FIELD;
+    }
+    if (AssignmentClassifier._writesStructString(ctx, 1, state)) {
+      return AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT;
+    }
 
     return null;
   }

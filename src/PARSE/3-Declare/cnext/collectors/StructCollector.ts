@@ -227,10 +227,12 @@ class StructCollector {
       // written and settled by 1.4 Resolve.
     }
 
-    // Handle string types specially
-    if (typeCtx.stringType()) {
+    // Handle string types specially -- `string<N>`, and #1569 the element
+    // type of `string<N>[M]`, whose capacity follows the array dimensions
+    const stringCtx = typeCtx.stringType() ?? typeCtx.arrayType()?.stringType();
+    if (stringCtx) {
       const stringHandled = processStringField(
-        typeCtx.stringType()!,
+        stringCtx,
         arrayDims,
         dimensions,
       );

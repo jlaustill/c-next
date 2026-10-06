@@ -117,6 +117,20 @@ describe("StringLengthCounter", () => {
   });
 
   describe("countBlockInto", () => {
+    it("counts .char_count in assignment statements", () => {
+      const { block, state } = blockIn(
+        "string<64> text;",
+        `
+        u32 x;
+        x <- text.char_count;
+      `,
+      );
+      const counts = new Map<string, number>();
+      StringLengthCounter.countBlockInto(block, counts, state);
+
+      expect(counts.get("text")).toBe(1);
+    });
+
     it("adds counts to existing map", () => {
       const { block, state } = blockIn(
         "string<32> s1; string<32> s2;",

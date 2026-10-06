@@ -339,6 +339,18 @@ class OperandTyper {
     return t !== null && t.dimensions.length === 0 && OperandTyper.isString(t);
   }
 
+  /**
+   * A bounded `string<N>` value's capacity `N` -- not an array of them, which
+   * an element of one is; null for anything else (#1737). What a copy into
+   * the value is bounded by.
+   */
+  static scalarStringCapacity(
+    t: IOperandType | null | undefined,
+  ): number | null {
+    if (t === null || t === undefined || t.dimensions.length > 0) return null;
+    return t.stringCapacity;
+  }
+
   static isString(t: IOperandType | null): boolean {
     if (t === null) return false;
     const name = t.typeName ?? "";
@@ -350,13 +362,13 @@ class OperandTyper {
   }
 
   /**
-   * Whether an operand is a whole array (`pts`, not `pts[0]`), which C decays
-   * to a pointer to its first element. Such an argument never takes `&` -- its
-   * address is a pointer to the ARRAY. A string's buffer is not asked here: a
-   * string argument never reaches that `&` (measured, #1668's merge of main).
+   * Whether an operand is stored as a C array, which C decays to a pointer to
+   * its first element: a whole array (`pts`, not `pts[0]`), or a string,
+   * whose `char` buffer is an array though it is not one of `dimensions`.
+   * Such an argument never takes `&` -- its address is a pointer to the ARRAY.
    */
   static decaysToPointer(t: IOperandType | null): boolean {
-    return t !== null && t.dimensions.length > 0;
+    return t !== null && (t.dimensions.length > 0 || OperandTyper.isString(t));
   }
 
   /**

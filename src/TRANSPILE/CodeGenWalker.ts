@@ -175,7 +175,6 @@ import SymbolGuards from "../types/symbols/SymbolGuards";
 import type IFunctionSymbol from "../types/symbols/IFunctionSymbol";
 import type TSymbol from "../types/symbols/TSymbol";
 import type ICallbackTypeInfo from "../types/ICallbackTypeInfo";
-import BareIdentifier from "../utils/BareIdentifier";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -1004,145 +1003,11 @@ class CodeGenWalker {
       return true;
     }
 
-    // Check if it's a simple variable of string type
-    if (BareIdentifier.matches(text)) {
-      const typeInfo = this.host.state.declarationTypeInfo(
-        null,
-        text,
-        ParserUtils.getPosition(ctx),
-      );
-      if (typeInfo?.isString) {
-        return true;
-      }
-    }
-
-    // Issue #1030: Check for struct member access (e.g., person.name)
-    if (this._isStructMemberStringExpression(text, ctx)) {
-      return true;
-    }
-
-    // Issue #137: Check for array element access (e.g., names[0], arr[i])
-    return this._isArrayAccessStringExpression(text, ctx);
-  }
-
-  /**
-   * Check if array access expression evaluates to a string.
-   * Extracted from isStringExpression to reduce cognitive complexity.
-   */
-  private _isArrayAccessStringExpression(
-    text: string,
-    ctx: Parser.RelationalExpressionContext,
-  ): boolean {
-    // Pattern: identifier[expression] or identifier[expression][expression]...
-    // BUT NOT if accessing properties that return numbers, not strings
-    const arrayAccessMatch = /^([a-zA-Z_]\w*)\[/.exec(text);
-    if (!arrayAccessMatch) {
-      return false;
-    }
-
-    // ADR-045/ADR-058: String/array properties return numeric values, not strings
-    // ADR-058: .length deprecated, replaced by .bit_length, .byte_length,
-    // .element_count, .char_count
-    if (
-      text.endsWith(".length") ||
-      text.endsWith(".capacity") ||
-      text.endsWith(".size") ||
-      text.endsWith(".bit_length") ||
-      text.endsWith(".byte_length") ||
-      text.endsWith(".element_count") ||
-      text.endsWith(".char_count")
-    ) {
-      return false;
-    }
-
-    const arrayName = arrayAccessMatch[1];
-    const typeInfo = this.host.state.declarationTypeInfo(
-      null,
-      arrayName,
-      ParserUtils.getPosition(ctx),
+    // #1737: one rule for every operand shape -- a name, a member at any
+    // depth, an element of an array of strings (not a char of one string)
+    return OperandTyper.isString(
+      OperandTyper.typeOf(ctx, this.host.state.typingContext()),
     );
-    if (!typeInfo) {
-      return false;
-    }
-
-    // Check if it's an ARRAY OF STRINGS (not a single string being indexed)
-    // A single string<50> has arrayDimensions=[51] (just the char buffer)
-    // An array of strings string<50>[10] has arrayDimensions=[10, 51]
-    // Single string indexing (e.g., userName[i]) returns a char, not a string
-    // Array of strings indexing (e.g., names[0]) returns a string
-    if (typeInfo.isString) {
-      // For strings, only treat as string expression if it's an array of strings
-      // (arrayDimensions.length > 1 means it's string<N>[M], not just string<N>)
-      const dims = typeInfo.arrayDimensions;
-      return Array.isArray(dims) && dims.length > 1;
-    }
-
-    // Non-string array with string base type
-    return Boolean(
-      typeInfo.isArray &&
-      typeInfo.baseType &&
-      TypeCheckUtils.isSizedStringName(typeInfo.baseType),
-    );
-  }
-
-  /**
-   * Check if struct member access expression evaluates to a string.
-   * Issue #1030: Handles patterns like person.name, config.key
-   */
-  private _isStructMemberStringExpression(
-    text: string,
-    ctx: Parser.RelationalExpressionContext,
-  ): boolean {
-    // Pattern: identifier.identifier (simple member access)
-    // Must not end with a property that returns a number
-    if (
-      text.endsWith(".char_count") ||
-      text.endsWith(".capacity") ||
-      text.endsWith(".size") ||
-      text.endsWith(".length") ||
-      text.endsWith(".bit_length") ||
-      text.endsWith(".byte_length") ||
-      text.endsWith(".element_count")
-    ) {
-      return false;
-    }
-
-    // Match simple struct.member pattern
-    const memberMatch = /^([a-zA-Z_]\w*)\.([a-zA-Z_]\w*)$/.exec(text);
-    if (!memberMatch) {
-      return false;
-    }
-
-    const [, varName, fieldName] = memberMatch;
-
-    // Get the struct variable's type
-    const typeInfo = this.host.state.declarationTypeInfo(
-      null,
-      varName,
-      ParserUtils.getPosition(ctx),
-    );
-    if (!typeInfo) {
-      return false;
-    }
-
-    // Get the struct type name - it might be directly the baseType
-    // or we might need to look it up by the variable's type
-    const structTypeName = typeInfo.baseType;
-    if (!structTypeName) {
-      return false;
-    }
-
-    // Look up the field type from the struct
-    const fieldType = this.host.state.getStructFieldType(
-      structTypeName,
-      fieldName,
-    );
-    if (!fieldType) {
-      return false;
-    }
-
-    // Check if the field is a string type (e.g., "string<64>")
-    return fieldType.startsWith("string");
   }
 
   /**
@@ -3174,19 +3039,12 @@ class CodeGenWalker {
   }
 
   /**
-   * Issue #308: Check if a member access expression is accessing an array member.
-   * For example, result.data where data is a u8[6] array member.
-   * When passing such expressions to functions, the array should naturally decay
-   * to a pointer, so we should NOT add & operator.
+   * Issue #308: whether a member access argument (`result.data`, at any
+   * depth) is stored as a C array, which decays to a pointer when passed, so
+   * it takes no `&`. The member's type is the one operand typer's (#1737).
    *
-   * Note: Currently handles single-level member access only (e.g., result.data).
-   * Nested access like outer.inner.data would require traversing the postfix chain
-   * to resolve intermediate struct types. This is acceptable since issue #308
-   * involves single-level access patterns.
-   *
-   * Issue #355: Check if struct field info is available for a member access.
-   * Used for defensive code generation - when we don't have field info,
-   * we skip potentially dangerous conversions.
+   * Issue #355: "unknown" when there is no struct field info for the member,
+   * for defensive code generation that skips potentially dangerous conversions.
    *
    * @returns "array" if definitely an array, "not-array" if definitely not,
    *          "unknown" if struct field info is not available
@@ -3197,51 +3055,34 @@ class CodeGenWalker {
     const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
     if (!postfix) return "not-array";
 
-    const ops = postfix.postfixOp();
-    if (ops.length === 0) return "not-array";
-
     // Last operator must be member access (.identifier)
-    const lastOp = ops.at(-1)!;
-    const memberName = lastOp.IDENTIFIER()?.getText();
-    if (!memberName) return "not-array";
+    if (!postfix.postfixOp().at(-1)?.IDENTIFIER()) return "not-array";
 
-    // Get the base identifier to find the struct type
-    const primary = postfix.primaryExpression();
-    if (!primary) return "not-array";
-    const baseId = primary.IDENTIFIER()?.getText();
-    if (!baseId) return "not-array";
-
-    // Look up the struct type from either:
-    // 1. The declaration the name binds here (#1668)
-    // 2. Parameter: currentParameters.get(baseId).baseType
-    let structType: string | undefined;
-
-    const typeInfo = this.host.state.declarationTypeInfo(
-      null,
-      baseId,
-      ParserUtils.getPosition(postfix),
-    );
-    if (typeInfo) {
-      structType = typeInfo.baseType;
-    } else {
-      const paramInfo = this.host.state.currentParameters.get(baseId);
-      if (paramInfo) {
-        structType = paramInfo.baseType;
-      }
+    const baseId = postfix.primaryExpression()?.IDENTIFIER()?.getText();
+    if (!baseId || !this.rootBindsToVariable(baseId, postfix)) {
+      return "not-array";
     }
 
-    if (!structType) return "not-array";
-
-    // Check if this struct member is an array
-    const memberInfo = this.host.getMemberTypeInfo(structType, memberName);
-
-    // Issue #355: If memberInfo is undefined, we don't have struct field info
-    // This could mean the header wasn't parsed - return "unknown" for defensive generation
-    if (!memberInfo) {
+    const member = OperandTyper.typeOf(ctx, this.host.state.typingContext());
+    if (member === null) {
       return "unknown";
     }
 
-    return memberInfo.isArray ? "array" : "not-array";
+    return OperandTyper.decaysToPointer(member) ? "array" : "not-array";
+  }
+
+  /** Whether a chain's root names a declaration (#1668) or a parameter */
+  private rootBindsToVariable(
+    baseId: string,
+    at: Parser.PostfixExpressionContext,
+  ): boolean {
+    return (
+      this.host.state.declarationTypeInfo(
+        null,
+        baseId,
+        ParserUtils.getPosition(at),
+      ) !== undefined || this.host.state.currentParameters.has(baseId)
+    );
   }
 
   private generateDeclaration(ctx: Parser.DeclarationContext): string {
@@ -3710,9 +3551,13 @@ class CodeGenWalker {
     }));
   }
 
-  /** A bounded string type's declared capacity, or null (#1445). */
+  /**
+   * A bounded string type's declared capacity, or null (#1445) -- of the
+   * element for an array of them, `string<N>[M]` (#1569).
+   */
   planStringCapacity(ctx: Parser.TypeContext): number | null {
-    const literal = ctx.stringType()?.INTEGER_LITERAL();
+    const stringCtx = ctx.stringType() ?? ctx.arrayType()?.stringType();
+    const literal = stringCtx?.INTEGER_LITERAL();
     return literal ? Number.parseInt(literal.getText(), 10) : null;
   }
 
