@@ -366,7 +366,7 @@ that names no file and no line, and codes them.
 | `1-Discover/InputExpansion.ts:63`     | `Invalid file extension`              | only through `--clean`, as `Error: Error: Invalid file extension …` at exit 0                                                                                          | #1847 |
 | `1-Discover/TargetCatalogFile.ts:52`  | `was not found above`                 | a broken installation. In a run it reads `Code generation failed:`, from the catch around building `Program`; the CLI's usage text also reads the catalog (not traced) | #1847 |
 | `4-Resolve/TargetDescriptions.ts:215` | `the compiler installation is broken` | a broken installation. In a run it reads `Code generation failed:`, from the catch around building `Program`; the CLI's usage text also reads the catalog (not traced) | #1847 |
-| `preprocessor/Preprocessor.ts:205`    | `Preprocessor failed for`             | never an error. `Preprocessor.preprocess` catches it, and the run falls back to the header's raw text with a warning, by design (#985)                                 | —     |
+| `preprocessor/Preprocessor.ts:198`    | `Preprocessor failed for`             | never an error. `Preprocessor.preprocess` catches it, and the run falls back to the header's raw text with a warning, by design (#985)                                 | —     |
 
 ## Proposed split of #1322
 
