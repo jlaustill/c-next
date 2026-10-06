@@ -1,0 +1,5 @@
+// #1737: a struct with string fields declared in an included file
+struct Config {
+    string<8> name;
+    string<4>[3] tags;
+}

@@ -238,17 +238,15 @@ describe("TypeGenerationHelper", () => {
     });
 
     /**
-     * Carried over deliberately: the question was asked of the bare context
-     * first and of an array's element only for primitives, so `string<8>[2]`
-     * has never contributed `<string.h>` from this path. Masked in the emitted
-     * code by a second route in `TypeRegistrationEngine`; filed as #1638.
+     * #1569: a `string<N>[M]` struct field has no other route to
+     * `<string.h>`, so an array of strings requires it here as one string does.
      */
-    it("returns null for an ARRAY of strings", () => {
+    it("requires string for an ARRAY of strings too (#1569)", () => {
       expect(
         TypeGenerationHelper.getRequiredInclude(
           plan({ isString: true, isArray: true }),
         ),
-      ).toBeNull();
+      ).toBe("string");
     });
 
     it("returns the element's include for an array of primitives", () => {

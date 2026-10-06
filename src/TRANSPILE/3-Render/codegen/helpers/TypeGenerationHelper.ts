@@ -201,18 +201,9 @@ class TypeGenerationHelper {
    * Get the required include header for a type.
    * Used by the caller to track includes separately from type generation.
    *
-   * **An array of strings requires no include here, and a bare string does.**
-   * The question used to be asked of the bare context first and of an array's
-   * element only for primitives, so `string<8>[2]` has never contributed
-   * `<string.h>` from this path. It is carried over unchanged, and `isArray`
-   * makes the shape explicit where the accessor order used to imply it.
-   *
-   * Invisible today: a sized string's declaration plan requires `<string.h>`
-   * by a second route (type registration's until #1668 deleted the registry),
-   * so the emitted code is the same either way (measured on a file whose only
-   * string is an array, with no `str*` call). Two routes agreeing by
-   * coincidence is what #1638 asks about, from the same end #1095 asks from
-   * the other.
+   * A sized string requires `<string.h>`, and so does an array of them
+   * (#1569): a `string<N>[M]` struct field has no other route to it, so a
+   * file whose only string is such a field emitted `strncpy` undeclared.
    */
   static getRequiredInclude(plan: IPlannedType): TIncludeHeader | null {
     if (plan.primitiveName !== null) {
@@ -220,7 +211,7 @@ class TypeGenerationHelper {
         .include;
     }
 
-    if (plan.isString && !plan.isArray) {
+    if (plan.isString) {
       return "string";
     }
 

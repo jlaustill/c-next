@@ -10,8 +10,6 @@ import type ISourcePosition from "../utils/types/ISourcePosition";
 import DeclaredTypeInfo from "./2-Plan/DeclaredTypeInfo";
 import TParameterInfo from "../types/TParameterInfo";
 import ICallbackTypeInfo from "../types/ICallbackTypeInfo";
-import TYPE_WIDTH from "../types/TYPE_WIDTH";
-import ArrayDimensionText from "../utils/ArrayDimensionText";
 import type ICodeGenApi from "./types/ICodeGenApi";
 import DeclaredTypeFacts from "../utils/DeclaredTypeFacts";
 import DeclaredPointer from "../utils/DeclaredPointer";
@@ -20,7 +18,6 @@ import type IOutputExtensions from "../types/IOutputExtensions";
 import QualifiedCName from "../utils/QualifiedCName";
 import ScopeUtils from "../utils/ScopeUtils";
 import type ITypeBindingDeps from "../types/ITypeBindingDeps";
-import StructFieldFacts from "../utils/StructFieldFacts";
 import type IProgram from "../types/IProgram";
 import type ITypingContext from "../types/ITypingContext";
 import type IDeclarationPlan from "../types/IDeclarationPlan";
@@ -1136,116 +1133,6 @@ class TranspileState {
       }
     }
     return identifier;
-  }
-
-  /**
-   * The key `ICodeGenSymbols.structFields` actually holds for a struct type,
-   * or undefined when nothing does.
-   *
-   * #1322. Those maps are keyed by the TRANSPILED C name, so a scope-declared
-   * struct is `S__Cfg` there while every declaration, parameter and field type
-   * reads `S.Cfg`. Callers passed the source spelling, the lookup missed, and
-   * the member chain became UNRESOLVABLE -- which no analyzer rejects, because
-   * declining to guess is the correct behavior for a name it cannot resolve.
-   *
-   * So MISRA C:2012 Rule 10.1 fired on a global struct's `bool` field and was
-   * silently absent on a scope-declared struct's, and the same held for the
-   * divide-by-zero, array-index and essential-category rules that follow the
-   * same chains. Four analyzers, one missing key derivation.
-   *
-   * It is resolved HERE, once, rather than at each call site: a fifth caller
-   * arriving later inherits the fix instead of re-deriving it, and
-   * `CompoundAssignmentAnalyzer` had already been forced to spell it out
-   * privately -- which is the duplicate-path shape, and is now deleted.
-   *
-   * The source spelling is tried FIRST, so this can only ADD resolutions.
-   * Nothing that resolved before resolves differently, which is what makes it
-   * safe to put under a caller in `output/` as well as the analyzers.
-   */
-  private resolvedStructKey(structName: string): string | undefined {
-    return StructFieldFacts.keyFor(this.symbols, structName);
-  }
-
-  /**
-   * Get struct field type (simple lookup).
-   */
-  getStructFieldType(
-    structName: string,
-    fieldName: string,
-  ): string | undefined {
-    return StructFieldFacts.typeOf(this.symbols, structName, fieldName);
-  }
-
-  /**
-   * Get struct field info including dimensions (checks SymbolTable then local symbols).
-   */
-  getStructFieldInfo(
-    structType: string,
-    fieldName: string,
-  ): { type: string; dimensions?: (number | string)[] } | null {
-    // First check SymbolTable (C header structs)
-    const fieldInfo = this.symbolTable.getStructFieldInfo(
-      structType,
-      fieldName,
-    );
-    if (fieldInfo) {
-      return {
-        type: fieldInfo.type,
-        dimensions: fieldInfo.arrayDimensions,
-      };
-    }
-
-    // Fall back to local C-Next struct fields, under the resolved key (#1322 --
-    // this had the same scope-declared-struct miss as getStructFieldType).
-    const localKey = this.resolvedStructKey(structType);
-    if (localKey !== undefined) {
-      const fieldType = this.symbols?.structFields
-        .get(localKey)
-        ?.get(fieldName);
-      if (fieldType) {
-        const fieldDimensions =
-          this.symbols?.structFieldDimensions.get(localKey);
-        const dimensions = fieldDimensions?.get(fieldName);
-        return {
-          type: fieldType,
-          dimensions: dimensions ? [...dimensions] : undefined,
-        };
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Get member type info for a struct field.
-   * Returns full TTypeInfo for the field, or null if not found.
-   */
-  getMemberTypeInfo(structType: string, memberName: string): TTypeInfo | null {
-    const fieldInfo = this.getStructFieldInfo(structType, memberName);
-    if (!fieldInfo) return null;
-
-    const isArray =
-      (fieldInfo.dimensions !== undefined && fieldInfo.dimensions.length > 0) ||
-      (this.symbols?.structFieldArrays.get(structType)?.has(memberName) ??
-        false);
-    // Issue #1127: map a non-numeric dimension to UNRESOLVED_DIMENSION rather
-    // than filtering it out. TTypeInfo.arrayDimensions is number[], so an
-    // enum-qualified count cannot be carried here -- but dropping it shifts
-    // every dimension after it, so `u8[EColor.COUNT][3] cells` came back as
-    // [3] and put dimension 2's bound in dimension 1's slot.
-    //
-    // UNRESOLVED_DIMENSION holds the slot and reads as "size unknown";
-    // TypeValidator.checkArrayBounds skips it because it is not > 0.
-    const dims =
-      fieldInfo.dimensions && ArrayDimensionText.numeric(fieldInfo.dimensions);
-
-    return {
-      baseType: fieldInfo.type,
-      bitWidth: TYPE_WIDTH[fieldInfo.type] ?? 32,
-      isConst: false,
-      isArray,
-      arrayDimensions: dims && dims.length > 0 ? dims : undefined,
-    };
   }
 
   /**

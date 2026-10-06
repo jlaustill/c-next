@@ -1,0 +1,13 @@
+// test-execution
+// test-no-warnings
+// #1569: a file whose only string is a struct's string<N>[M] field, written
+// and never read, still includes <string.h> for the strncpy the write emits
+struct Config {
+    string<8>[3] items;
+}
+
+i32 main() {
+    Config cfg;
+    cfg.items[2] <- "hi";
+    return 0;
+}

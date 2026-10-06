@@ -1,0 +1,24 @@
+// test-execution
+// test-no-warnings
+// #1737: a struct declared in an included file types its string fields the
+// same as one declared here -- a field write, an element write, and the field
+// passed to a string<N> parameter
+#include "config.cnx"
+
+u32 lengthOf(string<8> s) {
+    return s.char_count;
+}
+
+i32 main() {
+    Config cfg;
+    cfg.name <- "remote";
+    cfg.tags[1] <- "ab";
+
+    if (cfg.name != "remote") return 1;
+    u32 length <- lengthOf(cfg.name);
+    if (length != 6) return 2;
+    if (cfg.tags[1] != "ab") return 3;
+    if (cfg.tags[1].char_count != 2) return 4;
+
+    return 0;
+}

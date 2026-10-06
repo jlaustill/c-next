@@ -1,0 +1,28 @@
+// test-execution
+// test-no-warnings
+// #1737: a nested struct's array member passed to an array parameter decays
+// to a pointer -- fill(o.inner.data), never &o.inner.data. The member's type
+// is Inner.data, not Outer's own same-named u8 field.
+struct Inner {
+    u8[6] data;
+}
+
+struct Outer {
+    Inner inner;
+    u8 data;
+}
+
+Outer o;
+
+void fill(u8[6] buf) {
+    buf[0] <- 1;
+    buf[5] <- 6;
+}
+
+i32 main() {
+    fill(o.inner.data);
+    if (o.inner.data[0] != 1) return 1;
+    if (o.inner.data[5] != 6) return 2;
+    if (o.data != 0) return 3;
+    return 0;
+}
