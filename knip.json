@@ -3,14 +3,17 @@
   "entry": [
     "src/lib/parseWithSymbols.ts",
     "scripts/*.ts",
-    "prettier-plugin/tests/**/*.test.ts",
-    "prettier-plugin/src/index.ts"
+    "prettier-plugin/src/index.ts",
+    "!**/*.test.ts"
   ],
   "project": [
     "src/**/*.ts",
     "scripts/**/*.ts",
     "prettier-plugin/src/**/*.ts",
-    "prettier-plugin/tests/**/*.ts"
+    "!**/__tests__/**",
+    "!**/*.test.ts",
+    "!**/__testUtils__/**",
+    "!src/tests/**"
   ],
   "ignore": [
     "tests/**",
@@ -20,5 +23,7 @@
   ],
   "ignoreBinaries": ["jscpd", "jq", "dot"],
   "include": ["classMembers"],
-  "includeEntryExports": true
+  "includeEntryExports": true,
+  "vitest": false,
+  "ignoreDependencies": ["yaml"]
 }

@@ -210,7 +210,7 @@ npm run unit
 npm run test:q          # integration
 npm run test:bugs
 npm run validate:c      # cppcheck, MISRA, clang-tidy, flawfinder
-npx knip                # dead code
+npx knip                # dead code -- a test caller is not a user (#1418)
 npm run cspell:check && npm run oxlint:check
 ```
 
@@ -222,6 +222,8 @@ Then ask yourself:
       green only where it can reach?
 - [ ] Would changing one fact require editing **more than one place**?
 - [ ] Is **everything** I noticed fixed or filed — not just the bugs?
+- [ ] Does anything I added have **only test callers**? Plain `npx knip` reports
+      it (#1418): delete it, or tag it `@public` with the reason it stays.
 - [ ] Are there **zero** open Sonar issues on my code, regardless of the gate?
 - [ ] Did I **regenerate** rather than edit or merge any generated file?
 - [ ] Did I verify each claim in my commit message, or am I repeating something?

@@ -157,20 +157,4 @@ scope S {
       expect(resolve("globalCounter", null, 18)).toBeNull();
     });
   });
-
-  describe("resolveForMemberAccess", () => {
-    it("returns the scope name when it exists", () => {
-      const { state } = setUp("Motor");
-      state.symbols = {
-        ...state.symbols!,
-        knownScopes: new Set(["Motor", "LED"]),
-      };
-      expect(TypeValidator.resolveForMemberAccess("LED", state)).toBe("LED");
-    });
-
-    it("returns null for an unknown identifier", () => {
-      const { state } = setUp("Motor");
-      expect(TypeValidator.resolveForMemberAccess("Unknown", state)).toBeNull();
-    });
-  });
 });

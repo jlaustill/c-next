@@ -96,7 +96,10 @@ class DynamicAllocation {
     return false;
   }
 
-  /** The listed names, for tests and for anything that must enumerate them. */
+  /**
+   * The listed names, for tests and for anything that must enumerate them.
+   * @public the list DynamicAllocation.test.ts enumerates; a hand-listed copy would be a second list
+   */
   static names(): readonly string[] {
     return [...DYNAMIC_MEMORY_FUNCTIONS];
   }

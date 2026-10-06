@@ -401,24 +401,6 @@ class CacheManager {
   }
 
   /**
-   * Invalidate cache for a specific file
-   */
-  invalidate(filePath: string): void {
-    if (!this.cache) return;
-
-    this.cache.delete(filePath);
-    this.dirty = true;
-  }
-
-  /**
-   * Invalidate all cached entries
-   */
-  invalidateAll(): void {
-    this.cache = new Map();
-    this.dirty = true;
-  }
-
-  /**
    * Flush cache to disk if modified
    */
   async flush(): Promise<void> {
@@ -452,13 +434,6 @@ class CacheManager {
       // Unreadable: fall through to an empty cache
     }
     return new Map();
-  }
-
-  /**
-   * Get the cache directory path
-   */
-  getCacheDir(): string {
-    return this.cacheDir;
   }
 
   /**

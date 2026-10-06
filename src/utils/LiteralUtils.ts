@@ -69,16 +69,6 @@ class LiteralUtils {
   }
 
   /**
-   * Check if a literal is a floating-point number.
-   *
-   * @param ctx - The literal context from the parse tree
-   * @returns true if the literal is a float
-   */
-  static isFloat(ctx: Parser.LiteralContext): boolean {
-    return LiteralUtils.floatLiteralWidth(ctx.getText()) !== null;
-  }
-
-  /**
    * The width of a floating literal's type, read from its text: 32 for
    * `2.5f32`, 64 for `2.5f64` and for an unsuffixed `2.5` (a C `double`).
    * Null when the text is not a floating literal.

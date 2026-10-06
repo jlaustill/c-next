@@ -43,42 +43,6 @@ describe("ExpressionUtils", () => {
   // extractLiteral
   // ========================================================================
 
-  describe("extractLiteral", () => {
-    it.each([
-      ["should extract integer literal", "42", "42"],
-      ["should extract zero literal", "0", "0"],
-      ["should extract hex literal", "0xFF", "0xFF"],
-      ["should extract binary literal", "0b1010", "0b1010"],
-      ["should extract suffixed literal", "42u32", "42u32"],
-    ])("%s", (_label, source, source2) => {
-      const expr = extractExpression(source);
-      expect(expr).not.toBeNull();
-
-      const literal = ExpressionUtils.extractLiteral(expr!);
-      expect(literal).not.toBeNull();
-      expect(literal!.getText()).toBe(source2);
-    });
-
-    it.each([
-      ["should return null for addition expression", "1 + 2"],
-      ["should return null for subtraction expression", "5 - 3"],
-      ["should return null for multiplication expression", "2 * 3"],
-      ["should return null for division expression", "10 / 2"],
-      ["should return null for identifier expression", "someVar"],
-      ["should return null for comparison expression", "a < b"],
-      ["should return null for logical OR expression", "a || b"],
-      ["should return null for logical AND expression", "a && b"],
-      ["should return null for bitwise OR expression", "a | b"],
-      ["should return null for shift expression", "a << 2"],
-    ])("%s", (_label, source) => {
-      const expr = extractExpression(source);
-      expect(expr).not.toBeNull();
-
-      const literal = ExpressionUtils.extractLiteral(expr!);
-      expect(literal).toBeNull();
-    });
-  });
-
   // ========================================================================
   // extractPrimaryExpression
   // ========================================================================

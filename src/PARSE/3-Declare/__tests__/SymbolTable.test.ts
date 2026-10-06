@@ -9,7 +9,6 @@ import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TSymbol from "../../../types/symbols/TSymbol";
 import IVariableSymbol from "../../../types/symbols/IVariableSymbol";
 import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
-import IStructSymbol from "../../../types/symbols/IStructSymbol";
 import IEnumSymbol from "../../../types/symbols/IEnumSymbol";
 import TargetResolver from "../../../utils/TargetResolver";
 import TTypeUtils from "../../../utils/TTypeUtils";
@@ -18,7 +17,6 @@ import TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
 import TestSymbolUtils from "../cnext/__tests__/testSymbolUtils";
 import TVisibility from "../../../types/TVisibility";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
-import TestEnumMembers from "../../../types/__testUtils__/testEnumMembers";
 import NodeFileSystem from "../../1-Discover/NodeFileSystem";
 
 describe("SymbolTable", () => {
@@ -296,89 +294,6 @@ describe("SymbolTable", () => {
   // ========================================================================
 
   // ========================================================================
-  // Type-Safe Symbol Queries
-  // ========================================================================
-
-  describe("type-safe queries", () => {
-    it("getStructSymbols should return only struct symbols", () => {
-      symbolTable.addTSymbol({
-        ...TestSymbolUtils.base({
-          kind: "struct",
-          name: "MyStruct",
-          scopePath: "",
-          sourceFile: "test.cnx",
-          span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
-          visibility: "public",
-        }),
-        fields: new Map(),
-      } as IStructSymbol);
-
-      symbolTable.addTSymbol({
-        ...TestSymbolUtils.base({
-          kind: "variable",
-          name: "myVar",
-          scopePath: "",
-          sourceFile: "test.cnx",
-          span: TestSourceSpan.at(2),
-          sourceLanguage: ESourceLanguage.CNext,
-          visibility: "public",
-        }),
-        type: TTypeUtils.createPrimitive("u32"),
-        isArray: false,
-        isConst: false,
-        isAtomic: false,
-        isVolatile: false,
-        overflowBehavior: "clamp",
-      });
-
-      const structs = symbolTable.getStructSymbols();
-      expect(structs).toHaveLength(1);
-      expect(structs[0].name).toBe("MyStruct");
-    });
-
-    it("getEnumSymbols should return only enum symbols", () => {
-      symbolTable.addTSymbol({
-        ...TestSymbolUtils.base({
-          kind: "enum",
-          name: "MyEnum",
-          scopePath: "",
-          sourceFile: "test.cnx",
-          span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
-          visibility: "public",
-        }),
-        members: TestEnumMembers.of("MyEnum", { VALUE1: 0 }),
-      } as IEnumSymbol);
-
-      const enums = symbolTable.getEnumSymbols();
-      expect(enums).toHaveLength(1);
-      expect(enums[0].name).toBe("MyEnum");
-    });
-
-    it("getFunctionSymbols should return only function symbols", () => {
-      symbolTable.addTSymbol({
-        ...TestSymbolUtils.base({
-          kind: "function",
-          name: "myFunc",
-          scopePath: "",
-          sourceFile: "test.cnx",
-          span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
-          visibility: "public",
-        }),
-        returnType: TTypeUtils.createPrimitive("void"),
-        parameters: [],
-        visibility: "public",
-      } as IFunctionSymbol);
-
-      const functions = symbolTable.getFunctionSymbols();
-      expect(functions).toHaveLength(1);
-      expect(functions[0].name).toBe("myFunc");
-    });
-  });
-
-  // ========================================================================
   // Struct Field Information
   // ========================================================================
 
@@ -387,13 +302,13 @@ describe("SymbolTable", () => {
       symbolTable.addStructField("Point", "x", "int");
       symbolTable.addStructField("Point", "y", "int");
 
-      expect(symbolTable.getStructFieldType("Point", "x")).toBe("int");
-      expect(symbolTable.getStructFieldType("Point", "y")).toBe("int");
+      expect(symbolTable.getStructFields("Point")?.get("x")?.type).toBe("int");
+      expect(symbolTable.getStructFields("Point")?.get("y")?.type).toBe("int");
     });
 
     it("should return undefined for non-existent struct or field", () => {
       expect(
-        symbolTable.getStructFieldType("NonExistent", "x"),
+        symbolTable.getStructFields("NonExistent")?.get("x")?.type,
       ).toBeUndefined();
     });
 
@@ -589,8 +504,8 @@ describe("SymbolTable", () => {
 
     it("should populate forward and reverse alias maps", () => {
       symbolTable.registerStructTagAlias("_foo", "foo_t");
-      const aliases = symbolTable.getAllStructTagAliases();
-      expect(aliases).toContainEqual(["_foo", "foo_t"]);
+      expect(symbolTable.getStructTagAlias("_foo")).toBe("foo_t");
+      expect(symbolTable.getStructTagForTypedef("foo_t")).toBe("_foo");
     });
 
     it("should track struct tags with bodies", () => {

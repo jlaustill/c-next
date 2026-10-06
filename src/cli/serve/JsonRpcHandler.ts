@@ -24,10 +24,6 @@ interface IParseResult {
  * JSON-RPC protocol handler
  */
 class JsonRpcHandler {
-  /** Parse error code */
-  static readonly ERROR_PARSE = ERROR_PARSE;
-  /** Invalid request code */
-  static readonly ERROR_INVALID_REQUEST = ERROR_INVALID_REQUEST;
   /** Method not found code */
   static readonly ERROR_METHOD_NOT_FOUND = ERROR_METHOD_NOT_FOUND;
   /** Invalid params code */

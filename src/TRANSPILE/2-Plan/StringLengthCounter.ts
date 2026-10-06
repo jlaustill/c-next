@@ -31,20 +31,6 @@ class StringLengthCounter {
   }
 
   /**
-   * Count .char_count accesses in a block.
-   */
-  static countBlock(
-    ctx: Parser.BlockContext,
-    state: TranspileState,
-  ): Map<string, number> {
-    const counts = new Map<string, number>();
-    for (const stmt of ctx.statement()) {
-      StringLengthCounter.walkStatement(stmt, counts, state);
-    }
-    return counts;
-  }
-
-  /**
    * Count .char_count accesses in a block, adding to existing counts.
    */
   static countBlockInto(

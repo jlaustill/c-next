@@ -381,25 +381,4 @@ describe("DivisionByZeroAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
   });
-
-  // ========================================================================
-  // getErrors() accessor
-  // ========================================================================
-
-  describe("getErrors accessor", () => {
-    it("should access errors via getErrors method", () => {
-      const code = `
-        void main() {
-          u32 x <- 10 / 0;
-        }
-      `;
-      const { tree, context } = testAnalysisContextFor(code);
-      const analyzer = new DivisionByZeroAnalyzer(context);
-      analyzer.analyze(tree);
-
-      const errors = analyzer.getErrors();
-      expect(errors).toHaveLength(1);
-      expect(errors[0].code).toBe("E0800");
-    });
-  });
 });

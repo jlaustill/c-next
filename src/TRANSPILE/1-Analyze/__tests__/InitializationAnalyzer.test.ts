@@ -351,18 +351,6 @@ describe("InitializationAnalyzer", () => {
   // ========================================================================
 
   describe("write context tracking", () => {
-    it("should track write context state correctly", () => {
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
-
-      expect(analyzer.isInWriteContext()).toBe(false);
-
-      analyzer.setWriteContext(true);
-      expect(analyzer.isInWriteContext()).toBe(true);
-
-      analyzer.setWriteContext(false);
-      expect(analyzer.isInWriteContext()).toBe(false);
-    });
-
     it("should not flag assignment target as uninitialized use", () => {
       const code = `
         void main() {

@@ -395,6 +395,7 @@ class OverflowHelperTemplates {
 
   /**
    * Resolve type information (exposed for testing)
+   * @public test seam: OverflowHelperTemplates.test.ts drives this module function directly
    */
   static resolveTypeInfo(cnxType: string): ITypeInfo | null {
     return resolveTypeInfo(cnxType);

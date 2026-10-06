@@ -102,10 +102,10 @@ typedef struct opaque_t* handle_t;`;
       expect(classSymbol.kind).toBe("class");
 
       // Verify fields are stored in symbol table
-      const xType = symbolTable.getStructFieldType("Point", "x");
+      const xType = symbolTable.getStructFields("Point")?.get("x")?.type;
       expect(xType).toBe("int");
 
-      const yType = symbolTable.getStructFieldType("Point", "y");
+      const yType = symbolTable.getStructFields("Point")?.get("y")?.type;
       expect(yType).toBe("int");
     });
 

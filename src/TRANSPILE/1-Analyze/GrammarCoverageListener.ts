@@ -31,6 +31,7 @@ class GrammarCoverageListener implements ParseTreeListener {
 
   /**
    * Called when entering every parser rule
+   * @public ParseTreeWalker calls this through ParseTreeListener; no caller names it
    */
   enterEveryRule(ctx: ParserRuleContext): void {
     const ruleName = this.parserRuleNames[ctx.ruleIndex];
@@ -42,6 +43,7 @@ class GrammarCoverageListener implements ParseTreeListener {
 
   /**
    * Called when exiting every parser rule
+   * @public ParseTreeWalker calls this through ParseTreeListener; no caller names it
    */
   exitEveryRule(_ctx: ParserRuleContext): void {
     // Not needed for coverage tracking
@@ -49,6 +51,7 @@ class GrammarCoverageListener implements ParseTreeListener {
 
   /**
    * Called when visiting a terminal node (token)
+   * @public ParseTreeWalker calls this through ParseTreeListener; no caller names it
    */
   visitTerminal(node: TerminalNode): void {
     const tokenType = node.symbol.type;
@@ -66,45 +69,10 @@ class GrammarCoverageListener implements ParseTreeListener {
 
   /**
    * Called when visiting an error node
+   * @public ParseTreeWalker calls this through ParseTreeListener; no caller names it
    */
   visitErrorNode(_node: ErrorNode): void {
     // Track error nodes if needed in the future
-  }
-
-  /**
-   * Merge coverage from another listener (for aggregating across files)
-   */
-  merge(other: GrammarCoverageListener): void {
-    for (const [rule, count] of other.parserRuleVisits) {
-      const current = this.parserRuleVisits.get(rule) || 0;
-      this.parserRuleVisits.set(rule, current + count);
-    }
-    for (const [rule, count] of other.lexerRuleVisits) {
-      const current = this.lexerRuleVisits.get(rule) || 0;
-      this.lexerRuleVisits.set(rule, current + count);
-    }
-  }
-
-  /**
-   * Reset all coverage counters
-   */
-  reset(): void {
-    this.parserRuleVisits.clear();
-    this.lexerRuleVisits.clear();
-  }
-
-  /**
-   * Get the current parser rule visit counts
-   */
-  getParserRuleVisits(): Map<string, number> {
-    return new Map(this.parserRuleVisits);
-  }
-
-  /**
-   * Get the current lexer rule visit counts
-   */
-  getLexerRuleVisits(): Map<string, number> {
-    return new Map(this.lexerRuleVisits);
   }
 
   /**

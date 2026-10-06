@@ -27,14 +27,6 @@ class ReservedCnxName {
   static readonly PREFIX = "cnx_";
 
   /**
-   * The reserved prefix in the case used for macros.
-   *
-   * Include guards are uppercase by universal C convention, which is why the
-   * E0202 comparison is case-insensitive: one rule covers both spellings.
-   */
-  static readonly MACRO_PREFIX = "CNX_";
-
-  /**
    * Whether an identifier sits in the transpiler's reserved namespace.
    *
    * Prefix-only and case-insensitive, exactly as ADR-063 states. `my_cnx_buffer`

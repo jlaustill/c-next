@@ -21,8 +21,6 @@ import TCSymbol from "../../types/symbols/c/TCSymbol";
 import TCppSymbol from "../../types/symbols/cpp/TCppSymbol";
 import TAnySymbol from "../../types/symbols/TAnySymbol";
 import IStructSymbol from "../../types/symbols/IStructSymbol";
-import IEnumSymbol from "../../types/symbols/IEnumSymbol";
-import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import TypeResolver from "../../utils/TypeResolver";
 import type ITargetDescription from "../../types/ITargetDescription";
 import invariant from "../../utils/invariant";
@@ -244,33 +242,6 @@ class SymbolTable {
       result.push(...symbols);
     }
     return result;
-  }
-
-  /**
-   * Get all struct symbols (type-safe filtering)
-   */
-  getStructSymbols(): IStructSymbol[] {
-    return this.getAllTSymbols().filter(
-      (s): s is IStructSymbol => s.kind === "struct",
-    );
-  }
-
-  /**
-   * Get all enum symbols (type-safe filtering)
-   */
-  getEnumSymbols(): IEnumSymbol[] {
-    return this.getAllTSymbols().filter(
-      (s): s is IEnumSymbol => s.kind === "enum",
-    );
-  }
-
-  /**
-   * Get all function symbols (type-safe filtering)
-   */
-  getFunctionSymbols(): IFunctionSymbol[] {
-    return this.getAllTSymbols().filter(
-      (s): s is IFunctionSymbol => s.kind === "function",
-    );
   }
 
   /**
@@ -744,20 +715,6 @@ class SymbolTable {
   }
 
   /**
-   * Get struct field type
-   * @param structName Name of the struct
-   * @param fieldName Name of the field
-   * @returns Field type or undefined if not found
-   */
-  getStructFieldType(
-    structName: string,
-    fieldName: string,
-  ): string | undefined {
-    const fields = this.structFields.get(structName);
-    return fields?.get(fieldName)?.type;
-  }
-
-  /**
    * Get struct field info (type and array dimensions)
    * @param structName Name of the struct
    * @param fieldName Name of the field
@@ -775,6 +732,7 @@ class SymbolTable {
    * Get all fields for a struct
    * @param structName Name of the struct
    * @returns Map of field names to field info, or undefined if struct not found
+   * @public inspection query: the resolver integration tests read what was registered through it
    */
   getStructFields(
     structName: string,
@@ -1071,6 +1029,7 @@ class SymbolTable {
    * Issue #948: Get the typedef alias for a struct tag, if any.
    * @param structTag The struct tag name
    * @returns The typedef alias name, or undefined if none registered
+   * @public inspection query: the resolver integration tests read what was registered through it
    */
   getStructTagAlias(structTag: string): string | undefined {
     return this.structState.structTagAliases.get(structTag);
@@ -1113,14 +1072,6 @@ class SymbolTable {
    */
   getAllStructTagsWithBodies(): string[] {
     return Array.from(this.structState.structTagsWithBodies);
-  }
-
-  /**
-   * Issue #958: Get all struct tag aliases for cache serialization.
-   * @returns Array of [structTag, typedefName] pairs
-   */
-  getAllStructTagAliases(): Array<[string, string]> {
-    return Array.from(this.structState.structTagAliases.entries());
   }
 
   // ========================================================================

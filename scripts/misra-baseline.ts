@@ -81,6 +81,7 @@ const BASELINE = new Map<string, string>([
 const MISRA_LINE = /^(.+?):\d+:\d+:.*\[(misra-c2012-\d+\.\d+)\]/;
 
 class MisraBaseline {
+  /** @public test seam: misra-baseline.test.ts reads the baseline the script enforces */
   static BASELINE = BASELINE;
 
   /**

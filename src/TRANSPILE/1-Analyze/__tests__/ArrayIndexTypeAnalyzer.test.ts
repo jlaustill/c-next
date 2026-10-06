@@ -615,22 +615,4 @@ describe("ArrayIndexTypeAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
   });
-
-  // ========================================================================
-  // getErrors() accessor
-  // ========================================================================
-
-  describe("getErrors accessor", () => {
-    it("should access errors via getErrors method", () => {
-      const { tree, context } = testAnalysisContextFor(
-        `void main() { u8[10] arr; i32 idx <- 0; arr[idx] <- 1; }`,
-      );
-      const analyzer = new ArrayIndexTypeAnalyzer(context);
-      analyzer.analyze(tree);
-
-      const errors = analyzer.getErrors();
-      expect(errors).toHaveLength(1);
-      expect(errors[0].code).toBe("E0850");
-    });
-  });
 });

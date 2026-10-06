@@ -958,6 +958,7 @@ class CNextPrinter {
    *
    * Derived from the dispatcher, never hand-listed: a hand-listed copy is the
    * same second model of the grammar that let the previous plugin rot.
+   * @public the grammar list rule-coverage.test.ts enumerates; a hand-listed copy would be a second list
    */
   static handledRuleIndices(): Set<number> {
     return new Set<number>([

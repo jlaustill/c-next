@@ -150,15 +150,12 @@ describe("cache parity (integration, #1225)", () => {
   type TEntry = NonNullable<ReturnType<CacheManager["getSymbols"]>>;
 
   /**
-   * The output with external.hpp parsed afresh: its entry is dropped first, so
-   * this run writes a new one. Each test starts here, so none depends on the
+   * The output with external.hpp parsed afresh: the cache is dropped first, so
+   * this run writes a new entry. Each test starts here, so none depends on the
    * entry an earlier test left behind.
    */
   async function coldOutput(): Promise<TGenerated> {
-    const cache = new CacheManager(dir, NodeFileSystem.instance);
-    await cache.initialize();
-    cache.invalidate(join(dir, "external.hpp"));
-    await cache.flush();
+    rmSync(join(dir, ".cnx"), { recursive: true, force: true });
     return transpileOnce();
   }
 

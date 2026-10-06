@@ -89,4 +89,5 @@ process.on("message", async (message: TWorkerMessage) => {
 // Signal that the worker is loaded (but not yet initialized)
 process.send!({ type: "loaded" });
 
+/** @public test seam: test-worker.test.ts imports the worker to pin its readiness check */
 export default runTest;

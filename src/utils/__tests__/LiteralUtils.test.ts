@@ -353,46 +353,6 @@ describe("LiteralUtils", () => {
   });
 
   // ========================================================================
-  // isFloat
-  // ========================================================================
-
-  describe("isFloat", () => {
-    it.each([
-      ["should return true for simple float literal", "1.5"],
-      ["should return true for float with leading zero", "0.5"],
-      ["should return true for float zero", "0.0"],
-    ])("%s", (_label, expected) => {
-      const literal = extractFloatLiteral(expected);
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isFloat(literal!)).toBe(true);
-    });
-
-    it("should return false for integer literal", () => {
-      const literal = extractLiteral("42");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isFloat(literal!)).toBe(false);
-    });
-
-    it("should return false for hex literal", () => {
-      const literal = extractLiteral("0xFF");
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isFloat(literal!)).toBe(false);
-    });
-
-    // #1668: the text fallback this replaced read a char '.' as a float and
-    // missed a suffixed exponent with no dot.
-    it.each([
-      ["'.'", false],
-      ["0xFF32", false],
-      ["1e5f32", true],
-    ])("classifies %s as float: %s", (text, expected) => {
-      const literal = extractLiteral(text);
-      expect(literal).not.toBeNull();
-      expect(LiteralUtils.isFloat(literal!)).toBe(expected);
-    });
-  });
-
-  // ========================================================================
   // parseIntegerLiteral (Issue #455)
   // ========================================================================
 

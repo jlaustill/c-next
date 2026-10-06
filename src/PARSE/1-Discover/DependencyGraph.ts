@@ -42,6 +42,7 @@ class DependencyGraph {
   /**
    * Resolves toposortReverse with tsx/vitest interop support.
    * Exposed as static for testing both code paths.
+   * @public test seam: DependencyGraph.test.ts drives both interop paths of this module function
    */
   static readonly resolveToposortReverse = resolveToposortReverse;
 
@@ -117,20 +118,6 @@ class DependencyGraph {
   }
 
   /**
-   * Check if the graph has any files
-   */
-  isEmpty(): boolean {
-    return this.dependencies.size === 0;
-  }
-
-  /**
-   * Get the number of files in the graph
-   */
-  size(): number {
-    return this.dependencies.size;
-  }
-
-  /**
    * Every file that transitively includes one of `seeds`, plus the seeds
    * themselves.
    *
@@ -191,14 +178,6 @@ class DependencyGraph {
       reaching.add(seed);
     }
     return reaching;
-  }
-
-  /**
-   * Clear the graph
-   */
-  clear(): void {
-    this.dependencies.clear();
-    this.warnings.length = 0;
   }
 }
 

@@ -551,7 +551,7 @@ describe("ServeCommand", () => {
       expect(response).toMatchObject({
         id: 0,
         error: {
-          code: JsonRpcHandler.ERROR_PARSE,
+          code: -32700,
           message: "Parse error",
         },
       });

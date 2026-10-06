@@ -45,13 +45,6 @@ class Preprocessor {
   }
 
   /**
-   * Get the current toolchain
-   */
-  getToolchain(): IToolchain | null {
-    return this.toolchain;
-  }
-
-  /**
    * Preprocess a C/C++ file
    */
   async preprocess(
@@ -251,40 +244,6 @@ class Preprocessor {
       .split("\n")
       .filter((line) => !/^#\s*(?:line\s+)?\d+\s+"/.exec(line))
       .join("\n");
-  }
-
-  /**
-   * Map a line in preprocessed output back to original source
-   */
-  static mapToOriginal(
-    mappings: ISourceMapping[],
-    preprocessedLine: number,
-  ): { file: string; line: number } | null {
-    // Find the mapping for this line or the closest previous one
-    let bestMapping: ISourceMapping | null = null;
-
-    for (const mapping of mappings) {
-      if (mapping.preprocessedLine <= preprocessedLine) {
-        if (
-          !bestMapping ||
-          mapping.preprocessedLine > bestMapping.preprocessedLine
-        ) {
-          bestMapping = mapping;
-        }
-      }
-    }
-
-    if (!bestMapping) {
-      return null;
-    }
-
-    // Calculate the offset from the mapping
-    const offset = preprocessedLine - bestMapping.preprocessedLine;
-
-    return {
-      file: bestMapping.originalFile,
-      line: bestMapping.originalLine + offset,
-    };
   }
 }
 

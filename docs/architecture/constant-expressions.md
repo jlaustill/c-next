@@ -17,7 +17,7 @@ disagreed:
 | `ExpressionEvaluator`              | 1.3       | `parseInt` for an enum value: `1 + 2` was 1, `0x10 + 1` was 16, `-0x1` was 0   |
 | `BinaryExprUtils.tryFoldConstants` | 2.3       | folded generated C operand text, so a `.c` dimension could fold where the `.h` |
 | `OperandTyper.constantOf`          | 2.1       | a literal under minus signs or a bound name; arithmetic was "a runtime value"  |
-| `LiteralEvaluator`                 | none      | no production caller (#1418)                                                   |
+| `LiteralEvaluator`                 | none      | no production caller; deleted (#1418)                                          |
 
 What did not fold was copied into the C as `getText()`, which ANTLR builds by
 joining tokens with no separator. So `u8[1 - -1]` was `neg[2]` in the `.c`

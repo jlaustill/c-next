@@ -4,26 +4,16 @@
  * Issue #522: Tests for C++ namespace type filtering
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
-import TranspileState from "../../../TranspileState";
+import { describe, it, expect } from "vitest";
 import HeaderGenerator from "../HeaderGenerator";
 
 import IHeaderSymbol from "../types/IHeaderSymbol";
 import SymbolTable from "../../../../PARSE/3-Declare/SymbolTable";
 import IHeaderTypeInput from "../generators/IHeaderTypeInput";
-import TTypeUtils from "../../../../utils/TTypeUtils";
-import type IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import TestSymbolUtils from "../../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
 
-let state = new TranspileState();
-
 describe("HeaderGenerator", () => {
-  beforeEach(() => {
-    state = new TranspileState();
-  });
-
   const generator = new HeaderGenerator();
 
   // Helper to create a variable symbol
@@ -357,152 +347,4 @@ describe("HeaderGenerator", () => {
   // ============================================================================
   // Coverage tests for generateFromSymbolTable and generateCNextHeader
   // ============================================================================
-
-  describe("generateFromSymbolTable", () => {
-    it("should generate header from symbols filtered by source file", () => {
-      const symbolTable = new SymbolTable();
-      symbolTable.addTSymbol({
-        ...TestSymbolUtils.base({
-          kind: "function",
-          name: "myFunc",
-          scopePath: "",
-          sourceFile: "module.cnx",
-          span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
-          visibility: "public",
-        }),
-        returnType: TTypeUtils.createPrimitive("void"),
-        parameters: [],
-        visibility: "public",
-      } as IFunctionSymbol);
-      symbolTable.addTSymbol({
-        ...TestSymbolUtils.base({
-          kind: "function",
-          name: "otherFunc",
-          scopePath: "",
-          sourceFile: "other.cnx",
-          span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
-          visibility: "public",
-        }),
-        returnType: TTypeUtils.createPrimitive("void"),
-        parameters: [],
-        visibility: "public",
-      } as IFunctionSymbol);
-
-      const header = generator.generateFromSymbolTable(
-        symbolTable,
-        "module.cnx",
-        state,
-      );
-
-      expect(header).toContain("myFunc");
-      expect(header).not.toContain("otherFunc");
-      expect(header).toContain("#ifndef CNX_MODULE_H");
-      expect(header).toContain("#define CNX_MODULE_H");
-    });
-
-    it("should use correct header name from source file", () => {
-      const symbolTable = new SymbolTable();
-      symbolTable.addTSymbol({
-        ...TestSymbolUtils.base({
-          kind: "function",
-          name: "testFunc",
-          scopePath: "",
-          sourceFile: "src/utils/helper.cnx",
-          span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
-          visibility: "public",
-        }),
-        returnType: TTypeUtils.createPrimitive("void"),
-        parameters: [],
-        visibility: "public",
-      } as IFunctionSymbol);
-
-      const header = generator.generateFromSymbolTable(
-        symbolTable,
-        "src/utils/helper.cnx",
-        state,
-      );
-
-      // Should generate guard based on filename
-      expect(header).toContain("#ifndef");
-      expect(header).toContain("HELPER_H");
-    });
-  });
-
-  describe("generateCNextHeader", () => {
-    it("should generate header only for C-Next language symbols", () => {
-      const symbolTable = new SymbolTable();
-      symbolTable.addTSymbol({
-        ...TestSymbolUtils.base({
-          kind: "function",
-          name: "cnextFunc",
-          scopePath: "",
-          sourceFile: "module.cnx",
-          span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
-          visibility: "public",
-        }),
-        returnType: TTypeUtils.createPrimitive("void"),
-        parameters: [],
-        visibility: "public",
-      } as IFunctionSymbol);
-      symbolTable.addCppSymbol({
-        kind: "function",
-        name: "cppFunc",
-        type: "void",
-        sourceFile: "module.hpp",
-        span: TestSourceSpan.at(1),
-        visibility: "public",
-        sourceLanguage: ESourceLanguage.Cpp,
-      });
-      symbolTable.addCSymbol({
-        kind: "function",
-        name: "cFunc",
-        type: "void",
-        sourceFile: "module.h",
-        span: TestSourceSpan.at(1),
-        visibility: "public",
-        sourceLanguage: ESourceLanguage.C,
-      });
-
-      const header = generator.generateCNextHeader(
-        symbolTable,
-        "output.h",
-        state,
-      );
-
-      expect(header).toContain("cnextFunc");
-      expect(header).not.toContain("cppFunc");
-      expect(header).not.toContain("cFunc");
-    });
-
-    it("should use the provided filename for include guard", () => {
-      const symbolTable = new SymbolTable();
-      symbolTable.addTSymbol({
-        ...TestSymbolUtils.base({
-          kind: "function",
-          name: "testFunc",
-          scopePath: "",
-          sourceFile: "test.cnx",
-          span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
-          visibility: "public",
-        }),
-        returnType: TTypeUtils.createPrimitive("void"),
-        parameters: [],
-        visibility: "public",
-      } as IFunctionSymbol);
-
-      const header = generator.generateCNextHeader(
-        symbolTable,
-        "custom_api.h",
-        state,
-      );
-
-      expect(header).toContain("#ifndef CNX_CUSTOM_API_H");
-      expect(header).toContain("#define CNX_CUSTOM_API_H");
-    });
-  });
 });

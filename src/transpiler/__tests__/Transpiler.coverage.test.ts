@@ -819,24 +819,6 @@ describe("Transpiler coverage tests", () => {
   });
 
   // ==========================================================================
-  // getSymbolTable
-  // ==========================================================================
-
-  describe("getSymbolTable", () => {
-    it("returns the symbol table instance", () => {
-      const transpiler = new Transpiler(
-        { input: "", noCache: true, target: "host" },
-        mockFs,
-      );
-
-      const symbolTable = transpiler.getSymbolTable();
-
-      expect(symbolTable).toBeDefined();
-      expect(typeof symbolTable.size).toBe("number");
-    });
-  });
-
-  // ==========================================================================
   // Cache flush in standalone mode
   // ==========================================================================
 

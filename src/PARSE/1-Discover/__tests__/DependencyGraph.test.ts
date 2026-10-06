@@ -29,26 +29,26 @@ describe("DependencyGraph", () => {
   describe("addFile", () => {
     it("should add a file to the graph", () => {
       graph.addFile("a.cnx");
-      expect(graph.size()).toBe(1);
+      expect(graph.getSortedFiles()).toHaveLength(1);
     });
 
     it("should not duplicate files", () => {
       graph.addFile("a.cnx");
       graph.addFile("a.cnx");
-      expect(graph.size()).toBe(1);
+      expect(graph.getSortedFiles()).toHaveLength(1);
     });
   });
 
   describe("addDependency", () => {
     it("should add both files to the graph", () => {
       graph.addDependency("a.cnx", "b.cnx");
-      expect(graph.size()).toBe(2);
+      expect(graph.getSortedFiles()).toHaveLength(2);
     });
 
     it("should handle multiple dependencies", () => {
       graph.addDependency("a.cnx", "b.cnx");
       graph.addDependency("a.cnx", "c.cnx");
-      expect(graph.size()).toBe(3);
+      expect(graph.getSortedFiles()).toHaveLength(3);
     });
   });
 
@@ -137,25 +137,6 @@ describe("DependencyGraph", () => {
       const warnings = graph.getWarnings();
       expect(warnings.length).toBeGreaterThan(0);
       expect(warnings[0]).toContain("Circular dependency");
-    });
-  });
-
-  describe("utility methods", () => {
-    it("isEmpty should return true for empty graph", () => {
-      expect(graph.isEmpty()).toBe(true);
-    });
-
-    it("isEmpty should return false for non-empty graph", () => {
-      graph.addFile("a.cnx");
-      expect(graph.isEmpty()).toBe(false);
-    });
-
-    it("clear should reset the graph", () => {
-      graph.addFile("a.cnx");
-      graph.addDependency("b.cnx", "c.cnx");
-      graph.clear();
-      expect(graph.isEmpty()).toBe(true);
-      expect(graph.size()).toBe(0);
     });
   });
 });

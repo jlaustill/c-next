@@ -171,8 +171,6 @@ describe("JsonRpcHandler", () => {
 
   describe("error code constants", () => {
     it("exposes standard JSON-RPC error codes", () => {
-      expect(JsonRpcHandler.ERROR_PARSE).toBe(-32700);
-      expect(JsonRpcHandler.ERROR_INVALID_REQUEST).toBe(-32600);
       expect(JsonRpcHandler.ERROR_METHOD_NOT_FOUND).toBe(-32601);
       expect(JsonRpcHandler.ERROR_INVALID_PARAMS).toBe(-32602);
     });

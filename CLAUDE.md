@@ -527,12 +527,33 @@ reported clean too — the very detectability the pattern is chosen for.
 
 `ignore` removes a file from the graph, not just from the report, so ignoring a directory
 stops it counting as a _user_ — over-ignoring invents dead code rather than hiding it.
-`ignoreMembers` carries the four knip cannot see: three dispatched through `ICodeGenApi`
-via `requireGenerator()`, and `getSymbol`, which `SymbolTable` supplies to `ISymbolLookup`
-by **structural** conformance and is therefore used without ever being named.
+**A test is not a user (#1418).** `knip.json` sets `"vitest": false` and negates the test
+globs (`__tests__`, `*.test.ts`, `__testUtils__`, `src/tests`) on both `entry` and
+`project`, so no call from a test counts as usage. A member whose only callers are tests
+is reported by the same plain `npx knip` that CI and `gate.sh` run; there is no
+`--production` mode, so `@internal` does nothing here. The vitest plugin has to be off:
+left on, it adds every test file back as an entry and the negations stop mattering.
 
-Mutation-checked, and the check is the point: add a static method nothing calls and
-`npx knip` must exit non-zero naming it, while a class of used methods stays silent.
+A member whose only reason to exist is its own unit test is deleted. One kept on purpose
+with no production caller carries `@public` and a one-line reason saying which kind it is:
+
+- **Dispatch knip cannot see** -- the members reached through `ICodeGenApi` via
+  `requireGenerator()`; `SymbolTable.getSymbol`, supplied to `ISymbolLookup` by
+  structural conformance; the `ParseTreeListener` callbacks `ParseTreeWalker` calls.
+- **The one list a test enumerates** -- `DynamicAllocation.names`,
+  `ComplianceAnnotations.all`, `TestMarkers.names`, the printer's `handledRuleIndices`.
+  A hand-listed copy in the test would be a second list.
+- **A module function exposed to its own test, or read by a guard test that is the
+  check** -- `GateRoster`, `MatrixRenderer`, `SourceScan.scan`, `MovePlan.pending`.
+- **A member of a guard or factory set** tests narrow or build with -- `SymbolGuards`,
+  `TTypeUtils`, and the `SymbolTable` queries the resolver integration tests read.
+
+`yaml` is in `ignoreDependencies` because only `sonar-workflow.test.ts` imports it.
+
+Mutation-checked, and the check is the point: add a static method nothing calls, or
+remove the one production call of a member a test still calls, and `npx knip` must exit
+non-zero naming it, while a class of used methods stays silent. Strip a `@public` tag
+and knip names that member.
 
 ### Common Gotchas
 
@@ -954,7 +975,7 @@ name in prose; only a reader can.
 
 Use `memberAccessChain.ts` helpers rather than inlining the pointer-or-reference check: `getStructParamSeparator()` for `->` vs `.`, and `wholeParamValue()` for `(*param)` vs `param` wherever a parameter is used as a whole value — read, written, or the scalar a bitmap parameter's field is worked in. Both read one decision — a pointer in C, and a pointer in C++ too for a callback-promoted parameter (`forcePointerSemantics`) — so a member access and a whole-value use of one parameter cannot disagree. Never inline these. `wholeParamValue()` also holds the exceptions: a whole-value use of an opaque handle (`TParameterInfo.isOpaqueHandle`, ADR-030) or of an array parameter is not wrapped at all, because the pointer is the value. Until #1760 only the read side asked, so a written struct parameter was the bare pointer (`p = (*q);`) and a bitmap parameter's field was worked on the pointer itself.
 
-This used to name a third, `buildStructParamMemberAccess()`, "for chains". It had **no production caller** — chains are built incrementally by `MemberSeparatorResolver` and the postfix generator, never in one call — and knip could not report it, because its six test callers count as usage (#1418). Deleted under #1450. A rule naming a helper nothing uses teaches the next reader a pattern the codebase does not have.
+This used to name a third, `buildStructParamMemberAccess()`, "for chains". It had **no production caller** — chains are built incrementally by `MemberSeparatorResolver` and the postfix generator, never in one call — and knip could not report it then, because its six test callers counted as usage (they no longer do: #1418). Deleted under #1450. A rule naming a helper nothing uses teaches the next reader a pattern the codebase does not have.
 
 ### Function Argument Generation
 

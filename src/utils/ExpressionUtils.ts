@@ -18,24 +18,6 @@ import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
  */
 class ExpressionUtils {
   /**
-   * Extract the literal from a simple expression (if it's just a literal).
-   *
-   * Returns null if the expression is complex (has operators, function calls, etc.)
-   * Only returns a value if the expression resolves to a single literal.
-   *
-   * @param ctx - The expression context from the parse tree
-   * @returns The literal context, or null if not a simple literal expression
-   */
-  static extractLiteral(
-    ctx: Parser.ExpressionContext,
-  ): Parser.LiteralContext | null {
-    const primary = ExpressionUtils.extractPrimaryExpression(ctx);
-    if (!primary) return null;
-
-    return primary.literal() ?? null;
-  }
-
-  /**
    * Extract the primary expression from an expression (if it's simple).
    *
    * Returns null if the expression is complex (has operators, function calls, etc.)

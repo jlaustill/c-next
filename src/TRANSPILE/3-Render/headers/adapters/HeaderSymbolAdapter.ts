@@ -40,16 +40,6 @@ class HeaderSymbolAdapter {
     }
   }
 
-  /**
-   * Convert an array of TSymbols to IHeaderSymbols
-   */
-  static fromTSymbols(
-    symbols: TSymbol[],
-    state: TranspileState,
-  ): IHeaderSymbol[] {
-    return symbols.map((s) => HeaderSymbolAdapter.fromTSymbol(s, state));
-  }
-
   // ========================================================================
   // Private conversion methods for each TSymbol kind
   // ========================================================================

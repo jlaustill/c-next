@@ -109,35 +109,10 @@ describe("StringLengthCounter", () => {
       );
       const block = tree.declaration(1)!.functionDeclaration()!.block()!;
 
-      expect(StringLengthCounter.countBlock(block, state).get("s")).toBe(1);
-    });
-  });
+      const counts = new Map<string, number>();
+      StringLengthCounter.countBlockInto(block, counts, state);
 
-  describe("countBlock", () => {
-    it("counts .char_count accesses across multiple statements", () => {
-      const { block, state } = blockIn(
-        "string<128> msg;",
-        `
-        u32 len <- msg.char_count;
-        u32 doubled <- msg.char_count * 2;
-      `,
-      );
-      const counts = StringLengthCounter.countBlock(block, state);
-
-      expect(counts.get("msg")).toBe(2);
-    });
-
-    it("counts .char_count in assignment statements", () => {
-      const { block, state } = blockIn(
-        "string<64> text;",
-        `
-        u32 x;
-        x <- text.char_count;
-      `,
-      );
-      const counts = StringLengthCounter.countBlock(block, state);
-
-      expect(counts.get("text")).toBe(1);
+      expect(counts.get("s")).toBe(1);
     });
   });
 

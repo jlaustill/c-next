@@ -57,7 +57,10 @@ class SourceScan {
     return /^\s*(\*|\/\/|\/\*)/.test(line);
   }
 
-  /** Every match of `pattern` under `src/`, excluding mentions in comments. */
+  /**
+   * Every match of `pattern` under `src/`, excluding mentions in comments.
+   * @public read by the architecture guard tests (render-decides-nothing, write-confined-to-3-1), which are the check
+   */
   static scan(pattern: RegExp): ISourceHit[] {
     const hits: ISourceHit[] = [];
     for (const full of SourceScan.sourceFiles()) {

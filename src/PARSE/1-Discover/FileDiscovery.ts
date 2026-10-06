@@ -67,56 +67,6 @@ class FileDiscovery {
 
     return this.classifyFile(resolvedPath);
   }
-
-  /**
-   * Discover multiple specific files
-   *
-   * @param filePaths - Paths to the files
-   * @param fs - File system abstraction
-   */
-  static discoverFiles(
-    filePaths: string[],
-    fs: IFileSystem,
-  ): IDiscoveredFile[] {
-    const files: IDiscoveredFile[] = [];
-
-    for (const filePath of filePaths) {
-      const file = this.discoverFile(filePath, fs);
-      if (file) {
-        files.push(file);
-      } else {
-        console.warn(`Warning: File not found: ${filePath}`);
-      }
-    }
-
-    return files;
-  }
-
-  /**
-   * Filter discovered files by type
-   */
-  static filterByType(
-    files: IDiscoveredFile[],
-    type: EFileType,
-  ): IDiscoveredFile[] {
-    return files.filter((f) => f.type === type);
-  }
-
-  /**
-   * Get C-Next files from a list
-   */
-  static getCNextFiles(files: IDiscoveredFile[]): IDiscoveredFile[] {
-    return this.filterByType(files, EFileType.CNext);
-  }
-
-  /**
-   * Get C/C++ header files from a list
-   */
-  static getHeaderFiles(files: IDiscoveredFile[]): IDiscoveredFile[] {
-    return files.filter(
-      (f) => f.type === EFileType.CHeader || f.type === EFileType.CppHeader,
-    );
-  }
 }
 
 export default FileDiscovery;

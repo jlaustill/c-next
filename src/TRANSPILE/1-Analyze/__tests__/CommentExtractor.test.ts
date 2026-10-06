@@ -612,41 +612,6 @@ describe("CommentExtractor", () => {
   });
 
   // ========================================================================
-  // getErrors
-  // ========================================================================
-
-  describe("getErrors", () => {
-    it("should return empty array before validation", () => {
-      const stream = createMockStream([]);
-      const extractor = new CommentExtractor(
-        new CommentScanner(stream).extractAll(),
-      );
-
-      expect(extractor.getErrors()).toEqual([]);
-    });
-
-    it("should return errors after validation", () => {
-      const tokens = [
-        createToken({
-          type: CNextLexer.LINE_COMMENT,
-          text: "// bad \\",
-          line: 1,
-          column: 0,
-          tokenIndex: 0,
-        }),
-      ];
-      const stream = createMockStream(tokens);
-      const extractor = new CommentExtractor(
-        new CommentScanner(stream).extractAll(),
-      );
-
-      extractor.validate();
-
-      expect(extractor.getErrors()).toHaveLength(1);
-    });
-  });
-
-  // ========================================================================
   // Edge cases
   // ========================================================================
 

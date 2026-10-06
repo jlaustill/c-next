@@ -113,6 +113,7 @@ class ComplianceAnnotations {
    * If a sweep proposes deleting this, the question to ask is whether the
    * assertion in `__tests__/ComplianceAnnotations.test.ts` still has a set to
    * assert over.
+   * @public the set ComplianceAnnotations.test.ts enumerates; a hand-listed copy would be a second list
    */
   static all(): readonly IComplianceAnnotation[] {
     return [

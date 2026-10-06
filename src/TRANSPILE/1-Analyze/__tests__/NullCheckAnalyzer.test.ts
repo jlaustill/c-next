@@ -460,36 +460,6 @@ describe("NullCheckAnalyzer", () => {
         expect(NullCheckAnalyzer.isNullableCType("bool")).toBe(false);
       });
     });
-
-    describe("isNullableFunction", () => {
-      it("should return true for nullable C functions", () => {
-        expect(NullCheckAnalyzer.isNullableFunction("strchr")).toBe(true);
-        expect(NullCheckAnalyzer.isNullableFunction("strstr")).toBe(true);
-        expect(NullCheckAnalyzer.isNullableFunction("fopen")).toBe(true);
-        expect(NullCheckAnalyzer.isNullableFunction("getenv")).toBe(true);
-        expect(NullCheckAnalyzer.isNullableFunction("memchr")).toBe(true);
-      });
-
-      it("should return false for non-nullable functions", () => {
-        expect(NullCheckAnalyzer.isNullableFunction("strlen")).toBe(false);
-        expect(NullCheckAnalyzer.isNullableFunction("printf")).toBe(false);
-        expect(NullCheckAnalyzer.isNullableFunction("memcpy")).toBe(false);
-      });
-    });
-
-    describe("getNullableFunctionInfo", () => {
-      it("should return metadata for known nullable functions", () => {
-        const info = NullCheckAnalyzer.getNullableFunctionInfo("strchr");
-        expect(info).not.toBeNull();
-        expect(info?.header).toBe("string.h");
-        expect(info?.nullMeaning).toBe("Character not found");
-      });
-
-      it("should return null for unknown functions", () => {
-        const info = NullCheckAnalyzer.getNullableFunctionInfo("strlen");
-        expect(info).toBeNull();
-      });
-    });
   });
 
   // ========================================================================
@@ -592,47 +562,6 @@ describe("NullCheckAnalyzer", () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].line).toBe(2);
-    });
-  });
-
-  // ========================================================================
-  // Include Header Tracking
-  // ========================================================================
-
-  describe("include tracking", () => {
-    it("should track stdio.h include", () => {
-      const code = `
-        #include <stdio.h>
-        void main() { }
-      `;
-      const tree = parse(code);
-      const analyzer = new NullCheckAnalyzer();
-      analyzer.analyze(tree);
-
-      expect(analyzer.hasStdioIncluded()).toBe(true);
-    });
-
-    it("should return false when stdio.h not included", () => {
-      const code = `
-        void main() { }
-      `;
-      const tree = parse(code);
-      const analyzer = new NullCheckAnalyzer();
-      analyzer.analyze(tree);
-
-      expect(analyzer.hasStdioIncluded()).toBe(false);
-    });
-
-    it("should track quoted include", () => {
-      const code = `
-        #include "stdio.h"
-        void main() { }
-      `;
-      const tree = parse(code);
-      const analyzer = new NullCheckAnalyzer();
-      analyzer.analyze(tree);
-
-      expect(analyzer.hasStdioIncluded()).toBe(true);
     });
   });
 

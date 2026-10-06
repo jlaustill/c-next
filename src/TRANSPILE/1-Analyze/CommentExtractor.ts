@@ -43,13 +43,6 @@ class CommentExtractor {
   }
 
   /**
-   * Get validation errors
-   */
-  getErrors(): ICommentError[] {
-    return this.errors;
-  }
-
-  /**
    * MISRA C:2012 Rule 3.1: No nested comment markers
    * The character sequences /* and // shall not appear within a comment.
    * Exception: :// (URI pattern) is allowed per Amendment 4

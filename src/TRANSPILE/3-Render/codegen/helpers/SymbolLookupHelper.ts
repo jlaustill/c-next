@@ -72,22 +72,6 @@ class SymbolLookupHelper {
   }
 
   /**
-   * Check if a function is an external C or C++ function.
-   * External functions use pass-by-value semantics.
-   */
-  static isExternalCFunction(
-    symbolTable: ISymbolTable | null | undefined,
-    name: string,
-  ): boolean {
-    return SymbolLookupHelper.hasSymbolWithKindAndLanguage(
-      symbolTable,
-      name,
-      "function",
-      [ESourceLanguage.C, ESourceLanguage.Cpp],
-    );
-  }
-
-  /**
    * Check if a name refers to a namespace/scope.
    *
    * Resolves by transpiled C name for the same reason as the helper above, so

@@ -46,6 +46,7 @@ class TTypeUtils {
 
   /**
    * Create a bitmap type reference
+   * @public member of the TType factory set; tests build types with it
    */
   static createBitmap(name: string, bitWidth: number): TBitmapType {
     return { kind: "bitmap", name, bitWidth };
@@ -70,6 +71,7 @@ class TTypeUtils {
 
   /**
    * Create a callback type reference
+   * @public member of the TType factory set; tests build types with it
    */
   static createCallback(name: string): TCallbackType {
     return { kind: "callback", name };
@@ -77,6 +79,7 @@ class TTypeUtils {
 
   /**
    * Create a register type reference
+   * @public member of the TType factory set; tests build types with it
    */
   static createRegister(name: string): TRegisterType {
     return { kind: "register", name };
@@ -111,6 +114,7 @@ class TTypeUtils {
 
   /**
    * Check if type is a struct
+   * @public member of the TType guard set; tests narrow types with it
    */
   static isStruct(t: TType): t is TStructType {
     return t.kind === "struct";
@@ -118,6 +122,7 @@ class TTypeUtils {
 
   /**
    * Check if type is an enum
+   * @public member of the TType guard set; tests narrow types with it
    */
   static isEnum(t: TType): t is TEnumType {
     return t.kind === "enum";
@@ -125,6 +130,7 @@ class TTypeUtils {
 
   /**
    * Check if type is a bitmap
+   * @public member of the TType guard set; tests narrow types with it
    */
   static isBitmap(t: TType): t is TBitmapType {
     return t.kind === "bitmap";
@@ -132,6 +138,7 @@ class TTypeUtils {
 
   /**
    * Check if type is an array
+   * @public member of the TType guard set; tests narrow types with it
    */
   static isArray(t: TType): t is TArrayType {
     return t.kind === "array";
@@ -139,6 +146,7 @@ class TTypeUtils {
 
   /**
    * Check if type is a string
+   * @public member of the TType guard set; tests narrow types with it
    */
   static isString(t: TType): t is TStringType {
     return t.kind === "string";
@@ -146,6 +154,7 @@ class TTypeUtils {
 
   /**
    * Check if type is a callback
+   * @public member of the TType guard set; tests narrow types with it
    */
   static isCallback(t: TType): t is TCallbackType {
     return t.kind === "callback";
@@ -153,11 +162,13 @@ class TTypeUtils {
 
   /**
    * Check if type is a register
+   * @public member of the TType guard set; tests narrow types with it
    */
   static isRegister(t: TType): t is TRegisterType {
     return t.kind === "register";
   }
 
+  /** @public member of the TType guard set; tests narrow types with it */
   static isExternal(t: TType): t is TExternalType {
     return t.kind === "external";
   }

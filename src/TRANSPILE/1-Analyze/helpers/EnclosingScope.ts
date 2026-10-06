@@ -29,21 +29,6 @@ class EnclosingScope {
   /** Leaf names of the scope declarations currently open, outermost first. */
   private readonly path: string[] = [];
 
-  /**
-   * The path of the scope named `leaf` declared directly inside `parentPath`.
-   *
-   * The one implementation of "descend one named scope", shared with
-   * `DeclarationScopeCollector`, which carries the same fact per parse node
-   * rather than on a stack. Two spellings of this would be two places that
-   * decide what a nested scope's path is.
-   *
-   * `fromSourceParts` drops the empty parent at file scope, so no branch is
-   * needed for it.
-   */
-  static child(parentPath: string, leaf: string): string {
-    return QualifiedCName.fromSourceParts([parentPath, leaf]);
-  }
-
   /** Enter a `scope` declaration named `leaf`. */
   enter(leaf: string): void {
     this.path.push(leaf);
@@ -52,11 +37,6 @@ class EnclosingScope {
   /** Leave the innermost open `scope` declaration. */
   exit(): void {
     this.path.pop();
-  }
-
-  /** Are we inside any named scope? */
-  isInsideScope(): boolean {
-    return this.path.length > 0;
   }
 
   /**

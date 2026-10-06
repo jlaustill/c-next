@@ -2916,13 +2916,6 @@ class Transpiler {
   // ===========================================================================
 
   /**
-   * Get the symbol table (for testing/inspection)
-   */
-  getSymbolTable(): SymbolTable {
-    return this.codeGenerator.transpileState.symbolTable;
-  }
-
-  /**
    * The external-struct snapshot `InitializationAnalyzer` consults, for
    * inspection after a run.
    *
@@ -2931,6 +2924,7 @@ class Transpiler {
    * now, so the one regression that asserts on it -- #985's recovered structs
    * must reach the snapshot, which requires the snapshot to be taken AFTER
    * recovery -- asks the instance that ran.
+   * @public read by externalSymbolRecovery.integration.test.ts, which asserts what recovery restored
    */
   getExternalStructFields(): ReadonlyMap<string, ReadonlySet<string>> {
     // From the artifact, which is what `InitializationAnalyzer` reads

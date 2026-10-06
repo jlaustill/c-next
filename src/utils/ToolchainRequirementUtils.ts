@@ -1,7 +1,6 @@
 import LANGUAGE_STANDARD_FAMILY from "./constants/LANGUAGE_STANDARD_FAMILY";
 import LANGUAGE_STANDARD_ORDER from "./constants/LANGUAGE_STANDARD_ORDER";
 import TOOLCHAIN_REQUIREMENTS from "./constants/TOOLCHAIN_REQUIREMENTS";
-import type ICompilerFloor from "../types/ICompilerFloor";
 import type IRecordedRequirement from "../types/IRecordedRequirement";
 import type IToolchainRequirement from "../types/IToolchainRequirement";
 import type TLanguageStandard from "../types/TLanguageStandard";
@@ -144,22 +143,6 @@ class ToolchainRequirementUtils {
       for (const extension of requirement.extensions) extensions.add(extension);
     }
     return Array.from(extensions);
-  }
-
-  /**
-   * Distinct compiler-version floors across the recorded set, for the guard
-   * emitter. Returns an empty array when nothing recorded carries a floor,
-   * which is the current state of the registry.
-   */
-  static distinctCompilerFloors(
-    recorded: readonly IRecordedRequirement[],
-  ): readonly ICompilerFloor[] {
-    const seen = new Map<string, ICompilerFloor>();
-    for (const entry of recorded) {
-      const floor = TOOLCHAIN_REQUIREMENTS[entry.key].compiler;
-      if (floor !== null) seen.set(floor.guardExpression, floor);
-    }
-    return Array.from(seen.values());
   }
 
   /**
