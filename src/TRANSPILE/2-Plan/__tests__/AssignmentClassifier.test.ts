@@ -1,4 +1,3 @@
-import type IBitmapFieldLayout from "../../../types/IBitmapFieldLayout";
 import { readFileSync } from "node:fs";
 import type IOperandType from "../../../types/IOperandType";
 import type TSubscriptKind from "../../../types/TSubscriptKind";
@@ -13,6 +12,8 @@ import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import TTypeInfo from "../../../types/TTypeInfo";
 import enterScope from "../../../transpiler/__tests__/enterScope";
 import HandlerTestUtils from "../../3-Render/codegen/assignment/handlers/__tests__/handlerTestUtils";
+import installMockSymbols from "../../../transpiler/__tests__/installMockSymbols";
+import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 
 // ========================================================================
 // Test Helpers
@@ -167,18 +168,7 @@ function createTypeInfo(overrides: Partial<TTypeInfo> = {}): TTypeInfo {
  * Helper to set up state.symbols with minimal fields.
  * Issue #831: Also registers struct fields in SymbolTable (single source of truth).
  */
-function setupSymbols(
-  overrides: {
-    knownRegisters?: Set<string>;
-    knownScopes?: Set<string>;
-    knownStructs?: Set<string>;
-    bitmapFields?: Map<string, Map<string, IBitmapFieldLayout>>;
-    registerMemberTypes?: Map<string, string>;
-    structFields?: Map<string, Map<string, string>>;
-    structFieldArrays?: Map<string, Set<string>>;
-    structFieldDimensions?: Map<string, Map<string, readonly number[]>>;
-  } = {},
-): void {
+function setupSymbols(overrides: Partial<ICodeGenSymbols> = {}): void {
   // Initialize symbolTable for struct field lookups
   state.symbolTable = new SymbolTable();
 
@@ -191,31 +181,7 @@ function setupSymbols(
     }
   }
 
-  state.symbols = {
-    knownScopes: overrides.knownScopes ?? new Set(),
-    knownStructs: overrides.knownStructs ?? new Set(),
-    knownRegisters: overrides.knownRegisters ?? new Set(),
-    knownEnums: new Set<string>(),
-    knownBitmaps: new Set<string>(),
-    knownVariables: new Set<string>(),
-    scopeMembers: new Map<string, Set<string>>(),
-    scopeMemberVisibility: new Map(),
-    structFields: overrides.structFields ?? new Map(),
-    structFieldArrays: overrides.structFieldArrays ?? new Map(),
-    structFieldDimensions: overrides.structFieldDimensions ?? new Map(),
-    enumMembers: new Map(),
-    bitmapFields: overrides.bitmapFields ?? new Map(),
-    bitmapBackingType: new Map(),
-    bitmapBitWidth: new Map(),
-    scopedRegisters: new Map(),
-    registerMemberAccess: new Map(),
-    registerMemberTypes: overrides.registerMemberTypes ?? new Map(),
-    registerBaseAddresses: new Map(),
-    registerMemberOffsets: new Map(),
-    registerMemberCTypes: new Map(),
-    scopePrivateConstValues: new Map(),
-    functionReturnTypes: new Map(),
-  };
+  installMockSymbols(state, overrides);
 }
 
 // ========================================================================
