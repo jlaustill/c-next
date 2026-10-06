@@ -26,13 +26,19 @@ function item(
   id: string,
   number: number,
   status: string,
-  blocked = "",
+  blockers: number[] = [],
 ): Record<string, unknown> {
   return {
     id,
-    content: { number, title: `card ${number}` },
+    content: {
+      number,
+      title: `card ${number}`,
+      blockedBy: {
+        totalCount: blockers.length,
+        nodes: blockers.map((blocker) => ({ number: blocker })),
+      },
+    },
     status: { name: status },
-    blocked: { text: blocked },
   };
 }
 
@@ -126,23 +132,47 @@ describe("ProjectBoard.columnCards", () => {
   });
 
   it("skips a draft item, which has no issue number", () => {
-    replies(
-      page([
-        { id: "i0", content: null, status: { name: "Backlog" }, blocked: null },
-      ]),
-    );
+    replies(page([{ id: "i0", content: null, status: { name: "Backlog" } }]));
     expect(ProjectBoard.columnCards("P1", "Backlog")).toEqual([]);
   });
 
-  it("reads an absent Blocked by as empty, not undefined", () => {
-    replies(page([{ ...item("i1", 1, "Backlog"), blocked: null }]));
-    expect(ProjectBoard.columnCards("P1", "Backlog")[0]?.blockedBy).toBe("");
+  it("carries the built-in Blocked by relationship as issue numbers", () => {
+    replies(page([item("i1", 1, "Backlog", [2, 3])]));
+    expect(ProjectBoard.columnCards("P1", "Backlog")[0]?.blockedBy).toEqual([
+      2, 3,
+    ]);
   });
 
-  it("carries the Blocked by text through verbatim", () => {
-    replies(page([item("i1", 1, "Backlog", "#2; prose — see #3")]));
-    expect(ProjectBoard.columnCards("P1", "Backlog")[0]?.blockedBy).toBe(
-      "#2; prose — see #3",
+  it("asks GitHub for each issue's built-in relationship", () => {
+    replies(page([]));
+    ProjectBoard.columnCards("P1", "Backlog");
+    const args = execFileSync.mock.calls[0]?.[1] as string[];
+    expect(args.join("\n")).toMatch(/blockedBy\(first: 50\)/);
+  });
+
+  it("reads a pull request, which has no relationship, as unblocked", () => {
+    replies(
+      page([
+        {
+          id: "i1",
+          content: { number: 1, title: "pr" },
+          status: { name: "Backlog" },
+        },
+      ]),
+    );
+    expect(ProjectBoard.columnCards("P1", "Backlog")[0]?.blockedBy).toEqual([]);
+  });
+
+  it("refuses a relationship longer than the page that read it", () => {
+    // A blocker dropped here reads as "not blocked" -- the silent truncation
+    // CLAUDE.md forbids (#1416).
+    const truncated = item("i1", 1, "Backlog", [2]);
+    (
+      truncated.content as { blockedBy: { totalCount: number } }
+    ).blockedBy.totalCount = 51;
+    replies(page([truncated]));
+    expect(() => ProjectBoard.columnCards("P1", "Backlog")).toThrow(
+      /#1 has 51 blockers/,
     );
   });
 });

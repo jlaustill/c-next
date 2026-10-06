@@ -80,7 +80,7 @@ with no gate behind it, which is exactly why it has to be a discipline instead.
 ### A Card That Turns Out Blocked Is Paused, Not Worked Around
 
 **When a picked-up issue turns out to be blocked and nothing has been committed yet, stop
-and pick different work.** Append the blocker to `Blocked by`, comment the measurements that
+and pick different work.** Link the blocker as the issue's built-in "Blocked by", comment the measurements that
 establish it, delete the unused branch, and choose another card. Do **not** reword the box to
 something achievable, do not quietly narrow the card, and do not ship the achievable subset
 and call the card done — #1285 closed _"with 2 of 7 items unlanded and untracked, which is why
@@ -89,8 +89,8 @@ and call the card done — #1285 closed _"with 2 of 7 items unlanded and untrack
 **A definition-of-done box that names another issue is a claim about that issue, and
 open-or-closed is not the claim.** This is the check every blocked-gate misses, because every
 blocked-gate asks the wrong question. #1448's box 3 reads _"#1430 and #1398 are fixed **by the
-hoist**, with fixtures that fail if it is reverted"_. Its `Blocked by` named #1320, #1322 and
-#1447 — all three closed — so the field said available, the board said available, and
+hoist**, with fixtures that fail if it is reverted"_. Its blockers were #1320, #1322 and
+#1447 — all three closed — so the blockers said available, the board said available, and
 `/issue-check`'s startability gate passed it as the top pick. The box was unsatisfiable
 anyway: **#1398 closed 2026-09-05 via PR #1502, a week before the hoist landed** (#1320,
 `2026-09-12T03:29:14Z`), so it was not fixed by the hoist and has no fixture. Both named
@@ -102,18 +102,18 @@ the causal claim, the artifact, the number — not merely the state of the issue
 stepping off a shared card changes nothing, and neither does unassigning one already in
 `Grooming`, `Backlog` or `Done`. Note what that does _not_ cover: an issue whose pull request
 is in review is still in `WIP`, because the pull request has its own card — so unassigning
-yourself then does return the issue to `Backlog`. The appended `Blocked by` and the comment
+yourself then does return the issue to `Backlog`. The added "Blocked by" link and the comment
 carry _why_ it paused; the column carries _that_ it did, which is the part the next person
 reads. Do not write `Status` by hand — `docs/WORKFLOW.md` gives `project-sync.yml` sole
 ownership of that field, and a second writer both duplicates the transition and hides it
 failing.
 
-**What keeps a paused card out of `/issue-check` is now its `Blocked by` (Phase 1d), not its
+**What keeps a paused card out of `/issue-check` is now its "Blocked by" (Phase 1d), not its
 assignee.** The rule this replaces leaned on the assignee-based in-flight filter, which is
-unconditional: assigned meant never recommended. The `Blocked by` exclusion is unconditional
-too, but only once Phase 7c **step 1** has actually appended the blocker — so step 4 depends
+unconditional: assigned meant never recommended. The "Blocked by" exclusion is unconditional
+too, but only once Phase 7c **step 1** has actually linked the blocker — so step 4 depends
 on step 1 in a way neither step says. A pause for any other reason — context switch, handoff,
-end of day — returns the card to `Backlog` with a clean `Blocked by` and nothing holding it
+end of day — returns the card to `Backlog` with no new "Blocked by" link and nothing holding it
 back. That is right for those pauses and wrong for a blocked card whose step 1 was skipped.
 
 **A rule derived under a constraint that does not exist reads as principled indefinitely.**

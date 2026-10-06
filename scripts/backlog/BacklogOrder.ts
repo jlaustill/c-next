@@ -2,14 +2,13 @@ import type IBacklogCard from "../types/IBacklogCard";
 import type IBacklogMove from "../types/IBacklogMove";
 import type IBacklogOrderOutcome from "../types/IBacklogOrderOutcome";
 
-import BlockedByField from "./BlockedByField";
-
 /**
  * Orders a board column so that a card sits below everything blocking it.
  *
- * The order is DERIVED from `Blocked by`, never recorded -- the same shape as
- * `release:milestones` and the coverage matrix. Nothing stores "card X goes
- * above card Y"; the field is the single source and this recomputes from it.
+ * The order is DERIVED from each issue's built-in "Blocked by" relationship,
+ * never recorded -- the same shape as `release:milestones` and the coverage
+ * matrix. Nothing stores "card X goes above card Y"; the relationship is the
+ * single source and this recomputes from it.
  *
  * Two properties make it safe to run unattended:
  *
@@ -26,7 +25,7 @@ import BlockedByField from "./BlockedByField";
 class BacklogOrder {
   /**
    * @param cards The column as the board currently reads it, top first.
-   * @throws If `Blocked by` describes a cycle -- that is a data bug (a card
+   * @throws If the "Blocked by" relationships describe a cycle -- that is a data bug (a card
    *   blocking something that blocks it), and no order satisfies it.
    */
   static derive(cards: IBacklogCard[]): IBacklogOrderOutcome {
@@ -37,7 +36,7 @@ class BacklogOrder {
 
     for (const card of cards) {
       const mine: number[] = [];
-      for (const blocker of BlockedByField.parse(card.blockedBy)) {
+      for (const blocker of card.blockedBy) {
         if (!present.has(blocker) || blocker === card.number) {
           continue;
         }
@@ -74,10 +73,10 @@ class BacklogOrder {
       }
       if (chosen === undefined) {
         throw new Error(
-          `\`Blocked by\` describes a cycle, so no order satisfies it:\n  ${BacklogOrder.describeCycle(
+          `"Blocked by" describes a cycle, so no order satisfies it:\n  ${BacklogOrder.describeCycle(
             [...remaining.keys()],
             blockers,
-          )}\nFix the field on one of those cards; nothing is reordered.`,
+          )}\nRemove the relationship on one of those cards; nothing is reordered.`,
         );
       }
       remaining.delete(chosen);

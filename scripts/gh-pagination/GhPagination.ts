@@ -71,6 +71,8 @@ import IGhPaginationViolation from "../types/IGhPaginationViolation";
  *                                  to 100 in both skills
  *   board fields       14 of 50  -- raised to 100 in setup-project for one cap,
  *                                  not two, over the same field list
+ *   blockedBy          12 of 50  -- #1443, the longest built-in list, measured
+ *                                  2026-10-06 (#1893)
  *   projectsV2          1 of 100
  *   timelineItems       1 of 20  -- and `last:` takes the newest, so the end it
  *                                  drops is the one nobody reads

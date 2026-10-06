@@ -6,14 +6,15 @@
  *   npm run backlog:order         - derive the order and apply it
  *   npm run backlog:order:check   - report drift, exit 1, write nothing
  *
- * The order is DERIVED from `Blocked by` every run and never recorded, the same
- * shape as `release:milestones`. Nothing stores "X goes above Y".
+ * The order is DERIVED from each issue's built-in "Blocked by" relationship
+ * every run and never recorded, the same shape as `release:milestones`.
+ * Nothing stores "X goes above Y".
  *
  * Why this is a scheduled job and not an event handler: GitHub has NO Actions
  * trigger for Projects v2 at all -- `projects_v2_item` is an organization
  * webhook, and `project_card`/`project_column` were classic-Projects only. So
- * nothing can fire when `Blocked by` is edited, and a cron is the only thing
- * that closes that gap. The workflow also runs after `Project sync`, which is
+ * nothing can fire when a card enters or leaves the column by hand, and a
+ * cron is the only thing that closes that gap. The workflow also runs after `Project sync`, which is
  * what catches a card entering or leaving the column.
  *
  * Everything testable lives in `backlog/OrderBacklog.ts`; this file is the
