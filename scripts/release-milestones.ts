@@ -13,6 +13,7 @@
  * Usage:
  *   npm run release:milestones:check   - report drift, write nothing, exit 1 if any
  *   npm run release:milestones         - apply the drift
+ *   npm run -s release:preparing       - print the release being prepared
  *
  * Both modes consider every release, because the index has to be complete for
  * "shipped in no release" to mean anything. That makes the run idempotent and
@@ -229,8 +230,10 @@ function collectItems(): IReleaseItem[] {
 
 async function main(): Promise<void> {
   const mode = process.argv[2] ?? "check";
-  if (mode !== "apply" && mode !== "check") {
-    console.error(chalk.red(`Unknown mode '${mode}'. Use apply or check.`));
+  if (mode !== "apply" && mode !== "check" && mode !== "preparing") {
+    console.error(
+      chalk.red(`Unknown mode '${mode}'. Use apply, check or preparing.`),
+    );
     process.exit(1);
   }
 
@@ -246,18 +249,17 @@ async function main(): Promise<void> {
   const tagDates = new Map(tagRefs.map(([tag, date]) => [tag, date]));
 
   const existing = milestones();
-  const { milestone: preparing, ambiguous } = ReleaseWindows.preparing(
+  const preparing = ReleaseWindows.preparing(
     existing.filter((m) => m.state === "open").map((m) => m.title),
     tags,
   );
-  if (ambiguous.length > 0) {
-    console.warn(
-      chalk.yellow(
-        `  warning: ${ambiguous.join(" and ")} are both open and untagged, so ` +
-          "which release is in preparation cannot be told. Attributing shipped " +
-          "work only; unreleased merges are left alone until one is tagged.",
-      ),
-    );
+  if (mode === "preparing") {
+    if (preparing === null) {
+      console.error("No open release milestone is untagged.");
+      process.exit(1);
+    }
+    console.log(preparing);
+    return;
   }
   const head = ReleaseWindows.headRef(
     [`origin/${DEFAULT_BRANCH}`, DEFAULT_BRANCH, "HEAD"],

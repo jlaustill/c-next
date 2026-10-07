@@ -204,11 +204,13 @@ ASSERT the returned issue count is strictly less than the --limit above. If it
   equals the limit the list was truncated: SAY SO and stop, rather than ranking a
   backlog you can only partly see.
 
-DETERMINE ACTIVE_MILESTONE = the open milestone with at least one open issue that has
-  the LOWEST version number (this repo uses a milestone as its sprint — see
-  docs/WORKFLOW.md, "Releases are issues"). Compare by version, not by text: `v0.1.10`
-  is later than `v0.1.9`.
-  If the user names a release (`/issue-check <milestone>`), use that one.
+DETERMINE ACTIVE_MILESTONE = the release being prepared, as printed by
+  `git fetch --tags && npm run -s release:preparing` (tags decide it, so fetch first).
+  That is `ReleaseWindows.preparing`, the one definition (#1912): the lowest-versioned
+  open `vMAJOR.MINOR.PATCH` milestone that is not yet a tag. This repo uses a milestone
+  as its sprint (docs/WORKFLOW.md, "Releases are issues"). Every higher release is
+  pre-planning, and nothing is recommended from it: hard stop (owner ruling on #1918).
+  If the command exits non-zero, SAY SO and stop. Do not restate or re-derive the rule.
 
   Not "the milestone with the most open issues". The two agreed only while the release
   being finished also happened to be the largest. On 2026-10-07 `v0.3.1` had 4 open and
@@ -229,8 +231,6 @@ PARTITION issues into:
 DEFAULT: recommend only from ACTIVE_MILESTONE.
 ESCAPE HATCH: `/issue-check --all` drops the OUT_OF_SPRINT exclusion and ranks the
   whole backlog. BLOCKED, GROOMING and EPIC are excluded in BOTH modes.
-NAMED RELEASE: `/issue-check <milestone>` (e.g. `/issue-check v0.4.1`) uses that milestone
-  as ACTIVE_MILESTONE instead of the rule above; every other exclusion still applies.
 ```
 
 ---

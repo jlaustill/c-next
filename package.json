@@ -56,6 +56,7 @@
     "gate:roster:check": "tsx scripts/gate-roster.ts",
     "release:milestones": "tsx scripts/release-milestones.ts apply",
     "release:milestones:check": "tsx scripts/release-milestones.ts check",
+    "release:preparing": "tsx scripts/release-milestones.ts preparing",
     "scope-joins": "tsx scripts/scope-join-sites.ts write",
     "scope-joins:check": "tsx scripts/scope-join-sites.ts check",
     "parse-tree": "tsx scripts/parse-tree-sites.ts write",
