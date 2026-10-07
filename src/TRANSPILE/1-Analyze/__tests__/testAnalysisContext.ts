@@ -1,7 +1,7 @@
 import TranspileState from "../../TranspileState";
 import Program from "../../../PARSE/4-Resolve/Program";
 import type IAnalysisContext from "../types/IAnalysisContext";
-import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import createMockSymbols from "../../../cli/__tests__/codeGenSymbolsHelpers";
 
 /**
  * An `IAnalysisContext` built from whatever the test already put on

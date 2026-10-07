@@ -5,7 +5,7 @@
  * Output: dist/index.js (ESM, Node 18+, with sourcemaps)
  *
  * This eliminates the tsx/npx overhead (~300-500ms per invocation) from:
- *   - Integration tests (952 tests × `npx tsx src/index.ts`)
+ *   - Integration tests (952 tests × `npx tsx src/cli/index.ts`)
  *   - CLI usage via `bin/cnext.js`
  *   - CI pipeline jobs
  */
@@ -16,7 +16,7 @@ import { existsSync } from "node:fs";
 import { build } from "esbuild";
 
 await build({
-  entryPoints: ["src/index.ts"],
+  entryPoints: ["src/cli/index.ts"],
   bundle: true,
   platform: "node",
   target: "node18",

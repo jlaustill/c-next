@@ -12,7 +12,7 @@ import IAssignmentContext from "./types/IAssignmentContext";
 import invariant from "../../utils/invariant";
 import SubscriptDepthValidator from "./SubscriptDepthValidator";
 import TTypeInfo from "../../types/TTypeInfo";
-import type IChainBase from "./types/IChainBase";
+import type IChainBase from "../../types/IChainBase";
 import OperandTyper from "../../utils/OperandTyper";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import QualifiedCName from "../../utils/QualifiedCName";

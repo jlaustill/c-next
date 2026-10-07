@@ -26,7 +26,7 @@ import TSymbolInfoAdapter from "../../PARSE/3-Declare/cnext/adapters/TSymbolInfo
 import CallbackTypedefFormatter from "../3-Render/codegen/helpers/CallbackTypedefFormatter";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
-import enterScope from "../../transpiler/__tests__/enterScope";
+import enterScope from "../../cli/__tests__/enterScope";
 
 /**
  * Helper to parse C-Next source and return tree + generator ready for testing.

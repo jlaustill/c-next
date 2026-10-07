@@ -24,7 +24,7 @@ import type IPlannedType from "../../types/IPlannedType";
 import type IPlannedFunctionParameter from "../../types/IPlannedFunctionParameter";
 import type INamedTypeResolution from "../../../../../types/INamedTypeResolution";
 import type IProgram from "../../../../../types/IProgram";
-import installMockSymbols from "../../../../../transpiler/__tests__/installMockSymbols";
+import installMockSymbols from "../../../../../cli/__tests__/installMockSymbols";
 
 /**
  * Installs a complete, empty mock symbol world in `state.symbols` and the

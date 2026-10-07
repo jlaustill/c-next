@@ -5,7 +5,7 @@
  * to IHeaderSymbol for header generation.
  */
 
-import DeclaredTypeInfo from "../../../2-Plan/DeclaredTypeInfo";
+import DeclaredTypeInfo from "../../../../PARSE/3-Declare/DeclaredTypeInfo";
 import TSymbol from "../../../../types/symbols/TSymbol";
 import IHeaderSymbol from "../types/IHeaderSymbol";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";

@@ -812,7 +812,7 @@ A correct row reddens exactly the fixtures it names.
 **Architecture documents:**
 
 - `docs/architecture/README.md` §2: the Tier 1 table gains lexical declarations.
-- `module-destinations.md`:
+- `module-destinations.md` (deleted by #1443):
   - Add utils rows for `OperandTyper`, `CompositeType`, `DeclaredPointer`, `SubscriptClassifier` and `ChainRoot`.
   - Add the 1.3 `LexicalScopeCollector` row and the 1.4 `LexicalFrames` row.
   - Add a "deleted rather than re-homed" entry covering: ETR, `EnumTypeResolver`, `TypeRegistrationEngine`, `TypeRegistrationUtils`, `OperandTypeResolver`, `ScopeFrameResolver`, `DeclarationScopeCollector`, `DeclaredVariableFacts` and `StructFieldFacts`.
@@ -892,7 +892,7 @@ A box is ticked only with its SHA and command output, in the push that makes it 
    - #1667 box 4 ("#1668 has landed").
    - #1694 box 3 (names `DeclarationScopeCollector`/`ScopeFrameResolver`).
    - Separately, #1664 box 5 was released on 2026-09-26, but the card body still says it "stays as written".
-2. **Placement.** `module-destinations.md:169-171` admits a utils module only if it "decides nothing". Do you accept a whole operand typer, `SubscriptClassifier` and `CompositeType` in `src/utils/`? `1-Analyze` and `2-Plan` are each ruled out by a depcruise rule.
+2. **Placement.** `module-destinations.md:169-171` (deleted by #1443) admitted a utils module only if it "decides nothing". Do you accept a whole operand typer, `SubscriptClassifier` and `CompositeType` in `src/utils/`? `1-Analyze` and `2-Plan` are each ruled out by a depcruise rule.
 3. **Suffixed integer literals.** Is `5i32` or `300u16` a "bare integer literal" under ADR-052 and ADR-024, so that it is exempt from E0810 and skipped by the composite width in both passes? That is this design's default, and it ends C19's order dependence. Or is it typed by its suffix everywhere, which makes `a + 5i32` E0810?
 4. **C and C++ header integer operands (C09).** Should E0810 classify `uint32_t`/`int32_t` header operands? Today `u32 a + cSigned` yields 4294967295. ADR-024 names only floating header operands, and #978 keeps C integers untyped. The default is to leave them untyped and file C09.
 5. **Rule 10.4 between a ternary's two value arms** (a #1092 item). Should `c ? i : k` with `u32 i` and `f32 k` be E0810? The rulings do not cover it, so this design does not add it.

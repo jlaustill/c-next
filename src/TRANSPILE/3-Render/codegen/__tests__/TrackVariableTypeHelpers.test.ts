@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import Transpiler from "../../../../transpiler/Transpiler";
+import Transpiler from "../../../../cli/Transpiler";
 import NodeFileSystem from "../../../../PARSE/1-Discover/NodeFileSystem";
 
 /**

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import NodeFileSystem from "../../NodeFileSystem";
 import PreprocessCache from "../PreprocessCache";
+import Write from "../../../../WRITE/1-Write/Write";
 
 describe("PreprocessCache keeps only recent configurations (#1844)", () => {
   let root: string;
@@ -22,7 +23,7 @@ describe("PreprocessCache keeps only recent configurations (#1844)", () => {
     const cache = new PreprocessCache(root, fs);
     const found = lookups.map((key) => (cache.lookup(key) ? key : null));
     for (const key of records) cache.record(key, entry());
-    cache.flush();
+    cache.flush((path, content) => Write.file(fs, path, content));
     return found;
   };
   const stored = (): string[] =>

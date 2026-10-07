@@ -1,4 +1,4 @@
-import ITranspileError from "./ITranspileError";
+import ITranspileError from "../../types/ITranspileError";
 import ISymbolInfo from "./ISymbolInfo";
 
 /**

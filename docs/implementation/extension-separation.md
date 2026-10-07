@@ -109,7 +109,7 @@ Key implementation notes:
 #### CLI Integration
 
 ```typescript
-// src/index.ts
+// src/cli/index.ts
 if (args.includes("--serve")) {
   new CNextServer().start();
 } else {
@@ -121,7 +121,7 @@ if (args.includes("--serve")) {
 
 ```bash
 # Manual test
-echo '{"id":1,"method":"getVersion","params":{}}' | npx tsx src/index.ts --serve
+echo '{"id":1,"method":"getVersion","params":{}}' | npx tsx src/cli/index.ts --serve
 
 # Unit tests
 npm run unit -- src/server/__tests__/

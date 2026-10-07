@@ -17,9 +17,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import ScopeUtils from "../ScopeUtils";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
-import FunctionUtils from "../../tests/utils/FunctionUtils";
+import FunctionUtils from "../../PARSE/3-Declare/__tests__/FunctionUtils";
 import TTypeUtils from "../TTypeUtils";
-import JsonCodec from "../cache/JsonCodec";
+import JsonCodec from "../../cli/cache/JsonCodec";
 import type TJsonValue from "../types/TJsonValue";
 import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
 

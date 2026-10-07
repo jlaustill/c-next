@@ -23,7 +23,7 @@ import TargetDescriptions from "./TargetDescriptions";
 import DeclarationSite from "../../utils/DeclarationSite";
 import CodedErrorText from "../../utils/CodedErrorText";
 import TARGET_DESCRIPTION_FIELDS from "./TARGET_DESCRIPTION_FIELDS";
-import type ITranspileError from "../../lib/types/ITranspileError";
+import type ITranspileError from "../../types/ITranspileError";
 import type IRunTargetInputs from "./types/IRunTargetInputs";
 import type ITargetDescription from "../../types/ITargetDescription";
 import type ITargetDirective from "../../types/ITargetDirective";

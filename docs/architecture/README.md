@@ -82,6 +82,9 @@ src/
     1-Analyze/
     2-Plan/
     3-Render/
+    CodeGenWalker.ts
+    TranspileState.ts
+    types/
   WRITE/
     1-Write/
   types/
@@ -95,6 +98,18 @@ The digit is not decoration. A pass may read the artifact of a lower-numbered pa
 own layer, or of any earlier layer, and nothing else. So "which pass owns this module?"
 and "may it read that?" are both answerable from the path -- by a reader, and by a gate --
 without opening the file.
+
+**Three entries in `TRANSPILE/` are not passes, and the tree draws them on purpose**
+(#1443, owner ruling). `CodeGenWalker.ts` walks one file and calls into both 2.2 Plan and
+2.3 Render, so inside `2-Plan/` it would be Plan importing Render. `TranspileState.ts` is
+the per-file working data of 2.2 and 2.3. 2.3 and the walker write it. 2.2 writes none of
+it, but it reads two things 2.3 wrote earlier in the same file: the current scope path
+(`setCurrentScopeByPath`) and the local renames (`registerLocalVariable`, read through
+`declarationTypeInfo`). #1313 box 3 records that measurement. Placed in `3-Render/`, the
+state made eight Plan modules import Render. `types/` holds `ICodeGenApi`, the slot `TranspileState`
+fills. Each still has a place in the pass order: the state comes after 2.1 Analyze, which
+may not reach it (#1456), and before 2.2; the walker comes after 2.3. A layer holds its
+passes and, beside them, only what the tree draws.
 
 **Every child of `src/` is a directory, and is one of four kinds.** There are no bare
 files at the root: an entry point lives inside the root it starts.
@@ -145,9 +160,6 @@ interior -- reaching past a root's entry point into its internals is how a bound
 being one. That is what `types/` and `utils/` are for, and why they sit beside the layers
 rather than inside one of them.
 
-A module's directory today does not determine its category. Which root it belongs under is
-adjudicated per module during the migration, never read off the path it currently sits on.
-
 **There is no directory for state.** A fact lives in the artifact of the pass that authored
 it. A container that outlives a pass is how facts come to be stashed instead of carried,
 and it is reachable from every pass at once, which is the shape a layer model exists to
@@ -156,7 +168,13 @@ forbid.
 A separation that holds in every respect except the filesystem is a separation nobody can
 check by looking, and one that a reviewer must take on the word of whoever performed it.
 The tree is the part of this document that cannot be satisfied by argument. Its gate is
-`npm run layout:check`.
+`npm run layout:check`: the first two levels of `src/` must be exactly the tree above, read
+from this file, and no module may reach a later pass -- the `*-reads-no-later-pass` rules
+`.dependency-cruiser.cjs` generates from its `PASS_ORDER`. The gate also holds the two
+lists together: every entry the tree draws inside a layer is covered by exactly one
+`PASS_ORDER` place, and the passes appear there in the tree's order, so a pass drawn here
+cannot go unbound by the order rules. Changing the layout means changing the drawing and
+`PASS_ORDER` together. The interior-import rule above is not yet gated: #1924 tracks it.
 
 ## 2. The symbol model
 

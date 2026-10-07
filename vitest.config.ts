@@ -13,7 +13,7 @@ export default defineConfig({
       include: ["src/**/*.ts"],
       exclude: [
         "**/__tests__/**", // Test directories (tests + helpers)
-        "src/index.ts", // CLI entry point with module-level bootstrap code
+        "src/cli/index.ts", // CLI entry point with module-level bootstrap code
         "src/antlr_parser/**", // Generated ANTLR code (legacy path)
         "src/PARSE/2-Parse/grammar/**", // Generated CNext parser
         "src/PARSE/2-Parse/c/grammar/**", // Generated C parser

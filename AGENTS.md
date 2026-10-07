@@ -73,16 +73,17 @@ scripts/types/ITools.ts
 
 See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
-### 3-Layer Architecture (PR #571, #572)
+### Pass layout (`src/`)
 
-The layers no longer share one root: #1450 box 5 moved the render pass out of
-`src/transpiler/` to `src/TRANSPILE/3-Render/`, and #1322 moved analysis to
-`src/TRANSPILE/1-Analyze/`. What remains under `src/transpiler/`:
+`src/` is the pass table: one directory per layer, one per pass inside it, numbered in
+the order they run. `docs/architecture/README.md` §1 draws the tree and
+`npm run layout:check` fails when `src/` differs from it or a module reaches a later pass
+(#1443). Do not restate the tree here; read it there.
 
-- `src/PARSE/1-Discover/` — 1.1 Discover: emits the frozen `SourceGraph` (FileDiscovery, IncludeResolver, DependencyGraph, preprocessor/, the `NodeFileSystem` port). Was `src/transpiler/data/` and `logic/` until #1444
-- `src/TRANSPILE/3-Render/` — Generation (codegen/, headers/) — **outside `src/transpiler/`**
-- `src/transpiler/Transpiler.ts` — Orchestrator (coordinates all layers)
-- `src/utils/` — Shared utilities (constants/, cache/, types/)
+- `src/PARSE/1-Discover/` … `src/WRITE/1-Write/` — the eight passes
+- `src/TRANSPILE/CodeGenWalker.ts`, `TranspileState.ts`, `types/` — drive and hold 2.2 and 2.3's per-file work, so they sit beside those passes rather than in either
+- `src/cli/` — the host: `Transpiler.ts` constructs the pipeline and owns the caches; `index.ts` is the CLI entry
+- `src/types/`, `src/utils/` — shared contracts; `src/instrumentation/` — run observations
 
 ### Symbol Resolution Architecture (ADR-055)
 
@@ -141,8 +142,8 @@ The layers no longer share one root: #1450 box 5 moved the render pass out of
 
 Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
 
-- `src/utils/cache/CacheManager.ts` → `src/utils/cache/__tests__/CacheManager.test.ts`
-- `src/utils/cache/CacheKeyGenerator.ts` → `src/utils/cache/__tests__/CacheKeyGenerator.test.ts`
+- `src/cli/cache/CacheManager.ts` → `src/cli/cache/__tests__/CacheManager.test.ts`
+- `src/cli/cache/CacheKeyGenerator.ts` → `src/cli/cache/__tests__/CacheKeyGenerator.test.ts`
 
 ### Cross-File Testing
 
@@ -285,7 +286,7 @@ The Transpiler has two distinct entry points that must stay synchronized:
 When adding features involving cross-file symbols (enums, structs, types):
 
 1. Test with `npm test` (uses `transpileSource()`) — may pass with incomplete implementation
-2. Verify with `npx tsx src/index.ts` (uses `run()`) — tests the full transpiler
+2. Verify with `npx tsx src/cli/index.ts` (uses `run()`) — tests the full transpiler
 3. Ensure both paths receive the same symbol information (e.g., `allKnownEnums`)
 
 ## Task Completion Requirements
@@ -354,7 +355,7 @@ what you move by hand — is documented once in
 
 ## Development Tips
 
-**Testing local changes**: Use `npx tsx src/index.ts <file.cnx> --target host` instead of the global `cnext` binary to test uncommitted transpiler changes. Every program names its target (ADR-049), so drop `--target` only for a file with its own `#pragma target`.
+**Testing local changes**: Use `npx tsx src/cli/index.ts <file.cnx> --target host` instead of the global `cnext` binary to test uncommitted transpiler changes. Every program names its target (ADR-049), so drop `--target` only for a file with its own `#pragma target`.
 
 ## Dead Code Detection
 

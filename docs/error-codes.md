@@ -27,9 +27,9 @@ codes that already have a fixture.
 
 ## E00xx — Reserved/Test
 
-| Code  | Message            | Source                                                      |
-| ----- | ------------------ | ----------------------------------------------------------- |
-| E0000 | Generic test error | `logic/analysis/types/__tests__/IBaseAnalysisError.test.ts` |
+| Code  | Message            | Source                                                           |
+| ----- | ------------------ | ---------------------------------------------------------------- |
+| E0000 | Generic test error | `TRANSPILE/1-Analyze/types/__tests__/IBaseAnalysisError.test.ts` |
 
 ---
 
@@ -88,7 +88,7 @@ second header and the program ran with a wrong value.
 
 | Code  | Message                                                                                                                                                                          | Help                                                                                                                                                                                                             | Source                                         |
 | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| E0355 | Struct field uses a reserved property name                                                                                                                                       | Reserved names (e.g., `.length`). Use 'len', 'size', or 'count'                                                                                                                                                  | `logic/analysis/StructFieldAnalyzer.ts`        |
+| E0355 | Struct field uses a reserved property name                                                                                                                                       | Reserved names (e.g., `.length`). Use 'len', 'size', or 'count'                                                                                                                                                  | `TRANSPILE/1-Analyze/StructFieldAnalyzer.ts`   |
 | E0356 | _(retired)_ — was: redundant type in a struct initializer                                                                                                                        | Removed with the grammar alternative it rejected (#1322): `Point { x: 1 }` was never valid C-Next, since every position that consumes a value already declares the type. It is a parse error now. Not reassigned | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
 | E0357 | A struct initializer with no written type, in a position that declares none                                                                                                      | Move it where a type is declared: a variable, an assignment target, a field, an argument, or a return                                                                                                            | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
 | E0358 | A struct initializer gives a value to a type that is not a struct (a primitive, a string, a bitmap, an enum, a function type, or a header's scalar, pointer or function pointer) | Give a value of the type itself; a bitmap's is its backing integer, set field by field after (ADR-034)                                                                                                           | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
@@ -99,16 +99,16 @@ second header and the program ran with a wrong value.
 
 | Code  | Message                                                                    | Help                                                                                            | Source                                                                                            |
 | ----- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| E0381 | Use of possibly/uninitialized variable                                     | Variable must be initialized before use                                                         | `logic/analysis/InitializationAnalyzer.ts`                                                        |
+| E0381 | Use of possibly/uninitialized variable                                     | Variable must be initialized before use                                                         | `TRANSPILE/1-Analyze/InitializationAnalyzer.ts`                                                   |
 | E0422 | Function called before definition                                          | Define function before calling it                                                               | `TRANSPILE/1-Analyze/FunctionCallAnalyzer.ts`                                                     |
 | E0423 | Recursive function call (MISRA C:2012 Rule 17.2)                           | Remove recursive call                                                                           | `TRANSPILE/1-Analyze/FunctionCallAnalyzer.ts`                                                     |
 | E0424 | Unqualified enum member — did you mean `Enum.member`?                      | Use qualified enum member syntax                                                                | `TRANSPILE/1-Analyze/BareEnumMemberAnalyzer.ts`, `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts` |
-| E0425 | Symbol defined multiple times, or in multiple languages                    | Rename one definition                                                                           | `logic/symbols/SymbolTable.ts`, `Transpiler.ts`                                                   |
+| E0425 | Symbol defined multiple times, or in multiple languages                    | Rename one definition                                                                           | `PARSE/3-Declare/SymbolTable.ts`, `Transpiler.ts`                                                 |
 | E0426 | Type is not defined                                                        | Declare the type, or #include the file that does                                                | `TRANSPILE/1-Analyze/UndeclaredTypeAnalyzer.ts`                                                   |
 | E0427 | Identifier is not defined                                                  | Declare it, or #include the file that does                                                      | `TRANSPILE/1-Analyze/UndeclaredValueAnalyzer.ts`                                                  |
 | E0428 | Value assigned to an enum is not of that enum type                         | Assign one of the enum's members, or convert explicitly with a cast                             | `TRANSPILE/1-Analyze/EnumTypeSafetyAnalyzer.ts`                                                   |
 | E0429 | Name is a register, not a type                                             | Access the register's members instead, e.g. `GPIO.DR`                                           | `TRANSPILE/1-Analyze/UndeclaredTypeAnalyzer.ts`                                                   |
-| E0430 | Nested scopes are not allowed                                              | Close the enclosing scope before declaring another, or use a flat scope such as `Hardware_GPIO` | `logic/parser/CNextSourceParser.ts`                                                               |
+| E0430 | Nested scopes are not allowed                                              | Close the enclosing scope before declaring another, or use a flat scope such as `Hardware_GPIO` | `PARSE/2-Parse/CNextSourceParser.ts`                                                              |
 | E0431 | `this` used outside a `scope` (ADR-016)                                    | Use `global.Name` for a file-scope declaration, or move the code into the scope it belongs to   | `TRANSPILE/1-Analyze/ThisOutsideScopeAnalyzer.ts`                                                 |
 | E0432 | C++ constructor argument is not `const`                                    | Declare the argument `const`; a constructor runs during static initialization                   | `TRANSPILE/1-Analyze/ConstructorArgumentAnalyzer.ts`                                              |
 | E0433 | C++ constructor argument names nothing declared                            | Declare it before the constructor, or pass a literal                                            | `TRANSPILE/1-Analyze/ConstructorArgumentAnalyzer.ts`                                              |
@@ -166,7 +166,7 @@ include-visibility is not derivable for a C or C++ name.
 | E0502 | `#define` with value not allowed                                       | Use `const u32 NAME <- value;` instead                                                                                                                                                                                                 | `TRANSPILE/1-Analyze/DefineDirectiveAnalyzer.ts`     |
 | E0503 | Cannot `#include` implementation file                                  | Only `.h` and `.hpp` files are allowed                                                                                                                                                                                                 | `TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.ts`    |
 | E0504 | `.cnx` alternative exists for included header                          | Use `#include "file.cnx"` for the C-Next version                                                                                                                                                                                       | `TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.ts`    |
-| E0505 | _(retired)_ — was: header names a pointer typedef it cannot declare    | Reclassified as an internal invariant by #1322: for it to fire, a name would have to be in a header's external types and absent from the enumeration those types are collected by — a transpiler defect, not a program. Not reassigned | `output/headers/BaseHeaderGenerator.ts`              |
+| E0505 | _(retired)_ — was: header names a pointer typedef it cannot declare    | Reclassified as an internal invariant by #1322: for it to fire, a name would have to be in a header's external types and absent from the enumeration those types are collected by — a transpiler defect, not a program. Not reassigned | `TRANSPILE/3-Render/headers/BaseHeaderGenerator.ts`  |
 | E0506 | Included C-Next file not found                                         | A quoted include resolves relative to the file it appears in; check the spelling                                                                                                                                                       | `TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.ts`    |
 | E0507 | C++ header in a run that asks for C (`cppRequired: false`, `--no-cpp`) | Remove `cppRequired: false` so the mode is detected from the headers, set it to `true`, or pass `--cpp` (#1844)                                                                                                                        | `PARSE/1-Discover/Discover.ts`                       |
 | E0508 | C++ class with a constructor initialized outside a function body       | A class with a constructor is not an aggregate, so its fields are assigned one at a time, and a declaration outside a function body has no statement to assign them in                                                                 | `TRANSPILE/1-Analyze/CppClassInitializerAnalyzer.ts` |
@@ -193,21 +193,21 @@ include-visibility is not derivable for a C or C++ name.
 
 ## E07xx — Control Flow Validation
 
-| Code  | Message                                                                               | Help                                                                          | Source                                                       |
-| ----- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| E0701 | Condition must be a boolean expression                                                | Use explicit comparison: `expr > 0` or `expr != 0`                            | `output/codegen/TypeValidator.ts`                            |
-| E0702 | Function call in condition not allowed                                                | Store function result in a variable first                                     | `output/codegen/TypeValidator.ts`, `ControlFlowGenerator.ts` |
-| E0703 | `break`/`continue` not supported                                                      | Use structured conditions instead                                             | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                        |
-| E0704 | Non-void function must return on all paths                                            | Add an explicit `return <value>;` so every path returns a value               | `logic/analysis/ReturnPathAnalyzer.ts`                       |
-| E0705 | `forever` loop in non-void function                                                   | Make the function return `void`, or use a `while` loop with an exit condition | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                        |
-| E0707 | Disguised infinite loop (`for(;;)` / always-true literal condition)                   | Write `forever { ... }` for an intentional infinite loop                      | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                        |
-| E0708 | Return value of non-void function discarded                                           | Use the value, or discard it explicitly: `(void) f(...);`                     | `logic/analysis/ReturnValueUseAnalyzer.ts`                   |
-| E0710 | Nested ternary not allowed in a ternary's condition or branches                       | Use `if`/`else`, or lift the inner expression into a named variable first     | `TRANSPILE/1-Analyze/NestedTernaryAnalyzer.ts`               |
-| E0711 | Switch on a `bool` (MISRA C:2012 Rule 16.7)                                           | Use `if`/`else`; a bool has two states and a switch implies more              | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`             |
-| E0712 | Switch has fewer than two clauses (MISRA C:2012 Rule 16.6)                            | Use an `if` statement; a one-clause switch is an if written the long way      | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`             |
-| E0713 | Duplicate case value in a switch                                                      | Remove one of them; the second is unreachable                                 | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`             |
-| E0714 | Switch clauses do not account for the enum's variants exactly                         | Add the missing cases, or a `default(N)` stating how many variants it absorbs | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`             |
-| E0715 | `for` header assignment is more than one statement (string, slice, atomic, float bit) | Assign before the loop, or at the end of its body as a `while` loop           | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                        |
+| Code  | Message                                                                               | Help                                                                          | Source                                                                   |
+| ----- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| E0701 | Condition must be a boolean expression                                                | Use explicit comparison: `expr > 0` or `expr != 0`                            | `TRANSPILE/3-Render/codegen/TypeValidator.ts`                            |
+| E0702 | Function call in condition not allowed                                                | Store function result in a variable first                                     | `TRANSPILE/3-Render/codegen/TypeValidator.ts`, `ControlFlowGenerator.ts` |
+| E0703 | `break`/`continue` not supported                                                      | Use structured conditions instead                                             | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                                    |
+| E0704 | Non-void function must return on all paths                                            | Add an explicit `return <value>;` so every path returns a value               | `TRANSPILE/1-Analyze/ReturnPathAnalyzer.ts`                              |
+| E0705 | `forever` loop in non-void function                                                   | Make the function return `void`, or use a `while` loop with an exit condition | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                                    |
+| E0707 | Disguised infinite loop (`for(;;)` / always-true literal condition)                   | Write `forever { ... }` for an intentional infinite loop                      | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                                    |
+| E0708 | Return value of non-void function discarded                                           | Use the value, or discard it explicitly: `(void) f(...);`                     | `TRANSPILE/1-Analyze/ReturnValueUseAnalyzer.ts`                          |
+| E0710 | Nested ternary not allowed in a ternary's condition or branches                       | Use `if`/`else`, or lift the inner expression into a named variable first     | `TRANSPILE/1-Analyze/NestedTernaryAnalyzer.ts`                           |
+| E0711 | Switch on a `bool` (MISRA C:2012 Rule 16.7)                                           | Use `if`/`else`; a bool has two states and a switch implies more              | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`                         |
+| E0712 | Switch has fewer than two clauses (MISRA C:2012 Rule 16.6)                            | Use an `if` statement; a one-clause switch is an if written the long way      | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`                         |
+| E0713 | Duplicate case value in a switch                                                      | Remove one of them; the second is unreachable                                 | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`                         |
+| E0714 | Switch clauses do not account for the enum's variants exactly                         | Add the missing cases, or a `default(N)` stating how many variants it absorbs | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`                         |
+| E0715 | `for` header assignment is more than one statement (string, slice, atomic, float bit) | Assign before the loop, or at the end of its body as a `while` loop           | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                                    |
 
 **Related:** MISRA C:2012 Rule 14.4 (E0701), Rule 13.5 / Issue #254 (E0702), ADR-026 / Issue #1011 (E0703), ADR-067 / Issue #1040 (E0704), ADR-068 / Issue #1074 (E0705), ADR-068 / Issue #1075 (E0707; E0706 reserved for ADR-069 unreachable code; ADR-070 / Issue #847 (E0708); E0709 reserved for ADR-069 unused variable / Issue #1107; ADR-022 / Issue #1322 (E0710); ADR-068 / Issue #1647 (E0715))
 
@@ -217,38 +217,38 @@ include-visibility is not derivable for a C or C++ name.
 
 ### Division/Modulo (ADR-051)
 
-| Code  | Message                             | Help                                                     | Source                                      |
-| ----- | ----------------------------------- | -------------------------------------------------------- | ------------------------------------------- |
-| E0800 | Division by zero (literal)          | Use `safe_div(output, numerator, divisor, defaultValue)` | `logic/analysis/DivisionByZeroAnalyzer.ts`  |
-| E0801 | Division by zero (const expression) | Use `safe_div()` for runtime safety                      | Reserved in `types/IDivisionByZeroError.ts` |
-| E0802 | Modulo by zero (literal)            | Use `safe_mod(output, numerator, divisor, defaultValue)` | `logic/analysis/DivisionByZeroAnalyzer.ts`  |
-| E0803 | Modulo by zero (const expression)   | Use `safe_mod()` for runtime safety                      | Reserved in `types/IDivisionByZeroError.ts` |
-| E0804 | Modulo with floating-point type     | Use `fmod()` from `<math.h>`                             | `logic/analysis/FloatModuloAnalyzer.ts`     |
+| Code  | Message                             | Help                                                     | Source                                                          |
+| ----- | ----------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------- |
+| E0800 | Division by zero (literal)          | Use `safe_div(output, numerator, divisor, defaultValue)` | `TRANSPILE/1-Analyze/DivisionByZeroAnalyzer.ts`                 |
+| E0801 | Division by zero (const expression) | Use `safe_div()` for runtime safety                      | Reserved in `TRANSPILE/1-Analyze/types/IDivisionByZeroError.ts` |
+| E0802 | Modulo by zero (literal)            | Use `safe_mod(output, numerator, divisor, defaultValue)` | `TRANSPILE/1-Analyze/DivisionByZeroAnalyzer.ts`                 |
+| E0803 | Modulo by zero (const expression)   | Use `safe_mod()` for runtime safety                      | Reserved in `TRANSPILE/1-Analyze/types/IDivisionByZeroError.ts` |
+| E0804 | Modulo with floating-point type     | Use `fmod()` from `<math.h>`                             | `TRANSPILE/1-Analyze/FloatModuloAnalyzer.ts`                    |
 
 ### Essential Type Safety (MISRA C:2012)
 
 | Code  | Message                                                                                                                                                                                                                                                   | Help                                                                                                                                                  | Source                                             |
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | E0805 | Shift operator used on a signed integer type (MISRA C:2012 Rule 10.1)                                                                                                                                                                                     | Shift an unsigned value; signed shifts are UB / implementation-defined in C                                                                           | `TRANSPILE/1-Analyze/ShiftAnalyzer.ts`             |
-| E0806 | Compound assignment used on a `bool` (MISRA C:2012 Rule 10.1)                                                                                                                                                                                             | Only `<-` is valid on a bool; flip a flag with `flag <- !flag`                                                                                        | `logic/analysis/BooleanOperandAnalyzer.ts`         |
-| E0807 | Arithmetic, bitwise, shift or relational operator applied to a `bool` operand (MISRA C:2012 Rule 10.1)                                                                                                                                                    | A bool is not a number; combine flags with `&&` / `\|\|` / `!`, compare them with `=` / `!=`                                                          | `logic/analysis/BooleanOperandAnalyzer.ts`         |
+| E0806 | Compound assignment used on a `bool` (MISRA C:2012 Rule 10.1)                                                                                                                                                                                             | Only `<-` is valid on a bool; flip a flag with `flag <- !flag`                                                                                        | `TRANSPILE/1-Analyze/BooleanOperandAnalyzer.ts`    |
+| E0807 | Arithmetic, bitwise, shift or relational operator applied to a `bool` operand (MISRA C:2012 Rule 10.1)                                                                                                                                                    | A bool is not a number; combine flags with `&&` / `\|\|` / `!`, compare them with `=` / `!=`                                                          | `TRANSPILE/1-Analyze/BooleanOperandAnalyzer.ts`    |
 | E0810 | Operands of different essential type categories: a binary operator's, or a conditional's two value arms (Rule 10.4)                                                                                                                                       | Integer and floating: cast the integer, e.g. `(f32)value`. Signed and unsigned: reinterpret one operand's bits with bit indexing, e.g. `value[0, 32]` | `TRANSPILE/1-Analyze/MixedTypeCategoryAnalyzer.ts` |
 | E0811 | An integer operand combined by `+`, `-` or `*` with a header macro whose replacement is not a literal expression -- a call, a cast, a pointer dereference -- or, where the file's macros were not all read, with a name nothing declares (ADR-024, #1688) | Cast the macro to the type it has, e.g. `(u32)MACRO` or `(f32)MACRO`                                                                                  | `TRANSPILE/1-Analyze/MixedTypeCategoryAnalyzer.ts` |
 | E0812 | An integer operand combined with such a header macro by `/`, `%`, a comparison, bitwise or shift operator, or in a conditional's value arms (ADR-024, #1688)                                                                                              | Cast the macro to the type it has, e.g. `(u32)MACRO` or `(f32)MACRO`                                                                                  | `TRANSPILE/1-Analyze/MixedTypeCategoryAnalyzer.ts` |
 
 ### Array Index Type Safety
 
-| Code  | Message                                  | Help                                              | Source                                     |
-| ----- | ---------------------------------------- | ------------------------------------------------- | ------------------------------------------ |
-| E0850 | Signed integer used as subscript index   | Use unsigned integer type for array/bit subscript | `logic/analysis/ArrayIndexTypeAnalyzer.ts` |
-| E0851 | Floating-point used as subscript index   | Use unsigned integer type for array/bit subscript | `logic/analysis/ArrayIndexTypeAnalyzer.ts` |
-| E0852 | Non-integer type used as subscript index | Use unsigned integer type for array/bit subscript | `logic/analysis/ArrayIndexTypeAnalyzer.ts` |
+| Code  | Message                                  | Help                                              | Source                                          |
+| ----- | ---------------------------------------- | ------------------------------------------------- | ----------------------------------------------- |
+| E0850 | Signed integer used as subscript index   | Use unsigned integer type for array/bit subscript | `TRANSPILE/1-Analyze/ArrayIndexTypeAnalyzer.ts` |
+| E0851 | Floating-point used as subscript index   | Use unsigned integer type for array/bit subscript | `TRANSPILE/1-Analyze/ArrayIndexTypeAnalyzer.ts` |
+| E0852 | Non-integer type used as subscript index | Use unsigned integer type for array/bit subscript | `TRANSPILE/1-Analyze/ArrayIndexTypeAnalyzer.ts` |
 
 ### Critical Section Safety
 
-| Code  | Message                                     | Help                                              | Source                            |
-| ----- | ------------------------------------------- | ------------------------------------------------- | --------------------------------- |
-| E0853 | Cannot use `return` inside critical section | Would leave interrupts disabled; restructure flow | `output/codegen/TypeValidator.ts` |
+| Code  | Message                                     | Help                                              | Source                                        |
+| ----- | ------------------------------------------- | ------------------------------------------------- | --------------------------------------------- |
+| E0853 | Cannot use `return` inside critical section | Would leave interrupts disabled; restructure flow | `TRANSPILE/3-Render/codegen/TypeValidator.ts` |
 
 ### Array Index Bounds (ADR-036; E0855 reserved for ADR-054)
 
@@ -365,16 +365,16 @@ base: bare, `this.` and `global.`.
 
 ## E09xx — NULL Safety (ADR-046)
 
-| Code  | Message                                                | Help                                                      | Source                                   |
-| ----- | ------------------------------------------------------ | --------------------------------------------------------- | ---------------------------------------- |
-| E0901 | C library function can return NULL — must check result | Use: `if (func(...) != NULL) { ... }`                     | `logic/analysis/NullCheckAnalyzer.ts`    |
-| E0902 | Importing a dynamic memory function from C/C++         | Keep it in your C or C++ code (ADR-003)                   | `logic/analysis/FunctionCallAnalyzer.ts` |
-| E0903 | NULL can only be used in comparison context            | Use: `if (func(...) != NULL)` or `== NULL`                | `logic/analysis/NullCheckAnalyzer.ts`    |
-| E0904 | Cannot store C function pointer return in variable     | Use direct comparison: `if (func(...) != NULL)`           | `logic/analysis/NullCheckAnalyzer.ts`    |
-| E0905 | Missing `c_` prefix for nullable C type                | Use: `TypeName c_varName <- func(...)`                    | `logic/analysis/NullCheckAnalyzer.ts`    |
-| E0906 | Invalid `c_` prefix on non-nullable type               | Remove `c_` — only for nullable C pointer types           | `logic/analysis/NullCheckAnalyzer.ts`    |
-| E0907 | NULL comparison on non-nullable variable               | Only `c_` variables can be compared to NULL               | `logic/analysis/NullCheckAnalyzer.ts`    |
-| E0908 | Nullable variable used without NULL check              | Check for NULL before use: `if (varName != NULL) { ... }` | `logic/analysis/NullCheckAnalyzer.ts`    |
+| Code  | Message                                                | Help                                                      | Source                                        |
+| ----- | ------------------------------------------------------ | --------------------------------------------------------- | --------------------------------------------- |
+| E0901 | C library function can return NULL — must check result | Use: `if (func(...) != NULL) { ... }`                     | `TRANSPILE/1-Analyze/NullCheckAnalyzer.ts`    |
+| E0902 | Importing a dynamic memory function from C/C++         | Keep it in your C or C++ code (ADR-003)                   | `TRANSPILE/1-Analyze/FunctionCallAnalyzer.ts` |
+| E0903 | NULL can only be used in comparison context            | Use: `if (func(...) != NULL)` or `== NULL`                | `TRANSPILE/1-Analyze/NullCheckAnalyzer.ts`    |
+| E0904 | Cannot store C function pointer return in variable     | Use direct comparison: `if (func(...) != NULL)`           | `TRANSPILE/1-Analyze/NullCheckAnalyzer.ts`    |
+| E0905 | Missing `c_` prefix for nullable C type                | Use: `TypeName c_varName <- func(...)`                    | `TRANSPILE/1-Analyze/NullCheckAnalyzer.ts`    |
+| E0906 | Invalid `c_` prefix on non-nullable type               | Remove `c_` — only for nullable C pointer types           | `TRANSPILE/1-Analyze/NullCheckAnalyzer.ts`    |
+| E0907 | NULL comparison on non-nullable variable               | Only `c_` variables can be compared to NULL               | `TRANSPILE/1-Analyze/NullCheckAnalyzer.ts`    |
+| E0908 | Nullable variable used without NULL check              | Check for NULL before use: `if (varName != NULL) { ... }` | `TRANSPILE/1-Analyze/NullCheckAnalyzer.ts`    |
 
 ## E0909-E0911 — Values Fixed at Compile Time (ADR-017, ADR-023, ADR-044)
 
@@ -399,4 +399,4 @@ base: bare, `this.` and `global.`.
 3. Update this document with the new code, message, help text, and source
 4. If starting a new range, add a new section
 
-**Source paths are relative to `src/transpiler/`.**
+**Source paths are relative to `src/`.**

@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from "vitest";
 import RunTarget from "../RunTarget";
-import TargetCatalogFile from "../../1-Discover/TargetCatalogFile";
+import TargetCatalogFile from "../../../cli/TargetCatalogFile";
 import type ITargetDirective from "../../../types/ITargetDirective";
 import type ITargetDescription from "../../../types/ITargetDescription";
 import type IPlatformIOProject from "../../../types/IPlatformIOProject";

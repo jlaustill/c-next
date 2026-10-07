@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import QualifiedNameGenerator from "../QualifiedNameGenerator";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import Program from "../../PARSE/4-Resolve/Program";
-import FunctionUtils from "../../tests/utils/FunctionUtils";
+import FunctionUtils from "../../PARSE/3-Declare/__tests__/FunctionUtils";
 import TTypeUtils from "../TTypeUtils";
 import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
 import { readdirSync, readFileSync, statSync } from "node:fs";

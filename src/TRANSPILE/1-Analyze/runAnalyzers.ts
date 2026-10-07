@@ -66,7 +66,7 @@ import SwitchStatementAnalyzer from "./SwitchStatementAnalyzer";
 import NestedTernaryAnalyzer from "./NestedTernaryAnalyzer";
 import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
 import CommentExtractor from "./CommentExtractor";
-import ITranspileError from "../../lib/types/ITranspileError";
+import ITranspileError from "../../types/ITranspileError";
 import IncludeDirectiveAnalyzer from "./IncludeDirectiveAnalyzer";
 import IIncludeContext from "./types/IIncludeContext";
 import type IAnalysisContext from "./types/IAnalysisContext";

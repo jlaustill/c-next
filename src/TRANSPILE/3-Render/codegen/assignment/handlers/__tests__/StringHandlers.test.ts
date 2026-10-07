@@ -10,7 +10,7 @@ import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
 import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
 import AssignmentClassifier from "../../../../../2-Plan/AssignmentClassifier";
-import enterScope from "../../../../../../transpiler/__tests__/enterScope";
+import enterScope from "../../../../../../cli/__tests__/enterScope";
 
 /**
  * Create mock context for testing

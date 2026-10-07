@@ -27,14 +27,14 @@ one.
 
 ## By layer
 
-| Layer             | Modules |
-| ----------------- | ------: |
-| `src/TRANSPILE/`  |      63 |
-| `src/PARSE/`      |      23 |
-| `src/utils/`      |      12 |
-| `src/types/`      |       3 |
-| `src/transpiler/` |       1 |
-| **total**         | **102** |
+| Layer            | Modules |
+| ---------------- | ------: |
+| `src/TRANSPILE/` |      63 |
+| `src/PARSE/`     |      23 |
+| `src/utils/`     |      12 |
+| `src/types/`     |       3 |
+| `src/cli/`       |       1 |
+| **total**        | **102** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -44,6 +44,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 
 | Module                                                          | Holds             |
 | --------------------------------------------------------------- | ----------------- |
+| `src/cli/Transpiler.ts`                                         | grammar           |
 | `src/PARSE/1-Discover/IncludeDiscovery.ts`                      | antlr4ng, grammar |
 | `src/PARSE/3-Declare/c/collectors/EnumCollector.ts`             | grammar           |
 | `src/PARSE/3-Declare/c/collectors/FunctionCollector.ts`         | grammar           |
@@ -130,7 +131,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/2-Plan/AssignmentContextBuilder.ts`              | grammar           |
 | `src/TRANSPILE/2-Plan/StringLengthCounter.ts`                   | grammar           |
 | `src/TRANSPILE/CodeGenWalker.ts`                                | antlr4ng, grammar |
-| `src/transpiler/Transpiler.ts`                                  | grammar           |
 | `src/types/IParsedFile.ts`                                      | antlr4ng, grammar |
 | `src/types/ITypeAccessors.ts`                                   | grammar           |
 | `src/types/TAssignmentSite.ts`                                  | grammar           |

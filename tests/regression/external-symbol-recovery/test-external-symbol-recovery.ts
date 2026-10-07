@@ -25,7 +25,7 @@
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
-import Transpiler from "../../../src/transpiler/Transpiler";
+import Transpiler from "../../../src/cli/Transpiler";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

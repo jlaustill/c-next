@@ -7,7 +7,7 @@ import { describe, it, expect } from "vitest";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import ForeignTypeFacts from "../ForeignTypeFacts";
 import ESourceLanguage from "../types/ESourceLanguage";
-import TargetCatalogFile from "../../PARSE/1-Discover/TargetCatalogFile";
+import TargetCatalogFile from "../../cli/TargetCatalogFile";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 const lookup = new SymbolTable();

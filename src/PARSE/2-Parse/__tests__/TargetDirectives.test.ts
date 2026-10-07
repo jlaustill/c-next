@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from "vitest";
 import CNextSourceParser from "../CNextSourceParser";
-import TargetCatalogFile from "../../1-Discover/TargetCatalogFile";
+import TargetCatalogFile from "../../../cli/TargetCatalogFile";
 import NodeFileSystem from "../../1-Discover/NodeFileSystem";
 
 function directivesOf(source: string) {

@@ -11,7 +11,7 @@
  * This generator was extracted from CodeGenerator._generatePostfixExpr
  * to reduce the size and complexity of CodeGenerator.ts.
  */
-import type IChainBase from "../../../../2-Plan/types/IChainBase";
+import type IChainBase from "../../../../../types/IChainBase";
 import type IChainStep from "../../../../../types/IChainStep";
 import type IOperandType from "../../../../../types/IOperandType";
 import IGeneratorOutput from "../IGeneratorOutput";

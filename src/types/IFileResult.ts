@@ -1,5 +1,5 @@
 import type IRecordedRequirement from "./IRecordedRequirement";
-import ITranspileError from "../lib/types/ITranspileError";
+import ITranspileError from "./ITranspileError";
 
 /**
  * Result of transpiling a single file

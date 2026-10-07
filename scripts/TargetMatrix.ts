@@ -25,9 +25,9 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import TargetResolver from "../src/utils/TargetResolver";
+import TargetResolver from "../src/cli/TargetResolver";
 import TargetToolchain from "../src/utils/TargetToolchain";
-import TargetCatalogFile from "../src/PARSE/1-Discover/TargetCatalogFile";
+import TargetCatalogFile from "../src/cli/TargetCatalogFile";
 import RunTarget from "../src/PARSE/4-Resolve/RunTarget";
 import TargetDescriptions from "../src/PARSE/4-Resolve/TargetDescriptions";
 import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";

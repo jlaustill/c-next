@@ -69,14 +69,14 @@ describe("ParseTreeSites.sites", () => {
 
 describe("ParseTreeSites.layerOf", () => {
   it("prefers the longest prefix", () => {
-    // The ordering IS the assertion: with `src/transpiler/` tested first, every
-    // transpiler module collapses into one row and the render layer's share --
-    // the number #1317 singles out -- disappears from the document.
+    // The ordering IS the assertion: with `src/TRANSPILE/` tested first, every
+    // render module collapses into the layer's row and the render layer's
+    // share -- the number #1317 singles out -- disappears from the document.
     expect(ParseTreeSites.layerOf("src/TRANSPILE/3-Render/codegen/X.ts")).toBe(
       "src/TRANSPILE/3-Render/",
     );
-    expect(ParseTreeSites.layerOf("src/transpiler/Transpiler.ts")).toBe(
-      "src/transpiler/",
+    expect(ParseTreeSites.layerOf("src/TRANSPILE/CodeGenWalker.ts")).toBe(
+      "src/TRANSPILE/",
     );
   });
 

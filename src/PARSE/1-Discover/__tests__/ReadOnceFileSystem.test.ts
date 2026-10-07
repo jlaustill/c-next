@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import ReadOnceFileSystem from "../ReadOnceFileSystem";
-import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
+import MockFileSystem from "../../../cli/__tests__/MockFileSystem";
 
 /** A host that counts the reads that reach it. */
 class CountingFileSystem extends MockFileSystem {

@@ -15,7 +15,7 @@ import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, dirname, relative, basename } from "node:path";
 import { fileURLToPath } from "node:url";
-import Transpiler from "../../src/transpiler/Transpiler";
+import Transpiler from "../../src/cli/Transpiler";
 import FileScanner from "../utils/FileScanner";
 import NodeFileSystem from "../../src/PARSE/1-Discover/NodeFileSystem";
 

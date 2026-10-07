@@ -4,7 +4,7 @@
   "description": "A safer C for embedded systems development. Transpiles to clean, readable C.",
   "packageManager": "npm@11.9.0",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "src/cli/index.ts",
   "bin": {
     "cnext": "./bin/cnext.js"
   },
@@ -15,8 +15,8 @@
     "antlr:cpp:parser": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/PARSE/2-Parse/cpp -lib src/PARSE/2-Parse/cpp/grammar grammar/CPP14Parser.g4",
     "antlr:cpp": "npm run antlr:cpp:lexer && npm run antlr:cpp:parser",
     "antlr:all": "npm run antlr && npm run antlr:c && npm run antlr:cpp",
-    "start": "tsx src/index.ts",
-    "dev": "tsx src/index.ts",
+    "start": "tsx src/cli/index.ts",
+    "dev": "tsx src/cli/index.ts",
     "typecheck": "tsc --noEmit",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "test": "tsx scripts/test.ts",
@@ -37,7 +37,7 @@
     "oxlint:fix": "npm run oxlint:check -- --fix",
     "lint:test-location": "! find src -name '*.test.ts' | grep -qv '__tests__' || (echo 'Error: .test.ts files must be in __tests__ directories' && exit 1)",
     "depcruise": "depcruise src --config .dependency-cruiser.cjs",
-    "depcruise:graph": "depcruise src/transpiler --config .dependency-cruiser.cjs --output-type dot | dot -T svg > dependency-graph.svg",
+    "depcruise:graph": "depcruise src/cli --config .dependency-cruiser.cjs --output-type dot | dot -T svg > dependency-graph.svg",
     "prepare": "husky && npm run plugin:install && npm run plugin:build",
     "prepublishOnly": "npm run prettier:check && npm run oxlint:check && npm run build && npm test",
     "coverage:check": "tsx scripts/coverage-checker.ts check",
@@ -103,7 +103,7 @@
     "move:modules": "tsx scripts/move-modules.ts",
     "typedef-const:parity": "tsx scripts/typedef-const-parity.ts",
     "typedef-const:parity:check": "tsx scripts/typedef-const-parity.ts check",
-    "destinations:check": "tsx scripts/module-destinations.ts"
+    "layout:check": "tsx scripts/layout.ts"
   },
   "keywords": [
     "c",

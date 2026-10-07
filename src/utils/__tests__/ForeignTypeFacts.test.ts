@@ -7,7 +7,7 @@ import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../types/ESourceLanguage";
 import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
 import ForeignTypeFacts from "../ForeignTypeFacts";
-import TargetCatalogFile from "../../PARSE/1-Discover/TargetCatalogFile";
+import TargetCatalogFile from "../../cli/TargetCatalogFile";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 const C_HEADER = {

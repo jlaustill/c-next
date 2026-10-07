@@ -22,7 +22,7 @@ import {
 } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import Transpiler from "../../src/transpiler/Transpiler";
+import Transpiler from "../../src/cli/Transpiler";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

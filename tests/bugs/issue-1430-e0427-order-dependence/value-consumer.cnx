@@ -10,7 +10,7 @@
 // and every fixture runs one program in one process.
 //
 // The leak that survives is cross-RUN, and
-// `src/transpiler/__tests__/CrossRunKnownFunctions.test.ts` is what catches
+// `src/cli/__tests__/CrossRunKnownFunctions.test.ts` is what catches
 // it: two runs through one `Transpiler`, mutation-checked, where this pair
 // stays green and that one reddens.
 

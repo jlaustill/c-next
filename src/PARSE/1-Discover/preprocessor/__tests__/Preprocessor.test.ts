@@ -61,7 +61,7 @@ vi.mock("../ToolchainDetector", () => ({
 // Import after mocks are set up
 import Preprocessor from "../Preprocessor";
 import NodeFileSystem from "../../NodeFileSystem";
-import MockFileSystem from "../../../../transpiler/__tests__/MockFileSystem";
+import MockFileSystem from "../../../../cli/__tests__/MockFileSystem";
 import { basename, dirname } from "node:path";
 
 describe("Preprocessor", () => {

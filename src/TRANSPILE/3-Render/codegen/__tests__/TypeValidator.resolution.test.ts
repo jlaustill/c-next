@@ -13,7 +13,7 @@ import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import TypeValidator from "../TypeValidator";
 import TranspileState from "../../../TranspileState";
 import ParserUtils from "../../../../utils/ParserUtils";
-import enterScope from "../../../../transpiler/__tests__/enterScope";
+import enterScope from "../../../../cli/__tests__/enterScope";
 import testAnalysisContextFor from "../../../1-Analyze/__tests__/testAnalysisContextFor";
 import type ISourcePosition from "../../../../utils/types/ISourcePosition";
 

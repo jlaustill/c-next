@@ -3,7 +3,7 @@ import type { CommonTokenStream } from "antlr4ng";
 import type * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import type IComment from "./IComment";
 import type ITargetDirective from "./ITargetDirective";
-import type ITranspileError from "../lib/types/ITranspileError";
+import type ITranspileError from "./ITranspileError";
 
 /**
  * What 1.2 Parse produces for one file: syntax, and nothing derived from it.
