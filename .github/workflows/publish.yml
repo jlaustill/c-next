@@ -42,6 +42,15 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Install the target matrix's cross toolchains
+        # `npm publish` runs `prepublishOnly`, and its `npm test` compiles every
+        # fixture for a Cortex-M and an AVR too (#1668). The test runner's
+        # preflight fails the run when one is missing, which is how v0.3.1's
+        # first publish failed. Same list as pr-checks.yml's integration job.
+        run: |
+          sudo apt-get update -qq
+          xargs sudo apt-get install -y -qq < scripts/cross-toolchain-packages.txt
+
       - name: Publish to npm
         run: npm publish --provenance --access public
         env:
