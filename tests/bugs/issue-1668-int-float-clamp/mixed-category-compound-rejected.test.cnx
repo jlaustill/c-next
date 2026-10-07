@@ -5,6 +5,9 @@
 // signed/unsigned mix, which ADR-024 already rejected in the binary form while
 // `y +<- b` compiled. The integer case used to reach cnx_clamp_mul_u32(y, 2.5).
 // The functions after the flagged ones are negative controls and must stay silent.
+// A header float macro (#1688) is a floating value like any other.
+
+#include "scale_macros.h"
 
 u32 unsignedTimesLiteral() {
     u32 y <- 3;
@@ -15,6 +18,12 @@ u32 unsignedTimesLiteral() {
 u32 unsignedTimesFloat(f32 k) {
     u32 y <- 3;
     y *<- k;
+    return y;
+}
+
+u32 unsignedTimesMacro() {
+    u32 y <- 3;
+    y *<- SCALE_F;
     return y;
 }
 
