@@ -277,8 +277,7 @@ describe("Runner", () => {
           outputFiles: [],
           errors: [
             {
-              message:
-                "E0509: C-Next source not found: ghost.cnx (referenced by ghost.h)",
+              message: "error[E0509]: C-Next source not found: ghost.cnx",
             },
           ],
           filesProcessed: 0,

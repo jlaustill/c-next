@@ -249,7 +249,7 @@ Each is a rejection a user can see. It is thrown rather than reported, so it rea
 
 | file:line                       | anchor                         | what                                                  | card  |
 | ------------------------------- | ------------------------------ | ----------------------------------------------------- | ----- |
-| `transpiler/Transpiler.ts:2187` | `this run does not target C++` | E0507: a C++ header in a run that does not target C++ | #1542 |
+| `transpiler/Transpiler.ts:2187` | `this run does not target C++` | E0507: a C++ header in a run that does not target C++ | #1844 |
 
 #1542 (2026-10-07): E0509 is no longer thrown. A generated header that names a C-Next source that
 is not there is reported by 1.1's entry-point scan as data, at the header's marker line.

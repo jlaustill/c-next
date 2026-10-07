@@ -151,6 +151,8 @@ entry point is compiled by following those records rather than by reading any
 C-Next source. So the reference that fails is in generated output, not in
 anything the author wrote, and there is no C-Next position to name; the
 diagnostic names the missing source and the header that recorded it instead.
+It is reported at the line of the generated header's marker that names the
+missing source, at the column where that name starts.
 
 The rule it restores is the one E0506 already states: **a C-Next source that is
 named but absent is an error.** Which route reached the name — a quoted include,
