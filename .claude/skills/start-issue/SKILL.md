@@ -159,42 +159,28 @@ that filter, so the check is repeated here — otherwise this entry point silent
 a guard the other one has.
 
 ```bash
-# The `Blocked by` field for this one issue.
-gh api graphql --paginate -f query='
-query($endCursor: String) { user(login: "jlaustill") { projectV2(number: 1) {
-  items(first: 100, after: $endCursor) {
-    pageInfo { hasNextPage endCursor }
-    nodes {
-      content { ... on Issue { number } }
-      fieldValues(first: 100) { nodes {
-        ... on ProjectV2ItemFieldTextValue {
-          text field { ... on ProjectV2FieldCommon { name } } } } }
-    } } } } }' \
-  --jq '.data.user.projectV2.items.nodes[] | select(.content.number == <ISSUE>) |
-        [.fieldValues.nodes[]|select(.field.name=="Blocked by")|.text][0] // ""'
+# The issue's built-in "Blocked by" relationship (#1893). The board's free-text
+# `Blocked by` field is retired; nothing reads or writes it.
+gh api --paginate 'repos/jlaustill/c-next/issues/<ISSUE>/dependencies/blocked_by?per_page=100' \
+  --jq '.[] | "#\(.number) \(.state)"'
 ```
 
 ```
-`Blocked by` is a PERMANENT RECORD of what the work waited on, never a live state.
-It is NEVER cleared and NEVER replaced — a new blocker is appended beside the old.
-Blocked-ness is DERIVED, never read off the field's emptiness.
+"Blocked by" is a PERMANENT RECORD of what the work waited on, never a live state.
+A blocker that has closed STAYS linked — never remove a link or replace one.
+Blocked-ness is DERIVED from the blockers' states, never from whether the list is empty.
 
-IF the field is non-empty:
-  EXTRACT every #NNNN it names and resolve each:
-      gh api repos/jlaustill/c-next/issues/<n> --jq '.state'
+any blocker still open
+  → STOP. Name the open blockers, and any qualifier a comment gives them ("only
+    PR5"), and ask whether to proceed anyway. The user may overrule; you may not
+    overrule silently.
 
-  THEN read what remains once the references are removed, and judge whether it
-  ANNOTATES a named issue — "(PR5-PR7)", "(symbol model: sourceColumn)" — or names
-  a FURTHER blocker of its own, "plus the naming decision". Both shapes are on the
-  board today.
+every blocker closed
+  → Not blocked. Say "unblocked (was: #1316, #1321 — both closed)" so the reader
+    can see the blockers were read rather than ignored. Change nothing.
 
-  any named issue still open
-    → STOP. Name the open blockers and the verbatim qualifier, and ask whether to
-      proceed anyway. The user may overrule; you may not overrule silently.
-
-  all named issues closed, remaining text only annotates them
-    → Not blocked. Say "unblocked (was: #1316, #1321 — both closed)" so the reader
-      can see the field was read rather than ignored. Change nothing.
+no blockers
+  → Not blocked by any card. That is not "startable" — Phases 5 and 7 still apply.
 ```
 
 ---
@@ -310,8 +296,8 @@ FOR non-bug issues, research first (CLAUDE.md "Workflow: Research First"):
 
 #### 7c: If Analysis Reveals a Blocker — Pause, Do Not Work Around
 
-Phase 3 reads the `Blocked by` field. Phases 5 and 7 read the card itself, and that is
-where the blockers no field carries turn up — most often a definition-of-done box that
+Phase 3 reads the built-in "Blocked by" relationship. Phases 5 and 7 read the card itself,
+and that is where the blockers no link carries turn up — most often a definition-of-done box that
 cannot be satisfied as written.
 
 ```
@@ -322,16 +308,15 @@ has been committed yet:
   the card. CLAUDE.md: "never reword a box to match what you did, which is moving the
   goalposts rather than meeting them."
 
-  1. APPEND the derived blocker to `Blocked by` — never replace or clear what it holds.
-     Read it, then write old + new. Requires the `project` scope, not `read:project`.
+  1. LINK the derived blocker as a built-in "Blocked by" relationship, beside whatever
+     the issue already lists — never remove or replace an existing link. The endpoint
+     takes the blocker's numeric id, not its number. A blocker that is not an issue yet
+     (a pending decision) is filed as one first, so there is something to link.
 
-       gh api graphql -f query='
-       mutation($p:ID!,$i:ID!,$f:ID!,$v:String!){
-         updateProjectV2ItemFieldValue(input:{
-           projectId:$p,itemId:$i,fieldId:$f,value:{text:$v}}){ projectV2Item { id } } }' \
-         -f p=<PROJECT_ID> -f i=<ITEM_ID> -f f=<BLOCKED_BY_FIELD_ID> -f v="<old>; <new>"
+       gh api -X POST repos/jlaustill/c-next/issues/<ISSUE>/dependencies/blocked_by \
+         -F issue_id="$(gh api repos/jlaustill/c-next/issues/<BLOCKER> --jq .id)"
 
-     THEN re-read the field and report the value it returned — not the mutation's success.
+     THEN re-read Phase 3's query and report the list it returned — not the POST's success.
 
   2. COMMENT the measurements that establish the blocker, and what would unblock it.
      Record boxes that are already true but unchecked; do NOT tick them if another card
@@ -348,8 +333,8 @@ has been committed yet:
 
      THIS STEP DEPENDS ON STEP 1, and nothing enforces the order. Unassigning drops the
      card back into the recommendable pool; what keeps a blocked one from being picked
-     straight back up is `/issue-check` Phase 1d reading the `Blocked by` that step 1
-     appended. Unassign without it and the card can be recommended again with no record of
+     straight back up is `/issue-check` Phase 1d reading the link that step 1
+     added. Unassign without it and the card can be recommended again with no record of
      why it was set down. If step 1 did not happen, do it before this one.
 
   5. FIND OTHER WORK — re-run `/issue-check`, or take the next unblocked runner-up it
@@ -385,9 +370,11 @@ THROUGHOUT the work:
   transition; a second writer is a duplicate code path and hides a broken automation
 - **DO NOT** treat "left at Changes Needed" as a failure — the guard declining to drag a
   card backwards is correct behavior. Tell the two cases apart before reporting either
-- **DO NOT** clear a `Blocked by`, replace what it names, or propose either — it is a
+- **DO NOT** remove a "Blocked by" link, replace one, or propose either — it is a
   permanent record, and a blocker that has closed is history, not a stale value
-- **DO NOT** start on an issue whose `Blocked by` names something still open without
+- **DO NOT** read or write the board's retired free-text `Blocked by` field. Blockers
+  are the built-in relationship (#1893)
+- **DO NOT** start on an issue whose "Blocked by" links something still open without
   saying so and getting an explicit override
 - **DO NOT** start on a closed issue, or reopen one. A defect found after the fix
   shipped is a new issue with its own reproduction

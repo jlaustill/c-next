@@ -10,8 +10,6 @@
 import chalk from "chalk";
 
 import BacklogOrder from "./BacklogOrder";
-import BlockedByField from "./BlockedByField";
-import type IBacklogCard from "../types/IBacklogCard";
 import type IBacklogMove from "../types/IBacklogMove";
 import ProjectBoard from "../utils/ProjectBoard";
 
@@ -26,22 +24,6 @@ class OrderBacklog {
   private static apply(projectId: string, moves: IBacklogMove[]): void {
     for (const move of moves) {
       ProjectBoard.moveAfter(projectId, move.itemId, move.afterId);
-    }
-  }
-
-  /** Every reference the parse declined, so a misread is visible in the log. */
-  private static reportCitations(cards: IBacklogCard[]): void {
-    for (const card of cards) {
-      const declined = BlockedByField.citations(card.blockedBy);
-      if (declined.length > 0) {
-        console.log(
-          chalk.dim(
-            `  = #${card.number} cites ${declined
-              .map((issue) => `#${issue}`)
-              .join(", ")} in prose; not treated as blockers`,
-          ),
-        );
-      }
     }
   }
 
@@ -62,7 +44,6 @@ class OrderBacklog {
       return 0;
     }
 
-    OrderBacklog.reportCitations(cards);
     const outcome = BacklogOrder.derive(cards);
     console.log(
       chalk.dim(

@@ -118,8 +118,13 @@ void led_on(void);`,
       const result = scanner.scan("/project/main.cpp");
 
       expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain("led.cnx");
-      expect(result.errors[0]).toContain("led.h");
+      expect(result.errors[0]).toMatchObject({
+        sourcePath: "/project/led.h",
+        line: 2,
+        column: 40,
+        message: "error[E0509]: C-Next source not found: led.cnx",
+        severity: "error",
+      });
     });
 
     it("should handle cycle detection", () => {

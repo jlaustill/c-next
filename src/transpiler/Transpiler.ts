@@ -22,6 +22,7 @@ import HeaderParser from "../PARSE/2-Parse/HeaderParser";
 
 import CodeGenWalker from "../TRANSPILE/CodeGenWalker";
 import invariant from "../utils/invariant";
+import CodedErrorText from "../utils/CodedErrorText";
 import AutoConstRule from "../utils/AutoConstRule";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
@@ -57,7 +58,6 @@ import EHeaderLanguage from "../PARSE/1-Discover/types/EHeaderLanguage";
 import type IHeaderSource from "../PARSE/1-Discover/types/IHeaderSource";
 import type IRecoveredSlice from "../PARSE/1-Discover/types/IRecoveredSlice";
 import OutputExtensions from "../utils/OutputExtensions";
-import LocatedDiagnostic from "../utils/LocatedDiagnostic";
 import type IOutputExtensions from "../types/IOutputExtensions";
 
 import ParserUtils from "../utils/ParserUtils";
@@ -352,6 +352,11 @@ class Transpiler {
       this.sourceGraph = discovered.graph;
       this.cppMode = discovered.graph.cppMode;
       const pipelineInput = discovered.graph;
+      if (discovered.errors.length > 0) {
+        result.errors.push(...discovered.errors);
+        result.success = false;
+        return this._finalizeResult(result);
+      }
       if (pipelineInput.cnextFiles.length === 0) {
         return this._finalizeResult(result, "No C-Next source files found");
       }
@@ -1538,9 +1543,11 @@ class Transpiler {
       result.errors.push({
         line: 1,
         column: 0,
-        message:
-          `error[E0203]: Source files '${basename(existing)}' and '${basename(file.path)}' both ` +
-          `produce the include guard '${guard}'. Rename one so the generated headers stay distinguishable.`,
+        message: CodedErrorText.of(
+          "E0203",
+          `Source files '${basename(existing)}' and '${basename(file.path)}' both ` +
+            `produce the include guard '${guard}'. Rename one so the generated headers stay distinguishable.`,
+        ),
         severity: "error",
       });
       result.success = false;
@@ -1610,7 +1617,7 @@ class Transpiler {
       line: conflict.line,
       column: conflict.column,
       sourcePath: conflict.sourceFile,
-      message: `error[${conflict.code}]: ${conflict.message}`,
+      message: CodedErrorText.of(conflict.code, conflict.message),
       severity: conflict.severity,
     };
   }
@@ -1820,19 +1827,6 @@ class Transpiler {
     result: ITranspilerResult,
     err: unknown,
   ): ITranspilerResult {
-    if (err instanceof LocatedDiagnostic) {
-      result.errors.push({
-        sourcePath: err.site.sourcePath,
-        line: err.site.line,
-        column: err.site.column,
-        message: `error[${err.code}]: ${err.text}`,
-        helpText: err.helpText,
-        severity: "error",
-      });
-      result.success = false;
-      result.warnings = [...result.warnings, ...this.warnings];
-      return result;
-    }
     result.errors.push({
       line: 1,
       column: 0,

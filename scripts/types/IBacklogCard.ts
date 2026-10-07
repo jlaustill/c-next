@@ -1,18 +1,16 @@
 /** One card in the column being ordered, as the board currently holds it. */
 interface IBacklogCard {
-  /** Issue or PR number -- the form `Blocked by` names cards in. */
+  /** Issue or PR number. */
   number: number;
 
   /** Project item id: what `updateProjectV2ItemPosition` addresses. */
   itemId: string;
 
   /**
-   * The raw `Blocked by` text, exactly as the field holds it.
-   *
-   * Free-form and append-only, so it is prose with references in it, not a
-   * list. Read it through `BlockedByField`, never with a bare `#\d+` scan.
+   * Every issue GitHub's built-in "Blocked by" relationship names for this
+   * card, open or closed (#1893). Empty for a pull request, which has none.
    */
-  blockedBy: string;
+  blockedBy: number[];
 
   /** Issue title. Reporting only; nothing keys on it. */
   title: string;

@@ -26,13 +26,13 @@ A `throw` has no position to carry, which is why a fixture reports `1:0`.
 The number grows with ordinary work, which is why the acceptance criterion should read "every site
 as counted at audit time" rather than a literal.
 
-| bucket | meaning                                                                        | count  |
-| ------ | ------------------------------------------------------------------------------ | ------ |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **2**  |
-| **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **3**  |
-| **3**  | dead — unreachable or subsumed; delete                                         | **0**  |
-| **4**  | about the run, not a line — no source position exists; needs a code (#1847)    | **5**  |
-|        | **total**                                                                      | **10** |
+| bucket | meaning                                                                        | count |
+| ------ | ------------------------------------------------------------------------------ | ----- |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **0** |
+| **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **3** |
+| **3**  | dead — unreachable or subsumed; delete                                         | **0** |
+| **4**  | about the run, not a line — no source position exists; needs a code (#1847)    | **5** |
+|        | **total**                                                                      | **8** |
 
 ## How to recount
 
@@ -83,7 +83,7 @@ bucket sections below, not in this table (#1531):
 
 | area                                                     | sites |
 | -------------------------------------------------------- | ----- |
-| `src/PARSE/` (1.1 Discover, 1.3 Declare, 1.4 Resolve)    | 7     |
+| `src/PARSE/` (1.1 Discover, 1.3 Declare, 1.4 Resolve)    | 5     |
 | `src/TRANSPILE/` (2.1 to 2.3; #1322 emptied `3-Render/`) | 0     |
 | `src/transpiler/` (the orchestrator)                     | 0     |
 | `src/utils/`                                             | 3     |
@@ -240,19 +240,18 @@ questions and only the first was asked.
   **parse error**, so it never reaches codegen at all. That leaves four live copies plus the
   factory, which is what makes unification tractable.
 
-## Bucket 1 — user-facing diagnostics (2)
+## Bucket 1 — user-facing diagnostics (0)
 
-### Outside `3-Render/` — 2
+### Outside `3-Render/` — 0
 
 Each is a rejection a user can see. It is thrown rather than reported, so it reaches them at
-`1:0`, behind `Pipeline failed:` or `Code generation failed:`. Each has a card. #1844: E0507 is
-thrown as a `LocatedDiagnostic`, which the orchestrator reports at the `.cnx` include that reached
-the C++ header instead.
+`1:0`, behind `Pipeline failed:` or `Code generation failed:`. Each has a card.
 
-| file:line                    | anchor                                         | what                                                              | card  |
-| ---------------------------- | ---------------------------------------------- | ----------------------------------------------------------------- | ----- |
-| `1-Discover/Discover.ts:195` | `DeclarationSite.displayPath(cpp.path)`        | E0507: a C++ header in a run that asks for C; located (#1844)     | #1844 |
-| `1-Discover/Discover.ts:474` | `A generated header records the C-Next source` | E0509: a generated header names a C-Next source that is not there | #1542 |
+**Empty.** #1844 (2026-10-07): E0507 is no longer thrown. 1.1 reports it as data, at the `.cnx`
+include through which the run reached the C++ header.
+
+#1542 (2026-10-07): E0509 is no longer thrown. A generated header that names a C-Next source that
+is not there is reported by 1.1's entry-point scan as data, at the header's marker line.
 
 #1669 (2026-10-03): `ExpressionEvaluator`'s `Invalid constant expression` is gone. An enum member's
 value is recorded as written in 1.3 and settled in 1.4; one with no value is reported in pass 2.1,

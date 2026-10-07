@@ -1,3 +1,5 @@
+import type ICNextMarker from "./types/ICNextMarker";
+
 /**
  * Detects C-Next generation markers in header files.
  *
@@ -22,14 +24,26 @@ class CNextMarkerDetector {
   }
 
   /**
-   * Extract the source .cnx path from a C-Next generation marker.
+   * Find the C-Next generation marker that records a source .cnx path.
    *
-   * @param content - File content (typically first 500 chars is sufficient)
-   * @returns The source path (e.g., "led.cnx") or null if no marker found
+   * @param content - File content
+   * @returns The recorded source path (e.g., "led.cnx") and the line and
+   *   column it is written at, or null if no marker names a source
    */
-  static extractSourcePath(content: string): string | null {
+  static findMarker(content: string): ICNextMarker | null {
     const match = this.SOURCE_PATH_REGEX.exec(content);
-    return match ? match[1] : null;
+    if (!match) {
+      return null;
+    }
+    const sourcePath = match[1];
+    // The name ends the match, so it starts this far into the file.
+    const offset = match.index + match[0].length - sourcePath.length;
+    const before = content.slice(0, offset);
+    return {
+      sourcePath,
+      line: before.split("\n").length,
+      column: offset - (before.lastIndexOf("\n") + 1),
+    };
   }
 }
 

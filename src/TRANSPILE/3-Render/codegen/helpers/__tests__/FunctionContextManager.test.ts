@@ -24,42 +24,14 @@ import type IPlannedType from "../../types/IPlannedType";
 import type IPlannedFunctionParameter from "../../types/IPlannedFunctionParameter";
 import type INamedTypeResolution from "../../../../../types/INamedTypeResolution";
 import type IProgram from "../../../../../types/IProgram";
+import installMockSymbols from "../../../../../transpiler/__tests__/installMockSymbols";
 
 /**
- * Helper to set up state.symbols with minimal fields.
+ * Installs a complete, empty mock symbol world in `state.symbols` and the
+ * matching `state.symbolTable` entries.
  */
-function setupSymbols(
-  overrides: {
-    knownEnums?: Set<string>;
-    knownBitmaps?: Set<string>;
-    bitmapBitWidth?: Map<string, number>;
-  } = {},
-): void {
-  state.symbols = {
-    knownScopes: new Set(),
-    knownStructs: new Set(),
-    knownRegisters: new Set(),
-    knownEnums: overrides.knownEnums ?? new Set(),
-    knownBitmaps: overrides.knownBitmaps ?? new Set(),
-    knownVariables: new Set(),
-    scopeMembers: new Map(),
-    scopeMemberVisibility: new Map(),
-    structFields: new Map(),
-    structFieldArrays: new Map(),
-    structFieldDimensions: new Map(),
-    enumMembers: new Map(),
-    bitmapFields: new Map(),
-    bitmapBackingType: new Map(),
-    bitmapBitWidth: overrides.bitmapBitWidth ?? new Map(),
-    scopedRegisters: new Map(),
-    registerMemberAccess: new Map(),
-    registerMemberTypes: new Map(),
-    registerBaseAddresses: new Map(),
-    registerMemberOffsets: new Map(),
-    registerMemberCTypes: new Map(),
-    scopePrivateConstValues: new Map(),
-    functionReturnTypes: new Map(),
-  };
+function setupSymbols(): void {
+  installMockSymbols(state);
 }
 
 /**

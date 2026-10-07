@@ -14,9 +14,10 @@ import type IHeaderSource from "./types/IHeaderSource";
 import type IRecoveredDeclarations from "./types/IRecoveredDeclarations";
 import type IDiscoveredFile from "./types/IDiscoveredFile";
 import type ISourceSite from "../../types/ISourceSite";
-import LocatedDiagnostic from "../../utils/LocatedDiagnostic";
+import CodedErrorText from "../../utils/CodedErrorText";
 import type IHeaderRoot from "./types/IHeaderRoot";
 import type IFileSystem from "../../types/IFileSystem";
+import type ITranspileError from "../../lib/types/ITranspileError";
 import type IInMemorySource from "./types/IInMemorySource";
 import type IPipelineFile from "./types/IPipelineFile";
 import type IRunAnchor from "./types/IRunAnchor";
@@ -82,6 +83,12 @@ class Discover {
   private readonly includes = new Map<string, IFileIncludes>();
 
   /**
+   * The run's discovery errors: E0509, each at its header's marker (#1542),
+   * and E0507, at the `.cnx` include that reached the C++ header (#1844).
+   */
+  private readonly errors: ITranspileError[] = [];
+
+  /**
    * #1844: each file's includes as resolved, in visiting order. They are
    * spelled into `includes` once the run's mode is settled, because a `.cnx`
    * include names a generated header, whose extension follows the mode.
@@ -104,10 +111,9 @@ class Discover {
    *
    * @param previousAnchor - The last run's anchor, which a run anchored at the
    *   same place reuses (see `RunAnchor.at`)
-   * @param warnings - Where discovery's warnings go. A sink rather than part
-   *   of the answer, because a C/C++ entry point's missing source is thrown
-   *   AFTER the warnings that usually explain it are recorded (#1541)
-   * @returns the frozen graph, and the anchor the run's services come from
+   * @param warnings - Where discovery's warnings go
+   * @returns the frozen graph, the anchor the run's services come from, and
+   *   the errors that reject the run. A run with errors goes no further.
    */
   static async run(
     input: TTranspileInput,
@@ -115,7 +121,11 @@ class Discover {
     settings: TDiscoverySettings,
     fs: IFileSystem,
     warnings: string[],
-  ): Promise<{ readonly graph: ISourceGraph; readonly anchor: IRunAnchor }> {
+  ): Promise<{
+    readonly graph: ISourceGraph;
+    readonly anchor: IRunAnchor;
+    readonly errors: readonly ITranspileError[];
+  }> {
     const root = input.kind === "source" ? Discover._inMemoryRoot(input) : null;
     // #1719: a source run is anchored where its text lives -- its project
     // root, compile database, and the base its `#include`s and guards are
@@ -159,7 +169,7 @@ class Discover {
         includePaths: files.includeSearchPaths,
       },
     );
-    const cppMode = Discover._cppMode(
+    const cppMode = discovery._cppMode(
       files,
       headerSources,
       recovered,
@@ -170,6 +180,7 @@ class Discover {
     return {
       graph: discovery._freeze(files, headerSources, recovered, cppMode),
       anchor,
+      errors: discovery.errors,
     };
   }
 
@@ -179,7 +190,7 @@ class Discover {
    * `cppRequired: false` -- a run that asked for C, where C++ is E0507
    * (#1844). `cppRequired: true` (or `--cpp`) is C++ with only C headers.
    */
-  private static _cppMode(
+  private _cppMode(
     files: Pick<TDiscoveredFiles, "headerFiles" | "headerSites">,
     sources: ReadonlyMap<string, IHeaderSource>,
     recovered: IRecoveredDeclarations | null,
@@ -192,14 +203,19 @@ class Discover {
         FileDiscovery.classifyFile(cpp.path).type === EFileType.CppHeader
           ? "C++ header"
           : "C++ syntax";
-      throw new LocatedDiagnostic(
-        "E0507",
-        `${reason} in '${DeclarationSite.displayPath(cpp.path)}', reached ` +
-          `through this include, but this run asks for C`,
-        cpp.site,
-        "'cppRequired: false' (or --no-cpp) asks for C. Remove it so the " +
+      this.errors.push({
+        ...cpp.site,
+        message: CodedErrorText.of(
+          "E0507",
+          `${reason} in '${DeclarationSite.displayPath(cpp.path)}', reached ` +
+            `through this include, but this run asks for C`,
+        ),
+        helpText:
+          "'cppRequired: false' (or --no-cpp) asks for C. Remove it so the " +
           "mode is detected from the headers, or pass --cpp to compile as C++.",
-      );
+        severity: "error",
+      });
+      return false;
     }
     return cppRequired ?? cpp !== undefined;
   }
@@ -445,38 +461,24 @@ class Discover {
     );
     const scanResult = scanner.scan(entryPath);
 
-    // #1541: these are ERRORS, and they now behave like it.
+    // #1541: these are ERRORS, and they now behave like it. They were pushed
+    // onto `this.warnings`, which exited 0 with zero output files while the
+    // same fault reached through a quoted include is E0506 and exits 1.
     //
-    // They were pushed onto `this.warnings` with a hand-written `Error: `
-    // prefix, which produced `Warning: Error: C-Next source not found: x.cnx`
-    // and, far worse, exit 0 with zero output files -- while the same fault
-    // reached through a quoted include is E0506 and exits 1. Two discovery
-    // routes, one class of fault, opposite outcomes.
+    // #1542: and they are reported, not thrown. A throw reached the user at
+    // `1:0` behind `Pipeline failed:`; each error now carries its header's
+    // marker as its position, as every other diagnostic carries its own.
     //
-    // The comment that stood here said the prefix was "to distinguish from
-    // informational warnings", which states the conflation rather than
-    // resolving it: `IScanResult` already separates the two, and only this
-    // consumer merged them.
-    //
-    // This is the shape #1319 settled twice in the catches above -- a
-    // deliberate rejection propagates, an incidental failure degrades. The
-    // error was buried doubly here, because a marker found with no source also
-    // sets `noCNextFound`, so the run additionally printed the friendly
-    // "To get started:" onboarding text at a user whose header path was wrong.
-    // The warnings are pushed BEFORE the throw, deliberately. The scan collects
-    // `#include "x.h" not found (from ...)` and `Could not read <path>`, and a
-    // missing C-Next source is very often downstream of exactly those -- so
-    // throwing first would report "that source is not there" while discarding
-    // the reason. `ResultPrinter` emits warnings above errors, so they land
-    // where a reader looks next.
+    // The warnings are kept beside them: the scan collects `#include "x.h" not
+    // found (from ...)` and `Could not read <path>`, and a missing C-Next source
+    // is very often downstream of exactly those. A marker found with no source
+    // also sets `noCNextFound`, so the errors are checked first: the run is
+    // rejected, not told "No C-Next source files found".
     this.warnings.push(...scanResult.warnings);
 
     if (scanResult.errors.length > 0) {
-      throw new Error(
-        `E0509: ${scanResult.errors.join("\n       ")}\n` +
-          `  A generated header records the C-Next source it was written from.\n` +
-          `  Check that source is present, and reachable from the include path.`,
-      );
+      this.errors.push(...scanResult.errors);
+      return Discover._noCNextFiles();
     }
 
     if (scanResult.noCNextFound) {

@@ -19,7 +19,11 @@ class ProjectBoard {
 
   static readonly STATUS_FIELD = "Status";
 
-  static readonly BLOCKED_FIELD = "Blocked by";
+  /**
+   * Page size for one issue's "Blocked by" list. 12 is the longest on the board
+   * (#1443, 2026-10-06); `columnCards` refuses a list longer than the page.
+   */
+  static readonly BLOCKED_BY_PAGE = 50;
 
   /** Runs a GraphQL document through the authenticated gh CLI. */
   static graphql(
@@ -83,6 +87,10 @@ class ProjectBoard {
    * absent rather than erroring (CLAUDE.md, #1416). `fieldValues` is 30 against
    * 14 existing fields -- `--paginate` cannot advance a nested connection, so
    * an inner cap needs headroom instead.
+   *
+   * Blockers come from the issue's built-in "Blocked by" relationship, not a
+   * board field (#1893): the board's free-text field was retired because it
+   * was prose that had to be parsed, capped near 1 KB, and kept no history.
    */
   static columnCards(projectId: string, status: string): IBacklogCard[] {
     const cards: IBacklogCard[] = [];
@@ -98,14 +106,18 @@ class ProjectBoard {
                 nodes {
                   id
                   content {
-                    ... on Issue { number title }
+                    ... on Issue {
+                      number
+                      title
+                      blockedBy(first: ${ProjectBoard.BLOCKED_BY_PAGE}) {
+                        totalCount
+                        nodes { number }
+                      }
+                    }
                     ... on PullRequest { number title }
                   }
                   status: fieldValueByName(name: "${ProjectBoard.STATUS_FIELD}") {
                     ... on ProjectV2ItemFieldSingleSelectValue { name }
-                  }
-                  blocked: fieldValueByName(name: "${ProjectBoard.BLOCKED_FIELD}") {
-                    ... on ProjectV2ItemFieldTextValue { text }
                   }
                 }
               }
@@ -120,9 +132,12 @@ class ProjectBoard {
             pageInfo: { hasNextPage: boolean; endCursor: string };
             nodes: {
               id: string;
-              content: { number?: number; title?: string } | null;
+              content: {
+                number?: number;
+                title?: string;
+                blockedBy?: { totalCount: number; nodes: { number: number }[] };
+              } | null;
               status: { name?: string } | null;
-              blocked: { text?: string } | null;
             }[];
           };
         };
@@ -138,7 +153,10 @@ class ProjectBoard {
         cards.push({
           number: node.content.number,
           itemId: node.id,
-          blockedBy: node.blocked?.text ?? "",
+          blockedBy: ProjectBoard.blockers(
+            node.content.number,
+            node.content.blockedBy,
+          ),
           title: node.content.title ?? "",
         });
       }
@@ -148,6 +166,25 @@ class ProjectBoard {
       }
       cursor = page.node.items.pageInfo.endCursor;
     }
+  }
+
+  /**
+   * The blocker numbers one page returned, refusing a page that is not the
+   * whole list: a dropped blocker reads as "not blocked", in silence.
+   */
+  private static blockers(
+    issue: number,
+    page: { totalCount: number; nodes: { number: number }[] } | undefined,
+  ): number[] {
+    if (page === undefined) {
+      return [];
+    }
+    if (page.totalCount > page.nodes.length) {
+      throw new Error(
+        `#${issue} has ${page.totalCount} blockers; one page read ${page.nodes.length}.`,
+      );
+    }
+    return page.nodes.map((blocker) => blocker.number);
   }
 
   /** Places `itemId` directly below `afterId` in the board's own order. */

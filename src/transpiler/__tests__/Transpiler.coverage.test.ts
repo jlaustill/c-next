@@ -1450,15 +1450,20 @@ int main() { LED_on(); return 0; }`,
       expect(result.warnings.join("\n")).not.toContain("ghost.cnx");
     });
 
-    it("names the missing source and the header that referenced it", async () => {
+    it("names the missing source, and the header that referenced it as its location", async () => {
+      // #1542: the header is the diagnostic's position, so the message no
+      // longer repeats it as "(referenced by ...)".
       const result = await runFromCppEntry({
         source: "ghost.cnx",
         createSource: false,
       });
 
-      const text = result.errors.map((e) => e.message).join("\n");
-      expect(text).toContain("ghost.cnx");
-      expect(text).toContain("ghost.h");
+      expect(result.errors.map((e) => e.message).join("\n")).toContain(
+        "ghost.cnx",
+      );
+      expect(result.errors.map((e) => e.sourcePath)).toEqual([
+        "/project/src/ghost.h",
+      ]);
     });
 
     it("keeps the scan warnings that explain the error", async () => {
@@ -1504,6 +1509,63 @@ int main() { LED_on(); return 0; }`,
 
       expect(result.errors.map((e) => e.message).join("\n")).not.toContain(
         "E0509",
+      );
+    });
+
+    it("is reported at the marker line of the header that records it", async () => {
+      // #1542 box 2: in the same `<file>:<line>:<col> error[E0509]:` form as
+      // every other diagnostic, not `1:0` behind `Pipeline failed:`. The marker
+      // is line 4 of MARKER_HEADER, and the recorded name starts at column 40.
+      const result = await runFromCppEntry({
+        source: "ghost.cnx",
+        createSource: false,
+      });
+
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toMatchObject({
+        sourcePath: "/project/src/ghost.h",
+        line: 4,
+        column: 40,
+        severity: "error",
+      });
+      expect(result.errors[0].message).toMatch(
+        /^error\[E0509\]: C-Next source not found: ghost\.cnx/,
+      );
+      expect(result.errors[0].message).not.toContain("Pipeline failed");
+    });
+
+    it("reports each missing source at its own header", async () => {
+      // Two markers naming two absent sources are two diagnostics, each placed
+      // on the header that recorded it -- not one message joining both.
+      mockFs.addFile("/project/src/ghost.h", MARKER_HEADER("ghost.cnx"));
+      mockFs.addFile(
+        "/project/src/phantom.h",
+        ["", ...MARKER_HEADER("phantom.cnx").split("\n")].join("\n"),
+      );
+      mockFs.addFile(
+        "/project/src/main.cpp",
+        '#include "ghost.h"\n#include "phantom.h"\nint main() { return 0; }\n',
+      );
+
+      const result = await new Transpiler(
+        {
+          input: "/project/src/main.cpp",
+          outDir: "/project/build",
+          noCache: true,
+          cppRequired: true,
+          target: "host",
+        },
+        mockFs,
+      ).transpile({ kind: "files" });
+
+      expect(
+        result.errors.map((e) => [e.sourcePath, e.line, e.column]),
+      ).toEqual([
+        ["/project/src/ghost.h", 4, 40],
+        ["/project/src/phantom.h", 5, 40],
+      ]);
+      expect(result.errors[1].message).toMatch(
+        /^error\[E0509\]: C-Next source not found: phantom\.cnx/,
       );
     });
   });
