@@ -126,7 +126,6 @@ type THeaderPreparation = {
 class Transpiler {
   private readonly config: TRunConfig;
   private readonly codeGenerator: CodeGenWalker;
-  private readonly headerGenerator: HeaderGenerator;
   private readonly warnings: string[];
   private readonly cacheManager: CacheManager | null;
   private readonly preprocessCache: PreprocessCache | null;
@@ -298,7 +297,6 @@ class Transpiler {
     };
 
     this.codeGenerator = new CodeGenWalker();
-    this.headerGenerator = new HeaderGenerator();
     this.warnings = [];
     this.anchor = RunAnchor.at(this.config.input, null, this.config, this.fs);
 
@@ -569,8 +567,7 @@ class Transpiler {
     );
     const rendered = HeaderRenderer.render(
       this.headerEmissionFactsByPath,
-      this.headerGenerator,
-      this.program,
+      new HeaderGenerator(this.program),
     );
 
     // 2.3 Render's artifact, assembled here because this is the first moment a

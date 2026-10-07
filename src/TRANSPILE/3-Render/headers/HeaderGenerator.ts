@@ -20,7 +20,8 @@ class HeaderGenerator {
   private readonly cGenerator: CHeaderGenerator;
   private readonly cppGenerator: CppHeaderGenerator;
 
-  constructor() {
+  /** @param program - the run's program; its mode (#1428) picks the generator */
+  constructor(private readonly program: Pick<IProgram, "cppMode">) {
     this.cGenerator = new CHeaderGenerator();
     this.cppGenerator = new CppHeaderGenerator();
   }
@@ -28,7 +29,6 @@ class HeaderGenerator {
   /**
    * Generate a header file from symbols
    *
-   * @param program - The run's program, whose mode (#1428) picks the generator
    * @param symbols - Array of symbols to include in header
    * @param filename - Output filename (used for include guard)
    * @param options - Header generation options
@@ -38,7 +38,6 @@ class HeaderGenerator {
    * @param sourcePath - Optional source file path for header comment
    */
   generate(
-    program: Pick<IProgram, "cppMode">,
     symbols: IHeaderSymbol[],
     filename: string,
     options: IHeaderOptions,
@@ -47,7 +46,9 @@ class HeaderGenerator {
     allKnownEnums?: ReadonlySet<string>,
     sourcePath?: string,
   ): string {
-    const generator = program.cppMode() ? this.cppGenerator : this.cGenerator;
+    const generator = this.program.cppMode()
+      ? this.cppGenerator
+      : this.cGenerator;
 
     return generator.generate(
       symbols,
