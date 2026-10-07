@@ -10,8 +10,8 @@ import { describe, it, expect } from "vitest";
 import CachedSymbolReader from "../CachedSymbolReader";
 import JsonCodec from "../JsonCodec";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
-import ESourceLanguage from "../../types/ESourceLanguage";
-import TJsonValue from "../../types/TJsonValue";
+import ESourceLanguage from "../../../utils/types/ESourceLanguage";
+import TJsonValue from "../../../utils/types/TJsonValue";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 const C_FUNCTION = {

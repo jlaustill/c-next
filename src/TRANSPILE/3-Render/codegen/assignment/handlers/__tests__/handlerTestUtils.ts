@@ -4,7 +4,7 @@
  */
 
 import { vi } from "vitest";
-import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import createMockSymbols from "../../../../../../cli/__tests__/codeGenSymbolsHelpers";
 import TranspileState from "../../../../../TranspileState";
 import SymbolTable from "../../../../../../PARSE/3-Declare/SymbolTable";
 import type ICodeGenApi from "../../../../../types/ICodeGenApi";

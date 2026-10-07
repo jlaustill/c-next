@@ -33,7 +33,7 @@ const ROOT = join(__dirname, "..", "..", "..");
  * 1.3 with the header parsing it calls.
  */
 const FILES = [
-  join("src", "transpiler", "Transpiler.ts"),
+  join("src", "cli", "Transpiler.ts"),
   join("src", "PARSE", "3-Declare", "HeaderDeclarations.ts"),
 ];
 

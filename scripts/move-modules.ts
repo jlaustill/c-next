@@ -119,12 +119,23 @@ function main(): void {
         declaration.setModuleSpecifier(specifier.slice(0, -".ts".length));
         fixed += 1;
       }
+      // ...and drops a `.json` one, which Node's JSON import needs (#1443:
+      // `CacheManager`'s `package.json` came out as `../../../package`).
+      if (
+        specifier.startsWith(".") &&
+        declaration.getAttributes() !== undefined &&
+        !specifier.endsWith(".json") &&
+        existsSync(join(sourceFile.getDirectoryPath(), `${specifier}.json`))
+      ) {
+        declaration.setModuleSpecifier(`${specifier}.json`);
+        fixed += 1;
+      }
     }
   }
 
   console.log(
     `\n${moved} file(s) moved, ${fixed} import specifier(s) had a ` +
-      "`.ts` extension stripped.",
+      "`.ts` extension stripped or a `.json` one restored.",
   );
 
   if (!apply) {

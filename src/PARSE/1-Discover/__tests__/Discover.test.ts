@@ -4,7 +4,7 @@ import Discover from "../Discover";
 import Preprocessor from "../preprocessor/Preprocessor";
 import RunAnchor from "../RunAnchor";
 import EFileType from "../types/EFileType";
-import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
+import MockFileSystem from "../../../cli/__tests__/MockFileSystem";
 import type ISourceGraph from "../types/ISourceGraph";
 
 /**

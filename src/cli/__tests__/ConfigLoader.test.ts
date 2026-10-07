@@ -7,7 +7,7 @@ import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import ConfigLoader from "../ConfigLoader";
-import MockFileSystem from "../../transpiler/__tests__/MockFileSystem";
+import MockFileSystem from "./MockFileSystem";
 import IFileSystem from "../../types/IFileSystem";
 
 describe("ConfigLoader", () => {

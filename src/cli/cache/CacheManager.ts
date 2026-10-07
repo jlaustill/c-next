@@ -18,14 +18,14 @@ import JsonCodec from "./JsonCodec";
 import CachedSymbolReader from "./CachedSymbolReader";
 import IStructFieldInfo from "../../types/symbols/IStructFieldInfo";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
-import ICacheConfig from "../../transpiler/types/ICacheConfig";
-import ICachedFileEntry from "../../transpiler/types/ICachedFileEntry";
+import ICacheConfig from "../types/ICacheConfig";
+import ICachedFileEntry from "../types/ICachedFileEntry";
 import IStructSymbolState from "../../types/symbols/IStructSymbolState";
-import TJsonSafe from "../types/TJsonSafe";
-import TJsonValue from "../types/TJsonValue";
+import TJsonSafe from "../../utils/types/TJsonSafe";
+import TJsonValue from "../../utils/types/TJsonValue";
 import IFileSystem from "../../types/IFileSystem";
 import packageJson from "../../../package.json" with { type: "json" };
-import ESourceLanguage from "../types/ESourceLanguage";
+import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import Write from "../../WRITE/1-Write/Write";
 
 /** Current cache format version - increment when serialization format changes */

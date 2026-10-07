@@ -21,7 +21,7 @@ import CodeGenWalker from "../TRANSPILE/CodeGenWalker";
 import invariant from "../utils/invariant";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
-import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
+import CachedSymbolReader from "./cache/CachedSymbolReader";
 import PublicInterface from "../TRANSPILE/2-Plan/PublicInterface";
 import HeaderGenerator from "../TRANSPILE/3-Render/headers/HeaderGenerator";
 import HeaderRenderer from "../TRANSPILE/3-Render/headers/HeaderRenderer";
@@ -60,7 +60,7 @@ import runAnalyzers from "../TRANSPILE/1-Analyze/runAnalyzers";
 import Diagnostics from "../TRANSPILE/1-Analyze/Diagnostics";
 import type IDiagnostics from "../types/IDiagnostics";
 import type ICodeGenSymbols from "../types/ICodeGenSymbols";
-import CacheManager from "../utils/cache/CacheManager";
+import CacheManager from "./cache/CacheManager";
 import PreprocessCache from "../PARSE/1-Discover/preprocessor/PreprocessCache";
 import ConcurrencyLimit from "../utils/ConcurrencyLimit";
 import ExternalDeclarationOracle from "../PARSE/1-Discover/preprocessor/ExternalDeclarationOracle";
@@ -1641,7 +1641,9 @@ class Transpiler {
     if (this.cacheManager) {
       this.cacheManager.flush();
     }
-    this.preprocessCache?.flush();
+    this.preprocessCache?.flush((path, content) =>
+      Write.file(this.fs, path, content),
+    );
     return result;
   }
 

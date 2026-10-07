@@ -1,4 +1,4 @@
-import TJsonValue from "../types/TJsonValue";
+import TJsonValue from "../../utils/types/TJsonValue";
 
 /**
  * Tag marking an encoded `Map`. Chosen to be something no symbol field is

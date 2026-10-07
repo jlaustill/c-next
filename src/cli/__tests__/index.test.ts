@@ -1,5 +1,5 @@
 /**
- * Unit tests for the CLI entry point (src/index.ts)
+ * Unit tests for the CLI entry point (src/cli/index.ts)
  *
  * Tests the main() function's orchestration of Cli and Runner.
  */
@@ -12,8 +12,8 @@ vi.mock("../cli/Runner");
 
 // Import the main function (exported for testability)
 import main from "../index";
-import Cli from "../cli/Cli";
-import Runner from "../cli/Runner";
+import Cli from "../Cli";
+import Runner from "../Runner";
 
 describe("index.ts (CLI entry point)", () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;

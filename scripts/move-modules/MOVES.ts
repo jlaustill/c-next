@@ -1426,6 +1426,59 @@ const MOVES: readonly IMove[] = [
       "is its own example), so a contract read from outside `lib/` belongs in " +
       "the shared root.",
   },
+  {
+    from: "src/transpiler/types",
+    to: "src/cli/types",
+    because:
+      "#1443: the four host types (#1853). Only the orchestrator, `cli/` and " +
+      "the cache name them, and all three are the host's now.",
+  },
+  {
+    from: "src/utils/cache",
+    to: "src/cli/cache",
+    because:
+      "#1443: the header-symbol cache serves only the orchestrator, and " +
+      "imports 1.3's `SymbolTable` and 3.1's `Write`, so it is not a " +
+      "layer-neutral contract. The host owns the cache's lifetime (#1653).",
+  },
+  {
+    from: "src/transpiler/Transpiler.ts",
+    to: "src/cli/Transpiler.ts",
+    because:
+      "#1443: what is left once its pass logic moved into the passes -- " +
+      "constructing the pipeline, ordering the stages, building the result " +
+      "and owning the caches. README §1: only the host constructs the " +
+      "pipeline.",
+  },
+  {
+    from: "src/transpiler/__tests__",
+    to: "src/cli/__tests__",
+    because: "#1443: tests of the orchestrator, beside it.",
+  },
+  {
+    from: "src/index.ts",
+    to: "src/cli/index.ts",
+    because:
+      "#1443: README §1 -- no bare files at `src/`; each host root is " +
+      "entered through its own `index.ts`.",
+  },
+  {
+    from: "src/__tests__/index.test.ts",
+    to: "src/cli/__tests__/index.test.ts",
+    because: "#1443: the entry point's test follows the entry point.",
+  },
+  {
+    from: "src/tests/utils/FunctionUtils.ts",
+    to: "src/PARSE/3-Declare/__tests__/FunctionUtils.ts",
+    because:
+      "#1443: a test-only fixture factory whose one importer is " +
+      "`3-Declare/__tests__/SymbolRegistry.test.ts`; `tests/` is not a §1 root.",
+  },
+  {
+    from: "src/tests/utils/__tests__/FunctionUtils.test.ts",
+    to: "src/PARSE/3-Declare/__tests__/FunctionUtils.test.ts",
+    because: "#1443: follows `FunctionUtils`.",
+  },
 ];
 
 export default MOVES;

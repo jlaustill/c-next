@@ -9,7 +9,7 @@
  */
 import { describe, it, expect } from "vitest";
 import JsonCodec from "../JsonCodec";
-import TJsonValue from "../../types/TJsonValue";
+import TJsonValue from "../../../utils/types/TJsonValue";
 
 /** Encode then decode, the way a cache write followed by a read does. */
 function roundTrip(value: unknown): unknown {

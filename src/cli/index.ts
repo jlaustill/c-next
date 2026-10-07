@@ -4,9 +4,9 @@
  * A safer C for embedded systems development
  */
 
-import Cli from "./cli/Cli";
-import Runner from "./cli/Runner";
-import ServeCommand from "./cli/serve/ServeCommand";
+import Cli from "./Cli";
+import Runner from "./Runner";
+import ServeCommand from "./serve/ServeCommand";
 
 /**
  * Main entry point for the CLI

@@ -25,8 +25,8 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
-import CacheManager from "../../utils/cache/CacheManager";
-import CachedSymbolReader from "../../utils/cache/CachedSymbolReader";
+import CacheManager from "../cache/CacheManager";
+import CachedSymbolReader from "../cache/CachedSymbolReader";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 const EXTERNAL_HPP = `#ifndef CNX_CACHE_PARITY_EXTERNAL_HPP

@@ -26,7 +26,7 @@ import type TParameterInfo from "../../../../../../types/TParameterInfo";
 import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
 import TranspileState from "../../../../../TranspileState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
-import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import createMockSymbols from "../../../../../../cli/__tests__/codeGenSymbolsHelpers";
 import PROPERTY_NAMES from "../../../../../../utils/constants/PROPERTY_NAMES";
 
 // ========================================================================

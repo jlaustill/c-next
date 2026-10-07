@@ -2,7 +2,7 @@
  * Tests for IFunctionSymbol - C-Next function symbol representation
  */
 import { describe, it, expect } from "vitest";
-import FunctionUtils from "../FunctionUtils";
+import FunctionUtils from "./FunctionUtils";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TTypeUtils from "../../../utils/TTypeUtils";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";

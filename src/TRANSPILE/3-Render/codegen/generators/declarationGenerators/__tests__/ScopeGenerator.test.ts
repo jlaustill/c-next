@@ -27,7 +27,7 @@ import TPlannedScopeVariable from "../../../types/TPlannedScopeVariable";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import AdrProvenance from "../../../../../../instrumentation/AdrProvenance";
 import TranspileState from "../../../../../TranspileState";
-import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import createMockSymbols from "../../../../../../cli/__tests__/codeGenSymbolsHelpers";
 
 /**
  * A stub that answers only what it was given and throws for anything else, so

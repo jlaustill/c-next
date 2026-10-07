@@ -8,7 +8,7 @@ import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 import { describe, it, expect, beforeEach } from "vitest";
 import type IProgram from "../../types/IProgram";
 import DeclaredPointer from "../../utils/DeclaredPointer";
-import installMockSymbols from "../../transpiler/__tests__/installMockSymbols";
+import installMockSymbols from "../../cli/__tests__/installMockSymbols";
 import TranspileState from "../TranspileState";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import ScopeUtils from "../../utils/ScopeUtils";
@@ -18,7 +18,7 @@ import parse from "../../PARSE/3-Declare/cnext/__tests__/testHelpers";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import enterScope from "../../transpiler/__tests__/enterScope";
+import enterScope from "../../cli/__tests__/enterScope";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /** Repo root, for the source-scanning guard in `scopeTypePredicate`. */

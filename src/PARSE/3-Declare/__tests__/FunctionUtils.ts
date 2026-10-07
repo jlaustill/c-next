@@ -4,13 +4,13 @@
  * Provides utilities for creating and inspecting C-Next functions.
  * Scope-qualified C names come from ScopeUtils.getTranspiledCName.
  */
-import type IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
-import type TVisibility from "../../types/TVisibility";
-import type IParameterInfo from "../../types/symbols/IParameterInfo";
-import type TType from "../../types/TType";
-import ESourceLanguage from "../../utils/types/ESourceLanguage";
-import ScopeUtils from "../../utils/ScopeUtils";
-import type ISourceSpan from "../../types/ISourceSpan";
+import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
+import type TVisibility from "../../../types/TVisibility";
+import type IParameterInfo from "../../../types/symbols/IParameterInfo";
+import type TType from "../../../types/TType";
+import ESourceLanguage from "../../../utils/types/ESourceLanguage";
+import ScopeUtils from "../../../utils/ScopeUtils";
+import type ISourceSpan from "../../../types/ISourceSpan";
 
 /**
  * Options for creating a function symbol

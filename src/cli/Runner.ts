@@ -4,10 +4,10 @@
  */
 
 import { basename, dirname, resolve } from "node:path";
-import Transpiler from "../transpiler/Transpiler";
+import Transpiler from "./Transpiler";
 import ICliConfig from "./types/ICliConfig";
 import ResultPrinter from "./ResultPrinter";
-import ITranspilerResult from "../transpiler/types/ITranspilerResult";
+import ITranspilerResult from "./types/ITranspilerResult";
 import InputExpansion from "../PARSE/1-Discover/InputExpansion";
 import NodeFileSystem from "../PARSE/1-Discover/NodeFileSystem";
 import Write from "../WRITE/1-Write/Write";

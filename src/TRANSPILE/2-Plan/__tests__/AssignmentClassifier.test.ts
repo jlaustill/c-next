@@ -9,9 +9,9 @@ import AssignmentHandlerRegistry from "../../3-Render/codegen/assignment/index";
 import IAssignmentContext from "../types/IAssignmentContext";
 import TranspileState from "../../TranspileState";
 import TTypeInfo from "../../../types/TTypeInfo";
-import enterScope from "../../../transpiler/__tests__/enterScope";
+import enterScope from "../../../cli/__tests__/enterScope";
 import HandlerTestUtils from "../../3-Render/codegen/assignment/handlers/__tests__/handlerTestUtils";
-import installMockSymbols from "../../../transpiler/__tests__/installMockSymbols";
+import installMockSymbols from "../../../cli/__tests__/installMockSymbols";
 import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 
 // ========================================================================

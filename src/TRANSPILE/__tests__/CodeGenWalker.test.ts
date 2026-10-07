@@ -7,7 +7,7 @@ import ProgramGeneration from "./ProgramGeneration";
 import PublicInterface from "../2-Plan/PublicInterface";
 import { describe, it, expect, beforeEach } from "vitest";
 import IncludeResolver from "../../PARSE/1-Discover/IncludeResolver";
-import MockFileSystem from "../../transpiler/__tests__/MockFileSystem";
+import MockFileSystem from "../../cli/__tests__/MockFileSystem";
 import CodeGenWalker from "../CodeGenWalker";
 import CodeGenerator from "../3-Render/codegen/CodeGenerator";
 import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";

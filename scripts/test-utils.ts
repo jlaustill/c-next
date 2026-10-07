@@ -215,9 +215,9 @@ function transpileViaCli(
   const codePath = basePath + (cppMode ? ".cpp" : ".c");
   const headerPath = basePath + (cppMode ? ".hpp" : ".h");
 
-  // Run CLI from project root (where src/index.ts exists)
+  // Run CLI from project root (where src/cli/index.ts exists)
   // Clear VITEST env so the CLI's main() function runs
-  // (src/index.ts checks VITEST to skip auto-execution during unit tests)
+  // (src/cli/index.ts checks VITEST to skip auto-execution during unit tests)
   const cleanEnv = { ...process.env };
   delete cleanEnv.VITEST;
 
@@ -231,7 +231,7 @@ function transpileViaCli(
       })
     : spawnSync(
         "npx",
-        ["tsx", join(PROJECT_ROOT, "src/index.ts"), ...cliArgs],
+        ["tsx", join(PROJECT_ROOT, "src/cli/index.ts"), ...cliArgs],
         {
           cwd: cell?.root ?? PROJECT_ROOT,
           encoding: "utf-8",

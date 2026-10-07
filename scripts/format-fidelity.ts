@@ -39,7 +39,7 @@ import chalk from "chalk";
 import * as prettier from "prettier";
 
 import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
-import Transpiler from "../src/transpiler/Transpiler";
+import Transpiler from "../src/cli/Transpiler";
 
 import FileScanner from "./utils/FileScanner";
 import TestUtils from "./test-utils";

@@ -8,8 +8,8 @@
  * the opt-in modifier bought nothing and the default protected nothing.
  */
 import { describe, it, expect } from "vitest";
-import Transpiler from "../../../../transpiler/Transpiler";
-import MockFileSystem from "../../../../transpiler/__tests__/MockFileSystem";
+import Transpiler from "../../../../cli/Transpiler";
+import MockFileSystem from "../../../../cli/__tests__/MockFileSystem";
 
 async function generate(source: string): Promise<string> {
   const transpiler = new Transpiler(
