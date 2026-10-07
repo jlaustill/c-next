@@ -204,8 +204,16 @@ ASSERT the returned issue count is strictly less than the --limit above. If it
   equals the limit the list was truncated: SAY SO and stop, rather than ranking a
   backlog you can only partly see.
 
-DETERMINE ACTIVE_MILESTONE = the open milestone with the most open issues
-  (this repo uses a milestone as its sprint — see docs/WORKFLOW.md, "Releases are issues")
+DETERMINE ACTIVE_MILESTONE = the open milestone with at least one open issue that has
+  the LOWEST version number (this repo uses a milestone as its sprint — see
+  docs/WORKFLOW.md, "Releases are issues"). Compare by version, not by text: names are
+  not cased alike (`v0.3.1`, `V0.4.1`), and `v0.1.10` is later than `v0.1.9`.
+  If the user names a release, use that one.
+
+  Not "the milestone with the most open issues". The two agreed only while the release
+  being finished also happened to be the largest. On 2026-10-07 `v0.3.1` had 4 open and
+  `V0.4.1` had 7, every one of them in Grooming. "Most issues" picked `V0.4.1`, which had
+  nothing to recommend, while `v0.3.1` still had an unblocked card.
 
 PARTITION issues into:
   IN_FLIGHT_DISPLAY = open issues that ARE in IN_FLIGHT_ISSUES (for the report)
