@@ -33,9 +33,12 @@ interface ISourceGraph {
   readonly headerFiles: readonly IDiscoveredFile[];
 
   /**
-   * #1844: per header (by `path`), the text a C compile meets and the
-   * language 1.1 judged from it. Stage 2 parses this text with that
-   * language's parser; nothing after 1.1 reads a header or judges one again.
+   * #1844: per header a C compile opens (by `path`), the text Stage 2 parses
+   * and the language 1.1 judged. The language is always judged on the
+   * header's own lines as the compile meets them; the text is that same
+   * preprocessed text when #945's `#if` check needs it, the header as written
+   * otherwise. A file the walk did not find (one a macro names) has its own
+   * preprocessed lines. Nothing after 1.1 reads a header or judges one again.
    */
   readonly headerSources: ReadonlyMap<string, IHeaderSource>;
 
@@ -49,7 +52,8 @@ interface ISourceGraph {
   /**
    * #1844: whether the run emits C++. Detected, not declared (#1428): any
    * C++ header makes the run C++, unless the config says
-   * `cppRequired: false`, where C++ is E0507 and 1.1 never returns a graph.
+   * `cppRequired: false`, where C++ is E0507: 1.1 returns the graph, as C,
+   * alongside those errors.
    * `cppRequired: true` (`--cpp`) is C++ whatever the headers are.
    */
   readonly cppMode: boolean;

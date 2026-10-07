@@ -39,6 +39,8 @@ type TAlone =
       readonly raw: string;
       /** The files that preprocessing opened from inside the header */
       readonly entered: ReadonlySet<string>;
+      /** That preprocessing's output, with its line markers */
+      readonly preprocessed: string;
     }
   | { readonly source: null; readonly raw: string; readonly error: string };
 
@@ -81,13 +83,18 @@ class HeaderSources {
    * #1914): one a `.cnx` file includes, or one a counted header's
    * preprocessing (or the unit's) opened. The walk also finds headers behind
    * an `#if` that is false; those get no language, no error and no source.
+   * A file a counted header opened that the walk did not find (one a macro
+   * names, or a system header) is judged on its own lines there, so the run
+   * meets its C++ whether or not the unit runs.
    *
    * The preprocessor must be available: Discover rejects a run that includes
    * headers without one.
    *
-   * @returns each settled header's source, by path, in `headers` order; the
-   *   declarations `unit` recovered -- null unless a header needed them; and
-   *   each unsettled header, with the preprocessor's message
+   * @returns each settled header's source, by path, in `headers` order, then
+   *   each opened file the walk did not find; the declarations `unit`
+   *   recovered -- null unless a header needed them; each unsettled header,
+   *   with the preprocessor's message; and, by resolved path, the files each
+   *   header that settled alone opened -- the edges a C compile follows
    */
   static async settle(
     headers: readonly IDiscoveredFile[],
@@ -98,6 +105,7 @@ class HeaderSources {
     readonly sources: ReadonlyMap<string, IHeaderSource>;
     readonly recovered: IRecoveredDeclarations | null;
     readonly unsettled: ReadonlyMap<string, string>;
+    readonly opened: ReadonlyMap<string, ReadonlySet<string>>;
   }> {
     invariant(
       headers.length === 0 || settings.preprocessor.isAvailable(),
@@ -164,6 +172,13 @@ class HeaderSources {
         HeaderSources._sourceOf(file, header.raw, slice, slice),
       );
     });
+    const opened = new Map<string, ReadonlySet<string>>();
+    headers.forEach((file, i) => {
+      const header = alone[i];
+      if (!counted.has(i) || header.source === null) return;
+      opened.set(resolve(file.path), header.entered);
+      HeaderSources._judgeOpenedOnly(header, index, sources);
+    });
     return {
       sources,
       recovered:
@@ -171,7 +186,40 @@ class HeaderSources {
           ? null
           : HeaderSources._recovered(headers, sources, recovery),
       unsettled,
+      opened,
     };
+  }
+
+  /**
+   * Each file `header`'s preprocessing opened that the walk did not find, and
+   * nothing has judged yet, judged on its own lines there.
+   */
+  private static _judgeOpenedOnly(
+    header: {
+      readonly entered: ReadonlySet<string>;
+      readonly preprocessed: string;
+    },
+    index: ReadonlyMap<string, number>,
+    sources: Map<string, IHeaderSource>,
+  ): void {
+    const openedOnly = [...header.entered].filter(
+      (path) => !index.has(path) && !sources.has(path),
+    );
+    if (openedOnly.length === 0) return;
+    const own = LineMarkers.byFile(header.preprocessed);
+    for (const path of openedOnly) {
+      const text = own.get(path) ?? "";
+      sources.set(
+        path,
+        Object.freeze({
+          text,
+          language: HeaderSources._languageOf(
+            FileDiscovery.classifyFile(path).type,
+            text,
+          ),
+        }),
+      );
+    }
   }
 
   /**
@@ -247,6 +295,7 @@ class HeaderSources {
       defines: { ...settings.defines },
       includePaths: [...searchPaths],
       keepLineDirectives: true,
+      asIncluded: true,
       ...(settings.cache === null ? {} : { cache: settings.cache }),
     };
     const result = await settings.limit(() =>
@@ -301,6 +350,7 @@ class HeaderSources {
       ),
       raw,
       entered: LineMarkers.entered(preprocessed, file.path),
+      preprocessed,
     };
   }
 

@@ -5,7 +5,15 @@
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { basename, dirname, join, resolve } from "node:path";
+import {
+  basename,
+  dirname,
+  extname,
+  join,
+  relative,
+  resolve,
+  sep,
+} from "node:path";
 import IToolchain from "./types/IToolchain";
 import IPreprocessResult from "./types/IPreprocessResult";
 import ISourceMapping from "./types/ISourceMapping";
@@ -20,7 +28,7 @@ import PreprocessCache from "./PreprocessCache";
 const execFileAsync = promisify(execFile);
 
 /** What one run of the compiler printed, and why it failed, if it did */
-type IPreprocessOutcome = Omit<IPreprocessCacheEntry, "deps">;
+type IPreprocessOutcome = Omit<IPreprocessCacheEntry, "deps" | "absent">;
 
 /** The name a string's input is keyed by, in place of its temporary file */
 const STRING_INPUT = join("<cnext-string>", "input");
@@ -65,7 +73,22 @@ class Preprocessor {
     filePath: string,
     options: IPreprocessOptions = {},
   ): Promise<IPreprocessResult> {
-    return this.run(filePath, options, null);
+    const { asIncluded, ...rest } = options;
+    // A `"` cannot be spelled in a quoted include
+    if (!asIncluded || filePath.includes('"')) {
+      return this.run(filePath, rest, null);
+    }
+    const result = await this.preprocessString(
+      `#include "${resolve(filePath)}"\n`,
+      `cnext-include${extname(filePath)}`,
+      // The file's own directory stays on the path, as for a main file
+      {
+        ...rest,
+        includePaths: [...(rest.includePaths ?? []), dirname(filePath)],
+      },
+    );
+    result.originalFile = filePath;
+    return result;
   }
 
   /**
@@ -178,6 +201,12 @@ class Preprocessor {
         (path) => path !== input,
       );
       if (read.length > 0) {
+        // The string's own temporary directory is gone after the run
+        const search = [
+          ...this.defaultIncludePaths,
+          ...(options.includePaths ?? []),
+          ...(isString ? [] : [dirname(filePath)]),
+        ].map((dir) => resolve(dir));
         try {
           cache.record(key, {
             ...outcome,
@@ -185,6 +214,7 @@ class Preprocessor {
               path,
               this.fs.stat(path).mtimeMs,
             ]),
+            absent: this.shadowing(read, search),
           });
         } catch {
           // A file it read is already gone: nothing to key the entry on
@@ -192,6 +222,31 @@ class Preprocessor {
       }
       return outcome;
     });
+  }
+
+  /**
+   * #1844: where a file added would be found ahead of one the run read -- the
+   * same name in an earlier directory of its search path -- that does not
+   * exist now. A file under several search directories (one inside another)
+   * may have been found through any of them, so each counts; a candidate that
+   * exists now was not ahead of it.
+   */
+  private shadowing(
+    read: readonly string[],
+    search: readonly string[],
+  ): string[] {
+    const absent = new Set<string>();
+    for (const file of read) {
+      search.forEach((found, k) => {
+        if (!file.startsWith(found.endsWith(sep) ? found : found + sep)) return;
+        const name = relative(found, file);
+        for (const dir of search.slice(0, k)) {
+          const candidate = join(dir, name);
+          if (!this.fs.exists(candidate)) absent.add(candidate);
+        }
+      });
+    }
+    return [...absent];
   }
 
   /**

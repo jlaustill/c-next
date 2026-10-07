@@ -9,6 +9,11 @@ interface IPreprocessCacheEntry {
   readonly error: string | null;
   /** The compiler's dependency output (`-MD`), as `[path, mtimeMs]` pairs */
   readonly deps: readonly (readonly [string, number])[];
+  /**
+   * Where a file added would be found ahead of one in `deps` -- the same name
+   * in an earlier directory of its search path. None of them existed.
+   */
+  readonly absent: readonly string[];
 }
 
 export default IPreprocessCacheEntry;

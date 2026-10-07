@@ -11,7 +11,13 @@
  * #1851 lived -- it re-sniffed the RAW text a cold run had preprocessed away.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdtempSync, writeFileSync, rmSync, utimesSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  writeFileSync,
+  rmSync,
+  utimesSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
@@ -336,6 +342,127 @@ describe("a header's language is decided once, in 1.1 (#1844)", () => {
       for (const result of runs) {
         expect(sitesOf(result)).toEqual(["1:0 E0517 lib.h"]);
       }
+    });
+  });
+
+  describe("what a C compile opens decides it (#1914 review, round 2)", () => {
+    it("reports C++ at no include whose compile never opens it", async (ctx) => {
+      if (!preprocessorAvailable) ctx.skip();
+
+      // x.hpp is counted through line 2; c.h opens it only for C++
+      const runs = await coldThenWarmMain(
+        {
+          "c.h": '#ifdef __cplusplus\n#include "x.hpp"\n#endif\nint c(void);\n',
+          "x.hpp": "namespace X { int x; }\n",
+        },
+        '#include "c.h"\n#include "x.hpp"\n\nvoid main() { }\n',
+        false,
+      );
+
+      for (const result of runs) {
+        expect(sitesOf(result)).toEqual(["2:0 E0507 x.hpp"]);
+      }
+    });
+
+    it("reports a header that cannot preprocess at no include whose compile never opens it", async (ctx) => {
+      if (!preprocessorAvailable) ctx.skip();
+
+      const runs = await coldThenWarmMain(
+        {
+          "c.h": '#if 0\n#include "bad.h"\n#endif\nint c(void);\n',
+          "bad.h": "#include <cnext_no_such_header_zzz.h>\n",
+        },
+        '#include "c.h"\n#include "bad.h"\n\nvoid main() { }\n',
+      );
+
+      for (const result of runs) {
+        expect(sitesOf(result)).toEqual(["2:0 E0517 bad.h"]);
+      }
+    });
+
+    /** extra.h is named by a macro, so the walk never finds it */
+    const MACRO_NAMED = (extra: string): Record<string, string> => ({
+      "a.h":
+        '#define EXTRA_HEADER "extra.h"\n#include EXTRA_HEADER\nint a(void);\n',
+      "extra.h": extra,
+    });
+
+    it("judges a file only a macro-named include opens, with no header failing", async (ctx) => {
+      if (!preprocessorAvailable) ctx.skip();
+
+      const cpp = MACRO_NAMED("namespace Extra { int extra_v; }\n");
+      for (const result of await coldThenWarm(cpp, "a.h", false)) {
+        expect(sitesOf(result)).toEqual(["1:0 E0507 extra.h"]);
+      }
+      for (const result of await coldThenWarm(cpp, "a.h")) {
+        expect(errorsOf(result)).toBe("");
+        expect(emitted(result, ".cpp")).toBe(true);
+      }
+    });
+
+    it("control: the same file in C is C", async (ctx) => {
+      if (!preprocessorAvailable) ctx.skip();
+
+      const runs = await coldThenWarm(MACRO_NAMED("int extra_v;\n"), "a.h");
+
+      for (const result of runs) {
+        expect(errorsOf(result)).toBe("");
+        expect(emitted(result, ".c")).toBe(true);
+      }
+    });
+
+    it("a warm run sees a header added ahead of one on the search path", async (ctx) => {
+      if (!preprocessorAvailable) ctx.skip();
+
+      const [d1, d2] = [join(dir, "d1"), join(dir, "d2")];
+      mkdirSync(d1);
+      mkdirSync(d2);
+      writeFileSync(
+        join(d2, "outer.h"),
+        "#include <inner.h>\nint outer(void);\n",
+      );
+      writeFileSync(join(d2, "inner.h"), "int inner(void);\n");
+      writeFileSync(
+        join(dir, "main.cnx"),
+        '#include "outer.h"\n\nvoid main() { }\n',
+      );
+      const run = () =>
+        new Transpiler(
+          {
+            input: join(dir, "main.cnx"),
+            includeDirs: [d1, d2],
+            outDir: dir,
+            headerOutDir: dir,
+            noCache: false,
+            target: "host",
+          },
+          NodeFileSystem.instance,
+        ).transpile({ kind: "files" });
+
+      const cold = await run();
+      expect(errorsOf(cold)).toBe("");
+      expect(emitted(cold, ".c")).toBe(true);
+
+      // Nothing outer.h's compile read changes; d1 now comes first
+      writeFileSync(join(d1, "inner.h"), "namespace Shadow { int w; }\n");
+      const warm = await run();
+      expect(errorsOf(warm)).toBe("");
+      expect(emitted(warm, ".cpp")).toBe(true);
+    });
+
+    it("prints no #pragma once warning, cold or warm", async (ctx) => {
+      if (!preprocessorAvailable) ctx.skip();
+      const warn = vi.spyOn(console, "warn");
+
+      const runs = await coldThenWarm(
+        { "once.h": "#pragma once\nint once(void);\n" },
+        "once.h",
+      );
+
+      for (const result of runs) expect(errorsOf(result)).toBe("");
+      const printed = warn.mock.calls.map((call) => call.join(" ")).join("\n");
+      warn.mockRestore();
+      expect(printed).not.toContain("pragma once");
     });
   });
 

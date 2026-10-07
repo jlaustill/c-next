@@ -169,13 +169,12 @@ describe("Transpiler coverage tests", () => {
   });
 
   // ==========================================================================
-  // Issue #1319: E0507 -- C++ met in a run that did not declare C++.
+  // Issues #1319, #1844: E0507 -- C++ met in a run that asks for C.
   //
-  // The transpiler used to switch output languages on its own when an included
-  // header turned out to be C++. That made the fact discovered, global and
-  // settled mid-run all at once, which is what produced #250, #941, #1139,
-  // #1425 and -- worst -- #1171, where auto-const inference was gated on it, so
-  // an include added to one file changed what was inferred about another.
+  // A run that says nothing is C++ once 1.1 meets a C++ header (#1428); 1.1
+  // settles that once, before anything reads the mode, so it no longer flips
+  // mid-run (#250, #941, #1139, #1425, #1171). Only `cppRequired: false`, an
+  // explicit C-only run, still rejects C++ -- these tests pass `false`.
   // ==========================================================================
 
   describe("undeclared C++ is rejected (#1319, E0507)", () => {

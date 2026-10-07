@@ -179,10 +179,15 @@ class Discover {
         headers: new Set(files.headerIncludes.map(({ header }) => header)),
       },
     );
-    discovery._unsettled(files, settled.unsettled);
+    discovery._unsettled(
+      files.headerIncludes,
+      settled.unsettled,
+      settled.opened,
+    );
     const cppMode = discovery._cppMode(
-      files,
+      files.headerIncludes,
       settled.sources,
+      settled.opened,
       settled.recovered,
       unit.sites,
       settings.cppRequired,
@@ -208,13 +213,20 @@ class Discover {
    * `cppRequired: true` (or `--cpp`) is C++ with only C headers.
    */
   private _cppMode(
-    files: Pick<TDiscoveredFiles, "headerIncludes" | "headerEdges">,
+    includes: readonly IHeaderInclude[],
     sources: ReadonlyMap<string, IHeaderSource>,
+    opened: ReadonlyMap<string, ReadonlySet<string>>,
     recovered: IRecoveredDeclarations | null,
     unitSites: ReadonlyMap<string, readonly ISourceSite[]>,
     cppRequired: boolean | undefined,
   ): boolean {
-    const met = Discover._cppMet(files, sources, recovered, unitSites);
+    const met = Discover._cppMet(
+      includes,
+      sources,
+      opened,
+      recovered,
+      unitSites,
+    );
     if (cppRequired === false) {
       for (const cpp of Discover._inSourceOrder([...met.values()])) {
         this._cppInCRun(cpp);
@@ -226,16 +238,20 @@ class Discover {
 
   /** Each `.cnx` include through which the run meets C++, and the C++ it meets */
   private static _cppMet(
-    files: Pick<TDiscoveredFiles, "headerIncludes" | "headerEdges">,
+    includes: readonly IHeaderInclude[],
     sources: ReadonlyMap<string, IHeaderSource>,
+    opened: ReadonlyMap<string, ReadonlySet<string>>,
     recovered: IRecoveredDeclarations | null,
     unitSites: ReadonlyMap<string, readonly ISourceSite[]>,
   ): ReadonlyMap<string, { path: string; site: ISourceSite }> {
+    const languages = new Map(
+      [...sources].map(([path, { language }]) => [resolve(path), language]),
+    );
     const isCpp = (path: string): boolean =>
-      sources.get(path)?.language === EHeaderLanguage.Cpp;
+      languages.get(path) === EHeaderLanguage.Cpp;
     const met = new Map<string, { path: string; site: ISourceSite }>();
-    for (const { header, site } of files.headerIncludes) {
-      const cpp = Discover._reachedFrom(header, files.headerEdges).find(isCpp);
+    for (const { header, site } of includes) {
+      const cpp = Discover._opensFrom(header, opened).find(isCpp);
       if (cpp !== undefined)
         met.set(Discover._siteKey(site), { path: cpp, site });
     }
@@ -308,15 +324,17 @@ class Discover {
    * it, with the preprocessor's own message as help.
    */
   private _unsettled(
-    files: Pick<TDiscoveredFiles, "headerIncludes" | "headerEdges">,
+    includes: readonly IHeaderInclude[],
     unsettled: ReadonlyMap<string, string>,
+    opened: ReadonlyMap<string, ReadonlySet<string>>,
   ): void {
     if (unsettled.size === 0) return;
-    for (const { header, site } of Discover._inSourceOrder(
-      files.headerIncludes,
-    )) {
-      for (const path of Discover._reachedFrom(header, files.headerEdges)) {
-        const message = unsettled.get(path);
+    const messages = new Map(
+      [...unsettled].map(([path, message]) => [resolve(path), message]),
+    );
+    for (const { header, site } of Discover._inSourceOrder(includes)) {
+      for (const path of Discover._opensFrom(header, opened)) {
+        const message = messages.get(path);
         if (message === undefined) continue;
         this.errors.push({
           ...site,
@@ -332,21 +350,16 @@ class Discover {
     }
   }
 
-  /** `header`, then every header the walk found it includes, depth first */
-  private static _reachedFrom(
+  /**
+   * `header`, then each file a C compile of it opened, by resolved path. The
+   * walk's edges ignore `#if`, so they are not the compile's (#1844).
+   */
+  private static _opensFrom(
     header: string,
-    edges: ReadonlyMap<string, readonly string[]>,
+    opened: ReadonlyMap<string, ReadonlySet<string>>,
   ): string[] {
-    const reached: string[] = [];
-    const seen = new Set<string>();
-    const visit = (path: string): void => {
-      if (seen.has(path)) return;
-      seen.add(path);
-      reached.push(path);
-      for (const next of edges.get(path) ?? []) visit(next);
-    };
-    visit(header);
-    return reached;
+    const path = resolve(header);
+    return [path, ...(opened.get(path) ?? [])];
   }
 
   private static _siteKey(site: ISourceSite): string {
@@ -359,7 +372,10 @@ class Discover {
   ): T[] {
     return [...entries].sort(
       (a, b) =>
-        a.site.sourcePath.localeCompare(b.site.sourcePath) ||
+        // By code unit, not locale: one order on every machine
+        (a.site.sourcePath < b.site.sourcePath
+          ? -1
+          : Number(a.site.sourcePath > b.site.sourcePath)) ||
         a.site.line - b.site.line ||
         a.site.column - b.site.column,
     );

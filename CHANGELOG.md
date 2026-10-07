@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   headers needs a C preprocessor (E0516 when there is none), and a header that
   cannot be preprocessed -- alone, after the headers before it, or in the #985
   translation unit -- is E0517 at the include that reached it, with the
-  preprocessor's message as help. No header is read raw any more.
+  preprocessor's message as help. No header's language is judged on its raw text any more.
 
 ### Changed
 
