@@ -18,7 +18,7 @@ interface IYargsResult {
   o?: string;
   output?: string;
   "header-out"?: string;
-  cpp: boolean;
+  cpp?: boolean;
   include: string[];
   target?: string;
   "pio-env"?: string;
@@ -28,7 +28,6 @@ interface IYargsResult {
   config: boolean;
   verbose: boolean;
   debug: boolean;
-  preprocess: boolean;
   cache: boolean;
   "pio-install": boolean;
   "pio-uninstall": boolean;
@@ -66,8 +65,11 @@ A safer C for embedded systems development.`,
       // Compilation options
       .option("cpp", {
         type: "boolean",
-        describe: "Output .cpp instead of .c (for C++ features like Serial)",
-        default: false,
+        // #1844: no default. Unset, 1.1 detects the mode from the headers;
+        // --no-cpp asks for C, where a C++ header is E0507.
+        describe:
+          "Output .cpp instead of .c (for C++ features like Serial). " +
+          "Unset: detected from the headers; --no-cpp forces C",
       })
       .option("include", {
         type: "string",
@@ -122,12 +124,6 @@ A safer C for embedded systems development.`,
         describe: "Generate panic-on-overflow helpers (ADR-044)",
         default: false,
       })
-      .option("preprocess", {
-        type: "boolean",
-        describe:
-          "Run C preprocessor on headers (use --no-preprocess to disable)",
-        default: true,
-      })
       .option("cache", {
         type: "boolean",
         describe: "Enable symbol cache (use --no-cache to disable)",
@@ -165,7 +161,7 @@ Config files (searched in order, JSON format):
   cnext.config.json, .cnext.json, .cnextrc
 
 Config options:
-  cppRequired    Output .cpp instead of .c (boolean)
+  cppRequired    Output .cpp (true) or .c (false); unset: detected (boolean)
   noCache        Disable symbol caching (boolean)
   include        Additional include directories (string[])
   output         Output directory for generated files (string)
@@ -252,7 +248,6 @@ class ArgParser {
       cppRequired: parsed.cpp,
       target: parsed.target,
       pioEnv: parsed["pio-env"],
-      preprocess: parsed.preprocess,
       verbose: parsed.verbose,
       noCache: !parsed.cache,
       parseOnly: parsed.parse,

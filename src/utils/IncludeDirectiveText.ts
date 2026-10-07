@@ -32,9 +32,26 @@ class IncludeDirectiveText {
    * The key 1.1 records its answers under and later passes read them by.
    */
   static join(include: { path: string; isLocal: boolean }): string {
-    return include.isLocal
-      ? `#include "${include.path}"`
-      : `#include <${include.path}>`;
+    return IncludeDirectiveText.ofSpec(IncludeDirectiveText._spelled(include));
+  }
+
+  /** The directive that includes `spec` (`"x.h"` or `<x.h>`), as `join` writes it */
+  static ofSpec(spec: string): string {
+    return `#include ${spec}`;
+  }
+
+  /**
+   * The spec a translation unit includes `text` by: `"x.h"` or `<x.h>`, or
+   * null when `text` names nothing.
+   */
+  static spec(text: string): string | null {
+    const include = IncludeDirectiveText.split(text);
+    return include === null ? null : IncludeDirectiveText._spelled(include);
+  }
+
+  /** `"path"` or `<path>`: the one place a form is spelled */
+  private static _spelled(include: { path: string; isLocal: boolean }): string {
+    return include.isLocal ? `"${include.path}"` : `<${include.path}>`;
   }
 }
 

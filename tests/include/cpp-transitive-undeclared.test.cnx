@@ -1,0 +1,15 @@
+// test-error
+// test-adr: 010
+// E0507: a C++ header reached through a C one, in a run that asked for C.
+// This file should FAIL to transpile with E0507.
+//
+// Issue #1844: the transitive case. The diagnostic is at line 13, this file's
+// own include of the C header that reaches the .hpp, as the owner's anchor
+// ruling on #1542 requires. `external-status.h` on line 12 is the negative
+// control and stays unflagged. The harness's C-mode run passes --no-cpp, which
+// says `cppRequired: false`.
+//
+#include "external-status.h"
+#include "external-includes-cpp.h"
+
+void main() {}

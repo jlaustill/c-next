@@ -86,6 +86,13 @@ interface IFileIncludes {
    * supplies (#424), and #985's translation-unit recovery is built from them.
    */
   readonly cHeaderIncludes: readonly string[];
+
+  /**
+   * #1844 review: the same includes as a translation unit names them, `"x.h"`
+   * or `<x.h>`, in source order. 1.1's #985 unit and the macro dump both read
+   * this list, rather than each deriving it.
+   */
+  readonly cHeaderSpecs: readonly string[];
 }
 
 export default IFileIncludes;

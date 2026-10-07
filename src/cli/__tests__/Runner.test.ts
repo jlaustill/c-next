@@ -48,7 +48,6 @@ describe("Runner", () => {
       outputPath: "",
       includeDirs: [],
       defines: {},
-      preprocess: true,
       verbose: false,
       cppRequired: false,
       noCache: false,
@@ -166,7 +165,6 @@ describe("Runner", () => {
         outputPath: "build/",
         includeDirs: ["/inc"],
         defines: { DEBUG: true },
-        preprocess: false,
         verbose: false,
         cppRequired: true,
         noCache: true,
@@ -187,7 +185,6 @@ describe("Runner", () => {
       );
 
       const transpilerCall = vi.mocked(Transpiler).mock.calls[0][0];
-      expect(transpilerCall.preprocess).toBe(false);
       expect(transpilerCall.cppRequired).toBe(true);
       expect(transpilerCall.noCache).toBe(true);
       expect(transpilerCall.parseOnly).toBe(true);

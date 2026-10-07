@@ -1,4 +1,5 @@
 import IToolchain from "./IToolchain";
+import type PreprocessCache from "../PreprocessCache";
 
 /**
  * Preprocessor options
@@ -32,6 +33,19 @@ interface IPreprocessOptions {
    * FreeRTOS `pdMS_TO_TICKS`) that a plain preprocess consumes at use sites.
    */
   dumpMacros?: boolean;
+
+  /**
+   * #1844: where the run's outcome is kept, keyed by its whole command line
+   * and valid while no file it read changes. Absent, the compiler always runs.
+   */
+  cache?: PreprocessCache;
+
+  /**
+   * #1844: preprocess the file as a build meets a header -- `#include`d from a
+   * one-line main file, not as the main file itself -- so `#pragma once` and
+   * `#include_next` behave as they do in a compile.
+   */
+  asIncluded?: boolean;
 }
 
 export default IPreprocessOptions;

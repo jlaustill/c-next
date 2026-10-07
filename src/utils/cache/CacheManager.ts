@@ -159,7 +159,6 @@ class CacheManager {
     needsStructKeyword: string[];
     enumBitWidth: Map<string, number>;
     structState: TJsonSafe<Required<IStructSymbolState>>;
-    preprocessFailed: boolean;
   } | null {
     if (!this.cache) return null;
 
@@ -211,7 +210,6 @@ class CacheManager {
       needsStructKeyword: cachedEntry.needsStructKeyword ?? [],
       enumBitWidth,
       structState,
-      preprocessFailed: cachedEntry.preprocessFailed ?? false,
     };
   }
 
@@ -230,7 +228,6 @@ class CacheManager {
       structState: TJsonSafe<Required<IStructSymbolState>>;
       needsStructKeyword?: string[];
       enumBitWidth?: Map<string, number>;
-      preprocessFailed?: boolean;
     },
   ): void {
     if (!this.cache) return;
@@ -273,7 +270,6 @@ class CacheManager {
       needsStructKeyword: options.needsStructKeyword,
       enumBitWidth: serializedEnumBitWidth,
       structState: options.structState,
-      preprocessFailed: options.preprocessFailed,
     };
 
     this.cache.set(filePath, entry);
@@ -290,14 +286,8 @@ class CacheManager {
    *
    * @param filePath - Path to the file being cached
    * @param symbolTable - SymbolTable containing all parsed symbols
-   * @param preprocessFailed - Issue #985: header fell back to raw content, so its
-   *   symbols are degraded and a warm-cache build must re-run recovery
    */
-  setSymbolsFromTable(
-    filePath: string,
-    symbolTable: SymbolTable,
-    preprocessFailed = false,
-  ): void {
+  setSymbolsFromTable(filePath: string, symbolTable: SymbolTable): void {
     // Issue #1225: encode the real typed symbols. JsonCodec copies every
     // field rather than naming any, so a field added to the symbol model is
     // cached without anyone editing this method -- which is what the old
@@ -330,7 +320,6 @@ class CacheManager {
       structState: symbolTable.serializeStructState(),
       needsStructKeyword,
       enumBitWidth,
-      preprocessFailed,
     });
   }
 

@@ -52,7 +52,6 @@ describe("index.ts (CLI entry point)", () => {
       outputPath: "",
       includeDirs: [],
       defines: {},
-      preprocess: true,
       verbose: false,
       cppRequired: false,
       noCache: false,

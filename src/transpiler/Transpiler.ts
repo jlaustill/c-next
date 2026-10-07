@@ -37,7 +37,6 @@ import ExternalTypeHeaderBuilder from "../TRANSPILE/3-Render/headers/ExternalTyp
 import HeaderGeneratorUtils from "../TRANSPILE/3-Render/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "../TRANSPILE/3-Render/headers/types/IHeaderEmissionFacts";
 import IHeaderCallbackType from "../types/IHeaderCallbackType";
-import IncludeDirectiveText from "../utils/IncludeDirectiveText";
 import SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import type TranspileState from "../TRANSPILE/TranspileState";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
@@ -53,10 +52,11 @@ import HeaderSymbolAdapter from "../TRANSPILE/3-Render/headers/adapters/HeaderSy
 import IHeaderSymbol from "../TRANSPILE/3-Render/headers/types/IHeaderSymbol";
 import TSymbol from "../types/symbols/TSymbol";
 
-import EFileType from "../PARSE/1-Discover/types/EFileType";
 import IDiscoveredFile from "../PARSE/1-Discover/types/IDiscoveredFile";
+import EHeaderLanguage from "../PARSE/1-Discover/types/EHeaderLanguage";
+import type IHeaderSource from "../PARSE/1-Discover/types/IHeaderSource";
+import type IRecoveredSlice from "../PARSE/1-Discover/types/IRecoveredSlice";
 import OutputExtensions from "../utils/OutputExtensions";
-import DeclarationSite from "../utils/DeclarationSite";
 import type IOutputExtensions from "../types/IOutputExtensions";
 
 import ParserUtils from "../utils/ParserUtils";
@@ -78,9 +78,8 @@ import Diagnostics from "../TRANSPILE/1-Analyze/Diagnostics";
 import type IDiagnostics from "../types/IDiagnostics";
 import type ICodeGenSymbols from "../types/ICodeGenSymbols";
 import CacheManager from "../utils/cache/CacheManager";
+import PreprocessCache from "../PARSE/1-Discover/preprocessor/PreprocessCache";
 import ConcurrencyLimit from "../utils/ConcurrencyLimit";
-import detectCppSyntax from "../PARSE/1-Discover/detectCppSyntax";
-import detectAssemblySyntax from "../PARSE/1-Discover/detectAssemblySyntax";
 import ExternalDeclarationOracle from "../PARSE/1-Discover/preprocessor/ExternalDeclarationOracle";
 import TypedefParamParser from "../TRANSPILE/3-Render/codegen/helpers/TypedefParamParser";
 import type IRecordedRequirement from "../types/IRecordedRequirement";
@@ -96,29 +95,28 @@ type TCachedHeader = NonNullable<ReturnType<CacheManager["getSymbols"]>>;
 /** A cache entry's symbols, once validated. */
 type TCachedSymbols = NonNullable<ReturnType<typeof CachedSymbolReader.read>>;
 
-/** Runs a preprocessor call within the run's process limit. */
-type TPreprocessLimit = ReturnType<typeof ConcurrencyLimit.create>;
+/**
+ * The config with every default filled in, except `cppRequired`: unset is
+ * not false (#1844). Unset, 1.1 detects the run's mode from its headers.
+ */
+type TRunConfig = Required<Omit<ITranspilerConfig, "cppRequired">> &
+  Pick<ITranspilerConfig, "cppRequired">;
 
 /**
- * #1817: one header, settled before any of its symbols is written.
- *
- * `usable` is whether it preprocessed cleanly, which is what makes it macro
- * context for a later header's retry. A header whose preparation threw is not.
+ * #1817: one header, settled before any of its symbols is written: its cache
+ * entry, or the source 1.1 settled for it (#1844). A header whose cache entry
+ * threw is `failed`.
  */
 type THeaderPreparation = {
   readonly file: IDiscoveredFile;
-  readonly usable: boolean;
+  readonly source: IHeaderSource;
 } & (
   | {
       readonly kind: "cached";
       readonly entry: TCachedHeader;
       readonly symbols: TCachedSymbols;
     }
-  | {
-      readonly kind: "content";
-      readonly content: string;
-      readonly preprocessError?: string;
-    }
+  | { readonly kind: "parse" }
   | { readonly kind: "failed"; readonly error: unknown }
 );
 
@@ -126,28 +124,25 @@ type THeaderPreparation = {
  * Unified transpiler
  */
 class Transpiler {
-  private readonly config: Required<ITranspilerConfig>;
+  private readonly config: TRunConfig;
   private readonly codeGenerator: CodeGenWalker;
   private readonly headerGenerator: HeaderGenerator;
   private readonly warnings: string[];
   private readonly cacheManager: CacheManager | null;
+  private readonly preprocessCache: PreprocessCache | null;
   /**
-   * Issue #211, #1319: does this run emit C++?
+   * Issue #211, #1319, #1844: does this run emit C++? 1.1 Discover's answer
+   * (`ISourceGraph.cppMode`), copied here when each run's graph is built so
+   * `isCppMode()` still answers between runs (serve reports it after one).
    *
-   * DECLARED, not discovered. It comes from config (`cppRequired`) or `--cpp`,
-   * is known before any file is read, and never changes. A C++ header met in a
-   * run that did not declare C++ is E0507, not a silent switch to C++ output.
-   *
-   * It used to be a monotone latch raised by reading an included header, which
-   * made it discovered, global and settled *mid-run* at the same time. Any one
-   * of those alone is harmless; together they produced #250, #941, #1139, #1425
-   * and #1171 -- the last of which gated auto-const inference, so adding an
-   * include to one file could change what the transpiler inferred about
-   * another. Declaring it removes the class: there is no ordering to get wrong,
-   * nothing to read before it settles, and serve mode -- one Transpiler reused
-   * for an editor session -- is correct by construction rather than by luck.
+   * Settled once per run, before any file is parsed, and never changed
+   * mid-run. It used to be a monotone latch raised by Stage 2 reading an
+   * included header, which made it settled *mid-run* -- the cause of #250,
+   * #941, #1139, #1425 and #1171. #1319 made it declared-only; #1428 ruled
+   * that 1.1 detects it, which is early enough that nothing reads it before
+   * it settles.
    */
-  private readonly cppMode: boolean;
+  private cppMode: boolean;
 
   /**
    * Issue #1319: the run's output extensions -- the interim owner of a decision
@@ -161,13 +156,6 @@ class Transpiler {
   private get outputExtensions(): IOutputExtensions {
     return OutputExtensions.forCppMode(this.cppMode);
   }
-
-  /**
-   * Set when any C header failed standalone preprocessing (fell back to raw
-   * text). Gates the ExternalDeclarationOracle recovery pass (Issue #985) so
-   * only projects with unresolvable framework headers pay its cost.
-   */
-  private anyHeaderPreprocessFailed = false;
 
   /** #1688: each C-Next file's header macros, by the file's path */
   private readonly headerMacrosByFile = new Map<
@@ -291,8 +279,7 @@ class Transpiler {
       outDir: config.outDir ?? "",
       headerOutDir: config.headerOutDir ?? "",
       defines: config.defines ?? {},
-      preprocess: config.preprocess ?? true,
-      cppRequired: config.cppRequired ?? false,
+      cppRequired: config.cppRequired,
       parseOnly: config.parseOnly ?? false,
       debugMode: config.debugMode ?? false,
       target: config.target ?? "",
@@ -301,8 +288,8 @@ class Transpiler {
       noCache: config.noCache ?? false,
     };
 
-    // Issue #211, #1319: the single source of the fact. Absent means C, which
-    // is the default target, not a guess about what the includes might contain.
+    // Until a run's 1.1 settles it from the headers (#1844), what the config
+    // says, or C.
     this.cppMode = this.config.cppRequired ?? false;
 
     this.codeGenerator = new CodeGenWalker();
@@ -317,6 +304,11 @@ class Transpiler {
     this.cacheManager =
       !this.config.noCache && this.anchor.projectRoot
         ? new CacheManager(this.anchor.projectRoot, this.fs)
+        : null;
+    // #1844: and the preprocessor's runs, so a warm run starts none
+    this.preprocessCache =
+      !this.config.noCache && this.anchor.projectRoot
+        ? new PreprocessCache(this.anchor.projectRoot, this.fs)
         : null;
   }
 
@@ -354,16 +346,17 @@ class Transpiler {
       this._initializeRun();
 
       // Stage 1: 1.1 Discover
-      const discovered = Discover.run(
+      const discovered = await Discover.run(
         input,
         this.anchor,
         this.config,
-        this.outputExtensions.header,
         this.fs,
         this.warnings,
+        this.preprocessCache,
       );
       this.anchor = discovered.anchor;
       this.sourceGraph = discovered.graph;
+      this.cppMode = discovered.graph.cppMode;
       const pipelineInput = discovered.graph;
       if (discovered.errors.length > 0) {
         result.errors.push(...discovered.errors);
@@ -435,11 +428,11 @@ class Transpiler {
   ): Promise<void> {
     // Stage 2: Collect symbols from C/C++ headers and build analyzer context
     // Issue #945: Now async for preprocessing support
-    await this._collectAllHeaderSymbols(input, result);
+    this._collectAllHeaderSymbols(input, result);
 
     // Issue #985 recovery: when standalone header preprocessing missed framework
     // symbols, recover their declared names via translation-unit preprocessing.
-    await this._collectExternalDeclarations(input);
+    this._collectExternalDeclarations(input);
 
     // #1688: the macros each file's C includes define, typed (ADR-024)
     await this._collectHeaderMacros(input);
@@ -1228,14 +1221,13 @@ class Transpiler {
     // constructor, so neither was ever cleared. `warnings` is pushed to per run
     // and copied onto every result, which made three runs of one source on one
     // transpiler report 1, then 2, then 3 copies of the same missing-header
-    // warning; `anyHeaderPreprocessFailed` latches, so one failed preprocess
-    // left the #985 recovery path armed for every later run. `ServeCommand`
+    // warning (#1844: the #985 latch that also stuck is now each run's graph).
+    // `ServeCommand`
     // holds a static transpiler, so "later run" is the normal case there.
     //
     // `warnings` is `readonly`, so it is emptied rather than replaced -- the
     // result copies it with a spread, so nothing holds the array itself.
     this.warnings.length = 0;
-    this.anyHeaderPreprocessFailed = false;
     this.headerMacrosByFile.clear();
     this.headerMacrosUnread.clear();
     // #1323: a stale entry here would let one run's header content leak into
@@ -1308,18 +1300,17 @@ class Transpiler {
 
   /**
    * Stage 2: Collect symbols from all C/C++ headers
-   * Issue #945: Made async for preprocessing support.
    *
-   * #1817: in two steps. `_prepareHeaders` settles every header's content
-   * first and writes nothing. The preprocessor runs are independent, except a
-   * retry, which waits for the headers before it. Symbols are then written
-   * here, in header order, because what the symbol table holds depends on it.
+   * #1817: in two steps. `_prepareHeaders` settles every header's cache entry
+   * first and writes nothing. Symbols are then written here, in header order,
+   * because what the symbol table holds depends on it. #1844: each header's
+   * text and language are 1.1's; preprocessing them moved there.
    */
-  private async _collectAllHeaderSymbols(
+  private _collectAllHeaderSymbols(
     input: ISourceGraph,
     result: ITranspilerResult,
-  ): Promise<void> {
-    const prepared = await this._prepareHeaders(input);
+  ): void {
+    const prepared = this._prepareHeaders(input);
     for (const header of prepared) {
       try {
         this._collectHeaderSymbols(header);
@@ -1343,96 +1334,41 @@ class Transpiler {
   }
 
   /**
-   * #1817: every header's content, settled before any symbol is written.
-   *
-   * A header's first preprocessor run depends on nothing but the header, so
-   * they all start at once, at most `availableParallelism()` at a time. Only a
-   * retry depends on other headers: every earlier one that preprocessed
-   * cleanly, including one that did so only through its own retry. So each
-   * header is handed the headers before it, and waits for them only if it has
-   * to retry.
+   * #1817: every header's cache entry, read before any symbol is written, so
+   * the cache decision cannot depend on the symbols of the headers before it.
    */
-  private _prepareHeaders(input: ISourceGraph): Promise<THeaderPreparation[]> {
-    const limit = ConcurrencyLimit.create(availableParallelism());
-    const prepared: Promise<THeaderPreparation>[] = [];
-    for (const file of input.headerFiles) {
-      const searchPaths = input.headerSearchPaths.get(file.path);
+  private _prepareHeaders(input: ISourceGraph): THeaderPreparation[] {
+    return input.headerFiles.map((file) => {
+      const source = input.headerSources.get(file.path);
       invariant(
-        searchPaths !== undefined,
-        `discovery records the search path of every header it resolves (missing ${file.path})`,
+        source !== undefined,
+        `1.1 settles the source of every header it resolves (missing ${file.path})`,
       );
-      // A copy: the headers before this one. The live array would come to
-      // hold this header too, and a retry would wait for itself.
-      prepared.push(
-        this._prepareHeader(file, searchPaths, [...prepared], limit),
-      );
-    }
-    return Promise.all(prepared);
-  }
-
-  /**
-   * #1817: one header's cache entry or content. It never rejects: a failure is
-   * returned as `failed` and re-thrown by `_collectHeaderSymbols` in header
-   * order, where the #1319 catch decides whether it is a diagnostic.
-   */
-  private async _prepareHeader(
-    file: IDiscoveredFile,
-    searchPaths: readonly string[],
-    earlier: readonly Promise<THeaderPreparation>[],
-    limit: TPreprocessLimit,
-  ): Promise<THeaderPreparation> {
-    try {
-      const cached = this._readCachedHeader(file);
-      if (cached) {
-        return {
-          file,
-          kind: "cached",
-          ...cached,
-          usable: !cached.entry.preprocessFailed,
-        };
+      try {
+        const cached = this._readCachedHeader(file);
+        return cached
+          ? { file, source, kind: "cached", ...cached }
+          : { file, source, kind: "parse" };
+      } catch (error) {
+        // Re-thrown by `_collectHeaderSymbols` in header order, where the
+        // #1319 catch decides whether it is a diagnostic.
+        return { file, source, kind: "failed", error };
       }
-      // Issue #945: Preprocess header to evaluate #if/#ifdef directives
-      const content = await this.getHeaderContent(
-        file,
-        searchPaths,
-        earlier,
-        limit,
-      );
-      return { file, kind: "content", ...content };
-    } catch (error) {
-      return { file, kind: "failed", usable: false, error };
-    }
+    });
   }
 
   /**
-   * Issue #985 recovery: recover the NAMES of framework functions / function-like
-   * macros that standalone header preprocessing missed, by preprocessing each
-   * .cnx's C includes as a translation unit (predecessors first — the way the
-   * real compiler does). Requires a toolchain that can preprocess the target's
-   * headers; for cross targets set CNEXT_CROSS_COMPILER. Gated on a preprocess
-   * failure so clean projects pay nothing.
+   * Issue #985 recovery: the NAMES of framework functions / function-like
+   * macros that standalone header preprocessing missed, from each .cnx's C
+   * includes preprocessed as a translation unit (predecessors first -- the way
+   * the real compiler does). #1844: 1.1 preprocessed it, when a header could
+   * not be preprocessed alone, so a clean project pays nothing.
    */
-  private async _collectExternalDeclarations(
-    input: ISourceGraph,
-  ): Promise<void> {
-    if (!this.anyHeaderPreprocessFailed) return;
+  private _collectExternalDeclarations(input: ISourceGraph): void {
+    const recovered = input.recoveredDeclarations;
+    if (recovered === null) return;
 
-    const directives = this._collectCIncludeDirectives(input);
-    if (directives.length === 0) return;
-
-    const recovery = await ExternalDeclarationOracle.recover(
-      directives,
-      this.anchor.preprocessor,
-      {
-        // #1723: the translation unit holds every file's C includes, so it is
-        // searched along every file's search path, not --include alone.
-        includePaths: [...input.includeSearchPaths],
-        defines: { ...this._requireSourceGraph().anchor.defines },
-      },
-    );
-    if (!recovery) return;
-
-    const cleanState = this._parseRecoveredSlices(recovery.perFileContent);
+    const cleanState = this._parseRecoveredSlices(recovered.slices);
     Transpiler._clearPhantomStructBodies(
       cleanState,
       this.codeGenerator.transpileState,
@@ -1440,26 +1376,11 @@ class Transpiler {
 
     // Function-like macros have no declaration to parse; register their names for
     // the undeclared-call check only (a by-value macro invocation is correct).
-    if (recovery.macroNames.size > 0) {
+    if (recovered.macroNames.size > 0) {
       this.codeGenerator.transpileState.symbolTable.addExternalDeclarationNames(
-        recovery.macroNames,
+        recovered.macroNames,
       );
     }
-  }
-
-  /** Every C header the .cnx files include, deduped in first-seen source order. */
-  private _collectCIncludeDirectives(input: ISourceGraph): string[] {
-    const seen = new Set<string>();
-    const directives: string[] = [];
-    for (const file of input.cnextFiles) {
-      for (const directive of this._cIncludeDirectivesOf(file.path)) {
-        if (!seen.has(directive)) {
-          seen.add(directive);
-          directives.push(directive);
-        }
-      }
-    }
-    return directives;
   }
 
   /** One .cnx file's C header includes, as `"x.h"` or `<x.h>`, in source order */
@@ -1470,16 +1391,7 @@ class Transpiler {
     // skipped `.cnx` but sent a `.cnext` include in as a header.
     // #1444: and read from 1.1's answer, rather than lexed and classified
     // again here from the file's text.
-    const directives: string[] = [];
-    for (const text of this._includesOf(sourcePath).cHeaderIncludes) {
-      const include = IncludeDirectiveText.split(text);
-      if (include !== null) {
-        directives.push(
-          include.isLocal ? `"${include.path}"` : `<${include.path}>`,
-        );
-      }
-    }
-    return directives;
+    return [...this._includesOf(sourcePath).cHeaderSpecs];
   }
 
   /**
@@ -1494,10 +1406,7 @@ class Transpiler {
       return directives.length === 0 ? [] : [{ file, directives }];
     });
     // Unread is not "no macros": a name the file uses may be one (#1688 review)
-    if (
-      this.config.preprocess === false ||
-      !this.anchor.preprocessor.isAvailable()
-    ) {
+    if (!this.anchor.preprocessor.isAvailable()) {
       for (const { file } of withIncludes)
         this.headerMacrosUnread.add(file.path);
       return;
@@ -1517,6 +1426,9 @@ class Transpiler {
                 ...input.includeSearchPaths,
               ],
               defines,
+              ...(this.preprocessCache === null
+                ? {}
+                : { cache: this.preprocessCache }),
             },
           ),
         );
@@ -1542,28 +1454,24 @@ class Transpiler {
    *
    * A second, isolated table is parsed in parallel and returned: it is clean of
    * the normal pass's degraded-blob data, so it holds the AUTHORITATIVE
-   * opaque/struct-body truth. parseCHeader (main table) picks the C or C++ parser
-   * by content and skips assembler; the isolated table uses the C parser directly
+   * opaque/struct-body truth. The main table parses each slice with the parser
+   * of the language 1.1 judged its header to be (#1844); the isolated table uses
+   * the C parser directly
    * (opaque struct typedefs are a C concern) and tolerates slices it cannot
    * parse -- except a deliberate diagnostic, which propagates.
    */
   private _parseRecoveredSlices(
-    perFileContent: Map<string, string>,
+    slices: ReadonlyMap<string, IRecoveredSlice>,
   ): SymbolTable {
     const cleanState = new SymbolTable();
-    for (const [path, content] of perFileContent) {
+    for (const [path, { text: content, language }] of slices) {
       try {
-        this.parseCHeader(content, path);
+        this._parseHeaderText(content, path, language);
       } catch (err) {
-        // #1319: same decision as the sibling catch in _collectAllHeaderSymbols.
-        // `parseCHeader` now raises E0507, and swallowing it here would produce
-        // the `Compiled N files` / exit 0 shape that diagnostic exists to
-        // remove -- so "is this a deliberate diagnostic?" is answered in both
-        // places or in neither.
-        //
-        // Reachable by construction rather than by fixture: recovery runs on the
-        // PREPROCESSED translation unit where stage 2 saw RAW content, and those
-        // differ exactly for headers hiding C++ behind `#ifdef __cplusplus`.
+        // #1319: same decision as the sibling catch in _collectAllHeaderSymbols:
+        // swallowing a diagnostic here would produce the `Compiled N files` /
+        // exit 0 shape diagnostics exist to remove -- so "is this a deliberate
+        // diagnostic?" is answered in both places or in neither.
         if (Transpiler.isDiagnostic(err)) {
           throw err;
         }
@@ -1912,6 +1820,7 @@ class Transpiler {
     if (this.cacheManager) {
       this.cacheManager.flush();
     }
+    this.preprocessCache?.flush();
     return result;
   }
 
@@ -1955,19 +1864,10 @@ class Transpiler {
       throw header.error;
     }
     if (header.kind === "cached") {
-      this._restoreCachedHeader(file, header.entry, header.symbols);
+      this._restoreCachedHeader(header.entry, header.symbols);
       return; // Cache hit - skip full parsing
     }
-    if (!header.usable) {
-      // Fell back to raw content, so it was not offered as macro context to
-      // the headers after it. Flag that TU-level external-declaration recovery
-      // is warranted (Issue #985).
-      this.anyHeaderPreprocessFailed = true;
-      this.warnings.push(
-        `Preprocessing failed for ${file.path}: ${header.preprocessError}. Using raw content.`,
-      );
-    }
-    this.parseHeaderFile(file, header.content);
+    this.parseHeaderFile(file, header.source);
 
     // Debug: Show symbols found
     if (this.config.debugMode) {
@@ -1978,13 +1878,11 @@ class Transpiler {
       console.log(`[DEBUG]   Found ${symbols.length} symbols in ${file.path}`);
     }
 
-    // Issue #590: Cache the results using simplified API. Issue #985: record when
-    // this header fell back to raw content so a warm-cache build re-runs recovery.
+    // Issue #590: Cache the results using simplified API
     if (this.cacheManager) {
       this.cacheManager.setSymbolsFromTable(
         file.path,
         this.codeGenerator.transpileState.symbolTable,
-        !header.usable,
       );
     }
   }
@@ -2025,7 +1923,6 @@ class Transpiler {
    * is nothing to convert and nothing to forget.
    */
   private _restoreCachedHeader(
-    file: IDiscoveredFile,
     cached: TCachedHeader,
     symbols: TCachedSymbols,
   ): void {
@@ -2052,230 +1949,57 @@ class Transpiler {
     this.codeGenerator.transpileState.symbolTable.restoreStructState(
       cached.structState,
     );
+  }
 
-    // Issue #211: Still check for C++ syntax even on cache hit
-    this.rejectUndeclaredCppFromFileType(file);
-
-    // Issue #985: The cached symbols of a header that fell back to raw content
-    // are degraded. Re-arm the recovery gate so a warm-cache build still runs
-    // the external-declaration recovery pass and re-applies its corrections to
-    // the in-memory symbol table (the cache itself holds the degraded symbols).
-    if (cached.preprocessFailed) {
-      this.anyHeaderPreprocessFailed = true;
+  /** How a debug log names `language` */
+  private static _languageName(language: EHeaderLanguage): string {
+    switch (language) {
+      case EHeaderLanguage.C:
+        return "C";
+      case EHeaderLanguage.Cpp:
+        return "C++";
+      case EHeaderLanguage.Assembler:
+        return "assembler";
     }
   }
 
   /**
-   * Get header content, optionally preprocessed.
-   * Issue #945: Evaluates #if/#ifdef directives using system preprocessor.
-   *
-   * Only preprocesses when necessary to avoid side effects from full expansion.
-   * Preprocessing is needed when the file has conditional compilation patterns
-   * like #if MACRO != 0 that require expression evaluation.
+   * Parse a header with the parser of the language 1.1 judged it to be
+   * (#1844). SonarCloud S3776: Extracted from the Stage 2 per-header method,
+   * now `_collectHeaderSymbols` (#1817).
    */
-  private async getHeaderContent(
-    file: IDiscoveredFile,
-    searchPaths: readonly string[],
-    earlier: readonly Promise<THeaderPreparation>[],
-    limit: TPreprocessLimit,
-  ): Promise<{ content: string; usable: boolean; preprocessError?: string }> {
-    const rawContent = this.fs.readFile(file.path);
-
-    // Check if preprocessing is disabled
-    if (this.config.preprocess === false) {
-      return { content: rawContent, usable: true };
+  private parseHeaderFile(file: IDiscoveredFile, source: IHeaderSource): void {
+    if (this.config.debugMode) {
+      console.log(
+        `[DEBUG]   Parsing ${Transpiler._languageName(source.language)} header: ${file.path}`,
+      );
     }
-
-    // Check if preprocessing is available
-    if (!this.anchor.preprocessor.isAvailable()) {
-      return { content: rawContent, usable: true };
-    }
-
-    // Issue #945: Only preprocess if file has conditional compilation patterns
-    // that require expression evaluation (e.g., #if MACRO != 0, #if MACRO == 1)
-    // Simple #ifdef/#ifndef patterns are already handled by the parser
-    if (!this.needsConditionalPreprocessing(rawContent)) {
-      return { content: rawContent, usable: true };
-    }
-
-    // Preprocess the header file
-    // #1723: along the path this header was found on, so a header that
-    // includes a sibling library's header preprocesses as it resolved.
-    const result = await limit(() =>
-      this.anchor.preprocessor.preprocess(file.path, {
-        defines: { ...this._requireSourceGraph().anchor.defines },
-        includePaths: [...searchPaths],
-        keepLineDirectives: false, // We don't need line mappings for symbol collection
-      }),
-    );
-
-    if (!result.success) {
-      // Some headers cannot be preprocessed standalone: they require a
-      // predecessor to have run first (e.g. FreeRTOS task.h needs FreeRTOS.h to
-      // define INC_FREERTOS_H and its attribute macros, and enforces this with
-      // its own #error). Retry importing the macros of the headers collected
-      // before this one (only those that themselves preprocessed cleanly, so one
-      // unpreprocessable predecessor can't defeat the retry). #1817: the only
-      // step that waits on other headers.
-      const precedingHeaders = (await Promise.all(earlier))
-        .filter((header) => header.usable)
-        .map((header) => header.file.path);
-      if (precedingHeaders.length > 0) {
-        const retry = await limit(() =>
-          this.anchor.preprocessor.preprocess(file.path, {
-            defines: { ...this._requireSourceGraph().anchor.defines },
-            includePaths: [...searchPaths],
-            keepLineDirectives: false,
-            imacros: precedingHeaders,
-          }),
-        );
-        if (retry.success) {
-          return { content: retry.content, usable: true };
-        }
-      }
-      // Fall back to raw content, not usable. The warning and the #985 flag are
-      // written by `_collectHeaderSymbols`, in header order.
-      return {
-        content: rawContent,
-        usable: false,
-        preprocessError: result.error,
-      };
-    }
-
-    return { content: result.content, usable: true };
+    this._parseHeaderText(source.text, file.path, source.language);
   }
 
   /**
-   * Check if a header file needs conditional preprocessing.
-   * Issue #945: Only preprocess files with #if expressions that need evaluation.
+   * Issue #208: one parser per header, the one its language names. #1844:
+   * the language is 1.1's answer; nothing here judges the text again, so a
+   * cold run and a warm one cannot disagree (#1851).
    */
-  private needsConditionalPreprocessing(content: string): boolean {
-    // Patterns that require the preprocessor for expression evaluation:
-    // - #if MACRO != 0
-    // - #if MACRO == 1
-    // - #if MACRO > 0
-    // - #if MACRO (bare macro as truthy check)
-    // - #elif MACRO != 0
-    // - #if defined(X) && MACRO
-    // - etc.
-    //
-    // Simple patterns handled by the parser without preprocessing:
-    // - #ifdef MACRO
-    // - #ifndef MACRO
-    // - #if defined(MACRO) (single defined check)
-    // - #if 1
-    // - #if 0
-    //
-    // Look for #if/#elif followed by an expression (not just defined() or 0/1)
-    // Also match bare macro names used as truthy checks (common in config headers)
-    const ifExpressionPattern =
-      /#(?:if|elif)\s+(?!defined\s*\()(?![01]\s*(?:$|\n|\/\*|\/\/))\w+/m;
-    return ifExpressionPattern.test(content);
-  }
-
-  /**
-   * Issue #1319: E0507 -- C++ met in a run that did not declare C++.
-   *
-   * This is the whole of what "detection" is for now. It used to raise a latch
-   * and silently change the output language; a transpiler that guesses which
-   * language it emits, from a file the user did not write, is guessing about
-   * the thing it is least able to guess about. Naming the file and the fix is
-   * strictly more useful than being quietly right most of the time.
-   */
-  private rejectUndeclaredCpp(reason: string, filePath: string): void {
-    if (this.cppMode) {
-      return;
-    }
-
-    throw new Error(
-      // #1319: cwd-relative, via the one helper that renders a path for a
-      // human. An absolute path here would be the first in any .expected.error
-      // and would differ on every machine; a basename would be ambiguous
-      // (can/config.h vs uart/config.h). DeclarationSite already settled this.
-      `E0507: ${reason} in '${DeclarationSite.displayPath(filePath)}', but ` +
-        `this run does not target C++.\n` +
-        `  C-Next emits C unless told otherwise. To compile as C++, set\n` +
-        `  'cppRequired: true' in your config, or pass --cpp.`,
-    );
-  }
-
-  /**
-   * Reject undeclared C++ reached through a header's type or content.
-   * SonarCloud S3776: Extracted from the Stage 2 per-header method, now
-   * `_collectHeaderSymbols` (#1817).
-   *
-   * Issue #1319: when C++ IS declared there is nothing to check, so the file
-   * read below is skipped entirely rather than performed and discarded.
-   */
-  private rejectUndeclaredCppFromFileType(file: IDiscoveredFile): void {
-    if (this.cppMode) {
-      return;
-    }
-
-    if (file.type === EFileType.CppHeader) {
-      this.rejectUndeclaredCpp("C++ header", file.path);
-      return;
-    }
-
-    if (file.type === EFileType.CHeader) {
-      const content = this.fs.readFile(file.path);
-      if (detectCppSyntax(content)) {
-        this.rejectUndeclaredCpp("C++ syntax", file.path);
-      }
-    }
-  }
-
-  /**
-   * Parse a header file based on its type.
-   * SonarCloud S3776: Extracted from the Stage 2 per-header method, now
-   * `_collectHeaderSymbols` (#1817).
-   */
-  private parseHeaderFile(file: IDiscoveredFile, content: string): void {
-    if (file.type === EFileType.CHeader) {
-      if (this.config.debugMode) {
-        console.log(`[DEBUG]   Parsing C header: ${file.path}`);
-      }
-      this.parseCHeader(content, file.path);
-      return;
-    }
-
-    if (file.type === EFileType.CppHeader) {
-      // Issue #211: .hpp files are always C++
-      this.rejectUndeclaredCpp("C++ header", file.path);
-      if (this.config.debugMode) {
-        console.log(`[DEBUG]   Parsing C++ header: ${file.path}`);
-      }
-      this.parseCppHeader(content, file.path);
-    }
-  }
-
-  /**
-   * Issue #208: Parse a C header using single-parser strategy
-   * Uses heuristic detection to choose the appropriate parser
-   */
-  private parseCHeader(content: string, filePath: string): void {
-    // Assembler headers (e.g. xtensa coreasm.h, pulled in transitively by
-    // FreeRTOS port headers) are not C. Parsing their `.macro` bodies as C
-    // mis-collects instruction mnemonics like `loop` as C symbols that then
-    // false-conflict with C-Next symbols of the same name. Skip them entirely.
-    if (detectAssemblySyntax(content)) {
-      if (this.config.debugMode) {
-        console.log(`[DEBUG]   Skipping assembler header: ${filePath}`);
-      }
-      return;
-    }
-
-    if (detectCppSyntax(content)) {
-      // Issue #1319: this predicate answers two questions. Which PARSER the
-      // header needs is a parsing fact and still decided here. Whether the RUN
-      // emits C++ is not, and is now declared -- so this rejects rather than
-      // switches.
-      this.rejectUndeclaredCpp("C++ syntax", filePath);
-      // Use C++14 parser for headers with C++ syntax (typed enums, classes, etc.)
-      this.parseCppHeader(content, filePath);
-    } else {
-      // Use C parser for pure C headers
-      this.parsePureCHeader(content, filePath);
+  private _parseHeaderText(
+    content: string,
+    filePath: string,
+    language: EHeaderLanguage,
+  ): void {
+    switch (language) {
+      case EHeaderLanguage.Assembler:
+        // Not C: parsing its `.macro` bodies as C mis-collects instruction
+        // mnemonics like `loop` as C symbols that then false-conflict with
+        // C-Next symbols of the same name.
+        return;
+      case EHeaderLanguage.Cpp:
+        // C++14 parser for typed enums, classes, namespaces, templates
+        this.parseCppHeader(content, filePath);
+        return;
+      case EHeaderLanguage.C:
+        this.parsePureCHeader(content, filePath);
+        return;
     }
   }
 

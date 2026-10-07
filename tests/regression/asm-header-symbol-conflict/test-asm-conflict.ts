@@ -14,6 +14,7 @@
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import Transpiler from "../../../src/transpiler/Transpiler";
+import NodeFileSystem from "../../../src/PARSE/1-Discover/NodeFileSystem";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,16 +22,20 @@ const __dirname = dirname(__filename);
 async function main(): Promise<void> {
   console.log("Regression: assembler-header symbol conflict...\n");
 
-  // preprocess: false forces RAW-header parsing — the same condition under which
-  // the real bug fires (coreasm.h's own deep includes fail to preprocess, so the
-  // transpiler falls back to parsing its raw assembler text as C).
-  const transpiler = new Transpiler({
-    input: join(__dirname, "main.cnx"),
-    includeDirs: [__dirname],
-    outDir: join(__dirname, "output"),
-    preprocess: false,
-    noCache: true,
-  });
+  // #1844: the header's language is judged on its preprocessed text, which is
+  // assembler, so no C symbol is collected from it. (The bug fired when the
+  // transpiler fell back to parsing coreasm.h's raw assembler text as C; no
+  // header is read raw any more.)
+  const transpiler = new Transpiler(
+    {
+      input: join(__dirname, "main.cnx"),
+      includeDirs: [__dirname],
+      outDir: join(__dirname, "output"),
+      noCache: true,
+      target: "host",
+    },
+    NodeFileSystem.instance,
+  );
 
   const result = await transpiler.transpile({ kind: "files" });
 

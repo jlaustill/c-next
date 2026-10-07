@@ -48,6 +48,76 @@ interface IResolvedIncludes {
   hasForeignInclude: boolean;
 
   /**
+   * #1672: the file every directive this resolver read resolved to, or null,
+   * keyed by `IncludeDirectiveText.join`. 2.1's E0506 reads it rather
+   * than resolving the include a second time.
+   */
+  resolutions: Map<string, string | null>;
+
+  /**
+   * #1672: for each include of a header ADR-010 admits whose C-Next source
+   * the same form of include would find, that source's spelling (`ext.cnx`
+   * for `ext.h`), keyed like `resolutions`. 2.1's E0504 reads it.
+   */
+  cnextAlternatives: Map<string, string>;
+
+  /**
+   * The kind of file each directive's spelling names, by its extension, keyed
+   * like `resolutions` (#1444, owner ruling 1). The one classification of an
+   * include: 2.1's ADR-010 rules and render read it, and neither classifies a
+   * spelling itself. A directive 1.2 parsed always has an entry.
+   */
+  kinds: Map<string, EFileType>;
+
+  /**
+   * The file's other includes -- every directive that does not name C-Next
+   * source -- exactly as written, in source order.
+   *
+   * Issue #424: a macro from one of these can appear inside a generated
+   * declaration -- `u32[DEVICE_COUNT] devices` becomes
+   * `extern uint32_t devices[DEVICE_COUNT]`. Such a header only compiles for a
+   * translation unit that already included the macro's source, so when the
+   * generated header names a macro it must carry the include itself. Kept apart
+   * from `userIncludes` because it is added conditionally: propagating every C
+   * include into every header would put implementation-only dependencies into
+   * the public interface. Issue #985's translation-unit recovery reads it too.
+   */
+  cHeaderIncludes: string[];
+  cHeaderSpecs: string[];
+
+  /**
+   * #1844: every file this resolver categorized, in the order it met them.
+   * `spell` names each one's header once the run's mode is settled: a `.cnx`
+   * include's spelling depends on the generated header's extension, and 1.1
+   * knows that only after it has judged every header the run reaches.
+   */
+  included: IResolvedInclude[];
+
+  /** #1844: the directives that name C-Next source, in source order. */
+  cnextDirectives: string[];
+
+  /**
+   * #1844: where each directive sits in the file, keyed like `resolutions`.
+   * E0507 is reported at the one that reached a C++ header.
+   */
+  positions: Map<string, { line: number; column: number }>;
+}
+
+/** #1844: one file an include resolved to, before its header is spelled. */
+interface IResolvedInclude {
+  readonly absolutePath: string;
+  readonly includeInfo: { readonly path: string; readonly isLocal: boolean };
+  readonly isCNext: boolean;
+  /** #1725: a quoted include found beside the file that wrote it */
+  readonly besideWriter: boolean;
+}
+
+/**
+ * How a file spells the headers it includes, given the run's generated-header
+ * extension (#1844: spelled after 1.1 settles the run's mode).
+ */
+interface IIncludeSpelling {
+  /**
    * Issue #497: Map from resolved header path to original include directive.
    * Used to include C headers (instead of forward declarations) when their
    * types are used in public interfaces.
@@ -84,28 +154,6 @@ interface IResolvedIncludes {
   writerRelativeIncludes: Map<string, string>;
 
   /**
-   * #1672: the file every directive this resolver read resolved to, or null,
-   * keyed by `IncludeDirectiveText.join`. 2.1's E0506 reads it rather
-   * than resolving the include a second time.
-   */
-  resolutions: Map<string, string | null>;
-
-  /**
-   * #1672: for each include of a header ADR-010 admits whose C-Next source
-   * the same form of include would find, that source's spelling (`ext.cnx`
-   * for `ext.h`), keyed like `resolutions`. 2.1's E0504 reads it.
-   */
-  cnextAlternatives: Map<string, string>;
-
-  /**
-   * The kind of file each directive's spelling names, by its extension, keyed
-   * like `resolutions` (#1444, owner ruling 1). The one classification of an
-   * include: 2.1's ADR-010 rules and render read it, and neither classifies a
-   * spelling itself. A directive 1.2 parsed always has an entry.
-   */
-  kinds: Map<string, EFileType>;
-
-  /**
    * The file's `.cnx` includes, each rendered as the include its generated
    * header carries: the author's directive with its path replaced by the
    * header `cnextIncludeRewrites` names, or by the extension swap when it
@@ -116,21 +164,6 @@ interface IResolvedIncludes {
    * resolver lexes, rather than from 1.2's tree in Stage 5.
    */
   userIncludes: string[];
-
-  /**
-   * The file's other includes -- every directive that does not name C-Next
-   * source -- exactly as written, in source order.
-   *
-   * Issue #424: a macro from one of these can appear inside a generated
-   * declaration -- `u32[DEVICE_COUNT] devices` becomes
-   * `extern uint32_t devices[DEVICE_COUNT]`. Such a header only compiles for a
-   * translation unit that already included the macro's source, so when the
-   * generated header names a macro it must carry the include itself. Kept apart
-   * from `userIncludes` because it is added conditionally: propagating every C
-   * include into every header would put implementation-only dependencies into
-   * the public interface. Issue #985's translation-unit recovery reads it too.
-   */
-  cHeaderIncludes: string[];
 }
 
 /**
@@ -147,24 +180,13 @@ interface IResolvedIncludes {
  * - Deduplicate resolved files by path
  *
  * @example
- * const resolver = new IncludeResolver(['/path/to/includes'], '.h', fs, null, '/path/to/src');
+ * const resolver = new IncludeResolver(['/path/to/includes'], fs, '/path/to/src');
  * const result = resolver.resolve('#include "header.h"');
  * // result.headers contains resolved header files
  */
 class IncludeResolver {
   private readonly resolvedPaths: Set<string> = new Set();
   private readonly fs: IFileSystem;
-  private readonly headerExtension: THeaderExtension;
-
-  /**
-   * Issue #1467: asked where the generated header for a `.cnx` is reachable,
-   * relative to the header output root. Null when the caller does not know
-   * (no PathResolver yet) or the header lands outside that root; the author's
-   * spelling is kept in that case, which is what every caller did before.
-   */
-  private readonly headerIncludePathFor:
-    | ((cnxPath: string) => string | null)
-    | null;
 
   /**
    * #1725: the directory a quoted include from the file being resolved
@@ -175,39 +197,14 @@ class IncludeResolver {
   private readonly quotedIncludeDirectory: string;
 
   /**
-   * @param headerIncludePathFor Issue #1467: where the generated header for a
-   *   `.cnx` is reachable, relative to the header output root. See the field
-   *   above for why it may be null.
    * @param quotedIncludeDirectory #1725: see the field above.
-   * @param headerExtension The extension generated headers get in this run
-   *   (".h" or ".hpp").
-   *
-   *   Issue #1319: this parameter was a mode with a `false` default, and the
-   *   default was load-bearing in the wrong direction -- `IncludeTreeWalker`
-   *   never passed it, so that instance answered ".h" for every C++ run. It
-   *   went unnoticed because the walker returned only `cnextIncludes` and
-   *   dropped the one field the extension feeds. #1319 let that caller pass
-   *   `null`; #1435 deleted the walker, the one caller that read no directive,
-   *   so the parameter is required and never null. With no default, no caller
-   *   can inherit a wrong extension.
-   *
-   *   This used to be readable before the fact settled: cppDetected was raised
-   *   by discovering a header, which could happen after IncludeResolver ran, so
-   *   the extension here could be stale and HeaderGeneratorUtils absorbed the
-   *   resulting .h/.hpp mismatch with stem-based dedup. #1319 made the mode
-   *   declared, so it is known before any file is opened and there is no longer
-   *   an early read to get wrong.
    */
   constructor(
     private readonly searchPaths: string[],
-    headerExtension: THeaderExtension,
     fs: IFileSystem,
-    headerIncludePathFor: ((cnxPath: string) => string | null) | null,
     quotedIncludeDirectory: string,
   ) {
     this.fs = fs;
-    this.headerExtension = headerExtension;
-    this.headerIncludePathFor = headerIncludePathFor;
     this.quotedIncludeDirectory = quotedIncludeDirectory;
   }
 
@@ -224,22 +221,27 @@ class IncludeResolver {
       headers: [],
       cnextIncludes: [],
       warnings: [],
-      headerIncludeDirectives: new Map<string, string>(),
-      cnextIncludeRewrites: new Map<string, string>(),
-      writerRelativeIncludes: new Map<string, string>(),
       resolutions: new Map<string, string | null>(),
       cnextAlternatives: new Map<string, string>(),
       kinds: new Map<string, EFileType>(),
-      userIncludes: [],
       cHeaderIncludes: [],
+      cHeaderSpecs: [],
       hasForeignInclude: false,
+      included: [],
+      cnextDirectives: [],
+      positions: new Map<string, { line: number; column: number }>(),
     };
 
-    const directives = IncludeDiscovery.directiveTextsOf(content);
+    const located = IncludeDiscovery.directivesWithPositionsOf(content);
+    const directives = located.map((directive) => directive.text);
 
-    for (const directive of directives) {
-      const includeInfo = IncludeDirectiveText.split(directive);
+    for (const { text, line, column } of located) {
+      const includeInfo = IncludeDirectiveText.split(text);
       if (includeInfo !== null) {
+        const key = IncludeDirectiveText.join(includeInfo);
+        if (!result.positions.has(key)) {
+          result.positions.set(key, { line, column });
+        }
         this._processInclude(includeInfo, sourceFilePath, result);
       }
     }
@@ -250,20 +252,92 @@ class IncludeResolver {
     // and that predicate is the kind recorded above.
     for (const directive of directives) {
       if (IncludeRewriter.namesCNext(directive, result.kinds)) {
-        result.userIncludes.push(
-          IncludeRewriter.rewrite(
-            directive,
-            result.kinds,
-            result.cnextIncludeRewrites,
-            this.headerExtension,
-          ),
-        );
+        result.cnextDirectives.push(directive);
       } else {
         result.cHeaderIncludes.push(directive);
+        const spec = IncludeDirectiveText.spec(directive);
+        if (spec !== null) result.cHeaderSpecs.push(spec);
       }
     }
 
     return result;
+  }
+
+  /**
+   * #1844: how a resolved file spells its includes, in a run whose generated
+   * headers take `headerExtension`. Kept apart from `resolve` because 1.1
+   * learns the extension only after judging every header the run reaches,
+   * and a `.cnx` include's spelling names a generated header.
+   *
+   * @param headerIncludePathFor Issue #1467: where the generated header for a
+   *   `.cnx` is reachable, relative to the header output root. Null when the
+   *   caller does not know (no PathResolver yet) or the header lands outside
+   *   that root; the author's spelling is kept then, with its extension
+   *   swapped, which is what every caller did before.
+   */
+  static spell(
+    resolved: IResolvedIncludes,
+    headerExtension: THeaderExtension,
+    headerIncludePathFor: ((cnxPath: string) => string | null) | null,
+  ): IIncludeSpelling {
+    const spelling: IIncludeSpelling = {
+      headerIncludeDirectives: new Map<string, string>(),
+      cnextIncludeRewrites: new Map<string, string>(),
+      writerRelativeIncludes: new Map<string, string>(),
+      userIncludes: [],
+    };
+    for (const include of resolved.included) {
+      const { absolutePath, includeInfo, besideWriter } = include;
+      if (!include.isCNext) {
+        // Issue #497: Track the original include directive for this header
+        spelling.headerIncludeDirectives.set(
+          absolutePath,
+          IncludeDirectiveText.join(includeInfo),
+        );
+        if (besideWriter) {
+          spelling.writerRelativeIncludes.set(absolutePath, absolutePath);
+        }
+        continue;
+      }
+      // Issue #854: Track header directive for cnext includes so their types
+      // can be mapped by ExternalTypeHeaderBuilder, preventing duplicate
+      // forward declarations (MISRA Rule 5.6)
+      // Issue #1467: ask the owner where the header is reachable. The
+      // extension swap below is the fallback for a caller with no resolver
+      // and for a header outside the output root -- not a second answer.
+      const reachable = headerIncludePathFor?.(absolutePath) ?? null;
+      const headerPath =
+        reachable ??
+        IncludeRewriter.besideSource(includeInfo.path, headerExtension);
+      spelling.headerIncludeDirectives.set(
+        absolutePath,
+        IncludeDirectiveText.join({
+          path: headerPath,
+          isLocal: includeInfo.isLocal,
+        }),
+      );
+      spelling.cnextIncludeRewrites.set(includeInfo.path, headerPath);
+      // #1725: an output-root path is valid from every file. The author's
+      // spelling is not: its header is generated beside the `.cnx`, so that
+      // file is what another includer must spell relative to itself.
+      if (reachable === null && besideWriter) {
+        spelling.writerRelativeIncludes.set(
+          absolutePath,
+          IncludeRewriter.besideSource(absolutePath, headerExtension),
+        );
+      }
+    }
+    for (const directive of resolved.cnextDirectives) {
+      spelling.userIncludes.push(
+        IncludeRewriter.rewrite(
+          directive,
+          resolved.kinds,
+          spelling.cnextIncludeRewrites,
+          headerExtension,
+        ),
+      );
+    }
+    return spelling;
   }
 
   /**
@@ -359,49 +433,23 @@ class IncludeResolver {
     if (file.type === EFileType.CHeader || file.type === EFileType.CppHeader) {
       result.headers.push(file);
       result.hasForeignInclude = true;
-      // Issue #497: Track the original include directive for this header
-      result.headerIncludeDirectives.set(
+      result.included.push({
         absolutePath,
-        IncludeDirectiveText.join(includeInfo),
-      );
-      if (this._resolvedBesideWriter(includeInfo, absolutePath)) {
-        result.writerRelativeIncludes.set(absolutePath, absolutePath);
-      }
+        includeInfo,
+        isCNext: false,
+        besideWriter: this._resolvedBesideWriter(includeInfo, absolutePath),
+      });
       return;
     }
 
     if (file.type === EFileType.CNext) {
       result.cnextIncludes.push(file);
-      // Issue #854: Track header directive for cnext includes so their types
-      // can be mapped by ExternalTypeHeaderBuilder, preventing duplicate
-      // forward declarations (MISRA Rule 5.6)
-      // Issue #1467: ask the owner where the header is reachable. The
-      // extension swap below is the fallback for a caller with no resolver
-      // and for a header outside the output root -- not a second answer.
-      const reachable = this.headerIncludePathFor?.(absolutePath) ?? null;
-      const headerPath =
-        reachable ??
-        IncludeRewriter.besideSource(includeInfo.path, this.headerExtension);
-      result.headerIncludeDirectives.set(
+      result.included.push({
         absolutePath,
-        IncludeDirectiveText.join({
-          path: headerPath,
-          isLocal: includeInfo.isLocal,
-        }),
-      );
-      result.cnextIncludeRewrites.set(includeInfo.path, headerPath);
-      // #1725: an output-root path is valid from every file. The author's
-      // spelling is not: its header is generated beside the `.cnx`, so that
-      // file is what another includer must spell relative to itself.
-      if (
-        reachable === null &&
-        this._resolvedBesideWriter(includeInfo, absolutePath)
-      ) {
-        result.writerRelativeIncludes.set(
-          absolutePath,
-          IncludeRewriter.besideSource(absolutePath, this.headerExtension),
-        );
-      }
+        includeInfo,
+        isCNext: true,
+        besideWriter: this._resolvedBesideWriter(includeInfo, absolutePath),
+      });
     }
   }
 
@@ -517,6 +565,8 @@ class IncludeResolver {
   ): {
     headers: IDiscoveredFile[];
     searchPaths: ReadonlyMap<string, readonly string[]>;
+    /** #1844: per header, the headers it includes, as the walk resolved them */
+    edges: ReadonlyMap<string, readonly string[]>;
     warnings: string[];
   } {
     const fs = options.fs;
@@ -525,11 +575,10 @@ class IncludeResolver {
     const depGraph = new DependencyGraph();
     const fileByPath = new Map<string, IDiscoveredFile>();
     const searchPathsByHeader = new Map<string, readonly string[]>();
+    const edges = new Map<string, string[]>();
 
-    const processHeader = (
-      file: IDiscoveredFile,
-      rootSearchPaths: readonly string[],
-    ): void => {
+    const processHeader = (file: IDiscoveredFile, root: IHeaderRoot): void => {
+      const rootSearchPaths = root.searchPaths;
       const absolutePath = resolve(file.path);
 
       if (visited.has(absolutePath)) return;
@@ -546,6 +595,8 @@ class IncludeResolver {
       depGraph.addFile(absolutePath);
       fileByPath.set(absolutePath, file);
       searchPathsByHeader.set(file.path, rootSearchPaths);
+      const included: string[] = [];
+      edges.set(file.path, included);
 
       const includes = IncludeDiscovery.directivesOf(file.path, content);
       const searchPaths = [dirname(absolutePath), ...rootSearchPaths];
@@ -579,14 +630,15 @@ class IncludeResolver {
 
         const includedPath = resolve(includedFile!.path);
         depGraph.addDependency(absolutePath, includedPath);
+        included.push(includedFile!.path);
 
         options.onDebug?.(`    → Recursively processing ${includedFile!.path}`);
-        processHeader(includedFile!, rootSearchPaths);
+        processHeader(includedFile!, root);
       }
     };
 
     for (const root of roots) {
-      processHeader(root.file, root.searchPaths);
+      processHeader(root.file, root);
     }
 
     const sortedPaths = depGraph.getSortedFiles();
@@ -603,6 +655,7 @@ class IncludeResolver {
     return {
       headers: sortedHeaders,
       searchPaths: searchPathsByHeader,
+      edges,
       warnings,
     };
   }

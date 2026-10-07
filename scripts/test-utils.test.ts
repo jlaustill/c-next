@@ -496,8 +496,8 @@ extern uint32_t WRONG_VAR_NAME;
     // #1319 removed the CAUSE this guard was written for. A .hpp include used to
     // silently switch the run to C++, leaving a c-only fixture comparing against
     // a `.c` the transpiler never wrote -- 44 fixtures stayed green that way.
-    // The transpiler now rejects undeclared C++ outright (E0507), so the run
-    // fails before any snapshot is read. The guard itself is kept: it still
+    // A C-mode run now says so (`--no-cpp`), and C++ met there is E0507
+    // (#1844), so the run fails before any snapshot is read. The guard itself is kept: it still
     // covers a C-mode run producing no `.c` for any other reason.
     writeFileSync(
       join(tempDir, "thing.hpp"),

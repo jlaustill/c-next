@@ -1,0 +1,2 @@
+13:0 error[E0507]: C++ syntax in 'tests/include/external-cpp-syntax.h', reached through this include, but this run asks for C
+       help: 'cppRequired: false' (or --no-cpp) asks for C. Remove it so the mode is detected from the headers, or pass --cpp to compile as C++.

@@ -206,9 +206,9 @@ function transpileViaCli(
     cliArgs.push("--target", target);
   }
 
-  if (cppMode) {
-    cliArgs.push("--cpp");
-  }
+  // #1844: a C run says so. Unset, the CLI would detect C++ from a C++
+  // header, and a C-mode fixture meeting one is E0507, as it always was.
+  cliArgs.push(cppMode ? "--cpp" : "--no-cpp");
 
   // The CLI writes next to the source
   const basePath = cnxFile.replace(/\.cnx$/, "");

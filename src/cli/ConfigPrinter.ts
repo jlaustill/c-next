@@ -32,11 +32,13 @@ class ConfigPrinter {
     console.log("Effective configuration:");
     console.log("");
     console.log("  Config file:    " + (fileConfig._path ?? "(none)"));
-    console.log("  cppRequired:    " + config.cppRequired);
+    console.log(
+      "  cppRequired:    " +
+        (config.cppRequired ?? "(unset: detected from headers)"),
+    );
     console.log("  debugMode:      " + (config.debugMode ?? false));
     console.log("  target:         " + (config.target ?? "(none)"));
     console.log("  noCache:        " + config.noCache);
-    console.log("  preprocess:     " + config.preprocess);
     console.log(
       "  output:         " + (config.outputPath || "(same dir as input)"),
     );

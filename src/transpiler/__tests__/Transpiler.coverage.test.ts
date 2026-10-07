@@ -16,12 +16,37 @@ import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import MockFileSystem from "./MockFileSystem";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
+import Preprocessor from "../../PARSE/1-Discover/preprocessor/Preprocessor";
+import type IPreprocessOptions from "../../PARSE/1-Discover/preprocessor/types/IPreprocessOptions";
 
 describe("Transpiler coverage tests", () => {
   let mockFs: MockFileSystem;
 
   beforeEach(() => {
     mockFs = new MockFileSystem();
+    // #1844: a run with headers needs a preprocessor, and an in-memory file
+    // system has no compiler. One built on it hands each header back as
+    // written, and reads no macros; one on disk runs the real compiler.
+    const realIsAvailable = Preprocessor.prototype.isAvailable;
+    const realPreprocess = Preprocessor.prototype.preprocess;
+    vi.spyOn(Preprocessor.prototype, "isAvailable").mockReturnValue(true);
+    vi.spyOn(Preprocessor.prototype, "preprocess").mockImplementation(
+      async function (
+        this: Preprocessor,
+        file: string,
+        options?: IPreprocessOptions,
+      ) {
+        if (realIsAvailable.call(this)) {
+          return realPreprocess.call(this, file, options);
+        }
+        return {
+          content: options?.dumpMacros ? "" : mockFs.readFile(file),
+          sourceMappings: [],
+          success: true,
+          originalFile: file,
+        };
+      },
+    );
   });
 
   afterEach(() => {
@@ -96,7 +121,7 @@ describe("Transpiler coverage tests", () => {
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
-          // #1319: C++ is declared, not discovered from the header below.
+          // The run asks for C++, rather than detecting it from the header below.
           cppRequired: true,
           target: "host",
         },
@@ -127,7 +152,7 @@ describe("Transpiler coverage tests", () => {
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
-          // #1319: C++ is declared, not discovered from the header below.
+          // The run asks for C++, rather than detecting it from the header below.
           cppRequired: true,
           target: "host",
         },
@@ -144,13 +169,12 @@ describe("Transpiler coverage tests", () => {
   });
 
   // ==========================================================================
-  // Issue #1319: E0507 -- C++ met in a run that did not declare C++.
+  // Issues #1319, #1844: E0507 -- C++ met in a run that asks for C.
   //
-  // The transpiler used to switch output languages on its own when an included
-  // header turned out to be C++. That made the fact discovered, global and
-  // settled mid-run all at once, which is what produced #250, #941, #1139,
-  // #1425 and -- worst -- #1171, where auto-const inference was gated on it, so
-  // an include added to one file changed what was inferred about another.
+  // A run that says nothing is C++ once 1.1 meets a C++ header (#1428); 1.1
+  // settles that once, before anything reads the mode, so it no longer flips
+  // mid-run (#250, #941, #1139, #1425, #1171). Only `cppRequired: false`, an
+  // explicit C-only run, still rejects C++ -- these tests pass `false`.
   // ==========================================================================
 
   describe("undeclared C++ is rejected (#1319, E0507)", () => {
@@ -202,9 +226,24 @@ describe("Transpiler coverage tests", () => {
 
       // A diagnostic that says only "C++ found" leaves the reader to guess
       // which include did it and what to do, which is most of the work.
-      const text = result.errors.map((e) => e.message).join("\n");
+      const text = result.errors
+        .map((e) => `${e.message}\n${e.helpText}`)
+        .join("\n");
       expect(text).toContain("utils.hpp");
       expect(text).toContain("cppRequired");
+    });
+
+    it("reports it at the .cnx include that reached the header (#1844)", async () => {
+      // `cnx` opens with a newline, so its include is on line 2.
+      const result = await runWith("int helper();", "utils.hpp", false);
+
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toMatchObject({
+        sourcePath: "/project/src/main.cnx",
+        line: 2,
+        column: 8,
+      });
+      expect(result.errors[0].message).toMatch(/^error\[E0507\]: /);
     });
 
     it("stays silent on a pure C header", async () => {
@@ -967,7 +1006,7 @@ describe("Transpiler coverage tests", () => {
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false,
-        // #1319: C++ is declared, not discovered from the header below.
+        // The run asks for C++, rather than detecting it from the header below.
         cppRequired: true,
         target: "host",
       };
@@ -1001,7 +1040,7 @@ describe("Transpiler coverage tests", () => {
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false,
-        // #1319: C++ is declared, not discovered from the header below.
+        // The run asks for C++, rather than detecting it from the header below.
         cppRequired: true,
         target: "host",
       };
@@ -1045,7 +1084,7 @@ describe("Transpiler coverage tests", () => {
           outDir: "/project/build",
           debugMode: true,
           noCache: true,
-          // #1319: C++ is declared, not discovered from the header below.
+          // The run asks for C++, rather than detecting it from the header below.
           cppRequired: true,
           target: "host",
         },
@@ -1092,7 +1131,7 @@ describe("Transpiler coverage tests", () => {
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false, // Enable cache
-        // #1319: C++ is declared, not discovered from the header below.
+        // The run asks for C++, rather than detecting it from the header below.
         cppRequired: true,
         target: "host",
       };
@@ -1137,7 +1176,7 @@ describe("Transpiler coverage tests", () => {
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false, // Enable cache
-        // #1319: C++ is declared, not discovered from the header below.
+        // The run asks for C++, rather than detecting it from the header below.
         cppRequired: true,
         target: "host",
       };
@@ -1637,7 +1676,7 @@ describe("Transpiler coverage integration tests", () => {
       // Without this the generated header lands in process.cwd().
       headerOutDir: testDir,
       noCache: false, // Enable caching
-      // #1319: C++ is declared, not discovered from the header below.
+      // The run asks for C++, rather than detecting it from the header below.
       cppRequired: true,
       target: "host",
     };
@@ -1682,7 +1721,7 @@ describe("Transpiler coverage integration tests", () => {
       // Without this the generated header lands in process.cwd().
       headerOutDir: testDir,
       noCache: false, // Enable caching
-      // #1319: C++ is declared, not discovered from the header below.
+      // The run asks for C++, rather than detecting it from the header below.
       cppRequired: true,
       target: "host",
     };
@@ -1734,21 +1773,25 @@ describe("Transpiler coverage integration tests", () => {
     ).transpile({ kind: "files" });
     expect(warm.success).toBe(true);
 
-    // Now run again WITHOUT declaring C++. The header is served from cache and
-    // never re-parsed, so only the cache-hit guard can catch it.
-    return new Transpiler(base, NodeFileSystem.instance).transpile({
+    // Now run again asking for C (#1844: unset would detect C++). The header
+    // is served from cache and never re-parsed, so only 1.1's judgement, which
+    // a warm run makes as a cold one does, can catch it.
+    return new Transpiler(
+      { ...base, cppRequired: false },
+      NodeFileSystem.instance,
+    ).transpile({
       kind: "files",
     });
   };
 
-  it("rejects a cached .hpp when C++ is no longer declared (#1319)", async () => {
+  it("rejects a cached .hpp when the run now asks for C (#1319, #1844)", async () => {
     const result = await warmThenUndeclared("void cppHelper();", "utils.hpp");
 
     expect(result.success).toBe(false);
     expect(result.errors.map((e) => e.message).join("\n")).toContain("E0507");
   });
 
-  it("rejects a cached C++-syntax .h when C++ is no longer declared (#1319)", async () => {
+  it("rejects a cached C++-syntax .h when the run now asks for C (#1319, #1844)", async () => {
     const result = await warmThenUndeclared(
       "enum Status : uint8_t { OK, ERR };",
       "types.h",
@@ -1909,7 +1952,6 @@ describe("Transpiler coverage integration tests", () => {
       {
         input: join(srcDir, "main.cnx"),
         includeDirs: [includeDir],
-        preprocess: false, // Explicitly disable preprocessing
         // Without these the generated .c/.h land in process.cwd().
         outDir: testDir,
         headerOutDir: testDir,
@@ -2024,7 +2066,7 @@ describe("Transpiler coverage integration tests", () => {
     expect(result.success).toBe(true);
   });
 
-  it("falls back to raw content when preprocessing fails (invalid include)", async () => {
+  it("rejects a header the preprocessor cannot read, at its include (#1844, E0517)", async () => {
     const srcDir = join(testDir, "src");
     const includeDir = join(testDir, "include");
     mkdirSync(srcDir, { recursive: true });
@@ -2068,10 +2110,18 @@ describe("Transpiler coverage integration tests", () => {
       NodeFileSystem.instance,
     );
 
-    // Should succeed even if preprocessing fails (falls back to raw content)
+    // #1844: no header is read as written, so the run stops at the include
+    // that reached it, with the preprocessor's own message as help.
     const result = await transpiler.transpile({ kind: "files" });
-    // The transpiler should still succeed and add a warning
-    expect(result.success).toBe(true);
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toMatch(
+      /^error\[E0517\]: '.*broken\.h', reached through this include, cannot be preprocessed$/,
+    );
+    expect(result.errors[0].sourcePath).toBe(join(srcDir, "main.cnx"));
+    expect(result.errors[0].line).toBe(2);
+    expect(result.errors[0].helpText).toContain("nonexistent_config.h");
   });
 
   // ==========================================================================

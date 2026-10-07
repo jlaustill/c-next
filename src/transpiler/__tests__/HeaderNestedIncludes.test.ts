@@ -117,8 +117,12 @@ describe("a C header's own includes (#1723)", () => {
         if (!options?.dumpMacros) {
           handed.push([...(options?.includePaths ?? [])]);
         }
+        // #1844: with the line markers a compiler writes, which say that A.h
+        // opened B.h, so B.h is a header the compile reads
+        const own = `# 1 "${file}"\n${readFileSync(file, "utf-8")}`;
+        const opened = `# 1 "${join(libB, "B.h")}" 1\n${readFileSync(join(libB, "B.h"), "utf-8")}# 4 "${file}" 2`;
         return {
-          content: readFileSync(file, "utf-8"),
+          content: own.replace('#include "B.h"', opened),
           sourceMappings: [],
           success: true,
           originalFile: file,
@@ -129,7 +133,8 @@ describe("a C header's own includes (#1723)", () => {
     for (const result of await bothModes()) {
       expect(result.errors).toEqual([]);
     }
-    expect(handed).toHaveLength(2);
+    // #1844: both headers, in each mode
+    expect(handed).toHaveLength(4);
     for (const includePaths of handed) {
       expect(includePaths).toContain(libB);
     }

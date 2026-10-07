@@ -21,14 +21,14 @@ This command:
 C-Next reads `cnext.config.json` (or `.cnext.json` / `.cnextrc`) from the project
 root. `--pio-install` writes a working default; the fields you'll touch most:
 
-| Field         | Purpose                                                                                                                                                                                                      |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `include`     | Extra directories searched for C/C++ headers. **Must cover every C/C++ header you `#include`** (e.g. `.pio/libdeps` for PlatformIO libraries, `include/`). Also how E0507 sees that a header is C++ (below). |
-| `headerOut`   | Directory for generated headers (e.g. `include`).                                                                                                                                                            |
-| `target`      | The program's target when its source names none (ADR-049), e.g. `teensy41`. A PlatformIO board can name it instead (below).                                                                                  |
-| `debugMode`   | Generate panic-on-overflow helpers.                                                                                                                                                                          |
-| `noCache`     | Disable the `.cnx/` symbol cache.                                                                                                                                                                            |
-| `cppRequired` | Emit C++ (`.cpp`/`.hpp`) instead of C. Required for any project that includes C++ headers — see below.                                                                                                       |
+| Field         | Purpose                                                                                                                                                                                                       |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `include`     | Extra directories searched for C/C++ headers. **Must cover every C/C++ header you `#include`** (e.g. `.pio/libdeps` for PlatformIO libraries, `include/`). Also how C-Next sees that a header is C++ (below). |
+| `headerOut`   | Directory for generated headers (e.g. `include`).                                                                                                                                                             |
+| `target`      | The program's target when its source names none (ADR-049), e.g. `teensy41`. A PlatformIO board can name it instead (below).                                                                                   |
+| `debugMode`   | Generate panic-on-overflow helpers.                                                                                                                                                                           |
+| `noCache`     | Disable the `.cnx/` symbol cache.                                                                                                                                                                             |
+| `cppRequired` | `true` emits C++ (`.cpp`/`.hpp`) regardless; `false` requires C. Unset, the mode is detected from the headers your sources reach — see below.                                                                 |
 
 Relative paths in `cnext.config.json` resolve against the directory holding the
 config file. Paths passed as CLI flags (`-o`, `--header-out`, `-I`) resolve
@@ -75,29 +75,24 @@ sets no `default_envs`, every build fails with E0511.
 
 ## C vs C++ Output
 
-C-Next emits **C** (`.c` + `.h`) unless you tell it otherwise. To emit **C++**
-(`.cpp` + `.hpp`), set `cppRequired: true` in `cnext.config.json` or pass `--cpp`.
+C-Next emits **C** (`.c` + `.h`) unless a header your sources reach is C++: a
+`.hpp`, or a `.h` whose preprocessed text holds templates, classes, namespaces or
+access specifiers (`FlexCAN_T4.h`, Arduino classes). Then it emits **C++**
+(`.cpp` + `.hpp`). Set `cppRequired: true` in `cnext.config.json` (or pass `--cpp`)
+to emit C++ regardless, or `cppRequired: false` (or `--no-cpp`) to require C.
 
-If a run that did not declare C++ `#include`s a C++ header — a `.hpp`, or a `.h`
-containing templates, classes, namespaces or access specifiers (`FlexCAN_T4.h`,
-Arduino classes) — the transpile **fails with E0507** naming the header:
+A run that requires C and `#include`s a C++ header **fails with E0507**, at the
+include that reached it:
 
 ```
-Error: 1:0 Pipeline failed: E0507: C++ header in 'lib/FlexCAN_T4/FlexCAN_T4.h', but this run does not target C++.
-  C-Next emits C unless told otherwise. To compile as C++, set
-  'cppRequired: true' in your config, or pass --cpp.
+Error: src/main.cnx:3:0 error[E0507]: C++ syntax in 'lib/FlexCAN_T4/FlexCAN_T4.h', reached through this include, but this run asks for C
+       help: 'cppRequired: false' (or --no-cpp) asks for C. Remove it so the mode is detected from the headers, or pass --cpp to compile as C++.
 ```
 
-The `1:0` is the whole run, not a line in your source: the header is rejected while the
-include graph is being collected, before any `#include` site is attributed to it. Grep for
-`E0507` rather than for a position.
-
-> **Previously** C-Next guessed: it read your includes and switched output languages
-> on its own. That guess was only as good as the search path. If `Arduino.h` was not
-> on an `include` path, C-Next could not see it was C++, quietly emitted C, and your
-> C++ calls failed at the _compiler_ instead — with an error that pointed at
-> generated code rather than at the missing path. Declaring the mode moves that
-> failure to the transpiler, names the file, and names the fix.
+> C-Next can only judge a header it can find. If `Arduino.h` is not on an `include`
+> path, an unset mode stays C, and your C++ calls fail at the _compiler_ instead,
+> with an error that points at generated code. Set `cppRequired: true` in a C++
+> project so the mode does not depend on the search path.
 
 Your `include` paths still matter for everything else — symbol resolution, macro
 expansion, type checking — so keep C/C++ headers reachable (this is why

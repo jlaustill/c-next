@@ -1,11 +1,11 @@
 /*
  * Minimal reproduction of xtensa `coreasm.h`: a GNU-assembler source that ships
  * with a `.h` extension and is pulled in (transitively) from FreeRTOS port
- * headers. It is never valid C. When its preprocessing fails (its own deep
- * includes are unresolved) the transpiler falls back to parsing the RAW text as
- * C, and the C parser error-recovers over this `.macro` body and mis-collects
- * the `loop` assembler instruction mnemonic as a C symbol named `loop` — which
- * then false-conflicts with a C-Next `loop()`.
+ * headers. It is never valid C. When the transpiler parsed its RAW text as C
+ * (it did when the header's own deep includes failed to preprocess), the C
+ * parser error-recovered over this `.macro` body and mis-collected the `loop`
+ * assembler instruction mnemonic as a C symbol named `loop` — which then
+ * false-conflicted with a C-Next `loop()`. #1844: no header is read raw now.
  *
  * Structure copied faithfully from the real header (the `floop_` macro).
  */

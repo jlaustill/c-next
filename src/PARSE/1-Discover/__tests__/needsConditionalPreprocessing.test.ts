@@ -1,40 +1,23 @@
 /**
  * Unit tests for needsConditionalPreprocessing detection logic
  * Issue #945: Tests the regex pattern that determines when header files
- * need preprocessing for conditional compilation evaluation.
- *
- * Since needsConditionalPreprocessing is a private method, we test it
- * via a subclass that exposes it for testing purposes.
+ * need preprocessing for conditional compilation evaluation. #1844: 1.1
+ * Discover's `HeaderSources` owns it now, with the rest of a header's text.
  */
 
 import { describe, it, expect } from "vitest";
-import Transpiler from "../Transpiler";
-import MockFileSystem from "./MockFileSystem";
+import HeaderSources from "../HeaderSources";
 
-/**
- * Test subclass that exposes the private needsConditionalPreprocessing method
- */
-class TestableTranspiler extends Transpiler {
-  testNeedsConditionalPreprocessing(content: string): boolean {
-    // Access private method via type casting
-    return (
-      this as unknown as {
-        needsConditionalPreprocessing: (s: string) => boolean;
-      }
-    ).needsConditionalPreprocessing(content);
-  }
+/** The private predicate, reached the way the other private-method tests do */
+function needsConditionalPreprocessing(content: string): boolean {
+  return (
+    HeaderSources as unknown as {
+      _needsConditionalPreprocessing: (s: string) => boolean;
+    }
+  )._needsConditionalPreprocessing(content);
 }
 
 describe("needsConditionalPreprocessing", () => {
-  let transpiler: TestableTranspiler;
-
-  beforeEach(() => {
-    transpiler = new TestableTranspiler(
-      { input: "", noCache: true },
-      new MockFileSystem(),
-    );
-  });
-
   describe("patterns that SHOULD trigger preprocessing", () => {
     it("detects #if MACRO != 0", () => {
       const content = `
@@ -42,7 +25,7 @@ describe("needsConditionalPreprocessing", () => {
         void create_label(void);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(true);
+      expect(needsConditionalPreprocessing(content)).toBe(true);
     });
 
     it("detects #if MACRO == 1", () => {
@@ -51,7 +34,7 @@ describe("needsConditionalPreprocessing", () => {
         void debug_log(const char* msg);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(true);
+      expect(needsConditionalPreprocessing(content)).toBe(true);
     });
 
     it("detects #if MACRO > 0", () => {
@@ -60,7 +43,7 @@ describe("needsConditionalPreprocessing", () => {
         void log_debug(const char* msg);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(true);
+      expect(needsConditionalPreprocessing(content)).toBe(true);
     });
 
     it("detects bare #if MACRO (truthy check)", () => {
@@ -69,7 +52,7 @@ describe("needsConditionalPreprocessing", () => {
         void do_feature(void);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(true);
+      expect(needsConditionalPreprocessing(content)).toBe(true);
     });
 
     it("detects #elif MACRO != 0", () => {
@@ -80,7 +63,7 @@ describe("needsConditionalPreprocessing", () => {
         void feature_b(void);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(true);
+      expect(needsConditionalPreprocessing(content)).toBe(true);
     });
 
     it("detects #elif with bare macro", () => {
@@ -91,7 +74,7 @@ describe("needsConditionalPreprocessing", () => {
         void feature_b(void);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(true);
+      expect(needsConditionalPreprocessing(content)).toBe(true);
     });
 
     it("detects #if with arithmetic expression", () => {
@@ -100,7 +83,7 @@ describe("needsConditionalPreprocessing", () => {
         void new_api(void);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(true);
+      expect(needsConditionalPreprocessing(content)).toBe(true);
     });
 
     it("does not trigger for #if defined(X) && macro (starts with defined)", () => {
@@ -114,7 +97,7 @@ describe("needsConditionalPreprocessing", () => {
       `;
       // Current regex doesn't match this because it starts with defined()
       // This is a known limitation, but acceptable for most real-world headers
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(false);
+      expect(needsConditionalPreprocessing(content)).toBe(false);
     });
   });
 
@@ -125,7 +108,7 @@ describe("needsConditionalPreprocessing", () => {
         void do_feature(void);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(false);
+      expect(needsConditionalPreprocessing(content)).toBe(false);
     });
 
     it("does not trigger for #ifndef MACRO", () => {
@@ -135,7 +118,7 @@ describe("needsConditionalPreprocessing", () => {
         void foo(void);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(false);
+      expect(needsConditionalPreprocessing(content)).toBe(false);
     });
 
     it("does not trigger for #if defined(MACRO)", () => {
@@ -144,7 +127,7 @@ describe("needsConditionalPreprocessing", () => {
         void feature_x(void);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(false);
+      expect(needsConditionalPreprocessing(content)).toBe(false);
     });
 
     it("does not trigger for #if 0", () => {
@@ -154,7 +137,7 @@ describe("needsConditionalPreprocessing", () => {
         void old_api(void);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(false);
+      expect(needsConditionalPreprocessing(content)).toBe(false);
     });
 
     it("does not trigger for #if 1", () => {
@@ -163,7 +146,7 @@ describe("needsConditionalPreprocessing", () => {
         void always_enabled(void);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(false);
+      expect(needsConditionalPreprocessing(content)).toBe(false);
     });
 
     it("does not trigger for plain declarations without conditionals", () => {
@@ -172,7 +155,7 @@ describe("needsConditionalPreprocessing", () => {
         void bar(int x);
         typedef struct widget_s widget_t;
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(false);
+      expect(needsConditionalPreprocessing(content)).toBe(false);
     });
 
     it("does not trigger for #if 0 with comment", () => {
@@ -181,7 +164,7 @@ describe("needsConditionalPreprocessing", () => {
         void disabled(void);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(false);
+      expect(needsConditionalPreprocessing(content)).toBe(false);
     });
 
     it("does not trigger for #if 1 with comment", () => {
@@ -190,7 +173,7 @@ describe("needsConditionalPreprocessing", () => {
         void enabled(void);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(false);
+      expect(needsConditionalPreprocessing(content)).toBe(false);
     });
   });
 
@@ -206,7 +189,7 @@ describe("needsConditionalPreprocessing", () => {
         #endif
       `;
       // Should trigger because of the #if DEBUG_LEVEL != 0 pattern
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(true);
+      expect(needsConditionalPreprocessing(content)).toBe(true);
     });
 
     it("handles LVGL-style config patterns", () => {
@@ -216,7 +199,7 @@ describe("needsConditionalPreprocessing", () => {
         lv_obj_t* lv_label_create(lv_obj_t* parent);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(true);
+      expect(needsConditionalPreprocessing(content)).toBe(true);
     });
 
     it("handles FreeRTOS-style config patterns", () => {
@@ -226,7 +209,7 @@ describe("needsConditionalPreprocessing", () => {
         SemaphoreHandle_t xSemaphoreCreateMutex(void);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(true);
+      expect(needsConditionalPreprocessing(content)).toBe(true);
     });
 
     it("handles whitespace variations in #if", () => {
@@ -235,12 +218,12 @@ describe("needsConditionalPreprocessing", () => {
         void feature(void);
         #endif
       `;
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(true);
+      expect(needsConditionalPreprocessing(content)).toBe(true);
     });
 
     it("handles tab in #if directive", () => {
       const content = "#if\tFEATURE_X\nvoid feature(void);\n#endif";
-      expect(transpiler.testNeedsConditionalPreprocessing(content)).toBe(true);
+      expect(needsConditionalPreprocessing(content)).toBe(true);
     });
   });
 });

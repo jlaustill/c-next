@@ -44,6 +44,9 @@ async function forFixture(fixturePath: string): Promise<Map<string, number[]>> {
         input: fixturePath,
         outDir: scratchDir(),
         target: TestUtils.harnessTarget(source),
+        // #1844 review: the mode of the harness's first run of this fixture,
+        // so provenance comes from a run the harness performs
+        cppRequired: !TestUtils.getTestModes(source).includes("c"),
       },
       NodeFileSystem.instance,
     );

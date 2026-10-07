@@ -6,8 +6,8 @@
  */
 interface IFileConfig {
   /**
-   * Issue #211, #1319: emit C++ (`.cpp`/`.hpp`) instead of C. The declaration
-   * of the run's output language; nothing infers it. See E0507.
+   * Issue #211, #1319, #1844: `true` emits C++ (`.cpp`/`.hpp`); `false` emits
+   * C, and a C++ header is then E0507. Unset, a C++ header makes the run C++.
    */
   cppRequired?: boolean;
   /** Generate panic-on-overflow helpers */

@@ -268,7 +268,7 @@ class ServeCommand {
       {
         input: "",
         includeDirs: config.include ?? [],
-        cppRequired: config.cppRequired ?? false,
+        cppRequired: config.cppRequired,
         target: config.target ?? "",
         debugMode: config.debugMode ?? false,
         noCache: config.noCache ?? false,
@@ -277,7 +277,7 @@ class ServeCommand {
     );
 
     ServeCommand.log(
-      `initialized (cppRequired=${config.cppRequired ?? false}, includeDirs=${(config.include ?? []).length})`,
+      `initialized (cppRequired=${config.cppRequired ?? "unset"}, includeDirs=${(config.include ?? []).length})`,
     );
 
     return {

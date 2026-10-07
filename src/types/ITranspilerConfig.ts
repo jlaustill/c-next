@@ -20,13 +20,11 @@ interface ITranspilerConfig {
   /** Preprocessor defines for C/C++ headers */
   defines?: Record<string, string | boolean>;
 
-  /** Whether to preprocess C/C++ headers (default: true) */
-  preprocess?: boolean;
-
   /**
-   * Issue #211, #1319: emit C++ (`.cpp`/`.hpp`) instead of C. This is THE
-   * declaration of the run's output language, not an override of a guess --
-   * nothing infers it. A C++ header met in a run that left this false is E0507.
+   * Issue #211, #1319, #1844: the run's output language. `true` emits C++
+   * (`.cpp`/`.hpp`) whatever the headers are. Unset, 1.1 Discover detects it:
+   * any C++ header the run includes makes the run C++ (#1428). `false` asks
+   * for C, and a C++ header met in such a run is E0507.
    */
   cppRequired?: boolean;
 
