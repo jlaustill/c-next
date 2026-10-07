@@ -78,7 +78,7 @@ import Diagnostics from "../TRANSPILE/1-Analyze/Diagnostics";
 import type IDiagnostics from "../types/IDiagnostics";
 import type ICodeGenSymbols from "../types/ICodeGenSymbols";
 import CacheManager from "../utils/cache/CacheManager";
-import PreprocessCache from "../utils/cache/PreprocessCache";
+import PreprocessCache from "../PARSE/1-Discover/preprocessor/PreprocessCache";
 import ConcurrencyLimit from "../utils/ConcurrencyLimit";
 import ExternalDeclarationOracle from "../PARSE/1-Discover/preprocessor/ExternalDeclarationOracle";
 import TypedefParamParser from "../TRANSPILE/3-Render/codegen/helpers/TypedefParamParser";

@@ -12,10 +12,10 @@ import ISourceMapping from "./types/ISourceMapping";
 import IPreprocessOptions from "./types/IPreprocessOptions";
 import ToolchainDetector from "./ToolchainDetector";
 import ExecFailure from "../../../utils/ExecFailure";
-import type IPreprocessCacheEntry from "../../../utils/types/IPreprocessCacheEntry";
+import type IPreprocessCacheEntry from "./types/IPreprocessCacheEntry";
 import IFileSystem from "../../../types/IFileSystem";
 import LineMarkers from "./LineMarkers";
-import PreprocessCache from "../../../utils/cache/PreprocessCache";
+import PreprocessCache from "./PreprocessCache";
 
 const execFileAsync = promisify(execFile);
 

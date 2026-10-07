@@ -31,8 +31,8 @@ as counted at audit time" rather than a literal.
 | **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **0** |
 | **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **3** |
 | **3**  | dead — unreachable or subsumed; delete                                         | **0** |
-| **4**  | about the run, not a line — no source position exists; needs a code (#1847)    | **5** |
-|        | **total**                                                                      | **8** |
+| **4**  | about the run, not a line — no source position exists; needs a code (#1847)    | **4** |
+|        | **total**                                                                      | **7** |
 
 ## How to recount
 
@@ -83,7 +83,7 @@ bucket sections below, not in this table (#1531):
 
 | area                                                     | sites |
 | -------------------------------------------------------- | ----- |
-| `src/PARSE/` (1.1 Discover, 1.3 Declare, 1.4 Resolve)    | 5     |
+| `src/PARSE/` (1.1 Discover, 1.3 Declare, 1.4 Resolve)    | 4     |
 | `src/TRANSPILE/` (2.1 to 2.3; #1322 emptied `3-Render/`) | 0     |
 | `src/transpiler/` (the orchestrator)                     | 0     |
 | `src/utils/`                                             | 3     |
@@ -354,7 +354,7 @@ is gone: `helpers/CodeGenErrors.ts` is deleted and the message is built at the s
 anchored on what the throw says. It remains tier A — the line is a parameter already, spent on
 `Error at line ${line}:` prose.
 
-## Bucket 4 — about the run, not a line (5)
+## Bucket 4 — about the run, not a line (4)
 
 Added by #1531. Each of these throws is about the run itself: its invocation, its installation, or
 a tool it calls. No line of a program is the cause, so pass 2.1 is not their home, and a position
@@ -367,7 +367,6 @@ that names no file and no line, and codes them.
 | `1-Discover/InputExpansion.ts:63`     | `Invalid file extension`              | only through `--clean`, as `Error: Error: Invalid file extension …` at exit 0                                                                                          | #1847 |
 | `1-Discover/TargetCatalogFile.ts:52`  | `was not found above`                 | a broken installation. In a run it reads `Code generation failed:`, from the catch around building `Program`; the CLI's usage text also reads the catalog (not traced) | #1847 |
 | `4-Resolve/TargetDescriptions.ts:215` | `the compiler installation is broken` | a broken installation. In a run it reads `Code generation failed:`, from the catch around building `Program`; the CLI's usage text also reads the catalog (not traced) | #1847 |
-| `preprocessor/Preprocessor.ts:198`    | `Preprocessor failed for`             | never an error. `Preprocessor.preprocess` catches it, and the run falls back to the header's raw text with a warning, by design (#985)                                 | —     |
 
 ## Proposed split of #1322
 

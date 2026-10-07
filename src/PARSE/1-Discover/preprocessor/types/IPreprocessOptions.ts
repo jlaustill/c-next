@@ -1,5 +1,5 @@
 import IToolchain from "./IToolchain";
-import type PreprocessCache from "../../../../utils/cache/PreprocessCache";
+import type PreprocessCache from "../PreprocessCache";
 
 /**
  * Preprocessor options

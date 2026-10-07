@@ -13,10 +13,10 @@
 
 import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
-import IFileSystem from "../../types/IFileSystem";
-import IPreprocessCacheEntry from "../types/IPreprocessCacheEntry";
-import Write from "../../WRITE/1-Write/Write";
-import packageJson from "../../../package.json" with { type: "json" };
+import IFileSystem from "../../../types/IFileSystem";
+import IPreprocessCacheEntry from "./types/IPreprocessCacheEntry";
+import Write from "../../../WRITE/1-Write/Write";
+import packageJson from "../../../../package.json" with { type: "json" };
 
 /** Bump when an entry's shape or meaning changes */
 const FORMAT = 1;

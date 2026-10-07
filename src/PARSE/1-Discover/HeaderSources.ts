@@ -14,7 +14,7 @@ import type IHeaderSource from "./types/IHeaderSource";
 import type IRecoveredDeclarations from "./types/IRecoveredDeclarations";
 import type IRecoveredSlice from "./types/IRecoveredSlice";
 import type IFileSystem from "../../types/IFileSystem";
-import type PreprocessCache from "../../utils/cache/PreprocessCache";
+import type PreprocessCache from "./preprocessor/PreprocessCache";
 import ConcurrencyLimit from "../../utils/ConcurrencyLimit";
 import invariant from "../../utils/invariant";
 

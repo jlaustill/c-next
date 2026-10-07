@@ -17,7 +17,7 @@ import type ISourceSite from "../../types/ISourceSite";
 import CodedErrorText from "../../utils/CodedErrorText";
 import type IHeaderInclude from "./types/IHeaderInclude";
 import type IHeaderRoot from "./types/IHeaderRoot";
-import type PreprocessCache from "../../utils/cache/PreprocessCache";
+import type PreprocessCache from "./preprocessor/PreprocessCache";
 import type IFileSystem from "../../types/IFileSystem";
 import type ITranspileError from "../../lib/types/ITranspileError";
 import type IInMemorySource from "./types/IInMemorySource";
