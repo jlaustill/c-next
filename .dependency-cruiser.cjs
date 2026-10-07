@@ -234,10 +234,9 @@ module.exports = {
         "`SymbolRegistry` for the scope back-reference `no-circular` exempts.",
       severity: "error",
       from: {
-        // The shared root only. The four types #1853 left in
-        // `src/transpiler/types/` are host types bound for `src/cli/`
-        // (awaiting #1443) -- only `Transpiler.ts`, `cli/` and the cache name
-        // them -- and the host is the one root that may name a pass.
+        // The shared root only. The four host types #1853 left in
+        // `src/transpiler/types/` moved to `src/cli/types/` with #1443, and
+        // the host is the one root that may name a pass.
         path: "^src/types/",
         pathNot: "(__tests__|__testUtils__)",
       },
