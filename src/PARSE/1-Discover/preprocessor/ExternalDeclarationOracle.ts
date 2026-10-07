@@ -159,6 +159,13 @@ class ExternalDeclarationOracle {
           walk,
           directiveOf,
         );
+        // #1844: a header entered with no line of its own still was entered
+        if (
+          !ExternalDeclarationOracle.isSynthetic(walk.current) &&
+          !buckets.has(walk.current)
+        ) {
+          buckets.set(walk.current, []);
+        }
       } else if (!ExternalDeclarationOracle.isSynthetic(walk.current)) {
         const bucket = buckets.get(walk.current);
         if (bucket) bucket.push(line);

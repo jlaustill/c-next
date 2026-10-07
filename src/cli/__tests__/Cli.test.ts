@@ -55,7 +55,6 @@ describe("Cli", () => {
       outputPath: "",
       includeDirs: [],
       defines: {},
-      preprocess: true,
       verbose: false,
       // #1844: neither --cpp nor --no-cpp
       cppRequired: undefined,
@@ -360,7 +359,6 @@ describe("Cli", () => {
         outputPath: "build/",
         includeDirs: ["inc/"],
         defines: { DEBUG: true },
-        preprocess: false,
         verbose: true,
         cppRequired: true,
         noCache: true,
@@ -383,7 +381,6 @@ describe("Cli", () => {
         outputPath: "build/",
         includeDirs: ["inc/"],
         defines: { DEBUG: true },
-        preprocess: false,
         verbose: true,
         cppRequired: true,
         noCache: true,

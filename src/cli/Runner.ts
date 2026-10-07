@@ -39,7 +39,6 @@ class Runner {
         includeDirs: config.includeDirs,
         outDir,
         headerOutDir: config.headerOutDir,
-        preprocess: config.preprocess,
         defines: config.defines,
         cppRequired: config.cppRequired,
         noCache: config.noCache,

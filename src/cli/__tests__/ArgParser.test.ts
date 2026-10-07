@@ -169,18 +169,6 @@ describe("ArgParser", () => {
         expect(result.debugMode).toBe(true);
       });
 
-      it("parses --no-preprocess flag", () => {
-        const result = ArgParser.parse(argv("input.cnx", "--no-preprocess"));
-
-        expect(result.preprocess).toBe(false);
-      });
-
-      it("defaults preprocess to true", () => {
-        const result = ArgParser.parse(argv("input.cnx"));
-
-        expect(result.preprocess).toBe(true);
-      });
-
       it("parses --no-cache flag", () => {
         const result = ArgParser.parse(argv("input.cnx", "--no-cache"));
 
@@ -248,7 +236,6 @@ describe("ArgParser", () => {
         expect(result.defines).toEqual({});
         expect(result.cppRequired).toBeUndefined();
         expect(result.target).toBeUndefined();
-        expect(result.preprocess).toBe(true);
         expect(result.verbose).toBe(false);
         expect(result.noCache).toBe(false);
         expect(result.parseOnly).toBe(false);
@@ -294,6 +281,15 @@ describe("ArgParser", () => {
       it("rejects unknown flags with error", () => {
         expect(() =>
           ArgParser.parse(argv("input.cnx", "--unknown-flag")),
+        ).toThrow("process.exit(1)");
+        expect(exitSpy).toHaveBeenCalledWith(1);
+      });
+
+      // #1844: a header's language is judged on its preprocessed text, so
+      // there is no run without the preprocessor to ask for.
+      it("rejects --no-preprocess, which is removed", () => {
+        expect(() =>
+          ArgParser.parse(argv("input.cnx", "--no-preprocess")),
         ).toThrow("process.exit(1)");
         expect(exitSpy).toHaveBeenCalledWith(1);
       });

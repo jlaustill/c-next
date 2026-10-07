@@ -39,7 +39,6 @@ class ConfigPrinter {
     console.log("  debugMode:      " + (config.debugMode ?? false));
     console.log("  target:         " + (config.target ?? "(none)"));
     console.log("  noCache:        " + config.noCache);
-    console.log("  preprocess:     " + config.preprocess);
     console.log(
       "  output:         " + (config.outputPath || "(same dir as input)"),
     );

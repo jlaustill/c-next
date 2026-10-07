@@ -28,7 +28,6 @@ interface IYargsResult {
   config: boolean;
   verbose: boolean;
   debug: boolean;
-  preprocess: boolean;
   cache: boolean;
   "pio-install": boolean;
   "pio-uninstall": boolean;
@@ -124,12 +123,6 @@ A safer C for embedded systems development.`,
         type: "boolean",
         describe: "Generate panic-on-overflow helpers (ADR-044)",
         default: false,
-      })
-      .option("preprocess", {
-        type: "boolean",
-        describe:
-          "Run C preprocessor on headers (use --no-preprocess to disable)",
-        default: true,
       })
       .option("cache", {
         type: "boolean",
@@ -255,7 +248,6 @@ class ArgParser {
       cppRequired: parsed.cpp,
       target: parsed.target,
       pioEnv: parsed["pio-env"],
-      preprocess: parsed.preprocess,
       verbose: parsed.verbose,
       noCache: !parsed.cache,
       parseOnly: parsed.parse,

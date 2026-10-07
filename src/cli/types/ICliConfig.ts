@@ -13,8 +13,6 @@ interface ICliConfig {
   includeDirs: string[];
   /** Preprocessor defines */
   defines: Record<string, string | boolean>;
-  /** Whether to run C preprocessor on headers */
-  preprocess: boolean;
   /** --verbose flag */
   verbose: boolean;
   /**

@@ -16,6 +16,9 @@ interface IPreprocessResult {
   /** Error message if failed */
   error?: string;
 
+  /** #1844: the compiler's own messages (stderr) when it failed */
+  diagnostics?: string;
+
   /** Original file that was preprocessed */
   originalFile: string;
 

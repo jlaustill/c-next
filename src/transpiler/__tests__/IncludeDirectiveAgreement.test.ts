@@ -203,19 +203,25 @@ describe("1.1 Discover and the parser agree on a file's includes (#1745)", () =>
   describe("(b) in the #985 recovery translation unit", () => {
     // A header whose own preprocessing fails sends every C include of every
     // .cnx file through one recovered translation unit, whose declarations
-    // join the symbol table.
+    // join the symbol table. broken.h needs prior.h first; sinker.h, which
+    // refuses to follow prior.h, sinks the retry with the headers before it,
+    // and the unit drops sinker.h and settles broken.h (#1844).
     const BROKEN =
-      "#if PRIOR_LEVEL > 1\nvoid real_fn(void);\n#endif\n" +
-      '#error "include prior first"\n';
+      '#ifndef PRIOR_LEVEL\n#error "include prior first"\n#endif\n' +
+      "#if PRIOR_LEVEL > 1\nvoid real_fn(void);\n#endif\n";
     const HELPERS = {
+      "prior.h": "#define PRIOR_LEVEL 2\n",
+      "sinker.h": '#ifdef PRIOR_LEVEL\n#error "include sinker first"\n#endif\n',
       "broken.h": BROKEN,
       "hidden.h": "void hidden_fn(void);\n",
     };
+    const BROKEN_FIRST =
+      '#include "prior.h"\n#include "sinker.h"\n#include "broken.h"\n';
     const CALLS_HIDDEN = "i32 main() {\n    hidden_fn();\n    return 0;\n}\n";
 
     it("takes no declaration from a block-commented header", async () => {
       const result = await transpileMain(
-        `#include "broken.h"\n/*\n#include "hidden.h"\n*/\n\n${CALLS_HIDDEN}`,
+        `${BROKEN_FIRST}/*\n#include "hidden.h"\n*/\n\n${CALLS_HIDDEN}`,
         HELPERS,
       );
 
@@ -232,7 +238,8 @@ describe("1.1 Discover and the parser agree on a file's includes (#1745)", () =>
       const recover = vi.spyOn(ExternalDeclarationOracle, "recover");
       try {
         await transpileMain(
-          '#include "broken.h"\n#include <stdint.h>\n#include"tight.h"\n' +
+          BROKEN_FIRST +
+            '#include <stdint.h>\n#include"tight.h"\n' +
             '#include "lib.cnext"\n/*\n#include "hidden.h"\n*/\n\n' +
             USES_NOTHING,
           {
@@ -244,6 +251,8 @@ describe("1.1 Discover and the parser agree on a file's includes (#1745)", () =>
 
         expect(recover).toHaveBeenCalledTimes(1);
         expect(recover.mock.calls[0][0]).toEqual([
+          '"prior.h"',
+          '"sinker.h"',
           '"broken.h"',
           "<stdint.h>",
           '"tight.h"',
@@ -255,7 +264,7 @@ describe("1.1 Discover and the parser agree on a file's includes (#1745)", () =>
 
     it("control: the same header as a directive declares it", async () => {
       const result = await transpileMain(
-        `#include "broken.h"\n#include "hidden.h"\n\n${CALLS_HIDDEN}`,
+        `${BROKEN_FIRST}#include "hidden.h"\n\n${CALLS_HIDDEN}`,
         HELPERS,
       );
 

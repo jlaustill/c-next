@@ -15,7 +15,9 @@ import type IRecoveredDeclarations from "./types/IRecoveredDeclarations";
 import type IDiscoveredFile from "./types/IDiscoveredFile";
 import type ISourceSite from "../../types/ISourceSite";
 import CodedErrorText from "../../utils/CodedErrorText";
+import type IHeaderInclude from "./types/IHeaderInclude";
 import type IHeaderRoot from "./types/IHeaderRoot";
+import type PreprocessCache from "../../utils/cache/PreprocessCache";
 import type IFileSystem from "../../types/IFileSystem";
 import type ITranspileError from "../../lib/types/ITranspileError";
 import type IInMemorySource from "./types/IInMemorySource";
@@ -36,13 +38,7 @@ import type ISourceGraph from "./types/ISourceGraph";
 /** The configuration a run's discovery reads. */
 type TDiscoverySettings = Pick<
   Required<ITranspilerConfig>,
-  | "input"
-  | "includeDirs"
-  | "defines"
-  | "outDir"
-  | "headerOutDir"
-  | "debugMode"
-  | "preprocess"
+  "input" | "includeDirs" | "defines" | "outDir" | "headerOutDir" | "debugMode"
 > &
   // #1844: unset is not false. Unset, C++ in a header makes the run C++;
   // `false` asked for C, and C++ met there is E0507.
@@ -53,8 +49,10 @@ type TDiscoveredFiles = Omit<
   ISourceGraph,
   "includes" | "anchor" | "headerSources" | "recoveredDeclarations" | "cppMode"
 > & {
-  /** #1844: per header, the `.cnx` include through which the walk reached it */
-  readonly headerSites: ReadonlyMap<string, ISourceSite>;
+  /** #1844: every `.cnx` file's header includes, in discovery order */
+  readonly headerIncludes: readonly IHeaderInclude[];
+  /** #1844: per header, the headers the walk found it includes */
+  readonly headerEdges: ReadonlyMap<string, readonly string[]>;
 };
 
 /** A `.cnx` file's includes, resolved but not yet spelled (#1844). */
@@ -112,6 +110,8 @@ class Discover {
    * @param previousAnchor - The last run's anchor, which a run anchored at the
    *   same place reuses (see `RunAnchor.at`)
    * @param warnings - Where discovery's warnings go
+   * @param preprocessCache - Where each preprocessor run is kept (#1844);
+   *   null when the run asks for no cache
    * @returns the frozen graph, the anchor the run's services come from, and
    *   the errors that reject the run. A run with errors goes no further.
    */
@@ -121,6 +121,7 @@ class Discover {
     settings: TDiscoverySettings,
     fs: IFileSystem,
     warnings: string[],
+    preprocessCache: PreprocessCache | null = null,
   ): Promise<{
     readonly graph: ISourceGraph;
     readonly anchor: IRunAnchor;
@@ -154,31 +155,45 @@ class Discover {
         : discovery._fromFiles();
     // #1844: every header judged once, on the text a C compile meets, and
     // the run's mode from those judgments.
+    if (files.headerFiles.length > 0 && !anchor.preprocessor.isAvailable()) {
+      discovery._noPreprocessor(files.headerIncludes);
+      return {
+        graph: discovery._freeze(files, new Map(), null, false),
+        anchor,
+        errors: discovery.errors,
+      };
+    }
     const unit = discovery._translationUnit(files.cnextFiles);
-    const { sources: headerSources, recovered } = await HeaderSources.settle(
+    const settled = await HeaderSources.settle(
       files.headerFiles,
       files.headerSearchPaths,
       {
         fs: discovery.fs,
         preprocessor: anchor.preprocessor,
-        preprocess: settings.preprocess,
         defines: anchor.defines,
+        cache: preprocessCache,
       },
       {
         directives: unit.directives,
         includePaths: files.includeSearchPaths,
       },
     );
+    discovery._unsettled(files, settled.unsettled);
     const cppMode = discovery._cppMode(
       files,
-      headerSources,
-      recovered,
+      settled.sources,
+      settled.recovered,
       unit.sites,
       settings.cppRequired,
     );
     discovery._spellIncludes(OutputExtensions.forCppMode(cppMode).header);
     return {
-      graph: discovery._freeze(files, headerSources, recovered, cppMode),
+      graph: discovery._freeze(
+        files,
+        settled.sources,
+        settled.recovered,
+        cppMode,
+      ),
       anchor,
       errors: discovery.errors,
     };
@@ -188,72 +203,149 @@ class Discover {
    * The run's C/C++ mode (#1428, owner ruling): detected, not declared. Any
    * C++ header makes the whole run C++, unless the config says
    * `cppRequired: false` -- a run that asked for C, where C++ is E0507
-   * (#1844). `cppRequired: true` (or `--cpp`) is C++ with only C headers.
+   * (#1844), at every `.cnx` include through which the run meets it.
+   * `cppRequired: true` (or `--cpp`) is C++ with only C headers.
    */
   private _cppMode(
-    files: Pick<TDiscoveredFiles, "headerFiles" | "headerSites">,
+    files: Pick<TDiscoveredFiles, "headerIncludes" | "headerEdges">,
     sources: ReadonlyMap<string, IHeaderSource>,
     recovered: IRecoveredDeclarations | null,
-    unitSites: ReadonlyMap<string, ISourceSite>,
+    unitSites: ReadonlyMap<string, readonly ISourceSite[]>,
     cppRequired: boolean | undefined,
   ): boolean {
-    const cpp = Discover._firstCpp(files, sources, recovered, unitSites);
-    if (cppRequired === false && cpp !== undefined) {
-      const reason =
-        FileDiscovery.classifyFile(cpp.path).type === EFileType.CppHeader
-          ? "C++ header"
-          : "C++ syntax";
-      this.errors.push({
-        ...cpp.site,
-        message: CodedErrorText.of(
-          "E0507",
-          `${reason} in '${DeclarationSite.displayPath(cpp.path)}', reached ` +
-            `through this include, but this run asks for C`,
-        ),
-        helpText:
-          "'cppRequired: false' (or --no-cpp) asks for C. Remove it so the " +
-          "mode is detected from the headers, or pass --cpp to compile as C++.",
-        severity: "error",
-      });
+    const isCpp = (path: string): boolean =>
+      sources.get(path)?.language === EHeaderLanguage.Cpp;
+    const met = new Map<string, { path: string; site: ISourceSite }>();
+    for (const { header, site } of files.headerIncludes) {
+      const cpp = Discover._reachedFrom(header, files.headerEdges).find(isCpp);
+      if (cpp !== undefined)
+        met.set(Discover._siteKey(site), { path: cpp, site });
+    }
+    // #985: a slice the toolchain found on its own path is met by the compile
+    // as much as a header the walk reached, through every include of the
+    // directive that entered it.
+    for (const [path, { language, directive }] of recovered?.slices ?? []) {
+      if (language !== EHeaderLanguage.Cpp) continue;
+      const sites = directive === null ? undefined : unitSites.get(directive);
+      invariant(
+        sites !== undefined,
+        `the unit's preprocessor entered every C++ slice through one of its includes (missing ${path})`,
+      );
+      for (const site of sites) {
+        const key = Discover._siteKey(site);
+        if (!met.has(key)) met.set(key, { path, site });
+      }
+    }
+    if (cppRequired === false) {
+      for (const cpp of Discover._inSourceOrder([...met.values()])) {
+        const reason =
+          FileDiscovery.classifyFile(cpp.path).type === EFileType.CppHeader
+            ? "C++ header"
+            : "C++ syntax";
+        this.errors.push({
+          ...cpp.site,
+          message: CodedErrorText.of(
+            "E0507",
+            `${reason} in '${DeclarationSite.displayPath(cpp.path)}', reached ` +
+              `through this include, but this run asks for C`,
+          ),
+          helpText:
+            "'cppRequired: false' (or --no-cpp) asks for C. Remove it so the " +
+            "mode is detected from the headers, or pass --cpp to compile as C++.",
+          severity: "error",
+        });
+      }
       return false;
     }
-    return cppRequired ?? cpp !== undefined;
+    return cppRequired ?? met.size > 0;
   }
 
   /**
-   * The first C++ header the run meets, and the `.cnx` include through which
-   * it meets it (#1844, owner ruling on #1542: E0507 is reported there).
-   * #985: a slice the toolchain found on its own path is met by the compile
-   * as much as a header the walk reached.
+   * #1844, owner ruling 5 of 2026-10-03 (#1542): a run that includes headers
+   * needs a preprocessor, since each header's language is judged on its
+   * preprocessed text. Reported at the run's first header include.
    */
-  private static _firstCpp(
-    files: Pick<TDiscoveredFiles, "headerFiles" | "headerSites">,
-    sources: ReadonlyMap<string, IHeaderSource>,
-    recovered: IRecoveredDeclarations | null,
-    unitSites: ReadonlyMap<string, ISourceSite>,
-  ): { readonly path: string; readonly site: ISourceSite } | undefined {
-    const header = files.headerFiles.find(
-      (file) => sources.get(file.path)?.language === EHeaderLanguage.Cpp,
-    );
-    if (header !== undefined) {
-      const site = files.headerSites.get(header.path);
-      invariant(
-        site !== undefined,
-        `the header walk records the include that reached every header (missing ${header.path})`,
-      );
-      return { path: header.path, site };
-    }
-    const slice = [...(recovered?.slices ?? [])].find(
-      ([, { language }]) => language === EHeaderLanguage.Cpp,
-    );
-    if (slice === undefined) return undefined;
-    const [path, { directive }] = slice;
-    const site = directive === null ? undefined : unitSites.get(directive);
+  private _noPreprocessor(includes: readonly IHeaderInclude[]): void {
+    const first = Discover._inSourceOrder(includes)[0];
     invariant(
-      site !== undefined,
-      `the unit's preprocessor entered every C++ slice through one of its includes (missing ${path})`,
+      first !== undefined,
+      "a run with headers has a `.cnx` include that reached them",
     );
-    return { path, site };
+    this.errors.push({
+      ...first.site,
+      message: CodedErrorText.of(
+        "E0516",
+        "this run includes C headers, and no C preprocessor was found to read them",
+      ),
+      helpText:
+        "Install gcc, clang or arm-none-eabi-gcc, or set CNEXT_CROSS_COMPILER " +
+        "to the compiler for the target's headers.",
+      severity: "error",
+    });
+  }
+
+  /**
+   * #1844, owner ruling 6 of 2026-10-03 (#1542): a header that cannot be
+   * preprocessed, alone, after its predecessors' macros, or in the unit, is
+   * not read as written. It is an error at every `.cnx` include that reached
+   * it, with the preprocessor's own message as help.
+   */
+  private _unsettled(
+    files: Pick<TDiscoveredFiles, "headerIncludes" | "headerEdges">,
+    unsettled: ReadonlyMap<string, string>,
+  ): void {
+    if (unsettled.size === 0) return;
+    for (const { header, site } of Discover._inSourceOrder(
+      files.headerIncludes,
+    )) {
+      for (const path of Discover._reachedFrom(header, files.headerEdges)) {
+        const message = unsettled.get(path);
+        if (message === undefined) continue;
+        this.errors.push({
+          ...site,
+          message: CodedErrorText.of(
+            "E0517",
+            `'${DeclarationSite.displayPath(path)}', reached through this ` +
+              `include, cannot be preprocessed`,
+          ),
+          helpText: message,
+          severity: "error",
+        });
+      }
+    }
+  }
+
+  /** `header`, then every header the walk found it includes, depth first */
+  private static _reachedFrom(
+    header: string,
+    edges: ReadonlyMap<string, readonly string[]>,
+  ): string[] {
+    const reached: string[] = [];
+    const seen = new Set<string>();
+    const visit = (path: string): void => {
+      if (seen.has(path)) return;
+      seen.add(path);
+      reached.push(path);
+      for (const next of edges.get(path) ?? []) visit(next);
+    };
+    visit(header);
+    return reached;
+  }
+
+  private static _siteKey(site: ISourceSite): string {
+    return `${site.sourcePath}:${site.line}:${site.column}`;
+  }
+
+  /** By file, then line, then column: one order whatever the walk's */
+  private static _inSourceOrder<T extends { readonly site: ISourceSite }>(
+    entries: readonly T[],
+  ): T[] {
+    return [...entries].sort(
+      (a, b) =>
+        a.site.sourcePath.localeCompare(b.site.sourcePath) ||
+        a.site.line - b.site.line ||
+        a.site.column - b.site.column,
+    );
   }
 
   /**
@@ -262,10 +354,10 @@ class Discover {
    */
   private _translationUnit(cnextFiles: readonly { readonly path: string }[]): {
     readonly directives: string[];
-    /** #1844: per directive, the first `.cnx` include that wrote it */
-    readonly sites: ReadonlyMap<string, ISourceSite>;
+    /** #1844: per directive, each file's first include that wrote it */
+    readonly sites: ReadonlyMap<string, readonly ISourceSite[]>;
   } {
-    const sites = new Map<string, ISourceSite>();
+    const sites = new Map<string, ISourceSite[]>();
     for (const file of cnextFiles) {
       const includes = this.resolvedIncludes.get(file.path);
       invariant(
@@ -274,18 +366,17 @@ class Discover {
       );
       // #1830 review: the directives 1.1 read, so a commented-out header adds
       // nothing to the unit.
-      for (const text of includes.resolved.cHeaderIncludes) {
-        const spec = IncludeDirectiveText.spec(text);
-        const include = IncludeDirectiveText.split(text);
-        if (spec === null || include === null || sites.has(spec)) continue;
+      for (const spec of includes.resolved.cHeaderSpecs) {
+        const written = sites.get(spec) ?? [];
+        if (written.some((site) => site.sourcePath === file.path)) continue;
         const position = includes.resolved.positions.get(
-          IncludeDirectiveText.join(include),
+          IncludeDirectiveText.ofSpec(spec),
         );
         invariant(
           position !== undefined,
-          `the resolver records where every directive sits (missing ${text} in ${file.path})`,
+          `the resolver records where every directive sits (missing ${spec} in ${file.path})`,
         );
-        sites.set(spec, { sourcePath: file.path, ...position });
+        sites.set(spec, [...written, { sourcePath: file.path, ...position }]);
       }
     }
     return { directives: [...sites.keys()], sites };
@@ -330,6 +421,7 @@ class Discover {
           // read here rather than from 1.2's tree in Stage 5
           userIncludes: Object.freeze(spelling.userIncludes),
           cHeaderIncludes: Object.freeze(resolved.cHeaderIncludes),
+          cHeaderSpecs: Object.freeze(resolved.cHeaderSpecs),
         }),
       );
     }
@@ -512,7 +604,8 @@ class Discover {
       cnextFiles: [],
       headerFiles: [],
       headerSearchPaths: new Map(),
-      headerSites: new Map(),
+      headerIncludes: [],
+      headerEdges: new Map(),
       includeSearchPaths: [],
       writeOutputToDisk: true,
     };
@@ -584,6 +677,7 @@ class Discover {
     callerIncludeDirs: readonly string[] = [],
   ): TDiscoveredFiles {
     const headerRoots = new Map<string, IHeaderRoot>();
+    const headerIncludes: IHeaderInclude[] = [];
     const depGraph = new DependencyGraph();
 
     const directForeignHeaderFiles = new Set<string>();
@@ -619,6 +713,7 @@ class Discover {
         cnxFile.path,
         discovered.searchPaths,
         headerRoots,
+        headerIncludes,
       );
       includesByPath.set(
         cnxPath,
@@ -671,7 +766,8 @@ class Discover {
       cnextFiles: pipelineFiles,
       headerFiles: allHeaders.headers,
       headerSearchPaths: allHeaders.searchPaths,
-      headerSites: allHeaders.sites,
+      headerIncludes,
+      headerEdges: allHeaders.edges,
       includeSearchPaths: [...includeSearchPaths],
       writeOutputToDisk: true,
     };
@@ -846,9 +942,12 @@ class Discover {
     sourcePath: string,
     searchPaths: readonly string[],
     headerRoots: Map<string, IHeaderRoot>,
+    headerIncludes: IHeaderInclude[],
   ): void {
+    const seen = new Set<string>();
     for (const header of resolved.headers) {
-      if (headerRoots.has(header.path)) continue;
+      if (seen.has(header.path)) continue;
+      seen.add(header.path);
       // #1844: and where this file includes it, for E0507
       const include = resolved.included.find(
         (entry) => entry.absolutePath === resolve(header.path),
@@ -860,11 +959,13 @@ class Discover {
         position !== undefined,
         `the resolver records the directive of every header it resolves (missing ${header.path})`,
       );
-      headerRoots.set(header.path, {
-        file: header,
-        searchPaths,
+      headerIncludes.push({
+        header: header.path,
         site: { sourcePath, ...position },
       });
+      if (!headerRoots.has(header.path)) {
+        headerRoots.set(header.path, { file: header, searchPaths });
+      }
     }
   }
 
@@ -881,7 +982,7 @@ class Discover {
   private _resolveHeadersTransitively(roots: ReadonlyArray<IHeaderRoot>): {
     headers: IDiscoveredFile[];
     searchPaths: ReadonlyMap<string, readonly string[]>;
-    sites: ReadonlyMap<string, ISourceSite>;
+    edges: ReadonlyMap<string, readonly string[]>;
   } {
     const resolved = IncludeResolver.resolveHeadersTransitively(roots, {
       onDebug: this.settings.debugMode

@@ -44,8 +44,8 @@ int c_fn(void);
 `;
 
 // Negative controls: no predecessor can rescue a missing header, so both fail
-// the first attempt and the retry. They prove the assertions below can fail,
-// and two of them pin the warnings to header order.
+// the first attempt, the retry and the unit. They prove the assertions below
+// can fail, and two of them pin E0517 to the includes that reached them.
 const missing = (fn: string): string => `#include <cnext_no_such_header_zzz.h>
 #if A_FEATURE
 int ${fn}(void);
@@ -80,7 +80,8 @@ describe("header preprocessing retry (#1817)", () => {
     if (dir) rmSync(dir, { recursive: true, force: true });
   });
 
-  async function preprocessWarnings(): Promise<string[]> {
+  /** #1844: each E0517 the run reports, as `line: message` */
+  async function unsettled(): Promise<string[]> {
     const transpiler = new Transpiler(
       {
         input: join(dir, "main.cnx"),
@@ -92,32 +93,32 @@ describe("header preprocessing retry (#1817)", () => {
       NodeFileSystem.instance,
     );
     const result = await transpiler.transpile({ kind: "files" });
-    return result.warnings.filter((w) => w.startsWith("Preprocessing failed"));
+    return result.errors
+      .filter((e) => e.message.startsWith("error[E0517]"))
+      .map((e) => `${e.line}: ${e.message}`);
   }
 
   it("retries with the headers before it, including one usable only through its own retry", async (ctx) => {
     // Vitest reports this as skipped; an early return reported it as a PASS.
     if (!available) ctx.skip();
 
-    const failed = await preprocessWarnings();
+    const failed = await unsettled();
 
     // Control: the run does report a header that cannot be rescued, so the two
     // absences below cannot pass by reporting nothing at all.
-    expect(failed.some((w) => w.includes(join(dir, "x.h")))).toBe(true);
-    expect(failed.some((w) => w.includes(join(dir, "b.h")))).toBe(false);
-    expect(failed.some((w) => w.includes(join(dir, "c.h")))).toBe(false);
+    expect(failed.some((e) => e.includes("/x.h'"))).toBe(true);
+    expect(failed.some((e) => e.includes("/b.h'"))).toBe(false);
+    expect(failed.some((e) => e.includes("/c.h'"))).toBe(false);
   });
 
-  it("reports the headers no predecessor can rescue, in header order", async (ctx) => {
+  it("reports the headers no predecessor can rescue, at their includes", async (ctx) => {
     if (!available) ctx.skip();
 
-    const failed = (await preprocessWarnings()).filter(
-      (w) => w.includes(join(dir, "x.h")) || w.includes(join(dir, "y.h")),
-    );
+    const failed = await unsettled();
 
     expect(failed).toHaveLength(2);
-    expect(failed[0]).toContain(join(dir, "x.h"));
-    expect(failed[1]).toContain(join(dir, "y.h"));
+    expect(failed[0]).toMatch(/^4: .*\/x\.h'/);
+    expect(failed[1]).toMatch(/^5: .*\/y\.h'/);
   });
 });
 
@@ -191,7 +192,6 @@ void run() {
         includeDirs: [dir],
         outDir: join(dir, "out"),
         noCache: true,
-        preprocess: false,
         target: "host",
       },
       fs,

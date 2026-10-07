@@ -16,8 +16,6 @@ interface IParsedArgs {
   target?: string;
   /** --pio-env flag */
   pioEnv?: string;
-  /** --no-preprocess flag (inverted: preprocess = true by default) */
-  preprocess: boolean;
   /** --verbose flag */
   verbose: boolean;
   /** --no-cache flag */

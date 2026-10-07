@@ -167,6 +167,26 @@ module.exports = {
       },
     },
     {
+      name: "header-sources-are-settled-by-discover",
+      comment:
+        "#1844 review. `header-language-is-judged-once` lets `HeaderSources` " +
+        "call the language checks, so a stage that called " +
+        "`HeaderSources.settle` would judge every header a second time, on " +
+        "text of its own choosing, and the rule would pass. Only 1.1's " +
+        "orchestrator settles header sources; every later stage reads them " +
+        "from the `SourceGraph`.",
+      severity: "error",
+      from: {
+        pathNot: [
+          "__tests__",
+          "^src/PARSE/1-Discover/(Discover|HeaderSources)\\.ts$",
+        ],
+      },
+      to: {
+        path: "^src/PARSE/1-Discover/HeaderSources\\.ts$",
+      },
+    },
+    {
       name: "artifact-types-name-no-discovery-module",
       comment:
         "#1444 review. `nothing-after-1-1-discovers` lets a later pass read " +

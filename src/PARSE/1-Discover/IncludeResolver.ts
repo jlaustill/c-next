@@ -8,7 +8,6 @@ import FileDiscovery from "./FileDiscovery";
 import type THeaderExtension from "../../types/THeaderExtension";
 import IDiscoveredFile from "./types/IDiscoveredFile";
 import type IHeaderRoot from "./types/IHeaderRoot";
-import type ISourceSite from "../../types/ISourceSite";
 import EFileType from "./types/EFileType";
 import DependencyGraph from "./DependencyGraph";
 import IFileSystem from "../../types/IFileSystem";
@@ -84,6 +83,7 @@ interface IResolvedIncludes {
    * the public interface. Issue #985's translation-unit recovery reads it too.
    */
   cHeaderIncludes: string[];
+  cHeaderSpecs: string[];
 
   /**
    * #1844: every file this resolver categorized, in the order it met them.
@@ -225,6 +225,7 @@ class IncludeResolver {
       cnextAlternatives: new Map<string, string>(),
       kinds: new Map<string, EFileType>(),
       cHeaderIncludes: [],
+      cHeaderSpecs: [],
       hasForeignInclude: false,
       included: [],
       cnextDirectives: [],
@@ -254,6 +255,8 @@ class IncludeResolver {
         result.cnextDirectives.push(directive);
       } else {
         result.cHeaderIncludes.push(directive);
+        const spec = IncludeDirectiveText.spec(directive);
+        if (spec !== null) result.cHeaderSpecs.push(spec);
       }
     }
 
@@ -562,8 +565,8 @@ class IncludeResolver {
   ): {
     headers: IDiscoveredFile[];
     searchPaths: ReadonlyMap<string, readonly string[]>;
-    /** #1844: per header, the `.cnx` include through which the walk reached it */
-    sites: ReadonlyMap<string, ISourceSite>;
+    /** #1844: per header, the headers it includes, as the walk resolved them */
+    edges: ReadonlyMap<string, readonly string[]>;
     warnings: string[];
   } {
     const fs = options.fs;
@@ -572,7 +575,7 @@ class IncludeResolver {
     const depGraph = new DependencyGraph();
     const fileByPath = new Map<string, IDiscoveredFile>();
     const searchPathsByHeader = new Map<string, readonly string[]>();
-    const siteByHeader = new Map<string, ISourceSite>();
+    const edges = new Map<string, string[]>();
 
     const processHeader = (file: IDiscoveredFile, root: IHeaderRoot): void => {
       const rootSearchPaths = root.searchPaths;
@@ -592,7 +595,8 @@ class IncludeResolver {
       depGraph.addFile(absolutePath);
       fileByPath.set(absolutePath, file);
       searchPathsByHeader.set(file.path, rootSearchPaths);
-      siteByHeader.set(file.path, root.site);
+      const included: string[] = [];
+      edges.set(file.path, included);
 
       const includes = IncludeDiscovery.directivesOf(file.path, content);
       const searchPaths = [dirname(absolutePath), ...rootSearchPaths];
@@ -626,6 +630,7 @@ class IncludeResolver {
 
         const includedPath = resolve(includedFile!.path);
         depGraph.addDependency(absolutePath, includedPath);
+        included.push(includedFile!.path);
 
         options.onDebug?.(`    → Recursively processing ${includedFile!.path}`);
         processHeader(includedFile!, root);
@@ -650,7 +655,7 @@ class IncludeResolver {
     return {
       headers: sortedHeaders,
       searchPaths: searchPathsByHeader,
-      sites: siteByHeader,
+      edges,
       warnings,
     };
   }

@@ -42,8 +42,8 @@ interface IForeignSymbols {
   readonly macros: ReadonlyMap<string, ReadonlyMap<string, THeaderMacro>>;
 
   /**
-   * #1688: the C-Next files whose C includes' macros were not all read -- no
-   * preprocessor, `--no-preprocess`, or a header it could not preprocess.
+   * #1688: the C-Next files whose C includes' macros were not all read: the
+   * preprocessor could not read the file's own C includes together.
    */
   readonly macrosUnread: ReadonlySet<string>;
 }

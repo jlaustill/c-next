@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 
 import Discover from "../Discover";
+import Preprocessor from "../preprocessor/Preprocessor";
 import RunAnchor from "../RunAnchor";
 import EFileType from "../types/EFileType";
 import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
@@ -12,6 +13,26 @@ import type ISourceGraph from "../types/ISourceGraph";
  * paths, frozen at the end of 1.1.
  */
 describe("Discover", () => {
+  let fs: MockFileSystem;
+
+  // #1844: a run with headers needs a preprocessor. This one hands back the
+  // header as written, which is what a C compile meets in these headers.
+  beforeEach(() => {
+    vi.spyOn(Preprocessor.prototype, "isAvailable").mockReturnValue(true);
+    vi.spyOn(Preprocessor.prototype, "preprocess").mockImplementation(
+      async (file: string) => ({
+        content: fs.readFile(file),
+        sourceMappings: [],
+        success: true,
+        originalFile: file,
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   const settings = {
     input: "/proj/src/app.cnx",
     includeDirs: [],
@@ -19,7 +40,6 @@ describe("Discover", () => {
     outDir: "",
     headerOutDir: "",
     debugMode: false,
-    preprocess: false,
   };
 
   /** `app.cnx` includes `lib.cnx` and a C header; the header includes nothing. */
@@ -33,10 +53,11 @@ describe("Discover", () => {
       .addFile("/proj/src/board.h", "#define LED 13\n");
   }
 
-  async function discover(fs: MockFileSystem): Promise<{
+  async function discover(files: MockFileSystem): Promise<{
     graph: ISourceGraph;
     warnings: string[];
   }> {
+    fs = files;
     const warnings: string[] = [];
     const anchor = RunAnchor.at(settings.input, null, settings, fs);
     const { graph } = await Discover.run(

@@ -37,15 +37,12 @@ const DESCRIPTION_KEYS = TargetDescriptions.PLATFORM_FACTS;
 
 const PRAGMA_KEYS: readonly string[] = ["target", ...DESCRIPTION_KEYS];
 
-/** A position in a file */
-type ISite = ISourceSite;
-
 /** One file's target declaration: a named target or an inline description */
 interface IDeclaredTarget {
   readonly name: string;
   readonly inline: boolean;
   readonly description: ITargetDescription;
-  readonly site: ISite;
+  readonly site: ISourceSite;
 }
 
 /** The target a PlatformIO environment builds */
@@ -306,7 +303,7 @@ class RunTarget {
   ): void {
     const fields = new Map<string, TTargetFieldValue>();
     const given = new Set<string>();
-    let firstField: ISite | null = null;
+    let firstField: ISourceSite | null = null;
     let fieldErrors = 0;
 
     for (const directive of file.directives) {
@@ -342,7 +339,7 @@ class RunTarget {
   /** `#pragma target <name>`: a known name, or E0510 */
   private static readName(
     directive: ITargetDirective,
-    site: ISite,
+    site: ISourceSite,
     catalog: ReadonlyMap<string, ITargetDescription>,
     declared: IDeclaredTarget[],
     errors: ITranspileError[],
@@ -399,7 +396,7 @@ class RunTarget {
   private static readInline(
     fields: ReadonlyMap<string, TTargetFieldValue>,
     given: ReadonlySet<string>,
-    site: ISite,
+    site: ISourceSite,
     fieldErrors: number,
     declared: IDeclaredTarget[],
     errors: ITranspileError[],
@@ -434,7 +431,7 @@ class RunTarget {
     });
   }
 
-  private static at(site: ISite): ISite {
+  private static at(site: ISourceSite): ISourceSite {
     return {
       sourcePath: site.sourcePath,
       line: site.line,
@@ -446,7 +443,7 @@ class RunTarget {
   private static unknown(
     name: string,
     catalog: ReadonlyMap<string, ITargetDescription>,
-    site: ISite | null,
+    site: ISourceSite | null,
   ): ITranspileError {
     const helpText = `Known targets: ${[...catalog.keys()].join(", ")}. Names match exactly (ADR-049).`;
     if (!site) {
@@ -465,7 +462,7 @@ class RunTarget {
   }
 
   /** E0512, at a pragma whose key is not one of ADR-049's */
-  private static unknownKey(key: string, site: ISite): ITranspileError {
+  private static unknownKey(key: string, site: ISourceSite): ITranspileError {
     return {
       ...RunTarget.at(site),
       message: CodedErrorText.of("E0512", `unknown pragma '${key}'`),
@@ -478,7 +475,7 @@ class RunTarget {
   private static invalid(
     key: string,
     problem: string,
-    site: ISite,
+    site: ISourceSite,
   ): ITranspileError {
     return {
       ...RunTarget.at(site),

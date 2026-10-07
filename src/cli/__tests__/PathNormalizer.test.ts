@@ -337,7 +337,6 @@ describe("PathNormalizer", () => {
         outputPath: "~/build",
         includeDirs: ["~/sdk/include"],
         defines: {},
-        preprocess: false,
         verbose: false,
         cppRequired: false,
         noCache: false,
@@ -358,7 +357,6 @@ describe("PathNormalizer", () => {
         outputPath: "",
         includeDirs: [],
         defines: {},
-        preprocess: false,
         verbose: false,
         cppRequired: false,
         noCache: false,
@@ -379,7 +377,6 @@ describe("PathNormalizer", () => {
         outputPath: "",
         includeDirs: [`${tempDir}/include/**`],
         defines: {},
-        preprocess: false,
         verbose: false,
         cppRequired: false,
         noCache: false,
@@ -398,7 +395,6 @@ describe("PathNormalizer", () => {
         outputPath: "",
         includeDirs: [],
         defines: { DEBUG: true },
-        preprocess: true,
         verbose: true,
         cppRequired: true,
         noCache: true,
@@ -414,7 +410,6 @@ describe("PathNormalizer", () => {
 
       expect(result.input).toBe("a.cnx");
       expect(result.defines).toEqual({ DEBUG: true });
-      expect(result.preprocess).toBe(true);
       expect(result.verbose).toBe(true);
       expect(result.cppRequired).toBe(true);
       expect(result.noCache).toBe(true);

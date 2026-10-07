@@ -15,9 +15,6 @@ import NodeFileSystem from "../NodeFileSystem";
 import type IFileSystem from "../../../types/IFileSystem";
 import type THeaderExtension from "../../../types/THeaderExtension";
 
-/** #1844: where a root header is included; the walk only carries it */
-const SITE = { sourcePath: "main.cnx", line: 1, column: 0 };
-
 /**
  * #1844: a resolver whose answers carry the spelling Discover gives them once
  * the run's mode is settled -- `resolve`, then `spell` for `ext`.
@@ -771,7 +768,7 @@ describe("IncludeResolver", () => {
         extension: string;
       }>,
       dir: string,
-    ) => headers.map((file) => ({ file, searchPaths: [dir], site: SITE }));
+    ) => headers.map((file) => ({ file, searchPaths: [dir] }));
 
     it("should resolve single header without nested includes", () => {
       // types.h has no includes
@@ -915,13 +912,13 @@ describe("IncludeResolver", () => {
       };
 
       const along = IncludeResolver.resolveHeadersTransitively(
-        [{ file: aHeader, searchPaths: [libA, libB], site: SITE }],
+        [{ file: aHeader, searchPaths: [libA, libB] }],
         { fs: NodeFileSystem.instance },
       );
       // Control: the same root on a path without libB, as every header was
       // searched before -- b.h is not found and is warned about.
       const without = IncludeResolver.resolveHeadersTransitively(
-        [{ file: aHeader, searchPaths: [libA], site: SITE }],
+        [{ file: aHeader, searchPaths: [libA] }],
         { fs: NodeFileSystem.instance },
       );
 

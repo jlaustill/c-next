@@ -14,14 +14,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Targets (ADR-049, Issue #1668).** A program names exactly one target: `#pragma target <name>`, `--target <name>`, `"target"` in `cnext.config.json`, or the board of the PlatformIO environment being built. `targets/targets.cnx` is the catalog (`cnext --help` lists it). A platform it does not name can be described inline, one `#pragma` per field (E0512–E0514). The run prints `Target: <name> (<source>)`.
 - Return values of non-void functions must now be used or explicitly discarded with `(void) f(...)` — new error **E0708** (ADR-070, Issue #847). This is a **breaking change**: 61 call sites across the test suite and examples were migrated.
 
+### Removed
+
+- **`--no-preprocess` and the `preprocess` config key** (Issue #1844). A header's
+  language is judged on its preprocessed text, so a run that includes C/C++
+  headers needs a C preprocessor (E0516 when there is none), and a header that
+  cannot be preprocessed -- alone, after the headers before it, or in the #985
+  translation unit -- is E0517 at the include that reached it, with the
+  preprocessor's message as help. No header is read raw any more.
+
 ### Changed
 
 - **A run that does not say is C++ when a header it reaches is C++** (Issue #1844).
   1.1 judges each header once, on its preprocessed text, so a run that passed cold
   no longer fails warm (#1851). `cppRequired: true` (`--cpp`) still forces C++.
   E0507 is now raised only for a run that asks for C (`cppRequired: false`,
-  `--no-cpp`), and is reported at the `.cnx` `#include` that reached the C++ header
-  instead of `1:0 Pipeline failed:`. A project that set `cppRequired: false` and
+  `--no-cpp`), and is reported at every `.cnx` `#include` through which the run
+  meets C++, instead of once at `1:0 Pipeline failed:`. A project that set `cppRequired: false` and
   includes C++ headers fails as before; one that set nothing and includes them now
   transpiles to C++ instead of failing.
 

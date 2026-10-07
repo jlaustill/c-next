@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import detectAssemblySyntax from "./detectAssemblySyntax";
 import detectCppSyntax from "./detectCppSyntax";
 import ExternalDeclarationOracle from "./preprocessor/ExternalDeclarationOracle";
+import LineMarkers from "./preprocessor/LineMarkers";
 import type Preprocessor from "./preprocessor/Preprocessor";
 import FileDiscovery from "./FileDiscovery";
 import EFileType from "./types/EFileType";
@@ -13,6 +14,7 @@ import type IHeaderSource from "./types/IHeaderSource";
 import type IRecoveredDeclarations from "./types/IRecoveredDeclarations";
 import type IRecoveredSlice from "./types/IRecoveredSlice";
 import type IFileSystem from "../../types/IFileSystem";
+import type PreprocessCache from "../../utils/cache/PreprocessCache";
 import ConcurrencyLimit from "../../utils/ConcurrencyLimit";
 import invariant from "../../utils/invariant";
 
@@ -22,10 +24,18 @@ type TPreprocessLimit = ReturnType<typeof ConcurrencyLimit.create>;
 interface IHeaderSourceSettings {
   readonly fs: IFileSystem;
   readonly preprocessor: Preprocessor;
-  /** `config.preprocess`: false reads every header as written */
-  readonly preprocess: boolean;
   readonly defines: Readonly<Record<string, string | boolean>>;
+  /** Where each preprocessor run is kept, so a warm run starts none */
+  readonly cache: PreprocessCache | null;
 }
+
+/**
+ * One header preprocessed on its own: settled, or the preprocessor's message
+ * and the text it was read as, for #985's unit to settle.
+ */
+type TAlone =
+  | { readonly source: IHeaderSource; readonly raw: string }
+  | { readonly source: null; readonly raw: string; readonly error: string };
 
 /**
  * Issue #985: the translation unit a run's C includes make -- each `.cnx`
@@ -55,12 +65,17 @@ class HeaderSources {
    * retry. So each header is handed the headers before it, and waits for them
    * only if it has to retry.
    *
-   * A header that cannot be preprocessed even so is read as written, but
-   * judged on its slice of `unit` preprocessed whole (#985): that slice is
-   * the text a C compile meets, and its raw text is not.
+   * A header that cannot be preprocessed even so is settled from its slice
+   * of `unit` preprocessed whole (#985): that slice is the text a C compile
+   * meets. One the unit does not reach either is `unsettled`: nothing judges
+   * a header on the text as written (owner ruling 6 of 2026-10-03, #1542).
    *
-   * @returns each header's source, by path, in `headers` order, and the
-   *   declarations `unit` recovered -- null unless a header needed them
+   * The preprocessor must be available: Discover rejects a run that includes
+   * headers without one.
+   *
+   * @returns each settled header's source, by path, in `headers` order; the
+   *   declarations `unit` recovered -- null unless a header needed them; and
+   *   each unsettled header, with the preprocessor's message
    */
   static async settle(
     headers: readonly IDiscoveredFile[],
@@ -70,9 +85,14 @@ class HeaderSources {
   ): Promise<{
     readonly sources: ReadonlyMap<string, IHeaderSource>;
     readonly recovered: IRecoveredDeclarations | null;
+    readonly unsettled: ReadonlyMap<string, string>;
   }> {
+    invariant(
+      headers.length === 0 || settings.preprocessor.isAvailable(),
+      "1.1 rejects a run that includes headers when no preprocessor is available",
+    );
     const limit = ConcurrencyLimit.create(availableParallelism());
-    const settled: Promise<IHeaderSource>[] = [];
+    const settled: Promise<TAlone>[] = [];
     for (const file of headers) {
       const paths = searchPaths.get(file.path);
       invariant(
@@ -83,14 +103,14 @@ class HeaderSources {
       // hold this header too, and a retry would wait for itself.
       const earlier = headers.slice(0, settled.length);
       settled.push(
-        HeaderSources._settle(file, paths, earlier, [...settled], {
+        HeaderSources._alone(file, paths, earlier, [...settled], {
           ...settings,
           limit,
         }),
       );
     }
     const alone = await Promise.all(settled);
-    const recovery = alone.some((source) => source.preprocessError !== null)
+    const recovery = alone.some((header) => header.source === null)
       ? await ExternalDeclarationOracle.recover(
           unit.directives,
           settings.preprocessor,
@@ -99,6 +119,7 @@ class HeaderSources {
             // along every file's search path, not --include alone.
             includePaths: [...unit.includePaths],
             defines: { ...settings.defines },
+            ...(settings.cache === null ? {} : { cache: settings.cache }),
           },
         )
       : null;
@@ -108,27 +129,31 @@ class HeaderSources {
     for (const [path, text] of recovery?.perFileContent ?? []) {
       slices.set(resolve(path), text);
     }
-    const sources = new Map(
-      headers.map((file, i): [string, IHeaderSource] => {
-        const source = alone[i];
-        const slice = slices.get(resolve(file.path));
-        return source.preprocessError === null || slice === undefined
-          ? [file.path, source]
-          : [
-              file.path,
-              Object.freeze({
-                ...source,
-                language: HeaderSources._languageOf(file.type, slice),
-              }),
-            ];
-      }),
-    );
+    const sources = new Map<string, IHeaderSource>();
+    const unsettled = new Map<string, string>();
+    headers.forEach((file, i) => {
+      const header = alone[i];
+      if (header.source !== null) {
+        sources.set(file.path, header.source);
+        return;
+      }
+      const slice = slices.get(resolve(file.path));
+      if (slice === undefined) {
+        unsettled.set(file.path, header.error);
+        return;
+      }
+      sources.set(
+        file.path,
+        HeaderSources._sourceOf(file, header.raw, slice, slice),
+      );
+    });
     return {
       sources,
       recovered:
         recovery === null
           ? null
           : HeaderSources._recovered(headers, sources, recovery),
+      unsettled,
     };
   }
 
@@ -166,60 +191,32 @@ class HeaderSources {
     return Object.freeze({ slices, macroNames: recovery.macroNames });
   }
 
-  private static async _settle(
-    file: IDiscoveredFile,
-    searchPaths: readonly string[],
-    earlierFiles: readonly IDiscoveredFile[],
-    earlier: readonly Promise<IHeaderSource>[],
-    settings: IHeaderSourceSettings & { readonly limit: TPreprocessLimit },
-  ): Promise<IHeaderSource> {
-    const { text, preprocessError } = await HeaderSources._textOf(
-      file,
-      searchPaths,
-      earlierFiles,
-      earlier,
-      settings,
-    );
-    return Object.freeze({
-      text,
-      language: HeaderSources._languageOf(file.type, text),
-      preprocessError,
-    });
-  }
-
   /**
-   * The text a C compile meets. Issue #945: only a header whose `#if`s need
-   * an expression evaluated is preprocessed, to avoid the side effects of
-   * full expansion; the parser handles `#ifdef` and friends itself.
+   * One header preprocessed on its own, and again with the macros of the
+   * headers before it if it must (#1817).
    */
-  private static async _textOf(
+  private static async _alone(
     file: IDiscoveredFile,
     searchPaths: readonly string[],
     earlierFiles: readonly IDiscoveredFile[],
-    earlier: readonly Promise<IHeaderSource>[],
+    earlier: readonly Promise<TAlone>[],
     settings: IHeaderSourceSettings & { readonly limit: TPreprocessLimit },
-  ): Promise<{ text: string; preprocessError: string | null }> {
+  ): Promise<TAlone> {
     const raw = settings.fs.readFile(file.path);
-    if (
-      !settings.preprocess ||
-      !settings.preprocessor.isAvailable() ||
-      !HeaderSources._needsConditionalPreprocessing(raw)
-    ) {
-      return { text: raw, preprocessError: null };
-    }
-
     // #1723: along the path this header was found on, so a header that
-    // includes a sibling library's header preprocesses as it resolved.
+    // includes a sibling library's header preprocesses as it resolved. Its
+    // line markers say which lines are the header's own.
     const options = {
       defines: { ...settings.defines },
       includePaths: [...searchPaths],
-      keepLineDirectives: false, // No line mappings are needed for symbols
+      keepLineDirectives: true,
+      ...(settings.cache === null ? {} : { cache: settings.cache }),
     };
     const result = await settings.limit(() =>
       settings.preprocessor.preprocess(file.path, options),
     );
     if (result.success) {
-      return { text: result.content, preprocessError: null };
+      return HeaderSources._settled(file, raw, result.content);
     }
 
     // Some headers cannot be preprocessed standalone: they require a
@@ -229,21 +226,65 @@ class HeaderSources {
     // one (only those that themselves preprocessed cleanly, so one
     // unpreprocessable predecessor can't defeat the retry). #1817: the only
     // step that waits on other headers.
-    const sources = await Promise.all(earlier);
+    const before = await Promise.all(earlier);
     const imacros = earlierFiles
-      .filter((_, i) => sources[i].preprocessError === null)
+      .filter((_, i) => before[i].source !== null)
       .map((header) => header.path);
     if (imacros.length > 0) {
       const retry = await settings.limit(() =>
         settings.preprocessor.preprocess(file.path, { ...options, imacros }),
       );
       if (retry.success) {
-        return { text: retry.content, preprocessError: null };
+        return HeaderSources._settled(file, raw, retry.content);
       }
     }
-    // Fall back to the raw text. The warning is Stage 2's, written in header
-    // order.
-    return { text: raw, preprocessError: result.error ?? "unknown error" };
+    return {
+      source: null,
+      raw,
+      error: result.diagnostics?.trim() || (result.error ?? "unknown error"),
+    };
+  }
+
+  private static _settled(
+    file: IDiscoveredFile,
+    raw: string,
+    preprocessed: string,
+  ): TAlone {
+    const own = LineMarkers.ownText(preprocessed, file.path);
+    invariant(
+      own !== null,
+      `a header's preprocessed text holds its own lines (${file.path})`,
+    );
+    return {
+      source: HeaderSources._sourceOf(
+        file,
+        raw,
+        LineMarkers.strip(preprocessed),
+        own,
+      ),
+      raw,
+    };
+  }
+
+  /**
+   * #1852: the language is judged on the header's own lines as a C compile
+   * meets them, so C++ under `#ifdef __cplusplus` is gone and C++ a macro
+   * writes is there. Issue #945: the text parsed is the preprocessed one only
+   * when the header's `#if`s need an expression evaluated, to avoid the side
+   * effects of full expansion; the parser handles `#ifdef` and friends itself.
+   */
+  private static _sourceOf(
+    file: IDiscoveredFile,
+    raw: string,
+    preprocessed: string,
+    own: string,
+  ): IHeaderSource {
+    return Object.freeze({
+      text: HeaderSources._needsConditionalPreprocessing(raw)
+        ? preprocessed
+        : raw,
+      language: HeaderSources._languageOf(file.type, own),
+    });
   }
 
   /**

@@ -1,5 +1,4 @@
 import IDiscoveredFile from "./IDiscoveredFile";
-import type ISourceSite from "../../../types/ISourceSite";
 
 /**
  * A C/C++ header a `.cnx` file includes, with that file's search path (#1723).
@@ -12,8 +11,6 @@ import type ISourceSite from "../../../types/ISourceSite";
 interface IHeaderRoot {
   readonly file: IDiscoveredFile;
   readonly searchPaths: readonly string[];
-  /** #1844: where that file includes it; E0507 is reported there */
-  readonly site: ISourceSite;
 }
 
 export default IHeaderRoot;

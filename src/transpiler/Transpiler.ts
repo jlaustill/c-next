@@ -37,7 +37,6 @@ import ExternalTypeHeaderBuilder from "../TRANSPILE/3-Render/headers/ExternalTyp
 import HeaderGeneratorUtils from "../TRANSPILE/3-Render/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "../TRANSPILE/3-Render/headers/types/IHeaderEmissionFacts";
 import IHeaderCallbackType from "../types/IHeaderCallbackType";
-import IncludeDirectiveText from "../utils/IncludeDirectiveText";
 import SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import type TranspileState from "../TRANSPILE/TranspileState";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
@@ -79,6 +78,7 @@ import Diagnostics from "../TRANSPILE/1-Analyze/Diagnostics";
 import type IDiagnostics from "../types/IDiagnostics";
 import type ICodeGenSymbols from "../types/ICodeGenSymbols";
 import CacheManager from "../utils/cache/CacheManager";
+import PreprocessCache from "../utils/cache/PreprocessCache";
 import ConcurrencyLimit from "../utils/ConcurrencyLimit";
 import ExternalDeclarationOracle from "../PARSE/1-Discover/preprocessor/ExternalDeclarationOracle";
 import TypedefParamParser from "../TRANSPILE/3-Render/codegen/helpers/TypedefParamParser";
@@ -129,6 +129,7 @@ class Transpiler {
   private readonly headerGenerator: HeaderGenerator;
   private readonly warnings: string[];
   private readonly cacheManager: CacheManager | null;
+  private readonly preprocessCache: PreprocessCache | null;
   /**
    * Issue #211, #1319, #1844: does this run emit C++? 1.1 Discover's answer
    * (`ISourceGraph.cppMode`), copied here when each run's graph is built so
@@ -278,7 +279,6 @@ class Transpiler {
       outDir: config.outDir ?? "",
       headerOutDir: config.headerOutDir ?? "",
       defines: config.defines ?? {},
-      preprocess: config.preprocess ?? true,
       cppRequired: config.cppRequired,
       parseOnly: config.parseOnly ?? false,
       debugMode: config.debugMode ?? false,
@@ -288,8 +288,8 @@ class Transpiler {
       noCache: config.noCache ?? false,
     };
 
-    // Issue #211, #1319: the single source of the fact. Absent means C, which
-    // is the default target, not a guess about what the includes might contain.
+    // Until a run's 1.1 settles it from the headers (#1844), what the config
+    // says, or C.
     this.cppMode = this.config.cppRequired ?? false;
 
     this.codeGenerator = new CodeGenWalker();
@@ -304,6 +304,11 @@ class Transpiler {
     this.cacheManager =
       !this.config.noCache && this.anchor.projectRoot
         ? new CacheManager(this.anchor.projectRoot, this.fs)
+        : null;
+    // #1844: and the preprocessor's runs, so a warm run starts none
+    this.preprocessCache =
+      !this.config.noCache && this.anchor.projectRoot
+        ? new PreprocessCache(this.anchor.projectRoot, this.fs)
         : null;
   }
 
@@ -347,6 +352,7 @@ class Transpiler {
         this.config,
         this.fs,
         this.warnings,
+        this.preprocessCache,
       );
       this.anchor = discovered.anchor;
       this.sourceGraph = discovered.graph;
@@ -1385,10 +1391,7 @@ class Transpiler {
     // skipped `.cnx` but sent a `.cnext` include in as a header.
     // #1444: and read from 1.1's answer, rather than lexed and classified
     // again here from the file's text.
-    return this._includesOf(sourcePath).cHeaderIncludes.flatMap((text) => {
-      const spec = IncludeDirectiveText.spec(text);
-      return spec === null ? [] : [spec];
-    });
+    return [...this._includesOf(sourcePath).cHeaderSpecs];
   }
 
   /**
@@ -1403,10 +1406,7 @@ class Transpiler {
       return directives.length === 0 ? [] : [{ file, directives }];
     });
     // Unread is not "no macros": a name the file uses may be one (#1688 review)
-    if (
-      this.config.preprocess === false ||
-      !this.anchor.preprocessor.isAvailable()
-    ) {
+    if (!this.anchor.preprocessor.isAvailable()) {
       for (const { file } of withIncludes)
         this.headerMacrosUnread.add(file.path);
       return;
@@ -1426,6 +1426,9 @@ class Transpiler {
                 ...input.includeSearchPaths,
               ],
               defines,
+              ...(this.preprocessCache === null
+                ? {}
+                : { cache: this.preprocessCache }),
             },
           ),
         );
@@ -1817,6 +1820,7 @@ class Transpiler {
     if (this.cacheManager) {
       this.cacheManager.flush();
     }
+    this.preprocessCache?.flush();
     return result;
   }
 
@@ -1862,15 +1866,6 @@ class Transpiler {
     if (header.kind === "cached") {
       this._restoreCachedHeader(header.entry, header.symbols);
       return; // Cache hit - skip full parsing
-    }
-    const { preprocessError } = header.source;
-    if (preprocessError !== null) {
-      // Fell back to raw content, so it was not offered as macro context to
-      // the headers after it. 1.1 judged it on its slice of the translation
-      // unit instead, which Stage 2 parses too (Issue #985).
-      this.warnings.push(
-        `Preprocessing failed for ${file.path}: ${preprocessError}. Using raw content.`,
-      );
     }
     this.parseHeaderFile(file, header.source);
 

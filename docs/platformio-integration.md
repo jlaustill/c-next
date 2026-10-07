@@ -28,7 +28,7 @@ root. `--pio-install` writes a working default; the fields you'll touch most:
 | `target`      | The program's target when its source names none (ADR-049), e.g. `teensy41`. A PlatformIO board can name it instead (below).                                                                                   |
 | `debugMode`   | Generate panic-on-overflow helpers.                                                                                                                                                                           |
 | `noCache`     | Disable the `.cnx/` symbol cache.                                                                                                                                                                             |
-| `cppRequired` | Emit C++ (`.cpp`/`.hpp`) instead of C. Required for any project that includes C++ headers — see below.                                                                                                        |
+| `cppRequired` | `true` emits C++ (`.cpp`/`.hpp`) regardless; `false` requires C. Unset, the mode is detected from the headers your sources reach — see below.                                                                 |
 
 Relative paths in `cnext.config.json` resolve against the directory holding the
 config file. Paths passed as CLI flags (`-o`, `--header-out`, `-I`) resolve
@@ -85,7 +85,7 @@ A run that requires C and `#include`s a C++ header **fails with E0507**, at the
 include that reached it:
 
 ```
-Error: src/main.cnx:3:0 error[E0507]: C++ header in 'lib/FlexCAN_T4/FlexCAN_T4.h', reached through this include, but this run asks for C
+Error: src/main.cnx:3:0 error[E0507]: C++ syntax in 'lib/FlexCAN_T4/FlexCAN_T4.h', reached through this include, but this run asks for C
        help: 'cppRequired: false' (or --no-cpp) asks for C. Remove it so the mode is detected from the headers, or pass --cpp to compile as C++.
 ```
 

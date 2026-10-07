@@ -16,12 +16,12 @@ codes that already have a fixture.
 | E02xx     | Identifier/Param Naming                        | 5       |
 | E03xx     | Struct Fields/Init                             | 5       |
 | E04xx     | Symbol Resolution                              | 16      |
-| E05xx     | Include/Preprocessor                           | 15      |
+| E05xx     | Include/Preprocessor                           | 17      |
 | E06xx     | Sizeof Expressions                             | 2       |
 | E07xx     | Control Flow                                   | 13      |
 | E08xx     | Arithmetic/Array Safety                        | 56      |
 | E09xx     | NULL Safety, Compile-Time Values, Literal Form | 12      |
-| **Total** |                                                | **125** |
+| **Total** |                                                | **127** |
 
 ---
 
@@ -177,6 +177,8 @@ include-visibility is not derivable for a C or C++ name.
 | E0513 | Invalid value for a pragma key                                         | An integer field takes decimal digits from the schema's allowed values, a Boolean field takes `true` or `false`, and each key takes exactly one value (ADR-049)                                                                        | `PARSE/4-Resolve/RunTarget.ts`                       |
 | E0514 | Incomplete target description                                          | An inline description gives every field, like a catalog row; the help lists what is missing (ADR-049)                                                                                                                                  | `PARSE/4-Resolve/RunTarget.ts`                       |
 | E0515 | The program names no target                                            | Name one with `#pragma target <name>`, `--target <name>`, `"target"` in `cnext.config.json`, or a PlatformIO environment's board (ADR-049)                                                                                             | `PARSE/4-Resolve/RunTarget.ts`                       |
+| E0516 | No C preprocessor to read the run's C headers                          | A run that includes C/C++ headers needs gcc, clang or arm-none-eabi-gcc (or `CNEXT_CROSS_COMPILER`): a header's language is judged on its preprocessed text (#1844)                                                                    | `PARSE/1-Discover/Discover.ts`                       |
+| E0517 | A header cannot be preprocessed                                        | Reported at the `.cnx` include that reached it, after the predecessor retry and the #985 translation-unit recovery both failed; the help is the preprocessor's own message. No header is read raw (#1844)                              | `PARSE/1-Discover/Discover.ts`                       |
 
 ---
 

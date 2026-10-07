@@ -129,7 +129,8 @@ describe("a C header's own includes (#1723)", () => {
     for (const result of await bothModes()) {
       expect(result.errors).toEqual([]);
     }
-    expect(handed).toHaveLength(2);
+    // #1844: both headers, in each mode
+    expect(handed).toHaveLength(4);
     for (const includePaths of handed) {
       expect(includePaths).toContain(libB);
     }

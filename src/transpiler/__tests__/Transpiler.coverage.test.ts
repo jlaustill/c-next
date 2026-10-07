@@ -16,12 +16,37 @@ import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import MockFileSystem from "./MockFileSystem";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
+import Preprocessor from "../../PARSE/1-Discover/preprocessor/Preprocessor";
+import type IPreprocessOptions from "../../PARSE/1-Discover/preprocessor/types/IPreprocessOptions";
 
 describe("Transpiler coverage tests", () => {
   let mockFs: MockFileSystem;
 
   beforeEach(() => {
     mockFs = new MockFileSystem();
+    // #1844: a run with headers needs a preprocessor, and an in-memory file
+    // system has no compiler. One built on it hands each header back as
+    // written, and reads no macros; one on disk runs the real compiler.
+    const realIsAvailable = Preprocessor.prototype.isAvailable;
+    const realPreprocess = Preprocessor.prototype.preprocess;
+    vi.spyOn(Preprocessor.prototype, "isAvailable").mockReturnValue(true);
+    vi.spyOn(Preprocessor.prototype, "preprocess").mockImplementation(
+      async function (
+        this: Preprocessor,
+        file: string,
+        options?: IPreprocessOptions,
+      ) {
+        if (realIsAvailable.call(this)) {
+          return realPreprocess.call(this, file, options);
+        }
+        return {
+          content: options?.dumpMacros ? "" : mockFs.readFile(file),
+          sourceMappings: [],
+          success: true,
+          originalFile: file,
+        };
+      },
+    );
   });
 
   afterEach(() => {
@@ -96,7 +121,7 @@ describe("Transpiler coverage tests", () => {
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
-          // #1319: C++ is declared, not discovered from the header below.
+          // The run asks for C++, rather than detecting it from the header below.
           cppRequired: true,
           target: "host",
         },
@@ -127,7 +152,7 @@ describe("Transpiler coverage tests", () => {
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
-          // #1319: C++ is declared, not discovered from the header below.
+          // The run asks for C++, rather than detecting it from the header below.
           cppRequired: true,
           target: "host",
         },
@@ -982,7 +1007,7 @@ describe("Transpiler coverage tests", () => {
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false,
-        // #1319: C++ is declared, not discovered from the header below.
+        // The run asks for C++, rather than detecting it from the header below.
         cppRequired: true,
         target: "host",
       };
@@ -1016,7 +1041,7 @@ describe("Transpiler coverage tests", () => {
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false,
-        // #1319: C++ is declared, not discovered from the header below.
+        // The run asks for C++, rather than detecting it from the header below.
         cppRequired: true,
         target: "host",
       };
@@ -1060,7 +1085,7 @@ describe("Transpiler coverage tests", () => {
           outDir: "/project/build",
           debugMode: true,
           noCache: true,
-          // #1319: C++ is declared, not discovered from the header below.
+          // The run asks for C++, rather than detecting it from the header below.
           cppRequired: true,
           target: "host",
         },
@@ -1107,7 +1132,7 @@ describe("Transpiler coverage tests", () => {
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false, // Enable cache
-        // #1319: C++ is declared, not discovered from the header below.
+        // The run asks for C++, rather than detecting it from the header below.
         cppRequired: true,
         target: "host",
       };
@@ -1152,7 +1177,7 @@ describe("Transpiler coverage tests", () => {
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false, // Enable cache
-        // #1319: C++ is declared, not discovered from the header below.
+        // The run asks for C++, rather than detecting it from the header below.
         cppRequired: true,
         target: "host",
       };
@@ -1652,7 +1677,7 @@ describe("Transpiler coverage integration tests", () => {
       // Without this the generated header lands in process.cwd().
       headerOutDir: testDir,
       noCache: false, // Enable caching
-      // #1319: C++ is declared, not discovered from the header below.
+      // The run asks for C++, rather than detecting it from the header below.
       cppRequired: true,
       target: "host",
     };
@@ -1697,7 +1722,7 @@ describe("Transpiler coverage integration tests", () => {
       // Without this the generated header lands in process.cwd().
       headerOutDir: testDir,
       noCache: false, // Enable caching
-      // #1319: C++ is declared, not discovered from the header below.
+      // The run asks for C++, rather than detecting it from the header below.
       cppRequired: true,
       target: "host",
     };
@@ -1928,7 +1953,6 @@ describe("Transpiler coverage integration tests", () => {
       {
         input: join(srcDir, "main.cnx"),
         includeDirs: [includeDir],
-        preprocess: false, // Explicitly disable preprocessing
         // Without these the generated .c/.h land in process.cwd().
         outDir: testDir,
         headerOutDir: testDir,
@@ -2043,7 +2067,7 @@ describe("Transpiler coverage integration tests", () => {
     expect(result.success).toBe(true);
   });
 
-  it("falls back to raw content when preprocessing fails (invalid include)", async () => {
+  it("rejects a header the preprocessor cannot read, at its include (#1844, E0517)", async () => {
     const srcDir = join(testDir, "src");
     const includeDir = join(testDir, "include");
     mkdirSync(srcDir, { recursive: true });
@@ -2087,10 +2111,18 @@ describe("Transpiler coverage integration tests", () => {
       NodeFileSystem.instance,
     );
 
-    // Should succeed even if preprocessing fails (falls back to raw content)
+    // #1844: no header is read as written, so the run stops at the include
+    // that reached it, with the preprocessor's own message as help.
     const result = await transpiler.transpile({ kind: "files" });
-    // The transpiler should still succeed and add a warning
-    expect(result.success).toBe(true);
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toMatch(
+      /^error\[E0517\]: '.*broken\.h', reached through this include, cannot be preprocessed$/,
+    );
+    expect(result.errors[0].sourcePath).toBe(join(srcDir, "main.cnx"));
+    expect(result.errors[0].line).toBe(2);
+    expect(result.errors[0].helpText).toContain("nonexistent_config.h");
   });
 
   // ==========================================================================
