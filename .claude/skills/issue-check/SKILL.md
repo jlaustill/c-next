@@ -206,14 +206,14 @@ ASSERT the returned issue count is strictly less than the --limit above. If it
 
 DETERMINE ACTIVE_MILESTONE = the open milestone with at least one open issue that has
   the LOWEST version number (this repo uses a milestone as its sprint — see
-  docs/WORKFLOW.md, "Releases are issues"). Compare by version, not by text: names are
-  not cased alike (`v0.3.1`, `V0.4.1`), and `v0.1.10` is later than `v0.1.9`.
-  If the user names a release, use that one.
+  docs/WORKFLOW.md, "Releases are issues"). Compare by version, not by text: `v0.1.10`
+  is later than `v0.1.9`. Ignore letter case only while `V0.4.1` is miscased (#1920).
+  If the user names a release (`/issue-check <milestone>`), use that one.
 
   Not "the milestone with the most open issues". The two agreed only while the release
   being finished also happened to be the largest. On 2026-10-07 `v0.3.1` had 4 open and
-  `V0.4.1` had 7, every one of them in Grooming. "Most issues" picked `V0.4.1`, which had
-  nothing to recommend, while `v0.3.1` still had an unblocked card.
+  `V0.4.1` had 7, all 7 of them in Grooming. "Most issues" picked `V0.4.1`, which had
+  nothing to recommend, while `v0.3.1` still had an unblocked card (#1428).
 
 PARTITION issues into:
   IN_FLIGHT_DISPLAY = open issues that ARE in IN_FLIGHT_ISSUES (for the report)
@@ -229,6 +229,8 @@ PARTITION issues into:
 DEFAULT: recommend only from ACTIVE_MILESTONE.
 ESCAPE HATCH: `/issue-check --all` drops the OUT_OF_SPRINT exclusion and ranks the
   whole backlog. BLOCKED, GROOMING and EPIC are excluded in BOTH modes.
+NAMED RELEASE: `/issue-check <milestone>` (e.g. `/issue-check v0.4.1`) uses that milestone
+  as ACTIVE_MILESTONE instead of the rule above; every other exclusion still applies.
 ```
 
 ---
