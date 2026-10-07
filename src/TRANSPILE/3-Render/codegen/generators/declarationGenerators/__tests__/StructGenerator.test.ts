@@ -14,6 +14,7 @@ import IOrchestrator from "../../IOrchestrator";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type IPlannedStruct from "../../../types/IPlannedStruct";
 import type IPlannedStructField from "../../../types/IPlannedStructField";
+import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 
 // ========================================================================
 // Test Helpers
@@ -74,27 +75,10 @@ function createMockInput(
 ): IGeneratorInput {
   return {
     callbackTypes: options.callbackTypes ?? new Map(),
-    symbols: {
+    symbols: createMockSymbols({
       structFieldDimensions: options.structFieldDimensions ?? new Map(),
       knownEnums: options.knownEnums ?? new Set(),
-      // Other fields not used
-      knownScopes: new Set(),
-      knownStructs: new Set(),
-      knownRegisters: new Set(),
-      knownBitmaps: new Set(),
-      scopeMembers: new Map(),
-      scopeMemberVisibility: new Map(),
-      structFields: new Map(),
-      structFieldArrays: new Map(),
-      enumMembers: new Map(),
-      bitmapFields: new Map(),
-      bitmapBackingType: new Map(),
-      bitmapBitWidth: new Map(),
-      scopedRegisters: new Map(),
-      registerMemberAccess: new Map(),
-      registerMemberTypes: new Map(),
-      scopePrivateConstValues: new Map(),
-    },
+    }),
   } as unknown as IGeneratorInput;
 }
 

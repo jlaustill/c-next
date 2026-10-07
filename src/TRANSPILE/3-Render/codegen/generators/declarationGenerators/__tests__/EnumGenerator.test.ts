@@ -4,6 +4,7 @@ import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
+import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 
 // ========================================================================
 // Test Helpers
@@ -17,27 +18,10 @@ function createMockInput(
   members: Map<string, number>,
 ): IGeneratorInput {
   return {
-    symbols: {
+    symbols: createMockSymbols({
       enumMembers: new Map([[enumName, members]]),
-      // Other required fields (not used by EnumGenerator)
-      knownScopes: new Set(),
-      knownStructs: new Set(),
-      knownRegisters: new Set(),
       knownEnums: new Set([enumName]),
-      knownBitmaps: new Set(),
-      scopeMembers: new Map(),
-      scopeMemberVisibility: new Map(),
-      structFields: new Map(),
-      structFieldArrays: new Map(),
-      structFieldDimensions: new Map(),
-      bitmapFields: new Map(),
-      bitmapBackingType: new Map(),
-      bitmapBitWidth: new Map(),
-      scopedRegisters: new Map(),
-      registerMemberAccess: new Map(),
-      registerMemberTypes: new Map(),
-      scopePrivateConstValues: new Map(),
-    },
+    }),
     symbolTable: null,
     typeRegistry: new Map(),
     functionSignatures: new Map(),

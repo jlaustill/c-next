@@ -5,6 +5,7 @@ import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
+import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 
 // ========================================================================
 // Test Helpers
@@ -19,27 +20,11 @@ function createMockInput(
   fields?: Map<string, IBitmapFieldLayout>,
 ): IGeneratorInput {
   return {
-    symbols: {
+    symbols: createMockSymbols({
       bitmapBackingType: new Map([[bitmapName, backingType]]),
       bitmapFields: fields ? new Map([[bitmapName, fields]]) : new Map(),
-      bitmapBitWidth: new Map(),
-      // Other required fields (not used by BitmapGenerator)
-      knownScopes: new Set(),
-      knownStructs: new Set(),
-      knownRegisters: new Set(),
-      knownEnums: new Set(),
       knownBitmaps: new Set([bitmapName]),
-      scopeMembers: new Map(),
-      scopeMemberVisibility: new Map(),
-      structFields: new Map(),
-      structFieldArrays: new Map(),
-      structFieldDimensions: new Map(),
-      enumMembers: new Map(),
-      scopedRegisters: new Map(),
-      registerMemberAccess: new Map(),
-      registerMemberTypes: new Map(),
-      scopePrivateConstValues: new Map(),
-    },
+    }),
     symbolTable: null,
     typeRegistry: new Map(),
     functionSignatures: new Map(),
