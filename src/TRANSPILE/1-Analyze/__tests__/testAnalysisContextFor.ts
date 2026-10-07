@@ -4,7 +4,7 @@ import CNextResolver from "../../../PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import Program from "../../../PARSE/4-Resolve/Program";
-import TargetCatalogFile from "../../../PARSE/1-Discover/TargetCatalogFile";
+import TargetCatalogFile from "../../../cli/TargetCatalogFile";
 import invariant from "../../../utils/invariant";
 import type IAnalysisContext from "../types/IAnalysisContext";
 import type ILexicalFrame from "../../../types/ILexicalFrame";

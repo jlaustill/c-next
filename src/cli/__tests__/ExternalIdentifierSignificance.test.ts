@@ -21,7 +21,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
 import type CodeGenWalker from "../../TRANSPILE/CodeGenWalker";
-import TargetResolver from "../../utils/TargetResolver";
+import TargetResolver from "../TargetResolver";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /** Two members that are distinct at 31 characters but collide at 6. */

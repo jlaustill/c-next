@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import FileScanner from "./FileScanner";
-import ISourceHit from "../types/ISourceHit";
+import FileScanner from "../utils/FileScanner";
+import ISourceHit from "./ISourceHit";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const srcDir = join(rootDir, "src");
@@ -19,8 +19,8 @@ class SourceScan {
    * The one definition of "a non-test module under `src/`" (#1826 review), for
    * a repository-relative path with `/` separators: TypeScript under `src/`,
    * outside `__tests__/` and `__testUtils__/`, and not a `*.test.ts`. The same
-   * split `.dependency-cruiser.cjs` makes. `destinations:check` counts its
-   * population with it, and the scans here read theirs through it.
+   * split `.dependency-cruiser.cjs` makes, and the scans here read their
+   * population through it.
    */
   static isModule(path: string): boolean {
     return (

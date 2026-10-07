@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 
 import TargetDescriptions from "../TargetDescriptions";
 import TargetCatalogParser from "../../2-Parse/TargetCatalogParser";
-import TargetCatalogFile from "../../1-Discover/TargetCatalogFile";
+import TargetCatalogFile from "../../../cli/TargetCatalogFile";
 import NodeFileSystem from "../../1-Discover/NodeFileSystem";
 
 const SHIPPED = readFileSync(

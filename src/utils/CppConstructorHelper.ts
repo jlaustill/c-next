@@ -9,7 +9,7 @@
  * "Does this type have a constructor in the symbol table?" is a question about
  * the SYMBOL MODEL, not about rendering -- it reads a lookup and a name
  * spelling and nothing else -- and pass 2.1 may not import `output/`
- * (`analyze-cannot-import-render`). Its location was the only thing making it
+ * (`2-1-analyze-reads-no-later-pass`). Its location was the only thing making it
  * a codegen fact.
  */
 

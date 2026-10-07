@@ -67,7 +67,7 @@ import ExternalDeclarationOracle from "../PARSE/1-Discover/preprocessor/External
 import type IRecordedRequirement from "../types/IRecordedRequirement";
 import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../utils/RequirementAggregator";
-import TargetCatalogFile from "../PARSE/1-Discover/TargetCatalogFile";
+import TargetCatalogFile from "./TargetCatalogFile";
 import Write from "../WRITE/1-Write/Write";
 import CaughtError from "../utils/CaughtError";
 import HeaderDeclarations from "../PARSE/3-Declare/HeaderDeclarations";
@@ -1035,7 +1035,7 @@ class Transpiler {
    * This used to PUBLISH the view onto the state as well, and that write is now
    * dead in both directions. `_analyzeFile`'s readers are the analyzers, which
    * take `IAnalysisContext.symbols` since #1456 and are barred from the state by
-   * `analyzers-cannot-reach-codegen-state`. `_transpileFile`'s next state access
+   * `2-1-analyze-reads-no-later-pass`. `_transpileFile`'s next state access
    * is `generate()`, whose `reset()` sets `symbols = null` before the walker
    * assigns `options.symbolInfo` -- so the value written here was overwritten
    * before anything could read it. Verified by removing the write: 7435 unit

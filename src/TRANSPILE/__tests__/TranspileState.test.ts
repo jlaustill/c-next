@@ -2,7 +2,7 @@
  * Tests for TranspileState - centralized code generation state management
  */
 
-import TargetResolver from "../../utils/TargetResolver";
+import TargetResolver from "../../cli/TargetResolver";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 import { describe, it, expect, beforeEach } from "vitest";

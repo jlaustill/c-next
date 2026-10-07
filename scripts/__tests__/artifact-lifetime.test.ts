@@ -246,7 +246,7 @@ describe("artifact lifetime (#1445 box 2)", () => {
       // indistinguishable from a true one. `Transpiler.retainedParses` is
       // `Map<string, IParsedFile>` -- the one field in this repository that holds
       // every retained tree on purpose -- so the scan must see it.
-      const control = storedParseNodes(/src\/transpiler\/Transpiler\.ts$/);
+      const control = storedParseNodes(/src\/cli\/Transpiler\.ts$/);
 
       expect(control.some((f) => f.includes("retainedParses"))).toBe(true);
     },

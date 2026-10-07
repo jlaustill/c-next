@@ -265,13 +265,13 @@ jobs:
         run: npm run typedef-const:parity:check
         continue-on-error: true
 
-      # Issue #1653: every non-test module under src/ has a decided row in
-      # docs/architecture/module-destinations.md, and the set of `awaiting`
-      # rows does not grow. The map is authored prose, and with nothing behind
-      # it eight modules moved into 2.2 Plan with no row while CI stayed green.
-      - name: Check every module has a decided destination
-        id: destinations
-        run: npm run destinations:check
+      # Issue #1443: src/ is the pass table. Its first two levels are exactly
+      # the tree docs/architecture/README.md §1 draws, and no module reaches a
+      # later pass. It replaces #1653's destination map, which tracked modules
+      # still on their way; none is.
+      - name: Check src/ is the pass table
+        id: layout
+        run: npm run layout:check
         continue-on-error: true
 
       # Issue #1526: the roster in CLAUDE.md is a list that reads as complete,
@@ -310,7 +310,7 @@ jobs:
           [ "${{ steps.parsetree.outcome }}" != "success" ] && echo "❌ Parse-tree baseline" && FAILED=1 || echo "✅ Parse-tree baseline"
           [ "${{ steps.unusedcode.outcome }}" != "success" ] && echo "❌ Unused declarations" && FAILED=1 || echo "✅ Unused declarations"
           [ "${{ steps.typedefconst.outcome }}" != "success" ] && echo "❌ Typedef const parity" && FAILED=1 || echo "✅ Typedef const parity"
-          [ "${{ steps.destinations.outcome }}" != "success" ] && echo "❌ Module destinations" && FAILED=1 || echo "✅ Module destinations"
+          [ "${{ steps.layout.outcome }}" != "success" ] && echo "❌ Pass-table layout" && FAILED=1 || echo "✅ Pass-table layout"
           [ "${{ steps.gateroster.outcome }}" != "success" ] && echo "❌ Gate roster" && FAILED=1 || echo "✅ Gate roster"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
 

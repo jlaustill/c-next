@@ -1479,6 +1479,29 @@ const MOVES: readonly IMove[] = [
     to: "src/PARSE/3-Declare/__tests__/FunctionUtils.test.ts",
     because: "#1443: follows `FunctionUtils`.",
   },
+  {
+    from: "src/utils/TargetResolver.ts",
+    to: "src/cli/TargetResolver.ts",
+    because:
+      "#1443: resolves `--target` against 1.1's catalog for `ArgParser`, its " +
+      "one importer. A shared root may not name a pass (README §1), and the " +
+      "host is the root that may.",
+  },
+  {
+    from: "src/utils/__tests__/TargetResolver.test.ts",
+    to: "src/cli/__tests__/TargetResolver.test.ts",
+    because: "#1443: follows `TargetResolver`.",
+  },
+  {
+    from: "src/PARSE/1-Discover/TargetCatalogFile.ts",
+    to: "src/cli/TargetCatalogFile.ts",
+    because:
+      "#1443: reads the catalog (1.1), parses it (1.2) and judges its rows " +
+      "(1.4) -- three passes composed, which is the host's job (README §1: " +
+      "only the host constructs the pipeline). Inside 1.1 it was 1.1 reading " +
+      "1.2 and 1.4, which `1-1-discover-reads-no-later-pass` rejects. Its " +
+      "importers were already the host and the target matrix script.",
+  },
 ];
 
 export default MOVES;

@@ -7,8 +7,7 @@
  * decides how it reads. A suppression is not cosmetic -- drop this table and
  * `#include <stdio.h>` in generated C is reported as a MISRA 21.6 violation
  * against the certification artifact. That is a change to what is emitted, which
- * is the discriminator `docs/architecture/module-destinations.md` gives for this
- * boundary (#1450 box 4).
+ * is what puts a module in 2.2 rather than 2.3 (#1450 box 4).
  *
  * Distinct from `ComplianceAnnotations` in what the comment is FOR -- a
  * suppression tells a TOOL to stop reporting, an annotation tells a READER why

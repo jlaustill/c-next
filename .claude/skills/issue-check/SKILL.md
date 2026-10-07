@@ -215,7 +215,7 @@ DETERMINE ACTIVE_MILESTONE = the open milestone with the LOWEST VERSION that sti
   names. A release does not stop being current because the next one has more cards.
 
   Find it with:
-    gh api repos/jlaustill/c-next/milestones --jq '.[] | select(.open_issues > 0) | .title'
+    gh api --paginate repos/jlaustill/c-next/milestones --jq '.[] | select(.open_issues > 0) | .title'
 
 PARTITION issues into:
   IN_FLIGHT_DISPLAY = open issues that ARE in IN_FLIGHT_ISSUES (for the report)

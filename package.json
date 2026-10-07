@@ -102,7 +102,7 @@
     "move:modules": "tsx scripts/move-modules.ts",
     "typedef-const:parity": "tsx scripts/typedef-const-parity.ts",
     "typedef-const:parity:check": "tsx scripts/typedef-const-parity.ts check",
-    "destinations:check": "tsx scripts/module-destinations.ts"
+    "layout:check": "tsx scripts/layout.ts"
   },
   "keywords": [
     "c",

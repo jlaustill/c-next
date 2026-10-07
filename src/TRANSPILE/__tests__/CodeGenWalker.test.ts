@@ -2,7 +2,7 @@
  * Unit tests for CodeGenWalker - the main transpiler component.
  * Tests the IOrchestrator interface and internal methods.
  */
-import TargetResolver from "../../utils/TargetResolver";
+import TargetResolver from "../../cli/TargetResolver";
 import ProgramGeneration from "./ProgramGeneration";
 import PublicInterface from "../2-Plan/PublicInterface";
 import { describe, it, expect, beforeEach } from "vitest";

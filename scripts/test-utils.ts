@@ -31,7 +31,7 @@ import detectCppSyntax from "../src/PARSE/1-Discover/detectCppSyntax";
 import TestMarkers from "./TestMarkers";
 import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
 import ExecFailure from "../src/utils/ExecFailure";
-import TargetResolver from "../src/utils/TargetResolver";
+import TargetResolver from "../src/cli/TargetResolver";
 import type IGccToolchain from "../src/utils/types/IGccToolchain";
 import TargetMatrix from "./TargetMatrix";
 import RunTarget from "../src/PARSE/4-Resolve/RunTarget";

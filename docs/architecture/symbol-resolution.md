@@ -758,7 +758,7 @@ detectable. Both passes read `program.codeGenSymbolsFor(file)` and one lexical
 artifact through one typer, so the passes cannot disagree about an operand's
 type — they read the same answer. The resolver, and the 2.2 expression-type
 resolver beside it, are deleted rather than re-homed
-(`module-destinations.md`).
+(`module-destinations.md`, deleted by #1443 once every module had arrived).
 
 Render reads the same answer rather than a second one: a postfix chain's plan
 carries the typer's step for each op, so render tracks no member type of its

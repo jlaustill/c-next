@@ -18,10 +18,10 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import TargetCatalogParser from "../2-Parse/TargetCatalogParser";
-import TargetDescriptions from "../4-Resolve/TargetDescriptions";
-import type ITargetDescription from "../../types/ITargetDescription";
-import type IFileSystem from "../../types/IFileSystem";
+import TargetCatalogParser from "../PARSE/2-Parse/TargetCatalogParser";
+import TargetDescriptions from "../PARSE/4-Resolve/TargetDescriptions";
+import type ITargetDescription from "../types/ITargetDescription";
+import type IFileSystem from "../types/IFileSystem";
 
 const CATALOG = join("targets", "targets.cnx");
 

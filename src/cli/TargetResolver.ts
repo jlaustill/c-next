@@ -7,7 +7,7 @@
  */
 
 import type ITargetDescription from "../types/ITargetDescription";
-import TargetCatalogFile from "../PARSE/1-Discover/TargetCatalogFile";
+import TargetCatalogFile from "./TargetCatalogFile";
 import type IFileSystem from "../types/IFileSystem";
 
 class TargetResolver {

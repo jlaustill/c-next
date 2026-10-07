@@ -65,7 +65,7 @@
 import { readFileSync } from "node:fs";
 import { join, sep } from "node:path";
 
-import SourceScan from "../utils/SourceScan";
+import SourceScan from "./SourceScan";
 
 const rootDir = join(__dirname, "..", "..");
 
@@ -186,8 +186,8 @@ const ORDER_CLASSIFIER = join("src", "TRANSPILE", "CodeGenWalker.ts");
  * The first spelling required a literal `static ` or `function ` immediately
  * before the verb. It reported **zero** while `CodeGenerator` -- the render
  * pass's largest file -- declared three private instance methods under exactly
- * this verb, and a leading `_` defeated it a second way. `module-destinations`
- * published "zero of the 131 expose a classification predicate" from that
+ * this verb, and a leading `_` defeated it a second way. `module-destinations.md`
+ * (deleted by #1443) published "zero of the 131 expose a classification predicate" from that
  * count, so the blind spot propagated into prose.
  *
  * The selector guard below could not catch it either: it filters to

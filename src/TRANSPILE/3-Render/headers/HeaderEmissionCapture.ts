@@ -25,7 +25,7 @@ import type IHeaderSymbol from "./types/IHeaderSymbol";
  * Moved out of the orchestrator by #1443. It is in 2.3 rather than 2.2 for the
  * reason `CodeGenWalker` is above both: the capture reads the header adapter
  * and the callback-typedef parser, which are 2.3's, and 2.2 may not import
- * 2.3 (`plan-cannot-import-render`). The decisions it records are still 2.2's
+ * 2.3 (`2-2-plan-reads-no-later-pass`). The decisions it records are still 2.2's
  * -- `PublicInterface`, `HeaderIncludes`, `HeaderTypeNames` -- read, not made.
  */
 class HeaderEmissionCapture {

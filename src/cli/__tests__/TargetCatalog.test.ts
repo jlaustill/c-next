@@ -8,7 +8,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import TargetCatalogFile from "../../PARSE/1-Discover/TargetCatalogFile";
+import TargetCatalogFile from "../TargetCatalogFile";
 import Transpiler from "../Transpiler";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 import MockFileSystem from "./MockFileSystem";

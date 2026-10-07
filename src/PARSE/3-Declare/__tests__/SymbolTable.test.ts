@@ -10,7 +10,7 @@ import TSymbol from "../../../types/symbols/TSymbol";
 import IVariableSymbol from "../../../types/symbols/IVariableSymbol";
 import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import IEnumSymbol from "../../../types/symbols/IEnumSymbol";
-import TargetResolver from "../../../utils/TargetResolver";
+import TargetResolver from "../../../cli/TargetResolver";
 import TTypeUtils from "../../../utils/TTypeUtils";
 import TCSymbol from "../../../types/symbols/c/TCSymbol";
 import TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";

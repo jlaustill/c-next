@@ -9,7 +9,7 @@ import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import DeclaredTypeInfo from "../DeclaredTypeInfo";
 import HeaderParser from "../../../PARSE/2-Parse/HeaderParser";
-import TargetCatalogFile from "../../../PARSE/1-Discover/TargetCatalogFile";
+import TargetCatalogFile from "../../../cli/TargetCatalogFile";
 import CResolver from "../../../PARSE/3-Declare/c/index";
 import OperandTyper from "../../../utils/OperandTyper";
 import testAnalysisContextFor from "../../1-Analyze/__tests__/testAnalysisContextFor";

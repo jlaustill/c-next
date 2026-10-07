@@ -506,7 +506,8 @@ class TranspileState {
    * `logic-cannot-import-output` reported clean, because it matched only direct
    * edges. The rule was made transitive and `state/` got one of its own; #1444
    * retired the `logic-` rule with the layer, when `logic/` joined 1.1 Discover
-   * and `parse-cannot-import-transpile` covered it.
+   * and `parse-cannot-import-transpile` covered it -- since #1443,
+   * `1-1-discover-reads-no-later-pass`.
    *
    * The reference itself is still a `state/` object holding a codegen contract.
    * That coupling is by design today and is #1323's to move; what this removes
