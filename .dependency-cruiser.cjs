@@ -18,6 +18,13 @@
  * are directly under `TRANSPILE/` by the owner's ruling on #1443, which
  * README §1 records.
  *
+ * One edge into a later place is ruled, and `mayRead` names it. 1.1 lexes a
+ * `.cnx` file to find its includes with 1.2's `CNextLexer`, so it and the
+ * parser agree on what a comment hides (#1745, owner ruling 2026-09-30,
+ * option A: discovery decides which files get parsed, so no `ParsedFile`
+ * exists yet when it asks). The lexer only: the parser stays forbidden, and
+ * `scripts/__tests__/pass-order.test.ts` checks both.
+ *
  * Each rule is `reachable: true`: a layer boundary is a claim about what a
  * module can END UP depending on, not about who wrote the import (#1297,
  * asserted by `scripts/__tests__/layer-rules.test.ts`). `__tests__` is
@@ -31,7 +38,11 @@
  * forbade one later place this list now forbids with all the others.
  */
 const PASS_ORDER = [
-  { rule: "1-1-discover", path: "^src/PARSE/1-Discover/" },
+  {
+    rule: "1-1-discover",
+    path: "^src/PARSE/1-Discover/",
+    mayRead: "^src/PARSE/2-Parse/grammar/CNextLexer\\.ts$",
+  },
   { rule: "1-2-parse", path: "^src/PARSE/2-Parse/" },
   { rule: "1-3-declare", path: "^src/PARSE/3-Declare/" },
   { rule: "1-4-resolve", path: "^src/PARSE/4-Resolve/" },
@@ -55,6 +66,7 @@ const passOrderRules = PASS_ORDER.slice(0, -1).map((place, index) => ({
   from: { path: place.path, pathNot: "__tests__" },
   to: {
     path: PASS_ORDER.slice(index + 1).map((later) => later.path),
+    ...(place.mayRead === undefined ? {} : { pathNot: place.mayRead }),
     reachable: true,
   },
 }));

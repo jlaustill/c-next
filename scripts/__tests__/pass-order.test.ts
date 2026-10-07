@@ -11,7 +11,9 @@
  * - backward: every place imports every earlier place -- the allowed direction,
  *   which must stay green (the control);
  * - through a util: 1.1 reaches 3.1 only via `src/utils/` -- `reachable` must
- *   catch it.
+ *   catch it;
+ * - the one ruled edge: 1.1 may read 1.2's lexer (#1745) and still not its
+ *   parser, which sits beside it.
  */
 import {
   mkdirSync,
@@ -36,7 +38,7 @@ const ORDER_RULE = /-reads-no-later-pass$/;
 interface IOrderRule {
   readonly name: string;
   readonly from: { readonly path: string };
-  readonly to: { readonly path: readonly string[] };
+  readonly to: { readonly path: readonly string[]; readonly pathNot?: string };
 }
 
 const rules = (
@@ -138,5 +140,22 @@ describe("pass-order rules (#1443)", () => {
       [last, []],
     ]);
     expect(cruise(imports)).toEqual([`${rules[0].name}: ${first} -> ${last}`]);
+  });
+
+  it("lets 1.1 read 1.2's lexer, and only the lexer (#1745)", () => {
+    expect(rules[0].to.pathNot).toBe(
+      "^src/PARSE/2-Parse/grammar/CNextLexer\\.ts$",
+    );
+    const first = sample(places[0]);
+    const lexer = "src/PARSE/2-Parse/grammar/CNextLexer.ts";
+    const parser = "src/PARSE/2-Parse/grammar/CNextParser.ts";
+    const imports = new Map<string, readonly string[]>([
+      [first, [lexer, parser]],
+      [lexer, []],
+      [parser, []],
+    ]);
+    expect(cruise(imports)).toEqual([
+      `${rules[0].name}: ${first} -> ${parser}`,
+    ]);
   });
 });
