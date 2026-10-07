@@ -3,6 +3,8 @@ import type IPipelineFile from "./IPipelineFile";
 import type IPlatformIOProject from "../../../types/IPlatformIOProject";
 import type IAnchorFacts from "./IAnchorFacts";
 import type IFileIncludes from "./IFileIncludes";
+import type IHeaderSource from "./IHeaderSource";
+import type IRecoveredDeclarations from "./IRecoveredDeclarations";
 
 /**
  * `SourceGraph` — the artifact 1.1 Discover emits (#1444).
@@ -29,6 +31,28 @@ interface ISourceGraph {
 
   /** The C and C++ headers the files reach, transitively. */
   readonly headerFiles: readonly IDiscoveredFile[];
+
+  /**
+   * #1844: per header (by `path`), the text a C compile meets and the
+   * language 1.1 judged from it. Stage 2 parses this text with that
+   * language's parser; nothing after 1.1 reads a header or judges one again.
+   */
+  readonly headerSources: ReadonlyMap<string, IHeaderSource>;
+
+  /**
+   * Issue #985: the run's C includes preprocessed as one translation unit,
+   * split back into each header's slice. Read only when a header could not be
+   * preprocessed alone -- null otherwise, so a clean project pays nothing.
+   */
+  readonly recoveredDeclarations: IRecoveredDeclarations | null;
+
+  /**
+   * #1844: whether the run emits C++. Detected, not declared (#1428): any
+   * C++ header makes the run C++, unless the config says
+   * `cppRequired: false`, where C++ is E0507 and 1.1 never returns a graph.
+   * `cppRequired: true` (`--cpp`) is C++ whatever the headers are.
+   */
+  readonly cppMode: boolean;
 
   /**
    * Per header (by `path`), the search path discovery resolved it along --

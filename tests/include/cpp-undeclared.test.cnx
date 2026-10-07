@@ -1,11 +1,11 @@
 // test-error
 // test-adr: 010
-// E0507: a C++ header in a run that did not declare C++ mode.
+// E0507: a C++ header in a run that asked for C.
 // This file should FAIL to transpile with E0507.
 //
-// Issue #1319: C++ mode is declared (config `cppRequired` / --cpp), never
-// discovered. Reading someone else's header used to switch the output language
-// silently; it now says so and stops.
+// #1319, #1844: an unset mode is detected from the headers. A run that asks
+// for C (`cppRequired: false`, or the harness's C-mode --no-cpp) does not
+// switch silently: it says so, at the include that reached the C++ header.
 //
 // `external-status.h` is the negative control: a pure C header included right
 // beside the C++ one. A check that rejected every include would name it, and

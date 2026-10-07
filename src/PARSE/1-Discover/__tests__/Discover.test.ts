@@ -19,6 +19,7 @@ describe("Discover", () => {
     outDir: "",
     headerOutDir: "",
     debugMode: false,
+    preprocess: false,
   };
 
   /** `app.cnx` includes `lib.cnx` and a C header; the header includes nothing. */
@@ -32,25 +33,24 @@ describe("Discover", () => {
       .addFile("/proj/src/board.h", "#define LED 13\n");
   }
 
-  function discover(fs: MockFileSystem): {
+  async function discover(fs: MockFileSystem): Promise<{
     graph: ISourceGraph;
     warnings: string[];
-  } {
+  }> {
     const warnings: string[] = [];
     const anchor = RunAnchor.at(settings.input, null, settings, fs);
-    const graph = Discover.run(
+    const { graph } = await Discover.run(
       { kind: "files" },
       anchor,
       settings,
-      ".h",
       fs,
       warnings,
-    ).graph;
+    );
     return { graph, warnings };
   }
 
-  it("orders the files so each follows the files it includes", () => {
-    const { graph } = discover(project());
+  it("orders the files so each follows the files it includes", async () => {
+    const { graph } = await discover(project());
 
     expect(graph.cnextFiles.map((file) => file.path)).toEqual([
       "/proj/src/lib.cnx",
@@ -58,8 +58,8 @@ describe("Discover", () => {
     ]);
   });
 
-  it("carries each file's kind, its edges and the text it was read from", () => {
-    const { graph } = discover(project());
+  it("carries each file's kind, its edges and the text it was read from", async () => {
+    const { graph } = await discover(project());
     const byPath = new Map(graph.cnextFiles.map((file) => [file.path, file]));
     const app = byPath.get("/proj/src/app.cnx");
     const lib = byPath.get("/proj/src/lib.cnx");
@@ -81,8 +81,8 @@ describe("Discover", () => {
     ]);
   });
 
-  it("records each file's include facts, in the order it visited them", () => {
-    const { graph } = discover(project());
+  it("records each file's include facts, in the order it visited them", async () => {
+    const { graph } = await discover(project());
 
     // Visit order, not `cnextFiles`' dependency order (see `ISourceGraph`)
     expect([...graph.includes.keys()]).toEqual([
@@ -100,8 +100,8 @@ describe("Discover", () => {
     expect(app?.cnxIncludeRewrites.get("lib.cnx")).toBe("lib.h");
   });
 
-  it("carries the anchor's facts", () => {
-    const { graph } = discover(project());
+  it("carries the anchor's facts", async () => {
+    const { graph } = await discover(project());
 
     expect(graph.anchor).toEqual({
       directory: "/proj/src",
@@ -111,8 +111,8 @@ describe("Discover", () => {
     });
   });
 
-  it("is frozen when discovery ends", () => {
-    const { graph } = discover(project());
+  it("is frozen when discovery ends", async () => {
+    const { graph } = await discover(project());
 
     expect(Object.isFrozen(graph)).toBe(true);
     expect(Object.isFrozen(graph.cnextFiles)).toBe(true);
@@ -125,8 +125,8 @@ describe("Discover", () => {
     expect(Object.isFrozen(graph.anchor)).toBe(true);
   });
 
-  it("is frozen all the way down, not just the records (#1444 review)", () => {
-    const { graph } = discover(project());
+  it("is frozen all the way down, not just the records (#1444 review)", async () => {
+    const { graph } = await discover(project());
     const app = graph.cnextFiles.find(
       (file) => file.path === "/proj/src/app.cnx",
     );
@@ -139,19 +139,18 @@ describe("Discover", () => {
     expect(Object.isFrozen(graph.anchor.defines)).toBe(true);
   });
 
-  it("has no files when the entry is not C-Next", () => {
+  it("has no files when the entry is not C-Next", async () => {
     const fs = new MockFileSystem().addFile("/proj/src/readme.txt", "hello");
     const warnings: string[] = [];
     const notCNext = { ...settings, input: "/proj/src/readme.txt" };
 
-    const graph = Discover.run(
+    const { graph } = await Discover.run(
       { kind: "files" },
       RunAnchor.at(notCNext.input, null, notCNext, fs),
       notCNext,
-      ".h",
       fs,
       warnings,
-    ).graph;
+    );
 
     expect(graph.cnextFiles).toEqual([]);
     expect(graph.includes.size).toBe(0);

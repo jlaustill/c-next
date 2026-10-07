@@ -10,7 +10,7 @@ interface IParsedArgs {
   includeDirs: string[];
   /** Preprocessor defines */
   defines: Record<string, string | boolean>;
-  /** --cpp flag */
+  /** --cpp (true), --no-cpp (false), or neither (unset: detected, #1844) */
   cppRequired?: boolean;
   /** --target flag */
   target?: string;

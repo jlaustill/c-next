@@ -12,6 +12,35 @@ import IncludeResolver from "../IncludeResolver";
 import EFileType from "../types/EFileType";
 import NodeFileSystem from "../NodeFileSystem";
 
+import type IFileSystem from "../../../types/IFileSystem";
+import type THeaderExtension from "../../../types/THeaderExtension";
+
+/** #1844: where a root header is included; the walk only carries it */
+const SITE = { sourcePath: "main.cnx", line: 1, column: 0 };
+
+/**
+ * #1844: a resolver whose answers carry the spelling Discover gives them once
+ * the run's mode is settled -- `resolve`, then `spell` for `ext`.
+ */
+function spellingResolver(
+  searchPaths: string[],
+  ext: THeaderExtension,
+  fs: IFileSystem,
+  headerIncludePathFor: ((cnxPath: string) => string | null) | null,
+  quotedIncludeDirectory: string,
+) {
+  const resolver = new IncludeResolver(searchPaths, fs, quotedIncludeDirectory);
+  return {
+    resolve(content: string, sourceFilePath?: string) {
+      const resolved = resolver.resolve(content, sourceFilePath);
+      return {
+        ...resolved,
+        ...IncludeResolver.spell(resolved, ext, headerIncludePathFor),
+      };
+    },
+  };
+}
+
 describe("IncludeResolver", () => {
   // #1640: NOT under `src/`. `HeaderOwnership.test.ts` walks the whole source
   // tree to prove one module owns a rule, vitest runs test files in parallel,
@@ -61,7 +90,7 @@ describe("IncludeResolver", () => {
 
   describe("resolve()", () => {
     it("should resolve local includes with quotes", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -78,7 +107,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should resolve system includes with angle brackets", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -95,7 +124,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should resolve nested paths", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -111,7 +140,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should resolve multiple includes", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -135,7 +164,7 @@ describe("IncludeResolver", () => {
       // Create same-named file in srcDir (should be found first)
       writeFileSync(join(srcDir, "types.h"), "// from srcDir");
 
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [srcDir, includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -152,7 +181,7 @@ describe("IncludeResolver", () => {
 
     it("should fall back to later paths when not found in earlier ones", () => {
       // utils.h only exists in includeDir, not srcDir
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [srcDir, includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -174,7 +203,7 @@ describe("IncludeResolver", () => {
 
   describe("warnings", () => {
     it("should warn for unresolved local includes", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -192,7 +221,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should NOT warn for unresolved system includes", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -208,7 +237,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should include source file path in warning when provided", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -229,7 +258,7 @@ describe("IncludeResolver", () => {
 
   describe("deduplication", () => {
     it("should deduplicate headers included multiple times", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -244,7 +273,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should track resolved paths across multiple resolve calls", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -268,7 +297,7 @@ describe("IncludeResolver", () => {
 
   describe("file type categorization", () => {
     it("should categorize .h files as headers", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -284,7 +313,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should categorize .cnx files as C-Next includes", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -301,7 +330,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should handle mixed header and C-Next includes", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -334,7 +363,7 @@ describe("IncludeResolver", () => {
       ['#include "gone.h"', true],
       ["#include <gone.h>", true],
     ])("%s -> %s", (content, expected) => {
-      const result = new IncludeResolver(
+      const result = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -440,7 +469,7 @@ describe("IncludeResolver", () => {
 
   describe("cppMode header directive extension", () => {
     it("should use .h extension for cnx includes in C mode (default)", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -473,7 +502,7 @@ describe("IncludeResolver", () => {
         '#include "types.h"',
       ],
     ])("%s", (_label, source, source2) => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".hpp",
         NodeFileSystem.instance,
@@ -512,7 +541,7 @@ describe("IncludeResolver", () => {
 
   describe("userIncludes and cHeaderIncludes", () => {
     const resolverFor = (ext: ".h" | ".hpp") =>
-      new IncludeResolver(
+      spellingResolver(
         [includeDir],
         ext,
         NodeFileSystem.instance,
@@ -539,7 +568,7 @@ describe("IncludeResolver", () => {
     );
 
     it("renders a resolved .cnx include as the header the owner names", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -613,7 +642,7 @@ describe("IncludeResolver", () => {
 
   describe("resolved header path (#1467)", () => {
     it("names the resolved header, not the author's spelling", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -632,7 +661,7 @@ describe("IncludeResolver", () => {
     });
 
     it("keeps a quoted include quoted", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -648,7 +677,7 @@ describe("IncludeResolver", () => {
     });
 
     it("falls back to the extension swap when the owner has no answer", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -664,7 +693,7 @@ describe("IncludeResolver", () => {
     });
 
     it("falls back when no owner is injected at all", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -682,7 +711,7 @@ describe("IncludeResolver", () => {
 
   describe("edge cases", () => {
     it("should handle empty content", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -698,7 +727,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should handle content with no includes", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [includeDir],
         ".h",
         NodeFileSystem.instance,
@@ -714,7 +743,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should handle empty search paths", () => {
-      const resolver = new IncludeResolver(
+      const resolver = spellingResolver(
         [],
         ".h",
         NodeFileSystem.instance,
@@ -742,7 +771,7 @@ describe("IncludeResolver", () => {
         extension: string;
       }>,
       dir: string,
-    ) => headers.map((file) => ({ file, searchPaths: [dir] }));
+    ) => headers.map((file) => ({ file, searchPaths: [dir], site: SITE }));
 
     it("should resolve single header without nested includes", () => {
       // types.h has no includes
@@ -886,13 +915,13 @@ describe("IncludeResolver", () => {
       };
 
       const along = IncludeResolver.resolveHeadersTransitively(
-        [{ file: aHeader, searchPaths: [libA, libB] }],
+        [{ file: aHeader, searchPaths: [libA, libB], site: SITE }],
         { fs: NodeFileSystem.instance },
       );
       // Control: the same root on a path without libB, as every header was
       // searched before -- b.h is not found and is warned about.
       const without = IncludeResolver.resolveHeadersTransitively(
-        [{ file: aHeader, searchPaths: [libA] }],
+        [{ file: aHeader, searchPaths: [libA], site: SITE }],
         { fs: NodeFileSystem.instance },
       );
 
@@ -921,7 +950,7 @@ describe("IncludeResolver", () => {
         [".h", '#include "shared.h"'],
         [".hpp", '#include "shared.hpp"'],
       ] as const) {
-        const result = new IncludeResolver(
+        const result = spellingResolver(
           [includeDir],
           ext,
           NodeFileSystem.instance,

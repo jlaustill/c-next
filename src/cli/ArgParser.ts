@@ -18,7 +18,7 @@ interface IYargsResult {
   o?: string;
   output?: string;
   "header-out"?: string;
-  cpp: boolean;
+  cpp?: boolean;
   include: string[];
   target?: string;
   "pio-env"?: string;
@@ -66,8 +66,11 @@ A safer C for embedded systems development.`,
       // Compilation options
       .option("cpp", {
         type: "boolean",
-        describe: "Output .cpp instead of .c (for C++ features like Serial)",
-        default: false,
+        // #1844: no default. Unset, 1.1 detects the mode from the headers;
+        // --no-cpp asks for C, where a C++ header is E0507.
+        describe:
+          "Output .cpp instead of .c (for C++ features like Serial). " +
+          "Unset: detected from the headers; --no-cpp forces C",
       })
       .option("include", {
         type: "string",
@@ -165,7 +168,7 @@ Config files (searched in order, JSON format):
   cnext.config.json, .cnext.json, .cnextrc
 
 Config options:
-  cppRequired    Output .cpp instead of .c (boolean)
+  cppRequired    Output .cpp (true) or .c (false); unset: detected (boolean)
   noCache        Disable symbol caching (boolean)
   include        Additional include directories (string[])
   output         Output directory for generated files (string)

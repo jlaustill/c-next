@@ -81,8 +81,14 @@ describe("ArgParser", () => {
         expect(result.cppRequired).toBe(true);
       });
 
-      it("defaults cppRequired to false", () => {
+      it("leaves cppRequired unset without either flag (#1844)", () => {
         const result = ArgParser.parse(argv("input.cnx"));
+
+        expect(result.cppRequired).toBeUndefined();
+      });
+
+      it("parses --no-cpp as an explicit C run (#1844)", () => {
+        const result = ArgParser.parse(argv("input.cnx", "--no-cpp"));
 
         expect(result.cppRequired).toBe(false);
       });
@@ -240,7 +246,7 @@ describe("ArgParser", () => {
         expect(result.outputPath).toBe("");
         expect(result.includeDirs).toEqual([]);
         expect(result.defines).toEqual({});
-        expect(result.cppRequired).toBe(false);
+        expect(result.cppRequired).toBeUndefined();
         expect(result.target).toBeUndefined();
         expect(result.preprocess).toBe(true);
         expect(result.verbose).toBe(false);

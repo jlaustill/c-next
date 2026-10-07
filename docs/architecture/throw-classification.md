@@ -83,9 +83,9 @@ bucket sections below, not in this table (#1531):
 
 | area                                                     | sites |
 | -------------------------------------------------------- | ----- |
-| `src/PARSE/` (1.1 Discover, 1.3 Declare, 1.4 Resolve)    | 6     |
+| `src/PARSE/` (1.1 Discover, 1.3 Declare, 1.4 Resolve)    | 7     |
 | `src/TRANSPILE/` (2.1 to 2.3; #1322 emptied `3-Render/`) | 0     |
-| `src/transpiler/` (the orchestrator)                     | 1     |
+| `src/transpiler/` (the orchestrator)                     | 0     |
 | `src/utils/`                                             | 3     |
 
 ## Position availability — the finding that shapes #1322
@@ -245,12 +245,14 @@ questions and only the first was asked.
 ### Outside `3-Render/` — 2
 
 Each is a rejection a user can see. It is thrown rather than reported, so it reaches them at
-`1:0`, behind `Pipeline failed:` or `Code generation failed:`. Each has a card.
+`1:0`, behind `Pipeline failed:` or `Code generation failed:`. Each has a card. #1844: E0507 is
+thrown as a `LocatedDiagnostic`, which the orchestrator reports at the `.cnx` include that reached
+the C++ header instead.
 
-| file:line                       | anchor                                         | what                                                              | card  |
-| ------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------- | ----- |
-| `transpiler/Transpiler.ts:2182` | `this run does not target C++`                 | E0507: a C++ header in a run that does not target C++             | #1542 |
-| `1-Discover/Discover.ts:271`    | `A generated header records the C-Next source` | E0509: a generated header names a C-Next source that is not there | #1542 |
+| file:line                    | anchor                                         | what                                                              | card  |
+| ---------------------------- | ---------------------------------------------- | ----------------------------------------------------------------- | ----- |
+| `1-Discover/Discover.ts:195` | `DeclarationSite.displayPath(cpp.path)`        | E0507: a C++ header in a run that asks for C; located (#1844)     | #1844 |
+| `1-Discover/Discover.ts:474` | `A generated header records the C-Next source` | E0509: a generated header names a C-Next source that is not there | #1542 |
 
 #1669 (2026-10-03): `ExpressionEvaluator`'s `Invalid constant expression` is gone. An enum member's
 value is recorded as written in 1.3 and settled in 1.4; one with no value is reported in pass 2.1,

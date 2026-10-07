@@ -31,9 +31,7 @@ const analyze = (
   for (const path of present) fs.addFile(path, "");
   const discovered = new IncludeResolver(
     [...searchPaths],
-    ".h",
     fs,
-    null,
     "/project/src",
   ).resolve(source);
   return new IncludeDirectiveAnalyzer().analyze(

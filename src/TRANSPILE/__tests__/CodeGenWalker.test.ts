@@ -29,13 +29,8 @@ import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
  * nothing, so a test that renders an include hands it over.
  */
 const discoveredKinds = (source: string) =>
-  new IncludeResolver(
-    [],
-    ".h",
-    new MockFileSystem(),
-    null,
-    "/project/src",
-  ).resolve(source).kinds;
+  new IncludeResolver([], new MockFileSystem(), "/project/src").resolve(source)
+    .kinds;
 
 /**
  * Both symbol passes, the way the pipeline runs them -- the real 1.4, not an

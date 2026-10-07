@@ -175,12 +175,14 @@ A fact has two independent properties, and conflating them mis-files the AST:
 The test for tier is mechanical: **could you compute it with only this file open?**
 
 > `cppDetected` used to be listed here as a Tier 2 fact authored in 1.4 Resolve, because it
-> was raised by reading an included header. #1319 made it **declared** -- it comes from
-> `cppRequired` in the config or `--cpp`, and a C++ header met in a run that did not declare
-> C++ is E0507 rather than a silent switch. It is therefore not a tier fact in either
-> direction: the test above asks whether one file is enough, and the answer is now that
-> **no** file is needed. It is a configuration input, known before pass 1.1 opens anything,
-> which is why nothing downstream can read it too early.
+> was raised by reading an included header. #1319 made it **declared**, from `cppRequired`
+> or `--cpp`. #1844 made it **discovered** again, and by 1.1: the run's mode is the
+> `SourceGraph`'s `cppMode`, settled before 1.1 returns from each header's language, which
+> 1.1 judges once, on the text a C compile meets (#1542, owner ruling 4). Any C++ header makes
+> the run C++ (#1428); `cppRequired: true` (`--cpp`) is C++ whatever the headers are, and
+> `cppRequired: false` (`--no-cpp`) asks for C, where a C++ header is E0507. It is not a tier
+> fact: it is a fact of the include graph, which is 1.1's, and nothing after 1.1 judges a
+> header's language again, so nothing downstream can read it too early.
 >
 > The **target catalog** (`targets/targets.cnx`, ADR-049) is a configuration input in the
 > same sense: it ships with the compiler, not with the program, and is read and validated

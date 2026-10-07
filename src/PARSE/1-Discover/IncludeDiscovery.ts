@@ -464,6 +464,18 @@ class IncludeDiscovery {
    * @param source - A `.cnx` file's text
    */
   static directiveTextsOf(source: string): string[] {
+    return IncludeDiscovery.directivesWithPositionsOf(source).map(
+      (directive) => directive.text,
+    );
+  }
+
+  /**
+   * #1844: `directiveTextsOf`, with where each directive sits -- E0507 is
+   * reported at the include that reached a C++ header.
+   */
+  static directivesWithPositionsOf(
+    source: string,
+  ): Array<{ text: string; line: number; column: number }> {
     const lexer = new CNextLexer(CharStream.fromString(source));
     // 1.2 Parse reports a lexical error once, with its position. Here it
     // would only print ANTLR's console default a second time.
@@ -479,7 +491,7 @@ class IncludeDiscovery {
           token.text !== undefined,
           "an INCLUDE_DIRECTIVE token carries its text",
         );
-        return token.text;
+        return { text: token.text, line: token.line, column: token.column };
       });
   }
 

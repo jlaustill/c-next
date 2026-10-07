@@ -37,7 +37,7 @@ import IPreprocessOptions from "./types/IPreprocessOptions";
 // Function-like macro definitions from a `-dM` dump: `#define pdMS_TO_TICKS(`.
 const FUNCTION_MACRO = /^#define\s+([A-Za-z_]\w*)\(/gm;
 // gcc/clang line marker: `# 958 "/path/to/task.h" 2`.
-const LINE_MARKER = /^#\s+\d+\s+"([^"]+)"/;
+const LINE_MARKER = /^#\s+(\d+)\s+"([^"]+)"(.*)$/;
 // Synthetic TU filename (appears in preprocessor errors, keyed on to locate a
 // failing include by its line number).
 const TU_NAME = "cnext-external-decl-oracle.c";
@@ -51,6 +51,11 @@ interface IExternalRecovery {
   perFileContent: Map<string, string>;
   /** Names of function-like macros — no declaration exists to parse. */
   macroNames: Set<string>;
+  /**
+   * #1844: per header, the unit's include through which the compile entered
+   * it. E0507 is reported at the `.cnx` include that wrote it.
+   */
+  directiveOf: Map<string, string>;
 }
 
 class ExternalDeclarationOracle {
@@ -84,9 +89,11 @@ class ExternalDeclarationOracle {
     );
     if (!working) return null;
 
-    const perFileContent = ExternalDeclarationOracle.splitByFile(
-      working.content,
-    );
+    const { perFileContent, directiveOf } =
+      ExternalDeclarationOracle.splitByFile(
+        working.content,
+        working.directives,
+      );
 
     // Function-like macros the plain preprocess would have consumed at use.
     const macroNames = new Set<string>();
@@ -101,7 +108,7 @@ class ExternalDeclarationOracle {
       }
     }
 
-    return { perFileContent, macroNames };
+    return { perFileContent, macroNames, directiveOf };
   }
 
   /**
@@ -131,14 +138,35 @@ class ExternalDeclarationOracle {
    * Bucket preprocessed output by originating source file using its `#line`
    * markers. Synthetic units (`<built-in>`, `<command-line>`, the TU itself) are
    * skipped. Each real header maps to the concatenation of its own emitted lines.
+   *
+   * #1844: and each file entered (flag 1) maps to the include of `directives`
+   * that reached it. The unit is one include per line, so the marker that
+   * returns to it (`# N "<unit>" 2`) closes line N-1's include.
    */
-  private static splitByFile(content: string): Map<string, string> {
+  private static splitByFile(
+    content: string,
+    directives: readonly string[],
+  ): { perFileContent: Map<string, string>; directiveOf: Map<string, string> } {
     const buckets = new Map<string, string[]>();
+    const directiveOf = new Map<string, string>();
+    let entered: string[] = [];
     let current = "";
     for (const line of content.split("\n")) {
       const marker = LINE_MARKER.exec(line);
       if (marker) {
-        current = marker[1];
+        current = marker[2];
+        const flags = marker[3].trim().split(/\s+/);
+        if (current.endsWith(TU_NAME) || current.startsWith("<")) {
+          const directive = directives[Number(marker[1]) - 2];
+          if (current.endsWith(TU_NAME) && flags.includes("2") && directive) {
+            for (const file of entered) {
+              if (!directiveOf.has(file)) directiveOf.set(file, directive);
+            }
+          }
+          entered = [];
+        } else if (flags.includes("1")) {
+          entered.push(current);
+        }
         continue;
       }
       if (!current || current.startsWith("<") || current.endsWith(TU_NAME)) {
@@ -151,11 +179,11 @@ class ExternalDeclarationOracle {
       }
       bucket.push(line);
     }
-    const perFile = new Map<string, string>();
+    const perFileContent = new Map<string, string>();
     for (const [file, lines] of buckets) {
-      perFile.set(file, lines.join("\n"));
+      perFileContent.set(file, lines.join("\n"));
     }
-    return perFile;
+    return { perFileContent, directiveOf };
   }
 
   private static buildTu(directives: readonly string[]): string {

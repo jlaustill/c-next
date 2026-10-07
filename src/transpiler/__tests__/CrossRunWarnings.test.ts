@@ -1,6 +1,7 @@
 /**
- * #1662: `Transpiler.warnings` and `anyHeaderPreprocessFailed` are run-scoped
- * facts that `_initializeRun` did not reset.
+ * #1662: `Transpiler.warnings` is a run-scoped fact that `_initializeRun` did
+ * not reset. (So was the #985 recovery latch, until #1844 made recovery 1.1's,
+ * a fact of each run's graph.)
  *
  * `warnings` is built in the CONSTRUCTOR and pushed to per run, so on one
  * transpiler three runs over the same source reported 1, then 2, then 3 copies
@@ -17,12 +18,6 @@
 import { describe, it, expect } from "vitest";
 import Transpiler from "../Transpiler";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
-
-/** The latch #985's recovery path is gated on, which is private. */
-function preprocessFailedFlag(transpiler: Transpiler): boolean {
-  return (transpiler as unknown as { anyHeaderPreprocessFailed: boolean })
-    .anyHeaderPreprocessFailed;
-}
 
 const SOURCE = `#include "definitely-missing-header.h"
 
@@ -51,26 +46,6 @@ describe("run-scoped warnings (#1662)", () => {
     // NEGATIVE CONTROL. Without it, a change that silenced the warning entirely
     // would satisfy the assertion above with [0, 0, 0].
     expect(await freshCount()).toBeGreaterThan(0);
-  });
-
-  it("clears the preprocess-failure latch between runs", async () => {
-    // Asserted on the field rather than through behavior, and deliberately:
-    // the latch gates `_collectExternalDeclarations`, which shells out to a
-    // real preprocessor, so the only toolchain-free way to tell a cleared latch
-    // from a set one is to look. A stale `true` makes a clean run pay for #985
-    // recovery it does not need AND admits recovered names that can silence a
-    // diagnostic -- the shape #1177 hit with `externalDeclarationNames`.
-    const transpiler = new Transpiler(
-      { input: "", noCache: true },
-      NodeFileSystem.instance,
-    );
-
-    (
-      transpiler as unknown as { anyHeaderPreprocessFailed: boolean }
-    ).anyHeaderPreprocessFailed = true;
-    await transpiler.transpile({ kind: "source", source: SOURCE });
-
-    expect(preprocessFailedFlag(transpiler)).toBe(false);
   });
 });
 

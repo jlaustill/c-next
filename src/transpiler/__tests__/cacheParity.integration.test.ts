@@ -192,7 +192,6 @@ describe("cache parity (integration, #1225)", () => {
         structState: entry.structState,
         needsStructKeyword: entry.needsStructKeyword,
         enumBitWidth: entry.enumBitWidth,
-        preprocessFailed: entry.preprocessFailed,
       }),
     );
     const rewritten = cache.getSymbols(join(dir, "external.hpp"));

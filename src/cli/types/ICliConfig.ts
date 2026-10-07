@@ -17,8 +17,11 @@ interface ICliConfig {
   preprocess: boolean;
   /** --verbose flag */
   verbose: boolean;
-  /** Force C++ output */
-  cppRequired: boolean;
+  /**
+   * Force C++ output (true) or C (false). Unset: 1.1 detects it from the
+   * headers the run includes (#1844).
+   */
+  cppRequired?: boolean;
   /** Disable symbol caching */
   noCache: boolean;
   /** Parse only mode */

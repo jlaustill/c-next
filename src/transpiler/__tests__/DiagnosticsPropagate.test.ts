@@ -28,7 +28,7 @@ import { describe, it, expect } from "vitest";
 const SOURCE = readFileSync(join(__dirname, "..", "Transpiler.ts"), "utf-8");
 
 /** Calls that can now raise a C-Next diagnostic rather than a parse failure. */
-const DIAGNOSTIC_RAISING = ["parseCHeader(", "_collectHeaderSymbols("];
+const DIAGNOSTIC_RAISING = ["_parseHeaderText(", "_collectHeaderSymbols("];
 
 interface ICatchSite {
   readonly tryBody: string;

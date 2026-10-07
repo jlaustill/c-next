@@ -146,6 +146,27 @@ module.exports = {
       },
     },
     {
+      name: "header-language-is-judged-once",
+      comment:
+        "#1844. A header's language is 1.1's to judge, once, on the text a C " +
+        "compile meets, and is recorded on the `SourceGraph`. It was judged in " +
+        "Stage 2 instead, on the raw text when warm and the preprocessed text " +
+        "when cold, so a run passed cold and failed warm (#1851). Only " +
+        "`HeaderSources` runs the language checks; the orchestrator is not a " +
+        "pass, so `nothing-after-1-1-discovers` does not reach it, and this does.",
+      severity: "error",
+      from: {
+        pathNot: [
+          "__tests__",
+          "^src/PARSE/1-Discover/HeaderSources\\.ts$",
+          "^src/PARSE/1-Discover/detect(Cpp|Assembly)Syntax\\.ts$",
+        ],
+      },
+      to: {
+        path: "^src/PARSE/1-Discover/detect(Cpp|Assembly)Syntax\\.ts$",
+      },
+    },
+    {
       name: "artifact-types-name-no-discovery-module",
       comment:
         "#1444 review. `nothing-after-1-1-discovers` lets a later pass read " +

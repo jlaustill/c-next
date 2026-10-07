@@ -124,7 +124,9 @@ class Cli {
       defines: args.defines,
       preprocess: args.preprocess,
       verbose: args.verbose,
-      cppRequired: args.cppRequired || fileConfig.cppRequired || false,
+      // #1844: `--cpp`/`--no-cpp` wins; otherwise the config's, unset when
+      // neither says, so 1.1 detects the mode rather than reading a false.
+      cppRequired: args.cppRequired ?? fileConfig.cppRequired,
       noCache: args.noCache || fileConfig.noCache === true,
       parseOnly: args.parseOnly,
       headerOutDir: args.headerOutDir ?? fileConfig.headerOut,

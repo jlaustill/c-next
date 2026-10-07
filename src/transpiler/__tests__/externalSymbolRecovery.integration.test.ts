@@ -36,8 +36,8 @@ const GUARD_H = `#define WIDGET_GUARD 1
 
 // A header cnext DISCOVERS (it walks #includes unconditionally) but that cannot
 // preprocess standalone — its <no-such-header> mirrors lvgl's OSAL headers
-// probing <semaphore.h>. Its standalone failure sets anyHeaderPreprocessFailed,
-// which is what triggers the external-declaration recovery pass. It is guarded
+// probing <semaphore.h>. Its standalone failure is what triggers 1.1's
+// external-declaration recovery pass. It is guarded
 // out of the recovery TU (USE_PTHREAD is 0), so the union still preprocesses.
 const PTHREAD_IMPL_H = `#include <cnext_no_such_header_zzz.h>\n`;
 
@@ -214,7 +214,7 @@ describe("external-symbol recovery (integration)", () => {
     // PASS, so a missing toolchain looked like a green test (S8968).
     if (!available) ctx.skip();
 
-    // A .cnx with no C includes never trips anyHeaderPreprocessFailed, so the
+    // A .cnx with no C includes has no header that fails to preprocess, so the
     // recovery pass is a no-op and transpilation still succeeds.
     const cleanDir = mkdtempSync(join(tmpdir(), "cnext-clean-"));
     try {
@@ -316,8 +316,8 @@ describe("diagnostics on a recovery slice (#1319, integration)", () => {
     if (!available) ctx.skip();
 
     // The premise, asserted rather than assumed: if any raw header tripped the
-    // check, stage 2 would raise E0507 first and the test below would pass
-    // without ever reaching the recovery path it exists to cover.
+    // check, 1.1 would judge it C++ on its own text and the test below would
+    // pass without ever reaching the recovery path it exists to cover.
     for (const header of ["paste_guard.h", "paste_widget.h", "broken.h"]) {
       expect(detectCppSyntax(readFileSync(join(dir, header), "utf-8"))).toBe(
         false,
@@ -332,6 +332,12 @@ describe("diagnostics on a recovery slice (#1319, integration)", () => {
 
     expect(result.success).toBe(false);
     expect(result.errors.map((e) => e.message).join("\n")).toContain("E0507");
+    // #1844: at main.cnx's include of the header the combined text judged C++
+    expect(result.errors[0]).toMatchObject({
+      sourcePath: join(dir, "main.cnx"),
+      line: 2,
+      column: 0,
+    });
   });
 
   it("stays silent when C++ is declared", async (ctx) => {

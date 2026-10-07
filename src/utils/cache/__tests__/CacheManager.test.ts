@@ -70,7 +70,6 @@ describe("CacheManager", () => {
     options: {
       needsStructKeyword?: string[];
       enumBitWidth?: Map<string, number>;
-      preprocessFailed?: boolean;
     } = {},
   ): void {
     cacheManager.setSymbols(
@@ -81,7 +80,6 @@ describe("CacheManager", () => {
         structState: emptyStructState(),
         needsStructKeyword: options.needsStructKeyword,
         enumBitWidth: options.enumBitWidth,
-        preprocessFailed: options.preprocessFailed,
       },
     );
   }
@@ -295,23 +293,6 @@ describe("CacheManager", () => {
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
       });
-    });
-
-    it("defaults preprocessFailed to false and round-trips it when set", () => {
-      const cleanFile = join(testDir, "clean.h");
-      const failedFile = join(testDir, "failed.h");
-      writeFileSync(cleanFile, "// test");
-      writeFileSync(failedFile, "// test");
-
-      // Issue #985: a header that fell back to raw content records that fact so
-      // a warm-cache build re-runs external-declaration recovery.
-      storeSymbols(cleanFile, [], new Map());
-      storeSymbols(failedFile, [], new Map(), {
-        preprocessFailed: true,
-      });
-
-      expect(cacheManager.getSymbols(cleanFile)!.preprocessFailed).toBe(false);
-      expect(cacheManager.getSymbols(failedFile)!.preprocessFailed).toBe(true);
     });
 
     it("preserves optional symbol fields through the production path", () => {

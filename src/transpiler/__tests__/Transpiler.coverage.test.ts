@@ -202,9 +202,24 @@ describe("Transpiler coverage tests", () => {
 
       // A diagnostic that says only "C++ found" leaves the reader to guess
       // which include did it and what to do, which is most of the work.
-      const text = result.errors.map((e) => e.message).join("\n");
+      const text = result.errors
+        .map((e) => `${e.message}\n${e.helpText}`)
+        .join("\n");
       expect(text).toContain("utils.hpp");
       expect(text).toContain("cppRequired");
+    });
+
+    it("reports it at the .cnx include that reached the header (#1844)", async () => {
+      // `cnx` opens with a newline, so its include is on line 2.
+      const result = await runWith("int helper();", "utils.hpp", false);
+
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toMatchObject({
+        sourcePath: "/project/src/main.cnx",
+        line: 2,
+        column: 8,
+      });
+      expect(result.errors[0].message).toMatch(/^error\[E0507\]: /);
     });
 
     it("stays silent on a pure C header", async () => {
@@ -1672,21 +1687,25 @@ describe("Transpiler coverage integration tests", () => {
     ).transpile({ kind: "files" });
     expect(warm.success).toBe(true);
 
-    // Now run again WITHOUT declaring C++. The header is served from cache and
-    // never re-parsed, so only the cache-hit guard can catch it.
-    return new Transpiler(base, NodeFileSystem.instance).transpile({
+    // Now run again asking for C (#1844: unset would detect C++). The header
+    // is served from cache and never re-parsed, so only 1.1's judgement, which
+    // a warm run makes as a cold one does, can catch it.
+    return new Transpiler(
+      { ...base, cppRequired: false },
+      NodeFileSystem.instance,
+    ).transpile({
       kind: "files",
     });
   };
 
-  it("rejects a cached .hpp when C++ is no longer declared (#1319)", async () => {
+  it("rejects a cached .hpp when the run now asks for C (#1319, #1844)", async () => {
     const result = await warmThenUndeclared("void cppHelper();", "utils.hpp");
 
     expect(result.success).toBe(false);
     expect(result.errors.map((e) => e.message).join("\n")).toContain("E0507");
   });
 
-  it("rejects a cached C++-syntax .h when C++ is no longer declared (#1319)", async () => {
+  it("rejects a cached C++-syntax .h when the run now asks for C (#1319, #1844)", async () => {
     const result = await warmThenUndeclared(
       "enum Status : uint8_t { OK, ERR };",
       "types.h",

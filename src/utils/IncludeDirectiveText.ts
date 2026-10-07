@@ -36,6 +36,16 @@ class IncludeDirectiveText {
       ? `#include "${include.path}"`
       : `#include <${include.path}>`;
   }
+
+  /**
+   * The spec a translation unit includes `text` by: `"x.h"` or `<x.h>`, or
+   * null when `text` names nothing.
+   */
+  static spec(text: string): string | null {
+    const include = IncludeDirectiveText.split(text);
+    if (include === null) return null;
+    return include.isLocal ? `"${include.path}"` : `<${include.path}>`;
+  }
 }
 
 export default IncludeDirectiveText;

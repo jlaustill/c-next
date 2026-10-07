@@ -1,0 +1,15 @@
+// test-error
+// test-adr: 010
+// E0507: a .h whose content is C++, in a run that asked for C.
+// This file should FAIL to transpile with E0507.
+//
+// Issue #1844: the `C++ syntax` route. The extension says C, so only 1.1's
+// judgement of the header's text finds it. The diagnostic is at line 13, the
+// include that reached it; `external-status.h` on line 12 is the negative
+// control and stays unflagged. The harness's C-mode run passes --no-cpp, which
+// says `cppRequired: false`.
+//
+#include "external-status.h"
+#include "external-cpp-syntax.h"
+
+void main() {}

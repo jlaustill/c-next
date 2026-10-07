@@ -57,7 +57,8 @@ describe("Cli", () => {
       defines: {},
       preprocess: true,
       verbose: false,
-      cppRequired: false,
+      // #1844: neither --cpp nor --no-cpp
+      cppRequired: undefined,
       noCache: false,
       parseOnly: false,
       cleanMode: false,
@@ -231,29 +232,38 @@ describe("Cli", () => {
 
       const result = Cli.run();
 
-      // Note: cppRequired from CLI (false) takes precedence over file config (true)
-      // because yargs always returns a defined boolean, so ?? doesn't fall through.
-      // Only undefined CLI values fall through to file config.
       expect(result.config?.target).toBe("teensy41");
       expect(result.config?.includeDirs).toContain("lib/");
     });
 
     it("honors config file cppRequired when CLI does not specify --cpp (issue #827)", () => {
       // Issue #827: When user doesn't pass --cpp, config file cppRequired should be used
-      // yargs returns cppRequired: false as the default, but config file should override
       const fileConfig: IFileConfig = {
         cppRequired: true,
       };
       vi.mocked(ConfigLoader.load).mockReturnValue(fileConfig);
-
-      // CLI has cppRequired: false (yargs default when --cpp not specified)
-      mockParsedArgs.cppRequired = false;
       vi.mocked(ArgParser.parse).mockReturnValue(mockParsedArgs);
 
       const result = Cli.run();
 
       // Config file's cppRequired: true should be honored
       expect(result.config?.cppRequired).toBe(true);
+    });
+
+    it("CLI --no-cpp takes precedence over a config asking for C++ (#1844)", () => {
+      vi.mocked(ConfigLoader.load).mockReturnValue({ cppRequired: true });
+      mockParsedArgs.cppRequired = false;
+      vi.mocked(ArgParser.parse).mockReturnValue(mockParsedArgs);
+
+      expect(Cli.run().config?.cppRequired).toBe(false);
+    });
+
+    it("leaves cppRequired unset when neither the CLI nor the config says (#1844)", () => {
+      vi.mocked(ConfigLoader.load).mockReturnValue({});
+      vi.mocked(ArgParser.parse).mockReturnValue(mockParsedArgs);
+
+      // Unset, not false: 1.1 detects the mode from the headers
+      expect(Cli.run().config?.cppRequired).toBeUndefined();
     });
 
     it("CLI --cpp flag takes precedence over file config", () => {

@@ -18,6 +18,7 @@
  * even when a higher rung decides: a misspelled `--target` is an error, not a
  * setting that happens to be overridden.
  */
+import type ISourceSite from "../../types/ISourceSite";
 import TargetDescriptions from "./TargetDescriptions";
 import DeclarationSite from "../../utils/DeclarationSite";
 import TARGET_DESCRIPTION_FIELDS from "./TARGET_DESCRIPTION_FIELDS";
@@ -36,11 +37,7 @@ const DESCRIPTION_KEYS = TargetDescriptions.PLATFORM_FACTS;
 const PRAGMA_KEYS: readonly string[] = ["target", ...DESCRIPTION_KEYS];
 
 /** A position in a file */
-interface ISite {
-  readonly sourcePath: string;
-  readonly line: number;
-  readonly column: number;
-}
+type ISite = ISourceSite;
 
 /** One file's target declaration: a named target or an inline description */
 interface IDeclaredTarget {
