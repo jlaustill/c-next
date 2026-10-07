@@ -451,11 +451,13 @@ describe("a header's language is decided once, in 1.1 (#1844)", () => {
     it("starts no preprocessor, and one whose header's include changed does", async (ctx) => {
       if (!preprocessorAvailable) ctx.skip();
 
+      // The walk cannot follow `#include INNER`, so inner.h is on outer.h's
+      // dependency list only, and only that list can say outer.h changed
       writeFileSync(
         join(dir, "outer.h"),
-        '#include "inner.h"\nint outer(void);\n',
+        '#define INNER "inner.h"\n#include INNER\n#if USE_NS\nnamespace Outer { int v; }\n#endif\nint outer(void);\n',
       );
-      writeFileSync(join(dir, "inner.h"), "int inner(void);\n");
+      writeFileSync(join(dir, "inner.h"), "#define USE_NS 0\n");
       writeFileSync(
         join(dir, "main.cnx"),
         '#include "outer.h"\n\nvoid main() { }\n',
@@ -475,8 +477,8 @@ describe("a header's language is decided once, in 1.1 (#1844)", () => {
       expect(exec).not.toHaveBeenCalled();
 
       // Only the header outer.h includes changes, so outer.h's own mtime does
-      // not; its settled text inlines inner.h, so it is settled again.
-      writeFileSync(join(dir, "inner.h"), "namespace Inner { int v; }\n");
+      // not; inner.h's macro turns outer.h into C++, so it is settled again.
+      writeFileSync(join(dir, "inner.h"), "#define USE_NS 1\n");
       const later = new Date(Date.now() + 5000);
       utimesSync(join(dir, "inner.h"), later, later);
       exec.mockClear();
