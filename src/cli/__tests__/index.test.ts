@@ -7,8 +7,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 // Mock the modules before importing the code under test
-vi.mock("../cli/Cli");
-vi.mock("../cli/Runner");
+vi.mock("../Cli");
+vi.mock("../Runner");
 
 // Import the main function (exported for testability)
 import main from "../index";
