@@ -25,13 +25,13 @@ import type IPlannedFunctionParameter from "../../types/IPlannedFunctionParamete
 import type INamedTypeResolution from "../../../../../types/INamedTypeResolution";
 import type IProgram from "../../../../../types/IProgram";
 import installMockSymbols from "../../../../../transpiler/__tests__/installMockSymbols";
-import type ICodeGenSymbols from "../../../../../types/ICodeGenSymbols";
 
 /**
- * Helper to set up state.symbols with minimal fields.
+ * Installs a complete, empty mock symbol world in `state.symbols` and the
+ * matching `state.symbolTable` entries.
  */
-function setupSymbols(overrides: Partial<ICodeGenSymbols> = {}): void {
-  installMockSymbols(state, overrides);
+function setupSymbols(): void {
+  installMockSymbols(state);
 }
 
 /**

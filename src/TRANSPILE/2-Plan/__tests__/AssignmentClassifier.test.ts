@@ -8,7 +8,6 @@ import AssignmentKind from "../../../types/AssignmentKind";
 import AssignmentHandlerRegistry from "../../3-Render/codegen/assignment/index";
 import IAssignmentContext from "../types/IAssignmentContext";
 import TranspileState from "../../TranspileState";
-import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import TTypeInfo from "../../../types/TTypeInfo";
 import enterScope from "../../../transpiler/__tests__/enterScope";
 import HandlerTestUtils from "../../3-Render/codegen/assignment/handlers/__tests__/handlerTestUtils";
@@ -165,22 +164,10 @@ function createTypeInfo(overrides: Partial<TTypeInfo> = {}): TTypeInfo {
 }
 
 /**
- * Helper to set up state.symbols with minimal fields.
- * Issue #831: Also registers struct fields in SymbolTable (single source of truth).
+ * Installs a complete mock symbol world with `overrides`, in `state.symbols`
+ * and the matching `state.symbolTable` entries.
  */
 function setupSymbols(overrides: Partial<ICodeGenSymbols> = {}): void {
-  // Initialize symbolTable for struct field lookups
-  state.symbolTable = new SymbolTable();
-
-  // Register struct fields in SymbolTable
-  if (overrides.structFields) {
-    for (const [structName, fields] of overrides.structFields) {
-      for (const [fieldName, fieldType] of fields) {
-        state.symbolTable.addStructField(structName, fieldName, fieldType);
-      }
-    }
-  }
-
   installMockSymbols(state, overrides);
 }
 
