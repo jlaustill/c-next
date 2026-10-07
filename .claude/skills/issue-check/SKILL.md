@@ -224,13 +224,12 @@ PARTITION issues into:
     - BLOCKED       IS_BLOCKED (Phase 1d)         → name the OPEN_BLOCKERS
     - GROOMING      BOARD_STATUS == "Grooming"    → not triaged; scope is still open
     - EPIC          has the "epic" label          → a tracker, never picked up directly
-    - OUT_OF_SPRINT milestone != ACTIVE_MILESTONE → unless --all was passed
+    - OUT_OF_SPRINT milestone != ACTIVE_MILESTONE → a later release is pre-planning
 
   AVAILABLE_ISSUES = everything else
 
-DEFAULT: recommend only from ACTIVE_MILESTONE.
-ESCAPE HATCH: `/issue-check --all` drops the OUT_OF_SPRINT exclusion and ranks the
-  whole backlog. BLOCKED, GROOMING and EPIC are excluded in BOTH modes.
+Recommend only from ACTIVE_MILESTONE. There is no flag or argument that widens it
+  (owner ruling on #1918): a higher release is pre-planning, and nothing is picked from it.
 ```
 
 ---
@@ -312,7 +311,7 @@ FOR each available issue, compute SCORE:
       SKIP X if it has the "epic" label. An epic or release tracker is blocked by
         every card it tracks, so counting it would give every sprint card the same
         points, and the factor would rank nothing.
-      SKIP X if it is outside ACTIVE_MILESTONE (unless --all), the same as the
+      SKIP X if it is outside ACTIVE_MILESTONE, the same as the
         sprint filter in Phase 2.
       this issue is X's ONLY open blocker   → +10  (closing it frees X)
       X has other open blockers as well     → +5   (closing it shortens X's chain)
@@ -468,7 +467,7 @@ the remedy is to wait. `Not startable` means "Blocked by" is silent or satisfied
 work still cannot finish — the remedy is to link the derived blocker (Phase 3.5). Collapsing
 them hides the second, which is the one no query can see.
 
-Ranking below covers <ACTIVE_MILESTONE> only. Run `/issue-check --all` for the full backlog.
+Ranking below covers <ACTIVE_MILESTONE> only. Later releases are pre-planning.
 
 Detail names the OPEN blockers — a closed one is history and does not belong in a
 "why this is skipped" column. An earlier version of this
@@ -653,7 +652,7 @@ IF no open issues exist:
   are the built-in relationship (#1893); the old text survives only as a comment
 - **DO NOT** fall back to label-only scoring when the board query fails — say it failed
   and stop; a ranking that ignores "Blocked by" looks authoritative and is not
-- **DO NOT** widen past the active milestone without `--all` — the milestone is the sprint
+- **DO NOT** widen past the active milestone, for any reason — the milestone is the sprint
 - **DO NOT** assume issue type from title alone — check labels and body content
 - **DO NOT** propose massive refactors as "quick fixes" — scope work to the issue
 - **DO NOT** restate or re-implement `start-issue`'s begin-work phases here — the dedup
