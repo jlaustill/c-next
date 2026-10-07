@@ -1,7 +1,8 @@
 #!/usr/bin/env tsx
 /**
  * Issue #1443: `src/` is the pass table. Fails when the first two levels of
- * `src/` differ from the tree in `docs/architecture/README.md` §1, or when a
+ * `src/` differ from the tree in `docs/architecture/README.md` §1, when that
+ * tree and `.dependency-cruiser.cjs`'s `PASS_ORDER` disagree, or when a
  * module reaches a later pass. It replaces `destinations:check`, whose map of
  * where each module was going is gone now that every module has arrived.
  *
@@ -27,10 +28,11 @@ const tree = Layout.tree(
 );
 const config = createRequire(import.meta.url)(
   join(rootDir, ".dependency-cruiser.cjs"),
-) as { forbidden: ReadonlyArray<{ name: string }> };
+) as { forbidden: Parameters<typeof Layout.places>[0] };
 
 const failures = [
   ...Layout.shapeFailures(tree, Layout.present(join(rootDir, "src"), tree)),
+  ...Layout.placeFailures(tree, Layout.places(config.forbidden)),
   ...Layout.orderFailures(
     config.forbidden.map((rule) => rule.name),
     Depcruise.violations(rootDir),
@@ -52,6 +54,9 @@ if (failures.length > 0) {
   );
   console.log(
     "An order failure: the module reads a later pass. Move it to the pass whose artifact it reads, or stop reading it.",
+  );
+  console.log(
+    "A place failure: README §1's tree and PASS_ORDER in `.dependency-cruiser.cjs` disagree. Change them together.",
   );
   process.exit(1);
 }

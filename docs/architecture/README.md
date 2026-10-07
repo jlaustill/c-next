@@ -167,8 +167,11 @@ check by looking, and one that a reviewer must take on the word of whoever perfo
 The tree is the part of this document that cannot be satisfied by argument. Its gate is
 `npm run layout:check`: the first two levels of `src/` must be exactly the tree above, read
 from this file, and no module may reach a later pass -- the `*-reads-no-later-pass` rules
-`.dependency-cruiser.cjs` generates from its `PASS_ORDER`. Changing the layout means
-changing the drawing.
+`.dependency-cruiser.cjs` generates from its `PASS_ORDER`. The gate also holds the two
+lists together: every entry the tree draws inside a layer is covered by exactly one
+`PASS_ORDER` place, and the passes appear there in the tree's order, so a pass drawn here
+cannot go unbound by the order rules. Changing the layout means changing the drawing and
+`PASS_ORDER` together. The interior-import rule above is not yet gated: #1924 tracks it.
 
 ## 2. The symbol model
 

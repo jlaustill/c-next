@@ -22,6 +22,8 @@ interface IHeaderEmissionRequest {
   readonly headerExtension: string;
   /** Every discovered file's includes, from the run's `SourceGraph` */
   readonly includes: ReadonlyMap<string, IFileIncludes>;
+  /** This file's entry in `includes`, looked up once, by the host */
+  readonly ownIncludes: IFileIncludes;
   readonly cppMode: boolean;
 }
 

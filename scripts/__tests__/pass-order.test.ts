@@ -50,15 +50,25 @@ const rules = (
 /** The order itself: the first rule's place, then every place it may not reach. */
 const places = [rules[0].from.path, ...rules[0].to.path];
 
-/** One concrete module a place's pattern matches: its first alternative. */
-const sample = (pattern: string): string => {
-  const path = pattern
-    .replace(/^\^/, "")
-    .replace(/\(([^|)]*)\|[^)]*\)/, "$1")
-    .replaceAll("\\.", ".")
-    .replaceAll("$", "");
-  return path.endsWith("/") ? `${path}Probe.ts` : path;
+/**
+ * One concrete module per alternative of a place's pattern, so each arm of
+ * `(TranspileState\.ts$|types/)` is exercised, not only the first (#1922
+ * review).
+ */
+const samples = (pattern: string): string[] => {
+  const body = pattern.replace(/^\^/, "");
+  const group = /\(([^)]*)\)/.exec(body);
+  const arms =
+    group === null
+      ? [body]
+      : group[1].split("|").map((arm) => body.replace(group[0], arm));
+  return arms.map((arm) => {
+    const path = arm.replaceAll("\\.", ".").replaceAll("$", "");
+    return path.endsWith("/") ? `${path}Probe.ts` : path;
+  });
 };
+
+const sample = (pattern: string): string => samples(pattern)[0];
 
 const roots: string[] = [];
 
@@ -108,25 +118,36 @@ describe("pass-order rules (#1443)", () => {
     });
   });
 
+  it("samples every arm of a place's pattern", () => {
+    expect(places.map(samples).flat().length).toBeGreaterThan(places.length);
+  });
+
   it("each fires on every later place, and on nothing else", () => {
-    const modules = places.map(sample);
+    const byPlace = places.map(samples);
     const imports = new Map(
-      modules.map((module, index) => [module, modules.slice(index + 1)]),
+      byPlace.flatMap((modules, index) =>
+        modules.map((module) => [module, byPlace.slice(index + 1).flat()]),
+      ),
     );
     const expected = rules
       .flatMap((rule, index) =>
-        modules
-          .slice(index + 1)
-          .map((later) => `${rule.name}: ${modules[index]} -> ${later}`),
+        byPlace[index].flatMap((module) =>
+          byPlace
+            .slice(index + 1)
+            .flat()
+            .map((later) => `${rule.name}: ${module} -> ${later}`),
+        ),
       )
       .sort();
     expect(cruise(imports)).toEqual(expected);
   });
 
   it("stays green when every place reads only earlier places (the control)", () => {
-    const modules = places.map(sample);
+    const byPlace = places.map(samples);
     const imports = new Map(
-      modules.map((module, index) => [module, modules.slice(0, index)]),
+      byPlace.flatMap((modules, index) =>
+        modules.map((module) => [module, byPlace.slice(0, index).flat()]),
+      ),
     );
     expect(cruise(imports)).toEqual([]);
   });

@@ -1135,6 +1135,7 @@ class Transpiler {
         anchor: this._requireSourceGraph().anchor,
         headerExtension: this.outputExtensions.header,
         includes: this._requireSourceGraph().includes,
+        ownIncludes: this._includesOf(sourcePath),
         cppMode: this.cppMode,
       });
       if (headerFacts) {
@@ -1498,7 +1499,12 @@ class Transpiler {
     if (checked.target !== null) {
       result.target = checked.target;
     }
-    return Transpiler._recordChecked(result, checked.errors);
+    const recorded = Transpiler._recordChecked(result, checked.errors);
+    if (checked.proceed) {
+      return recorded;
+    }
+    result.success = false;
+    return false;
   }
 
   /** The run's target; valid once Stage 3b has passed */

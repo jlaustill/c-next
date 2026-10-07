@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -13,31 +14,30 @@ const readme = readFileSync(
 );
 const tree = Layout.tree(readme);
 const present = Layout.present(join(repoRoot, "src"), tree);
+const places = Layout.places(
+  (
+    createRequire(import.meta.url)(
+      join(repoRoot, ".dependency-cruiser.cjs"),
+    ) as { forbidden: Parameters<typeof Layout.places>[0] }
+  ).forbidden,
+);
 
 const drawing = (body: string): string =>
   `### The layout is the pass table\n\n\`\`\`\n${body}\`\`\`\n`;
 
 describe("Layout.tree — README §1's drawing, as entries", () => {
-  it("reads the passes, the roots and the three files beside TRANSPILE's passes", () => {
-    expect(tree).toEqual([
+  it("reads directories and files, each under its parent", () => {
+    expect(
+      Layout.tree(
+        drawing(
+          "src/\n  PARSE/\n    1-Discover/\n  TRANSPILE/\n    CodeGenWalker.ts\n  lib/\n",
+        ),
+      ),
+    ).toEqual([
       "PARSE/",
       "PARSE/1-Discover/",
-      "PARSE/2-Parse/",
-      "PARSE/3-Declare/",
-      "PARSE/4-Resolve/",
       "TRANSPILE/",
-      "TRANSPILE/1-Analyze/",
-      "TRANSPILE/2-Plan/",
-      "TRANSPILE/3-Render/",
       "TRANSPILE/CodeGenWalker.ts",
-      "TRANSPILE/TranspileState.ts",
-      "TRANSPILE/types/",
-      "WRITE/",
-      "WRITE/1-Write/",
-      "types/",
-      "utils/",
-      "instrumentation/",
-      "cli/",
       "lib/",
     ]);
   });
@@ -99,6 +99,59 @@ describe("Layout.shapeFailures — src/ is exactly the drawing", () => {
     expect(
       Layout.shapeFailures(tree, [...present, "PARSE/__tests__/"]),
     ).toEqual([]);
+  });
+});
+
+describe("Layout.placeFailures — the tree and PASS_ORDER are one order", () => {
+  // The control: the real drawing against the real PASS_ORDER.
+  it("passes README §1 against .dependency-cruiser.cjs", () => {
+    expect(Layout.placeFailures(tree, places)).toEqual([]);
+  });
+
+  // #1922 review: drawn here, a fifth pass was bound by no order rule, and
+  // both other halves of the gate passed a module there that read 2.3 and 3.1.
+  it("fails on a pass the tree draws and PASS_ORDER lacks", () => {
+    expect(Layout.placeFailures([...tree, "PARSE/5-Link/"], places)).toEqual([
+      {
+        kind: "place",
+        detail: "PARSE/5-Link/ is covered by 0 PASS_ORDER places, not 1",
+      },
+    ]);
+  });
+
+  it("fails when a place loses one arm of what it covers", () => {
+    const state = places.findIndex((place) => place.includes("TranspileState"));
+    expect(state).not.toBe(-1);
+    const narrowed = places.map((place, index) =>
+      index === state ? "^src/TRANSPILE/TranspileState\\.ts$" : place,
+    );
+    expect(Layout.placeFailures(tree, narrowed)).toEqual([
+      {
+        kind: "place",
+        detail: "TRANSPILE/types/ is covered by 0 PASS_ORDER places, not 1",
+      },
+    ]);
+  });
+
+  it("fails on a place that covers nothing drawn", () => {
+    expect(
+      Layout.placeFailures(tree, [...places, "^src/WRITE/2-Flush/"]),
+    ).toEqual([
+      {
+        kind: "place",
+        detail: "^src/WRITE/2-Flush/ covers nothing README §1 draws",
+      },
+    ]);
+  });
+
+  it("fails when PASS_ORDER lists two passes the other way round", () => {
+    const swapped = [places[1], places[0], ...places.slice(2)];
+    expect(Layout.placeFailures(tree, swapped)).toEqual([
+      {
+        kind: "place",
+        detail: "PASS_ORDER lists the passes out of README §1's order",
+      },
+    ]);
   });
 });
 

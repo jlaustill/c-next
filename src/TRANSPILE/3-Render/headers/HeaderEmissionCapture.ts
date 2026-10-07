@@ -1,10 +1,8 @@
 import { basename, relative, sep } from "node:path";
 
-import type IFileIncludes from "../../../PARSE/1-Discover/types/IFileIncludes";
 import type IHeaderCallbackType from "../../../types/IHeaderCallbackType";
 import type TSymbol from "../../../types/symbols/TSymbol";
 import AutoConstRule from "../../../utils/AutoConstRule";
-import invariant from "../../../utils/invariant";
 import HeaderIncludes from "../../2-Plan/HeaderIncludes";
 import HeaderUserIncludes from "../../2-Plan/HeaderUserIncludes";
 import PublicInterface from "../../2-Plan/PublicInterface";
@@ -84,7 +82,7 @@ class HeaderEmissionCapture {
     // file. `typeInput` is the view `generate()` received, so the `.h` and the
     // `.c` are built from one object; neither is copied onto this class.
     const passByValueParams = program.passByValueParams();
-    const includes = HeaderEmissionCapture.includesOf(request);
+    const includes = request.ownIncludes;
     // Issue #424: a dimension that is not a number is a macro the header names
     // but does not define, so the header must carry its source include.
     const cHeadersIncluded = HeaderUserIncludes.needed(
@@ -342,7 +340,7 @@ class HeaderEmissionCapture {
   private static includeDirectivesSpelledBy(
     request: IHeaderEmissionRequest,
   ): ReadonlyMap<string, string> {
-    const own = HeaderEmissionCapture.includesOf(request);
+    const own = request.ownIncludes;
     const here = own.quotedIncludeDirectory;
     const directives = new Map<string, string>();
     for (const file of request.includes.values()) {
@@ -360,16 +358,6 @@ class HeaderEmissionCapture {
       directives.set(header, directive);
     }
     return directives;
-  }
-
-  /** What 1.1 Discover learned about the file's includes (#1444). */
-  private static includesOf(request: IHeaderEmissionRequest): IFileIncludes {
-    const includes = request.includes.get(request.sourcePath);
-    invariant(
-      includes !== undefined,
-      `1.1 Discover records the includes of every file it discovers (missing ${request.sourcePath})`,
-    );
-    return includes;
   }
 }
 

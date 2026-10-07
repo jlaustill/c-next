@@ -30,6 +30,7 @@ class ProgramChecks {
     const target = program.target();
     if (target.kind === "resolved") {
       return {
+        proceed: true,
         target: { name: target.name, source: target.source },
         errors: [],
       };
@@ -39,9 +40,10 @@ class ProgramChecks {
     // known target (#1760 second review: `--parse` accepted
     // `#pragma target bogus`, an unknown pragma and two conflicting ones)
     if (parseOnly && target.absent) {
-      return { target: null, errors: [] };
+      return { proceed: true, target: null, errors: [] };
     }
     return {
+      proceed: false,
       target: null,
       errors: target.errors.map((error) =>
         error.sourcePath === undefined && entryPath !== undefined

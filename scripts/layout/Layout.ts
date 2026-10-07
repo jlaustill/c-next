@@ -17,6 +17,9 @@ const ORDER_RULE = /-reads-no-later-pass$/;
  */
 const TESTS = "__tests__/";
 
+/** A numbered pass inside a layer: `PARSE/1-Discover/`. */
+const PASS = /^[^/]+\/\d+-[^/]+\/$/;
+
 /**
  * Issue #1443: `src/` IS the pass table, and this is the gate that says so.
  *
@@ -30,6 +33,11 @@ const TESTS = "__tests__/";
  *   The rules live in `.dependency-cruiser.cjs`; this reports theirs, so a
  *   module moved into the wrong pass fails here whether or not the tree shape
  *   still matches.
+ *
+ * The rules are generated from `PASS_ORDER`, a second list of the same places,
+ * so `placeFailures` holds the two together: a pass drawn in the tree but
+ * absent from `PASS_ORDER` would be bound by no rule, and both halves above
+ * would still pass (#1922 review).
  */
 class Layout {
   /**
@@ -128,6 +136,75 @@ class Layout {
         kind: "order",
         detail: `${violation.from} -> ${violation.to} (${violation.rule?.name})`,
       }));
+  }
+
+  /**
+   * `PASS_ORDER`, as the generated rules carry it: the first rule's place,
+   * then every place it may not reach.
+   */
+  static places(
+    forbidden: ReadonlyArray<{
+      name: string;
+      from?: { path?: string };
+      to?: { path?: string | readonly string[] };
+    }>,
+  ): string[] {
+    const first = forbidden.find((rule) => ORDER_RULE.test(rule.name));
+    const later = first?.to?.path;
+    if (first?.from?.path === undefined || !Array.isArray(later)) {
+      throw new Error(
+        "`.dependency-cruiser.cjs`'s first `*-reads-no-later-pass` rule does " +
+          "not carry PASS_ORDER (a `from.path` and a `to.path` list)",
+      );
+    }
+    return [first.from.path, ...later];
+  }
+
+  /**
+   * The tree and `PASS_ORDER` describe one order. Every entry the tree draws
+   * inside a layer -- its passes and the files beside them -- is covered by
+   * exactly one place; every place covers something drawn; and the numbered
+   * passes appear in `PASS_ORDER` in the order the tree draws them.
+   */
+  static placeFailures(
+    tree: readonly string[],
+    places: readonly string[],
+  ): ILayoutFailure[] {
+    const layers = Layout.parents(tree);
+    const inLayers = tree.filter((entry) =>
+      layers.some((layer) => entry !== layer && entry.startsWith(layer)),
+    );
+    const covers = (place: string, entry: string): boolean =>
+      new RegExp(place).test(`src/${entry}`);
+    const failures: ILayoutFailure[] = [];
+    for (const entry of inLayers) {
+      const covering = places.filter((place) => covers(place, entry)).length;
+      if (covering !== 1) {
+        failures.push({
+          kind: "place",
+          detail: `${entry} is covered by ${covering} PASS_ORDER places, not 1`,
+        });
+      }
+    }
+    for (const place of places) {
+      if (!inLayers.some((entry) => covers(place, entry))) {
+        failures.push({
+          kind: "place",
+          detail: `${place} covers nothing README §1 draws`,
+        });
+      }
+    }
+    const positions = inLayers
+      .filter((entry) => PASS.test(entry))
+      .map((entry) => places.findIndex((place) => covers(place, entry)))
+      .filter((position) => position !== -1);
+    if (positions.some((position, i) => i > 0 && position < positions[i - 1])) {
+      failures.push({
+        kind: "place",
+        detail: "PASS_ORDER lists the passes out of README §1's order",
+      });
+    }
+    return failures;
   }
 
   /** Directories the tree lists children for: the layers. */
