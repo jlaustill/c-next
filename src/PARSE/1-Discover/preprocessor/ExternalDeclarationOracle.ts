@@ -149,41 +149,58 @@ class ExternalDeclarationOracle {
   ): { perFileContent: Map<string, string>; directiveOf: Map<string, string> } {
     const buckets = new Map<string, string[]>();
     const directiveOf = new Map<string, string>();
-    let entered: string[] = [];
-    let current = "";
+    const walk = { current: "", entered: [] as string[] };
     for (const line of content.split("\n")) {
       const marker = LINE_MARKER.exec(line);
       if (marker) {
-        current = marker[2];
-        const flags = marker[3].trim().split(/\s+/);
-        if (current.endsWith(TU_NAME) || current.startsWith("<")) {
-          const directive = directives[Number(marker[1]) - 2];
-          if (current.endsWith(TU_NAME) && flags.includes("2") && directive) {
-            for (const file of entered) {
-              if (!directiveOf.has(file)) directiveOf.set(file, directive);
-            }
-          }
-          entered = [];
-        } else if (flags.includes("1")) {
-          entered.push(current);
-        }
-        continue;
+        ExternalDeclarationOracle.followMarker(
+          marker,
+          directives,
+          walk,
+          directiveOf,
+        );
+      } else if (!ExternalDeclarationOracle.isSynthetic(walk.current)) {
+        const bucket = buckets.get(walk.current);
+        if (bucket) bucket.push(line);
+        else buckets.set(walk.current, [line]);
       }
-      if (!current || current.startsWith("<") || current.endsWith(TU_NAME)) {
-        continue;
-      }
-      let bucket = buckets.get(current);
-      if (!bucket) {
-        bucket = [];
-        buckets.set(current, bucket);
-      }
-      bucket.push(line);
     }
     const perFileContent = new Map<string, string>();
     for (const [file, lines] of buckets) {
       perFileContent.set(file, lines.join("\n"));
     }
     return { perFileContent, directiveOf };
+  }
+
+  /** `<built-in>`, `<command-line>`, the unit itself, or no file yet */
+  private static isSynthetic(file: string): boolean {
+    return file === "" || file.startsWith("<") || file.endsWith(TU_NAME);
+  }
+
+  /**
+   * Move `walk` to the file a line marker names. Entering a header (flag 1)
+   * records it; returning to the unit (flag 2) gives every header entered
+   * since the include that line closes.
+   */
+  private static followMarker(
+    marker: RegExpExecArray,
+    directives: readonly string[],
+    walk: { current: string; entered: string[] },
+    directiveOf: Map<string, string>,
+  ): void {
+    walk.current = marker[2];
+    const flags = new Set(marker[3].trim().split(/\s+/));
+    if (!ExternalDeclarationOracle.isSynthetic(walk.current)) {
+      if (flags.has("1")) walk.entered.push(walk.current);
+      return;
+    }
+    const directive = directives[Number(marker[1]) - 2];
+    if (walk.current.endsWith(TU_NAME) && flags.has("2") && directive) {
+      for (const file of walk.entered) {
+        if (!directiveOf.has(file)) directiveOf.set(file, directive);
+      }
+    }
+    walk.entered = [];
   }
 
   private static buildTu(directives: readonly string[]): string {
