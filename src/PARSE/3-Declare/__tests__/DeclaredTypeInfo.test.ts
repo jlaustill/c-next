@@ -4,16 +4,16 @@
  */
 import { describe, expect, it } from "vitest";
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
-import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
+import { CNextListener } from "../../2-Parse/grammar/CNextListener";
+import * as Parser from "../../2-Parse/grammar/CNextParser";
+import SymbolTable from "../SymbolTable";
 import DeclaredTypeInfo from "../DeclaredTypeInfo";
-import HeaderParser from "../../../PARSE/2-Parse/HeaderParser";
+import HeaderParser from "../../2-Parse/HeaderParser";
 import TargetCatalogFile from "../../../cli/TargetCatalogFile";
-import CResolver from "../../../PARSE/3-Declare/c/index";
+import CResolver from "../c/index";
 import OperandTyper from "../../../utils/OperandTyper";
-import testAnalysisContextFor from "../../1-Analyze/__tests__/testAnalysisContextFor";
-import NodeFileSystem from "../../../PARSE/1-Discover/NodeFileSystem";
+import testAnalysisContextFor from "../../../TRANSPILE/1-Analyze/__tests__/testAnalysisContextFor";
+import NodeFileSystem from "../../1-Discover/NodeFileSystem";
 
 /** `name`'s declared type where `r` is declared in `source` */
 function declaredAtR(source: string, name: string, root: "this" | null = null) {

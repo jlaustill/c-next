@@ -1502,6 +1502,28 @@ const MOVES: readonly IMove[] = [
       "1.2 and 1.4, which `1-1-discover-reads-no-later-pass` rejects. Its " +
       "importers were already the host and the target matrix script.",
   },
+  {
+    from: "src/TRANSPILE/2-Plan/DeclaredTypeInfo.ts",
+    to: "src/PARSE/3-Declare/DeclaredTypeInfo.ts",
+    because:
+      "#1443: projects a 1.3 declaration onto `TTypeInfo` and reads nothing " +
+      "of 2.x. In 2.2 it made `TranspileState` -- which 2.2 reads -- read 2.2 " +
+      "back (`transpile-state-reads-no-later-pass`); its importers are the " +
+      "state, the walker and 2.3's header adapter, all after 1.3.",
+  },
+  {
+    from: "src/TRANSPILE/2-Plan/__tests__/DeclaredTypeInfo.test.ts",
+    to: "src/PARSE/3-Declare/__tests__/DeclaredTypeInfo.test.ts",
+    because: "#1443: follows `DeclaredTypeInfo`.",
+  },
+  {
+    from: "src/TRANSPILE/2-Plan/types/IChainBase.ts",
+    to: "src/types/IChainBase.ts",
+    because:
+      "#1443: a chain's root as 2.2, 2.3, the walker and the state all name " +
+      "it, importing only `src/types/` -- a shared contract (README §1). In " +
+      "`2-Plan/types/` it made the state read 2.2.",
+  },
 ];
 
 export default MOVES;

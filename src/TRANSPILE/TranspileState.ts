@@ -7,7 +7,7 @@ import TTypeInfo from "../types/TTypeInfo";
 import type TChainRoot from "../types/TChainRoot";
 import type TValueBinding from "../types/TValueBinding";
 import type ISourcePosition from "../utils/types/ISourcePosition";
-import DeclaredTypeInfo from "./2-Plan/DeclaredTypeInfo";
+import DeclaredTypeInfo from "../PARSE/3-Declare/DeclaredTypeInfo";
 import TParameterInfo from "../types/TParameterInfo";
 import ICallbackTypeInfo from "../types/ICallbackTypeInfo";
 import type ICodeGenApi from "./types/ICodeGenApi";

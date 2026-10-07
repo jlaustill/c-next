@@ -24,7 +24,7 @@ import type IChainStep from "../../types/IChainStep";
 import IAssignmentContext from "./types/IAssignmentContext";
 import IBitAccessAnalysis from "../../types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../types/TPlannedTargetOp";
-import type IChainBase from "./types/IChainBase";
+import type IChainBase from "../../types/IChainBase";
 import type TranspileState from "../TranspileState";
 import type TAssignmentSite from "../../types/TAssignmentSite";
 

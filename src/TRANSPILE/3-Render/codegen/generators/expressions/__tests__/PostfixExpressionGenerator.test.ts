@@ -9,7 +9,7 @@
  * - Property access (.length, .capacity, .size)
  */
 
-import type IChainBase from "../../../../../2-Plan/types/IChainBase";
+import type IChainBase from "../../../../../../types/IChainBase";
 import type IOperandType from "../../../../../../types/IOperandType";
 import type IChainStep from "../../../../../../types/IChainStep";
 import type TSubscriptKind from "../../../../../../types/TSubscriptKind";

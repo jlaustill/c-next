@@ -19,14 +19,14 @@ import TypeResolver from "../../utils/TypeResolver";
 import TypeMapping from "../../utils/mapType";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import ArrayDimensionText from "../../utils/ArrayDimensionText";
-import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
+import type SymbolTable from "./SymbolTable";
 import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type TTypeInfo from "../../types/TTypeInfo";
 import type TType from "../../types/TType";
 import type TValueBinding from "../../types/TValueBinding";
 import type IChainTyping from "../../types/IChainTyping";
-import type IChainBase from "./types/IChainBase";
+import type IChainBase from "../../types/IChainBase";
 import type ITargetDescription from "../../types/ITargetDescription";
 
 /** What a local declaration and a variable symbol both say */

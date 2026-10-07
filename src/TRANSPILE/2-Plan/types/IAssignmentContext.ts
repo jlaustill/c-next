@@ -7,7 +7,7 @@
  */
 import type IBitAccessAnalysis from "../../../types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../../../types/TPlannedTargetOp";
-import type IChainBase from "./IChainBase";
+import type IChainBase from "../../../types/IChainBase";
 import type TranspileState from "../../TranspileState";
 
 /**
