@@ -364,6 +364,11 @@ class Transpiler {
       this.anchor = discovered.anchor;
       this.sourceGraph = discovered.graph;
       const pipelineInput = discovered.graph;
+      if (discovered.errors.length > 0) {
+        result.errors.push(...discovered.errors);
+        result.success = false;
+        return this._finalizeResult(result);
+      }
       if (pipelineInput.cnextFiles.length === 0) {
         return this._finalizeResult(result, "No C-Next source files found");
       }

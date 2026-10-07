@@ -2,6 +2,8 @@ import { dirname, join, resolve } from "node:path";
 import IncludeDiscovery from "./IncludeDiscovery";
 import CNextMarkerDetector from "./CNextMarkerDetector";
 import IFileSystem from "../../types/IFileSystem";
+import type ITranspileError from "../../lib/types/ITranspileError";
+import type ICNextMarker from "./types/ICNextMarker";
 
 /**
  * Result of scanning a C/C++ entry point for C-Next sources.
@@ -9,8 +11,11 @@ import IFileSystem from "../../types/IFileSystem";
 interface IScanResult {
   /** Absolute paths to discovered .cnx source files */
   cnextSources: string[];
-  /** Errors encountered (e.g., missing .cnx files referenced by markers) */
-  errors: string[];
+  /**
+   * E0509: each marker naming a .cnx file that is not there, reported at the
+   * marker in the header that records it (#1542)
+   */
+  errors: ITranspileError[];
   /** Warnings encountered (e.g., includes that couldn't be resolved) */
   warnings: string[];
   /** True if no C-Next markers were found (not an error, just informational) */
@@ -32,7 +37,7 @@ class CppEntryPointScanner {
   private readonly searchPaths: string[];
   private readonly visited = new Set<string>();
   private readonly cnextSources = new Set<string>();
-  private readonly errors: string[] = [];
+  private readonly errors: ITranspileError[] = [];
   private readonly warnings: string[] = [];
 
   /**
@@ -135,10 +140,10 @@ class CppEntryPointScanner {
     }
 
     // Check if this is a C-Next generated header
-    const sourcePath = CNextMarkerDetector.extractSourcePath(headerContent);
-    if (sourcePath) {
+    const marker = CNextMarkerDetector.findMarker(headerContent);
+    if (marker) {
       // New-style marker with source path
-      this._handleCNextMarker(sourcePath, absolutePath);
+      this._handleCNextMarker(marker, absolutePath);
     } else if (CNextMarkerDetector.isCNextGenerated(headerContent)) {
       // Old-style marker without source path - treat as leaf node
       // (we know it's C-Next generated but can't determine the source)
@@ -156,7 +161,8 @@ class CppEntryPointScanner {
    * then searching the include paths. This supports both default behavior (header
    * next to source) and --header-out (header in separate directory).
    */
-  private _handleCNextMarker(sourcePath: string, headerPath: string): void {
+  private _handleCNextMarker(marker: ICNextMarker, headerPath: string): void {
+    const { sourcePath } = marker;
     const headerDir = dirname(headerPath);
     let absoluteSourcePath = resolve(join(headerDir, sourcePath));
 
@@ -172,9 +178,18 @@ class CppEntryPointScanner {
     }
 
     if (!this.fs.exists(absoluteSourcePath)) {
-      this.errors.push(
-        `C-Next source not found: ${sourcePath} (referenced by ${headerPath})`,
-      );
+      // ADR-010: no C-Next directive leads here, so the position is the
+      // generated header's marker, which is the record that is wrong.
+      this.errors.push({
+        sourcePath: headerPath,
+        line: marker.line,
+        column: marker.column,
+        message: `error[E0509]: C-Next source not found: ${sourcePath}`,
+        helpText:
+          "A generated header records the C-Next source it was written from. " +
+          "Check that source is present, and reachable from the include path.",
+        severity: "error",
+      });
       return;
     }
 
