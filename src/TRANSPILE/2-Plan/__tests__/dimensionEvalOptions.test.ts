@@ -12,6 +12,7 @@ import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import TranspileState from "../../TranspileState";
 import dimensionEvalOptions from "../dimensionEvalOptions";
 import ConstExprLowering from "../../../utils/ConstExprLowering";
+import SyntaxLowering from "../../../PARSE/2-Parse/SyntaxLowering";
 import testAnalysisContextFor from "../../1-Analyze/__tests__/testAnalysisContextFor";
 
 /** The render state for `source`, and each array dimension as written */
@@ -64,7 +65,10 @@ function sizeOf(
   state: TranspileState,
   dimension: Parser.ExpressionContext,
 ): number | undefined {
-  return ConstExprLowering.valueOf(dimension, dimensionEvalOptions(state));
+  return ConstExprLowering.valueOf(
+    SyntaxLowering.expression(dimension),
+    dimensionEvalOptions(state),
+  );
 }
 
 describe("dimensionEvalOptions", () => {

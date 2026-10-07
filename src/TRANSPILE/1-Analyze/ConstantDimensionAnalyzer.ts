@@ -17,6 +17,7 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ConstExprLowering from "../../utils/ConstExprLowering";
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import ConstantEvaluator from "../../utils/ConstantEvaluator";
 import ConstantFold from "../../utils/ConstantFold";
 import ParserUtils from "../../utils/ParserUtils";
@@ -49,7 +50,7 @@ class ConstantDimensionListener extends CNextListener {
   private check(expression: Parser.ExpressionContext | null): void {
     if (!expression) return; // an unsized `[]` is E0892's
     const result = ConstantEvaluator.evaluate(
-      ConstExprLowering.lower(expression),
+      ConstExprLowering.lower(SyntaxLowering.expression(expression)),
       ConstantFold.environment(this.context.program, this.context.sourceFile),
     );
     const at = ParserUtils.getPosition(expression);
