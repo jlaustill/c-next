@@ -13,9 +13,10 @@
  * Why this is a scheduled job and not an event handler: GitHub has NO Actions
  * trigger for Projects v2 at all -- `projects_v2_item` is an organization
  * webhook, and `project_card`/`project_column` were classic-Projects only. So
- * nothing can fire when a card enters or leaves the column by hand, and a
- * cron is the only thing that closes that gap. The workflow also runs after `Project sync`, which is
- * what catches a card entering or leaving the column.
+ * nothing fires when a card is moved into or out of the column by hand, and the
+ * cron is what closes that gap; it also picks up a blocker linked or unlinked
+ * on an issue. The workflow also runs after `Project sync`, which catches the
+ * moves that workflow makes.
  *
  * Everything testable lives in `backlog/OrderBacklog.ts`; this file is the
  * side effect.

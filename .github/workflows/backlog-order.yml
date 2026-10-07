@@ -9,7 +9,7 @@
 # cron and not an event handler. The other two triggers cover what a cron is
 # slow at:
 #
-#   schedule          what catches a "Blocked by" edit
+#   schedule          a blocker linked or unlinked, or a card moved by hand
 #   workflow_run      a card entering or leaving the column via Project sync
 #   workflow_dispatch "I just edited a blocker, re-sort now"
 #

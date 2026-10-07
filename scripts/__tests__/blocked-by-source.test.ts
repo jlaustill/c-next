@@ -8,6 +8,9 @@
  * gone -- the failure the migration exists to end. So the rule is checked
  * against the text itself, both ways: nothing tracked still reads the field,
  * and each skill that decides blocked-ness still reads the relationship.
+ *
+ * The check is by spelling, so a read through a renamed constant
+ * (`fieldValueByName(name: "${X}")`) is out of its reach.
  */
 
 import { execFileSync } from "node:child_process";
@@ -21,7 +24,7 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /** The spellings of a read of the retired board field. */
 const FIELD_READ =
-  /field\.name\s*==\s*"Blocked by"|fieldValueByName\(\s*name:\s*"Blocked by"|BLOCKED_FIELD/;
+  /name\s*={2,3}\s*["']Blocked by["']|fieldValueByName\(\s*name:\s*["']Blocked by["']|BLOCKED_FIELD/;
 
 /** A read of the built-in relationship, by GraphQL or by REST. */
 const RELATIONSHIP_READ = /blockedBy\(first:|dependencies\/blocked_by/;
@@ -45,6 +48,10 @@ describe("the spellings this file recognizes", () => {
     ['[.fieldValues.nodes[]|select(.field.name=="Blocked by")|.text]'],
     ['blocked: fieldValueByName(name: "Blocked by") {'],
     ["ProjectBoard.BLOCKED_FIELD"],
+    [
+      'blockedFieldId: fields.find((field) => field.name === "Blocked by")?.id,',
+    ],
+    ['.data.user.projectV2.fields.nodes[] | select(.name=="Blocked by") | .id'],
   ])("reports a read of the retired field: %s", (line) => {
     expect(FIELD_READ.test(line)).toBe(true);
   });
