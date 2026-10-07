@@ -1,6 +1,6 @@
 import type IBacklogCard from "./IBacklogCard";
 
-/** What ordering the column by its `Blocked by` edges produced. */
+/** What ordering the column by its built-in "Blocked by" edges produced. */
 interface IBacklogOrderOutcome {
   /** Every card, in the order the column should read. Top first. */
   order: IBacklogCard[];

@@ -42,23 +42,30 @@ shipped, that is a new issue with its own reproduction — not a resurrected one
 
 ### `Blocked by`
 
-A free-text project field naming what the work is waiting on — an upstream fix, a
-pending decision, another issue. **It is a record, not a state, and it is never
-cleared.** An issue is blocked while any issue named here is still open; once they
-have all closed it is no longer blocked, and the text _stays_ — permanently — as the
-record of what the work waited on.
+GitHub's built-in issue relationship — the "Blocked by" list in an issue's
+sidebar — naming the issues the work is waiting on. **It is a record, not a
+state, and nothing is ever removed from it.** An issue is blocked while any issue
+it lists is still open; once they have all closed it is no longer blocked, and
+the links _stay_ — permanently — as the record of what the work waited on.
 
-A new blocker is **appended**, never substituted. #1318 waited on
-`#1285 (PR5-PR7)`, and then on `#1357 (symbol model: sourceColumn)`; the record is
-both, in that order, not whichever arrived last. Overwriting honours "never cleared"
-to the letter and destroys the record just as completely — the field keeps no version
-history, so the replaced value is gone from the board (#1419). Appending is the only
-write this field takes.
+A new blocker is **added** as a new link, never substituted for an old one. #1318
+waited on #1285, and then on #1357; the record is both, not whichever arrived
+last. The relationship keeps its own history in the issue timeline, so a removed
+link is still visible there — but removing one is not a write this record takes.
 
-Blocked-ness is therefore **derived** ("are the issues named here still open?"), and
-is never read off the field's emptiness. Empty means nothing ever blocked this card,
-not that a blocker was resolved: keeping the record and the live state in one slot
-would mean writing either of them destroys the other.
+Every entry is an issue. A blocker that is not one yet — a pending decision, one
+slice of a larger card — is filed as an issue first, so there is something to
+link; the qualifier ("only PR5") goes in the comment that records the link.
+
+Blocked-ness is therefore **derived** ("are the linked issues still open?"), and
+is never read off whether the list is empty. Empty means no card was ever named,
+not that a blocker was resolved.
+
+Until #1893 this was a free-text field on the board. It was prose that every
+reader had to parse, it was capped near 1 KB (#1665), and an overwrite destroyed
+it with no history (#1419). Its blockers were migrated to built-in links, and
+each card's text is preserved verbatim in a comment marked
+`<!-- blocked-by-migration #1893 -->`; the field itself is retired.
 
 Blocked-ness is also _orthogonal_ to position: a blocked issue stays in whatever
 column it is already in — Grooming or Backlog — it just says why it cannot leave.
@@ -87,7 +94,7 @@ There is deliberately no row for a reopened issue. See
 **Unassigning yourself is how you pause a card.** `WIP`'s option description is
 _"This is actively being worked on"_, so a card picked up and then set down — found
 blocked, nothing committed — cannot stay there. Unassign, and the board follows; the
-appended `Blocked by` and your comment say _why_, the column says _that_. The transition
+added "Blocked by" link and your comment say _why_, the column says _that_. The transition
 fires only when the **last** assignee leaves, so stepping off a card someone else is also
 on changes nothing, and only from `WIP`, so unassigning a card already in `Grooming`,
 `Backlog` or `Done` changes nothing either. Until #1572 there was no such transition and
@@ -253,7 +260,7 @@ npm run project:setup
 ```
 
 This creates the project if absent, makes it public, links both repositories,
-adds the `Blocked by` field, and seeds every open issue into Grooming and every
+and seeds every open issue into Grooming and every
 open PR into PR Review. It is idempotent — re-running reports zero changes and
 never moves a card that has advanced.
 

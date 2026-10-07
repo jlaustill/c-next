@@ -73,7 +73,6 @@ interface IStatusOption {
 interface IProjectFields {
   statusFieldId: string;
   statusOptions: IStatusOption[];
-  blockedFieldId: string | undefined;
 }
 
 interface IExistingItem {
@@ -288,9 +287,6 @@ class SetupProject {
     return {
       statusFieldId: status.id,
       statusOptions: status.options,
-      blockedFieldId: fields.find(
-        (field) => field.name === ProjectBoard.BLOCKED_FIELD,
-      )?.id,
     };
   }
 
@@ -311,34 +307,6 @@ class SetupProject {
     SetupProject.skip(
       `${ProjectBoard.STATUS_FIELD} has all ${STATUS_OPTIONS.length} options`,
     );
-  }
-
-  /** Adds the free-text field recording what an item has waited on. */
-  private static ensureBlockedField(
-    projectId: string,
-    existingId: string | undefined,
-  ): void {
-    if (existingId !== undefined) {
-      SetupProject.skip(`"${ProjectBoard.BLOCKED_FIELD}" field exists`);
-      return;
-    }
-    if (SetupProject.dryRun) {
-      SetupProject.record(
-        `would create "${ProjectBoard.BLOCKED_FIELD}" text field`,
-      );
-      return;
-    }
-    ProjectBoard.graphql(
-      `
-      mutation($projectId: ID!, $name: String!) {
-        createProjectV2Field(
-          input: { projectId: $projectId, dataType: TEXT, name: $name }
-        ) { projectV2Field { ... on ProjectV2Field { id } } }
-      }
-    `,
-      { projectId, name: ProjectBoard.BLOCKED_FIELD },
-    );
-    SetupProject.record(`created "${ProjectBoard.BLOCKED_FIELD}" text field`);
   }
 
   /** Every open issue and PR across the linked repositories. */
@@ -566,7 +534,6 @@ class SetupProject {
     SetupProject.configureProject(project.id);
     SetupProject.linkRepositories(project.id);
     const fields = SetupProject.resolveFields(project.id);
-    SetupProject.ensureBlockedField(project.id, fields.blockedFieldId);
     SetupProject.assertStatusOptions(fields.statusOptions);
     SetupProject.seedItems(project.id, fields);
 

@@ -124,68 +124,58 @@ Where an issue sits, what is blocking it, and which release it ships in live on 
 # reads as "not on the board" — no blocker, no status, no sprint.
 #
 # fieldValues is 100, not 20. --paginate cannot advance a NESTED connection, so
-# an inner cap needs headroom rather than pagination. The board has 14 fields
-# and `Blocked by` is the 14th and last, so at the old cap of 20 six new fields
-# would have dropped it — and every card would then read as unblocked, silently.
-# 100 is the GraphQL connection maximum (#1416).
+# an inner cap needs headroom rather than pagination (#1416). blockedBy is the
+# same: 12 is the longest list on the board, and the jq REFUSES a truncated one
+# rather than reading a dropped blocker as "not blocked".
+#
+# Blockers are GitHub's built-in "Blocked by" relationship on the issue (#1893),
+# not a board field. The board's free-text `Blocked by` field is retired.
 gh api graphql --paginate -f query='
 query($endCursor: String) { user(login: "jlaustill") { projectV2(number: 1) {
   items(first: 100, after: $endCursor) {
     pageInfo { hasNextPage endCursor }
     nodes {
-    content { ... on Issue { number } }
+    content { ... on Issue { number
+      blockedBy(first: 50) { totalCount nodes { number state } } } }
     fieldValues(first: 100) { nodes {
-      ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2FieldCommon { name } } }
-      ... on ProjectV2ItemFieldTextValue { text field { ... on ProjectV2FieldCommon { name } } } } }
+      ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2FieldCommon { name } } } } }
   } } } } }' \
   --jq '.data.user.projectV2.items.nodes[] | select(.content.number != null) |
-        "\(.content.number)\t\([.fieldValues.nodes[]|select(.field.name=="Status")|.name][0] // "-")\t\([.fieldValues.nodes[]|select(.field.name=="Blocked by")|.text][0] // "")"'
+        if .content.blockedBy.totalCount > (.content.blockedBy.nodes|length)
+        then error("#\(.content.number): blockedBy truncated") else . end |
+        "\(.content.number)\t\([.fieldValues.nodes[]|select(.field.name=="Status")|.name][0] // "-")\t\([.content.blockedBy.nodes[]|select(.state=="OPEN")|"#\(.number)"]|join(","))\t\([.content.blockedBy.nodes[]|select(.state=="CLOSED")|"#\(.number)"]|join(","))"'
 ```
 
 ```
-STORE per issue: BOARD_STATUS, BLOCKED_BY (the raw field text)
+STORE per issue: BOARD_STATUS, OPEN_BLOCKERS (column 3), CLOSED_BLOCKERS (column 4)
 
-RESOLVE blocked-ness. It is DERIVED from what BLOCKED_BY names, never from whether
-the field is empty. `Blocked by` is a permanent record of what the work waited on
-and is NEVER cleared, so a populated field says nothing on its own about today.
+IS_BLOCKED = OPEN_BLOCKERS is non-empty. Nothing to parse, nothing to judge:
+every entry is an issue, and its state comes back with it.
 
-FOR each issue whose BLOCKED_BY is non-empty:
-  EXTRACT every issue number (#NNNN) named in the text, and resolve each:
-    gh api repos/jlaustill/c-next/issues/<n> --jq '.state'   # open | closed
+A CLOSED blocker STAYS on the relationship. It is the record of what the work
+waited on, not a stale value — never remove it, never propose removing it.
 
-  THEN read what remains once the references are removed, and judge whether it
-  ANNOTATES a named issue — "(PR5-PR7)", "- only blockers",
-  "(symbol model: sourceColumn)" — or names a FURTHER blocker of its own,
-  "plus the naming decision". Both shapes are on the board today.
+A blocker that is not an issue yet — a pending decision, a slice of a larger
+card — has no relationship to name it. File it as an issue and link that. The
+qualifier ("only PR5", "the naming decision") goes in the comment that records
+the link. Text written into the retired field before 2026-10-06 is preserved
+verbatim in a comment on each card, marked `<!-- blocked-by-migration #1893 -->`.
 
-    any named issue still open
-      → IS_BLOCKED. OPEN_BLOCKERS = those issues.
-    all named issues closed, and the remaining text only annotates them
-      → NOT blocked. Available. Leave the field alone.
-    the text names a further blocker in prose, with or without a reference
-      → IS_BLOCKED. OPEN_BLOCKERS = the raw field text — nothing can derive it,
-        so print it verbatim for a human to judge.
-    you cannot tell which of the previous two it is
-      → IS_BLOCKED, and SAY the prose is unresolved rather than guessing.
+OPEN_BLOCKERS is assigned for every card, because both consumers below print it,
+and Phase 3's UNBLOCKS factor reads it in reverse.
 
-  NEVER key this on "does the text contain a #NNNN". A field mixing a reference
-  with a prose blocker would then go available the moment the reference closed,
-  silently dropping a blocker no query can see. OPEN_BLOCKERS is assigned on
-  every blocked branch, because both consumers below print it, and Phase 3's
-  UNBLOCKS factor reads it in reverse.
-
-BLOCKED_BY ANSWERS ONLY HALF THE QUESTION. It records whether a CARD WAS NAMED,
+"BLOCKED BY" ANSWERS ONLY HALF THE QUESTION. It records whether a CARD WAS NAMED,
 not whether the work CAN BE FINISHED. A card whose definition of done requires an
 artifact that does not exist yet — a directory another card creates, a generated
 document another card gates — is unstartable with a permanently, correctly empty
-field. There is nothing to fix in the field and nothing a board query can see.
+"Blocked by". There is nothing to fix in it and nothing a board query can see.
 Phase 3.5 asks the second question, and it is NOT OPTIONAL: skipping it is how
 #1444 got recommended as the top pick while carrying a 13-hour-old comment saying
 it could not close.
 
 IF the query fails (needs `gh auth refresh -s project`):
   SAY SO EXPLICITLY and stop — do not fall back to label-only scoring and
-  present it as a recommendation. A ranking that silently ignores Blocked by
+  present it as a recommendation. A ranking that silently ignores "Blocked by"
   is worse than no ranking, because it looks authoritative.
 ```
 
@@ -246,9 +236,9 @@ as *exclusions* in Phase 2. By the time an issue reaches this rubric it
 is already known unblocked, triaged, and in the active sprint. Scoring only ranks
 what can actually be started.
 
-The board feeds one score as well: **UNBLOCKS**, read from the *other* cards' fields.
-A card's own `Blocked by` decides whether it can be picked; every other card's
-`Blocked by` says what picking it frees. Without that, a card holding back the
+The board feeds one score as well: **UNBLOCKS**, read from the *other* cards' blockers.
+A card's own "Blocked by" decides whether it can be picked; every other card's
+"Blocked by" says what picking it frees. Without that, a card holding back the
 sprint's biggest bug scores the same as one that frees nothing.
 
 #### Scoring Rubric
@@ -309,21 +299,20 @@ FOR each available issue, compute SCORE:
     OPEN_BLOCKERS of every OTHER open card, not anything on this card.
 
     FOR each open card X whose OPEN_BLOCKERS name this issue:
-      SKIP X if it has the "epic" label. #1324's field names "every open
-        v0.3.1-milestone card", so counting epics and release trackers would give
-        every sprint card the same points, and the factor would rank nothing.
+      SKIP X if it has the "epic" label. An epic or release tracker is blocked by
+        every card it tracks, so counting it would give every sprint card the same
+        points, and the factor would rank nothing.
       SKIP X if it is outside ACTIVE_MILESTONE (unless --all), the same as the
         sprint filter in Phase 2.
       this issue is X's ONLY open blocker   → +10  (closing it frees X)
       X has other open blockers as well     → +5   (closing it shortens X's chain)
     Cap at 20.
 
-    Use OPEN_BLOCKERS exactly as Phase 1d derived it, not a regex over the field.
-    A field quotes issues it does not wait on: #1443's names #1313 inside a quote
-    ("#1313 correction 4"), and #1668's names #1780 next to "#1780 no longer gates
-    it". Counting those references would credit cards that free nothing.
-    A blocker that exists only as prose, or one Phase 3.5 derived but nobody has
-    appended yet, names no card here and scores nothing.
+    Use OPEN_BLOCKERS exactly as Phase 1d read it, not a regex over a body or a
+    comment. Prose quotes issues it does not wait on: #1668's old field named #1780
+    next to "#1780 no longer gates it". Counting those references would credit
+    cards that free nothing. A blocker Phase 3.5 derived but nobody has linked yet
+    names no card here and scores nothing.
 ```
 
 ```
@@ -373,7 +362,7 @@ FOR each of the top 5 ranked candidates:
          | grep -nEi "wave|startable|sequencing|critical path"
 
      Find THIS card in what comes back. A parent that places it in a later wave, or
-     names it in a "cannot finish" section, outranks the card's empty field.
+     names it in a "cannot finish" section, outranks the card's empty "Blocked by".
 
   3. DEFINITION OF DONE — read it, and ask of every checkbox: does this require
      something that does not exist yet?
@@ -381,7 +370,7 @@ FOR each of the top 5 ranked candidates:
          | grep -A25 -i "definition of done"
 
      A checkbox naming a directory, a generated document, or an artifact another card
-     owns is a dependency the field does not carry. VERIFY it with a command — `ls` the
+     owns is a dependency "Blocked by" does not carry. VERIFY it with a command — `ls` the
      directory, `test -f` the document, `grep` for the symbol — rather than assuming in
      either direction.
 
@@ -401,8 +390,8 @@ FOR each of the top 5 ranked candidates:
 
      A box reading "#A and #B are fixed BY <the change this card makes>" is FALSE for #B
      if #B closed BEFORE that change landed — however cleanly #B is closed. #1448 is the
-     worked example: its `Blocked by` named #1320, #1322 and #1447, all three closed, so
-     the field, the board and checks 1-3 all said available and it ranked top. Box 3
+     worked example: its blockers were #1320, #1322 and #1447, all three closed, so
+     the blockers, the board and checks 1-3 all said available and it ranked top. Box 3
      claimed the hoist fixed #1430 **and #1398**; #1398 had closed a week earlier via
      PR #1502, with no fixture anywhere in `tests/`. The box was unsatisfiable as
      written and the card could not close.
@@ -423,10 +412,10 @@ reading it as first-overall "routes work to a card five waves early." Quoting a 
 self-assessment back as justification is the failure, not the check: the body is written
 once, at filing, and the sequencing that invalidates it lands later and elsewhere.
 
-**When the gate fires and the field is silent, that is the append case.** The blocker you
-just derived is a NEW blocker — appended beside whatever the field already says, never
-substituted for it (see Anti-Patterns). Surface it and offer to record it; do not write the
-board unasked.
+**When the gate fires and "Blocked by" is silent, that is the link case.** The blocker you
+just derived is a NEW blocker — added as a built-in link beside whatever the issue already
+lists, never in place of it (see Anti-Patterns). Surface it and offer to record it; do not
+write it unasked.
 
 ---
 
@@ -459,20 +448,20 @@ does not exist, and the reason it was skipped is usually the useful part.
 |-------|--------|--------|
 | #1323 | Blocked | #1301, #1319 — both open |
 | #1324 | Blocked | #1313 open; #1357 closed, no longer a blocker |
-| #1444 | Not startable | field empty; #1313 places it in wave 5 — DoD needs `src/PARSE/1-Discover/`, which needs #1443's map |
+| #1444 | Not startable | no blockers; #1313 places it in wave 5 — DoD needs `src/PARSE/1-Discover/`, which needs #1443's map |
 | #1313 | Epic    | tracker; closes when its children do |
 | #1374 | Grooming | not triaged — scope still open |
 
 `Blocked` and `Not startable` are different findings and must not be merged into one
-reason. `Blocked` means a named card is still open, the field is doing its job, and the
-remedy is to wait. `Not startable` means the field is silent or satisfied and the work
-still cannot finish — the remedy is to append the derived blocker (Phase 3.5). Collapsing
+reason. `Blocked` means a linked card is still open, "Blocked by" is doing its job, and
+the remedy is to wait. `Not startable` means "Blocked by" is silent or satisfied and the
+work still cannot finish — the remedy is to link the derived blocker (Phase 3.5). Collapsing
 them hides the second, which is the one no query can see.
 
 Ranking below covers <ACTIVE_MILESTONE> only. Run `/issue-check --all` for the full backlog.
 
-Detail names the OPEN blockers, not the field text — a closed one is history and
-does not belong in a "why this is skipped" column. An earlier version of this
+Detail names the OPEN blockers — a closed one is history and does not belong in a
+"why this is skipped" column. An earlier version of this
 sample read `| #1322 | Blocked | #1316, #1321 |` and
 `| #1318 | Blocked | #1285 (PR5-PR7) |`; those values are what #1419 recovered the
 two cleared fields from, and `git show 21823602` still carries them.
@@ -558,15 +547,13 @@ IF a recommended issue shares a DOMAIN label (parser, code-generator, types, sco
 ### Blocked Work and Sequencing
 
 ```
-`Blocked by` is free text, not a link — it may name a whole issue ("#1285"), a
-specific slice of one ("#1285 PR5 - do PR5 first"), or a pending decision. It is
-also a PERMANENT RECORD of what the work waited on. It is NEVER cleared, not even
-once every blocker has closed. Never clear it, never replace what it already names,
-and never propose either. A new blocker is appended beside the existing text — that
-is the only write this field takes.
+"Blocked by" is GitHub's built-in issue relationship (#1893). Every entry is an
+issue, so it is a link, not text. It is also a PERMANENT RECORD of what the work
+waited on: a blocker that has closed STAYS linked. Never remove a link, never
+replace one, and never propose either. A new blocker is a new link beside the old.
 
-A populated field is therefore not by itself a reason to skip an issue. Use
-IS_BLOCKED from Phase 1d, which asks whether what it names is still open.
+A card with blockers is therefore not by itself a reason to skip an issue. Use
+IS_BLOCKED from Phase 1d, which asks whether any linked blocker is still open.
 
 NEVER recommend an issue that IS_BLOCKED. Report it under "Not Recommended Yet"
 with the OPEN blockers named, so the user can see the chain.
@@ -575,31 +562,30 @@ IF every issue in the active milestone is blocked:
   SAY SO, and name the root blockers — that set IS the recommendation.
   "Everything in <milestone> is blocked on #<a> and #<b>. Those are the work."
 
-IF every issue a `Blocked by` names has closed:
-  The issue is AVAILABLE and the field is already correct — a resolved blocker is
+IF every linked blocker has closed:
+  The issue is AVAILABLE and the links are already correct — a resolved blocker is
   history, not a stale value, and there is nothing to fix. Say so when recommending
   it: "unblocked (was: #1316, #1321 — both closed)", so the reader can see the
-  field was read rather than ignored.
+  blockers were read rather than ignored.
 
-IF the text qualifies the dependency ("#1285 PR5 - do PR5 first") and #1285 is
-still open:
-  Derivation cannot see inside it, so the issue stays BLOCKED. Print the qualifier
+IF a comment qualifies an open blocker ("#1285 PR5 - do PR5 first"):
+  The link cannot see inside it, so the issue stays BLOCKED. Print the qualifier
   verbatim so the user can overrule it.
 ```
 
 ### Unblocked Is Not Startable
 
 ```
-An empty `Blocked by` is not a green light. It says no card was named — nothing more.
-A card can be correctly, permanently unblocked in the field and still be unable to
+An empty "Blocked by" is not a green light. It says no card was named — nothing more.
+A card can be correctly, permanently unblocked there and still be unable to
 finish, because its definition of done requires an artifact that other cards produce.
 
 The two failures look identical from the board and are distinguished only by Phase 3.5:
 
-  BLOCKED        a named card is still open
-                 → the field is working; wait, and name the open blockers
-  NOT STARTABLE  the field is silent or satisfied, and the DoD still cannot be met
-                 → the field never knew; derive it, and offer to APPEND it
+  BLOCKED        a linked card is still open
+                 → "Blocked by" is working; wait, and name the open blockers
+  NOT STARTABLE  "Blocked by" is silent or satisfied, and the DoD still cannot be met
+                 → it never knew; derive the blocker, and offer to LINK it
 
 The shape to watch for is a card that BUILDS SOMETHING OTHER CARDS PLACE. Migration
 and restructuring cards read as "first" — they create the destination — but the
@@ -635,9 +621,9 @@ IF no open issues exist:
 - **DO NOT** recommend issues that are clearly in-flight (have open PRs, are assigned, or have recent branch activity)
 - **DO NOT** start implementing without user confirmation of which issue to work on
 - **DO NOT** pick issues labeled "test-blocked", "wontfix", or "epic"
-- **DO NOT** recommend an issue that IS_BLOCKED (its `Blocked by` names something
+- **DO NOT** recommend an issue that IS_BLOCKED (its "Blocked by" links something
   still open), or one sitting in `Grooming`
-- **DO NOT** treat an empty `Blocked by` as "startable" — it means no card was named.
+- **DO NOT** treat an empty "Blocked by" as "startable" — it means no card was named.
   Run Phase 3.5 on the top candidates before recommending any of them; a card can be
   correctly unblocked and still unable to close
 - **DO NOT** quote a card's own claim that it is ready ("this card is first: it has no
@@ -650,11 +636,13 @@ IF no open issues exist:
 - **DO NOT** skip reading the top candidate's comments. #1444 carried an explicit
   "Set aside — this card is wave 5, not wave 1" for 13 hours and was still recommended
   as the top pick, because no phase read comments
-- **DO NOT** clear a `Blocked by`, replace what it names, or propose either — it is a
+- **DO NOT** remove a "Blocked by" link, replace one, or propose either — it is a
   permanent record, and a blocker that has closed is history, not a stale value. A new
-  blocker is appended beside the old, never substituted for it
+  blocker is a new link beside the old, never substituted for it
+- **DO NOT** read or write the board's retired free-text `Blocked by` field. Blockers
+  are the built-in relationship (#1893); the old text survives only as a comment
 - **DO NOT** fall back to label-only scoring when the board query fails — say it failed
-  and stop; a ranking that ignores `Blocked by` looks authoritative and is not
+  and stop; a ranking that ignores "Blocked by" looks authoritative and is not
 - **DO NOT** widen past the active milestone without `--all` — the milestone is the sprint
 - **DO NOT** assume issue type from title alone — check labels and body content
 - **DO NOT** propose massive refactors as "quick fixes" — scope work to the issue
