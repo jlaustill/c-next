@@ -63,6 +63,7 @@ describe("InitializationAnalyzer", () => {
 
       // Build external struct fields from symbol table
       state.program = Program.build([], {
+        cppMode: false,
         headerStructFields: state.symbolTable.getAllStructFields(),
       });
 
@@ -119,6 +120,7 @@ describe("InitializationAnalyzer", () => {
 
       // Build external struct fields from symbol table
       state.program = Program.build([], {
+        cppMode: false,
         headerStructFields: state.symbolTable.getAllStructFields(),
       });
 
@@ -152,6 +154,7 @@ describe("InitializationAnalyzer", () => {
 
       // Build external struct fields from symbol table (as pipeline does)
       state.program = Program.build([], {
+        cppMode: false,
         headerStructFields: state.symbolTable.getAllStructFields(),
       });
 

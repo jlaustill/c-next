@@ -48,9 +48,11 @@ function parseWithComments(source: string) {
      * does not hold is a caller error, and an empty one answered every
      * typing question with "nothing is declared". Program answers by
      * position, so it matches `tree`, parsed from the same text.
+     *
+     * #1428: a C run, stated -- the analyzers read the mode from the program.
      */
     contextWith: (symbolTable: SymbolTable) =>
-      testAnalysisContextFor(source, { symbolTable }).context,
+      testAnalysisContextFor(source, { symbolTable, cppMode: false }).context,
   };
 }
 
@@ -68,7 +70,6 @@ describe("runAnalyzers", () => {
         }
       `);
       const errors = runAnalyzers(tree, comments, {
-        cppMode: false,
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -78,7 +79,6 @@ describe("runAnalyzers", () => {
     it("should return no errors for empty program", () => {
       const { tree, comments, contextWith } = parseWithComments(``);
       const errors = runAnalyzers(tree, comments, {
-        cppMode: false,
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -95,7 +95,6 @@ describe("runAnalyzers", () => {
       const { tree, comments, contextWith } =
         parseWithComments(`u8 value_ <- 1;`);
       const errors = runAnalyzers(tree, comments, {
-        cppMode: false,
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -111,7 +110,6 @@ describe("runAnalyzers", () => {
       const { tree, comments, contextWith } =
         parseWithComments(`u8 my__value <- 1;`);
       const errors = runAnalyzers(tree, comments, {
-        cppMode: false,
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -128,7 +126,6 @@ describe("runAnalyzers", () => {
         }
       `);
       const errors = runAnalyzers(tree, comments, {
-        cppMode: false,
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -149,7 +146,6 @@ describe("runAnalyzers", () => {
         }
       `);
       const errors = runAnalyzers(tree, comments, {
-        cppMode: false,
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -182,7 +178,6 @@ describe("runAnalyzers", () => {
         }
       `);
       const errors = runAnalyzers(tree, comments, {
-        cppMode: false,
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -209,7 +204,6 @@ describe("runAnalyzers", () => {
         }
       `);
       const errors = runAnalyzers(tree, comments, {
-        cppMode: false,
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -234,7 +228,6 @@ describe("runAnalyzers", () => {
         }
       `);
       const errors = runAnalyzers(tree, comments, {
-        cppMode: false,
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -257,7 +250,6 @@ describe("runAnalyzers", () => {
         }
       `);
       const errors = runAnalyzers(tree, comments, {
-        cppMode: false,
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -282,9 +274,10 @@ describe("runAnalyzers", () => {
         }
       `;
       const { comments } = parseWithComments(source);
-      const { tree, context } = testAnalysisContextFor(source);
-      const errors = runAnalyzers(tree, comments, {
+      const { tree, context } = testAnalysisContextFor(source, {
         cppMode: false,
+      });
+      const errors = runAnalyzers(tree, comments, {
         context,
         includes: NO_INCLUDES,
       });
@@ -305,7 +298,6 @@ describe("runAnalyzers", () => {
       const code = "/* outer /* nested */ \nvoid main() { u32 x <- 1; }";
       const { tree, comments, contextWith } = parseWithComments(code);
       const errors = runAnalyzers(tree, comments, {
-        cppMode: false,
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -339,7 +331,6 @@ describe("runAnalyzers", () => {
       headers.addStructField("ExternalStruct", "field2", "u32");
 
       const errors = runAnalyzers(tree, comments, {
-        cppMode: false,
         context: contextWith(headers),
         includes: NO_INCLUDES,
       });
@@ -366,7 +357,6 @@ describe("runAnalyzers", () => {
 
       const errors = runAnalyzers(tree, comments, {
         context: contextWith(symbolTable),
-        cppMode: false,
         includes: NO_INCLUDES,
       });
       expect(errors).toHaveLength(0);
@@ -404,7 +394,6 @@ describe("runAnalyzers", () => {
       caller.addStructField("CppMessage", "pgn", "u16");
 
       const errors = runAnalyzers(tree, comments, {
-        cppMode: false,
         context: contextWith(caller),
         includes: NO_INCLUDES,
       });
@@ -424,7 +413,6 @@ describe("runAnalyzers", () => {
         }
       `);
       const errors = runAnalyzers(tree, comments, {
-        cppMode: false,
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });

@@ -82,6 +82,7 @@ describe("Program", () => {
    * includes it, as the program it models would.
    */
   const including = (graph: Record<string, string[]>) => ({
+    cppMode: false,
     visibility: {
       cnextIncludesByFile: new Map(
         Object.entries(graph).map(([file, includes]) => [
@@ -99,7 +100,9 @@ describe("Program", () => {
     const at = { line: 1, column: 0 };
 
     it("is an internal error for every lexical accessor", () => {
-      const program = Program.build([declare("u32 x <- 1;", "a.cnx")]);
+      const program = Program.build([declare("u32 x <- 1;", "a.cnx")], {
+        cppMode: false,
+      });
       expect(() => program.bindValue("nope.cnx", null, "x", at)).toThrow(
         "nope.cnx is a file of this program",
       );
@@ -112,7 +115,9 @@ describe("Program", () => {
     });
 
     it("still answers for a file it holds", () => {
-      const program = Program.build([declare("u32 x <- 1;", "a.cnx")]);
+      const program = Program.build([declare("u32 x <- 1;", "a.cnx")], {
+        cppMode: false,
+      });
       expect(program.bindValue("a.cnx", null, "x", at)).toMatchObject({
         kind: "variable",
       });
@@ -249,7 +254,7 @@ describe("Program", () => {
         "use.cnx",
       );
 
-      const program = Program.build([use]);
+      const program = Program.build([use], { cppMode: false });
 
       expect(program.isScopeTypeVisibleFrom("use.cnx", "Lib__Point")).toBe(
         false,
@@ -277,7 +282,7 @@ describe("Program", () => {
         "use.cnx",
       );
 
-      const program = Program.build([lib, use]);
+      const program = Program.build([lib, use], { cppMode: false });
 
       expect(program.isScopeTypeVisibleFrom("use.cnx", "Lib__Point")).toBe(
         false,
@@ -363,7 +368,9 @@ describe("Program", () => {
         ).join("\n");
         const attempts = vi.spyOn(ConstantFold, "constValue");
         try {
-          const program = Program.build([declare(source, "lib.cnx")]);
+          const program = Program.build([declare(source, "lib.cnx")], {
+            cppMode: false,
+          });
           expect(
             constantAt(program, "lib.cnx", "C0", { line: n + 1, column: 0 })
               ?.value,
@@ -379,7 +386,7 @@ describe("Program", () => {
       const lib = declare(`const u32 SIZE <- 4;`, "lib.cnx");
       const use = declare(`u32 unrelated <- 1;`, "use.cnx");
 
-      const program = Program.build([lib, use]);
+      const program = Program.build([lib, use], { cppMode: false });
 
       expect(
         constantAt(program, "use.cnx", "SIZE", { line: 1, column: 0 }),
@@ -394,7 +401,7 @@ describe("Program", () => {
         `scope Board {\n    const u8 STEP <- 12;\n}\nscope Other {\n    const u8 STEP <- 3;\n}\nu32 after <- 1;`,
         "lib.cnx",
       );
-      const program = Program.build([lib]);
+      const program = Program.build([lib], { cppMode: false });
       const valueOf = (cName: string) =>
         program.constantOf({
           kind: "variable",
@@ -416,7 +423,7 @@ describe("Program", () => {
 
     it("is null for a non-const and for an unknown name", () => {
       const lib = declare(`u32 mutable <- 4;\nu32 after <- 1;`, "lib.cnx");
-      const program = Program.build([lib]);
+      const program = Program.build([lib], { cppMode: false });
       const at = { line: 2, column: 0 };
 
       expect(constantAt(program, "lib.cnx", "mutable", at)).toBeNull();
@@ -432,7 +439,7 @@ describe("Program", () => {
         `const u32 N <- 10;\nvoid f(u32 N) {\n    u32 x <- N;\n}\nu32 after <- 1;`,
         "lib.cnx",
       );
-      const program = Program.build([lib]);
+      const program = Program.build([lib], { cppMode: false });
 
       expect(
         constantAt(program, "lib.cnx", "N", { line: 3, column: 13 }),
@@ -470,7 +477,7 @@ describe("Program", () => {
       const lib = declare(`const u32 SIZE <- 4;`, "lib.cnx");
       const use = declare(`u32[SIZE] buffer;`, "use.cnx");
 
-      const program = Program.build([lib, use]);
+      const program = Program.build([lib, use], { cppMode: false });
 
       const buffer = find(program.symbolsInFile("use.cnx"), "buffer");
       expect(SymbolGuards.isVariable(buffer)).toBe(true);
@@ -489,6 +496,7 @@ describe("Program", () => {
       // a macro, so C evaluates it -- written as C, never as source text
       const use = declare(`u32[SOME_MACRO] buffer;\nu32[4] plain;`, "use.cnx");
       const program = Program.build([use], {
+        cppMode: false,
         filesReachingForeignHeaders: new Set(["use.cnx"]),
       });
 
@@ -506,7 +514,9 @@ describe("Program", () => {
     // every kind of declaration, with the consts visible where it is written
     const dimensionsOf = (source: string, name: string) => {
       const symbol = find(
-        Program.build([declare(source, "a.cnx")]).symbolsInFile("a.cnx"),
+        Program.build([declare(source, "a.cnx")], {
+          cppMode: false,
+        }).symbolsInFile("a.cnx"),
         name,
       );
       expect(SymbolGuards.isVariable(symbol)).toBe(true);
@@ -581,9 +591,10 @@ describe("Program", () => {
     });
 
     it("folds a struct field's dimension", () => {
-      const program = Program.build([
-        declare(`const u32 A <- 4;\nstruct P {\n  u8[A] data;\n}`, "a.cnx"),
-      ]);
+      const program = Program.build(
+        [declare(`const u32 A <- 4;\nstruct P {\n  u8[A] data;\n}`, "a.cnx")],
+        { cppMode: false },
+      );
       const struct = find(program.symbolsInFile("a.cnx"), "P");
       expect(SymbolGuards.isStruct(struct)).toBe(true);
       expect((struct as IStructSymbol).fields.get("data")?.dimensions).toEqual([
@@ -592,9 +603,10 @@ describe("Program", () => {
     });
 
     it("folds a parameter's dimension", () => {
-      const program = Program.build([
-        declare(`const u32 A <- 4;\nvoid f(u8[A] buf) {\n}`, "a.cnx"),
-      ]);
+      const program = Program.build(
+        [declare(`const u32 A <- 4;\nvoid f(u8[A] buf) {\n}`, "a.cnx")],
+        { cppMode: false },
+      );
       const fn = find(program.symbolsInFile("a.cnx"), "f");
       expect(SymbolGuards.isFunction(fn)).toBe(true);
       expect((fn as IFunctionSymbol).parameters[0].arrayDimensions).toEqual([
@@ -622,6 +634,7 @@ describe("Program", () => {
       kinds: ReadonlyArray<[string, string]>,
     ): ReadonlySet<string> =>
       Program.build([], {
+        cppMode: false,
         headerStructFields: new Map(),
         foreign: {
           ...noForeign,
@@ -652,7 +665,7 @@ describe("Program", () => {
         `struct Point { u32 x; } enum Color { RED }`,
         "lib.cnx",
       );
-      const program = Program.build([lib]);
+      const program = Program.build([lib], { cppMode: false });
 
       expect([...program.typesDeclaredIn("lib.cnx")].sort()).toEqual([
         "Color",
@@ -669,7 +682,7 @@ describe("Program", () => {
         `scope Lib { public struct Point { u32 x; } public enum Data { ONE } }`,
         "lib.cnx",
       );
-      const program = Program.build([lib]);
+      const program = Program.build([lib], { cppMode: false });
 
       expect([...program.typesDeclaredIn("lib.cnx")].sort()).toEqual([
         "Lib__Data",
@@ -678,7 +691,9 @@ describe("Program", () => {
     });
 
     it("is empty for a file the program never saw", () => {
-      expect(Program.build([]).typesDeclaredIn("absent.h").size).toBe(0);
+      expect(
+        Program.build([], { cppMode: false }).typesDeclaredIn("absent.h").size,
+      ).toBe(0);
     });
   });
 
@@ -691,6 +706,7 @@ describe("Program", () => {
       Program.build(
         [declare(`void use(Dev d, Dev[2] ds, Full f, u32 n) {\n}\n`, "a.cnx")],
         {
+          cppMode: false,
           headerStructFields: new Map(),
           foreign: {
             ...noForeign,
@@ -745,6 +761,7 @@ describe("Program", () => {
       structTagsWithBodies: string[],
     ) =>
       Program.build([], {
+        cppMode: false,
         headerStructFields: new Map(),
         foreign: {
           ...noForeign,
@@ -816,7 +833,7 @@ scope Gauge {
             "a.cnx",
           ),
         ],
-        { registry },
+        { cppMode: false, registry },
       );
 
     it("finds a scope's own function before a global of the same name", () => {
@@ -851,7 +868,7 @@ scope Gauge {
             "a.cnx",
           ),
         ],
-        { registry },
+        { cppMode: false, registry },
       );
 
       expect(program.modifiedParameters().get("forward")?.has("v")).toBe(true);
@@ -886,7 +903,7 @@ scope Gauge {
             "a.cnx",
           ),
         ],
-        { registry, symbolTable },
+        { cppMode: false, registry, symbolTable },
       );
 
       expect(program.callbackCompatibleFunctions().get("on_point")).toBe(
@@ -904,7 +921,7 @@ scope Gauge {
       );
       const use = declare(`u32 counter <- 0;`, "use.cnx");
 
-      const program = Program.build([lib, use]);
+      const program = Program.build([lib, use], { cppMode: false });
 
       expect(program.symbolByCName("Lib__Mode")?.name).toBe("Mode");
       expect(program.symbolByCName("NoSuchThing")).toBeUndefined();
@@ -922,18 +939,29 @@ scope Gauge {
         "use.cnx",
       );
 
-      const program = Program.build([lib, use]);
+      const program = Program.build([lib, use], { cppMode: false });
 
       expect(program.knownEnums().has("Palette")).toBe(true);
       expect(program.knownEnums().has("Ui__Mode")).toBe(true);
       expect(program.knownEnums().has("NotAnEnum")).toBe(false);
     });
 
+    it("answers the run's mode it was built with, either way (#1428)", () => {
+      // 1.1's answer, carried: a program never decides the mode itself.
+      const file = (): ReturnType<typeof declare> =>
+        declare(`u32 x <- 1;`, "a.cnx");
+
+      expect(Program.build([file()], { cppMode: true }).cppMode()).toBe(true);
+      expect(Program.build([file()], { cppMode: false }).cppMode()).toBe(false);
+    });
+
     it("does not expose its raw tables", () => {
       // The store's own guard. `IProgram` declares functions only, so a caller
       // cannot reach the maps behind them -- which is the whole reason the
       // prior art chose "hide the collections" over gating them afterwards.
-      const program = Program.build([declare(`u32 x <- 1;`, "a.cnx")]);
+      const program = Program.build([declare(`u32 x <- 1;`, "a.cnx")], {
+        cppMode: false,
+      });
       const keys = Object.keys(program).sort();
 
       expect(keys).toEqual([
@@ -944,6 +972,7 @@ scope Gauge {
         "conflicts",
         "constantOf",
         "constantValueOf",
+        "cppMode",
         "enumMemberValues",
         "externalStructFields",
         "functionParamLists",

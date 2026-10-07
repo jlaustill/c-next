@@ -23,7 +23,9 @@ describe("ShiftAnalyzer", () => {
           i8 result <- x << 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -40,7 +42,9 @@ describe("ShiftAnalyzer", () => {
           i16 result <- x << 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -55,7 +59,9 @@ describe("ShiftAnalyzer", () => {
           i32 result <- x << 4;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -70,7 +76,9 @@ describe("ShiftAnalyzer", () => {
           i64 result <- x << 5;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -91,7 +99,9 @@ describe("ShiftAnalyzer", () => {
           i8 result <- x >> 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -107,7 +117,9 @@ describe("ShiftAnalyzer", () => {
           i32 result <- x >> 4;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -127,7 +139,9 @@ describe("ShiftAnalyzer", () => {
           i32 result <- value << 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -141,7 +155,9 @@ describe("ShiftAnalyzer", () => {
           i64 result <- value >> 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -163,7 +179,9 @@ describe("ShiftAnalyzer", () => {
           }
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -184,7 +202,9 @@ describe("ShiftAnalyzer", () => {
           u8 result <- x << 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -198,7 +218,9 @@ describe("ShiftAnalyzer", () => {
           u16 result <- x >> 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -212,7 +234,9 @@ describe("ShiftAnalyzer", () => {
           u32 result <- x << 4;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -226,7 +250,9 @@ describe("ShiftAnalyzer", () => {
           u64 result <- x >> 5;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -239,7 +265,9 @@ describe("ShiftAnalyzer", () => {
           u32 result <- 1 << 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -258,7 +286,9 @@ describe("ShiftAnalyzer", () => {
           i32 result <- -5 << 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -279,7 +309,9 @@ describe("ShiftAnalyzer", () => {
           i32 result <- x << 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -292,7 +324,9 @@ describe("ShiftAnalyzer", () => {
   i32 x <- 5;
   i32 result <- x << 2;
 }`;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -314,7 +348,9 @@ describe("ShiftAnalyzer", () => {
           i64 d <- c >> 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -329,7 +365,9 @@ describe("ShiftAnalyzer", () => {
   describe("edge cases", () => {
     it("should handle empty program", () => {
       const code = ``;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -343,7 +381,9 @@ describe("ShiftAnalyzer", () => {
           i32 y <- 10 - 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -360,7 +400,9 @@ describe("ShiftAnalyzer", () => {
           i32 e <- a ^ b;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -380,7 +422,9 @@ describe("ShiftAnalyzer", () => {
           i32 result <- (x) << 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -395,7 +439,9 @@ describe("ShiftAnalyzer", () => {
           u32 result <- (x) << 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -415,7 +461,9 @@ describe("ShiftAnalyzer", () => {
           x <<<- 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -432,7 +480,9 @@ describe("ShiftAnalyzer", () => {
           x >><- 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -448,7 +498,9 @@ describe("ShiftAnalyzer", () => {
           x <<<- 4;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -463,7 +515,9 @@ describe("ShiftAnalyzer", () => {
           x <<<- 8;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -478,7 +532,9 @@ describe("ShiftAnalyzer", () => {
           x <<<- 16;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -493,7 +549,9 @@ describe("ShiftAnalyzer", () => {
           x <<<- 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -507,7 +565,9 @@ describe("ShiftAnalyzer", () => {
           x >><- 4;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -523,7 +583,9 @@ describe("ShiftAnalyzer", () => {
           b >><- 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -546,7 +608,9 @@ describe("ShiftAnalyzer", () => {
           x ^<- 0xAA;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -572,7 +636,9 @@ describe("ShiftAnalyzer", () => {
           d.val <<<- 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const errors = new ShiftAnalyzer(context).analyze(tree);
       expect(errors.map((e) => [e.code, e.line])).toEqual([["E0805", 5]]);
     });
@@ -585,7 +651,9 @@ describe("ShiftAnalyzer", () => {
           d.val <<<- 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -601,7 +669,9 @@ describe("ShiftAnalyzer", () => {
           x <<<- 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new ShiftAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -614,7 +684,7 @@ describe("ShiftAnalyzer", () => {
 
 describe("ShiftAnalyzer -- E0873 shift amount (MISRA C:2012 Rule 12.2)", () => {
   const errors = (code: string) => {
-    const { tree, context } = testAnalysisContextFor(code);
+    const { tree, context } = testAnalysisContextFor(code, { cppMode: false });
     return new ShiftAnalyzer(context).analyze(tree);
   };
   const inMain = (body: string) => `void main() {\n    u8 a <- 1;\n${body}\n}`;
@@ -725,7 +795,10 @@ describe("ShiftAnalyzer -- E0873 shift amount (MISRA C:2012 Rule 12.2)", () => {
 // #1668: every operand typed by the one operand typer
 describe("ShiftAnalyzer -- operands typed by the one operand typer", () => {
   function analyze(source: string, symbolTable?: SymbolTable) {
-    const { tree, context } = testAnalysisContextFor(source, { symbolTable });
+    const { tree, context } = testAnalysisContextFor(source, {
+      cppMode: false,
+      symbolTable,
+    });
     return new ShiftAnalyzer(context).analyze(tree);
   }
 

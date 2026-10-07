@@ -388,9 +388,9 @@ describe("CNextResolver Integration", () => {
     // #1664 box 7: 1.3 keeps a const-named dimension as text; 1.4 folds it
     // where the declaration is written, which these read back
     const settled = (tree: ReturnType<typeof parse>) =>
-      Program.build([
-        CNextResolver.resolve(tree, "test.cnx", registry),
-      ]).symbolsInFile("test.cnx");
+      Program.build([CNextResolver.resolve(tree, "test.cnx", registry)], {
+        cppMode: false,
+      }).symbolsInFile("test.cnx");
 
     it("resolves array dimensions from top-level const", () => {
       const code = `

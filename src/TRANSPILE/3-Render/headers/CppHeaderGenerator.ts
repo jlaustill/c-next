@@ -12,10 +12,10 @@ import BaseHeaderGenerator from "./BaseHeaderGenerator";
  */
 class CppHeaderGenerator extends BaseHeaderGenerator {
   /**
-   * C++ uses reference syntax for pass-by-reference
+   * #1428: this generator writes C++
    */
-  protected getRefSuffix(): string {
-    return "&";
+  protected emitsCpp(): boolean {
+    return true;
   }
 }
 

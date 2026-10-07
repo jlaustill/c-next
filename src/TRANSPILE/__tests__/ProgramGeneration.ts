@@ -6,6 +6,7 @@ import TargetCatalogFile from "../../cli/TargetCatalogFile";
 import TargetResolver from "../../cli/TargetResolver";
 import invariant from "../../utils/invariant";
 import type CodeGenWalker from "../CodeGenWalker";
+import type ITargetDescription from "../../types/ITargetDescription";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /**
@@ -23,28 +24,46 @@ import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
  * handed -- one name settles both, as the orchestrator does. `CodeGenWalker.test`
  * and `CodeGenWalker.coverage.test` each carried a verbatim copy of this, and
  * neither gave the program a target, so the first C call the typer met threw.
+ *
+ * #1428: the program also carries the run's mode, which codegen reads from it
+ * and from nowhere else. A test has no 1.1 to detect one, so it states it:
+ * `cppMode` is required here, and nothing falls back to "C".
  */
+/**
+ * What a test hands `generate()`, plus the mode a run's 1.1 would have settled.
+ * The target may be left out: this helper then supplies the build machine's,
+ * as an orchestrator that names none would.
+ */
+type ITestGenerateOptions = Omit<
+  Parameters<CodeGenWalker["generate"]>[2],
+  "targetDescription"
+> & {
+  readonly targetDescription?: ITargetDescription;
+  readonly cppMode: boolean;
+};
+
 class ProgramGeneration {
   static generate(
     generator: CodeGenWalker,
     tree: Parser.ProgramContext,
     tokenStream: Parameters<CodeGenWalker["generate"]>[1],
-    options: Parameters<CodeGenWalker["generate"]>[2],
+    options: ITestGenerateOptions,
     registry: SymbolRegistry,
   ): ReturnType<CodeGenWalker["generate"]> {
     // ADR-049: the orchestrator always decides a target before codegen; a
     // test that does not care about one gets the build machine's.
     const targetDescription =
-      options?.targetDescription ??
+      options.targetDescription ??
       TargetResolver.byName("host", NodeFileSystem.instance);
     invariant(targetDescription !== undefined, "the catalog defines `host`");
-    const sourcePath = options?.sourcePath ?? "test.cnx";
+    const sourcePath = options.sourcePath ?? "test.cnx";
     const state = generator.transpileState;
 
     const declared = CNextResolver.resolve(tree, sourcePath, registry);
     state.program = Program.build([declared], {
       symbolTable: state.symbolTable,
       registry,
+      cppMode: options.cppMode,
       target: {
         option: targetDescription.name,
         catalog: TargetCatalogFile.targets(NodeFileSystem.instance),

@@ -5,7 +5,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /** The analyzer's findings on `source`, declared and resolved as 1.3/1.4 do */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new ArrayDeclarationAnalyzer(context).analyze(tree);
 };
 

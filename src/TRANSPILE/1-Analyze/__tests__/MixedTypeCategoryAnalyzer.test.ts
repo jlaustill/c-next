@@ -11,7 +11,10 @@ import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 
 function analyze(source: string, symbolTable?: SymbolTable) {
-  const { tree, context } = testAnalysisContextFor(source, { symbolTable });
+  const { tree, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+    symbolTable,
+  });
   return new MixedTypeCategoryAnalyzer(context).analyze(tree);
 }
 

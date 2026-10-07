@@ -14,7 +14,9 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * `tests/slice-assignment/` exercises end to end.
  */
 const errors = (body: string) => {
-  const { tree, context } = testAnalysisContextFor(`void f() {\n${body}\n}`);
+  const { tree, context } = testAnalysisContextFor(`void f() {\n${body}\n}`, {
+    cppMode: false,
+  });
   return new SliceAssignmentAnalyzer(context).analyze(tree);
 };
 

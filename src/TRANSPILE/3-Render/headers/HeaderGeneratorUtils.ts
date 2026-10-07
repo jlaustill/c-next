@@ -521,8 +521,8 @@ class HeaderGeneratorUtils {
    * Generates function pointer typedefs for callbacks used as struct field types
    */
   static generateCallbackTypedefSection(
-    typeInput?: IHeaderTypeInput,
-    isCppMode?: boolean,
+    typeInput: IHeaderTypeInput | undefined,
+    isCppMode: boolean,
   ): string[] {
     if (!typeInput?.callbackTypes || typeInput.callbackTypes.size === 0) {
       return [];
@@ -537,7 +537,7 @@ class HeaderGeneratorUtils {
           cbInfo.returnType,
           cbInfo.typedefName,
           cbInfo.parameters,
-          isCppMode ?? false,
+          isCppMode,
         ),
       );
     }

@@ -48,7 +48,7 @@ function setUp(
   state: TranspileState;
   at: (line: number) => ISourcePosition;
 } {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   const state = new TranspileState();
   state.program = context.program;
   state.symbols = context.symbols;

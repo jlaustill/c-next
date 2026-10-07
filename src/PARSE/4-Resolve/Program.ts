@@ -130,7 +130,7 @@ class Program {
    */
   static build(
     files: ReadonlyArray<IFileSymbols>,
-    inputs: IProgramInputs = {},
+    inputs: IProgramInputs,
   ): IProgram {
     // Destructured once, here, so the body reads exactly as it did when these
     // were positional. `IProgramInputs` says why they travel together.
@@ -386,6 +386,8 @@ class Program {
         );
         return target;
       },
+      // #1428: 1.1's answer, carried and never defaulted
+      cppMode: (): boolean => inputs.cppMode,
       scope: (path: string): IScopeSymbol | null =>
         registry?.getScope(path) ?? null,
       // Delegated like every sibling in this literal, rather than re-spelling

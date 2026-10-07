@@ -13,7 +13,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * statement) reads the target's type, so the analyzer takes the symbol view.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new LoopAnalyzer(context).analyze(tree);
 };
 

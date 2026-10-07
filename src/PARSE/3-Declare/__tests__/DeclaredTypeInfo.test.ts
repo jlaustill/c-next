@@ -17,7 +17,7 @@ import NodeFileSystem from "../../1-Discover/NodeFileSystem";
 
 /** `name`'s declared type where `r` is declared in `source` */
 function declaredAtR(source: string, name: string, root: "this" | null = null) {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   let at: { line: number; column: number } | null = null;
   ParseTreeWalker.DEFAULT.walk(
     new (class extends CNextListener {
@@ -38,7 +38,7 @@ function declaredAtR(source: string, name: string, root: "this" | null = null) {
 
 /** The target of the first assignment in `source` */
 function targetOf(source: string) {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   let target: Parser.AssignmentTargetContext | null = null;
   ParseTreeWalker.DEFAULT.walk(
     new (class extends CNextListener {
@@ -159,6 +159,7 @@ extern int n;
     const tree = HeaderParser.parseC(header).tree;
     table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
     const { context } = testAnalysisContextFor("void f() {\nu8 r <- 1;\n}", {
+      cppMode: false,
       symbolTable: table,
     });
     const binding = context.program.bindValue("test.cnx", null, name, {
@@ -187,7 +188,7 @@ extern int n;
     table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
     const { context } = testAnalysisContextFor(
       "scope Tank {\nu8 level <- 1;\n}\nvoid f() {\nu8 r <- 1;\n}",
-      { symbolTable: table },
+      { cppMode: false, symbolTable: table },
     );
     const binding = context.program.bindValue("test.cnx", null, "level", {
       line: 5,
@@ -206,6 +207,7 @@ extern int n;
     const tree = HeaderParser.parseC("extern double level;").tree;
     table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
     const { context } = testAnalysisContextFor("void f() {\nu8 r <- 1;\n}", {
+      cppMode: false,
       symbolTable: table,
     });
     const binding = context.program.bindValue("test.cnx", null, "level", {
@@ -244,7 +246,7 @@ extern Dev cDevice;`;
     table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
     const { context } = testAnalysisContextFor(
       "Dev shared;\nvoid f() {\nu8 r <- 1;\n}",
-      { symbolTable: table },
+      { cppMode: false, symbolTable: table },
     );
     const binding = context.program.bindValue("test.cnx", null, name, {
       line: 3,

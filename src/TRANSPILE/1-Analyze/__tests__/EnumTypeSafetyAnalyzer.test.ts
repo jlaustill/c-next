@@ -12,7 +12,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * test's source declares -- the same path as production.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new EnumTypeSafetyAnalyzer(context).analyze(tree);
 };
 

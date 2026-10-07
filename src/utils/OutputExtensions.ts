@@ -9,11 +9,11 @@ import IOutputExtensions from "../types/IOutputExtensions";
  * defaulted the mode to `false`, so a site that was simply never passed the
  * value emitted `.h` in a C++ run without any diagnostic.
  *
- * Five of those six are gone. The sixth is `options?.cppMode ?? false` in
- * CodeGenerator, which reaches an extension through `CodeGenState.cppMode`;
- * making it required is 621 mechanical test edits, so it is tracked as #1428
- * rather than folded in here. `OutputExtensions.test.ts` pins it, so a seventh
- * cannot appear quietly.
+ * Five of those six went with #1319. #1428 removed the sixth, the code
+ * generator's `false` fallback for an omitted option: no options type carries a
+ * mode any more, and every pass reads 1.1's answer from `Program`.
+ * `OutputExtensions.test.ts` pins that no silent default remains, tests
+ * included, so a new one cannot appear quietly.
  *
  * Consumers take the extension string they need. Only the run's owner asks this
  * class, so changing how a mode maps to an extension is one edit.

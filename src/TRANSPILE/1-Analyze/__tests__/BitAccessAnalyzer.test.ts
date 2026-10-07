@@ -11,7 +11,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * source.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new BitAccessAnalyzer(context).analyze(tree);
 };
 

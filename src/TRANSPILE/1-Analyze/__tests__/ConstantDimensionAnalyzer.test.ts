@@ -6,7 +6,10 @@ function errors(
   source: string,
   helpers?: Record<string, string>,
 ): { code: string; line: number; column: number; message: string }[] {
-  const { tree, context } = testAnalysisContextFor(source, { helpers });
+  const { tree, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+    helpers,
+  });
   return new ConstantDimensionAnalyzer(context).analyze(tree);
 }
 

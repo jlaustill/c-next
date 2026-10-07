@@ -12,10 +12,10 @@ import BaseHeaderGenerator from "./BaseHeaderGenerator";
  */
 class CHeaderGenerator extends BaseHeaderGenerator {
   /**
-   * C uses pointer syntax for pass-by-reference
+   * #1428: this generator writes C
    */
-  protected getRefSuffix(): string {
-    return "*";
+  protected emitsCpp(): boolean {
+    return false;
   }
 }
 

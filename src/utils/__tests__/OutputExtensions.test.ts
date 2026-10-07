@@ -5,8 +5,8 @@
  * orchestrator each wrote `cppMode ? ".hpp" : ".h"` for themselves. They agreed
  * only because each had been hand-written the same way -- nothing made them
  * agree, and six defaulted the mode to `false`, so a site that was simply never
- * passed the value emitted `.h` in a C++ run with no diagnostic. Five are gone;
- * the sixth is pinned below rather than left unwatched.
+ * passed the value emitted `.h` in a C++ run with no diagnostic. Five went with
+ * #1319; #1428 removed the sixth, and the pin below keeps the count at zero.
  *
  * Counting where the *fact* lived (the issue's own table said four places) does
  * not catch that. Sharing a detection function would not have caught it either:
@@ -15,7 +15,7 @@
  * is still nine derivations. So the gate is on the derivation itself.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, sep } from "node:path";
+import { join } from "node:path";
 
 import { describe, it, expect } from "vitest";
 
@@ -45,13 +45,61 @@ const codeOf = (source: string): string =>
     .filter((line) => !/^\s*(?:\/\/|\/\*|\*)/.test(line))
     .join("\n");
 
-const tsFilesUnder = (dir: string): string[] => {
+/** This file: its self-test spells every shape below as a string. */
+const PIN = join("utils", "__tests__", "OutputExtensions.test.ts");
+
+/**
+ * #1428: every way a site has answered "C" (or "C++") for a run without being
+ * told. Case-insensitive so `isCppMode` counts; a member write such as
+ * `state.cppMode = false` is a state's own reset, not a default, so the
+ * `=` form only matches an identifier that does not follow a `.`.
+ */
+const SILENT_MODE_DEFAULTS: readonly RegExp[] = [
+  // a `??` fallback anywhere in a mode's value: `cppMode ?? false`,
+  // `cppMode: x ?? false`, `this.cppMode = cfg.cppRequired ?? false`,
+  // `isCppMode: overrides?.isCppMode ?? vi.fn(() => false)`
+  /\w*cppMode\s*[:=]?[^;,(){}]*?\?\?/gi,
+  // a typed or untyped `=` default: `cppMode: boolean = false`, `cppMode = true`
+  /(?<![.\w])\w*cppMode\s*(?::\s*boolean\s*)?=\s*(?:true|false)\b/gi,
+  // a spread default, on one line or several: `{ cppMode: false, ...options }`
+  /\w*cppMode\s*:\s*(?:true|false)\s*,\s*\.\.\./gi,
+  // a truthy read of a mode that might not be there: `options?.cppMode`
+  /\?\.\w*cppMode\b/gi,
+  // a defaulted header options object, whose mode a caller then never stated
+  /IHeaderOptions\s*=\s*\{\s*\}/g,
+];
+
+/**
+ * The one exemption: the walk state's initial value, which `generate()`
+ * overwrites with the program's mode before anything reads it. Its `reset()`
+ * is a member write, which the forms above do not match.
+ */
+const STATE_INITIAL_VALUE = `${join("TRANSPILE", "TranspileState.ts")}: cppMode: boolean = false`;
+
+/**
+ * #1428: a mode a caller, a mock or a facts object may leave out. A truthy
+ * read of one (`facts.cppMode ? cpp : c`) then answers C, and nothing types
+ * or pins the read. Every mode in `src/` is 1.1's answer carried, so none is
+ * optional.
+ */
+const OPTIONAL_MODE = /\w*cppMode\?\s*:/gi;
+
+const optionalModesIn = (code: string): string[] =>
+  [...code.matchAll(OPTIONAL_MODE)].map((match) => match[0]);
+
+const silentModeDefaultsIn = (code: string): string[] =>
+  SILENT_MODE_DEFAULTS.flatMap((form) =>
+    [...code.matchAll(form)].map((match) => match[0]),
+  );
+
+const tsFilesUnder = (dir: string, withTests: boolean): string[] => {
   const found: string[] = [];
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
-      if (entry === "__tests__" || entry === "node_modules") continue;
-      found.push(...tsFilesUnder(full));
+      if (entry === "node_modules") continue;
+      if (entry === "__tests__" && !withTests) continue;
+      found.push(...tsFilesUnder(full, withTests));
       continue;
     }
     if (entry.endsWith(".ts") && !entry.endsWith(".d.ts")) found.push(full);
@@ -80,7 +128,7 @@ describe("OutputExtensions (#1319)", () => {
     // harness drives the CLI precisely so it does not import transpiler
     // internals, so that copy is an independent oracle rather than a tenth
     // derivation.
-    const offenders = tsFilesUnder(SRC_ROOT)
+    const offenders = tsFilesUnder(SRC_ROOT, false)
       .filter((file) =>
         MODE_TO_EXTENSION.test(codeOf(readFileSync(file, "utf-8"))),
       )
@@ -105,31 +153,95 @@ describe("OutputExtensions (#1319)", () => {
     expect(MODE_TO_EXTENSION.test("cppMode ? CPP : C")).toBe(false);
   });
 
-  it("pins the one silent mode default that remains (#1428)", () => {
+  it("has no silent mode default under src/, tests included (#1428)", () => {
     // The ternary scan above cannot see a DEFAULT, which is the other way a
-    // site answers "C" without being told. Six existed; five were removed with
-    // the derivations. This fails if a seventh appears -- and also once #1428
-    // lands, which is the prompt to delete this exemption rather than a defect.
-    const defaults = tsFilesUnder(SRC_ROOT)
-      .filter((file) =>
-        codeOf(readFileSync(file, "utf-8"))
-          .split("\n")
-          // `this.cppMode = false` in reset() is a reset, not a default.
-          .filter((line) => !line.includes("this.cppMode ="))
-          .some((line) => /cppMode\s*(?:\?\?|=)\s*false/.test(line)),
+    // site answers "C" without being told. #1319 removed five and #1428 the
+    // last (the code generator's fallback for an omitted option), so this
+    // expects none. Tests are scanned too: a helper that defaults the mode
+    // lets every test calling it claim C without saying so. Whole-file text,
+    // so a default split across lines is still one match.
+    const found = tsFilesUnder(SRC_ROOT, true)
+      .filter((file) => !file.endsWith(PIN))
+      .flatMap((file) =>
+        silentModeDefaultsIn(codeOf(readFileSync(file, "utf-8"))).map(
+          (match) => `${file.slice(SRC_ROOT.length + 1)}: ${match}`,
+        ),
       )
-      .map((file) => file.slice(SRC_ROOT.length + 1));
+      .filter((entry) => entry !== STATE_INITIAL_VALUE);
 
-    expect(defaults).toEqual([
-      // #1445 box 3: the site did not change, its file did. `generate()` takes
-      // the parse tree, so it moved to the walker with the rest of the walk.
-      ["TRANSPILE", "CodeGenWalker.ts"].join(sep),
-    ]);
+    expect(found).toEqual([]);
+  });
+
+  it("has no mode on any options type (#1428)", () => {
+    // An options field is a caller's argument: one that is optional lets a
+    // partial object claim C, and one that is required is still a second
+    // copy of 1.1's answer. Codegen and headers read the mode from Program.
+    const optionTypes = [
+      join(
+        "TRANSPILE",
+        "3-Render",
+        "codegen",
+        "types",
+        "ICodeGeneratorOptions.ts",
+      ),
+      join("TRANSPILE", "3-Render", "codegen", "types", "IHeaderOptions.ts"),
+    ];
+    const carryingMode = optionTypes.filter((file) =>
+      /cppMode/i.test(codeOf(readFileSync(join(SRC_ROOT, file), "utf-8"))),
+    );
+
+    expect(carryingMode).toEqual([]);
+  });
+
+  it("has no optional mode anywhere under src/, tests included (#1428)", () => {
+    // Whole-file text, as above: any type, not just the two options types.
+    const found = tsFilesUnder(SRC_ROOT, true)
+      .filter((file) => !file.endsWith(PIN))
+      .flatMap((file) =>
+        optionalModesIn(codeOf(readFileSync(file, "utf-8"))).map(
+          (match) => `${file.slice(SRC_ROOT.length + 1)}: ${match}`,
+        ),
+      );
+
+    expect(found).toEqual([]);
+  });
+
+  it("detects every silent-default shape it hunts for (#1428)", () => {
+    // A pin that matches nothing passes as cleanly as one that holds.
+    const caught = (code: string): boolean =>
+      silentModeDefaultsIn(code).length > 0;
+
+    expect(caught("this.host.state.cppMode = options?.cppMode ?? false;")).toBe(
+      true,
+    );
+    expect(caught("this.cppMode = this.config.cppRequired ?? false;")).toBe(
+      true,
+    );
+    expect(caught("isCppMode ?? false")).toBe(true);
+    expect(caught("isCppMode: o?.isCppMode ?? vi.fn(() => false),")).toBe(true);
+    expect(caught("static build(cppMode: boolean = false) {}")).toBe(true);
+    expect(caught("const analyze = (cppMode = true) => cppMode;")).toBe(true);
+    expect(caught("({\n  cppMode: false,\n  ...options,\n})")).toBe(true);
+    expect(caught("generate(options: IHeaderOptions = {}) {}")).toBe(true);
+    expect(caught("const generator = options?.cppMode ? cpp : c;")).toBe(true);
+
+    // Negative controls: stating the mode, or a state reset, is not a default.
+    expect(caught("state.cppMode = false;")).toBe(false);
+    expect(caught("this.cppMode = false;")).toBe(false);
+    expect(caught("({ cppMode: false, symbolInfo })")).toBe(false);
+    expect(caught("({ ...options, cppMode: false })")).toBe(false);
+    expect(caught("cppMode: program.cppMode(),")).toBe(false);
+
+    // An optional mode, on any type; a required one is not.
+    expect(optionalModesIn("readonly cppMode?: boolean;")).toHaveLength(1);
+    expect(optionalModesIn("isCppMode?: () => boolean;")).toHaveLength(1);
+    expect(optionalModesIn("readonly cppMode: boolean;")).toEqual([]);
+    expect(optionalModesIn("facts.cppMode ? cpp : c")).toEqual([]);
   });
 
   it("is reachable -- the owner is actually used", () => {
     // A gate on "nobody derives this" goes green if nobody needs it either.
-    const callers = tsFilesUnder(SRC_ROOT)
+    const callers = tsFilesUnder(SRC_ROOT, false)
       .filter((file) => !file.endsWith(OWNER))
       .filter((file) =>
         /OutputExtensions\.forCppMode\(/.test(readFileSync(file, "utf-8")),

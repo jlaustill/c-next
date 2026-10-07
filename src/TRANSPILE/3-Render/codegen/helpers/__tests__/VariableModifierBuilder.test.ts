@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import VariableModifierBuilder from "../VariableModifierBuilder";
 
+/** #1428: each test states the run's mode; the builder has no default. */
+const C_RUN = { cppMode: false };
+const CPP_RUN = { cppMode: true };
+
 describe("VariableModifierBuilder", () => {
   describe("build", () => {
     it("returns empty modifiers when no modifiers present", () => {
@@ -10,7 +14,7 @@ describe("VariableModifierBuilder", () => {
         volatileModifier: () => null,
       };
 
-      const result = VariableModifierBuilder.build(ctx, true);
+      const result = VariableModifierBuilder.build(ctx, true, false, C_RUN);
 
       expect(result.const).toBe("");
       expect(result.atomic).toBe("");
@@ -25,7 +29,7 @@ describe("VariableModifierBuilder", () => {
         volatileModifier: () => null,
       };
 
-      const result = VariableModifierBuilder.build(ctx, true);
+      const result = VariableModifierBuilder.build(ctx, true, false, C_RUN);
 
       expect(result.const).toBe("const ");
     });
@@ -37,7 +41,7 @@ describe("VariableModifierBuilder", () => {
         volatileModifier: () => null,
       };
 
-      const result = VariableModifierBuilder.build(ctx, true);
+      const result = VariableModifierBuilder.build(ctx, true, false, C_RUN);
 
       expect(result.atomic).toBe("volatile ");
     });
@@ -49,7 +53,7 @@ describe("VariableModifierBuilder", () => {
         volatileModifier: () => ({}),
       };
 
-      const result = VariableModifierBuilder.build(ctx, true);
+      const result = VariableModifierBuilder.build(ctx, true, false, C_RUN);
 
       expect(result.volatile).toBe("volatile ");
     });
@@ -62,7 +66,7 @@ describe("VariableModifierBuilder", () => {
       };
 
       // Declaration (no initializer) in C mode - should have extern
-      const result = VariableModifierBuilder.build(ctx, false, false, false);
+      const result = VariableModifierBuilder.build(ctx, false, false, C_RUN);
 
       expect(result.extern).toBe("extern ");
     });
@@ -78,7 +82,7 @@ describe("VariableModifierBuilder", () => {
       };
 
       // Definition (has initializer) in C mode - should NOT have extern
-      const result = VariableModifierBuilder.build(ctx, false, true, false);
+      const result = VariableModifierBuilder.build(ctx, false, true, C_RUN);
 
       expect(result.extern).toBe("");
     });
@@ -93,7 +97,7 @@ describe("VariableModifierBuilder", () => {
       };
 
       // Definition (has initializer) in C++ mode - SHOULD have extern for external linkage
-      const result = VariableModifierBuilder.build(ctx, false, true, true);
+      const result = VariableModifierBuilder.build(ctx, false, true, CPP_RUN);
 
       expect(result.extern).toBe("extern ");
     });
@@ -105,7 +109,7 @@ describe("VariableModifierBuilder", () => {
         volatileModifier: () => null,
       };
 
-      const result = VariableModifierBuilder.build(ctx, true);
+      const result = VariableModifierBuilder.build(ctx, true, false, C_RUN);
 
       expect(result.extern).toBe("");
     });
@@ -118,9 +122,9 @@ describe("VariableModifierBuilder", () => {
         start: { line: 42 },
       };
 
-      expect(() => VariableModifierBuilder.build(ctx, true)).toThrow(
-        "E0889 rejects this in pass 2.1",
-      );
+      expect(() =>
+        VariableModifierBuilder.build(ctx, true, false, C_RUN),
+      ).toThrow("E0889 rejects this in pass 2.1");
     });
 
     // #1322: "includes line number in error when both modifiers specified" is

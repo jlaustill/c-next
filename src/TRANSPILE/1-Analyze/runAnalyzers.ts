@@ -102,19 +102,6 @@ interface IAnalyzerOptions {
    * with nothing failing.
    */
   readonly includes: IIncludeContext;
-
-  /**
-   * #1322: whether this run emits C++.
-   *
-   * From `Transpiler.cppMode`, set once for the whole run, for the same reason
-   * as `includes`: `CodeGenState.cppMode` is written inside
-   * `CodeGenerator.generate()`. Measured at the first analyzer step, it is
-   * `false` for a run's first file and holds the PREVIOUS file's value for
-   * every file after -- so a rule copying codegen's guard would fire for files
-   * 2..N and stay silent for file 1, which is worse than never firing because
-   * it looks like it works.
-   */
-  readonly cppMode: boolean;
 }
 
 /**
@@ -243,11 +230,7 @@ function runAnalyzers(
       label:
         "C++ class initializers (Issue #517: no statement position at file scope)",
       run: () =>
-        new CppClassInitializerAnalyzer(context).analyze(
-          tree,
-          options.cppMode,
-          symbolTable,
-        ),
+        new CppClassInitializerAnalyzer(context).analyze(tree, symbolTable),
     },
     {
       // A malformed identifier feeds a bad name into every later analysis.

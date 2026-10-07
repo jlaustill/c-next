@@ -140,7 +140,7 @@ u32 after <- 1;`;
       ["a struct", "Point"],
       ["a register", "GPIO"],
     ])("returns null for %s identifier when outside scope", (_what, name) => {
-      const { context } = testAnalysisContextFor(SOURCE);
+      const { context } = testAnalysisContextFor(SOURCE, { cppMode: false });
       setupState({ symbols: context.symbols, currentScopePath: "" });
       state.program = context.program;
       state.sourcePath = context.sourceFile;

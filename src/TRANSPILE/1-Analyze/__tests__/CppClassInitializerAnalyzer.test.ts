@@ -31,14 +31,15 @@ const withCppClass = (className: string) => {
   return table;
 };
 
-const analyze = (source: string, table: SymbolTable, cppMode = true) => {
+const analyze = (source: string, table: SymbolTable, cppMode: boolean) => {
+  // #1428: the analyzer reads the run's mode from `Program`, as in a run.
   const { tree, context } = testAnalysisContextFor(source, {
     symbolTable: table,
+    cppMode,
   });
   // Production hands the analyzer the same table its context carries.
   return new CppClassInitializerAnalyzer(context).analyze(
     tree,
-    cppMode,
     context.symbolTable,
   );
 };
@@ -50,7 +51,7 @@ describe("CppClassInitializerAnalyzer (E0508)", () => {
       "",
       "void main() {}",
     ].join("\n");
-    const [found] = analyze(source, withCppClass("CppTestClass"));
+    const [found] = analyze(source, withCppClass("CppTestClass"), true);
     expect([found.code, found.line]).toEqual(["E0508", 1]);
     expect(found.column).toBeGreaterThan(20);
     expect(found.message).toContain("CppTestClass");
@@ -68,7 +69,7 @@ describe("CppClassInitializerAnalyzer (E0508)", () => {
       "void main() {}",
     ].join("\n");
     expect(
-      analyze(source, withCppClass("CppTestClass")).map((e) => e.line),
+      analyze(source, withCppClass("CppTestClass"), true).map((e) => e.line),
     ).toEqual([2]);
   });
 
@@ -83,7 +84,7 @@ describe("CppClassInitializerAnalyzer (E0508)", () => {
       "    }",
       "}",
     ].join("\n");
-    expect(analyze(source, withCppClass("CppTestClass"))).toEqual([]);
+    expect(analyze(source, withCppClass("CppTestClass"), true)).toEqual([]);
   });
 
   it("stays silent for a type with no constructor, in the same position", () => {
@@ -93,7 +94,7 @@ describe("CppClassInitializerAnalyzer (E0508)", () => {
       "",
       "void main() {}",
     ].join("\n");
-    expect(analyze(source, new SymbolTable())).toEqual([]);
+    expect(analyze(source, new SymbolTable(), true)).toEqual([]);
   });
 
   it("stays silent in C mode, where E0507 has already rejected the header", () => {
@@ -111,7 +112,7 @@ describe("CppClassInitializerAnalyzer (E0508)", () => {
       "",
       "void main() {}",
     ].join("\n");
-    const [found] = analyze(source, withCppClass("TestNS::MyClass"));
+    const [found] = analyze(source, withCppClass("TestNS::MyClass"), true);
     expect(found?.message).toContain("TestNS::MyClass");
   });
 });

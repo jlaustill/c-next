@@ -33,9 +33,10 @@
  *
  * ## What it may read
  *
- * `cppMode` is handed in from `Transpiler`, never read from `CodeGenState`,
- * whose copy is written inside `CodeGenerator.generate()` -- measured `false`
- * for a run's first file and the PREVIOUS file's value afterwards. The symbol
+ * The run's mode is read from `Program` (#1428), which carries 1.1's answer,
+ * never from `TranspileState`, whose copy is written inside
+ * `CodeGenWalker.generate()` -- measured `false` for a run's first file and the
+ * PREVIOUS file's value afterwards. The symbol
  * table is filled in stage 2 and is correct here; `CppConstructorHelper` was
  * moved to `src/utils/` because asking it is a symbol-model question, and 2.1
  * may not import `output/`.
@@ -143,12 +144,11 @@ class CppClassInitializerAnalyzer {
 
   public analyze(
     tree: Parser.ProgramContext,
-    cppMode: boolean,
     symbolTable: SymbolTable,
   ): ICppClassInitializerError[] {
     // C mode never emits a C++ class: a `.hpp` include in a C run is E0507,
     // reported before this pass, so there is nothing here to decide.
-    if (!cppMode) return [];
+    if (!this.context.program.cppMode()) return [];
 
     const listener = new CppClassInitializerListener(symbolTable, this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);

@@ -13,7 +13,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * end to end.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new SafeDivisionAnalyzer(context).analyze(tree);
 };
 

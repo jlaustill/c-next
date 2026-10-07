@@ -24,7 +24,6 @@ interface IHeaderEmissionRequest {
   readonly includes: ReadonlyMap<string, IFileIncludes>;
   /** This file's entry in `includes`, looked up once, by the host */
   readonly ownIncludes: IFileIncludes;
-  readonly cppMode: boolean;
 }
 
 export default IHeaderEmissionRequest;

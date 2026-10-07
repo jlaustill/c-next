@@ -22,12 +22,6 @@ interface IHeaderOptions {
   externalTypeHeaders?: ReadonlyMap<string, string>;
 
   /**
-   * Issue #409: C++ mode - use references instead of pointers for parameters.
-   * This allows C-Next callbacks to match C++ function pointer signatures.
-   */
-  cppMode?: boolean;
-
-  /**
    * Issue #1164: the source's own C/C++ headers were propagated into this
    * header because it names something only they define.
    *

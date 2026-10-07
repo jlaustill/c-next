@@ -59,6 +59,7 @@ function initializerOf(
   helpers?: Record<string, string>,
 ): { node: Parser.ExpressionContext; ctx: ITypingContext } {
   const { tree, context } = testAnalysisContextFor(source, {
+    cppMode: false,
     symbolTable,
     helpers,
   });
@@ -809,7 +810,9 @@ void main() {
 describe("OperandTyper.chainOf", () => {
   /** The first assignment target in `source`, and the context to type it */
   function targetOf(source: string) {
-    const { tree, context } = testAnalysisContextFor(source);
+    const { tree, context } = testAnalysisContextFor(source, {
+      cppMode: false,
+    });
     let found: Parser.AssignmentTargetContext | null = null;
     ParseTreeWalker.DEFAULT.walk(
       new (class extends CNextListener {

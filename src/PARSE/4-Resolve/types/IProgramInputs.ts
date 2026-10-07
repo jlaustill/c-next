@@ -61,6 +61,14 @@ interface IProgramInputs {
    * test builds a program that never asks for its target.
    */
   readonly target?: IRunTargetInputs;
+
+  /**
+   * #1428: does the run emit C++? 1.1 Discover's answer (`ISourceGraph.cppMode`,
+   * #1844), carried by the program so every pass after 1.4 reads that one fact
+   * rather than being handed a copy. Required: a program never answers "C"
+   * for a run that did not say so, so a test states its mode as a run does.
+   */
+  readonly cppMode: boolean;
   /**
    * #1175: the files that include a C or C++ header, directly or
    * transitively. A `#define` never reaches the symbol model, so in these a

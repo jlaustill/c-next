@@ -47,6 +47,7 @@ function analyze(statement: string): {
 } {
   const { tree, context } = testAnalysisContextFor(
     `${DECLARATIONS}\nvoid main() {\n    ${statement}\n}`,
+    { cppMode: false },
   );
   let target: Parser.AssignmentTargetContext | null = null;
   ParseTreeWalker.DEFAULT.walk(

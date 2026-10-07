@@ -149,7 +149,6 @@ class HeaderEmissionCapture {
         // live by the render.
         registerBlocks: [...state.exportedRegisterBlocks],
         externalTypeHeaders,
-        cppMode: request.cppMode,
         // #1517: 2.2 Plan decides; the header generator prints. Possible only
         // since #1520 made `headerCType` the one answer to "what does this
         // header call this type" -- before that, deciding from the symbols

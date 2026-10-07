@@ -32,6 +32,7 @@ function build(
   header: ReadonlyArray<TCSymbol> = [],
 ): IProgram {
   return Program.build([CNextResolver.resolve(parse(source), FILE, registry)], {
+    cppMode: false,
     filesReachingForeignHeaders: new Set(reachesHeader ? [FILE] : []),
     // Scope bindings are the registry's, as in a real run
     registry,

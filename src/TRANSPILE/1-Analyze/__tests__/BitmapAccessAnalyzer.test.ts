@@ -17,7 +17,7 @@ const FLAGS = "bitmap8 Flags { Mode[3], Enable, Reserved[4] }";
 const REGISTER = "register R @ 0x40000000 { CTRL: Flags rw @ 0x00, }";
 
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new BitmapAccessAnalyzer(context).analyze(tree);
 };
 
