@@ -207,7 +207,7 @@ ASSERT the returned issue count is strictly less than the --limit above. If it
 DETERMINE ACTIVE_MILESTONE = the open milestone with at least one open issue that has
   the LOWEST version number (this repo uses a milestone as its sprint — see
   docs/WORKFLOW.md, "Releases are issues"). Compare by version, not by text: `v0.1.10`
-  is later than `v0.1.9`. Ignore letter case only while `V0.4.1` is miscased (#1920).
+  is later than `v0.1.9`.
   If the user names a release (`/issue-check <milestone>`), use that one.
 
   Not "the milestone with the most open issues". The two agreed only while the release
