@@ -11,6 +11,7 @@ import EFileType from "./types/EFileType";
 import type IDiscoveredFile from "./types/IDiscoveredFile";
 import type IHeaderRoot from "./types/IHeaderRoot";
 import type IFileSystem from "../../types/IFileSystem";
+import type ITranspileError from "../../lib/types/ITranspileError";
 import type IInMemorySource from "./types/IInMemorySource";
 import type IPipelineFile from "./types/IPipelineFile";
 import type IRunAnchor from "./types/IRunAnchor";
@@ -51,6 +52,9 @@ class Discover {
   /** Per file, in the order discovery visits them (see `ISourceGraph`). */
   private readonly includes = new Map<string, IFileIncludes>();
 
+  /** The run's discovery errors: E0509, each at its header's marker (#1542). */
+  private readonly errors: ITranspileError[] = [];
+
   /**
    * Issue #1467: PathResolver's answer to "where is this .cnx's header
    * reachable from?", bound to the run's header extension. Handed to
@@ -80,10 +84,9 @@ class Discover {
    *
    * @param previousAnchor - The last run's anchor, which a run anchored at the
    *   same place reuses (see `RunAnchor.at`)
-   * @param warnings - Where discovery's warnings go. A sink rather than part
-   *   of the answer, because a C/C++ entry point's missing source is thrown
-   *   AFTER the warnings that usually explain it are recorded (#1541)
-   * @returns the frozen graph, and the anchor the run's services come from
+   * @param warnings - Where discovery's warnings go
+   * @returns the frozen graph, the anchor the run's services come from, and
+   *   the errors that reject the run. A run with errors has an empty graph.
    */
   static run(
     input: TTranspileInput,
@@ -92,7 +95,11 @@ class Discover {
     headerExtension: THeaderExtension,
     fs: IFileSystem,
     warnings: string[],
-  ): { readonly graph: ISourceGraph; readonly anchor: IRunAnchor } {
+  ): {
+    readonly graph: ISourceGraph;
+    readonly anchor: IRunAnchor;
+    readonly errors: readonly ITranspileError[];
+  } {
     const root = input.kind === "source" ? Discover._inMemoryRoot(input) : null;
     // #1719: a source run is anchored where its text lives -- its project
     // root, compile database, and the base its `#include`s and guards are
@@ -120,7 +127,11 @@ class Discover {
       input.kind === "source" && root !== null
         ? discovery._fromSource(root, input.includeDirs ?? [])
         : discovery._fromFiles();
-    return { graph: discovery._freeze(files), anchor };
+    return {
+      graph: discovery._freeze(files),
+      anchor,
+      errors: discovery.errors,
+    };
   }
 
   /**
@@ -241,38 +252,24 @@ class Discover {
     );
     const scanResult = scanner.scan(entryPath);
 
-    // #1541: these are ERRORS, and they now behave like it.
+    // #1541: these are ERRORS, and they now behave like it. They were pushed
+    // onto `this.warnings`, which exited 0 with zero output files while the
+    // same fault reached through a quoted include is E0506 and exits 1.
     //
-    // They were pushed onto `this.warnings` with a hand-written `Error: `
-    // prefix, which produced `Warning: Error: C-Next source not found: x.cnx`
-    // and, far worse, exit 0 with zero output files -- while the same fault
-    // reached through a quoted include is E0506 and exits 1. Two discovery
-    // routes, one class of fault, opposite outcomes.
+    // #1542: and they are reported, not thrown. A throw reached the user at
+    // `1:0` behind `Pipeline failed:`; each error now carries its header's
+    // marker as its position, as every other diagnostic carries its own.
     //
-    // The comment that stood here said the prefix was "to distinguish from
-    // informational warnings", which states the conflation rather than
-    // resolving it: `IScanResult` already separates the two, and only this
-    // consumer merged them.
-    //
-    // This is the shape #1319 settled twice in the catches above -- a
-    // deliberate rejection propagates, an incidental failure degrades. The
-    // error was buried doubly here, because a marker found with no source also
-    // sets `noCNextFound`, so the run additionally printed the friendly
-    // "To get started:" onboarding text at a user whose header path was wrong.
-    // The warnings are pushed BEFORE the throw, deliberately. The scan collects
-    // `#include "x.h" not found (from ...)` and `Could not read <path>`, and a
-    // missing C-Next source is very often downstream of exactly those -- so
-    // throwing first would report "that source is not there" while discarding
-    // the reason. `ResultPrinter` emits warnings above errors, so they land
-    // where a reader looks next.
+    // The warnings are kept beside them: the scan collects `#include "x.h" not
+    // found (from ...)` and `Could not read <path>`, and a missing C-Next source
+    // is very often downstream of exactly those. A marker found with no source
+    // also sets `noCNextFound`, so the errors are checked first: the run is
+    // rejected, not told "No C-Next source files found".
     this.warnings.push(...scanResult.warnings);
 
     if (scanResult.errors.length > 0) {
-      throw new Error(
-        `E0509: ${scanResult.errors.join("\n       ")}\n` +
-          `  A generated header records the C-Next source it was written from.\n` +
-          `  Check that source is present, and reachable from the include path.`,
-      );
+      this.errors.push(...scanResult.errors);
+      return Discover._noCNextFiles();
     }
 
     if (scanResult.noCNextFound) {
