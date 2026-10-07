@@ -19,7 +19,7 @@ import type IHeaderInclude from "./types/IHeaderInclude";
 import type IHeaderRoot from "./types/IHeaderRoot";
 import type PreprocessCache from "./preprocessor/PreprocessCache";
 import type IFileSystem from "../../types/IFileSystem";
-import type ITranspileError from "../../lib/types/ITranspileError";
+import type ITranspileError from "../../types/ITranspileError";
 import type IInMemorySource from "./types/IInMemorySource";
 import type IPipelineFile from "./types/IPipelineFile";
 import type IRunAnchor from "./types/IRunAnchor";

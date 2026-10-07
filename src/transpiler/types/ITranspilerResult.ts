@@ -1,4 +1,4 @@
-import ITranspileError from "../../lib/types/ITranspileError";
+import ITranspileError from "../../types/ITranspileError";
 import IGrammarCoverageReport from "../../types/IGrammarCoverageReport";
 import IFileResult from "../../types/IFileResult";
 import type IRecordedRequirement from "../../types/IRecordedRequirement";

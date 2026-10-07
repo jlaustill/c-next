@@ -1,4 +1,4 @@
-import type ITranspileError from "../lib/types/ITranspileError";
+import type ITranspileError from "./ITranspileError";
 
 /**
  * 2.1 Analyze's artifact: every rejection C-Next makes about a whole program.

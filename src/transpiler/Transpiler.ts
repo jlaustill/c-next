@@ -10,35 +10,23 @@
  */
 
 import type TRunTarget from "../types/TRunTarget";
-import { basename, resolve, relative, sep } from "node:path";
 import { availableParallelism } from "node:os";
-import type IConflict from "../types/IConflict";
 
 import IFileSystem from "../types/IFileSystem";
 
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import CNextSourceParser from "../PARSE/2-Parse/CNextSourceParser";
-import HeaderParser from "../PARSE/2-Parse/HeaderParser";
 
 import CodeGenWalker from "../TRANSPILE/CodeGenWalker";
 import invariant from "../utils/invariant";
-import CodedErrorText from "../utils/CodedErrorText";
-import AutoConstRule from "../utils/AutoConstRule";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
 import PublicInterface from "../TRANSPILE/2-Plan/PublicInterface";
 import HeaderGenerator from "../TRANSPILE/3-Render/headers/HeaderGenerator";
 import HeaderRenderer from "../TRANSPILE/3-Render/headers/HeaderRenderer";
-import HeaderTypeNames from "../TRANSPILE/2-Plan/HeaderTypeNames";
-import HeaderIncludes from "../TRANSPILE/2-Plan/HeaderIncludes";
-import QualifiedCName from "../utils/QualifiedCName";
-import ExternalTypeHeaderBuilder from "../TRANSPILE/3-Render/headers/ExternalTypeHeaderBuilder";
-import HeaderGeneratorUtils from "../TRANSPILE/3-Render/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "../TRANSPILE/3-Render/headers/types/IHeaderEmissionFacts";
-import IHeaderCallbackType from "../types/IHeaderCallbackType";
 import SymbolTable from "../PARSE/3-Declare/SymbolTable";
-import type TranspileState from "../TRANSPILE/TranspileState";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
 import CNextResolver from "../PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "../PARSE/3-Declare/SymbolRegistry";
@@ -46,16 +34,11 @@ import Program from "../PARSE/4-Resolve/Program";
 import type IProgram from "../types/IProgram";
 import type IFileSymbols from "../types/IFileSymbols";
 import type IParsedFile from "../types/IParsedFile";
-import CResolver from "../PARSE/3-Declare/c/index";
-import CppResolver from "../PARSE/3-Declare/cpp/index";
-import HeaderSymbolAdapter from "../TRANSPILE/3-Render/headers/adapters/HeaderSymbolAdapter";
-import IHeaderSymbol from "../TRANSPILE/3-Render/headers/types/IHeaderSymbol";
 import TSymbol from "../types/symbols/TSymbol";
 
 import IDiscoveredFile from "../PARSE/1-Discover/types/IDiscoveredFile";
 import EHeaderLanguage from "../PARSE/1-Discover/types/EHeaderLanguage";
 import type IHeaderSource from "../PARSE/1-Discover/types/IHeaderSource";
-import type IRecoveredSlice from "../PARSE/1-Discover/types/IRecoveredSlice";
 import OutputExtensions from "../utils/OutputExtensions";
 import type IOutputExtensions from "../types/IOutputExtensions";
 
@@ -72,7 +55,7 @@ import type IFileIncludes from "../PARSE/1-Discover/types/IFileIncludes";
 import Discover from "../PARSE/1-Discover/Discover";
 import RunAnchor from "../PARSE/1-Discover/RunAnchor";
 import TTranspileInput from "../types/TTranspileInput";
-import ITranspileError from "../lib/types/ITranspileError";
+import ITranspileError from "../types/ITranspileError";
 import runAnalyzers from "../TRANSPILE/1-Analyze/runAnalyzers";
 import Diagnostics from "../TRANSPILE/1-Analyze/Diagnostics";
 import type IDiagnostics from "../types/IDiagnostics";
@@ -81,13 +64,16 @@ import CacheManager from "../utils/cache/CacheManager";
 import PreprocessCache from "../PARSE/1-Discover/preprocessor/PreprocessCache";
 import ConcurrencyLimit from "../utils/ConcurrencyLimit";
 import ExternalDeclarationOracle from "../PARSE/1-Discover/preprocessor/ExternalDeclarationOracle";
-import TypedefParamParser from "../TRANSPILE/3-Render/codegen/helpers/TypedefParamParser";
 import type IRecordedRequirement from "../types/IRecordedRequirement";
 import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../utils/RequirementAggregator";
 import TargetCatalogFile from "../PARSE/1-Discover/TargetCatalogFile";
 import Write from "../WRITE/1-Write/Write";
 import CaughtError from "../utils/CaughtError";
+import HeaderDeclarations from "../PARSE/3-Declare/HeaderDeclarations";
+import ProgramChecks from "../PARSE/4-Resolve/ProgramChecks";
+import IncludeGuards from "../TRANSPILE/3-Render/headers/IncludeGuards";
+import HeaderEmissionCapture from "../TRANSPILE/3-Render/headers/HeaderEmissionCapture";
 
 /** A header's cache entry, as `CacheManager` returns it. */
 type TCachedHeader = NonNullable<ReturnType<CacheManager["getSymbols"]>>;
@@ -552,7 +538,7 @@ class Transpiler {
    *
    * A file whose `.c` generation already failed (`fileResult.success` is
    * already `false`) has no captured record to render and is skipped --
-   * `_captureHeaderEmissionFacts` is only reached from inside the same try
+   * `HeaderEmissionCapture.capture` is only reached from inside the same try
    * block that produced that failure.
    */
   private _renderHeaders(
@@ -1140,11 +1126,17 @@ class Transpiler {
       // warm (reads from state populated above), but do not render it here.
       // HeaderRenderer renders every file's header in one step, after
       // this per-file loop finishes -- headerCode is filled in there.
-      const headerFacts = this._captureHeaderEmissionFacts(
-        file,
+      const headerFacts = HeaderEmissionCapture.capture({
+        sourcePath,
         program,
-        symbolInfo,
-      );
+        typeInput: symbolInfo,
+        state: this.codeGenerator.transpileState,
+        unmodifiedParams: this.codeGenerator.getFunctionUnmodifiedParams(),
+        anchor: this._requireSourceGraph().anchor,
+        headerExtension: this.outputExtensions.header,
+        includes: this._requireSourceGraph().includes,
+        cppMode: this.cppMode,
+      });
       if (headerFacts) {
         this.headerEmissionFactsByPath.set(sourcePath, headerFacts);
       }
@@ -1152,7 +1144,7 @@ class Transpiler {
       // Issue #1143: read after header-facts CAPTURE, and before the next
       // file's TranspileState.reset() clears the recording map. This covers a
       // requirement that capturing a header's facts triggers (e.g. through
-      // convertToHeaderSymbols) -- it does NOT cover one the RENDER might
+      // HeaderEmissionCapture.convertToHeaderSymbols) -- it does NOT cover one the RENDER might
       // trigger, since #1323 moved rendering to Stage 5.5, after every file's
       // requirements have already been read here and reset() has run N times.
       // Currently unreachable rather than wrong: TranspileState.requireToolchain
@@ -1287,18 +1279,6 @@ class Transpiler {
   }
 
   /**
-   * True for a deliberate C-Next diagnostic rather than an incidental failure.
-   *
-   * Keyed on the `E<NNNN>: ` prefix -- the SHAPE, not any one code -- because
-   * that is already this codebase's identity for a diagnostic: `.expected.error`
-   * fixtures assert it and `docs/diagnostic-manifest.md` is generated from it.
-   * Reading the existing identity avoids inventing a second one to keep in step.
-   */
-  private static isDiagnostic(err: unknown): boolean {
-    return err instanceof Error && /^E\d{4}: /.test(err.message);
-  }
-
-  /**
    * Stage 2: Collect symbols from all C/C++ headers
    *
    * #1817: in two steps. `_prepareHeaders` settles every header's cache entry
@@ -1323,7 +1303,7 @@ class Transpiler {
         // `Compiled 1 files` and exit 0, which is the silent-failure shape the
         // diagnostic exists to remove. Diagnostics propagate; parse failures
         // still degrade.
-        if (Transpiler.isDiagnostic(err)) {
+        if (CaughtError.isDiagnostic(err)) {
           throw err;
         }
         this.warnings.push(
@@ -1368,10 +1348,13 @@ class Transpiler {
     const recovered = input.recoveredDeclarations;
     if (recovered === null) return;
 
-    const cleanState = this._parseRecoveredSlices(recovered.slices);
-    Transpiler._clearPhantomStructBodies(
+    const cleanState = HeaderDeclarations.recoverSlices(
+      recovered.slices,
+      this.codeGenerator.transpileState.symbolTable,
+    );
+    HeaderDeclarations.clearPhantomStructBodies(
       cleanState,
-      this.codeGenerator.transpileState,
+      this.codeGenerator.transpileState.symbolTable,
     );
 
     // Function-like macros have no declaration to parse; register their names for
@@ -1444,83 +1427,8 @@ class Transpiler {
   }
 
   /**
-   * Parse each header's own preprocessed slice with the real header parser so
-   * recovered symbols carry FULL types — function signatures, typedefs, opaque
-   * structs — not just names. Each slice is macro-expanded (so e.g. FreeRTOS
-   * PRIVILEGED_FUNCTION is gone and vTaskDelay parses) yet small (no inlined
-   * tree, so ANTLR error-recovery doesn't drop declarations). Codegen needs
-   * these to pass structs by address (twai_driver_install(&cfg)) and treat
-   * opaque framework types as pointers (lv_obj_t -> lv_obj_t*).
-   *
-   * A second, isolated table is parsed in parallel and returned: it is clean of
-   * the normal pass's degraded-blob data, so it holds the AUTHORITATIVE
-   * opaque/struct-body truth. The main table parses each slice with the parser
-   * of the language 1.1 judged its header to be (#1844); the isolated table uses
-   * the C parser directly
-   * (opaque struct typedefs are a C concern) and tolerates slices it cannot
-   * parse -- except a deliberate diagnostic, which propagates.
-   */
-  private _parseRecoveredSlices(
-    slices: ReadonlyMap<string, IRecoveredSlice>,
-  ): SymbolTable {
-    const cleanState = new SymbolTable();
-    for (const [path, { text: content, language }] of slices) {
-      try {
-        this._parseHeaderText(content, path, language);
-      } catch (err) {
-        // #1319: same decision as the sibling catch in _collectAllHeaderSymbols:
-        // swallowing a diagnostic here would produce the `Compiled N files` /
-        // exit 0 shape diagnostics exist to remove -- so "is this a deliberate
-        // diagnostic?" is answered in both places or in neither.
-        if (Transpiler.isDiagnostic(err)) {
-          throw err;
-        }
-        // A slice that won't parse leaves the (already-collected) symbols as they
-        // were — skip it rather than fail the build.
-      }
-      const { tree } = HeaderParser.parseC(content);
-      if (!tree) continue;
-      try {
-        CResolver.resolve(tree, path, cleanState);
-      } catch {
-        /* isolated best-effort — only its opaque/body verdict is consulted */
-      }
-    }
-    return cleanState;
-  }
-
-  /**
-   * Undo PHANTOM struct bodies: when the normal pass parsed a header's huge
-   * preprocessed blob, ANTLR error-recovery could fabricate a `struct X { ... }`
-   * that was never really there (e.g. lvgl `struct _lv_obj_t`), which makes an
-   * opaque typedef look complete and defeats pointer codegen. The clean per-file
-   * re-parse (`cleanState`) is authoritative, so for every type it proves opaque,
-   * clear any body its tag does NOT actually have.
-   */
-  private static _clearPhantomStructBodies(
-    cleanState: SymbolTable,
-    state: TranspileState,
-  ): void {
-    const cleanBodies = new Set(cleanState.getAllStructTagsWithBodies());
-    for (const typedefName of cleanState.getAllOpaqueTypes()) {
-      if (!cleanState.isOpaqueType(typedefName)) continue;
-      const tag = state.symbolTable.getStructTagForTypedef(typedefName);
-      if (tag && !cleanBodies.has(tag)) {
-        state.symbolTable.clearStructTagHasBody(tag);
-      }
-    }
-  }
-
-  /**
-   * Stage 4b: Reject two source files that would produce the same include guard.
-   *
-   * ADR-063 builds the guard from the project-relative path in upper case, with
-   * non-alphanumerics collapsed to `_`. That keeps the generated artifact
-   * readable but is NOT injective — the case change is lossy, so `mod-a.cnx` and
-   * `mod_a.cnx` both land on CNX_MOD_A_H, as do filenames differing only by
-   * case. This check is what makes that residue loud instead of silent: before
-   * it, the preprocessor skipped the second header and the program ran with an
-   * implicitly-declared function and a wrong value (#1133).
+   * Stage 4b: Reject two source files that would produce the same include
+   * guard (ADR-063, #1133). The check is `IncludeGuards`'.
    *
    * @returns true when every guard is unique
    */
@@ -1528,45 +1436,36 @@ class Transpiler {
     cnextFiles: readonly IPipelineFile[],
     result: ITranspilerResult,
   ): boolean {
-    const sourceByGuard = new Map<string, string>();
+    return Transpiler._recordChecked(
+      result,
+      IncludeGuards.collisions(
+        this._requireSourceGraph().anchor,
+        cnextFiles.map((file) => file.path),
+      ),
+    );
+  }
 
-    for (const file of cnextFiles) {
-      const guard = HeaderGeneratorUtils.makeGuard(
-        this._guardIdentity(file.path),
-      );
-      const existing = sourceByGuard.get(guard);
-
-      if (existing === undefined) {
-        sourceByGuard.set(guard, file.path);
-        continue;
-      }
-
-      // The code is embedded in the message: ITranspileError carries no `code`
-      // field, and runAnalyzers formats analyzer codes the same way.
-      result.errors.push({
-        line: 1,
-        column: 0,
-        message: CodedErrorText.of(
-          "E0203",
-          `Source files '${basename(existing)}' and '${basename(file.path)}' both ` +
-            `produce the include guard '${guard}'. Rename one so the generated headers stay distinguishable.`,
-        ),
-        severity: "error",
-      });
+  /**
+   * Record a whole-program check's errors on the result.
+   *
+   * @returns true when the check found nothing
+   */
+  private static _recordChecked(
+    result: ITranspilerResult,
+    errors: readonly ITranspileError[],
+  ): boolean {
+    for (const error of errors) {
+      result.errors.push(error);
       result.success = false;
     }
-
     return result.success;
   }
 
   /**
-   * Stage 4: Check for symbol conflicts
+   * Stage 4: Check for symbol conflicts (`ProgramChecks.conflicts`).
    * @returns true if no blocking conflicts, false otherwise
    */
   private _checkSymbolConflicts(result: ITranspilerResult): boolean {
-    // #1511: read from the artifact, not re-derived from the table. Stage 3
-    // built it; a null here would mean this ran before 1.4, which the stage
-    // order rules out.
     // #1511: asserted, not defaulted -- a missing artifact would report zero
     // conflicts and pass the check. Stage 3 returns false on a build failure
     // before this runs, so reaching here without one is a broken stage order.
@@ -1574,95 +1473,32 @@ class Transpiler {
       this.program,
       "1.4 Resolve built Program before the symbol-conflict check ran",
     );
-    const conflicts = this.program.conflicts();
-    for (const conflict of conflicts) {
-      // #1334: a conflict is an ordinary diagnostic. It used to reach the user
-      // through a SECOND channel -- `result.conflicts`, printed by ResultPrinter
-      // with a `Conflict:` prefix that duplicated the message's own `Symbol
-      // conflict:` prefix -- plus ONE companion error with no position hardcoded at
-      // 1:0. Two outputs for one problem, and the only diagnostic path in the
-      // transpiler with no error code.
-      //
-      // Now: one error per conflict, at the offending definition, coded like
-      // every other diagnostic. The code is embedded in the message because
-      // ITranspileError carries no `code` field -- the same precedent E0203 uses
-      // above, and how runAnalyzers formats analyzer codes.
-      //
-      // The channel is retired whole: `ITranspilerResult.conflicts` is gone along
-      // with its reader, so a conflict has ONE representation in the result. Deleting
-      // only the reader would have left a field written here and read nowhere, which
-      // `npx knip` cannot see -- it does not analyze interface fields.
-      // IConflict.severity is `"error"`, so this is unconditional by construction.
-      result.success = false;
-      result.errors.push(Transpiler._conflictToError(conflict));
-    }
-
-    return result.success;
+    return Transpiler._recordChecked(
+      result,
+      ProgramChecks.conflicts(this.program),
+    );
   }
 
   /**
-   * The one rendering of a conflict as a diagnostic.
+   * Stage 3b: report the run's target, or why it has none (ADR-049). The
+   * check is `ProgramChecks.runTarget`.
    *
-   * Both conflict checks used to do this themselves and disagreed on both halves:
-   * one read `conflict.line`, the other re-derived it from `definitions[0]`; one
-   * hardcoded `error[E0425]`, the other embedded `error[E0204]` in the message
-   * text. They were written against different bases and merged into `main`
-   * without either CI run seeing the other (#1339 + #1342), which is how `main`
-   * came to fail `tsc`.
-   *
-   * Anchored to a file even in single-file builds: the message runs to several
-   * lines, and the CLI's reader only accumulates continuation lines under a
-   * `path:line:col` header -- without a sourcePath the colliding names are
-   * printed and then dropped on the way to a snapshot.
-   */
-  private static _conflictToError(conflict: IConflict): ITranspileError {
-    return {
-      line: conflict.line,
-      column: conflict.column,
-      sourcePath: conflict.sourceFile,
-      message: CodedErrorText.of(conflict.code, conflict.message),
-      severity: conflict.severity,
-    };
-  }
-
-  /**
-   * Stage 3b: report the run's target, or why it has none (ADR-049).
-   *
-   * 1.4 settled it with the program; this only reports. An error with no
-   * position is about the target option rather than a line of source, and is
-   * placed on the entry file -- the last file in pipeline order, which lists
-   * dependencies first. A parse-only run needs no target, so only an absent
-   * one is excused there.
-   *
-   * @returns true when the run has a target
+   * @returns true when the run may continue
    */
   private _checkRunTarget(
     input: ISourceGraph,
     result: ITranspilerResult,
   ): boolean {
     invariant(this.program, "Stage 3 built the program");
-    const target = this.program.target();
-    if (target.kind === "resolved") {
-      result.target = { name: target.name, source: target.source };
-      return true;
+    const checked = ProgramChecks.runTarget(
+      this.program,
+      this.config.parseOnly === true,
+      input.cnextFiles.at(-1)?.path,
+    );
+    if (checked.target !== null) {
+      result.target = checked.target;
     }
-    // ADR-049: a parse-only run needs no target, so an ABSENT one (E0515) is
-    // no error there -- but every name the program gives must still be a
-    // known target (#1760 second review: `--parse` accepted
-    // `#pragma target bogus`, an unknown pragma and two conflicting ones)
-    if (this.config.parseOnly && target.absent) {
-      return true;
-    }
-    const entry = input.cnextFiles.at(-1)?.path;
-    for (const error of target.errors) {
-      result.errors.push(
-        error.sourcePath === undefined && entry !== undefined
-          ? { ...error, sourcePath: entry }
-          : error,
-      );
-    }
-    result.success = false;
-    return false;
+    return Transpiler._recordChecked(result, checked.errors);
   }
 
   /** The run's target; valid once Stage 3b has passed */
@@ -1678,13 +1514,7 @@ class Transpiler {
   /**
    * Stage 4c: Reject external identifiers that are not distinct within the
    * target's significant-character limit (MISRA C:2012 Rule 5.1, issue #1307).
-   *
-   * A sibling of Stage 4b rather than part of Stage 4: a symbol *conflict* is
-   * two declarations competing for one name, which is a fact about the symbol
-   * table. This is a fact about the C target -- the same two declarations are
-   * fine at 63 significant characters and wrong at 31 -- so it is reported as a
-   * coded diagnostic against a source line, the way E0203 is, instead of going
-   * through the untyped `conflicts` channel.
+   * The check is `ProgramChecks.externalIdentifiers`.
    *
    * @returns true when every external identifier is distinct within the budget
    */
@@ -1696,22 +1526,13 @@ class Transpiler {
     if (this.config.parseOnly && this.program?.target().kind !== "resolved") {
       return true;
     }
-    // NOT TranspileState.targetDescription: codegen assigns that in Stage 5, one
-    // stage after this runs, so it holds nothing on a fresh process and the
-    // previous file's target in a long-lived one (#1307 review). The budget a
-    // whole-program check reports against has to be the build's, which 1.4
-    // settled once.
-    const collisions =
-      this.codeGenerator.transpileState.symbolTable.detectMISRA51Conflicts(
+    return Transpiler._recordChecked(
+      result,
+      ProgramChecks.externalIdentifiers(
+        this.codeGenerator.transpileState.symbolTable,
         this._runTarget().description,
-      );
-
-    for (const collision of collisions) {
-      result.errors.push(Transpiler._conflictToError(collision));
-      result.success = false;
-    }
-
-    return result.success;
+      ),
+    );
   }
 
   /**
@@ -1769,7 +1590,7 @@ class Transpiler {
    *
    * #1323: that method no longer exists, and this stage was never the
    * problem — it always just wrote `result.files[].headerCode`. What changed
-   * is who fills that field in: `_captureHeaderEmissionFacts` resolves each
+   * is who fills that field in: `HeaderEmissionCapture.capture` resolves each
    * file's header content, at its own warm moment, into a frozen record;
    * `_renderHeaders` (Stage 5.5) turns every record into text in one batch,
    * reading no CodeGenState at all. Reintroducing #1139 today would mean
@@ -1974,236 +1795,17 @@ class Transpiler {
         `[DEBUG]   Parsing ${Transpiler._languageName(source.language)} header: ${file.path}`,
       );
     }
-    this._parseHeaderText(source.text, file.path, source.language);
-  }
-
-  /**
-   * Issue #208: one parser per header, the one its language names. #1844:
-   * the language is 1.1's answer; nothing here judges the text again, so a
-   * cold run and a warm one cannot disagree (#1851).
-   */
-  private _parseHeaderText(
-    content: string,
-    filePath: string,
-    language: EHeaderLanguage,
-  ): void {
-    switch (language) {
-      case EHeaderLanguage.Assembler:
-        // Not C: parsing its `.macro` bodies as C mis-collects instruction
-        // mnemonics like `loop` as C symbols that then false-conflict with
-        // C-Next symbols of the same name.
-        return;
-      case EHeaderLanguage.Cpp:
-        // C++14 parser for typed enums, classes, namespaces, templates
-        this.parseCppHeader(content, filePath);
-        return;
-      case EHeaderLanguage.C:
-        this.parsePureCHeader(content, filePath);
-        return;
-    }
-  }
-
-  /**
-   * Issue #208: Parse a pure C header (no C++ syntax detected)
-   * Uses CResolver for symbol collection
-   * ADR-055 Phase 7: Direct TCSymbol storage (no adapter conversion)
-   */
-  private parsePureCHeader(content: string, filePath: string): void {
-    const { tree } = HeaderParser.parseC(content);
-    if (tree) {
-      const result = CResolver.resolve(
-        tree,
-        filePath,
-        this.codeGenerator.transpileState.symbolTable,
-      );
-      // ADR-055 Phase 7: Store TCSymbol directly
-      this.codeGenerator.transpileState.symbolTable.addCSymbols(result.symbols);
-    }
-  }
-
-  /**
-   * Parse a C++ header using CppResolver
-   * ADR-055 Phase 7: Direct TCppSymbol storage (no adapter conversion)
-   */
-  private parseCppHeader(content: string, filePath: string): void {
-    const { tree } = HeaderParser.parseCpp(content);
-    if (tree) {
-      const result = CppResolver.resolve(
-        tree,
-        filePath,
-        this.codeGenerator.transpileState.symbolTable,
-      );
-      // ADR-055 Phase 7: Store TCppSymbol directly
-      this.codeGenerator.transpileState.symbolTable.addCppSymbols(
-        result.symbols,
-      );
-    }
+    HeaderDeclarations.declare(
+      source.text,
+      file.path,
+      source.language,
+      this.codeGenerator.transpileState.symbolTable,
+    );
   }
 
   // ===========================================================================
   // Code Generation Helpers
   // ===========================================================================
-
-  /**
-   * Path identifying a source file for include-guard construction (issue #1133).
-   *
-   * Anchored on the PROJECT ROOT, not the input directory, so the guard for a
-   * given file does not depend on which entry point pulled it in. Building
-   * `app.cnx` and building `can/config.cnx` directly must produce the same guard
-   * for can/config.cnx — otherwise separately-compiled translation units
-   * reintroduce the collision as soon as a consumer includes both headers.
-   *
-   * Falls back to the input directory when no project marker is found, and to
-   * the basename for a file outside that base. Both fallbacks can in principle
-   * map two files onto one guard; that is what E0203 is for.
-   */
-  private _guardIdentity(sourcePath: string): string {
-    const anchor = this._requireSourceGraph().anchor;
-    const base = anchor.projectRoot ?? anchor.directory;
-    const relativePath = relative(base, resolve(sourcePath));
-
-    return relativePath.startsWith("..") || relativePath === ""
-      ? basename(sourcePath)
-      : relativePath;
-  }
-
-  /**
-   * Issue #424/#1164: does this header name something only the source's own C
-   * headers define, so that it cannot compile standalone?
-   *
-   * Two cases. A non-numeric array dimension is a macro the header uses but does
-   * not define. An opaque typedef (`typedef struct opaque_t* handle_t`) cannot be
-   * forward-declared as a struct, so it too has to come from its real header.
-   *
-   * Deliberately narrow: propagating every C include into every generated header
-   * would put implementation-only dependencies into the public interface, and
-   * would double-include any hand-written header lacking an include guard.
-   */
-  /**
-   * A type the header names but cannot correctly declare for itself.
-   *
-   * The forward declaration the header would otherwise emit,
-   * `typedef struct X X;`, is a guess: it is right only when X really is an
-   * opaque struct. For `typedef struct opaque_t* handle_t` it declares a
-   * different type and contradicts the real definition. When we know a C/C++
-   * header declares the type, including that header beats guessing.
-   */
-  private static _needsDefiningHeader(
-    typeName: string,
-    state: TranspileState,
-  ): boolean {
-    if (state.symbolTable.isPointerTypedef(typeName)) {
-      return true;
-    }
-
-    // Known to a C/C++ header, but not as something forward-declarable.
-    //
-    // The C++ index is keyed by the C++ NAME -- `SeaDash::Parse::ParseResult`
-    // -- while a C-Next type naming it carries the generated C form,
-    // `SeaDash__Parse__ParseResult`. Asking the index with the transpiled name
-    // returns nothing for every namespaced type, which reads as "no such
-    // symbol" rather than "wrong question" (CLAUDE.md, #1139). That is why
-    // #1520's four headers declared a field whose type nothing defined: the
-    // lookup could not fail loudly, it just answered no. `toCppQualified` is
-    // the single encoder for that key, and it leaves an unqualified name alone.
-    const declared =
-      state.symbolTable.getCppSymbol(
-        QualifiedCName.toCppQualified(typeName, "::"),
-      ) ??
-      state.symbolTable.getCppSymbol(typeName) ??
-      state.symbolTable.getCSymbol(typeName);
-    if (!declared) {
-      return false;
-    }
-
-    return (
-      // #1511: the artifact's verdict, not the table's.
-      !(state.program?.isOpaqueType(typeName) ?? false) &&
-      !declared.sourceFile.endsWith(".cnx")
-    );
-  }
-
-  /**
-   * Whether the header must carry the source's own C/C++ includes.
-   *
-   * Two reasons, and they are different questions over the same symbols:
-   *
-   *   - the header names a MACRO it does not define -- an array dimension that
-   *     stayed an identifier, which only the source's headers supply (#424); or
-   *   - the header names a TYPE whose definition lives in one of them.
-   *
-   * The second used to be asked per symbol kind, here, and answered `false` for
-   * a struct -- so a struct field typed by a C++ header got no include and the
-   * header would not compile (#1520). The enumeration is now
-   * `HeaderTypeNames.collect`, shared with the other derivation that had the
-   * same hole, and this asks only the question it owns.
-   */
-  private static _headerNeedsUserCHeaders(
-    symbols: TSymbol[],
-    state: TranspileState,
-  ): boolean {
-    if (symbols.some(Transpiler._namesMacroDimension)) {
-      return true;
-    }
-    for (const typeName of HeaderTypeNames.collect(symbols)) {
-      if (Transpiler._needsDefiningHeader(typeName, state)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Issue #424: an array dimension that is still an identifier is a macro the
-   * header names and does not define.
-   */
-  private static _namesMacroDimension(symbol: TSymbol): boolean {
-    return (
-      symbol.kind === "variable" &&
-      (symbol.arrayDimensions?.some(
-        (dimension) => typeof dimension === "string",
-      ) ??
-        false)
-    );
-  }
-
-  /**
-   * The include directive for every header the run reached, spelled as
-   * `sourcePath` would spell it, for that file's generated header.
-   *
-   * #1435: a header the file includes itself takes the file's own spelling.
-   * #1725: a header it reaches only through another file takes that file's
-   * spelling when it is valid from anywhere -- an angle include, a spelling
-   * found along the search path, an output-root path -- and is re-spelled
-   * relative to `sourcePath` when it was relative to the file that wrote it.
-   * Copied, `"dev.h"` from lib/a.cnx named `src/dev.h` in src/main.h.
-   *
-   * The ORDER is the run's first-seen order, unchanged, because
-   * `ExternalTypeHeaderBuilder` lets the first header declaring a type win,
-   * and `Map.set` on a key already present keeps its position.
-   */
-  private _includeDirectivesSpelledBy(
-    sourcePath: string,
-  ): ReadonlyMap<string, string> {
-    const own = this._includesOf(sourcePath);
-    const here = own.quotedIncludeDirectory;
-    const directives = new Map<string, string>();
-    for (const file of this._requireSourceGraph().includes.values()) {
-      for (const [header, directive] of file.headerIncludeDirectives) {
-        const named = file.writerRelativeIncludes.get(header);
-        directives.set(
-          header,
-          named === undefined
-            ? directive
-            : `#include "${relative(here, named).split(sep).join("/")}"`,
-        );
-      }
-    }
-    for (const [header, directive] of own.headerIncludeDirectives) {
-      directives.set(header, directive);
-    }
-    return directives;
-  }
 
   /** The run's `SourceGraph`, which every stage after 1.1 runs inside. */
   private _requireSourceGraph(): ISourceGraph {
@@ -2222,191 +1824,6 @@ class Transpiler {
       `1.1 Discover records the includes of every file it discovers (missing ${sourcePath})`,
     );
     return includes;
-  }
-
-  /**
-   * Stage 5: Resolve one file's header-render input from its exported symbols.
-   * ADR-055 Phase 7: Uses TSymbol directly, converts to IHeaderSymbol for generation.
-   *
-   * #1323: this decides a header's content -- it no longer renders it. It
-   * returns the resolved `IHeaderEmissionFacts` `HeaderRenderer` will
-   * later pass to `HeaderGenerator.generate()`, instead of calling that
-   * itself. That split is what makes issue #1139 structurally impossible
-   * rather than merely fixed: #1139 happened because a SECOND, LATER call
-   * re-read live `CodeGenState` after it had moved on to a different file.
-   * There is now only one caller, and nothing downstream of this method's
-   * return value ever reads `CodeGenState` again -- see `IHeaderEmissionFacts`.
-   *
-   * Still call this exactly once per file, from `_transpileFile()`, while
-   * that file's state is warm: `TranspileState.needsISR`,
-   * `generatedStructInits`, `callbackTypes` and the auto-const/opaque
-   * resolution inside `convertToHeaderSymbols` are ALL per-file, cleared by
-   * `TranspileState.reset()` before the next file transpiles. Capturing them
-   * into `IHeaderEmissionFacts` here, at the only moment they are correct for
-   * THIS file, is what lets the render move later.
-   *
-   * `allKnownEnums` and `externalTypeHeaders` no longer depend on file order.
-   * This paragraph used to say they did, citing `state.getAllSymbolInfo()` and
-   * `state.getAllHeaderDirectives()` -- neither exists. Both now read complete
-   * artifacts: `Program.knownEnums()` is settled before any file renders
-   * (#1447), and every file's include directives are recorded when discovery
-   * ends, before Stage 2 (#1435).
-   */
-  private _captureHeaderEmissionFacts(
-    file: IPipelineFile,
-    program: IProgram,
-    typeInput: ICodeGenSymbols,
-  ): IHeaderEmissionFacts | null {
-    const sourcePath = file.path;
-    // Issues #1161/#1164: the same predicate decides whether this header is
-    // written and whether the generated .c includes it. Do not re-derive it.
-    const exportedSymbols = PublicInterface.forFile(
-      this.codeGenerator.transpileState.symbolTable,
-      sourcePath,
-    );
-
-    if (exportedSymbols.length === 0) {
-      return null;
-    }
-
-    // Issue #933: Use .hpp extension for include guard in C++ mode
-    // Issue #1319: read the run's extension; do not re-derive it from the mode
-    const ext = this.outputExtensions.header;
-    const headerName = this._guardIdentity(sourcePath).replace(
-      /\.cnx$|\.cnext$/,
-      ext,
-    );
-
-    // #1671: both decided by 1.4 Resolve, the first layer that can see every
-    // file. `typeInput` is the view `generate()` received, so the `.h` and the
-    // `.c` are built from one object; neither is copied onto this class.
-    const passByValueParams = program.passByValueParams();
-    const includes = this._includesOf(sourcePath);
-    // Issue #424: a dimension that is not a number is a macro the header names
-    // but does not define, so the header must carry its source include.
-    const cHeadersIncluded = Transpiler._headerNeedsUserCHeaders(
-      exportedSymbols,
-      this.codeGenerator.transpileState,
-    );
-    const userIncludes = cHeadersIncluded
-      ? [...includes.userIncludes, ...includes.cHeaderIncludes]
-      : [...includes.userIncludes];
-
-    // #1447: read from the artifact, not accumulated from the files transpiled
-    // so far. The old form was correct only because `_sortFilesByDependency`
-    // put every dependency first, and a dependency cycle (#1167) made the order
-    // -- and so the answer -- arbitrary. `Program` is complete before any file
-    // is rendered, so this cannot depend on where in the run it is asked.
-    const allKnownEnums = program.knownEnums();
-
-    // #1511: which types a header declares comes from the artifact. The
-    // include ORDER stays here -- it decides which header wins, and that is not
-    // a symbol fact.
-    const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
-      this._includeDirectivesSpelledBy(sourcePath),
-      {
-        typesDeclaredIn: (file: string) => program.typesDeclaredIn(file),
-      },
-    );
-
-    // ADR-029: Convert callback types to header format
-    const callbackTypesForHeader = this._buildCallbackTypesForHeader();
-
-    const typeInputWithSymbolTable = {
-      ...typeInput,
-      symbolTable: this.codeGenerator.transpileState.symbolTable,
-      callbackTypes: callbackTypesForHeader,
-    };
-
-    const unmodifiedParams = this.codeGenerator.getFunctionUnmodifiedParams();
-    const headerSymbols = this.convertToHeaderSymbols(
-      exportedSymbols,
-      unmodifiedParams,
-      allKnownEnums,
-    );
-
-    return {
-      symbols: headerSymbols,
-      filename: headerName,
-      options: {
-        userIncludes,
-        cHeadersIncluded,
-        // ADR-040: same flag the .c consults, so exactly one file emits it.
-        needsIsrTypedef: this.codeGenerator.transpileState.needsISR,
-        // #1205: same shape -- the .c records which init functions it
-        // emitted, the header declares exactly those. Copied, not aliased:
-        // this record must stay frozen once captured, and TranspileState.reset()
-        // happens to rebind this field to a new Set rather than clearing it in
-        // place (TranspileState.ts) -- true today, but not a contract anything
-        // enforces, so a live reference here would be correct only by
-        // coincidence with reset()'s current implementation.
-        generatedStructInits: new Set(
-          this.codeGenerator.transpileState.generatedStructInits,
-        ),
-        // #1453: same contract, same reason -- copied at capture, never read
-        // live by the render.
-        registerBlocks: [
-          ...this.codeGenerator.transpileState.exportedRegisterBlocks,
-        ],
-        externalTypeHeaders,
-        cppMode: this.cppMode,
-        // #1517: 2.2 Plan decides; the header generator prints. Possible only
-        // since #1520 made `headerCType` the one answer to "what does this
-        // header call this type" -- before that, deciding from the symbols
-        // meant deriving the type mapping a second time.
-        systemIncludes: HeaderIncludes.decide(
-          exportedSymbols,
-          this.codeGenerator.transpileState.symbolTable,
-        ),
-      },
-      typeInput: typeInputWithSymbolTable,
-      passByValueParams,
-      allKnownEnums,
-      basename: basename(sourcePath),
-    };
-  }
-
-  /**
-   * ADR-029: Build callback types for header generation.
-   * Only includes callbacks that are actually used as struct field types.
-   * Converts TranspileState.callbackTypes to the format expected by IHeaderTypeInput.
-   */
-  private _buildCallbackTypesForHeader(): ReadonlyMap<
-    string,
-    IHeaderCallbackType
-  > {
-    const result = new Map<string, IHeaderCallbackType>();
-
-    // Issue #1164: same predicate the .c uses to decide it must NOT emit these.
-    const usedCallbackTypes = new Set<string>();
-    for (const funcName of this.codeGenerator.transpileState.callbackTypes.keys()) {
-      if (
-        this.codeGenerator.transpileState.headerOwnsCallbackTypedef(funcName)
-      ) {
-        usedCallbackTypes.add(funcName);
-      }
-    }
-
-    for (const funcName of usedCallbackTypes) {
-      const cbInfo =
-        this.codeGenerator.transpileState.callbackTypes.get(funcName);
-      if (cbInfo) {
-        result.set(funcName, {
-          typedefName: cbInfo.typedefName,
-          returnType: cbInfo.returnType,
-          // #1164/#1552: pass the parameter through WHOLE. This used to say so
-          // while enumerating six of the seven fields below it, and the one it
-          // left out was `isString` -- so the formatter's `string<N>` branch
-          // never fired and the header's typedef disagreed with its own
-          // prototype in a single file. Naming no fields is what makes the
-          // comment true; `IHeaderCallbackType` now names the formatter's own
-          // parameter type, so a new field cannot go missing here again.
-          parameters: cbInfo.parameters,
-        });
-      }
-    }
-
-    return result;
   }
 
   /**
@@ -2443,127 +1860,6 @@ class Transpiler {
     );
 
     return declared;
-  }
-
-  /**
-   * Convert TSymbols to IHeaderSymbols with auto-const information applied.
-   * ADR-055 Phase 7: Replaces mutation-based auto-const updating.
-   */
-  private convertToHeaderSymbols(
-    symbols: TSymbol[],
-    unmodifiedParams: ReadonlyMap<string, ReadonlySet<string>>,
-    knownEnums: ReadonlySet<string>,
-  ): IHeaderSymbol[] {
-    return symbols.map((symbol) => {
-      const headerSymbol = HeaderSymbolAdapter.fromTSymbol(
-        symbol,
-        this.codeGenerator.transpileState,
-      );
-
-      if (
-        symbol.kind !== "function" ||
-        !headerSymbol.parameters ||
-        headerSymbol.parameters.length === 0
-      ) {
-        return headerSymbol;
-      }
-
-      // Issue #914: Resolve callback typedef type for callback-compatible functions.
-      // #1545 review: through the one accessor, so this site and the body's
-      // cannot spell the predicate differently -- they used to differ on `""`,
-      // truthiness here against `!== undefined` there.
-      const callbackTypedefType =
-        this.codeGenerator.transpileState.callbackTypedefTypeFor(
-          headerSymbol.name,
-        );
-
-      // Issue #914: For callback-compatible functions, bake pointer/const overrides
-      // onto each parameter. Skip auto-const (matches CodeGenerator path).
-      // Note: isOpaqueHandle is not set here because callback params get their
-      // pointer/const semantics from the typedef signature via isCallbackPointer/
-      // isCallbackConst, which take precedence over opaque handling in the builder.
-      if (callbackTypedefType) {
-        const updatedParams = TypedefParamParser.resolveCallbackParams(
-          headerSymbol.parameters,
-          callbackTypedefType,
-        );
-        return { ...headerSymbol, parameters: updatedParams };
-      }
-
-      // Apply auto-const and resolve opaque type info for non-callback function parameters
-      const unmodified = unmodifiedParams.get(headerSymbol.name);
-      const updatedParams = headerSymbol.parameters.map((param) => {
-        // ADR-029 / #1164: a parameter whose declared type IS a callback
-        // function takes that function's typedef, exactly as the .c does via
-        // TranspileState.callbackTypes. Without this the header emitted the bare
-        // function name as a type ("const onReceive*"), which both contradicts
-        // the .c's "onReceive_fp" and collides with the function's own
-        // prototype ("redeclared as different kind of symbol").
-        const callbackType =
-          this.codeGenerator.transpileState.callbackTypes.get(param.type ?? "");
-        if (callbackType) {
-          return {
-            ...param,
-            type: callbackType.typedefName,
-            isCallback: true,
-            callbackTypedefName: callbackType.typedefName,
-            isStruct: false,
-          };
-        }
-
-        // Issue #995 / ADR-030: whether this parameter is an opaque handle is
-        // the decision `HeaderSymbolAdapter` already read onto it -- the one
-        // the `.c`'s prototype is spelled from (`isHeldThroughPointer`). This
-        // recomputed it from `isOpaqueType` and wrote it back, a second writer
-        // of one flag that agreed only while the two predicates did.
-        const isOpaque = param.isOpaqueHandle === true;
-
-        // #1545: the same rule the body paths use, so the .h cannot disagree
-        // with the .c (ADR-013, "Header Generation Sync"). The exclusions this
-        // site used to spell out inline are now ADR-013's list inside the rule.
-        // Note: isAutoConst may be set here, but ParameterSignatureBuilder will
-        // suppress it for opaque handles (Issue #995) — single source of truth.
-        //
-        // isCallbackCompatible is false here because the early return above
-        // took every callback whose typedef type resolves, and the body asks
-        // the same question at the same granularity since #1545 -- the whole
-        // function, not the parameter. #1603 records the remaining case: a
-        // callback-compatible function whose typedef type does NOT resolve
-        // reaches this line, and both paths then let auto-const apply, which is
-        // why nothing reddens for it.
-        const shouldAutoConst = AutoConstRule.applies({
-          baseType: param.type ?? "",
-          isModified: unmodified?.has(param.name) !== true,
-          isExplicitlyConst: param.isConst,
-          isCallbackCompatible: false,
-          isArray: param.isArray,
-          // #1545 review: this is the WHOLE-PROGRAM enum view (`allKnownEnums`
-          // = program.knownEnums()), while the body supplies the PER-FILE one
-          // (TranspileState.isKnownEnum). CLAUDE.md names that pair as #1312 --
-          // a sibling never included is absent from one and present in the
-          // other. Deliberate on both sides: each matches the enum view ITS
-          // OWN pass-by-value decision reads, so neither introduces a new
-          // disagreement inside its own file. They are unobservable against
-          // each other today because enums route to _buildPassByValueParam,
-          // which ignores isAutoConst -- masking, not unification, so this is
-          // recorded rather than treated as settled.
-          isKnownEnum: knownEnums.has(param.type ?? ""),
-          // #995: computed fifteen lines up for the branch below. Supplying it
-          // here is behavior-preserving -- ParameterSignatureBuilder already
-          // zeroed isAutoConst for an opaque handle -- and moves the seventh
-          // ADR-013 exclusion into the rule that claims to hold them all.
-          isOpaqueHandle: isOpaque,
-        });
-
-        // Return updated param with resolved flags
-        if (shouldAutoConst || isOpaque) {
-          return { ...param, isAutoConst: shouldAutoConst || undefined };
-        }
-        return param;
-      });
-
-      return { ...headerSymbol, parameters: updatedParams };
-    });
   }
 
   // ===========================================================================

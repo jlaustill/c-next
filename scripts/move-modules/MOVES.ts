@@ -1417,6 +1417,15 @@ const MOVES: readonly IMove[] = [
     to: "src/types/TAssignmentSite.ts",
     because: SHARED_CONTRACT,
   },
+  {
+    from: "src/lib/types/ITranspileError.ts",
+    to: "src/types/ITranspileError.ts",
+    because:
+      "#1443: named by every layer, `types/` and both host roots. §1 forbids " +
+      "going up into another root's interior (`../../lib/types/ITranspileError` " +
+      "is its own example), so a contract read from outside `lib/` belongs in " +
+      "the shared root.",
+  },
 ];
 
 export default MOVES;

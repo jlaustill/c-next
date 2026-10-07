@@ -25,15 +25,28 @@ import { join } from "node:path";
 
 import { describe, it, expect } from "vitest";
 
-const SOURCE = readFileSync(join(__dirname, "..", "Transpiler.ts"), "utf-8");
+const ROOT = join(__dirname, "..", "..", "..");
+
+/**
+ * The files whose catches sit on the header call graph. #1443 split it: the
+ * host's header loop stayed with the orchestrator, and slice recovery moved to
+ * 1.3 with the header parsing it calls.
+ */
+const FILES = [
+  join("src", "transpiler", "Transpiler.ts"),
+  join("src", "PARSE", "3-Declare", "HeaderDeclarations.ts"),
+];
 
 /** Calls that can now raise a C-Next diagnostic rather than a parse failure. */
-const DIAGNOSTIC_RAISING = ["_parseHeaderText(", "_collectHeaderSymbols("];
+const DIAGNOSTIC_RAISING = [
+  "HeaderDeclarations.declare(",
+  "_collectHeaderSymbols(",
+];
 
 interface ICatchSite {
   readonly tryBody: string;
   readonly catchBody: string;
-  readonly line: number;
+  readonly where: string;
 }
 
 /**
@@ -43,7 +56,8 @@ interface ICatchSite {
  * stops at the first `}` would read a truncated body and could report a catch
  * as guarded because the word appeared in an inner block.
  */
-const catchSites = (source: string): ICatchSite[] => {
+const catchSites = (file: string): ICatchSite[] => {
+  const source = readFileSync(join(ROOT, file), "utf-8");
   const sites: ICatchSite[] = [];
   const matchFrom = (open: number): number => {
     let depth = 0;
@@ -69,7 +83,7 @@ const catchSites = (source: string): ICatchSite[] => {
       sites.push({
         tryBody: source.slice(tryOpen, tryClose + 1),
         catchBody: source.slice(catchOpen, catchClose + 1),
-        line: source.slice(0, match.index).split("\n").length,
+        where: `${file}:${source.slice(0, match.index).split("\n").length}`,
       });
     }
     match = pattern.exec(source);
@@ -78,7 +92,7 @@ const catchSites = (source: string): ICatchSite[] => {
 };
 
 describe("diagnostics propagate past tolerance catches (#1319)", () => {
-  const sites = catchSites(SOURCE);
+  const sites = FILES.flatMap(catchSites);
   const guarding = sites.filter((s) =>
     DIAGNOSTIC_RAISING.some((call) => s.tryBody.includes(call)),
   );
@@ -95,7 +109,7 @@ describe("diagnostics propagate past tolerance catches (#1319)", () => {
   it("every one of them re-throws a deliberate diagnostic", () => {
     const unguarded = guarding
       .filter((s) => !s.catchBody.includes("isDiagnostic"))
-      .map((s) => `Transpiler.ts:${s.line}`);
+      .map((s) => s.where);
 
     expect(unguarded).toEqual([]);
   });

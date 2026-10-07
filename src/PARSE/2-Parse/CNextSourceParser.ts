@@ -12,7 +12,7 @@ import { CNextLexer } from "./grammar/CNextLexer";
 import { CNextParser } from "./grammar/CNextParser";
 import CommentScanner from "./CommentScanner";
 import IParsedFile from "../../types/IParsedFile";
-import ITranspileError from "../../lib/types/ITranspileError";
+import ITranspileError from "../../types/ITranspileError";
 import CodedErrorText from "../../utils/CodedErrorText";
 
 /**
