@@ -34,12 +34,20 @@ const GUARD_H = `#define WIDGET_GUARD 1
   widget_t *widget_create(void) PRIVILEGED;
 `;
 
-// A header cnext DISCOVERS (it walks #includes unconditionally) but that cannot
-// preprocess standalone — its <no-such-header> mirrors lvgl's OSAL headers
-// probing <semaphore.h>. Its standalone failure is what triggers 1.1's
-// external-declaration recovery pass. It is guarded
-// out of the recovery TU (USE_PTHREAD is 0), so the union still preprocesses.
+// A header cnext's include walk finds (it ignores #if) but that cannot
+// preprocess -- its <no-such-header> mirrors lvgl's OSAL headers probing
+// <semaphore.h>. USE_PTHREAD is 0, so a C compile never opens it, and #1844
+// settles nothing from it: no language, no error, no symbols.
 const PTHREAD_IMPL_H = `#include <cnext_no_such_header_zzz.h>\n`;
+
+// Preprocesses on its own, but not once guard.h has run. So widget.h, which
+// fails alone, fails again when retried with the macros of the headers before
+// it; the unit drops sinker.h and settles widget.h from its slice. That is
+// what arms 1.1's #985 recovery pass.
+const SINKER_H = `#ifdef WIDGET_GUARD
+#error "include sinker.h before guard.h"
+#endif
+`;
 
 const WIDGET_H = `#ifndef WIDGET_GUARD
 #error "include guard.h before widget.h"
@@ -53,6 +61,7 @@ DECLARE_WIDGET_API
 `;
 
 const MAIN_CNX = `#include "guard.h"
+#include "sinker.h"
 #include "widget.h"
 
 scope Demo {
@@ -77,6 +86,7 @@ describe("external-symbol recovery (integration)", () => {
     writeFileSync(join(dir, "guard.h"), GUARD_H);
     writeFileSync(join(dir, "widget.h"), WIDGET_H);
     writeFileSync(join(dir, "pthread_impl.h"), PTHREAD_IMPL_H);
+    writeFileSync(join(dir, "sinker.h"), SINKER_H);
     writeFileSync(join(dir, "main.cnx"), MAIN_CNX);
   });
 
@@ -173,6 +183,7 @@ describe("external-symbol recovery (integration)", () => {
       writeFileSync(join(cacheDir, "guard.h"), GUARD_H);
       writeFileSync(join(cacheDir, "widget.h"), WIDGET_H);
       writeFileSync(join(cacheDir, "pthread_impl.h"), PTHREAD_IMPL_H);
+      writeFileSync(join(cacheDir, "sinker.h"), SINKER_H);
       writeFileSync(join(cacheDir, "main.cnx"), MAIN_CNX);
 
       // Caching ON (noCache defaults to false).
@@ -261,10 +272,16 @@ const PASTE_GUARD_H = `#define REC_GUARD 1
 #define OPEN_SCOPE PASTE(name, space) Rec {
 `;
 
-// Discovered by cnext (its include walk is unconditional) but excluded from the
-// recovery union by USE_BROKEN, exactly as pthread_impl.h is above. Its
-// standalone preprocessing failure is what arms the recovery pass at all.
+// Found by cnext's include walk but never opened by a C compile (USE_BROKEN
+// is 0), exactly as pthread_impl.h is above, so it counts for nothing.
 const PASTE_BROKEN_H = `#include <cnext_no_such_header_zzz.h>\n`;
+
+// paste_sinker.h sinks paste_widget.h's retry, as sinker.h does above, so the
+// widget is settled from the unit's slice.
+const PASTE_SINKER_H = `#ifdef REC_GUARD
+#error "include paste_sinker.h before paste_guard.h"
+#endif
+`;
 
 const PASTE_WIDGET_H = `#ifndef REC_GUARD
 #error "include guard.h before widget.h"
@@ -278,6 +295,7 @@ OPEN_SCOPE
 `;
 
 const PASTE_MAIN_CNX = `#include "paste_guard.h"
+#include "paste_sinker.h"
 #include "paste_widget.h"
 
 void main() { }
@@ -292,6 +310,7 @@ describe("diagnostics on a recovery slice (#1319, integration)", () => {
     writeFileSync(join(dir, "paste_guard.h"), PASTE_GUARD_H);
     writeFileSync(join(dir, "paste_widget.h"), PASTE_WIDGET_H);
     writeFileSync(join(dir, "broken.h"), PASTE_BROKEN_H);
+    writeFileSync(join(dir, "paste_sinker.h"), PASTE_SINKER_H);
     writeFileSync(join(dir, "main.cnx"), PASTE_MAIN_CNX);
   });
 
@@ -318,7 +337,12 @@ describe("diagnostics on a recovery slice (#1319, integration)", () => {
     // The premise, asserted rather than assumed: if any raw header tripped the
     // check, 1.1 would judge it C++ on its own text and the test below would
     // pass without ever reaching the recovery path it exists to cover.
-    for (const header of ["paste_guard.h", "paste_widget.h", "broken.h"]) {
+    for (const header of [
+      "paste_guard.h",
+      "paste_sinker.h",
+      "paste_widget.h",
+      "broken.h",
+    ]) {
       expect(detectCppSyntax(readFileSync(join(dir, header), "utf-8"))).toBe(
         false,
       );
@@ -335,7 +359,7 @@ describe("diagnostics on a recovery slice (#1319, integration)", () => {
     // #1844: at main.cnx's include of the header the combined text judged C++
     expect(result.errors[0]).toMatchObject({
       sourcePath: join(dir, "main.cnx"),
-      line: 2,
+      line: 3,
       column: 0,
     });
   });

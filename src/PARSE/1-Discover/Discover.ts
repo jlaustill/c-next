@@ -176,6 +176,7 @@ class Discover {
       {
         directives: unit.directives,
         includePaths: files.includeSearchPaths,
+        headers: new Set(files.headerIncludes.map(({ header }) => header)),
       },
     );
     discovery._unsettled(files, settled.unsettled);
@@ -472,7 +473,10 @@ class Discover {
   ): ISourceGraph {
     return Discover._frozen({
       cnextFiles: files.cnextFiles,
-      headerFiles: files.headerFiles,
+      // Only the headers a C compile opens are settled (#1844)
+      headerFiles: files.headerFiles.filter((file) =>
+        headerSources.has(file.path),
+      ),
       headerSources,
       recoveredDeclarations,
       cppMode,

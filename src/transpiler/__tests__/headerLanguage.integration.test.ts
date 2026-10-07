@@ -283,23 +283,83 @@ describe("a header's language is decided once, in 1.1 (#1844)", () => {
     });
   });
 
-  describe("every header is judged on its preprocessed text (#1852)", () => {
-    it("is C when its only C++ is under #ifdef __cplusplus, cold and warm", async (ctx) => {
+  describe("only a header a C compile opens counts (#1914)", () => {
+    const DUAL = (guarded: boolean): Record<string, string> => ({
+      "dual.h": guarded
+        ? '#ifdef __cplusplus\n#include "extras.hpp"\n#endif\nint dual(void);\n'
+        : '#include "extras.hpp"\nint dual(void);\n',
+      "extras.hpp": "namespace Extras { int e; }\n",
+    });
+
+    it("judges no C++ header that only C++ would include, cold and warm", async (ctx) => {
       if (!preprocessorAvailable) ctx.skip();
 
-      // No #if: the header needs the preprocessor for nothing but its language
-      const runs = await coldThenWarm(
-        {
-          "dual.h":
-            "#ifdef __cplusplus\nnamespace Dual { int x; }\n#endif\nint dual(void);\n",
-        },
-        "dual.h",
-        false,
-      );
+      // The include walk finds extras.hpp; a C compile of dual.h never opens it
+      const runs = await coldThenWarm(DUAL(true), "dual.h", false);
 
       for (const result of runs) {
         expect(errorsOf(result)).toBe("");
         expect(emitted(result, ".c")).toBe(true);
+      }
+    });
+
+    it("control: the same C++ header included unguarded is E0507", async (ctx) => {
+      if (!preprocessorAvailable) ctx.skip();
+
+      const runs = await coldThenWarm(DUAL(false), "dual.h", false);
+
+      for (const result of runs) {
+        expect(sitesOf(result)).toEqual(["1:0 E0507 extras.hpp"]);
+      }
+    });
+
+    const INACTIVE = (enabled: 0 | 1): Record<string, string> => ({
+      "lib.h": `#define USE_IMPL ${enabled}\n#if USE_IMPL\n#include "impl.h"\n#endif\nint lib(void);\n`,
+      "impl.h": "#include <cnext_no_such_header_zzz.h>\n",
+    });
+
+    it("settles no header behind a false #if, so one that cannot preprocess is no error", async (ctx) => {
+      if (!preprocessorAvailable) ctx.skip();
+
+      const runs = await coldThenWarm(INACTIVE(0), "lib.h");
+
+      for (const result of runs) {
+        expect(errorsOf(result)).toBe("");
+      }
+    });
+
+    it("control: the same header behind a true #if is E0517", async (ctx) => {
+      if (!preprocessorAvailable) ctx.skip();
+
+      const runs = await coldThenWarm(INACTIVE(1), "lib.h");
+
+      for (const result of runs) {
+        expect(sitesOf(result)).toEqual(["1:0 E0517 lib.h"]);
+      }
+    });
+  });
+
+  describe("every header is judged on its preprocessed text (#1852)", () => {
+    it("is C when its only C++ is under #ifdef __cplusplus, cold and warm", async (ctx) => {
+      if (!preprocessorAvailable) ctx.skip();
+
+      // No #if: the header needs the preprocessor for nothing but its language.
+      // C either way: detected, and asked for.
+      for (const cppRequired of [undefined, false]) {
+        const runs = await coldThenWarm(
+          {
+            "dual.h":
+              "#ifdef __cplusplus\nnamespace Dual { int x; }\n#endif\nint dual(void);\n",
+          },
+          "dual.h",
+          cppRequired,
+        );
+
+        for (const result of runs) {
+          expect(errorsOf(result)).toBe("");
+          expect(emitted(result, ".c")).toBe(true);
+          expect(emitted(result, ".cpp")).toBe(false);
+        }
       }
     });
 

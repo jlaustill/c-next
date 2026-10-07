@@ -34,7 +34,12 @@ interface IHeaderSourceSettings {
  * and the text it was read as, for #985's unit to settle.
  */
 type TAlone =
-  | { readonly source: IHeaderSource; readonly raw: string }
+  | {
+      readonly source: IHeaderSource;
+      readonly raw: string;
+      /** The files that preprocessing opened from inside the header */
+      readonly entered: ReadonlySet<string>;
+    }
   | { readonly source: null; readonly raw: string; readonly error: string };
 
 /**
@@ -44,6 +49,8 @@ type TAlone =
 interface ITranslationUnit {
   readonly directives: readonly string[];
   readonly includePaths: readonly string[];
+  /** The headers a `.cnx` file includes itself, by the path the walk resolved */
+  readonly headers: ReadonlySet<string>;
 }
 
 /**
@@ -69,6 +76,11 @@ class HeaderSources {
    * of `unit` preprocessed whole (#985): that slice is the text a C compile
    * meets. One the unit does not reach either is `unsettled`: nothing judges
    * a header on the text as written (owner ruling 6 of 2026-10-03, #1542).
+   *
+   * Only a header a C compile opens counts (owner ruling of 2026-10-07 on
+   * #1914): one a `.cnx` file includes, or one a counted header's
+   * preprocessing (or the unit's) opened. The walk also finds headers behind
+   * an `#if` that is false; those get no language, no error and no source.
    *
    * The preprocessor must be available: Discover rejects a run that includes
    * headers without one.
@@ -110,7 +122,10 @@ class HeaderSources {
       );
     }
     const alone = await Promise.all(settled);
-    const recovery = alone.some((header) => header.source === null)
+    const index = new Map(headers.map((file, i) => [resolve(file.path), i]));
+    const counted = new Set<number>();
+    HeaderSources._count([...unit.headers], index, alone, counted);
+    const recovery = [...counted].some((i) => alone[i].source === null)
       ? await ExternalDeclarationOracle.recover(
           unit.directives,
           settings.preprocessor,
@@ -129,9 +144,11 @@ class HeaderSources {
     for (const [path, text] of recovery?.perFileContent ?? []) {
       slices.set(resolve(path), text);
     }
+    HeaderSources._count(slices.keys(), index, alone, counted);
     const sources = new Map<string, IHeaderSource>();
     const unsettled = new Map<string, string>();
     headers.forEach((file, i) => {
+      if (!counted.has(i)) return;
       const header = alone[i];
       if (header.source !== null) {
         sources.set(file.path, header.source);
@@ -155,6 +172,26 @@ class HeaderSources {
           : HeaderSources._recovered(headers, sources, recovery),
       unsettled,
     };
+  }
+
+  /**
+   * Adds to `counted` each header in `paths`, and each one a counted header's
+   * preprocessing opened, by its index in `headers`.
+   */
+  private static _count(
+    paths: Iterable<string>,
+    index: ReadonlyMap<string, number>,
+    alone: readonly TAlone[],
+    counted: Set<number>,
+  ): void {
+    const pending = [...paths];
+    for (let path = pending.pop(); path !== undefined; path = pending.pop()) {
+      const i = index.get(resolve(path));
+      if (i === undefined || counted.has(i)) continue;
+      counted.add(i);
+      const header = alone[i];
+      if (header.source !== null) pending.push(...header.entered);
+    }
   }
 
   /**
@@ -263,6 +300,7 @@ class HeaderSources {
         own,
       ),
       raw,
+      entered: LineMarkers.entered(preprocessed, file.path),
     };
   }
 
