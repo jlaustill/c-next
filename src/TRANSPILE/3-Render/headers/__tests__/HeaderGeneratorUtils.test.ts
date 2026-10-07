@@ -565,7 +565,6 @@ describe("HeaderGeneratorUtils", () => {
       const lines = HeaderGeneratorUtils.generateIncludes(
         {
           userIncludes: ['#include "types.hpp"'],
-          cppMode: true,
         },
         new Set(),
         [],
@@ -578,7 +577,6 @@ describe("HeaderGeneratorUtils", () => {
       const result = HeaderGeneratorUtils.generateIncludes(
         {
           userIncludes: ["#include <AppConfig.hpp>"],
-          cppMode: true,
         },
         new Set(['#include "../AppConfig.hpp"']),
         [],
@@ -596,7 +594,6 @@ describe("HeaderGeneratorUtils", () => {
       const result = HeaderGeneratorUtils.generateIncludes(
         {
           userIncludes: ["#include <Display/AppData.hpp>"],
-          cppMode: true,
         },
         new Set(["#include <Display/AppData.h>"]),
         [],
@@ -1001,7 +998,10 @@ describe("HeaderGeneratorUtils", () => {
 
   describe("generateCallbackTypedefSection", () => {
     it("returns empty array when no callback types provided", () => {
-      const result = HeaderGeneratorUtils.generateCallbackTypedefSection();
+      const result = HeaderGeneratorUtils.generateCallbackTypedefSection(
+        undefined,
+        false,
+      );
       expect(result).toEqual([]);
     });
 

@@ -10,6 +10,7 @@
  * - Validation that atomic and volatile are not both specified
  */
 
+import type TranspileState from "../../../TranspileState";
 import IRenderedModifiers from "../types/IRenderedModifiers";
 import invariant from "../../../../utils/invariant";
 
@@ -36,15 +37,15 @@ class VariableModifierBuilder {
    * @param ctx - Parser context with modifier methods
    * @param inFunctionBody - Whether we're inside a function body (affects extern)
    * @param hasInitializer - Whether the variable has an initializer (affects extern in C mode)
-   * @param cppMode - Whether we're generating C++ code (affects extern behavior)
+   * @param mode - The run's mode, as `TranspileState` holds it from `Program` (#1428)
    * @returns Modifier strings ready for use in generated code
    * @throws Error if both atomic and volatile are specified
    */
   static build(
     ctx: IModifierContext,
     inFunctionBody: boolean,
-    hasInitializer: boolean = false,
-    cppMode: boolean = false,
+    hasInitializer: boolean,
+    mode: Pick<TranspileState, "cppMode">,
   ): IRenderedModifiers {
     const hasConst = ctx.constModifier?.() ?? false;
     const constMod = hasConst ? "const " : "";
@@ -62,7 +63,7 @@ class VariableModifierBuilder {
     // - C mode + initializer: NO extern (definition - MISRA 8.5)
     // - C++ mode: ALWAYS extern for external linkage (both declarations and definitions)
     const needsExtern =
-      hasConst && !inFunctionBody && (cppMode || !hasInitializer);
+      hasConst && !inFunctionBody && (mode.cppMode || !hasInitializer);
     const externMod = needsExtern ? "extern " : "";
 
     // #1322: ADR-049's `atomic` + `volatile` rule is E0889 in pass 2.1. It is

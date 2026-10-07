@@ -11,6 +11,7 @@ import IHeaderTypeInput from "./generators/IHeaderTypeInput";
 import CHeaderGenerator from "./CHeaderGenerator";
 import CppHeaderGenerator from "./CppHeaderGenerator";
 import TPassByValueParams from "./types/TPassByValueParams";
+import type IProgram from "../../../types/IProgram";
 
 /**
  * Facade that delegates header generation to the appropriate generator
@@ -27,24 +28,26 @@ class HeaderGenerator {
   /**
    * Generate a header file from symbols
    *
+   * @param program - The run's program, whose mode (#1428) picks the generator
    * @param symbols - Array of symbols to include in header
    * @param filename - Output filename (used for include guard)
-   * @param options - Header generation options (includes cppMode)
+   * @param options - Header generation options
    * @param typeInput - Optional type information for full definitions
    * @param passByValueParams - Map of function names to pass-by-value parameter names
    * @param allKnownEnums - All known enum names from entire compilation
    * @param sourcePath - Optional source file path for header comment
    */
   generate(
+    program: Pick<IProgram, "cppMode">,
     symbols: IHeaderSymbol[],
     filename: string,
-    options: IHeaderOptions = {},
+    options: IHeaderOptions,
     typeInput?: IHeaderTypeInput,
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
     sourcePath?: string,
   ): string {
-    const generator = options.cppMode ? this.cppGenerator : this.cGenerator;
+    const generator = program.cppMode() ? this.cppGenerator : this.cGenerator;
 
     return generator.generate(
       symbols,

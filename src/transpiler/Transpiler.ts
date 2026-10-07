@@ -141,8 +141,13 @@ class Transpiler {
    * #941, #1139, #1425 and #1171. #1319 made it declared-only; #1428 ruled
    * that 1.1 detects it, which is early enough that nothing reads it before
    * it settles.
+   *
+   * #1428: `undefined` until this run's 1.1 has settled it. It used to start
+   * as `cppRequired ?? false`, which answered "C" for a run that had not
+   * decided anything yet. Passes do not read this copy: they read the mode
+   * from `Program`, which carries the graph's.
    */
-  private cppMode: boolean;
+  private cppMode: boolean | undefined;
 
   /**
    * Issue #1319: the run's output extensions -- the interim owner of a decision
@@ -154,6 +159,10 @@ class Transpiler {
    * the earliest layer, so it ran before the latch had settled.
    */
   private get outputExtensions(): IOutputExtensions {
+    invariant(
+      this.cppMode !== undefined,
+      "1.1 Discover settled the run's mode before an output file is named",
+    );
     return OutputExtensions.forCppMode(this.cppMode);
   }
 
@@ -287,10 +296,6 @@ class Transpiler {
       collectGrammarCoverage: config.collectGrammarCoverage ?? false,
       noCache: config.noCache ?? false,
     };
-
-    // Until a run's 1.1 settles it from the headers (#1844), what the config
-    // says, or C.
-    this.cppMode = this.config.cppRequired ?? false;
 
     this.codeGenerator = new CodeGenWalker();
     this.headerGenerator = new HeaderGenerator();
@@ -558,9 +563,14 @@ class Transpiler {
   private _renderHeaders(
     result: ITranspilerResult,
   ): ReadonlyMap<string, IRenderedFile> {
+    invariant(
+      this.program,
+      "1.4 Resolve built Program before any header is rendered",
+    );
     const rendered = HeaderRenderer.render(
       this.headerEmissionFactsByPath,
       this.headerGenerator,
+      this.program,
     );
 
     // 2.3 Render's artifact, assembled here because this is the first moment a
@@ -724,6 +734,8 @@ class Transpiler {
             ),
           },
           registry: this.symbolRegistry,
+          // #1428: 1.1's one answer, which every pass after 1.4 reads from here
+          cppMode: this._requireSourceGraph().cppMode,
           target: {
             option: this.config.target,
             // ADR-049's build-system rung, read once by 1.1 from the text its
@@ -934,7 +946,6 @@ class Transpiler {
       );
 
       return runAnalyzers(parsed.tree, parsed.comments, {
-        cppMode: this.cppMode,
         // #1456: handed over rather than reached for. Nineteen analyzer sites
         // used to read these off `CodeGenState` themselves, for facts this
         // caller is already holding.
@@ -1122,7 +1133,6 @@ class Transpiler {
         debugMode: this.config.debugMode,
         targetDescription: this._runTarget().description,
         sourcePath,
-        cppMode: this.cppMode,
         symbolInfo,
         sourceRelativePath,
         cnxIncludeRewrites: this._includesOf(sourcePath).cnxIncludeRewrites,
@@ -1213,6 +1223,8 @@ class Transpiler {
   }
 
   private _initializeRun(): void {
+    // #1428: the previous run's mode is not this run's answer
+    this.cppMode = undefined;
     if (this.cacheManager) {
       this.cacheManager.initialize();
     }
@@ -2349,7 +2361,6 @@ class Transpiler {
           ...this.codeGenerator.transpileState.exportedRegisterBlocks,
         ],
         externalTypeHeaders,
-        cppMode: this.cppMode,
         // #1517: 2.2 Plan decides; the header generator prints. Possible only
         // since #1520 made `headerCType` the one answer to "what does this
         // header call this type" -- before that, deciding from the symbols
@@ -2670,10 +2681,10 @@ class Transpiler {
   }
 
   /**
-   * Check if C++ output was detected during transpilation.
-   * This is set when C++ syntax is found in included headers (e.g., Arduino.h).
+   * Whether the last run emits C++, as its 1.1 Discover settled it (#1844).
+   * `undefined` when that run stopped before 1.1 settled a mode (#1428).
    */
-  isCppMode(): boolean {
+  isCppMode(): boolean | undefined {
     return this.cppMode;
   }
 }

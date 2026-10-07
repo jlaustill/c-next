@@ -944,6 +944,7 @@ scope Gauge {
         "conflicts",
         "constantOf",
         "constantValueOf",
+        "cppMode",
         "enumMemberValues",
         "externalStructFields",
         "functionParamLists",

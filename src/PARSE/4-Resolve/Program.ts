@@ -279,6 +279,8 @@ class Program {
     );
     // Settled once, with the program, so every pass reads one answer.
     const target = inputs.target ? RunTarget.resolve(inputs.target) : null;
+    // #1428: 1.1's answer, carried and never defaulted
+    const runEmitsCpp = inputs.cppMode;
     const conflicts = ConflictDetector.detect(
       registry,
       [...symbolsByFile.values()].flat(),
@@ -385,6 +387,13 @@ class Program {
           "a program built without target inputs has no target",
         );
         return target;
+      },
+      cppMode: (): boolean => {
+        invariant(
+          runEmitsCpp !== undefined,
+          "a program built without the run's mode has no mode",
+        );
+        return runEmitsCpp;
       },
       scope: (path: string): IScopeSymbol | null =>
         registry?.getScope(path) ?? null,

@@ -29,6 +29,7 @@ import HeaderGenerator from "./HeaderGenerator";
 import IHeaderEmissionFacts from "./types/IHeaderEmissionFacts";
 import IHeaderRenderResult from "./types/IHeaderRenderResult";
 import CaughtError from "../../../utils/CaughtError";
+import type IProgram from "../../../types/IProgram";
 
 class HeaderRenderer {
   /**
@@ -41,10 +42,12 @@ class HeaderRenderer {
    * @param factsBySourcePath - captured facts per file that has a public
    *   header; a file with none (`PublicInterface.forFile` was empty) has no
    *   entry and gets no `headersBySourcePath` entry either.
+   * @param program - the run's program; its mode (#1428) picks C or C++
    */
   static render(
     factsBySourcePath: ReadonlyMap<string, IHeaderEmissionFacts>,
     headerGenerator: HeaderGenerator,
+    program: Pick<IProgram, "cppMode">,
   ): IHeaderRenderResult {
     const headersBySourcePath = new Map<string, string>();
     const errorsBySourcePath = new Map<string, string>();
@@ -52,6 +55,7 @@ class HeaderRenderer {
     for (const [sourcePath, facts] of factsBySourcePath) {
       try {
         const headerCode = headerGenerator.generate(
+          program,
           [...facts.symbols],
           facts.filename,
           facts.options,

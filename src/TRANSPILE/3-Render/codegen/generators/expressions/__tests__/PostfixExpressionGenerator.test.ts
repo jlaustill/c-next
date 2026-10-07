@@ -119,7 +119,6 @@ function createMockOrchestrator(overrides?: {
   isKnownStruct?: (name: string) => boolean;
   isKnownScope?: (name: string) => boolean;
   isCppScopeSymbol?: (name: string) => boolean;
-  isCppMode?: () => boolean;
   getScopeSeparator?: (isCpp: boolean) => string;
   tryEvaluateConstant?: (ctx: unknown) => number | undefined;
   hasFloatBitShadow?: (name: string) => boolean;
@@ -171,7 +170,9 @@ function createMockOrchestrator(overrides?: {
     generateFunctionArg: overrides?.generateFunctionArg ?? vi.fn(),
     isConstValue: vi.fn(),
     getKnownEnums: vi.fn(() => new Set()),
-    isCppMode: overrides?.isCppMode ?? vi.fn(() => false),
+    // #1428: as `CodeGenerator.isCppMode()` does -- the walk's state holds the
+    // run's mode; a test sets `sharedState.cppMode`, never a fallback here.
+    isCppMode: vi.fn(() => sharedState.cppMode),
     isCppEnumClass: vi.fn(),
     getExpressionType: vi.fn(),
     isParameterPassByValue: vi.fn(),
@@ -620,9 +621,9 @@ describe("PostfixExpressionGenerator", () => {
         const ctx = createMockPostfixExpressionContext(name, []);
         const input = createMockInput();
         const state = createMockState({ currentParameters: params });
+        sharedState.cppMode = cppMode;
         const orchestrator = createMockOrchestrator({
           generatePrimaryExpr: () => name,
-          isCppMode: () => cppMode,
         });
 
         const result = runPostfix(ctx, input, state, orchestrator);
@@ -1199,9 +1200,9 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput();
       const state = createMockState({ currentParameters: params });
+      sharedState.cppMode = false;
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "point",
-        isCppMode: () => false,
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
@@ -1228,9 +1229,9 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput();
       const state = createMockState({ currentParameters: params });
+      sharedState.cppMode = true;
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "point",
-        isCppMode: () => true,
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);

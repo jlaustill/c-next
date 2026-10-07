@@ -89,6 +89,7 @@ function setupGenerator(source: string): {
   state.symbolTable = symbolTable;
   // Generate to initialize the generator state
   generateWithProgram(generator, tree, tokenStream, {
+    cppMode: false,
     symbolInfo: symbols,
     sourcePath: "test.cnx",
   });
@@ -112,7 +113,7 @@ const generateWithProgram = (
   generator: CodeGenWalker,
   tree: Parser.ProgramContext,
   tokenStream: Parameters<CodeGenWalker["generate"]>[1],
-  options: Parameters<CodeGenWalker["generate"]>[2],
+  options: Parameters<typeof ProgramGeneration.generate>[3],
 ): ReturnType<CodeGenWalker["generate"]> =>
   ProgramGeneration.generate(generator, tree, tokenStream, options, registry);
 
@@ -143,6 +144,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -164,27 +166,12 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
 
       expect(code).toContain("void foo(void)");
-    });
-
-    it("should throw when symbolInfo is not provided", () => {
-      const source = `void foo() { }`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
-      // the walk accumulates read the SAME instance the walk drove.
-      const host = new CodeGenerator();
-      const generator = new CodeGenWalker(host);
-
-      expect(() =>
-        generateWithProgram(generator, tree, tokenStream, {
-          sourcePath: "test.cnx",
-        } as never),
-      ).toThrow("the pipeline always supplies options.symbolInfo");
     });
 
     it("should enable debug mode when specified", () => {
@@ -204,6 +191,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         debugMode: true,
@@ -251,6 +239,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cnxIncludeRewrites: new Map([["utils.cnx", "Display/utils.h"]]),
@@ -271,6 +260,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "led.cnx",
       });
@@ -899,6 +889,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -935,6 +926,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -964,6 +956,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -993,6 +986,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1021,6 +1015,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1050,6 +1045,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1074,6 +1070,7 @@ describe("CodeGenWalker", () => {
       )!;
 
       generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         targetDescription: teensy41,
@@ -1116,6 +1113,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1145,6 +1143,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1172,6 +1171,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1198,6 +1198,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1225,6 +1226,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1255,6 +1257,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1282,6 +1285,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1309,6 +1313,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1331,6 +1336,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1354,6 +1360,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1377,6 +1384,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1403,6 +1411,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1425,6 +1434,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1453,6 +1463,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1482,6 +1493,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1513,6 +1525,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1544,6 +1557,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1573,6 +1587,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1600,6 +1615,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1626,6 +1642,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1655,6 +1672,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1679,6 +1697,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1707,6 +1726,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1731,6 +1751,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1757,6 +1778,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1786,6 +1808,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1815,6 +1838,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1841,6 +1865,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1866,6 +1891,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1891,6 +1917,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         includeKinds: discoveredKinds(source),
@@ -1921,6 +1948,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         includeKinds: discoveredKinds(source),
@@ -1948,6 +1976,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "myfile.cnx",
         sourceRelativePath: "myfile.cnx",
@@ -2000,6 +2029,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2027,6 +2057,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2057,6 +2088,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2086,6 +2118,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2118,6 +2151,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2148,6 +2182,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2175,6 +2210,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2207,6 +2243,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2236,6 +2273,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2263,6 +2301,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2288,6 +2327,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2314,6 +2354,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2339,6 +2380,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2361,6 +2403,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2385,6 +2428,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2408,6 +2452,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2441,6 +2486,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2468,6 +2514,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2493,6 +2540,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2521,6 +2569,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2549,6 +2598,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2584,6 +2634,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2610,6 +2661,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2635,6 +2687,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2660,6 +2713,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2690,6 +2744,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2716,6 +2771,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2745,6 +2801,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2773,6 +2830,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2801,6 +2859,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2828,6 +2887,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2859,6 +2919,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2886,6 +2947,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2911,6 +2973,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2937,6 +3000,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2962,6 +3026,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3000,6 +3065,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3026,6 +3092,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3057,6 +3124,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3086,6 +3154,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3115,6 +3184,7 @@ describe("CodeGenWalker", () => {
 
       expect(() =>
         generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
@@ -3136,6 +3206,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3163,6 +3234,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3192,6 +3264,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3220,6 +3293,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3247,6 +3321,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3281,6 +3356,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3305,6 +3381,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3331,6 +3408,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3359,6 +3437,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3386,6 +3465,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3414,6 +3494,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3444,6 +3525,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3476,6 +3558,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3508,6 +3591,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3536,6 +3620,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3578,6 +3663,7 @@ describe("CodeGenWalker", () => {
 
       // Should not throw
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3602,6 +3688,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3625,6 +3712,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3652,6 +3740,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3677,6 +3766,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3703,6 +3793,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3730,6 +3821,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3754,6 +3846,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3776,6 +3869,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3800,6 +3894,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3824,6 +3919,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3846,6 +3942,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3865,6 +3962,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3884,6 +3982,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3912,6 +4011,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3941,6 +4041,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3967,6 +4068,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3990,6 +4092,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4014,6 +4117,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4039,6 +4143,7 @@ describe("CodeGenWalker", () => {
 
       expect(() =>
         generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
@@ -4071,6 +4176,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4104,6 +4210,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4130,6 +4237,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4154,6 +4262,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4180,6 +4289,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4209,6 +4319,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4234,6 +4345,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4256,6 +4368,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4278,6 +4391,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4303,6 +4417,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4326,6 +4441,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4349,6 +4465,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4371,6 +4488,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4393,6 +4511,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4418,6 +4537,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4441,6 +4561,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4466,6 +4587,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4489,6 +4611,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4512,6 +4635,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4541,6 +4665,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4565,6 +4690,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4589,6 +4715,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4618,6 +4745,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4646,6 +4774,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4673,6 +4802,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4700,6 +4830,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4721,6 +4852,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4743,6 +4875,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4767,6 +4900,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4795,6 +4929,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4818,6 +4953,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4842,6 +4978,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4864,6 +5001,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4888,6 +5026,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4910,6 +5049,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4929,6 +5069,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4951,6 +5092,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4977,6 +5119,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5006,6 +5149,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5031,6 +5175,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5056,6 +5201,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5084,6 +5230,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5108,6 +5255,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5132,6 +5280,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5156,6 +5305,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5180,6 +5330,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5204,6 +5355,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5228,6 +5380,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5252,6 +5405,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5278,6 +5432,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5304,6 +5459,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5330,6 +5486,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5357,6 +5514,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5386,6 +5544,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5408,6 +5567,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5434,6 +5594,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5461,6 +5622,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5485,6 +5647,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5506,6 +5669,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5525,6 +5689,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5546,6 +5711,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5565,6 +5731,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5590,6 +5757,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5614,6 +5782,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5638,6 +5807,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5666,6 +5836,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5694,6 +5865,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5721,6 +5893,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5748,6 +5921,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5820,6 +5994,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5845,6 +6020,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5875,6 +6051,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5899,6 +6076,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5923,6 +6101,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5950,6 +6129,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5978,6 +6158,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6005,6 +6186,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6030,6 +6212,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6053,6 +6236,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6083,6 +6267,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6110,6 +6295,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6143,6 +6329,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6170,6 +6357,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6198,6 +6386,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6221,6 +6410,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6250,6 +6440,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6280,6 +6471,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6305,6 +6497,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6327,6 +6520,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6353,6 +6547,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6378,6 +6573,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6404,6 +6600,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6427,6 +6624,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6453,6 +6651,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6479,6 +6678,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6503,6 +6703,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6529,6 +6730,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6554,6 +6756,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6581,6 +6784,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6609,6 +6813,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6635,6 +6840,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6661,6 +6867,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6688,6 +6895,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6709,6 +6917,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6733,6 +6942,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6754,6 +6964,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6775,6 +6986,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6796,6 +7008,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6817,6 +7030,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6844,6 +7058,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6871,6 +7086,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6894,6 +7110,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6917,6 +7134,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6940,6 +7158,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6966,6 +7185,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6992,6 +7212,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7018,6 +7239,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7044,6 +7266,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7071,6 +7294,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7097,6 +7321,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7123,6 +7348,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7148,6 +7374,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7172,6 +7399,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7306,6 +7534,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7416,6 +7645,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7443,6 +7673,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7471,6 +7702,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7497,6 +7729,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7527,6 +7760,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7554,6 +7788,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7581,6 +7816,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7611,6 +7847,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7639,6 +7876,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7665,6 +7903,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7694,6 +7933,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7721,6 +7961,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7749,6 +7990,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7773,6 +8015,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7806,6 +8049,7 @@ describe("CodeGenWalker", () => {
 
         expect(() =>
           generateWithProgram(generator, tree, tokenStream, {
+            cppMode: false,
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
@@ -7834,6 +8078,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7861,6 +8106,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7888,6 +8134,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7914,6 +8161,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7944,6 +8192,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7973,6 +8222,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8002,6 +8252,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8028,6 +8279,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8055,6 +8307,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8082,6 +8335,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8108,6 +8362,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8137,6 +8392,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8167,6 +8423,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8192,6 +8449,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8217,6 +8475,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8242,6 +8501,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8269,6 +8529,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8295,6 +8556,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8320,6 +8582,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8344,6 +8607,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8369,6 +8633,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8395,6 +8660,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8418,6 +8684,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8443,6 +8710,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8468,6 +8736,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8493,6 +8762,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8517,6 +8787,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8568,6 +8839,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8591,6 +8863,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8615,6 +8888,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8638,6 +8912,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8661,6 +8936,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8684,6 +8960,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8707,6 +8984,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8731,6 +9009,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8756,6 +9035,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8780,6 +9060,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8804,6 +9085,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8828,6 +9110,7 @@ describe("CodeGenWalker", () => {
 
         expect(() =>
           generateWithProgram(generator, tree, tokenStream, {
+            cppMode: false,
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
@@ -8852,6 +9135,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8878,6 +9162,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8902,6 +9187,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8926,6 +9212,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8960,6 +9247,7 @@ describe("CodeGenWalker", () => {
         host.state.symbolTable = symbolTable;
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9009,6 +9297,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9034,6 +9323,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9057,6 +9347,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9091,6 +9382,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9145,6 +9437,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9225,6 +9518,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9250,6 +9544,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9275,6 +9570,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9298,6 +9594,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9321,6 +9618,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9344,6 +9642,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9367,6 +9666,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9394,6 +9694,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9420,6 +9721,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9448,6 +9750,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9472,6 +9775,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9498,6 +9802,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9522,6 +9827,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9547,6 +9853,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9577,6 +9884,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9609,6 +9917,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9635,6 +9944,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9662,6 +9972,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9691,6 +10002,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9715,6 +10027,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9741,6 +10054,7 @@ describe("CodeGenWalker", () => {
 
         // Generate to initialize state
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9768,6 +10082,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9796,6 +10111,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9823,6 +10139,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9875,6 +10192,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9902,6 +10220,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9939,6 +10258,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9968,6 +10288,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9997,6 +10318,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10024,6 +10346,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10054,6 +10377,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10083,6 +10407,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10110,6 +10435,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10139,6 +10465,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10164,6 +10491,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10191,6 +10519,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10216,6 +10545,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10243,6 +10573,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10267,6 +10598,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10293,6 +10625,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10322,6 +10655,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10347,6 +10681,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10373,6 +10708,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10398,6 +10734,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10422,6 +10759,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10445,6 +10783,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10468,6 +10807,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10491,6 +10831,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10516,6 +10857,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10542,6 +10884,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10573,6 +10916,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10601,6 +10945,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10627,6 +10972,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10655,6 +11001,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10679,6 +11026,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10761,6 +11109,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10788,6 +11137,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10812,6 +11162,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10838,6 +11189,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10863,6 +11215,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10888,6 +11241,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10911,6 +11265,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10940,6 +11295,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10967,6 +11323,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10993,6 +11350,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11027,6 +11385,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11056,6 +11415,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11085,6 +11445,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11111,6 +11472,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11137,6 +11499,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11166,6 +11529,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11224,6 +11588,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11249,6 +11614,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11272,6 +11638,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11302,6 +11669,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11327,6 +11695,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11351,6 +11720,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11378,6 +11748,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11433,6 +11804,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11457,6 +11829,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11483,6 +11856,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11507,6 +11881,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11530,6 +11905,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11555,6 +11931,7 @@ describe("CodeGenWalker", () => {
 
         expect(() =>
           generateWithProgram(generator, tree, tokenStream, {
+            cppMode: false,
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
@@ -11578,6 +11955,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11603,6 +11981,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11627,6 +12006,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11653,6 +12033,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11678,6 +12059,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11705,6 +12087,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11731,6 +12114,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11761,6 +12145,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11786,6 +12171,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11815,6 +12201,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11844,6 +12231,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11875,6 +12263,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11903,6 +12292,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11931,6 +12321,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11964,6 +12355,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11993,6 +12385,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12017,6 +12410,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12044,6 +12438,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12074,6 +12469,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12102,6 +12498,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12131,6 +12528,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12160,6 +12558,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12186,6 +12585,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12211,6 +12611,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12234,6 +12635,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12258,6 +12660,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12284,6 +12687,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12309,6 +12713,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12336,6 +12741,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12363,6 +12769,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12395,6 +12802,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12421,6 +12829,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12448,6 +12857,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12473,6 +12883,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12502,6 +12913,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12530,6 +12942,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12556,6 +12969,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12582,6 +12996,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12607,6 +13022,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12636,6 +13052,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12665,6 +13082,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12694,6 +13112,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12720,6 +13139,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12746,6 +13166,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12770,6 +13191,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12793,6 +13215,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12823,6 +13246,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12850,6 +13274,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12876,6 +13301,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12905,6 +13331,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12932,6 +13359,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12958,6 +13386,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12984,6 +13413,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13008,6 +13438,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13034,6 +13465,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13057,6 +13489,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13082,6 +13515,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13106,6 +13540,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13131,6 +13566,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13155,6 +13591,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13181,6 +13618,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13205,6 +13643,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13229,6 +13668,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13255,6 +13695,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13281,6 +13722,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13305,6 +13747,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13333,6 +13776,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13359,6 +13803,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13385,6 +13830,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13411,6 +13857,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13436,6 +13883,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13461,6 +13909,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13491,6 +13940,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13522,6 +13972,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13549,6 +14000,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13576,6 +14028,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13605,6 +14058,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13632,6 +14086,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13716,6 +14171,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13745,6 +14201,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13774,6 +14231,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13799,6 +14257,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13822,6 +14281,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13845,6 +14305,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13871,6 +14332,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13899,6 +14361,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13931,6 +14394,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13962,6 +14426,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13988,6 +14453,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14016,6 +14482,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14043,6 +14510,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14071,6 +14539,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14101,6 +14570,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14129,6 +14599,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14154,6 +14625,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14179,6 +14651,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14201,6 +14674,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14223,6 +14697,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14252,6 +14727,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14277,6 +14753,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14304,6 +14781,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14331,6 +14809,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14362,6 +14841,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14388,6 +14868,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14413,6 +14894,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14437,6 +14919,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14464,6 +14947,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14488,6 +14972,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14512,6 +14997,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14538,6 +15024,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14561,6 +15048,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14588,6 +15076,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14614,6 +15103,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14639,6 +15129,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14667,6 +15158,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14693,6 +15185,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14718,6 +15211,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14742,6 +15236,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14766,6 +15261,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14792,6 +15288,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14817,6 +15314,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14848,6 +15346,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14875,6 +15374,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14901,6 +15401,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14929,6 +15430,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14957,6 +15459,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14987,6 +15490,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15013,6 +15517,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15038,6 +15543,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15070,6 +15576,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15099,6 +15606,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15127,6 +15635,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15158,6 +15667,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15185,6 +15695,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15210,6 +15721,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15234,6 +15746,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15260,6 +15773,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15285,6 +15799,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15311,6 +15826,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15337,6 +15853,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15364,6 +15881,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15388,6 +15906,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15412,6 +15931,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15435,6 +15955,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15463,6 +15984,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15496,6 +16018,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15527,6 +16050,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15552,6 +16076,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15695,6 +16220,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15721,6 +16247,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15750,6 +16277,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15778,6 +16306,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15805,6 +16334,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15832,6 +16362,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15856,6 +16387,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15880,6 +16412,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           includeKinds: discoveredKinds(source),
@@ -15903,6 +16436,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15929,6 +16463,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15955,6 +16490,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -15980,6 +16516,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16006,6 +16543,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16030,6 +16568,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16055,6 +16594,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16084,6 +16624,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16110,6 +16651,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16140,6 +16682,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16171,6 +16714,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16200,6 +16744,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16227,6 +16772,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16257,6 +16803,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16283,6 +16830,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16308,6 +16856,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16331,6 +16880,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16353,6 +16903,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16380,6 +16931,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16407,6 +16959,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16435,6 +16988,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16464,6 +17018,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16489,6 +17044,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16515,6 +17071,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16544,6 +17101,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16568,6 +17126,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16604,6 +17163,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16632,6 +17192,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16660,6 +17221,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16685,6 +17247,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16712,6 +17275,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16738,6 +17302,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16768,6 +17333,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16797,6 +17363,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16828,6 +17395,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16852,6 +17420,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16876,6 +17445,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16901,6 +17471,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16928,6 +17499,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -16961,6 +17533,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -16991,6 +17564,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -17020,6 +17594,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -17047,6 +17622,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -17071,6 +17647,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -17101,6 +17678,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const code = generateWithProgram(generator, tree, tokenStream, {
+        cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });

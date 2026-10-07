@@ -1687,18 +1687,18 @@ class CodeGenWalker {
   /**
    * Generate C code from a C-Next program
    * @param tree The parsed C-Next program
-   * @param tokenStream Optional token stream for comment preservation (ADR-043)
-   * @param options Optional code generator options (e.g., debugMode)
+   * @param tokenStream Token stream for comment preservation (ADR-043), when there is one
+   * @param options Code generator options; `symbolInfo` and the target are required
    */
   generate(
     tree: Parser.ProgramContext,
-    tokenStream?: CommonTokenStream,
-    options?: ICodeGeneratorOptions,
+    tokenStream: CommonTokenStream | undefined,
+    options: ICodeGeneratorOptions,
   ): string {
     // ADR-049: the target is decided before codegen, by the orchestrator;
     // this walk only reads it.
     invariant(
-      options?.targetDescription,
+      options.targetDescription,
       "the pipeline always supplies options.targetDescription to generate(); its absence is a caller/API error, not a program error",
     );
 
@@ -1709,10 +1709,6 @@ class CodeGenWalker {
     this.initializeGenerateOptions(options, tokenStream);
 
     // ADR-055: Use pre-collected symbolInfo from Pipeline (TSymbolInfoAdapter)
-    invariant(
-      options?.symbolInfo,
-      "the pipeline always supplies options.symbolInfo to generate(); its absence is a caller/API error, not a program error",
-    );
     this.host.state.symbols = options.symbolInfo;
 
     // ADR-029 + #1491: register function-as-types reached through an include
@@ -1735,11 +1731,11 @@ class CodeGenWalker {
    * Initialize options and configuration for generate().
    */
   private initializeGenerateOptions(
-    options: ICodeGeneratorOptions | undefined,
+    options: ICodeGeneratorOptions,
     tokenStream: CommonTokenStream | undefined,
   ): void {
-    this.host.state.debugMode = options?.debugMode ?? false;
-    this.host.state.sourcePath = options?.sourcePath ?? null;
+    this.host.state.debugMode = options.debugMode ?? false;
+    this.host.state.sourcePath = options.sourcePath ?? null;
     // #1241: Transpiler._analyzeFile sets the provenance file before analyzers
     // run; re-assert it here for API callers that drive the generator directly
     // and never go through that path. (Said `_transpileFile` until #1320
@@ -1747,10 +1743,14 @@ class CodeGenWalker {
     // `_transpileFile` runs, every file's analyzers are already done.)
     AdrProvenance.beginFile(this.host.state.sourcePath);
     this.host.state.cnxIncludeRewrites =
-      options?.cnxIncludeRewrites ?? new Map<string, string>();
+      options.cnxIncludeRewrites ?? new Map<string, string>();
     this.host.state.includeKinds =
-      options?.includeKinds ?? new Map<string, EFileType>();
-    this.host.state.cppMode = options?.cppMode ?? false;
+      options.includeKinds ?? new Map<string, EFileType>();
+    // #1428: the run's mode is 1.1's answer, carried by the program. A caller
+    // cannot supply one, so none can claim C by leaving it out.
+    const program = this.host.state.program;
+    invariant(program, "1.4 Resolve built Program before codegen");
+    this.host.state.cppMode = program.cppMode();
     this.host.state.pendingTempDeclarations = [];
     this.host.state.pendingCppClassAssignments = [];
 
@@ -1806,7 +1806,7 @@ class CodeGenWalker {
    */
   private assembleGeneratedOutput(
     tree: Parser.ProgramContext,
-    options: ICodeGeneratorOptions | undefined,
+    options: ICodeGeneratorOptions,
   ): string {
     const output: string[] = [];
 
@@ -1831,9 +1831,9 @@ class CodeGenWalker {
     // itself.
     // #1515: supplied by the caller, which asked `PublicInterface`. Not read
     // off `ICodeGenSymbols`, where 1.3 Declare used to put it.
-    if (options?.hasPublicInterface && this.host.state.sourcePath) {
+    if (options.hasPublicInterface && this.host.state.sourcePath) {
       const pathToUse =
-        options?.sourceRelativePath ||
+        options.sourceRelativePath ||
         this.host.state.sourcePath.replace(/^.*[\\/]/, "");
       // Issue #933: Use .hpp extension in C++ mode to match header file
       // Issue #1319: read the run's extension; do not re-derive it from the mode
@@ -3332,7 +3332,7 @@ class CodeGenWalker {
       varDecl,
       false,
       false,
-      false,
+      this.host.state,
     );
 
     return {
@@ -4105,7 +4105,7 @@ class CodeGenWalker {
       ctx,
       this.host.state.inFunctionBody,
       ctx.expression() !== null,
-      this.host.state.cppMode,
+      this.host.state,
     );
 
     const name = ctx.IDENTIFIER().getText();

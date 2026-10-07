@@ -118,11 +118,17 @@ abstract class BaseHeaderGenerator {
   protected abstract getRefSuffix(): string;
 
   /**
+   * #1428: whether this generator writes a C++ header. Each subclass IS one
+   * mode, so the answer is its own; an options field could disagree with it.
+   */
+  protected abstract emitsCpp(): boolean;
+
+  /**
    * Generate a header file from symbols
    *
    * @param symbols - Array of symbols to include in header
    * @param filename - Output filename (used for include guard)
-   * @param options - Header generation options (includes cppMode)
+   * @param options - Header generation options
    * @param typeInput - Optional type information for full definitions
    * @param passByValueParams - Map of function names to pass-by-value parameter names
    * @param allKnownEnums - All known enum names from entire compilation
@@ -131,7 +137,7 @@ abstract class BaseHeaderGenerator {
   generate(
     symbols: IHeaderSymbol[],
     filename: string,
-    options: IHeaderOptions = {},
+    options: IHeaderOptions,
     typeInput?: IHeaderTypeInput,
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
@@ -235,7 +241,7 @@ abstract class BaseHeaderGenerator {
       ),
       ...HeaderGeneratorUtils.generateCallbackTypedefSection(
         typeInput,
-        options.cppMode,
+        this.emitsCpp(),
       ),
       ...HeaderGeneratorUtils.generateStructSection(
         groups.structs,

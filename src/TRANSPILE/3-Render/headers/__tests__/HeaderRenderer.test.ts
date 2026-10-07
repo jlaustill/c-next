@@ -11,6 +11,9 @@ import IHeaderEmissionFacts from "../types/IHeaderEmissionFacts";
 import IHeaderSymbol from "../types/IHeaderSymbol";
 import IHeaderOptions from "../../codegen/types/IHeaderOptions";
 
+/** #1428: the run's mode, stated -- the renderer reads it from the program */
+const C_RUN = { cppMode: () => false };
+
 describe("HeaderRenderer", () => {
   function makeVarSymbol(name: string, type: string): IHeaderSymbol {
     return {
@@ -25,7 +28,7 @@ describe("HeaderRenderer", () => {
   function makeFacts(
     filename: string,
     symbols: IHeaderSymbol[] = [makeVarSymbol("value", "u8")],
-    options: IHeaderOptions = {},
+    options: IHeaderOptions,
   ): IHeaderEmissionFacts {
     return {
       symbols,
@@ -63,7 +66,7 @@ describe("HeaderRenderer", () => {
     // #1452 made the state an instance the renderer has no handle on, so the
     // invariant now holds by the signature, and a line writing a module-local
     // object would be dead setup wearing a control's comment.
-    const plan = HeaderRenderer.render(facts, new HeaderGenerator());
+    const plan = HeaderRenderer.render(facts, new HeaderGenerator(), C_RUN);
 
     const header = plan.headersBySourcePath.get("/src/hw.cnx") ?? "";
     expect(header).toContain("/* Registers (ADR-004) */");
@@ -71,16 +74,18 @@ describe("HeaderRenderer", () => {
   });
 
   it("returns empty maps for an empty facts input", () => {
-    const plan = HeaderRenderer.render(new Map(), new HeaderGenerator());
+    const plan = HeaderRenderer.render(new Map(), new HeaderGenerator(), C_RUN);
 
     expect(plan.headersBySourcePath.size).toBe(0);
     expect(plan.errorsBySourcePath.size).toBe(0);
   });
 
   it("renders one file's header, keyed by source path", () => {
-    const facts = new Map([["/src/foo.cnx", makeFacts("foo.h")]]);
+    const facts = new Map([
+      ["/src/foo.cnx", makeFacts("foo.h", undefined, {})],
+    ]);
 
-    const plan = HeaderRenderer.render(facts, new HeaderGenerator());
+    const plan = HeaderRenderer.render(facts, new HeaderGenerator(), C_RUN);
 
     expect(plan.headersBySourcePath.size).toBe(1);
     expect(plan.errorsBySourcePath.size).toBe(0);
@@ -90,11 +95,11 @@ describe("HeaderRenderer", () => {
 
   it("renders every file independently, in one batch", () => {
     const facts = new Map([
-      ["/src/foo.cnx", makeFacts("foo.h", [makeVarSymbol("a", "u8")])],
-      ["/src/bar.cnx", makeFacts("bar.h", [makeVarSymbol("b", "u16")])],
+      ["/src/foo.cnx", makeFacts("foo.h", [makeVarSymbol("a", "u8")], {})],
+      ["/src/bar.cnx", makeFacts("bar.h", [makeVarSymbol("b", "u16")], {})],
     ]);
 
-    const plan = HeaderRenderer.render(facts, new HeaderGenerator());
+    const plan = HeaderRenderer.render(facts, new HeaderGenerator(), C_RUN);
 
     expect(plan.headersBySourcePath.size).toBe(2);
     expect(plan.headersBySourcePath.get("/src/foo.cnx")).toContain(
@@ -110,9 +115,11 @@ describe("HeaderRenderer", () => {
     vi.spyOn(generator, "generate").mockImplementationOnce(() => {
       throw new Error("boom");
     });
-    const facts = new Map([["/src/bad.cnx", makeFacts("bad.h")]]);
+    const facts = new Map([
+      ["/src/bad.cnx", makeFacts("bad.h", undefined, {})],
+    ]);
 
-    const plan = HeaderRenderer.render(facts, generator);
+    const plan = HeaderRenderer.render(facts, generator, C_RUN);
 
     expect(plan.headersBySourcePath.has("/src/bad.cnx")).toBe(false);
     expect(plan.errorsBySourcePath.get("/src/bad.cnx")).toBe("boom");
@@ -129,11 +136,11 @@ describe("HeaderRenderer", () => {
           HeaderGenerator.prototype.generate.apply(generator, args),
       );
     const facts = new Map([
-      ["/src/bad.cnx", makeFacts("bad.h")],
-      ["/src/good.cnx", makeFacts("good.h", [makeVarSymbol("c", "u32")])],
+      ["/src/bad.cnx", makeFacts("bad.h", undefined, {})],
+      ["/src/good.cnx", makeFacts("good.h", [makeVarSymbol("c", "u32")], {})],
     ]);
 
-    const plan = HeaderRenderer.render(facts, generator);
+    const plan = HeaderRenderer.render(facts, generator, C_RUN);
 
     expect(plan.errorsBySourcePath.get("/src/bad.cnx")).toBe("boom");
     expect(plan.headersBySourcePath.get("/src/good.cnx")).toContain(
@@ -157,7 +164,7 @@ describe("HeaderRenderer", () => {
     // #1452: the flag lives on `TranspileState` now; the renderer reads it
     // from the facts it is handed, which is what this case exercises.
 
-    const plan = HeaderRenderer.render(facts, new HeaderGenerator());
+    const plan = HeaderRenderer.render(facts, new HeaderGenerator(), C_RUN);
 
     // If plan() (or the generate() call path it uses) ever read live
     // state.needsISR instead of the captured facts.options value,
@@ -174,9 +181,11 @@ describe("HeaderRenderer", () => {
     vi.spyOn(generator, "generate").mockImplementationOnce(() => {
       throw "not an Error instance";
     });
-    const facts = new Map([["/src/weird.cnx", makeFacts("weird.h")]]);
+    const facts = new Map([
+      ["/src/weird.cnx", makeFacts("weird.h", undefined, {})],
+    ]);
 
-    const plan = HeaderRenderer.render(facts, generator);
+    const plan = HeaderRenderer.render(facts, generator, C_RUN);
 
     expect(plan.errorsBySourcePath.get("/src/weird.cnx")).toBe(
       "not an Error instance",

@@ -14,6 +14,10 @@ class CppHeaderGenerator extends BaseHeaderGenerator {
   /**
    * C++ uses reference syntax for pass-by-reference
    */
+  protected emitsCpp(): boolean {
+    return true;
+  }
+
   protected getRefSuffix(): string {
     return "&";
   }

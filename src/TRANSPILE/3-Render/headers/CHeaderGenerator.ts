@@ -14,6 +14,10 @@ class CHeaderGenerator extends BaseHeaderGenerator {
   /**
    * C uses pointer syntax for pass-by-reference
    */
+  protected emitsCpp(): boolean {
+    return false;
+  }
+
   protected getRefSuffix(): string {
     return "*";
   }

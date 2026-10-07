@@ -260,6 +260,13 @@ interface IProgram {
   target(): TRunTarget;
 
   /**
+   * #1428: does this run emit C++? 1.1 Discover settled it (#1844); the program
+   * carries it so codegen, the header generator and 2.1 all read one answer.
+   * Asking a program built without it is a caller error, never "C".
+   */
+  cppMode(): boolean;
+
+  /**
    * The run's scope graph, for the passes after 1.4 (#1452 box 3).
    *
    * 2.2 Plan does NOT read it here: `ModificationFacts.derive` runs before

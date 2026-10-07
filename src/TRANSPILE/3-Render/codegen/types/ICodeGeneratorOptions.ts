@@ -10,9 +10,12 @@ interface ICodeGeneratorOptions {
   debugMode?: boolean;
   /**
    * ADR-055: Pre-collected symbol info from CNextResolver + TSymbolInfoAdapter.
-   * When provided, CodeGenerator uses this instead of creating SymbolCollector.
+   * Required (#1428, ruling 22): codegen never collects symbols itself.
+   *
+   * There is no `cppMode` here. The run's mode is 1.1's answer, read from
+   * `Program` (#1428), so no caller can claim one by leaving it out.
    */
-  symbolInfo?: ICodeGenSymbols;
+  symbolInfo: ICodeGenSymbols;
   /**
    * ADR-049: the target this file is generated for, decided by the
    * orchestrator before codegen. Required, like `symbolInfo`: codegen never
@@ -21,11 +24,6 @@ interface ICodeGeneratorOptions {
   targetDescription?: ITargetDescription;
   /** ADR-010: Source file path for validating includes */
   sourcePath?: string;
-  /**
-   * Issue #250: When true, generate C++ compatible code.
-   * Uses temporary variables instead of compound literals for rvalue pointer params.
-   */
-  cppMode?: boolean;
   /**
    * Issue #339: Relative path from source root to source file for self-include.
    * When set, self-includes will use this relative path instead of just the basename.

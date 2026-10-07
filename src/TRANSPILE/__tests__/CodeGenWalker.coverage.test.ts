@@ -33,7 +33,7 @@ import enterScope from "../../transpiler/__tests__/enterScope";
  */
 function setupGenerator(
   source: string,
-  options: { cppMode?: boolean } = {},
+  options: { cppMode: boolean },
 ): {
   tree: Parser.ProgramContext;
   generator: CodeGenWalker;
@@ -70,7 +70,7 @@ function setupGenerator(
   const code = generateWithProgram(generator, tree, tokenStream, {
     symbolInfo: symbols,
     sourcePath: "test.cnx",
-    cppMode: options.cppMode ?? false,
+    cppMode: options.cppMode,
   });
 
   return { tree, generator, host, code };
@@ -81,7 +81,7 @@ const generateWithProgram = (
   generator: CodeGenWalker,
   tree: Parser.ProgramContext,
   tokenStream: Parameters<CodeGenWalker["generate"]>[1],
-  options: Parameters<CodeGenWalker["generate"]>[2],
+  options: Parameters<typeof ProgramGeneration.generate>[3],
 ): ReturnType<CodeGenWalker["generate"]> =>
   ProgramGeneration.generate(generator, tree, tokenStream, options, registry);
 
@@ -103,7 +103,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           u32 len <- name.char_count;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // .char_count returns a number, not a string
       expect(code).toContain("strlen(name)");
     });
@@ -115,7 +115,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           u32 cap <- name.capacity;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // .capacity returns a number
       expect(code).toContain("32");
     });
@@ -128,7 +128,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           puts(names[0]);
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // Array of strings generates 2D char array
       expect(code).toContain("names[0U]");
       expect(code).toContain("puts(");
@@ -141,7 +141,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           u8 ch <- name[0];
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // Single string indexing returns a char, not a string
       expect(code).toContain("name[0U]");
     });
@@ -153,7 +153,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           u32 v <- values[0];
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("values[0U]");
     });
 
@@ -164,7 +164,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           u8 dummy <- 0;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("dummy");
     });
   });
@@ -233,13 +233,16 @@ describe("CodeGenWalker Coverage Tests", () => {
   // ==========================================================================
   describe("omitted sizes render the declaration's count (#1664 box 3)", () => {
     it("states a scope member's and a string literal's size, as the .h does", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8[] msg <- "Hi";
         scope Table {
           public u8[] row <- [1, 2, 3, 4];
           public u8[] text <- "abc";
         }
-      `);
+      `,
+        { cppMode: false },
+      );
       expect(code).toContain('uint8_t msg[3] = "Hi";');
       expect(code).toContain("uint8_t Table__row[4] = {1U, 2U, 3U, 4U};");
       expect(code).toContain('uint8_t Table__text[4] = "abc";');
@@ -257,7 +260,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
         }
       `;
-      const { host } = setupGenerator(source);
+      const { host } = setupGenerator(source, { cppMode: false });
 
       // Manually set up scope context to test the resolution path
       enterScope(host.state, "Motor");
@@ -269,7 +272,9 @@ describe("CodeGenWalker Coverage Tests", () => {
     });
 
     it("should return unchanged identifier when not a scope member", () => {
-      const { host } = setupGenerator("u32 globalVar; void main() {}");
+      const { host } = setupGenerator("u32 globalVar; void main() {}", {
+        cppMode: false,
+      });
 
       enterScope(host.state, "Motor");
       host.state.setScopeMembers("Motor", new Set(["speed"]));
@@ -280,7 +285,9 @@ describe("CodeGenWalker Coverage Tests", () => {
     });
 
     it("should return unchanged identifier when not in any scope", () => {
-      const { host } = setupGenerator("u32 globalVar; void main() {}");
+      const { host } = setupGenerator("u32 globalVar; void main() {}", {
+        cppMode: false,
+      });
 
       enterScope(host.state, null);
 
@@ -302,7 +309,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           test(p.x);
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // Struct param member access uses -> (const auto-inferred)
       expect(code).toContain("p->x");
       expect(code).toContain("test(");
@@ -316,7 +323,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           test(arr[0]);
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // Array element access (index gets U suffix per MISRA 7.2)
       expect(code).toContain("arr[0U]");
       expect(code).toContain("test(");
@@ -331,7 +338,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           test(p.x);
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // Global struct uses direct access
       expect(code).toContain("test(p.x)");
     });
@@ -344,7 +351,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           test(getValue());
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // Function call result passed to function
       expect(code).toContain("test(");
       expect(code).toContain("getValue()");
@@ -408,7 +415,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           process(d.buffer);
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // Array members don't need & prefix
       expect(code).toContain("process(d->buffer)");
     });
@@ -439,7 +446,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           process(name[0]);
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // String subscript access may need special handling
       expect(code).toContain("process");
     });
@@ -453,7 +460,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const source = `
         void myFunc() {}
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("void myFunc(void)");
     });
 
@@ -461,7 +468,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const source = `
         u32 counter;
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("uint32_t counter");
     });
   });
@@ -476,7 +483,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           public u8 brightness;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("uint8_t LED__brightness");
       expect(code).not.toContain("static uint8_t LED_brightness");
     });
@@ -487,7 +494,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           u8 internalState;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("static uint8_t LED__internalState");
     });
 
@@ -497,7 +504,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           public void start() {}
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("void Motor__start(void)");
     });
 
@@ -508,7 +515,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           private void internalUpdate() {}
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("static void Motor__internalUpdate(void)");
     });
 
@@ -521,7 +528,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // Enum values get scope-prefixed
       expect(code).toContain("Config__State__IDLE");
     });
@@ -539,7 +546,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // Bitmap typedef should be in scope
       expect(code).toContain("Status");
     });
@@ -555,7 +562,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
         }
       `;
-      const { code, host } = setupGenerator(source);
+      const { code, host } = setupGenerator(source, { cppMode: false });
       // The member write lands in the .c; the accessor block itself is
       // recorded for the header, which is the only file a #define can be
       // exported from (#1453).
@@ -580,7 +587,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           public u8[16] data;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("uint8_t Buffer__data[16]");
     });
 
@@ -590,7 +597,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           public u8 legacy[32];
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("uint8_t Buffer__legacy[32]");
     });
 
@@ -600,7 +607,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           public string<64> name;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // String<64> becomes char[65] (capacity + 1 for null)
       expect(code).toContain("char Config__name[65]");
     });
@@ -611,7 +618,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           u32[8] counters;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("static uint32_t Internal__counters[8]");
     });
   });
@@ -628,7 +635,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           u8 dummy <- 0;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // Struct initializers use designated initializers
       expect(code).toContain(".x = 1");
       expect(code).toContain(".y = 2");
@@ -638,7 +645,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const source = `
         u8[2][3] matrix <- [[1, 2, 3], [4, 5, 6]];
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("{1U, 2U, 3U}");
       expect(code).toContain("{4U, 5U, 6U}");
     });
@@ -647,7 +654,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const source = `
         u32[5] values <- [10, 20, 30, 40, 50];
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("{10U, 20U, 30U, 40U, 50U}");
     });
   });
@@ -793,7 +800,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           return 42;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("uint32_t calculate(void)");
       expect(code).toContain("return 42");
     });
@@ -802,7 +809,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const source = `
         void process(u32 value, u8 flags) {}
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("void process(uint32_t value, uint8_t flags)");
     });
 
@@ -810,7 +817,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const source = `
         void main() {}
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // main always gets int return type for C++ compatibility
       expect(code).toContain("int main(void)");
     });
@@ -821,7 +828,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           u8 dummy <- 0;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("int main(int argc, char *argv[])");
     });
   });
@@ -846,7 +853,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("uint32_t Utils__helper(void)");
     });
 
@@ -860,7 +867,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           Status s <- getStatus();
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("Status getStatus(void)");
       // Enum values are prefixed with enum name
       expect(code).toContain("return Status__OK");
@@ -876,7 +883,7 @@ describe("CodeGenWalker Coverage Tests", () => {
         scope Empty {
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("/* Scope: Empty */");
     });
 
@@ -886,7 +893,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           return;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("void doNothing(void)");
     });
 
@@ -895,7 +902,7 @@ describe("CodeGenWalker Coverage Tests", () => {
         struct RGB { u8 r; u8 g; u8 b; }
         RGB[2] colors <- [{r: 255, g: 0, b: 0}, {r: 0, g: 255, b: 0}];
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain(".r = 255");
       expect(code).toContain(".g = 0");
     });
@@ -906,7 +913,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           public u32 value <- 100;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("uint32_t Counter__value = 100");
     });
 
@@ -919,7 +926,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("Timer__ticks");
     });
   });
@@ -990,7 +997,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           cb.onClick <- handler;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // Callback type generates function pointer in struct
       expect(code).toContain("Callbacks");
       expect(code).toContain("onClick");
@@ -1005,7 +1012,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const source = `
         void process(const u8[8] data) {}
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("const uint8_t data[8]");
     });
 
@@ -1013,7 +1020,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const source = `
         void merge(u8[4] a, u8[4] b, u8[8] result) {}
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("uint8_t a[4]");
       expect(code).toContain("uint8_t b[4]");
       expect(code).toContain("uint8_t result[8]");
@@ -1030,7 +1037,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           value <- value + 1;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // Modified parameter should still work
       expect(code).toContain("update");
     });
@@ -1047,7 +1054,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           u8 val <- (flag = true) ? 1 : 0;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("flag");
       expect(code).toContain("val");
     });
@@ -1065,7 +1072,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           inner(val);
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("outer");
       expect(code).toContain("inner");
     });
@@ -1081,7 +1088,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           return 42;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("return 42");
     });
 
@@ -1091,7 +1098,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           return a + b;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // #1681: arithmetic on parameters clamps (ADR-044)
       expect(code).toContain("return cnx_clamp_add_u32(a, b)");
     });
@@ -1109,7 +1116,7 @@ describe("CodeGenWalker Coverage Tests", () => {
         u32 big <- 1000;
         u8 small <- big[0, 8];
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("small");
     });
   });
@@ -1126,7 +1133,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           callback <- handler;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // #1484: this asserted the bug. `handler` is a FUNCTION, and emitting it
       // in type position produces C no compiler accepts -- there is no typedef
       // by that name, and it collides with the function's own prototype
@@ -1208,7 +1215,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           u32 sum <- local1 + local2;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("local1");
       expect(code).toContain("local2");
       expect(code).toContain("sum");
@@ -1228,7 +1235,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           obj.inner.value <- 42;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("obj.inner.value = 42");
     });
 
@@ -1243,7 +1250,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("Mixed__counter");
       expect(code).toContain("Mixed__increment");
       expect(code).toContain("INIT");
@@ -1261,7 +1268,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           counter +<- 1;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("counter");
     });
 
@@ -1272,7 +1279,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           wrapCounter +<- 1;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("wrapCounter");
     });
 
@@ -1283,7 +1290,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           clampCounter +<- 1;
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("cnx_clamp_add_u8");
     });
   });
@@ -1401,7 +1408,7 @@ describe("CodeGenWalker Coverage Tests", () => {
         }
       `;
 
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
 
       // Should NOT generate pointer since create_widget is a C-Next function
       expect(code).not.toContain("widget_t* w");
@@ -1436,7 +1443,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           public Settings defaults <- {timeout: 30, retries: 3};
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // Scope variable initializer uses withDeclarationInit, producing plain designated init
       expect(code).toContain(".timeout = 30");
       expect(code).toContain(".retries = 3");
@@ -1451,7 +1458,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           Point origin <- {x: 0, y: 0};
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain(
         "static Point Drawing__origin = { .x = 0, .y = 0 }",
       );
@@ -1468,7 +1475,7 @@ describe("CodeGenWalker Coverage Tests", () => {
         struct Point { i32 x; i32 y; }
         Point origin <- {x: 0, y: 0};
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // Global declaration: plain designated init, no compound literal prefix
       expect(code).toContain("Point origin = { .x = 0, .y = 0 }");
       expect(code).not.toContain("(Point){ .x");
@@ -1482,7 +1489,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           p <- {x: 10, y: 20};
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code } = setupGenerator(source, { cppMode: false });
       // Declaration: plain init
       expect(code).toContain("Point p = { .x = 0, .y = 0 }");
       // Assignment: compound literal with type cast
@@ -1594,14 +1601,17 @@ describe("CodeGenWalker Coverage Tests", () => {
   // produce, instead of the shape of an intermediate record.
   describe("control-flow planners", () => {
     it("plans a void return and a value return from the same function body", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 pick(u8 n) {
           if (n > 1) {
             return 2;
           }
           return 0;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       // #1277: the declared return type reaches the literal, so MISRA C:2012
       // Rule 7.2's suffix does too.
@@ -1610,19 +1620,23 @@ describe("CodeGenWalker Coverage Tests", () => {
     });
 
     it("plans a bare return in a void function", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         void stop(u8 n) {
           if (n > 0) {
             return;
           }
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("return;");
     });
 
     it("plans an if with no else", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           u8 n <- 0;
           if (n > 0) {
@@ -1630,14 +1644,17 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
           return n;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("if (n > 0)");
       expect(code).not.toContain("else");
     });
 
     it("plans an if with an else", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           u8 n <- 0;
           if (n > 0) {
@@ -1647,7 +1664,9 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
           return n;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("} else {");
     });
@@ -1655,7 +1674,8 @@ describe("CodeGenWalker Coverage Tests", () => {
     // The counts come from the condition AND the then block, which is why a
     // read in each is enough to reach the threshold of two.
     it("plans the strlen cache from the condition and the then block", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           string<16> s <- "hi";
           u32 n <- 0;
@@ -1664,14 +1684,17 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
           return 0;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("strlen(s)");
       expect(code).toContain("cnx_len_s");
     });
 
     it("plans a while loop", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           u8 n <- 0;
           while (n < 3) {
@@ -1679,13 +1702,16 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
           return n;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("while (n < 3)");
     });
 
     it("plans a do-while loop (ADR-027)", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           u8 n <- 0;
           do {
@@ -1693,26 +1719,32 @@ describe("CodeGenWalker Coverage Tests", () => {
           } while (n < 3);
           return n;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toMatch(/do \{[\s\S]*\} while \(n < 3\);/);
     });
 
     it("plans a forever loop as the MISRA Rule 14.3 idiom (ADR-068)", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         void spin() {
           forever {
             u8 n <- 0;
           }
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("for (;;)");
       expect(code).toContain("14.3");
     });
 
     it("plans a for loop with a declaration init and an update", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           u8 total <- 0;
           for (u32 i <- 0; i < 4; i +<- 1) {
@@ -1720,7 +1752,9 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
           return total;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain(
         "for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U))",
@@ -1728,7 +1762,8 @@ describe("CodeGenWalker Coverage Tests", () => {
     });
 
     it("plans a for loop whose init is an assignment to an existing variable", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           u32 i <- 9;
           u8 total <- 0;
@@ -1737,7 +1772,9 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
           return total;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain(
         "for (i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U))",
@@ -1745,7 +1782,8 @@ describe("CodeGenWalker Coverage Tests", () => {
     });
 
     it("plans a for loop with neither init nor update", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           u32 i <- 0;
           for (; i < 4;) {
@@ -1753,7 +1791,9 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
           return 0;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("for (; i < 4; )");
     });
@@ -1761,7 +1801,8 @@ describe("CodeGenWalker Coverage Tests", () => {
     // The init and the update are ONE plan shape and one renderer (#1445), so
     // an operator has to map the same way in both positions.
     it("maps a compound operator identically in the init and the update", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           u32 i <- 1;
           for (i *<- 2; i < 16; i *<- 2) {
@@ -1769,7 +1810,9 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
           return 0;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain(
         "for (i = cnx_clamp_mul_u32(i, 2U); i < 16; i = cnx_clamp_mul_u32(i, 2U))",
@@ -1777,7 +1820,8 @@ describe("CodeGenWalker Coverage Tests", () => {
     });
 
     it("carries a for variable's modifiers (#696)", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           u8 total <- 0;
           for (volatile u32 i <- 0; i < 4; i +<- 1) {
@@ -1785,7 +1829,9 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
           return total;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("for (volatile uint32_t i = 0U;");
     });
@@ -1802,12 +1848,15 @@ describe("CodeGenWalker Coverage Tests", () => {
   // source, because that is the input those decisions are made from.
   describe("scope planning", () => {
     it("skips a private const scalar and emits nothing for it (Issue #282)", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         scope Driver {
           private const u32 LIMIT <- 8;
           public u32 counter;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("Driver__counter");
       expect(code).not.toContain("Driver__LIMIT");
@@ -1816,33 +1865,42 @@ describe("CodeGenWalker Coverage Tests", () => {
     // Issue #500: an array cannot be inlined at its uses, so the exemption is
     // what keeps it emitted.
     it("emits a private const ARRAY despite the skip rule (Issue #500)", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         scope Driver {
           private const u32[2] TABLE <- [1, 2];
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("Driver__TABLE");
       expect(code).toContain("static");
     });
 
     it("emits a public const scalar", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         scope Driver {
           public const u32 LIMIT <- 8;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("Driver__LIMIT");
     });
 
     it("qualifies a private member as static and a public one plainly", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         scope Driver {
           private u32 hidden;
           public u32 shown;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("static uint32_t Driver__hidden");
       expect(code).toContain("uint32_t Driver__shown");
@@ -1850,13 +1908,16 @@ describe("CodeGenWalker Coverage Tests", () => {
     });
 
     it("plans a scope function under its qualified name", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         scope Driver {
           private void reset() {
             u32 n <- 0;
           }
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("static void Driver__reset(void)");
     });
@@ -1869,7 +1930,8 @@ describe("CodeGenWalker Coverage Tests", () => {
     // so the .c gets nothing for it and the assertion would have nothing to
     // order. That complement is the other half of #1300 and is asserted below.
     it("orders type definitions by kind, not by source order", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         scope Driver {
           private struct Config {
             u32 timeout;
@@ -1879,7 +1941,9 @@ describe("CodeGenWalker Coverage Tests", () => {
             BUSY
           }
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       const enumAt = code.indexOf("Driver__EState");
       const structAt = code.indexOf("Driver__Config");
@@ -1893,7 +1957,8 @@ describe("CodeGenWalker Coverage Tests", () => {
     // answers agree only until a public signature drags a private type into the
     // header, and then the type is defined twice and the C compiler rejects it.
     it("omits a type the header already defines", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         scope Driver {
           public enum EState {
             IDLE
@@ -1902,7 +1967,9 @@ describe("CodeGenWalker Coverage Tests", () => {
             OFF
           }
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).not.toContain("Driver__EState");
       expect(code).toContain("Driver__EHidden");
@@ -1911,13 +1978,16 @@ describe("CodeGenWalker Coverage Tests", () => {
     // A member the generator emits nothing for still has to reach the plan, or
     // its ADR-016 site is lost. The scope must still render around it.
     it("renders a scope whose only member defines a type", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         scope Driver {
           public enum EState {
             IDLE
           }
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("/* Scope: Driver */");
     });
@@ -1933,23 +2003,29 @@ describe("CodeGenWalker Coverage Tests", () => {
   // against plan literals in `VariableDeclHelper.test.ts`.
   describe("variable declaration planning", () => {
     it("plans a scalar with its zero initializer (ADR-015)", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           u32 n;
           return 0;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("uint32_t n = 0;");
     });
 
     it("plans a scalar with an expression initializer", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           u32 n <- 7;
           return 0;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("uint32_t n = 7U;");
     });
@@ -1957,24 +2033,30 @@ describe("CodeGenWalker Coverage Tests", () => {
     // MISRA 10.3: the cross-category cast is added from what the expression
     // turned out to be, against what the declaration expects.
     it("adds the MISRA 10.3 cast for an int-to-float initializer", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           u8 n <- 3;
           f32 x <- n;
           return 0;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("float x = (float)n;");
     });
 
     it("plans a C-Next array and puts its dimensions in the declarator", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           u32[3] arr <- [1, 2, 3];
           return 0;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("uint32_t arr[3] = {1U, 2U, 3U};");
     });
@@ -1982,12 +2064,15 @@ describe("CodeGenWalker Coverage Tests", () => {
     // ADR-035: an empty dimension in the TYPE is filled from the initializer,
     // and the inferred suffix already carries it.
     it("infers an empty array dimension from the initializer", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           u32[] arr <- [1, 2, 3];
           return 0;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("uint32_t arr[3]");
       expect(code).not.toContain("arr[][3]");
@@ -2000,12 +2085,15 @@ describe("CodeGenWalker Coverage Tests", () => {
       ["hex", "u32[0x3] arr <- [7*];"],
       ["binary", "u32[0b11] arr <- [7*];"],
     ])("folds a %s dimension for the fill-all expansion", (_label, decl) => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           ${decl}
           return 0;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("arr[3] = {7U, 7U, 7U};");
     });
@@ -2032,23 +2120,29 @@ describe("CodeGenWalker Coverage Tests", () => {
       ["bounded, literal", 'string<16> s <- "hi";', 'char s[17] = "hi";'],
       ["unsized const", 'const string s <- "hi";', 'const char s[3] = "hi";'],
     ])("plans a %s string declaration", (_label, decl, expected) => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           ${decl}
           return 0;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain(expected);
     });
 
     it("plans a string array with its element capacity (Issue #1029)", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           string<8>[2] items <- ["a", "b"];
           return 0;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).toContain("char items[2][9]");
     });
@@ -2056,12 +2150,15 @@ describe("CodeGenWalker Coverage Tests", () => {
     // The string path returns before the array and initializer halves are
     // planned, so a string is never treated as a plain array.
     it("does not plan a string as a plain array declaration", () => {
-      const { code } = setupGenerator(`
+      const { code } = setupGenerator(
+        `
         u8 main() {
           string<16> s;
           return 0;
         }
-      `);
+      `,
+        { cppMode: false },
+      );
 
       expect(code).not.toContain("char s[16]");
       expect(code).toContain("char s[17]");
