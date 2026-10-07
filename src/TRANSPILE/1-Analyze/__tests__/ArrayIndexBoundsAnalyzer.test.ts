@@ -13,7 +13,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * struct the source declares, through the program 1.4 built for it.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new ArrayIndexBoundsAnalyzer(context).analyze(tree);
 };
 

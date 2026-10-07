@@ -5,7 +5,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /** The analyzer's findings on `source`, declared and resolved as 1.3/1.4 do */
 const errors = (source: string, helpers?: Record<string, string>) => {
-  const { context } = testAnalysisContextFor(source, { helpers });
+  const { context } = testAnalysisContextFor(source, {
+    cppMode: false,
+    helpers,
+  });
   return new TypeDeclarationAnalyzer(context).analyze();
 };
 

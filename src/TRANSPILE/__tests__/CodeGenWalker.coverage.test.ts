@@ -54,6 +54,7 @@ function setupGenerator(
   // every member without one
   const tSymbols = [
     ...Program.build([CNextResolver.resolve(tree, "test.cnx", registry)], {
+      cppMode: false,
       registry,
     }).symbolsInFile("test.cnx"),
   ];
@@ -682,6 +683,7 @@ describe("CodeGenWalker Coverage Tests", () => {
 
       const tSymbols = [
         ...Program.build([CNextResolver.resolve(tree, "test.cnx", registry)], {
+          cppMode: false,
           registry,
         }).symbolsInFile("test.cnx"),
       ];
@@ -729,6 +731,7 @@ describe("CodeGenWalker Coverage Tests", () => {
 
       const tSymbols = [
         ...Program.build([CNextResolver.resolve(tree, "test.cnx", registry)], {
+          cppMode: false,
           registry,
         }).symbolsInFile("test.cnx"),
       ];
@@ -767,6 +770,7 @@ describe("CodeGenWalker Coverage Tests", () => {
 
       const tSymbols = [
         ...Program.build([CNextResolver.resolve(tree, "test.cnx", registry)], {
+          cppMode: false,
           registry,
         }).symbolsInFile("test.cnx"),
       ];
@@ -1315,6 +1319,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const symbolTable = new SymbolTable();
       const tSymbols = [
         ...Program.build([CNextResolver.resolve(tree, "test.cnx", registry)], {
+          cppMode: false,
           registry,
         }).symbolsInFile("test.cnx"),
       ];
@@ -1514,6 +1519,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const symbolTable = new SymbolTable();
       const tSymbols = [
         ...Program.build([CNextResolver.resolve(tree, "test.cnx", registry)], {
+          cppMode: false,
           registry,
         }).symbolsInFile("test.cnx"),
       ];
@@ -1562,6 +1568,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const symbolTable = new SymbolTable();
       const tSymbols = [
         ...Program.build([CNextResolver.resolve(tree, "test.cnx", registry)], {
+          cppMode: false,
           registry,
         }).symbolsInFile("test.cnx"),
       ];

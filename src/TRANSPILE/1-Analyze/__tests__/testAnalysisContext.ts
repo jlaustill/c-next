@@ -27,7 +27,8 @@ const testAnalysisContext = (
   overrides: Partial<IAnalysisContext> = {},
 ): IAnalysisContext => ({
   symbols: state.symbols ?? createMockSymbols(),
-  program: state.program ?? Program.build([], {}),
+  // #1428: the mode the test put on the state, as `generate()` puts it there
+  program: state.program ?? Program.build([], { cppMode: state.cppMode }),
   symbolTable: state.symbolTable,
   // #1456 owns this fact; #1452 deleted the write-only copy that used to
   // sit on the state, so the DEFAULT is stated here. `true` is the declining

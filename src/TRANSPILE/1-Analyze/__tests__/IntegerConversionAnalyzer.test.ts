@@ -15,7 +15,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * type `p.col` and stays silent, which looks exactly like the rule not firing.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new IntegerConversionAnalyzer(context).analyze(tree);
 };
 

@@ -26,7 +26,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * rules actually fire, with a control beside each.
  */
 const build = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new CallbackAssignmentAnalyzer(context).analyze(tree);
 };
 

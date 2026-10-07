@@ -14,7 +14,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * the parser actually builds.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new ControllingExpressionAnalyzer(context).analyze(tree);
 };
 

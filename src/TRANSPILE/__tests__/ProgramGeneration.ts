@@ -6,6 +6,7 @@ import TargetCatalogFile from "../../PARSE/1-Discover/TargetCatalogFile";
 import TargetResolver from "../../utils/TargetResolver";
 import invariant from "../../utils/invariant";
 import type CodeGenWalker from "../CodeGenWalker";
+import type ITargetDescription from "../../types/ITargetDescription";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /**
@@ -28,8 +29,16 @@ import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
  * and from nowhere else. A test has no 1.1 to detect one, so it states it:
  * `cppMode` is required here, and nothing falls back to "C".
  */
-/** What a test hands `generate()`, plus the mode a run's 1.1 would have settled */
-type ITestGenerateOptions = Parameters<CodeGenWalker["generate"]>[2] & {
+/**
+ * What a test hands `generate()`, plus the mode a run's 1.1 would have settled.
+ * The target may be left out: this helper then supplies the build machine's,
+ * as an orchestrator that names none would.
+ */
+type ITestGenerateOptions = Omit<
+  Parameters<CodeGenWalker["generate"]>[2],
+  "targetDescription"
+> & {
+  readonly targetDescription?: ITargetDescription;
   readonly cppMode: boolean;
 };
 

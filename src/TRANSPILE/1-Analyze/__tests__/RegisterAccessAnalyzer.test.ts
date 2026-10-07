@@ -24,7 +24,7 @@ const register = (name: string, members: Record<string, string>): string =>
     .join(" ")} } `;
 
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new RegisterAccessAnalyzer(context).analyze(tree);
 };
 

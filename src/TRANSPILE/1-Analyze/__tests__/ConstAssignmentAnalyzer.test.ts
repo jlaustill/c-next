@@ -14,7 +14,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * fixtures assert the program arms end to end.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new ConstAssignmentAnalyzer(context).analyze(tree);
 };
 

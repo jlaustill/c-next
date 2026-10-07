@@ -14,7 +14,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * symbol view is the one 1.3 and 1.4 build in production.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new LengthPropertyAnalyzer(context).analyze(tree);
 };
 

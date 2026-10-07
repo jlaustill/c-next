@@ -76,6 +76,17 @@ const SILENT_MODE_DEFAULTS: readonly RegExp[] = [
  */
 const STATE_INITIAL_VALUE = `${join("TRANSPILE", "TranspileState.ts")}: cppMode: boolean = false`;
 
+/**
+ * #1428: a mode a caller, a mock or a facts object may leave out. A truthy
+ * read of one (`facts.cppMode ? cpp : c`) then answers C, and nothing types
+ * or pins the read. Every mode in `src/` is 1.1's answer carried, so none is
+ * optional.
+ */
+const OPTIONAL_MODE = /\w*cppMode\?\s*:/gi;
+
+const optionalModesIn = (code: string): string[] =>
+  [...code.matchAll(OPTIONAL_MODE)].map((match) => match[0]);
+
 const silentModeDefaultsIn = (code: string): string[] =>
   SILENT_MODE_DEFAULTS.flatMap((form) =>
     [...code.matchAll(form)].map((match) => match[0]),
@@ -182,6 +193,19 @@ describe("OutputExtensions (#1319)", () => {
     expect(carryingMode).toEqual([]);
   });
 
+  it("has no optional mode anywhere under src/, tests included (#1428)", () => {
+    // Whole-file text, as above: any type, not just the two options types.
+    const found = tsFilesUnder(SRC_ROOT, true)
+      .filter((file) => !file.endsWith(PIN))
+      .flatMap((file) =>
+        optionalModesIn(codeOf(readFileSync(file, "utf-8"))).map(
+          (match) => `${file.slice(SRC_ROOT.length + 1)}: ${match}`,
+        ),
+      );
+
+    expect(found).toEqual([]);
+  });
+
   it("detects every silent-default shape it hunts for (#1428)", () => {
     // A pin that matches nothing passes as cleanly as one that holds.
     const caught = (code: string): boolean =>
@@ -207,6 +231,12 @@ describe("OutputExtensions (#1319)", () => {
     expect(caught("({ cppMode: false, symbolInfo })")).toBe(false);
     expect(caught("({ ...options, cppMode: false })")).toBe(false);
     expect(caught("cppMode: program.cppMode(),")).toBe(false);
+
+    // An optional mode, on any type; a required one is not.
+    expect(optionalModesIn("readonly cppMode?: boolean;")).toHaveLength(1);
+    expect(optionalModesIn("isCppMode?: () => boolean;")).toHaveLength(1);
+    expect(optionalModesIn("readonly cppMode: boolean;")).toEqual([]);
+    expect(optionalModesIn("facts.cppMode ? cpp : c")).toEqual([]);
   });
 
   it("is reachable -- the owner is actually used", () => {

@@ -21,9 +21,10 @@ import testAnalysisContext from "../../__tests__/testAnalysisContext";
  */
 const build = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  state.program = Program.build([
-    CNextResolver.resolve(tree, "a.cnx", registry),
-  ]);
+  state.program = Program.build(
+    [CNextResolver.resolve(tree, "a.cnx", registry)],
+    { cppMode: false },
+  );
 };
 
 afterEach(() => {

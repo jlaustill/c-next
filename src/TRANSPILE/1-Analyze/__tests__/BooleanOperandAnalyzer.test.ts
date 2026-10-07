@@ -9,7 +9,7 @@ import BooleanOperandAnalyzer from "../BooleanOperandAnalyzer";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 function analyze(source: string) {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new BooleanOperandAnalyzer(context).analyze(tree);
 }
 

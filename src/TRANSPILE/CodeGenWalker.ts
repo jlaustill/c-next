@@ -1697,10 +1697,6 @@ class CodeGenWalker {
   ): string {
     // ADR-049: the target is decided before codegen, by the orchestrator;
     // this walk only reads it.
-    invariant(
-      options.targetDescription,
-      "the pipeline always supplies options.targetDescription to generate(); its absence is a caller/API error, not a program error",
-    );
 
     // Reset state for fresh generation (must be before any state assignments)
     this.resetGeneratorState(options.targetDescription);

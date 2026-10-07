@@ -50,7 +50,7 @@ function enterScope(state: TranspileState, path: string | null): void {
   // shares a card with exists to prevent.
   if (path !== null && state.program?.scope(path) == null) {
     registry.getOrCreateScope(path);
-    state.program = Program.build([], { registry });
+    state.program = Program.build([], { cppMode: false, registry });
   }
   state.setCurrentScopeByPath(path);
 }

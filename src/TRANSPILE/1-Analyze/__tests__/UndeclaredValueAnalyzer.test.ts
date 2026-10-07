@@ -15,6 +15,7 @@ function analyze(source: string) {
   // Same precondition as E0426: the analyzer declines unless the transpiler
   // knows the file's whole name universe. These sources include nothing.
   const { tree, context } = testAnalysisContextFor(source, {
+    cppMode: false,
     overrides: { reachesForeignHeader: false },
   });
   return new UndeclaredValueAnalyzer(context).analyze(tree);

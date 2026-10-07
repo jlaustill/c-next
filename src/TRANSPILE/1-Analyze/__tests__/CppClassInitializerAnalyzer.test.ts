@@ -5,7 +5,6 @@ import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 import CppClassInitializerAnalyzer from "../CppClassInitializerAnalyzer";
 import testAnalysisContextFor from "./testAnalysisContextFor";
-import testContextInMode from "./testContextInMode";
 
 /**
  * #1322. Issue #517's rule (E0508), replacing a codegen throw that reported
@@ -33,14 +32,16 @@ const withCppClass = (className: string) => {
 };
 
 const analyze = (source: string, table: SymbolTable, cppMode: boolean) => {
+  // #1428: the analyzer reads the run's mode from `Program`, as in a run.
   const { tree, context } = testAnalysisContextFor(source, {
     symbolTable: table,
+    cppMode,
   });
-  // #1428: the analyzer reads the run's mode from `Program`, as in a run.
   // Production hands the analyzer the same table its context carries.
-  return new CppClassInitializerAnalyzer(
-    testContextInMode(context, cppMode),
-  ).analyze(tree, context.symbolTable);
+  return new CppClassInitializerAnalyzer(context).analyze(
+    tree,
+    context.symbolTable,
+  );
 };
 
 describe("CppClassInitializerAnalyzer (E0508)", () => {

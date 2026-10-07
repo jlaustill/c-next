@@ -48,7 +48,12 @@ function testAnalysisContextFor(
     /** C/C++ symbols the test registered, as Stage 2 would have */
     symbolTable?: SymbolTable;
     overrides?: Partial<IAnalysisContext>;
-  } = {},
+    /**
+     * #1428: the run's mode, as 1.1 would have settled it. Required: a test
+     * has no 1.1, so it states its mode, and the program carries it as in a run.
+     */
+    cppMode: boolean;
+  },
 ): { tree: Parser.ProgramContext; context: IAnalysisContext } {
   const registry = new SymbolRegistry();
   const files = [
@@ -69,6 +74,7 @@ function testAnalysisContextFor(
     files.map((file) => file.declared),
     {
       registry,
+      cppMode: options.cppMode,
       visibility: {
         cnextIncludesByFile: new Map([
           [

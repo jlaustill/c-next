@@ -15,7 +15,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * is a single check with three shapes exercised below.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new StringDeclarationAnalyzer(context).analyze(tree);
 };
 

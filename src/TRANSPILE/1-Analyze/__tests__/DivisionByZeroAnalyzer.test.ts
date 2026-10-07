@@ -18,7 +18,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 x <- 10 / 0;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -34,7 +36,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 x <- 10 % 0;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -50,7 +54,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 x <- 10 / 0x0;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -64,7 +70,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 x <- 10 / 0b0;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -79,7 +87,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 y <- 20 % 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -92,7 +102,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 x <- 10 * 0;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -112,7 +124,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 x <- 10 / ZERO;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -127,7 +141,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 x <- 10 % ZERO;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -142,7 +158,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 x <- 10 / DIVISOR;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -182,7 +200,9 @@ describe("DivisionByZeroAnalyzer", () => {
         1,
       ],
     ])("%s", (_why, code, expected) => {
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const errors = new DivisionByZeroAnalyzer(context).analyze(tree);
       expect(errors).toHaveLength(expected);
     });
@@ -194,7 +214,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 x <- 10 / divisor;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -216,7 +238,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 c <- 30 / 0;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -238,7 +262,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 x <- 10 / 2 / 0;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -258,7 +284,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 x <- 10 / 0;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -271,7 +299,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 x <- 10 % 0;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -282,7 +312,9 @@ describe("DivisionByZeroAnalyzer", () => {
       const code = `void main() {
   u32 x <- 10 / 0;
 }`;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -303,7 +335,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 x <- 10 / 0u32;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -317,7 +351,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 x <- 10 / 5u32;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -332,7 +368,9 @@ describe("DivisionByZeroAnalyzer", () => {
   describe("edge cases", () => {
     it("should handle empty program", () => {
       const code = ``;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -346,7 +384,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 y <- 10 - 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -359,7 +399,9 @@ describe("DivisionByZeroAnalyzer", () => {
           i32 x <- 10 / -1;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -373,7 +415,9 @@ describe("DivisionByZeroAnalyzer", () => {
           u32 x <- 10 / (0);
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 

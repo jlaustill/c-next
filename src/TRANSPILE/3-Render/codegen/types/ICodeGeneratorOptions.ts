@@ -21,7 +21,7 @@ interface ICodeGeneratorOptions {
    * orchestrator before codegen. Required, like `symbolInfo`: codegen never
    * resolves a target itself.
    */
-  targetDescription?: ITargetDescription;
+  targetDescription: ITargetDescription;
   /** ADR-010: Source file path for validating includes */
   sourcePath?: string;
   /**

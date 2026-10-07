@@ -48,7 +48,11 @@ function declareAndResolveAs(
   sourcePath: string,
 ): TSymbol[] {
   const declared = CNextResolver.resolve(tree, sourcePath, registry);
-  return [...Program.build([declared], { registry }).symbolsInFile(sourcePath)];
+  return [
+    ...Program.build([declared], { cppMode: false, registry }).symbolsInFile(
+      sourcePath,
+    ),
+  ];
 }
 
 function declareAndResolve(tree: Parser.ProgramContext): TSymbol[] {
@@ -58,7 +62,10 @@ function declareAndResolve(tree: Parser.ProgramContext): TSymbol[] {
 /**
  * Helper to parse C-Next source and return tree + generator ready for testing.
  */
-function setupGenerator(source: string): {
+function setupGenerator(
+  source: string,
+  cppMode: boolean,
+): {
   tree: Parser.ProgramContext;
   generator: CodeGenWalker;
   host: CodeGenerator;
@@ -89,7 +96,7 @@ function setupGenerator(source: string): {
   state.symbolTable = symbolTable;
   // Generate to initialize the generator state
   generateWithProgram(generator, tree, tokenStream, {
-    cppMode: false,
+    cppMode,
     symbolInfo: symbols,
     sourcePath: "test.cnx",
   });
@@ -100,11 +107,14 @@ function setupGenerator(source: string): {
 /**
  * Helper to create a minimal generator for testing specific methods.
  */
-function createMinimalGenerator(source: string): {
+function createMinimalGenerator(
+  source: string,
+  cppMode: boolean,
+): {
   generator: CodeGenWalker;
   host: CodeGenerator;
 } {
-  const { generator, host } = setupGenerator(source);
+  const { generator, host } = setupGenerator(source, cppMode);
   return { generator, host };
 }
 
@@ -272,9 +282,12 @@ describe("CodeGenWalker", () => {
   describe("IOrchestrator interface", () => {
     describe("getInput()", () => {
       it("should return input context with symbol table", () => {
-        const { host } = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(
+          `
           void foo() { }
-        `);
+        `,
+          false,
+        );
 
         const input = host.getInput();
 
@@ -291,9 +304,12 @@ describe("CodeGenWalker", () => {
 
     describe("getState()", () => {
       it("should return generation state snapshot", () => {
-        const { host } = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(
+          `
           void foo() { }
-        `);
+        `,
+          false,
+        );
 
         const state = host.getState();
 
@@ -308,7 +324,7 @@ describe("CodeGenWalker", () => {
 
     describe("applyEffects()", () => {
       it("should process include effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         // Apply stdint include effect - verify it doesn't throw
         expect(() =>
@@ -320,7 +336,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should process set-scope effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
         // #1304: entering a scope the registry does not hold is an invariant
         // violation now, not a silent orphan. A unit test that skips the
         // symbols pass registers the scope itself.
@@ -335,7 +351,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should process enter-function-body effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         // Set the local directly. This used to go through a `register-local`
         // EFFECT, which no generator ever emitted -- so the setup for this test
@@ -353,7 +369,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should process exit-function-body effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         host.applyEffects([{ type: "enter-function-body" }]);
         expect(host.getState().inFunctionBody).toBe(true);
@@ -364,7 +380,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should process set-array-init-count effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         // Verify effect is applied without throwing
         expect(() =>
@@ -376,7 +392,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should process set-array-fill-value effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         // Verify effect is applied without throwing
         expect(() =>
@@ -388,7 +404,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should process isr effects (adds ISR include)", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         // Apply ISR effect - this triggers requireInclude("isr")
         expect(() => host.applyEffects([{ type: "isr" }])).not.toThrow();
@@ -398,7 +414,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should process helper effects (clamp operations)", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         // Apply helper effect for clamp add operation
         expect(() =>
@@ -412,7 +428,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should process safe-div effects (division operations)", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         // Apply safe division effect
         expect(() =>
@@ -426,7 +442,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should process set-parameters effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         // Apply set-parameters effect with full TParameterInfo
         const params = new Map<string, TParameterInfo>([
@@ -453,7 +469,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should process clear-parameters effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         // First set some parameters with full TParameterInfo
         const params = new Map<string, TParameterInfo>([
@@ -479,7 +495,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should process register-callback-field effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         // Apply register-callback-field effect
         expect(() =>
@@ -500,7 +516,7 @@ describe("CodeGenWalker", () => {
 
     describe("getIndent()", () => {
       it("should return empty string at indent level 0", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         expect(host.getIndent()).toBe("");
       });
@@ -508,10 +524,13 @@ describe("CodeGenWalker", () => {
 
     describe("resolveIdentifier()", () => {
       it("should resolve simple identifier", () => {
-        const { host } = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(
+          `
           u32 globalVar;
           void foo() { }
-        `);
+        `,
+          false,
+        );
 
         const resolved = host.resolveIdentifier("globalVar");
         expect(resolved).toBe("globalVar");
@@ -524,7 +543,7 @@ describe("CodeGenWalker", () => {
             public void setSpeed() { }
           }
         `;
-        const { host } = createMinimalGenerator(source);
+        const { host } = createMinimalGenerator(source, false);
 
         // When inside a scope, identifiers should be resolved with prefix
         host.setCurrentScope("Motor");
@@ -536,50 +555,53 @@ describe("CodeGenWalker", () => {
 
     describe("isKnownStruct()", () => {
       it("should return true for known struct", () => {
-        const { host } = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(
+          `
           struct Point { i32 x; i32 y; }
-        `);
+        `,
+          false,
+        );
 
         expect(host.isKnownStruct("Point")).toBe(true);
       });
 
       it("should return false for unknown struct", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         expect(host.isKnownStruct("UnknownStruct")).toBe(false);
       });
 
       it("should return false for primitive type", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
         expect(host.isKnownStruct("u32")).toBe(false);
       });
     });
 
     describe("isFloatType()", () => {
       it("should return true for f32", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
         expect(host.isFloatType("f32")).toBe(true);
       });
 
       it("should return true for f64", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
         expect(host.isFloatType("f64")).toBe(true);
       });
 
       it("should return false for C type float (only C-Next types checked)", () => {
         // isFloatType only checks C-Next types, not C types
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
         expect(host.isFloatType("float")).toBe(false);
       });
 
       it("should return false for C type double (only C-Next types checked)", () => {
         // isFloatType only checks C-Next types, not C types
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
         expect(host.isFloatType("double")).toBe(false);
       });
 
       it("should return false for integer types", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
         expect(host.isFloatType("u32")).toBe(false);
         expect(host.isFloatType("i32")).toBe(false);
       });
@@ -587,7 +609,7 @@ describe("CodeGenWalker", () => {
 
     describe("isIntegerType()", () => {
       it("should return true for unsigned integer types", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
         expect(host.isIntegerType("u8")).toBe(true);
         expect(host.isIntegerType("u16")).toBe(true);
         expect(host.isIntegerType("u32")).toBe(true);
@@ -595,7 +617,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should return true for signed integer types", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
         expect(host.isIntegerType("i8")).toBe(true);
         expect(host.isIntegerType("i16")).toBe(true);
         expect(host.isIntegerType("i32")).toBe(true);
@@ -603,7 +625,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should return false for float types", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
         expect(host.isIntegerType("f32")).toBe(false);
         expect(host.isIntegerType("f64")).toBe(false);
       });
@@ -611,15 +633,18 @@ describe("CodeGenWalker", () => {
 
     describe("isCNextFunction()", () => {
       it("should return true for C-Next defined function", () => {
-        const { host } = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(
+          `
           void myFunction() { }
-        `);
+        `,
+          false,
+        );
 
         expect(host.isCNextFunction("myFunction")).toBe(true);
       });
 
       it("should return false for unknown function", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         expect(host.isCNextFunction("unknownFunction")).toBe(false);
       });
@@ -627,16 +652,19 @@ describe("CodeGenWalker", () => {
 
     describe("isCppMode()", () => {
       it("should return false by default", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
         expect(host.isCppMode()).toBe(false);
       });
     });
 
     describe("getKnownEnums()", () => {
       it("should return set of known enums", () => {
-        const { host } = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(
+          `
           enum Color { RED, GREEN, BLUE }
-        `);
+        `,
+          false,
+        );
 
         const knownEnums = host.getKnownEnums();
         expect(knownEnums.has("Color")).toBe(true);
@@ -645,7 +673,7 @@ describe("CodeGenWalker", () => {
 
     describe("flushPendingTempDeclarations()", () => {
       it("should return empty string when no pending declarations", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         expect(host.flushPendingTempDeclarations()).toBe("");
       });
@@ -653,7 +681,7 @@ describe("CodeGenWalker", () => {
 
     describe("registerLocalVariable()", () => {
       it("should add variable to local variables", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         const emitted = host.registerLocalVariable("localVar");
 
@@ -666,7 +694,7 @@ describe("CodeGenWalker", () => {
 
     describe("setCurrentScope() / setCurrentFunctionName()", () => {
       it("should set and track current scope", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
         // #1304: see the note on "should process set-scope effects".
         registry.getOrCreateScope("MyScope");
 
@@ -678,7 +706,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should set current function name", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         // Verify function name can be set without throwing
         expect(() => host.setCurrentFunctionName("myFunction")).not.toThrow();
@@ -690,7 +718,7 @@ describe("CodeGenWalker", () => {
 
     describe("getCurrentFunctionReturnType() / setCurrentFunctionReturnType()", () => {
       it("should get and set return type", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         expect(host.getCurrentFunctionReturnType()).toBeNull();
 
@@ -704,7 +732,7 @@ describe("CodeGenWalker", () => {
 
     describe("enterFunctionBody() / exitFunctionBody()", () => {
       it("should track function body state", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         expect(host.getState().inFunctionBody).toBe(false);
 
@@ -716,7 +744,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should clear local state on exit", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         host.enterFunctionBody();
         host.registerLocalVariable("tempVar");
@@ -729,17 +757,20 @@ describe("CodeGenWalker", () => {
 
     describe("isKnownScope()", () => {
       it("should return true for known scope", () => {
-        const { host } = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(
+          `
           scope Motor {
             public void stop() { }
           }
-        `);
+        `,
+          false,
+        );
 
         expect(host.isKnownScope("Motor")).toBe(true);
       });
 
       it("should return false for unknown scope", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         expect(host.isKnownScope("UnknownScope")).toBe(false);
       });
@@ -747,7 +778,7 @@ describe("CodeGenWalker", () => {
 
     describe("addPendingTempDeclaration()", () => {
       it("should add temp declaration that can be flushed", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         host.addPendingTempDeclaration("int _tmp1 = 0;");
 
@@ -761,7 +792,7 @@ describe("CodeGenWalker", () => {
 
     describe("float bit shadow management", () => {
       it("should register and track float bit shadows", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         expect(host.hasFloatBitShadow("__bits_myFloat")).toBe(false);
         expect(host.isFloatShadowCurrent("__bits_myFloat")).toBe(false);
@@ -775,7 +806,7 @@ describe("CodeGenWalker", () => {
       });
 
       it("should clear float shadows on enter/exit function body", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         host.enterFunctionBody();
         host.registerFloatBitShadow("__bits_myFloat");
@@ -788,13 +819,13 @@ describe("CodeGenWalker", () => {
 
     describe("getScopeSeparator()", () => {
       it("should return :: for C++ access", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         expect(host.getScopeSeparator(true)).toBe("::");
       });
 
       it("should return _ for C-Next access", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         expect(host.getScopeSeparator(false)).toBe("__");
       });
@@ -802,13 +833,13 @@ describe("CodeGenWalker", () => {
 
     describe("getStringLiteralLength()", () => {
       it("should return correct length for simple string", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         expect(host.getStringLiteralLength('"hello"')).toBe(5);
       });
 
       it("should handle escape sequences", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         // \n is one character
         expect(host.getStringLiteralLength('"hello\\n"')).toBe(6);
@@ -817,23 +848,29 @@ describe("CodeGenWalker", () => {
 
     describe("markParameterModified() / isCalleeParameterModified()", () => {
       it("should track parameter modifications", () => {
-        const { host } = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(
+          `
           void modify(u32 param) {
             param <- 42;
           }
           void caller(u32 x) {
             modify(x);
           }
-        `);
+        `,
+          false,
+        );
 
         // Modification tracking is done during generation
         expect(host.isCalleeParameterModified("modify", 0)).toBe(true);
       });
 
       it("should return false for unmodified parameters", () => {
-        const { host } = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(
+          `
           void noModify(u32 param) { }
-        `);
+        `,
+          false,
+        );
 
         expect(host.isCalleeParameterModified("noModify", 0)).toBe(false);
       });
@@ -841,9 +878,12 @@ describe("CodeGenWalker", () => {
 
     describe("isCurrentParameter()", () => {
       it("should check if name is a current parameter", () => {
-        const { host } = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(
+          `
           void test(u32 value) { }
-        `);
+        `,
+          false,
+        );
 
         // Parameters are only current during function body generation
         // After generation, parameters are cleared
@@ -853,9 +893,12 @@ describe("CodeGenWalker", () => {
 
     describe("getFunctionUnmodifiedParams()", () => {
       it("should return map of unmodified parameters", () => {
-        const { generator } = createMinimalGenerator(`
+        const { generator } = createMinimalGenerator(
+          `
           void noModify(u32 param) { }
-        `);
+        `,
+          false,
+        );
 
         const unmodifiedParams = generator.getFunctionUnmodifiedParams();
         expect(unmodifiedParams).toBeInstanceOf(Map);
@@ -1077,19 +1120,6 @@ describe("CodeGenWalker", () => {
       });
 
       expect(host.state.targetDescription).toBe(teensy41);
-    });
-
-    it("refuses to generate without a target", () => {
-      const { tree, tokenStream } = CNextSourceParser.parse(`void foo() { }`);
-      const generator = new CodeGenWalker(new CodeGenerator());
-      const symbols = TSymbolInfoAdapter.convert(declareAndResolve(tree));
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow(/targetDescription/);
     });
   });
 
@@ -1993,7 +2023,7 @@ describe("CodeGenWalker", () => {
 
   describe("isCppEnumClass()", () => {
     it("should return false when no symbol table", () => {
-      const { host } = createMinimalGenerator(`void foo() { }`);
+      const { host } = createMinimalGenerator(`void foo() { }`, false);
       // With symbol table but no C++ symbols
       expect(host.isCppEnumClass("UnknownEnum")).toBe(false);
     });
@@ -2001,7 +2031,7 @@ describe("CodeGenWalker", () => {
 
   describe("indent()", () => {
     it("should indent text with current level", () => {
-      const { host } = createMinimalGenerator(`void foo() { }`);
+      const { host } = createMinimalGenerator(`void foo() { }`, false);
 
       // Default indent level is 0
       const indented = host.indent("test");
@@ -3631,11 +3661,14 @@ describe("CodeGenWalker", () => {
 
   describe("getSimpleIdentifier()", () => {
     it("should return null for complex expressions", () => {
-      const { host } = createMinimalGenerator(`
+      const { host } = createMinimalGenerator(
+        `
         u32 a;
         u32 b;
         void foo() { }
-      `);
+      `,
+        false,
+      );
 
       // getSimpleIdentifier is tested indirectly through expression parsing
       expect(host.getInput()).not.toBeNull();

@@ -9,7 +9,6 @@ import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 import testAnalysisContextFor from "./testAnalysisContextFor";
-import testContextInMode from "./testContextInMode";
 import type IIncludeContext from "../types/IIncludeContext";
 import EFileType from "../../../PARSE/1-Discover/types/EFileType";
 
@@ -53,10 +52,7 @@ function parseWithComments(source: string) {
      * #1428: a C run, stated -- the analyzers read the mode from the program.
      */
     contextWith: (symbolTable: SymbolTable) =>
-      testContextInMode(
-        testAnalysisContextFor(source, { symbolTable }).context,
-        false,
-      ),
+      testAnalysisContextFor(source, { symbolTable, cppMode: false }).context,
   };
 }
 
@@ -278,9 +274,11 @@ describe("runAnalyzers", () => {
         }
       `;
       const { comments } = parseWithComments(source);
-      const { tree, context } = testAnalysisContextFor(source);
+      const { tree, context } = testAnalysisContextFor(source, {
+        cppMode: false,
+      });
       const errors = runAnalyzers(tree, comments, {
-        context: testContextInMode(context, false),
+        context,
         includes: NO_INCLUDES,
       });
 

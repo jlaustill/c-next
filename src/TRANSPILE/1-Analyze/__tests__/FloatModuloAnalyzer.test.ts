@@ -19,7 +19,9 @@ describe("FloatModuloAnalyzer", () => {
           f32 result <- x % 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -35,7 +37,9 @@ describe("FloatModuloAnalyzer", () => {
           f64 result <- x % 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -50,7 +54,9 @@ describe("FloatModuloAnalyzer", () => {
           u32 result <- 10 % y;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -66,7 +72,9 @@ describe("FloatModuloAnalyzer", () => {
           f32 result <- x % y;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -86,7 +94,9 @@ describe("FloatModuloAnalyzer", () => {
           f32 result <- 10.5 % 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -100,7 +110,9 @@ describe("FloatModuloAnalyzer", () => {
           f32 result <- 10 % 3.5;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -120,7 +132,9 @@ describe("FloatModuloAnalyzer", () => {
           f32 result <- value % 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -134,7 +148,9 @@ describe("FloatModuloAnalyzer", () => {
           f64 result <- value % 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -156,7 +172,9 @@ describe("FloatModuloAnalyzer", () => {
           u32 result <- x % y;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -169,7 +187,9 @@ describe("FloatModuloAnalyzer", () => {
           u32 result <- 10 % 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -184,7 +204,9 @@ describe("FloatModuloAnalyzer", () => {
           i64 result <- a % b;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -204,7 +226,9 @@ describe("FloatModuloAnalyzer", () => {
           f32 result <- x + 3.0;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -218,7 +242,9 @@ describe("FloatModuloAnalyzer", () => {
           f32 result <- x - 3.0;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -232,7 +258,9 @@ describe("FloatModuloAnalyzer", () => {
           f32 result <- x * 3.0;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -246,7 +274,9 @@ describe("FloatModuloAnalyzer", () => {
           f32 result <- x / 3.0;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -266,7 +296,9 @@ describe("FloatModuloAnalyzer", () => {
           f32 result <- x % 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -278,7 +310,9 @@ describe("FloatModuloAnalyzer", () => {
   f32 x <- 10.5;
   f32 result <- x % 3;
 }`;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -300,7 +334,9 @@ describe("FloatModuloAnalyzer", () => {
           f64 d <- c % 4;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -315,7 +351,9 @@ describe("FloatModuloAnalyzer", () => {
   describe("edge cases", () => {
     it("should handle empty program", () => {
       const code = ``;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -329,7 +367,9 @@ describe("FloatModuloAnalyzer", () => {
           f32 y <- 10.0 - 2.0;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -344,7 +384,9 @@ describe("FloatModuloAnalyzer", () => {
           u32 result <- a % (b + 1);
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -365,7 +407,9 @@ describe("FloatModuloAnalyzer", () => {
           u32 r <- value % 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -379,7 +423,9 @@ describe("FloatModuloAnalyzer", () => {
           i32 result <- -x % 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
@@ -393,7 +439,9 @@ describe("FloatModuloAnalyzer", () => {
           u32 result <- ~x % 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code);
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
       const analyzer = new FloatModuloAnalyzer(context);
       const errors = analyzer.analyze(tree);
 

@@ -130,7 +130,7 @@ class Program {
    */
   static build(
     files: ReadonlyArray<IFileSymbols>,
-    inputs: IProgramInputs = {},
+    inputs: IProgramInputs,
   ): IProgram {
     // Destructured once, here, so the body reads exactly as it did when these
     // were positional. `IProgramInputs` says why they travel together.
@@ -279,8 +279,6 @@ class Program {
     );
     // Settled once, with the program, so every pass reads one answer.
     const target = inputs.target ? RunTarget.resolve(inputs.target) : null;
-    // #1428: 1.1's answer, carried and never defaulted
-    const runEmitsCpp = inputs.cppMode;
     const conflicts = ConflictDetector.detect(
       registry,
       [...symbolsByFile.values()].flat(),
@@ -388,13 +386,8 @@ class Program {
         );
         return target;
       },
-      cppMode: (): boolean => {
-        invariant(
-          runEmitsCpp !== undefined,
-          "a program built without the run's mode has no mode",
-        );
-        return runEmitsCpp;
-      },
+      // #1428: 1.1's answer, carried and never defaulted
+      cppMode: (): boolean => inputs.cppMode,
       scope: (path: string): IScopeSymbol | null =>
         registry?.getScope(path) ?? null,
       // Delegated like every sibling in this literal, rather than re-spelling

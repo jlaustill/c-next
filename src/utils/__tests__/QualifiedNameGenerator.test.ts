@@ -146,7 +146,7 @@ describe("QualifiedNameGenerator", () => {
         QualifiedNameGenerator.forFunctionInScope(
           "Motor",
           "init",
-          Program.build([], { registry }),
+          Program.build([], { cppMode: false, registry }),
         ),
       ).toBe("Motor__init");
     });
@@ -172,7 +172,7 @@ describe("QualifiedNameGenerator", () => {
         QualifiedNameGenerator.forFunctionInScope(
           "Motor",
           "spin",
-          Program.build([], { registry }),
+          Program.build([], { cppMode: false, registry }),
         ),
       ).toBe("Motor__spin");
     });
@@ -184,7 +184,7 @@ describe("QualifiedNameGenerator", () => {
         QualifiedNameGenerator.forFunctionInScope(
           "Unknown",
           "func",
-          Program.build([], { registry }),
+          Program.build([], { cppMode: false, registry }),
         ),
       ).toBe("Unknown__func");
     });

@@ -23,7 +23,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * the keystone commit.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new CompoundAssignmentAnalyzer(context).analyze(tree);
 };
 

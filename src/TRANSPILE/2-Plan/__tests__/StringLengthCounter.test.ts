@@ -18,7 +18,7 @@ function stateFor(source: string): {
   tree: Parser.ProgramContext;
   state: TranspileState;
 } {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   const state = new TranspileState();
   state.program = context.program;
   state.symbols = context.symbols;

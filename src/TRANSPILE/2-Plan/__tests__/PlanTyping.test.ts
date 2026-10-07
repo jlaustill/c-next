@@ -12,7 +12,7 @@ import testAnalysisContextFor from "../../1-Analyze/__tests__/testAnalysisContex
 
 /** The initializer of `r`, and the context that types it */
 function initializerOf(source: string) {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   let found: Parser.ExpressionContext | null = null;
   ParseTreeWalker.DEFAULT.walk(
     new (class extends CNextListener {
@@ -39,6 +39,7 @@ describe("PlanTyping.castSourceType (ADR-024)", () => {
   const castSourceOf = (body: string): string | null => {
     const { tree, context } = testAnalysisContextFor(
       `f32 k <- 1.0;\nvoid main() {\n${body}\n}`,
+      { cppMode: false },
     );
     let operand: Parser.UnaryExpressionContext | null = null;
     ParseTreeWalker.DEFAULT.walk(

@@ -54,6 +54,7 @@ function build(files: Record<string, string>) {
     ]),
   );
   return Program.build(declared, {
+    cppMode: false,
     registry,
     visibility: { cnextIncludesByFile },
   });

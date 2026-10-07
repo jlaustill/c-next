@@ -21,7 +21,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * declaration site, so 2.1 can answer this without codegen state at all.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new ConstructorArgumentAnalyzer(context).analyze(tree);
 };
 

@@ -13,7 +13,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * and 1.3/1.4 settle, as in production.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new ScopeAccessAnalyzer(context).analyze(tree);
 };
 

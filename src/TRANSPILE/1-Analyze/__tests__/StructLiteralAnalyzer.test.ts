@@ -20,10 +20,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * asks WHICH type, so the cases run on a real program.
  */
 const errors = (source: string, symbolTable?: SymbolTable) => {
-  const built = testAnalysisContextFor(
-    source,
-    symbolTable ? { symbolTable } : {},
-  );
+  const built = testAnalysisContextFor(source, {
+    symbolTable,
+    cppMode: false,
+  });
   return new StructLiteralAnalyzer(built.context).analyze(built.tree);
 };
 

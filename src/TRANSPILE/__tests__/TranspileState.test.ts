@@ -44,7 +44,7 @@ beforeEach(() => {
  */
 function registerScope(path: string): IScopeSymbol {
   const scope = registry.getOrCreateScope(path);
-  state.program = Program.build([], { registry });
+  state.program = Program.build([], { cppMode: false, registry });
   return scope;
 }
 
@@ -332,6 +332,7 @@ describe("TranspileState", () => {
         registry,
       );
       state.program = Program.build([declares, includer, sibling], {
+        cppMode: false,
         registry,
         visibility: {
           cnextIncludesByFile: new Map([
@@ -376,6 +377,7 @@ describe("TranspileState", () => {
   describe("external struct fields, via Program", () => {
     it("returns empty map when no struct fields exist", () => {
       state.program = Program.build([], {
+        cppMode: false,
         headerStructFields: state.symbolTable.getAllStructFields(),
       });
       const result = state.program!.externalStructFields();
@@ -400,6 +402,7 @@ describe("TranspileState", () => {
       state.symbolTable.restoreStructFields(structFields);
 
       state.program = Program.build([], {
+        cppMode: false,
         headerStructFields: state.symbolTable.getAllStructFields(),
       });
       const result = state.program!.externalStructFields();
@@ -426,6 +429,7 @@ describe("TranspileState", () => {
       state.symbolTable.restoreStructFields(structFields);
 
       state.program = Program.build([], {
+        cppMode: false,
         headerStructFields: state.symbolTable.getAllStructFields(),
       });
       const result = state.program!.externalStructFields();
@@ -452,6 +456,7 @@ describe("TranspileState", () => {
       state.symbolTable.restoreStructFields(structFields);
 
       state.program = Program.build([], {
+        cppMode: false,
         headerStructFields: state.symbolTable.getAllStructFields(),
       });
       const result = state.program!.externalStructFields();
@@ -487,6 +492,7 @@ describe("TranspileState", () => {
       state.symbolTable.restoreStructFields(structFields);
 
       state.program = Program.build([], {
+        cppMode: false,
         headerStructFields: state.symbolTable.getAllStructFields(),
       });
       const result = state.program!.externalStructFields();

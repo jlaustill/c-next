@@ -185,11 +185,13 @@ The test for tier is mechanical: **could you compute it with only this file open
 > header's language again, so nothing downstream can read it too early.
 >
 > #1428 made that answer the only one. `Program` carries it (`program.cppMode()`, built
-> from the graph's), and codegen, the header generator and 2.1's C++-class initializer
-> check read it there. No options type has a `cppMode` field, so no caller can supply a
-> mode or claim C by leaving one out, and nothing in `src/`, tests included, defaults it;
-> `OutputExtensions.test.ts` pins both. A test has no 1.1, so it states its mode where it
-> builds the program (`ProgramGeneration`, `testContextInMode`).
+> from the graph's; `IProgramInputs.cppMode` is required), and codegen, the header
+> generator and 2.1's C++-class initializer check read it there. `ICodeGeneratorOptions`
+> and `IHeaderOptions` have no `cppMode` field, so no caller can supply a mode or claim C
+> by leaving one out. No type in `src/` declares an optional mode (`cppMode?:`), and
+> nothing in `src/`, tests included, defaults one; `OutputExtensions.test.ts` pins all
+> three. A test has no 1.1, so it states its mode where it builds the program
+> (`ProgramGeneration`, `testAnalysisContextFor`).
 >
 > The **target catalog** (`targets/targets.cnx`, ADR-049) is a configuration input in the
 > same sense: it ships with the compiler, not with the program, and is read and validated

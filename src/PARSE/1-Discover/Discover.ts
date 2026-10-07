@@ -184,7 +184,7 @@ class Discover {
       settled.unsettled,
       settled.opened,
     );
-    const emitsCpp = discovery._cppMode(
+    const cppMode = discovery._cppMode(
       files.headerIncludes,
       settled.sources,
       settled.opened,
@@ -192,13 +192,13 @@ class Discover {
       unit.sites,
       settings.cppRequired,
     );
-    discovery._spellIncludes(OutputExtensions.forCppMode(emitsCpp).header);
+    discovery._spellIncludes(OutputExtensions.forCppMode(cppMode).header);
     return {
       graph: discovery._freeze(
         files,
         settled.sources,
         settled.recovered,
-        emitsCpp,
+        cppMode,
       ),
       anchor,
       errors: discovery.errors,

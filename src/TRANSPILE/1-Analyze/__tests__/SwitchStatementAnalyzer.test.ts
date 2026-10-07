@@ -14,7 +14,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * as a MINUS token plus a HEX_LITERAL rather than as one negative literal.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new SwitchStatementAnalyzer(context).analyze(tree);
 };
 

@@ -14,7 +14,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * and structs it uses and the view comes from the program 1.4 built for it.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source);
+  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   return new BareEnumMemberAnalyzer(context).analyze(tree);
 };
 
