@@ -22,6 +22,7 @@ import HeaderParser from "../PARSE/2-Parse/HeaderParser";
 
 import CodeGenWalker from "../TRANSPILE/CodeGenWalker";
 import invariant from "../utils/invariant";
+import CodedErrorText from "../utils/CodedErrorText";
 import AutoConstRule from "../utils/AutoConstRule";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
@@ -1637,9 +1638,11 @@ class Transpiler {
       result.errors.push({
         line: 1,
         column: 0,
-        message:
-          `error[E0203]: Source files '${basename(existing)}' and '${basename(file.path)}' both ` +
-          `produce the include guard '${guard}'. Rename one so the generated headers stay distinguishable.`,
+        message: CodedErrorText.of(
+          "E0203",
+          `Source files '${basename(existing)}' and '${basename(file.path)}' both ` +
+            `produce the include guard '${guard}'. Rename one so the generated headers stay distinguishable.`,
+        ),
         severity: "error",
       });
       result.success = false;
@@ -1709,7 +1712,7 @@ class Transpiler {
       line: conflict.line,
       column: conflict.column,
       sourcePath: conflict.sourceFile,
-      message: `error[${conflict.code}]: ${conflict.message}`,
+      message: CodedErrorText.of(conflict.code, conflict.message),
       severity: conflict.severity,
     };
   }

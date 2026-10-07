@@ -17,6 +17,7 @@
 
 import { ProgramContext } from "../../PARSE/2-Parse/grammar/CNextParser";
 import IComment from "../../types/IComment";
+import CodedErrorText from "../../utils/CodedErrorText";
 import CppClassInitializerAnalyzer from "./CppClassInitializerAnalyzer";
 import DefineDirectiveAnalyzer from "./DefineDirectiveAnalyzer";
 import IdentifierSyntaxAnalyzer from "./IdentifierSyntaxAnalyzer";
@@ -138,10 +139,10 @@ interface IAnalyzerError {
  * Convert analyzer errors to ITranspileError format and add to accumulator.
  * Returns true if any errors were added (for early return logic).
  */
-function collectErrors(
-  analyzerErrors: IAnalyzerError[],
+function collectErrors<E extends IAnalyzerError>(
+  analyzerErrors: E[],
   target: ITranspileError[],
-  formatMessage: (err: IAnalyzerError) => string,
+  formatMessage: (err: E) => string,
 ): boolean {
   for (const err of analyzerErrors) {
     // #1306: `helpText` was set at 21 analyzer sites and read at none -- it was
@@ -170,15 +171,33 @@ function collectErrors(
  * real but survived only as prose between the blocks; as entries they are data
  * that moves with the step.
  */
-interface IAnalyzerStep {
+interface IAnalyzerStepBase {
   /** Why this step sits here, when its position matters. */
   readonly label: string;
-  readonly run: () => IAnalyzerError[];
-  /** Defaults to the `error[CODE]: message` form. */
-  readonly format?: (err: IAnalyzerError) => string;
   /** When true, findings are reported and later steps still run. */
   readonly advisory?: boolean;
 }
+
+/** An error the default `error[CODE]: message` form can spell. */
+type TCodedAnalyzerError = IAnalyzerError & { code: string };
+
+/**
+ * #1873: a step with no `format` is spelled `error[CODE]:`, so its errors must
+ * have a code. With one step type and `code` optional, a step whose errors had
+ * none compiled and printed `error[undefined]:`.
+ */
+interface ICodedAnalyzerStep extends IAnalyzerStepBase {
+  readonly run: () => TCodedAnalyzerError[];
+  readonly format?: undefined;
+}
+
+/** A step whose errors carry no code spells them itself. */
+interface IFormattedAnalyzerStep extends IAnalyzerStepBase {
+  readonly run: () => IAnalyzerError[];
+  readonly format: (err: IAnalyzerError) => string;
+}
+
+type TAnalyzerStep = ICodedAnalyzerStep | IFormattedAnalyzerStep;
 
 /**
  * Run all semantic analyzers on a parsed program.
@@ -194,14 +213,14 @@ function runAnalyzers(
   options: IAnalyzerOptions,
 ): ITranspileError[] {
   const errors: ITranspileError[] = [];
-  const formatWithCode = (e: IAnalyzerError) =>
-    `error[${e.code}]: ${e.message}`;
+  const formatWithCode = (e: TCodedAnalyzerError) =>
+    CodedErrorText.of(e.code, e.message);
 
   // #1456: the caller's, always. No fallback to shared state -- see the field.
   const context = options.context;
   const symbolTable = context.symbolTable;
 
-  const steps: readonly IAnalyzerStep[] = [
+  const steps: readonly TAnalyzerStep[] = [
     {
       // #1322: before anything reads a declaration. A file's directives
       // precede every declaration in the grammar, so a bad one is never a
@@ -464,17 +483,16 @@ function runAnalyzers(
       // whatever else the file produced.
       label: "comment validation (MISRA C:2012 Rules 3.1, 3.2 -- ADR-043)",
       run: () => new CommentExtractor(comments).validate(),
-      format: (e) => `error[MISRA-${e.rule}]: ${e.message}`,
+      format: (e) => CodedErrorText.of(`MISRA-${e.rule}`, e.message),
       advisory: true,
     },
   ];
 
   for (const step of steps) {
-    const found = collectErrors(
-      step.run(),
-      errors,
-      step.format ?? formatWithCode,
-    );
+    const found =
+      step.format === undefined
+        ? collectErrors(step.run(), errors, formatWithCode)
+        : collectErrors(step.run(), errors, step.format);
     // `break`, not an early `return`: both exits hand back the same `errors`
     // array, so returning from inside the loop reads as two exits with one
     // value (S3516) when it is really one exit and a stopping condition. What

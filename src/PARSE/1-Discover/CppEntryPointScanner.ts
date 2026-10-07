@@ -2,6 +2,7 @@ import { dirname, join, resolve } from "node:path";
 import IncludeDiscovery from "./IncludeDiscovery";
 import CNextMarkerDetector from "./CNextMarkerDetector";
 import IFileSystem from "../../types/IFileSystem";
+import CodedErrorText from "../../utils/CodedErrorText";
 import type ITranspileError from "../../lib/types/ITranspileError";
 import type ICNextMarker from "./types/ICNextMarker";
 
@@ -184,7 +185,10 @@ class CppEntryPointScanner {
         sourcePath: headerPath,
         line: marker.line,
         column: marker.column,
-        message: `error[E0509]: C-Next source not found: ${sourcePath}`,
+        message: CodedErrorText.of(
+          "E0509",
+          `C-Next source not found: ${sourcePath}`,
+        ),
         helpText:
           "A generated header records the C-Next source it was written from. " +
           "Check that source is present, and reachable from the include path.",

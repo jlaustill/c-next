@@ -20,6 +20,7 @@
  */
 import TargetDescriptions from "./TargetDescriptions";
 import DeclarationSite from "../../utils/DeclarationSite";
+import CodedErrorText from "../../utils/CodedErrorText";
 import TARGET_DESCRIPTION_FIELDS from "./TARGET_DESCRIPTION_FIELDS";
 import type ITranspileError from "../../lib/types/ITranspileError";
 import type IRunTargetInputs from "./types/IRunTargetInputs";
@@ -293,7 +294,7 @@ class RunTarget {
     return {
       line: 1,
       column: 0,
-      message: `error[${code}]: ${message}`,
+      message: CodedErrorText.of(code, message),
       helpText,
       severity: "error",
     };
@@ -410,7 +411,7 @@ class RunTarget {
     if (missing.length > 0) {
       errors.push({
         ...RunTarget.at(site),
-        message: "error[E0514]: incomplete target description",
+        message: CodedErrorText.of("E0514", "incomplete target description"),
         helpText: `missing: ${missing.join(", ")}. Either use '#pragma target <name>' or give every field (ADR-049).`,
         severity: "error",
       });
@@ -460,7 +461,7 @@ class RunTarget {
     }
     return {
       ...RunTarget.at(site),
-      message: `error[E0510]: '${name}' is not a known target`,
+      message: CodedErrorText.of("E0510", `'${name}' is not a known target`),
       helpText,
       severity: "error",
     };
@@ -470,7 +471,7 @@ class RunTarget {
   private static unknownKey(key: string, site: ISite): ITranspileError {
     return {
       ...RunTarget.at(site),
-      message: `error[E0512]: unknown pragma '${key}'`,
+      message: CodedErrorText.of("E0512", `unknown pragma '${key}'`),
       helpText: `A pragma names the program's target (ADR-049). Its keys are: ${PRAGMA_KEYS.join(", ")}.`,
       severity: "error",
     };
@@ -484,7 +485,10 @@ class RunTarget {
   ): ITranspileError {
     return {
       ...RunTarget.at(site),
-      message: `error[E0513]: invalid value for '${key}': ${problem}`,
+      message: CodedErrorText.of(
+        "E0513",
+        `invalid value for '${key}': ${problem}`,
+      ),
       helpText:
         "An integer field takes decimal digits, a Boolean field takes true or false, and each key takes exactly one value (ADR-049).",
       severity: "error",
@@ -500,7 +504,10 @@ class RunTarget {
       d.inline ? "an inline target description" : `target '${d.name}'`;
     return {
       ...RunTarget.at(other.site),
-      message: `error[E0511]: this file declares ${label(other)}, but ${DeclarationSite.display(first.site.sourcePath, first.site.line)} declares ${label(first)}`,
+      message: CodedErrorText.of(
+        "E0511",
+        `this file declares ${label(other)}, but ${DeclarationSite.display(first.site.sourcePath, first.site.line)} declares ${label(first)}`,
+      ),
       helpText:
         first.inline === other.inline
           ? "A program has exactly one target (ADR-049). Declare the same target in every file that declares one; a file that declares none takes the program's."

@@ -13,6 +13,7 @@ import { CNextParser } from "./grammar/CNextParser";
 import CommentScanner from "./CommentScanner";
 import IParsedFile from "../../types/IParsedFile";
 import ITranspileError from "../../lib/types/ITranspileError";
+import CodedErrorText from "../../utils/CodedErrorText";
 
 /**
  * ADR-016 makes scopes a FLAT namespace, permanently: a scope declared inside
@@ -32,8 +33,10 @@ import ITranspileError from "../../lib/types/ITranspileError";
  * make the file parse, produce no error, and redden that fixture. Neither half can
  * change alone.
  */
-const NESTED_SCOPE_MESSAGE =
-  "error[E0430]: nested scopes are not allowed (ADR-016)";
+const NESTED_SCOPE_MESSAGE = CodedErrorText.of(
+  "E0430",
+  "nested scopes are not allowed (ADR-016)",
+);
 
 /**
  * The advice, on the `help:` line every other coded diagnostic uses.
