@@ -1860,7 +1860,7 @@ class Transpiler {
       throw header.error;
     }
     if (header.kind === "cached") {
-      this._restoreCachedHeader(file, header.entry, header.symbols);
+      this._restoreCachedHeader(header.entry, header.symbols);
       return; // Cache hit - skip full parsing
     }
     const { preprocessError } = header.source;
@@ -1928,7 +1928,6 @@ class Transpiler {
    * is nothing to convert and nothing to forget.
    */
   private _restoreCachedHeader(
-    file: IDiscoveredFile,
     cached: TCachedHeader,
     symbols: TCachedSymbols,
   ): void {

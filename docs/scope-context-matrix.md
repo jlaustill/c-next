@@ -53,18 +53,19 @@ cell is declared by the ADR that owns it.
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
 | global variable    | -         | ok     | ok         | n/a         | n/a        |
-| top-level function | -         | ok     | ok         | n/a         | n/a        |
+| top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | -         | ok     | ok         | n/a         | n/a        |
 | scope method       | -         | ok     | ok         | n/a         | n/a        |
 
-11 linked fixtures with no derivable context:
+12 linked fixtures with no derivable context:
 
 - `bugs/issue-1133-guard-collision-diagnostic/guard-collision.test.cnx`
-- `cpp-class-init/cpp-class-read-before-assign.test.cnx`
 - `external-types/external-struct-fields.test.cnx`
 - `include/cnx-alternative-error-angle.test.cnx`
 - `include/cnx-alternative-error-hpp.test.cnx`
 - `include/cnx-alternative-error-quoted.test.cnx`
+- `include/cpp-syntax-undeclared.test.cnx`
+- `include/cpp-transitive-undeclared.test.cnx`
 - `include/cpp-undeclared.test.cnx`
 - `include/missing-cnx-include-error.test.cnx`
 - `include/self-include-public-scope.test.cnx`
