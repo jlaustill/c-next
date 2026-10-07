@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-07
+
 ### Added
 
 - **`--no-cpp`** asks for C, as `cppRequired: false` does (Issue #1844).
@@ -25,14 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **A run that does not say is C++ when a header it reaches is C++** (Issue #1844).
-  1.1 judges each header once, on its preprocessed text, so a run that passed cold
-  no longer fails warm (#1851). `cppRequired: true` (`--cpp`) still forces C++.
-  E0507 is now raised only for a run that asks for C (`cppRequired: false`,
-  `--no-cpp`), and is reported at every `.cnx` `#include` through which the run
-  meets C++, instead of once at `1:0 Pipeline failed:`. A project that set `cppRequired: false` and
-  includes C++ headers fails as before; one that set nothing and includes them now
-  transpiles to C++ instead of failing.
+- **`cppRequired: false` now means C only** (Issues #1319, #1844). This is a
+  **breaking change** for a project that wrote it out: v0.3.0 read `false` the same as
+  leaving the key out, and switched to C++ when a header was C++. Now a run that asks
+  for C (`cppRequired: false`, `--no-cpp`) and reaches a C++ header fails with new error
+  **E0507**, reported at every `.cnx` `#include` through which the run meets C++. The
+  migration is to remove the key, or set it to `true`. A run that does not say is still
+  C++ when a header it reaches is C++, and `cppRequired: true` (`--cpp`) still forces C++.
+  1.1 now judges each header once, on its preprocessed text, so a run that passed cold
+  no longer fails warm (#1851).
 
 - **An implicit float-to-integer conversion is error E0891** (ADR-024, Issue #1800).
   This is a **breaking change**. `u32 b <- k;` with `f32 k`, a floating composite
@@ -90,18 +93,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `cnext.config.json` is currently discarded **silently** — unknown config keys
   produce no diagnostic (Issue #1490) — so remove it by hand.
 
-- C++ output mode is now **declared**, never auto-detected (Issue #1319). Set
-  `cppRequired: true` in `cnext.config.json` or pass `--cpp`. A run that does not declare
-  C++ and encounters a C++ header — a `.hpp`, or a `.h` containing classes, namespaces,
-  templates or access specifiers — now fails with new error **E0507** naming the header.
-  This is a **breaking change**, and unusually it breaks projects that did not change: a
-  configuration that transpiled yesterday fails until `cppRequired: true` is added. The
-  error message carries the fix, so the migration is one config line.
-  Previously the transpiler read your includes and switched output languages on its own.
-  That guess was only as good as the search path — a C++ header the transpiler could not
-  find produced C output and a compiler error in generated code instead. `cnext <file>.cpp`
-  (README "Step 3") does not infer the mode from the entry point either, so a tree whose
-  `.cnx` files include C++ headers needs the flag there too.
 - MISRA C:2012 Rule 17.7 is now **enforced** rather than baselined. Calls the transpiler emits while lowering string operations carry an automatic `(void)` cast; author-written discards are a compile error.
 - Stdlib function metadata moved to `StdlibFunctions`, shared by `FunctionCallAnalyzer` and `ReturnValueUseAnalyzer`.
 
@@ -1480,7 +1471,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.2.18...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/jlaustill/c-next/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/jlaustill/c-next/compare/v0.2.18...v0.3.0
 [0.2.18]: https://github.com/jlaustill/c-next/compare/v0.2.17...v0.2.18
 [0.2.17]: https://github.com/jlaustill/c-next/compare/v0.2.16...v0.2.17

@@ -57,6 +57,13 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-052](decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals | `type_MIN`/`type_MAX` constants + safe hex conversion                              |
 | [ADR-070](decisions/adr-070-return-value-use.md)                | Return-Value Use      | Reject discarded non-void returns (MISRA 17.7, E0708)                              |
 | [ADR-063](decisions/adr-063-identifier-syntax.md)               | Identifier Syntax     | No trailing/consecutive `_`; `__` reserved as the qualified-name separator (E0201) |
+| [ADR-061](decisions/adr-061-c-library-interop.md)               | C Library Interop     | C is the escape hatch: unsafe C stays in a `.h`/`.c` boundary layer                |
+
+## Proposed
+
+| ADR                                                         | Title                       | Description                                                                    |
+| ----------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------ |
+| [ADR-062](decisions/adr-062-sink-aware-array-auto-const.md) | Sink-Aware Array Auto-Const | Array parameters are auto-`const` unless they reach a non-`const` pointer sink |
 
 ## WIP (Implementation In Progress)
 

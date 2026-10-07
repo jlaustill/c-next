@@ -224,6 +224,15 @@ PARTITION issues into:
     - BLOCKED       IS_BLOCKED (Phase 1d)         → name the OPEN_BLOCKERS
     - GROOMING      BOARD_STATUS == "Grooming"    → not triaged; scope is still open
     - EPIC          has the "epic" label          → a tracker, never picked up directly
+                    EXCEPT the release card: the ACTIVE_MILESTONE card titled
+                    `Release <ACTIVE_MILESTONE>` (`.github/ISSUE_TEMPLATE/release.md`).
+                    It is the work of cutting the release, not a tracker, whatever its
+                    labels say, and it stays in AVAILABLE_ISSUES. Its definition of
+                    done needs every other card in the milestone closed, so Phase 3.5
+                    reports it Not startable until they are, and it ranks first once it
+                    is the last open card in the milestone. On 2026-10-07 #1324 was the
+                    only open card in `v0.3.1`, and dropping it as an epic reported
+                    "nothing in it can be scored" for a release that was ready to cut.
     - OUT_OF_SPRINT milestone != ACTIVE_MILESTONE → a later release is pre-planning
 
   AVAILABLE_ISSUES = everything else
@@ -269,7 +278,8 @@ FOR each available issue, compute SCORE:
     "interop"                             → +12
     "priority: low"                       → +3
     "question"                            → +2
-    "epic" / "wontfix" / "test-blocked"   → -100 (skip — see Anti-Patterns)
+    "epic" / "wontfix" / "test-blocked"   → -100 (skip — see Anti-Patterns;
+                                             the release card is exempt, Phase 2)
     "duplicate" / "invalid"               → -100 (skip)
 
   SPRINT MEMBERSHIP (0-30 points):
@@ -629,7 +639,8 @@ IF no open issues exist:
 
 - **DO NOT** recommend issues that are clearly in-flight (have open PRs, are assigned, or have recent branch activity)
 - **DO NOT** start implementing without user confirmation of which issue to work on
-- **DO NOT** pick issues labeled "test-blocked", "wontfix", or "epic"
+- **DO NOT** pick issues labeled "test-blocked", "wontfix", or "epic", except the release
+  card (Phase 2): it is the release's last piece of work, not a tracker
 - **DO NOT** recommend an issue that IS_BLOCKED (its "Blocked by" links something
   still open), or one sitting in `Grooming`
 - **DO NOT** treat an empty "Blocked by" as "startable" — it means no card was named.
