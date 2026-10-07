@@ -325,8 +325,9 @@ class ServeCommand {
           errors: transpileResult.errors,
           // #1319: the wire name stays `cppDetected` -- it is the JSON-RPC
           // contract the VS Code extension consumes, and renaming it is a
-          // protocol break. The value is now the DECLARED mode, not a
-          // discovered one; nothing is detected any more.
+          // protocol break. The value is the run's mode as 1.1 Discover
+          // settled it (#1844), and is absent when the run stopped before 1.1
+          // settled one (#1428) rather than reported as C.
           cppDetected: ServeCommand.transpiler.isCppMode(),
         },
       };
