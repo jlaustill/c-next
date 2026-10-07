@@ -17,7 +17,7 @@ if (existsSync(distEntry)) {
   });
 } else {
   const tsxPath = join(__dirname, "..", "node_modules", ".bin", "tsx");
-  const entryPoint = join(__dirname, "..", "src", "index.ts");
+  const entryPoint = join(__dirname, "..", "src", "cli", "index.ts");
   child = spawn(tsxPath, [entryPoint, ...process.argv.slice(2)], {
     stdio: "inherit",
     cwd: process.cwd(),

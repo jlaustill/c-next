@@ -1,4 +1,4 @@
-import type ITranspileError from "../../lib/types/ITranspileError";
+import type ITranspileError from "../../types/ITranspileError";
 import type IDiagnostics from "../../types/IDiagnostics";
 
 /** Shared empty result, so a clean file does not allocate. */

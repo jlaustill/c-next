@@ -1417,6 +1417,113 @@ const MOVES: readonly IMove[] = [
     to: "src/types/TAssignmentSite.ts",
     because: SHARED_CONTRACT,
   },
+  {
+    from: "src/lib/types/ITranspileError.ts",
+    to: "src/types/ITranspileError.ts",
+    because:
+      "#1443: named by every layer, `types/` and both host roots. §1 forbids " +
+      "going up into another root's interior (`../../lib/types/ITranspileError` " +
+      "is its own example), so a contract read from outside `lib/` belongs in " +
+      "the shared root.",
+  },
+  {
+    from: "src/transpiler/types",
+    to: "src/cli/types",
+    because:
+      "#1443: the four host types (#1853). Only the orchestrator, `cli/` and " +
+      "the cache name them, and all three are the host's now.",
+  },
+  {
+    from: "src/utils/cache",
+    to: "src/cli/cache",
+    because:
+      "#1443: the header-symbol cache serves only the orchestrator, and " +
+      "imports 1.3's `SymbolTable` and 3.1's `Write`, so it is not a " +
+      "layer-neutral contract. The host owns the cache's lifetime (#1653).",
+  },
+  {
+    from: "src/transpiler/Transpiler.ts",
+    to: "src/cli/Transpiler.ts",
+    because:
+      "#1443: what is left once its pass logic moved into the passes -- " +
+      "constructing the pipeline, ordering the stages, building the result " +
+      "and owning the caches. README §1: only the host constructs the " +
+      "pipeline.",
+  },
+  {
+    from: "src/transpiler/__tests__",
+    to: "src/cli/__tests__",
+    because: "#1443: tests of the orchestrator, beside it.",
+  },
+  {
+    from: "src/index.ts",
+    to: "src/cli/index.ts",
+    because:
+      "#1443: README §1 -- no bare files at `src/`; each host root is " +
+      "entered through its own `index.ts`.",
+  },
+  {
+    from: "src/__tests__/index.test.ts",
+    to: "src/cli/__tests__/index.test.ts",
+    because: "#1443: the entry point's test follows the entry point.",
+  },
+  {
+    from: "src/tests/utils/FunctionUtils.ts",
+    to: "src/PARSE/3-Declare/__tests__/FunctionUtils.ts",
+    because:
+      "#1443: a test-only fixture factory whose one importer is " +
+      "`3-Declare/__tests__/SymbolRegistry.test.ts`; `tests/` is not a §1 root.",
+  },
+  {
+    from: "src/tests/utils/__tests__/FunctionUtils.test.ts",
+    to: "src/PARSE/3-Declare/__tests__/FunctionUtils.test.ts",
+    because: "#1443: follows `FunctionUtils`.",
+  },
+  {
+    from: "src/utils/TargetResolver.ts",
+    to: "src/cli/TargetResolver.ts",
+    because:
+      "#1443: resolves `--target` against 1.1's catalog for `ArgParser`, its " +
+      "one importer. A shared root may not name a pass (README §1), and the " +
+      "host is the root that may.",
+  },
+  {
+    from: "src/utils/__tests__/TargetResolver.test.ts",
+    to: "src/cli/__tests__/TargetResolver.test.ts",
+    because: "#1443: follows `TargetResolver`.",
+  },
+  {
+    from: "src/PARSE/1-Discover/TargetCatalogFile.ts",
+    to: "src/cli/TargetCatalogFile.ts",
+    because:
+      "#1443: reads the catalog (1.1), parses it (1.2) and judges its rows " +
+      "(1.4) -- three passes composed, which is the host's job (README §1: " +
+      "only the host constructs the pipeline). Inside 1.1 it was 1.1 reading " +
+      "1.2 and 1.4, which `1-1-discover-reads-no-later-pass` rejects. Its " +
+      "importers were already the host and the target matrix script.",
+  },
+  {
+    from: "src/TRANSPILE/2-Plan/DeclaredTypeInfo.ts",
+    to: "src/PARSE/3-Declare/DeclaredTypeInfo.ts",
+    because:
+      "#1443: projects a 1.3 declaration onto `TTypeInfo` and reads nothing " +
+      "of 2.x. In 2.2 it made `TranspileState` -- which 2.2 reads -- read 2.2 " +
+      "back (`transpile-state-reads-no-later-pass`); its importers are the " +
+      "state, the walker and 2.3's header adapter, all after 1.3.",
+  },
+  {
+    from: "src/TRANSPILE/2-Plan/__tests__/DeclaredTypeInfo.test.ts",
+    to: "src/PARSE/3-Declare/__tests__/DeclaredTypeInfo.test.ts",
+    because: "#1443: follows `DeclaredTypeInfo`.",
+  },
+  {
+    from: "src/TRANSPILE/2-Plan/types/IChainBase.ts",
+    to: "src/types/IChainBase.ts",
+    because:
+      "#1443: a chain's root as 2.2, 2.3, the walker and the state all name " +
+      "it, importing only `src/types/` -- a shared contract (README §1). In " +
+      "`2-Plan/types/` it made the state read 2.2.",
+  },
 ];
 
 export default MOVES;

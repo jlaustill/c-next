@@ -34,7 +34,7 @@ class HeaderGeneratorUtils {
    * Keying on the basename made can/config.cnx and uart/config.cnx share
    * CONFIG_H, so a translation unit including both had the second silently
    * skipped by the preprocessor — one warning, wrong runtime value, exit 0.
-   * The caller supplies that path; see Transpiler._guardIdentity, which anchors
+   * The caller supplies that path; see IncludeGuards.identity, which anchors
    * on the project root so the guard does not depend on which entry point
    * pulled the file in.
    *
@@ -48,7 +48,7 @@ class HeaderGeneratorUtils {
    * E0203 diagnostic rather than appending a hash or escape-encoding the path,
    * both of which would trade away the readability of the generated artifact.
    * Callers MUST run the collision check — see
-   * Transpiler._checkIncludeGuardCollisions.
+   * IncludeGuards.collisions.
    *
    * @param sourcePath - Path relative to the project root, e.g. "src/can/config.cnx"
    * @returns The include guard macro, e.g. "CNX_SRC_CAN_CONFIG_H"

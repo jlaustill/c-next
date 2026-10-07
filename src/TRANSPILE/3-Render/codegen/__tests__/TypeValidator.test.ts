@@ -4,13 +4,13 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import createMockSymbols from "../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import createMockSymbols from "../../../../cli/__tests__/codeGenSymbolsHelpers";
 import TranspileState from "../../../TranspileState";
 import type ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 import type ICallbackTypeInfo from "../../../../types/ICallbackTypeInfo";
 import type TParameterInfo from "../../../../types/TParameterInfo";
 import TypeValidator from "../TypeValidator";
-import enterScope from "../../../../transpiler/__tests__/enterScope";
+import enterScope from "../../../../cli/__tests__/enterScope";
 import testAnalysisContextFor from "../../../1-Analyze/__tests__/testAnalysisContextFor";
 
 // ========================================================================

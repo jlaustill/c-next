@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import createMockSymbols from "../../../cli/__tests__/codeGenSymbolsHelpers";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import NameExistence from "../NameExistence";
 import SymbolTable from "../SymbolTable";

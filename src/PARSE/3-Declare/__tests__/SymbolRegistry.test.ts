@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import SymbolRegistry from "../SymbolRegistry";
-import FunctionUtils from "../../../tests/utils/FunctionUtils";
+import FunctionUtils from "./FunctionUtils";
 import TTypeUtils from "../../../utils/TTypeUtils";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 

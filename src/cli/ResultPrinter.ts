@@ -4,7 +4,7 @@
  */
 
 import DeclarationSite from "../utils/DeclarationSite";
-import ITranspilerResult from "../transpiler/types/ITranspilerResult";
+import ITranspilerResult from "./types/ITranspilerResult";
 import ToolchainRequirementUtils from "../utils/ToolchainRequirementUtils";
 import type IRecordedRequirement from "../types/IRecordedRequirement";
 import type IToolchainRequirement from "../types/IToolchainRequirement";

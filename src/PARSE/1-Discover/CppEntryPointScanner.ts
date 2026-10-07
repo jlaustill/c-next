@@ -3,7 +3,7 @@ import IncludeDiscovery from "./IncludeDiscovery";
 import CNextMarkerDetector from "./CNextMarkerDetector";
 import IFileSystem from "../../types/IFileSystem";
 import CodedErrorText from "../../utils/CodedErrorText";
-import type ITranspileError from "../../lib/types/ITranspileError";
+import type ITranspileError from "../../types/ITranspileError";
 import type ICNextMarker from "./types/ICNextMarker";
 
 /**

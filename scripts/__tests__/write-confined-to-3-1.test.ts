@@ -14,7 +14,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import SourceScan from "../utils/SourceScan";
+import SourceScan from "./SourceScan";
 
 const METHODS = ["writeFile", "mkdir", "unlink", "rename"] as const;
 // `\b`, not `\(`: a method REFERENCE such as `paths.forEach(fs.unlink)`

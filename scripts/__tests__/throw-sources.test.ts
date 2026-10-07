@@ -26,7 +26,7 @@ describe("ThrowSources (#1531)", () => {
   it("reaches every layer of src/, not one pass", () => {
     const layers = [
       "src/utils/invariant.ts",
-      "src/transpiler/Transpiler.ts",
+      "src/cli/Transpiler.ts",
       "src/PARSE/1-Discover/Discover.ts",
       "src/TRANSPILE/1-Analyze/runAnalyzers.ts",
       "src/TRANSPILE/3-Render/codegen/CodeGenerator.ts",

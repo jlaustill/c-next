@@ -1,5 +1,5 @@
 import type TPlannedPostfixOp from "./TPlannedPostfixOp";
-import type IChainBase from "../../../2-Plan/types/IChainBase";
+import type IChainBase from "../../../../types/IChainBase";
 
 /**
  * A postfix expression: a primary, and the operations applied to it.

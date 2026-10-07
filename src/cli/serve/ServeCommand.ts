@@ -13,7 +13,7 @@ import IJsonRpcRequest from "./types/IJsonRpcRequest";
 import IJsonRpcResponse from "./types/IJsonRpcResponse";
 import ConfigPrinter from "../ConfigPrinter";
 import ConfigLoader from "../ConfigLoader";
-import Transpiler from "../../transpiler/Transpiler";
+import Transpiler from "../Transpiler";
 import parseWithSymbols from "../../lib/parseWithSymbols";
 import parseCHeader from "../../lib/parseCHeader";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";

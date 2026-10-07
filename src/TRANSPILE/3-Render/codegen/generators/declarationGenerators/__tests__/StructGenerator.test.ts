@@ -14,7 +14,7 @@ import IOrchestrator from "../../IOrchestrator";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type IPlannedStruct from "../../../types/IPlannedStruct";
 import type IPlannedStructField from "../../../types/IPlannedStructField";
-import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import createMockSymbols from "../../../../../../cli/__tests__/codeGenSymbolsHelpers";
 
 // ========================================================================
 // Test Helpers

@@ -246,7 +246,7 @@ describe("artifact lifetime (#1445 box 2)", () => {
       // indistinguishable from a true one. `Transpiler.retainedParses` is
       // `Map<string, IParsedFile>` -- the one field in this repository that holds
       // every retained tree on purpose -- so the scan must see it.
-      const control = storedParseNodes(/src\/transpiler\/Transpiler\.ts$/);
+      const control = storedParseNodes(/src\/cli\/Transpiler\.ts$/);
 
       expect(control.some((f) => f.includes("retainedParses"))).toBe(true);
     },
@@ -321,8 +321,8 @@ describe("artifact lifetime (#1445 box 2)", () => {
         [
           // #1301: Stage 5 reuses Stage 3's parse. Cleared in a `finally`, which
           // `RetainedParseCacheRelease.test.ts` asserts and mutation-checks.
-          "src/transpiler/Transpiler.ts Transpiler.codeGenerator",
-          "src/transpiler/Transpiler.ts Transpiler.retainedParses",
+          "src/cli/Transpiler.ts Transpiler.codeGenerator",
+          "src/cli/Transpiler.ts Transpiler.retainedParses",
           // The walk itself. `tokenStream` and the `CommentScanner` over it are
           // ADR-043 comment plumbing, assigned per file and released by
           // `releaseParseState()` at run end -- they used not to be, which is the

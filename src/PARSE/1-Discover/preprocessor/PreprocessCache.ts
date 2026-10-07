@@ -18,10 +18,9 @@
  */
 
 import { createHash } from "node:crypto";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import IFileSystem from "../../../types/IFileSystem";
 import IPreprocessCacheEntry from "./types/IPreprocessCacheEntry";
-import Write from "../../../WRITE/1-Write/Write";
 import packageJson from "../../../../package.json" with { type: "json" };
 
 /** Bump when an entry's shape or meaning changes */
@@ -80,7 +79,14 @@ class PreprocessCache {
     this.dirty = true;
   }
 
-  flush(): void {
+  /**
+   * Hand the cache's file to `write`, if this run changed it.
+   *
+   * #1443: written by the caller, not here. 3.1 Write owns the filesystem's
+   * side effects, and 1.1 may not import a later pass; the host, which owns
+   * the cache's lifetime, passes 3.1's writer in.
+   */
+  flush(write: (path: string, content: string) => void): void {
     if (!this.dirty) return;
     const generation = this.written + 1;
     const kept: Record<string, IPreprocessCacheEntry & { used: number }> = {};
@@ -88,9 +94,7 @@ class PreprocessCache {
       const used = this.used.get(key) ?? 0;
       if (used > generation - KEEP) kept[key] = { ...entry, used };
     }
-    Write.directory(this.fs, dirname(this.path));
-    Write.file(
-      this.fs,
+    write(
       this.path,
       JSON.stringify({ version: VERSION, generation, entries: kept }),
     );

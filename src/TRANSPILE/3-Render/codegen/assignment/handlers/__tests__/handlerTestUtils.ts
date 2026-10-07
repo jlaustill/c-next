@@ -4,14 +4,14 @@
  */
 
 import { vi } from "vitest";
-import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import createMockSymbols from "../../../../../../cli/__tests__/codeGenSymbolsHelpers";
 import TranspileState from "../../../../../TranspileState";
 import SymbolTable from "../../../../../../PARSE/3-Declare/SymbolTable";
 import type ICodeGenApi from "../../../../../types/ICodeGenApi";
 import type ICodeGenSymbols from "../../../../../../types/ICodeGenSymbols";
 import type TTypeInfo from "../../../../../../types/TTypeInfo";
 import type IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
-import type IChainBase from "../../../../../2-Plan/types/IChainBase";
+import type IChainBase from "../../../../../../types/IChainBase";
 import type IChainStep from "../../../../../../types/IChainStep";
 import type IOperandType from "../../../../../../types/IOperandType";
 import ScopeUtils from "../../../../../../utils/ScopeUtils";

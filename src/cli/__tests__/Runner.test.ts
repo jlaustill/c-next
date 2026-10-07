@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import Runner from "../Runner";
-import Transpiler from "../../transpiler/Transpiler";
+import Transpiler from "../Transpiler";
 import ResultPrinter from "../ResultPrinter";
 import ICliConfig from "../types/ICliConfig";
 import InputExpansion from "../../PARSE/1-Discover/InputExpansion";
@@ -12,7 +12,7 @@ import * as fs from "node:fs";
 import { dirname, resolve } from "node:path";
 
 // Mock dependencies
-vi.mock("../../transpiler/Transpiler");
+vi.mock("../Transpiler");
 vi.mock("../ResultPrinter");
 vi.mock("../../PARSE/1-Discover/InputExpansion");
 vi.mock("node:fs", async () => {

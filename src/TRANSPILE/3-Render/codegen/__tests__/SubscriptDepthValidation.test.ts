@@ -12,8 +12,8 @@
  * the bad code generation reachable through the prefixes.
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import Transpiler from "../../../../transpiler/Transpiler";
-import MockFileSystem from "../../../../transpiler/__tests__/MockFileSystem";
+import Transpiler from "../../../../cli/Transpiler";
+import MockFileSystem from "../../../../cli/__tests__/MockFileSystem";
 
 /** Wrap a body in a scope that owns a scalar and an array member. */
 const scoped = (body: string): string =>

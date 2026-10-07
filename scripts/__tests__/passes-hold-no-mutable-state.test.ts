@@ -60,14 +60,16 @@ const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 /**
  * The pass roots, and deliberately NOT `layer-rules.test.ts`'s `LAYER_ROOTS`.
  *
- * That list includes `^src/transpiler/`, because a depcruise layering claim can
- * be made about the pre-move tree. Box 4 is a claim about the PASSES, and
- * `src/transpiler/state/` is precisely where the mutable state legitimately
- * lives until this card moves it -- so sharing one list would make this guard
- * fail on the thing it exists to watch being moved. Two different questions over
- * overlapping sets; joining them would be false sharing, not deduplication.
+ * That list includes `^src/types/` and `^src/instrumentation/`, because a
+ * depcruise layering claim can be made about a shared root. Box 4 is a claim
+ * about the PASSES -- and instrumentation is scanned below with its holders
+ * named -- so sharing one list would be false sharing, not deduplication.
+ *
+ * `src/WRITE` joined with #1443: 3.1 Write had existed since #1653 and is a
+ * pass, but this list predated it, so a mutable static in `Write` was outside
+ * every root this guard scans.
  */
-const PASS_ROOTS = ["src/PARSE", "src/TRANSPILE"];
+const PASS_ROOTS = ["src/PARSE", "src/TRANSPILE", "src/WRITE"];
 
 /**
  * Scanned alongside the pass roots, with its four holders listed below.

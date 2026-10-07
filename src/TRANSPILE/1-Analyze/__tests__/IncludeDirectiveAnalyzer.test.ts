@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import IncludeResolver from "../../../PARSE/1-Discover/IncludeResolver";
-import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
+import MockFileSystem from "../../../cli/__tests__/MockFileSystem";
 import IncludeDirectiveAnalyzer from "../IncludeDirectiveAnalyzer";
 import EFileType from "../../../PARSE/1-Discover/types/EFileType";
 

@@ -24,7 +24,7 @@ import type IChainStep from "../../types/IChainStep";
 import IAssignmentContext from "./types/IAssignmentContext";
 import IBitAccessAnalysis from "../../types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../types/TPlannedTargetOp";
-import type IChainBase from "./types/IChainBase";
+import type IChainBase from "../../types/IChainBase";
 import type TranspileState from "../TranspileState";
 import type TAssignmentSite from "../../types/TAssignmentSite";
 
@@ -86,7 +86,7 @@ interface IContextBuilderDeps {
    *
    * This module moved to 2.2 Plan (#1445 box 3) and `AssignmentOperatorMapper`
    * did not: it is the one place a C-Next operator BECOMES its C form, which
-   * is text, and `plan-cannot-import-render` is `error` and `reachable`. It
+   * is text, and `2-2-plan-reads-no-later-pass` is `error` and `reachable`. It
    * arrives through the deps the same way the seven render thunks above do --
    * that is what this interface has always been for, not a new indirection
    * invented to satisfy the rule.

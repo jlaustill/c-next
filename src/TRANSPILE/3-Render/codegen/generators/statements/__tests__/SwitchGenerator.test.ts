@@ -19,7 +19,7 @@ import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type IPlannedSwitch from "../../../types/IPlannedSwitch";
 import type IPlannedSwitchCase from "../../../types/IPlannedSwitchCase";
 import type TPlannedCaseLabel from "../../../types/TPlannedCaseLabel";
-import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import createMockSymbols from "../../../../../../cli/__tests__/codeGenSymbolsHelpers";
 
 // ========================================================================
 // Test Helpers

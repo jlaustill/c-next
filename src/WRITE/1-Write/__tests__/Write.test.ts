@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import Write from "../Write";
-import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
+import MockFileSystem from "../../../cli/__tests__/MockFileSystem";
 
 describe("Write", () => {
   it("creates a file's directory, then writes the file", () => {

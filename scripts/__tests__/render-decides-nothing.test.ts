@@ -28,7 +28,7 @@
  * over all of `output/`, and nothing gates it yet".
  *
  * - **Scope.** The scan root was the render pass, so the `needsISR`
- *   read in `Transpiler._captureHeaderEmissionFacts` -- a legitimate capture,
+ *   read in `HeaderEmissionCapture.capture` (then the orchestrator's) -- a legitimate capture,
  *   but the SECOND one -- was outside the guard's view entirely. The root is
  *   now `src/`, and both captures are named.
  * - **Toolchain requirements** need no separate assertion: `needsISR`,
@@ -65,7 +65,7 @@
 import { readFileSync } from "node:fs";
 import { join, sep } from "node:path";
 
-import SourceScan from "../utils/SourceScan";
+import SourceScan from "./SourceScan";
 
 const rootDir = join(__dirname, "..", "..");
 
@@ -86,8 +86,16 @@ const CAPTURES = [
     needle: "private captureEmissionFacts(",
   },
   {
-    file: join("src", "transpiler", "Transpiler.ts"),
-    needle: "private _captureHeaderEmissionFacts(",
+    // #1443 moved the header capture out of the orchestrator, beside the
+    // header adapter it reads. Still one capture for the `.h`.
+    file: join(
+      "src",
+      "TRANSPILE",
+      "3-Render",
+      "headers",
+      "HeaderEmissionCapture.ts",
+    ),
+    needle: "static capture(",
   },
 ] as const;
 
@@ -178,8 +186,8 @@ const ORDER_CLASSIFIER = join("src", "TRANSPILE", "CodeGenWalker.ts");
  * The first spelling required a literal `static ` or `function ` immediately
  * before the verb. It reported **zero** while `CodeGenerator` -- the render
  * pass's largest file -- declared three private instance methods under exactly
- * this verb, and a leading `_` defeated it a second way. `module-destinations`
- * published "zero of the 131 expose a classification predicate" from that
+ * this verb, and a leading `_` defeated it a second way. `module-destinations.md`
+ * (deleted by #1443) published "zero of the 131 expose a classification predicate" from that
  * count, so the blind spot propagated into prose.
  *
  * The selector guard below could not catch it either: it filters to
@@ -272,6 +280,10 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
     // RENDER site consulting a plan. That is precisely the transition this
     // roster exists to make visible in a diff.
     "codegen/generators/declarationGenerators/RegisterBlockPlacement.ts",
+    // #1443: the header capture moved here from the orchestrator, which was
+    // outside every pass. It reads "does this file have a public interface?"
+    // to decide nothing of its own -- it records the answer in the facts.
+    "headers/HeaderEmissionCapture.ts",
   ],
   SubscriptClassifier: [
     // #1668 (S25): `PostfixExpressionGenerator` classified a subscript here

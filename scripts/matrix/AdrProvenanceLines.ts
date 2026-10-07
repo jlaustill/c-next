@@ -17,7 +17,7 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import Transpiler from "../../src/transpiler/Transpiler";
+import Transpiler from "../../src/cli/Transpiler";
 import TestUtils from "../test-utils";
 import NodeFileSystem from "../../src/PARSE/1-Discover/NodeFileSystem";
 

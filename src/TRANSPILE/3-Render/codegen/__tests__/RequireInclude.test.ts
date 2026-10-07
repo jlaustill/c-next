@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import Transpiler from "../../../../transpiler/Transpiler";
-import MockFileSystem from "../../../../transpiler/__tests__/MockFileSystem";
+import Transpiler from "../../../../cli/Transpiler";
+import MockFileSystem from "../../../../cli/__tests__/MockFileSystem";
 
 describe("CodeGenerator requireInclude", () => {
   let mockFs: MockFileSystem;

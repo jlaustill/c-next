@@ -4,7 +4,7 @@ import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
-import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import createMockSymbols from "../../../../../../cli/__tests__/codeGenSymbolsHelpers";
 
 // ========================================================================
 // Test Helpers

@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { join } from "node:path";
 import ResultPrinter from "../ResultPrinter";
-import ITranspilerResult from "../../transpiler/types/ITranspilerResult";
+import ITranspilerResult from "../types/ITranspilerResult";
 
 /**
  * Create a minimal ITranspilerResult with sensible defaults

@@ -8,9 +8,9 @@
  *
  * It lives at `src/TRANSPILE/` rather than in a pass because it is not one.
  * It walks the tree and drives 2.2 and 2.3 for a single file -- the same role
- * `Transpiler` plays for a run, which is why `src/transpiler/` already holds
- * three tree-walking modules. It cannot live in `2-Plan/`:
- * `plan-cannot-import-render` is `error` with `reachable: true`, and the walk
+ * `Transpiler` plays for a run, and README §1's tree draws it there. It cannot
+ * live in `2-Plan/`: `2-2-plan-reads-no-later-pass` is `error` with
+ * `reachable: true`, and the walk
  * imports sixteen generator functions and twenty-eight helpers from
  * `3-Render/`.
  *
@@ -103,9 +103,9 @@ import ExpressionUtils from "../utils/ExpressionUtils";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
 import includeGenerators from "./3-Render/codegen/generators/support/IncludeGenerator";
 import commentUtils from "./3-Render/codegen/generators/support/CommentUtils";
-import DeclaredTypeInfo from "./2-Plan/DeclaredTypeInfo";
+import DeclaredTypeInfo from "../PARSE/3-Declare/DeclaredTypeInfo";
 import DeclaredPointer from "../utils/DeclaredPointer";
-import type IChainBase from "./2-Plan/types/IChainBase";
+import type IChainBase from "../types/IChainBase";
 import type TTypeInfo from "../types/TTypeInfo";
 import memberAccessChain from "./3-Render/codegen/memberAccessChain";
 import type IRootHolding from "./3-Render/codegen/types/IRootHolding";

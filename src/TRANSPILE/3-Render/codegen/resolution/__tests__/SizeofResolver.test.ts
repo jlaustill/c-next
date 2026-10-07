@@ -16,7 +16,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import SizeofResolver from "../SizeofResolver";
 import TranspileState from "../../../../TranspileState";
 import TParameterInfo from "../../../../../types/TParameterInfo";
-import createMockSymbols from "../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import createMockSymbols from "../../../../../cli/__tests__/codeGenSymbolsHelpers";
 
 /** A parameter in the render-time table, with every flag off by default. */
 function declareParameter(

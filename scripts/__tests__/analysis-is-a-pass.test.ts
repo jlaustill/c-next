@@ -45,7 +45,7 @@ const TRANSPILER_PATH = join(
   "..",
   "..",
   "src",
-  "transpiler",
+  "cli",
   "Transpiler.ts",
 );
 

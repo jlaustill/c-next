@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import TargetToolchain from "../TargetToolchain";
-import TargetResolver from "../TargetResolver";
+import TargetResolver from "../../cli/TargetResolver";
 import type ITargetDescription from "../../types/ITargetDescription";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 

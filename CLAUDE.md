@@ -183,20 +183,20 @@ When in doubt: **ASK.** Syntax changes require ADR discussion and user approval.
 
 ## Quick Reference
 
-| Task                   | Command                                               |
-| ---------------------- | ----------------------------------------------------- |
-| Build transpiler       | `npm run build`                                       |
-| Integration tests      | `npm test` or `npm run test:q` (quiet)                |
-| Single test            | `npm test -- tests/dir/file.test.cnx`                 |
-| Unit tests             | `npm run unit`                                        |
-| Coverage               | `npm run unit:coverage`                               |
-| C static analysis      | `npm run validate:c`                                  |
-| All tests + checks     | `npm run test:all`                                    |
-| **Everything CI runs** | **`npm run test:gate`**                               |
-| Local transpiler       | `npx tsx src/index.ts <file.cnx> --target host`       |
-| C++ mode               | `npx tsx src/index.ts <file.cnx> --cpp --target host` |
-| Generate snapshots     | `npm test -- <path> --update`                         |
-| ANTLR regenerate       | `npm run antlr`                                       |
+| Task                   | Command                                                   |
+| ---------------------- | --------------------------------------------------------- |
+| Build transpiler       | `npm run build`                                           |
+| Integration tests      | `npm test` or `npm run test:q` (quiet)                    |
+| Single test            | `npm test -- tests/dir/file.test.cnx`                     |
+| Unit tests             | `npm run unit`                                            |
+| Coverage               | `npm run unit:coverage`                                   |
+| C static analysis      | `npm run validate:c`                                      |
+| All tests + checks     | `npm run test:all`                                        |
+| **Everything CI runs** | **`npm run test:gate`**                                   |
+| Local transpiler       | `npx tsx src/cli/index.ts <file.cnx> --target host`       |
+| C++ mode               | `npx tsx src/cli/index.ts <file.cnx> --cpp --target host` |
+| Generate snapshots     | `npm test -- <path> --update`                             |
+| ANTLR regenerate       | `npm run antlr`                                           |
 
 **GitHub CLI**: `gh issue view` may fail — use `gh api repos/jlaustill/c-next/issues/<number>` instead. `gh pr edit` fails here on a Projects-classic GraphQL deprecation — use `gh api -X PATCH repos/jlaustill/c-next/pulls/<n> -F body=@<file>`, then re-read the body to confirm; it errors on stderr, so an `&&` chain hides it and the body silently keeps its old text. The project board (`/issue-check`
 Phase 1d) needs `gh auth refresh -s read:project`; **writing** a board field needs
@@ -261,15 +261,14 @@ MCP server is configured for this repo (`claude mcp list`, and no `mcpServers` e
 project or user config), and the successor package no longer exposes those names, so the
 instruction could not be followed as written.
 
-**Layer constraints (depcruise)**: PARSE (1.x) cannot import TRANSPILE (2.x), no pass after
-1.1 Discover reaches a 1.1 module other than its artifact's `types/`
-(`nothing-after-1-1-discovers`, #1444 box 4), and the per-file state cannot import 2.3 Render —
-all **transitively**, not just as a direct edge. The `data-` and `logic-` rules were retired by
-#1444, when both directories became `src/PARSE/1-Discover/`. `state-cannot-import-output` names the MODULE now
-(`src/TRANSPILE/TranspileState.ts`) rather than a directory, because #1452 deleted
-`src/transpiler/state/` and `CodeGenWalker.ts` sits beside the state at the `src/TRANSPILE/`
-root while importing sixteen generators — so a root-wide `from` would fail on the walker whose
-whole job is calling renderers. Check import dependencies before choosing extraction location; shared contracts
+**Layer constraints (depcruise)**: `PASS_ORDER` in `.dependency-cruiser.cjs` lists the places a
+module can sit, earliest first, and one generated rule per place (`*-reads-no-later-pass`, #1443)
+forbids it reaching any later one — **transitively**, not just as a direct edge. No pass after
+1.1 Discover reaches a 1.1 module other than its artifact's `types/` (`nothing-after-1-1-discovers`,
+#1444 box 4). `TranspileState` and `CodeGenWalker.ts` sit directly under `src/TRANSPILE/`, which
+README §1's tree draws, and each has its own place in the order: the state after 2.1 (an analyzer
+reaching it is the #1456 defect), the walker after 2.3 (its whole job is calling renderers).
+`npm run layout:check` reports the order rules together with the tree's shape. Check import dependencies before choosing extraction location; shared contracts
 go in `src/types/`, which every layer may depend on — and which may depend on no
 pass in return, enforced by `shared-contracts-cannot-import-a-pass` (`error`, `reachable`).
 That claim was prose with nothing behind it until #1452 broke it twice: `IAssignmentContext`
@@ -290,7 +289,7 @@ a single utility module and yields seven errors under `reachable`, since everyth
 
 **MISRA rule details**: `cppcheck --addon=misra -I tests/include <file.c>` shows specific rule violations (batch-validate only shows file names)
 
-**Transpiler failures**: `npx tsx src/index.ts` prints `Error:` (capital E) and exits non-zero —
+**Transpiler failures**: `npx tsx src/cli/index.ts` prints `Error:` (capital E) and exits non-zero —
 detect with the exit code. `grep -q error` silently misses every diagnostic.
 
 **Mismatch masks execution**: a fixture failing `C output mismatch` never runs, so behavioral
@@ -311,7 +310,7 @@ alias: the whole **`Static Analysis`** job (`prettier:check`, `plugin:test`, `te
 `analyze:duplication`, `docs:toolchain:check`, `coverage:matrix:check`,
 `diagnostics:manifest:check`, `error-codes:check`, `docs:throw-citations:check`, `scope-joins:check`,
 `adr:independence:check`, `gh:pagination:check`, `parse-tree:check`, `unused-code:check`,
-`typedef-const:parity:check`, `destinations:check`,
+`typedef-const:parity:check`, `layout:check`,
 `gate:roster:check`), plus `typecheck`, `typecheck` for
 `prettier-plugin`, `typecheck` for `scripts` (`typecheck:scripts`), `test:cli`, `cli smoke`,
 `coverage:grammar:check`, `format:fidelity`, `headers:standalone:check`, `re-run warm`, and the
@@ -567,7 +566,7 @@ and knip names that member.
 
 ## Architecture
 
-### 4-Layer Structure (`src/transpiler/`)
+### Pass layout (`src/`, README §1)
 
 | Layer        | Path                      | Purpose                                                                                                                                                                                                                                                             |
 | ------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -575,7 +574,7 @@ and knip names that member.
 | Render       | `src/TRANSPILE/3-Render/` | 2.3 Render — codegen/, headers/. Moved out of `transpiler/output/` by #1450 box 5                                                                                                                                                                                   |
 | State        | _(gone)_                  | `src/transpiler/state/` was deleted by #1452. The per-file working state 2.2 and 2.3 share is `TranspileState` at the `src/TRANSPILE/` root; `SymbolRegistry` and `SymbolTable` are 1.3 Declare's                                                                   |
 | Constants    | _(gone)_                  | `src/transpiler/constants/` was dissolved by #1853: a constant one area reads sits in that area (a pass, or `src/utils/constants/`), and one that more than one area reads sits in `src/types/`. Areas are counted by where each reader is going, not where it sits |
-| Orchestrator | `Transpiler.ts`           | Coordinates all layers                                                                                                                                                                                                                                              |
+| Orchestrator | `src/cli/Transpiler.ts`   | Constructs the pipeline, orders the stages, owns the caches (#1443)                                                                                                                                                                                                 |
 
 ### Utility Locations
 
@@ -666,7 +665,7 @@ E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees 
   made it a parameter: `symbols` (this file's view), `program` (1.4's artifact),
   `symbolTable`, `reachesForeignHeader`, and `sourceFile`. `Transpiler._analyzeFile` builds it
   from artifacts settled before 2.1 begins, and
-  `analyzers-cannot-reach-codegen-state` (`error`, `reachable: true`) makes an
+  `2-1-analyze-reads-no-later-pass` (`error`, `reachable: true`) makes an
   analyzer that reaches `TranspileState` fail the **`lint`** job — through a
   shared helper as readily as directly. `symbols` and `program` are NON-nullable,
   so `?? []` and `if (!symbols)` in an analyzer are guards that cannot fire and
@@ -735,7 +734,7 @@ generator (#1489 deleted the one that duplicated this).
 
 ### Unit Tests
 
-- Location: `__tests__/` adjacent to module (e.g., `src/utils/cache/__tests__/CacheManager.test.ts`)
+- Location: `__tests__/` adjacent to module (e.g., `src/cli/cache/__tests__/CacheManager.test.ts`)
 - Parser imports: `import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser.js"`
 - Direct parsing: `CNextSourceParser.parse(source)` when you just need AST
 - **Mock types**: `TTypeInfo` needs `baseType`, `bitWidth`, `isArray`, `isConst`; `TParameterInfo` needs `name`, `baseType`, `isArray`, `isStruct`, `isConst`, `isCallback`, `isString`
@@ -951,13 +950,13 @@ To add new patterns: (1) Add `AssignmentKind` enum, (2) Update `AssignmentClassi
 
 ### Adding CLI Flags
 
-Update: `src/index.ts` (parse + pass), `src/types/ITranspilerConfig.ts` (interface).
+Update: `src/cli/index.ts` (parse + pass), `src/types/ITranspilerConfig.ts` (interface).
 
 ### Adding Generator Effects
 
 1. Add to the `TIncludeHeader` union in `src/types/` — it is a shared
    contract, not a codegen type: `TranspileState` names it too, and
-   `state-cannot-import-output` forbids the state importing `3-Render/`
+   `transpile-state-reads-no-later-pass` forbids the state importing `3-Render/`
 2. Add the `needs<Effect>` field to **`TranspileState`** (reset in its `reset()`)
 3. Handle it in **`CodeGenerator.applyEffects()`**, which delegates to the one sink,
    `TranspileState.requireInclude()` — never set a `needs*` field directly

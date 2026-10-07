@@ -31,7 +31,7 @@ import detectCppSyntax from "../src/PARSE/1-Discover/detectCppSyntax";
 import TestMarkers from "./TestMarkers";
 import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
 import ExecFailure from "../src/utils/ExecFailure";
-import TargetResolver from "../src/utils/TargetResolver";
+import TargetResolver from "../src/cli/TargetResolver";
 import type IGccToolchain from "../src/utils/types/IGccToolchain";
 import TargetMatrix from "./TargetMatrix";
 import RunTarget from "../src/PARSE/4-Resolve/RunTarget";
@@ -215,9 +215,9 @@ function transpileViaCli(
   const codePath = basePath + (cppMode ? ".cpp" : ".c");
   const headerPath = basePath + (cppMode ? ".hpp" : ".h");
 
-  // Run CLI from project root (where src/index.ts exists)
+  // Run CLI from project root (where src/cli/index.ts exists)
   // Clear VITEST env so the CLI's main() function runs
-  // (src/index.ts checks VITEST to skip auto-execution during unit tests)
+  // (src/cli/index.ts checks VITEST to skip auto-execution during unit tests)
   const cleanEnv = { ...process.env };
   delete cleanEnv.VITEST;
 
@@ -231,7 +231,7 @@ function transpileViaCli(
       })
     : spawnSync(
         "npx",
-        ["tsx", join(PROJECT_ROOT, "src/index.ts"), ...cliArgs],
+        ["tsx", join(PROJECT_ROOT, "src/cli/index.ts"), ...cliArgs],
         {
           cwd: cell?.root ?? PROJECT_ROOT,
           encoding: "utf-8",

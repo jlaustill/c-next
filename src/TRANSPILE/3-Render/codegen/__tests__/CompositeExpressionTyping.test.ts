@@ -11,8 +11,8 @@
  * citing Rule 10.8); the assignment path simply never used it.
  */
 import { describe, it, expect } from "vitest";
-import Transpiler from "../../../../transpiler/Transpiler";
-import MockFileSystem from "../../../../transpiler/__tests__/MockFileSystem";
+import Transpiler from "../../../../cli/Transpiler";
+import MockFileSystem from "../../../../cli/__tests__/MockFileSystem";
 
 async function transpile(source: string) {
   const transpiler = new Transpiler(

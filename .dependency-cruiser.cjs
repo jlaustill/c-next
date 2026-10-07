@@ -1,38 +1,80 @@
+/**
+ * The pass order, as the places a module can sit in, earliest first (#1443).
+ *
+ * `docs/architecture/README.md` §1: "A pass may read the artifact of a
+ * lower-numbered pass in its own layer, or of any earlier layer, and nothing
+ * else." So each place below may reach every place before it and none after
+ * it, and one rule per place says so. The rules are generated from this list
+ * rather than written out because the order is ONE fact: written as pairs it
+ * was eight hand-authored rules, each naming one later root, and a pair nobody
+ * wrote -- 1.1 reading 1.2, PARSE reading WRITE -- was simply allowed.
+ *
+ * Two places are not passes. `TranspileState` (with the `ICodeGenApi` slot it
+ * holds) is the per-file working state 2.2 and 2.3 both write, so it sits
+ * after 2.1 -- an analyzer reaching it read whatever the previous file or RUN
+ * left there, which is how #1430 suppressed E0427 and #1432 let a signed
+ * subscript reach generated C at exit 0 (#1456) -- and before 2.2. And
+ * `CodeGenWalker` drives 2.2 and 2.3 for one file, so it sits after 2.3. Both
+ * are directly under `TRANSPILE/` by the owner's ruling on #1443, which
+ * README §1 records.
+ *
+ * One edge into a later place is ruled, and `mayRead` names it. 1.1 lexes a
+ * `.cnx` file to find its includes with 1.2's `CNextLexer`, so it and the
+ * parser agree on what a comment hides (#1745, owner ruling 2026-09-30,
+ * option A: discovery decides which files get parsed, so no `ParsedFile`
+ * exists yet when it asks). The lexer only: the parser stays forbidden, and
+ * `scripts/__tests__/pass-order.test.ts` checks both.
+ *
+ * Each rule is `reachable: true`: a layer boundary is a claim about what a
+ * module can END UP depending on, not about who wrote the import (#1297,
+ * asserted by `scripts/__tests__/layer-rules.test.ts`). `__tests__` is
+ * excluded: a test that runs two passes -- which is what the pipeline does --
+ * must name both.
+ *
+ * They replace `parse-cannot-import-render`, `parse-cannot-import-transpile`,
+ * `declare-cannot-import-resolve`, `analyze-cannot-import-plan`,
+ * `analyze-cannot-import-render`, `analyzers-cannot-reach-codegen-state`,
+ * `plan-cannot-import-render` and `state-cannot-import-output`, each of which
+ * forbade one later place this list now forbids with all the others.
+ */
+const PASS_ORDER = [
+  {
+    rule: "1-1-discover",
+    path: "^src/PARSE/1-Discover/",
+    mayRead: "^src/PARSE/2-Parse/grammar/CNextLexer\\.ts$",
+  },
+  { rule: "1-2-parse", path: "^src/PARSE/2-Parse/" },
+  { rule: "1-3-declare", path: "^src/PARSE/3-Declare/" },
+  { rule: "1-4-resolve", path: "^src/PARSE/4-Resolve/" },
+  { rule: "2-1-analyze", path: "^src/TRANSPILE/1-Analyze/" },
+  {
+    rule: "transpile-state",
+    path: "^src/TRANSPILE/(TranspileState\\.ts$|types/)",
+  },
+  { rule: "2-2-plan", path: "^src/TRANSPILE/2-Plan/" },
+  { rule: "2-3-render", path: "^src/TRANSPILE/3-Render/" },
+  { rule: "codegen-walker", path: "^src/TRANSPILE/CodeGenWalker\\.ts$" },
+  { rule: "3-1-write", path: "^src/WRITE/1-Write/" },
+];
+
+const passOrderRules = PASS_ORDER.slice(0, -1).map((place, index) => ({
+  name: `${place.rule}-reads-no-later-pass`,
+  comment:
+    `${place.path} may reach only the places before it in PASS_ORDER. ` +
+    "See the comment on PASS_ORDER.",
+  severity: "error",
+  from: { path: place.path, pathNot: "__tests__" },
+  to: {
+    path: PASS_ORDER.slice(index + 1).map((later) => later.path),
+    ...(place.mayRead === undefined ? {} : { pathNot: place.mayRead }),
+    reachable: true,
+  },
+}));
+
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
-    // ==========================================================================
-    // 3-Layer Architecture Rules (Issue #572)
-    // ==========================================================================
-    // Architecture: Transpiler orchestrates data/, logic/, output/, state/
-    //
-    // Allowed dependencies:
-    //   - Transpiler.ts → data/, logic/, output/ (orchestrator)
-    //   - output/ → logic/ (code gen needs parser types, symbols)
-    //   - Any layer → utils/ (shared utilities)
-    //   - Any layer → lib/types/ (shared public types) -- TRANSITIONAL, and no
-    //     longer what the record says. docs/architecture/README.md §1 forbids
-    //     reaching up and back down into another root's interior, so this shape
-    //     is allowed here only until the modules move (#1443). All 7 non-host
-    //     importers want ONE file, ITranspileError -- a diagnostic type, which
-    //     2.1 Analyze authors -- so it belongs in the shared contracts root, not
-    //     in the published API surface it happens to have been written in.
-    //     Listed rather than quietly dropped: an allowance the record contradicts
-    //     should be visible to whoever writes layout:check (#1466).
-    //   - Any layer → src/types/ (shared contracts, layer-neutral)
-    //
-    // Forbidden dependencies:
-    //   - data/ → logic/, output/ (data layer is independent)
-    //   - logic/ → output/ (logic should not depend on output)
-    //   - state/ → output/ (#1297: state is shared, so it must not carry
-    //     output's vocabulary into whoever reads it)
-    //
-    // All four are `reachable: true`: a layer boundary is a claim about what a
-    // module can END UP depending on, not about who wrote the import. Asserted
-    // mechanically by scripts/__tests__/layer-rules.test.ts, because the
-    // missing keyword is invisible on reading -- see #1297.
-    // ==========================================================================
-
+    ...passOrderRules,
     {
       name: "collectors-build-names-from-scopes",
       comment:
@@ -62,66 +104,11 @@ module.exports = {
         path: "^src/utils/QualifiedCName\\.ts$",
       },
     },
-    {
-      name: "state-cannot-import-output",
-      comment:
-        "The per-file working state must not depend on the renderer. #1297: " +
-        "`state/` sat outside the layer model entirely, which is precisely " +
-        "why it could become the place facts get stashed instead of carried " +
-        "-- it was the one module nothing forbade the coupling in. Shared " +
-        "contracts belong in src/types/, which both layers may depend " +
-        "on, and that is how the state reaches `ICodeGenApi` for its " +
-        "`generator` slot without naming a renderer module. " +
-        "`from` names the MODULE, not a directory: since #1452 the state is " +
-        "`src/TRANSPILE/TranspileState.ts`, and `CodeGenWalker.ts` sits at " +
-        "that same root while importing sixteen generators from `3-Render/` " +
-        "-- so a root-wide `from` would fail on the walker, whose whole job " +
-        "is to call renderers. The previous `^src/transpiler/state/` matched " +
-        "nothing once the directory was deleted, which is a rule that cannot " +
-        "fail rather than a rule that passes.",
-      severity: "error",
-      from: { path: "^src/TRANSPILE/TranspileState\\.ts$" },
-      to: {
-        path: "^src/TRANSPILE/3-Render/",
-        reachable: true,
-      },
-    },
 
     // ==========================================================================
     // General Best Practices
     // ==========================================================================
 
-    {
-      name: "parse-cannot-import-render",
-      comment:
-        "#1447: PARSE is passes 1.x. `output/` is 2.2 Plan and 2.3 Render, so " +
-        "an import here would be an earlier pass reading a later one's code -- " +
-        "the direction the pass table exists to forbid. `reachable` because a " +
-        "layer boundary is a claim about what a module can REACH, not about who " +
-        "it names directly (#1297).",
-      severity: "error",
-      from: { path: "^src/PARSE/" },
-      to: {
-        path: "^src/TRANSPILE/3-Render/",
-        reachable: true,
-      },
-    },
-    {
-      name: "parse-cannot-import-transpile",
-      comment:
-        "#1515: PARSE is passes 1.x and TRANSPILE is 2.x, so an import here is " +
-        "an earlier LAYER reading a later one -- worse than the one-pass edge " +
-        "`declare-cannot-import-resolve` forbids. It is not hypothetical: " +
-        "`TSymbolInfoAdapter`, in 1.3 Declare, computed `hasPublicInterface` " +
-        "from `PublicInterface`, so the parse layer decided whether the " +
-        "generated `.c` includes its own header. Nothing said so while " +
-        "`PublicInterface` sat in `logic/symbols/`; placing it in 2.2 Plan is " +
-        "what made the edge visible, and this is what keeps it that way. " +
-        "`reachable` because a helper is as good a route as a direct import.",
-      severity: "error",
-      from: { path: "^src/PARSE/", pathNot: "__tests__" },
-      to: { path: "^src/TRANSPILE/", reachable: true },
-    },
     {
       name: "nothing-after-1-1-discovers",
       comment:
@@ -210,37 +197,6 @@ module.exports = {
       },
     },
     {
-      name: "declare-cannot-import-resolve",
-      comment:
-        "#1472/#1447: 1.3 Declare must not depend on 1.4 Resolve. Declare emits " +
-        "FileSymbols from one parse tree; Resolve consumes every file's. An " +
-        "import the other way is the pass order backwards, and it is how the " +
-        "cross-file parameter #1472 removed would come back. " +
-        "`__tests__` is excluded deliberately: a test that runs BOTH passes -- " +
-        "which is what the pipeline does -- must name both, and forbidding that " +
-        "would only push the coverage somewhere less honest.",
-      severity: "error",
-      from: { path: "^src/PARSE/3-Declare/", pathNot: "__tests__" },
-      to: { path: "^src/PARSE/4-Resolve/", reachable: true },
-    },
-    {
-      name: "plan-cannot-import-render",
-      comment:
-        '#1449: `docs/architecture/README.md` §1 -- "**2.2 decides, 2.3 ' +
-        'formats.**" A plan that reaches the renderer can ask it what it would ' +
-        "emit, and then the decision is made in both places again -- which is " +
-        "the duplicate derivation 2.2 exists to remove, reintroduced through " +
-        "the back door. The digit is the rule: 2.2 may be read BY 2.3 and " +
-        "never the reverse. `reachable` because a helper is as good a route " +
-        "as a direct import (#1297).",
-      severity: "error",
-      from: { path: "^src/TRANSPILE/2-Plan/", pathNot: "__tests__" },
-      to: {
-        path: "^src/TRANSPILE/3-Render/",
-        reachable: true,
-      },
-    },
-    {
       name: "nothing-after-resolve-derives-cross-file-facts",
       comment:
         "#1447's definition of done. `docs/architecture/README.md`: \"After 1.4, " +
@@ -269,55 +225,6 @@ module.exports = {
       to: { path: "^src/PARSE/4-Resolve/", reachable: true },
     },
     {
-      name: "analyzers-cannot-reach-codegen-state",
-      comment:
-        "#1456: 2.1 Analyze must not reach `CodeGenState`. It is 2.3 Render's " +
-        "container, and it mixes facts that exist when the analyzers run with " +
-        "facts a LATER pass populates -- so an analyzer reading the second " +
-        "kind gets whatever the previous file, or the previous RUN, left " +
-        "there. That is not hypothetical: #1430 suppressed E0427 through a " +
-        "stale `knownFunctions`, and #1432 let a SIGNED ARRAY SUBSCRIPT reach " +
-        "generated C at exit 0 because `typeRegistry` still held an unrelated " +
-        "run's `u8 idx`. " +
-        "What an analyzer may read now travels on `IAnalysisContext`, built " +
-        "by the orchestrator from artifacts that are settled before 2.1 " +
-        "begins. `reachable: true` because the coupling came back through " +
-        "helpers twice -- `OperandTypeResolver` and `FunctionReference` each " +
-        "reached the container on behalf of an analyzer that did not name it. " +
-        "`__tests__` is excluded: `testAnalysisContext` reads the same facts " +
-        "off the state so several hundred existing assertions keep their " +
-        "setup, and nothing outside `__tests__` calls it. " +
-        "The container is `TranspileState` at the `src/TRANSPILE/` root since " +
-        "#1452. The path below tracked it: written as " +
-        "`^src/transpiler/state/CodeGenState`, it matched nothing once that " +
-        "file was deleted, and an analyzer importing the state reported ZERO " +
-        "errors -- the guard-that-cannot-fail shape (#1143, #1297, #1556) " +
-        "arriving through a MOVE rather than through a wrong predicate. " +
-        "Mutation-checked at the new path, which is the only thing that " +
-        "distinguishes a rule that passes from one that cannot fail.",
-      severity: "error",
-      from: {
-        path: "^src/TRANSPILE/1-Analyze/",
-        pathNot: "__tests__",
-      },
-      to: { path: "^src/TRANSPILE/TranspileState", reachable: true },
-    },
-    {
-      name: "analyze-cannot-import-plan",
-      comment:
-        "#1322: 2.1 Analyze answers *is this program legal?* and 2.2 Plan " +
-        "answers *what C should exist?*. The digit in the directory name is " +
-        "the claim; this is its gate. An import here would let a diagnostic " +
-        "depend on an emission decision, which is the pass order backwards " +
-        "and the reason `PassByValueAnalyzer` -- named Analyzer, filed under " +
-        "`analysis/`, never a `runAnalyzers` step -- moved to 2-Plan rather " +
-        "than staying put. `reachable` because a layer boundary is a claim " +
-        "about what a module can REACH (#1297).",
-      severity: "error",
-      from: { path: "^src/TRANSPILE/1-Analyze/", pathNot: "__tests__" },
-      to: { path: "^src/TRANSPILE/2-Plan/", reachable: true },
-    },
-    {
       name: "shared-contracts-cannot-import-a-pass",
       comment:
         "`src/types/` (`transpiler/types/` until #1853) is what CLAUDE.md and " +
@@ -339,10 +246,9 @@ module.exports = {
         "`SymbolRegistry` for the scope back-reference `no-circular` exempts.",
       severity: "error",
       from: {
-        // The shared root only. The four types #1853 left in
-        // `src/transpiler/types/` are host types bound for `src/cli/`
-        // (awaiting #1443) -- only `Transpiler.ts`, `cli/` and the cache name
-        // them -- and the host is the one root that may name a pass.
+        // The shared root only. The four host types #1853 left in
+        // `src/transpiler/types/` moved to `src/cli/types/` with #1443, and
+        // the host is the one root that may name a pass.
         path: "^src/types/",
         pathNot: "(__tests__|__testUtils__)",
       },
@@ -378,21 +284,6 @@ module.exports = {
       from: { path: "^src/instrumentation/", pathNot: "__tests__" },
       to: {
         path: "^src/(PARSE|TRANSPILE|WRITE)/",
-        reachable: true,
-      },
-    },
-    {
-      name: "analyze-cannot-import-render",
-      comment:
-        "#1322: `output/` is 2.2 Plan and 2.3 Render. 2.1 may not reach it -- " +
-        "a diagnostic that needs codegen to decide whether to fire is a " +
-        "diagnostic authored in the wrong pass. This is the constraint that " +
-        "shapes how the 145 relocated throws are written: 2.1 walks the parse " +
-        "tree itself rather than borrowing codegen's chain-walking.",
-      severity: "error",
-      from: { path: "^src/TRANSPILE/1-Analyze/", pathNot: "__tests__" },
-      to: {
-        path: "^src/TRANSPILE/3-Render/",
         reachable: true,
       },
     },
@@ -434,7 +325,6 @@ module.exports = {
           "(__tests__|__testUtils__)",
           "^src/PARSE/1-Discover/NodeFileSystem\\.ts$",
           "^src/cli/",
-          "^src/index\\.ts$",
         ],
       },
       to: { path: "^(node:)?fs(/promises)?$", reachable: true },
@@ -448,7 +338,7 @@ module.exports = {
         "rule, because the host necessarily REACHES node:fs through the port " +
         "it builds; `node-fs-only-through-the-port` exempts it for that reason.",
       from: {
-        path: "^src/(cli/|index\\.ts$)",
+        path: "^src/cli/",
         pathNot: "(__tests__|__testUtils__)",
       },
       to: { path: "^(node:)?fs(/promises)?$" },

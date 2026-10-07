@@ -68,8 +68,9 @@ const CONFIG_PATH = join(__dirname, "..", "..", ".dependency-cruiser.cjs");
 // `PARSE/3-Declare/SymbolTable` (then `utils/DeclaredVariableFacts`, since
 // deleted; `utils/ForeignTypeFacts` has the same shape) is caught only WITH
 // `reachable`.
+// #1443 removed `^src/transpiler/`: the directory is gone, and a root that can
+// match nothing only widens what `isLayerRule` would accept.
 const LAYER_ROOTS = [
-  "^src/transpiler/",
   "^src/PARSE/",
   "^src/TRANSPILE/",
   "^src/instrumentation/",
@@ -283,20 +284,21 @@ describe("dependency-cruiser layer rules (#1297)", () => {
     const names = layerRules().map((rule) => rule.name);
 
     expect(names.sort()).toEqual([
-      "analyze-cannot-import-plan",
-      "analyze-cannot-import-render",
-      "analyzers-cannot-reach-codegen-state",
+      "1-1-discover-reads-no-later-pass",
+      "1-2-parse-reads-no-later-pass",
+      "1-3-declare-reads-no-later-pass",
+      "1-4-resolve-reads-no-later-pass",
+      "2-1-analyze-reads-no-later-pass",
+      "2-2-plan-reads-no-later-pass",
+      "2-3-render-reads-no-later-pass",
       "artifact-types-name-no-discovery-module",
-      "declare-cannot-import-resolve",
+      "codegen-walker-reads-no-later-pass",
       "instrumentation-cannot-import-a-layer",
       "nothing-after-1-1-discovers",
       "nothing-after-resolve-derives-cross-file-facts",
-      "parse-cannot-import-render",
-      "parse-cannot-import-transpile",
-      "plan-cannot-import-render",
       "render-cannot-import-analyzers",
       "shared-contracts-cannot-import-a-pass",
-      "state-cannot-import-output",
+      "transpile-state-reads-no-later-pass",
     ]);
   });
 

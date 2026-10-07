@@ -14,7 +14,7 @@ import {
   readdirSync,
 } from "node:fs";
 import { join } from "node:path";
-import Transpiler from "../../src/transpiler/Transpiler";
+import Transpiler from "../../src/cli/Transpiler";
 import CleanCommand from "../../src/commands/CleanCommand";
 
 // Test source file content
