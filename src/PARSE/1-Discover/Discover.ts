@@ -214,6 +214,23 @@ class Discover {
     unitSites: ReadonlyMap<string, readonly ISourceSite[]>,
     cppRequired: boolean | undefined,
   ): boolean {
+    const met = Discover._cppMet(files, sources, recovered, unitSites);
+    if (cppRequired === false) {
+      for (const cpp of Discover._inSourceOrder([...met.values()])) {
+        this._cppInCRun(cpp);
+      }
+      return false;
+    }
+    return cppRequired ?? met.size > 0;
+  }
+
+  /** Each `.cnx` include through which the run meets C++, and the C++ it meets */
+  private static _cppMet(
+    files: Pick<TDiscoveredFiles, "headerIncludes" | "headerEdges">,
+    sources: ReadonlyMap<string, IHeaderSource>,
+    recovered: IRecoveredDeclarations | null,
+    unitSites: ReadonlyMap<string, readonly ISourceSite[]>,
+  ): ReadonlyMap<string, { path: string; site: ISourceSite }> {
     const isCpp = (path: string): boolean =>
       sources.get(path)?.language === EHeaderLanguage.Cpp;
     const met = new Map<string, { path: string; site: ISourceSite }>();
@@ -237,28 +254,27 @@ class Discover {
         if (!met.has(key)) met.set(key, { path, site });
       }
     }
-    if (cppRequired === false) {
-      for (const cpp of Discover._inSourceOrder([...met.values()])) {
-        const reason =
-          FileDiscovery.classifyFile(cpp.path).type === EFileType.CppHeader
-            ? "C++ header"
-            : "C++ syntax";
-        this.errors.push({
-          ...cpp.site,
-          message: CodedErrorText.of(
-            "E0507",
-            `${reason} in '${DeclarationSite.displayPath(cpp.path)}', reached ` +
-              `through this include, but this run asks for C`,
-          ),
-          helpText:
-            "'cppRequired: false' (or --no-cpp) asks for C. Remove it so the " +
-            "mode is detected from the headers, or pass --cpp to compile as C++.",
-          severity: "error",
-        });
-      }
-      return false;
-    }
-    return cppRequired ?? met.size > 0;
+    return met;
+  }
+
+  /** E0507: a run that asked for C meets C++ through this include */
+  private _cppInCRun(cpp: { path: string; site: ISourceSite }): void {
+    const reason =
+      FileDiscovery.classifyFile(cpp.path).type === EFileType.CppHeader
+        ? "C++ header"
+        : "C++ syntax";
+    this.errors.push({
+      ...cpp.site,
+      message: CodedErrorText.of(
+        "E0507",
+        `${reason} in '${DeclarationSite.displayPath(cpp.path)}', reached ` +
+          `through this include, but this run asks for C`,
+      ),
+      helpText:
+        "'cppRequired: false' (or --no-cpp) asks for C. Remove it so the " +
+        "mode is detected from the headers, or pass --cpp to compile as C++.",
+      severity: "error",
+    });
   }
 
   /**

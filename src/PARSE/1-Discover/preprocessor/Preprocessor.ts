@@ -208,7 +208,7 @@ class Preprocessor {
       .split(/(?<!\\)\s+/)
       .filter((path) => path !== "")
       .map((path) =>
-        resolve(path.replaceAll("\\ ", " ").replaceAll("$$", "$")),
+        resolve(path.replaceAll(String.raw`\ `, " ").replaceAll("$$", "$")),
       );
   }
 
