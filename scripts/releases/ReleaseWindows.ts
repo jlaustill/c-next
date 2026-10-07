@@ -92,36 +92,37 @@ class ReleaseWindows {
   }
 
   /**
-   * The release being prepared: the open milestone that is not yet a tag.
+   * The release being prepared: the lowest-versioned open milestone that is
+   * not yet a tag.
    *
    * `docs/WORKFLOW.md` already requires the release issue to set that
    * milestone, so reading it beats a flag -- the board and this script cannot
-   * disagree about which version is next.
+   * disagree about which version is next. `/issue-check` reads this answer
+   * (`npm run -s release:preparing`) rather than deriving its own (#1912).
    *
-   * Two candidates is refused rather than resolved: picking one would attribute
-   * every in-flight merge to a release chosen by sort order, and this run
-   * writes milestones, so a guess here is a guess written across the backlog.
-   *
-   * Refused, but not fatal. Opening `v0.3.2` while `v0.3.1` is still untagged
-   * is ordinary planning, and aborting on it would also stop the *released*
-   * work being attributed -- which is never ambiguous. So ambiguity drops only
-   * the unreleased window and is returned for the caller to report, rather than
-   * thrown. A tool whose whole purpose is that nothing stops noticing should
-   * not go quiet over a second milestone.
+   * A second untagged milestone is not an ambiguity. Only the lowest is being
+   * prepared; every higher one is pre-planning for a future release, and
+   * nothing is attributed to or picked from it (owner ruling on #1918).
+   * Versions compare numerically: `v0.1.10` is later than `v0.1.9`.
    */
   static preparing(
     openMilestoneTitles: readonly string[],
     tags: readonly string[],
-  ): { milestone: string | null; ambiguous: readonly string[] } {
+  ): string | null {
     const tagged = new Set(tags);
     const candidates = ReleaseWindows.releaseTags(openMilestoneTitles).filter(
       (title) => !tagged.has(title),
     );
+    return [...candidates].sort(ReleaseWindows.byVersion)[0] ?? null;
+  }
 
-    if (candidates.length > 1) {
-      return { milestone: null, ambiguous: candidates };
-    }
-    return { milestone: candidates[0] ?? null, ambiguous: [] };
+  /** Orders `vMAJOR.MINOR.PATCH` titles by number, lowest first. */
+  private static byVersion(a: string, b: string): number {
+    const parts = (title: string): number[] =>
+      title.slice(1).split(".").map(Number);
+    const [left, right] = [parts(a), parts(b)];
+    const differing = left.findIndex((part, i) => part !== right[i]);
+    return differing === -1 ? 0 : left[differing] - right[differing];
   }
 }
 
