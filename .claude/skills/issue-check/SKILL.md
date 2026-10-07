@@ -204,8 +204,18 @@ ASSERT the returned issue count is strictly less than the --limit above. If it
   equals the limit the list was truncated: SAY SO and stop, rather than ranking a
   backlog you can only partly see.
 
-DETERMINE ACTIVE_MILESTONE = the open milestone with the most open issues
-  (this repo uses a milestone as its sprint — see docs/WORKFLOW.md, "Releases are issues")
+DETERMINE ACTIVE_MILESTONE = the open milestone with the LOWEST VERSION that still has
+  open issues (this repo uses a milestone as its sprint — see docs/WORKFLOW.md,
+  "Releases are issues"). Compare by version number, ignoring case: titles are spelled
+  both `v0.3.1` and `V0.4.1`. A milestone with 0 open issues is shipped work, not a sprint.
+
+  Not "the milestone with the most open issues". On 2026-10-07 that rule picked V0.4.1
+  (7 open, every non-epic card in Grooming, so nothing recommendable) over v0.3.1
+  (5 open), the release actually being worked on and the one the `!next_issue` playbook
+  names. A release does not stop being current because the next one has more cards.
+
+  Find it with:
+    gh api repos/jlaustill/c-next/milestones --jq '.[] | select(.open_issues > 0) | .title'
 
 PARTITION issues into:
   IN_FLIGHT_DISPLAY = open issues that ARE in IN_FLIGHT_ISSUES (for the report)
