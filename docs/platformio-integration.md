@@ -21,14 +21,14 @@ This command:
 C-Next reads `cnext.config.json` (or `.cnext.json` / `.cnextrc`) from the project
 root. `--pio-install` writes a working default; the fields you'll touch most:
 
-| Field         | Purpose                                                                                                                                                                                                      |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `include`     | Extra directories searched for C/C++ headers. **Must cover every C/C++ header you `#include`** (e.g. `.pio/libdeps` for PlatformIO libraries, `include/`). Also how E0507 sees that a header is C++ (below). |
-| `headerOut`   | Directory for generated headers (e.g. `include`).                                                                                                                                                            |
-| `target`      | The program's target when its source names none (ADR-049), e.g. `teensy41`. A PlatformIO board can name it instead (below).                                                                                  |
-| `debugMode`   | Generate panic-on-overflow helpers.                                                                                                                                                                          |
-| `noCache`     | Disable the `.cnx/` symbol cache.                                                                                                                                                                            |
-| `cppRequired` | Emit C++ (`.cpp`/`.hpp`) instead of C. Required for any project that includes C++ headers — see below.                                                                                                       |
+| Field         | Purpose                                                                                                                                                                                                       |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `include`     | Extra directories searched for C/C++ headers. **Must cover every C/C++ header you `#include`** (e.g. `.pio/libdeps` for PlatformIO libraries, `include/`). Also how C-Next sees that a header is C++ (below). |
+| `headerOut`   | Directory for generated headers (e.g. `include`).                                                                                                                                                             |
+| `target`      | The program's target when its source names none (ADR-049), e.g. `teensy41`. A PlatformIO board can name it instead (below).                                                                                   |
+| `debugMode`   | Generate panic-on-overflow helpers.                                                                                                                                                                           |
+| `noCache`     | Disable the `.cnx/` symbol cache.                                                                                                                                                                             |
+| `cppRequired` | Emit C++ (`.cpp`/`.hpp`) instead of C. Required for any project that includes C++ headers — see below.                                                                                                        |
 
 Relative paths in `cnext.config.json` resolve against the directory holding the
 config file. Paths passed as CLI flags (`-o`, `--header-out`, `-I`) resolve

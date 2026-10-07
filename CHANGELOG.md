@@ -9,10 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`--no-cpp`** asks for C, as `cppRequired: false` does (Issue #1844).
+
 - **Targets (ADR-049, Issue #1668).** A program names exactly one target: `#pragma target <name>`, `--target <name>`, `"target"` in `cnext.config.json`, or the board of the PlatformIO environment being built. `targets/targets.cnx` is the catalog (`cnext --help` lists it). A platform it does not name can be described inline, one `#pragma` per field (E0512–E0514). The run prints `Target: <name> (<source>)`.
 - Return values of non-void functions must now be used or explicitly discarded with `(void) f(...)` — new error **E0708** (ADR-070, Issue #847). This is a **breaking change**: 61 call sites across the test suite and examples were migrated.
 
 ### Changed
+
+- **A run that does not say is C++ when a header it reaches is C++** (Issue #1844).
+  1.1 judges each header once, on its preprocessed text, so a run that passed cold
+  no longer fails warm (#1851). `cppRequired: true` (`--cpp`) still forces C++.
+  E0507 is now raised only for a run that asks for C (`cppRequired: false`,
+  `--no-cpp`), and is reported at the `.cnx` `#include` that reached the C++ header
+  instead of `1:0 Pipeline failed:`. A project that set `cppRequired: false` and
+  includes C++ headers fails as before; one that set nothing and includes them now
+  transpiles to C++ instead of failing.
 
 - **An implicit float-to-integer conversion is error E0891** (ADR-024, Issue #1800).
   This is a **breaking change**. `u32 b <- k;` with `f32 k`, a floating composite
