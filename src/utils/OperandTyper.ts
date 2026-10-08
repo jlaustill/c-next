@@ -17,6 +17,7 @@ import { ParserRuleContext, ParseTree, TerminalNode } from "antlr4ng";
 
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import ConstExprLowering from "./ConstExprLowering";
+import SyntaxLowering from "../PARSE/2-Parse/SyntaxLowering";
 import ConstantEvaluator from "./ConstantEvaluator";
 import ConstantFold from "./ConstantFold";
 import TTypeUtils from "./TTypeUtils";
@@ -257,7 +258,7 @@ class OperandTyper {
     ctx: ITypingContext,
   ): number | null {
     const result = ConstantEvaluator.evaluate(
-      ConstExprLowering.lowerNode(node),
+      ConstExprLowering.lower(SyntaxLowering.expressionNode(node)),
       ConstantFold.environment(ctx.program, ctx.sourceFile),
     );
     return result.kind === "value" && result.typeName !== "bool"
@@ -723,7 +724,10 @@ class OperandTyper {
       const dimensions = array.arrayTypeDimension().map((dimension) => {
         const size = dimension.expression();
         return size
-          ? ConstantFold.dimension(ConstExprLowering.lower(size), env)
+          ? ConstantFold.dimension(
+              ConstExprLowering.lower(SyntaxLowering.expression(size)),
+              env,
+            )
           : "";
       });
       return {
@@ -1624,7 +1628,7 @@ class OperandTyper {
   ): number | null {
     if (!widthExpr) return null;
     const value = ConstExprLowering.valueOf(
-      widthExpr,
+      SyntaxLowering.expression(widthExpr),
       ConstantFold.environment(ctx.program, ctx.sourceFile),
     );
     return value !== undefined && value > 0 ? value : null;

@@ -9,6 +9,7 @@ import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
 import ConstExprLowering from "../../../../utils/ConstExprLowering";
+import SyntaxLowering from "../../../2-Parse/SyntaxLowering";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
 import ParserUtils from "../../../../utils/ParserUtils";
@@ -64,7 +65,7 @@ class EnumCollector {
           visibility,
         }),
         valueExpr: valueExpression
-          ? ConstExprLowering.lower(valueExpression)
+          ? ConstExprLowering.lower(SyntaxLowering.expression(valueExpression))
           : null,
         value: null,
       });
