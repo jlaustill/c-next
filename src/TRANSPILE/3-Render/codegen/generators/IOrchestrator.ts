@@ -147,7 +147,7 @@ interface IOrchestrator {
   /**
    * Issue #1200: the `_fp` typedef name for a callback type, or null if the
    * name is not one. Exposed so renderers do not re-derive the `${name}_fp`
-   * convention that registerCallbackType owns.
+   * convention that `CodeGenWalker.callbackTypedefName` owns.
    */
   getCallbackTypedefName(typeName: string): string | null;
 

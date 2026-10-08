@@ -51,8 +51,8 @@ class NameExistence {
   /**
    * Whether a bare type name denotes a type this file can see.
    *
-   * `CodeGenState.callbackTypes` is deliberately NOT consulted. It is codegen
-   * state -- filled by `CodeGenerator.registerCallbackType` and cleared at the
+   * `TranspileState.callbackTypes` is deliberately NOT consulted. It is codegen
+   * state -- filled by `CodeGenWalker.registerCallbackTypes` and cleared at the
    * start of `generate()`, both of which run after the analyzers -- so at
    * analysis time it is empty for the first file and holds file N-1's function
    * names for every file after. Reading it made E0426 order-dependent: the same
@@ -196,7 +196,7 @@ class NameExistence {
       // this line could read it per file; one decision, asked where it lives.
       symbolTable.isOpaqueType(typeName) ||
       // ADR-029: a function definition creates a callback type, so every
-      // function name is also a type name. `CodeGenState.callbackTypes` is
+      // function name is also a type name. `TranspileState.callbackTypes` is
       // filled during codegen, which is after this runs, so the per-file
       // function map is the view that has the answer at analysis time.
       symbols.functionReturnTypes.has(typeName)

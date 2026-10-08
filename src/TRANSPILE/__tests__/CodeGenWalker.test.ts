@@ -11985,6 +11985,11 @@ describe("CodeGenWalker", () => {
         const host = new CodeGenerator();
         const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
+        // #1929: the symbol table is where the callback typedef is built from,
+        // so it is populated here exactly as the Pipeline populates it.
+        const symbolTable = new SymbolTable();
+        symbolTable.addTSymbols(tSymbols);
+        host.state.symbolTable = symbolTable;
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
@@ -13389,6 +13394,11 @@ describe("CodeGenWalker", () => {
         const host = new CodeGenerator();
         const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
+        // #1929: the symbol table is where the callback typedef is built from,
+        // so it is populated here exactly as the Pipeline populates it.
+        const symbolTable = new SymbolTable();
+        symbolTable.addTSymbols(tSymbols);
+        host.state.symbolTable = symbolTable;
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
@@ -13399,6 +13409,37 @@ describe("CodeGenWalker", () => {
 
         // Callback types get _fp suffix for function pointer
         expect(code).toContain("Handler_fp h");
+      });
+    });
+
+    describe("callback typedef parameter spelling", () => {
+      it("writes the struct keyword for a C tag with no typedef (#1929)", () => {
+        // The .h prototype drops the keyword today (#1944), so a C fixture of
+        // this shape cannot compile yet; this pins the typedef's half.
+        const source = `
+          struct Point { i32 x; }
+          void onPoint(Point p) { p.x <- 1; }
+        `;
+        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
+        const tSymbols = declareAndResolve(tree);
+        const symbolTable = new SymbolTable();
+        symbolTable.addTSymbols(tSymbols);
+        // What a C header's `struct Point { ... };` with no typedef records.
+        symbolTable.markNeedsStructKeyword("Point");
+        host.state.symbolTable = symbolTable;
+        const symbols = TSymbolInfoAdapter.convert(tSymbols);
+
+        generateWithProgram(generator, tree, tokenStream, {
+          cppMode: false,
+          symbolInfo: symbols,
+          sourcePath: "test.cnx",
+        });
+
+        const param = host.state.callbackTypes.get("onPoint")?.parameters[0];
+        expect(param?.type).toBe("struct Point");
+        expect(param?.isStruct).toBe(true);
       });
     });
 

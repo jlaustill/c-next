@@ -17,7 +17,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <string.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>

@@ -4,7 +4,6 @@
  */
 
 #include <stdint.h>
-#include <string.h>
 
 // Tests args.element_count property (ADR-058)
 // args.element_count returns argc
