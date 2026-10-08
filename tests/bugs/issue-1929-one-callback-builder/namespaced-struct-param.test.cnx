@@ -1,0 +1,25 @@
+// test-cpp-only
+// test-execution
+// test-adr: 029
+// Issue #1929 (#1942 review): a local callback whose parameter is a struct in
+// a C++ namespace. The typedef must name it the way the prototype does,
+// `hw::Dev&`. Spelling it from a primitive-only map emitted the C join
+// `hw__Dev` with no `&`, and g++ rejected the header.
+#include "hw-dev.hpp"
+
+void onDev(hw.Dev d) {
+    d.x <- 7;
+}
+
+i32 useIt(onDev cb) {
+    hw.Dev q;
+    q.x <- 0;
+    cb(q);
+    return q.x;
+}
+
+u32 main() {
+    i32 result <- useIt(onDev);
+    if (result != 7) return 1;
+    return 0;
+}

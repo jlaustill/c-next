@@ -121,6 +121,12 @@ class ParameterInputAdapter {
     // Check for callback type
     const callbackInfo = deps.callbackTypes.get(typeName);
     if (callbackInfo) {
+      // ADR-029 decided here: a parameter naming a function-as-type is written
+      // as its `_fp` typedef. Recorded at the PARAMETER's position so a
+      // codegen-only fixture occupies the enclosing function's matrix cell
+      // (#1929); ADR-029 had no recording site, so its typedef fixtures were
+      // listed as having no derivable context.
+      AdrProvenance.record("029", planned.line);
       return this._buildCallbackInput(
         name,
         typeName,

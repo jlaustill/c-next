@@ -41,6 +41,7 @@ import DeclarationPlan from "./2-Plan/DeclarationPlan";
 import CastRequirement from "./2-Plan/CastRequirement";
 import OperandTyper from "../utils/OperandTyper";
 import CppNamespaceUtils from "../utils/CppNamespaceUtils";
+import headerCType from "../utils/headerCType";
 import PlanTyping from "./2-Plan/PlanTyping";
 import CompositeType from "../utils/CompositeType";
 import type IOperandType from "../types/IOperandType";
@@ -170,7 +171,6 @@ import ScopeUtils from "../utils/ScopeUtils";
 import TypeBinding from "../PARSE/3-Declare/TypeBinding";
 import type ITargetDescription from "../types/ITargetDescription";
 import SymbolTypeResolver from "../utils/TypeResolver";
-import CNEXT_TO_C_TYPE_MAP from "../utils/constants/TypeMappings";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
 import SymbolGuards from "../types/symbols/SymbolGuards";
 import type IFunctionSymbol from "../types/symbols/IFunctionSymbol";
@@ -2532,8 +2532,15 @@ class CodeGenWalker {
     isString: boolean;
     isOpaqueHandle: boolean;
   } {
-    // ADR-006: struct-ness drives reference semantics.
-    const isStruct = this.host.isKnownStruct(typeName);
+    // ADR-006: struct-ness drives reference semantics. A C++ namespaced
+    // struct is known by its `::` spelling, which is how the prototype that
+    // takes it by reference names it; the C join (`hw__Dev`) is not.
+    const isStruct = this.host.isKnownStruct(
+      CppNamespaceUtils.convertToCppNamespace(
+        typeName,
+        this.host.state.symbolTable,
+      ),
+    );
 
     // ADR-029: a parameter whose type is itself a function-as-type.
     if (functionsAsTypes.has(typeName)) {
@@ -2572,7 +2579,7 @@ class CodeGenWalker {
     // auto-const its prototype never takes.
     if (this.host.state.isHeldThroughPointer(typeName)) {
       return {
-        type: CodeGenWalker.callbackCType(typeName),
+        type: this.callbackCType(typeName),
         isStruct: false,
         isString: false,
         isOpaqueHandle: true,
@@ -2582,7 +2589,7 @@ class CodeGenWalker {
     // ADR-006: a struct parameter is a pointer in C and a reference in C++,
     // which the formatter spells from `isStruct`.
     return {
-      type: CodeGenWalker.callbackCType(typeName),
+      type: this.callbackCType(typeName),
       isStruct,
       isString: false,
       isOpaqueHandle: false,
@@ -2672,7 +2679,7 @@ class CodeGenWalker {
   ): ICallbackTypeInfo {
     return {
       functionName: cName,
-      returnType: CodeGenWalker.callbackCType(
+      returnType: this.callbackCType(
         SymbolTypeResolver.getTypeName(symbol.returnType),
       ),
       parameters: symbol.parameters.map((param) => {
@@ -2708,9 +2715,19 @@ class CodeGenWalker {
     };
   }
 
-  /** ADR-029: a resolved C-Next type name, spelled as C in a `_fp` typedef. */
-  private static callbackCType(typeName: string): string {
-    return CNEXT_TO_C_TYPE_MAP[typeName] ?? typeName;
+  /**
+   * ADR-029: a resolved C-Next type name, spelled in a `_fp` typedef the way
+   * the function's own prototype spells it -- `headerCType` for the C++
+   * namespace (`hw::Dev`, not the C join `hw__Dev`) and the primitive map,
+   * then `generateUserType` for the `struct` keyword a C tag with no typedef
+   * needs. A bare primitive lookup lost both (#1942 review).
+   */
+  private callbackCType(typeName: string): string {
+    const symbolTable = this.host.state.symbolTable;
+    return TypeGenerationHelper.generateUserType(
+      headerCType(typeName, symbolTable),
+      symbolTable.checkNeedsStructKeyword(typeName),
+    );
   }
 
   /**

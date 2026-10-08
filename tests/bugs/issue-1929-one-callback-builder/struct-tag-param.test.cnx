@@ -1,0 +1,21 @@
+// test-c-only
+// test-transpile-only
+// test-adr: 029
+// Issue #1929 (#1942 review): a local callback whose parameter is a C struct
+// declared with no typedef. The typedef must write `struct Point*`, as the
+// .c definition does. Spelling it from a primitive-only map dropped the
+// keyword.
+//
+// Transpile-only because the .h prototype drops the keyword too
+// (`void onPoint(Point* p);`), so gcc rejects the header. That is #1944; once
+// it is fixed this fixture should compile and execute.
+#include "pt-tag.h"
+
+void onPoint(Point p) {
+    p.x <- 1;
+}
+
+void useIt(onPoint cb) {
+    Point q;
+    cb(q);
+}
