@@ -222,17 +222,24 @@ the tree is confined to a pass whose output is cheap to recompute.
 **The tree is gone before 2.2** (owner ruling on #1932). 1.2 Parse builds it; 1.3 Declare
 and 2.1 Analyze may read it; nothing from 2.2 Plan on may -- not Plan, not Render, not
 `CodeGenWalker`, not Write, and not a helper any of them calls. What a later pass needs of
-the syntax it reads as **plain data**, which 1.2 lowers from the tree once:
-`SyntaxLowering` turns an `expression` into a `TExpression` and a `type` into a
-`TTypeSyntax` (`src/types/syntax/`). The shape is the grammar's minus its pass-through
-levels; every node carries its `SourceSpan` and its text as written, never `getText()`,
-whose joined tokens re-lex as different ones (`1 - -1` reads back `1--1`). Like a span, it
-survives a JSON round trip.
+the syntax it reads as **plain data**, lowered from the tree by `SyntaxLowering`: an
+`expression` becomes a `TExpression` and a `type` a `TTypeSyntax` (`src/types/syntax/`).
+The shape is the grammar's minus its pass-through levels; every node carries its
+`SourceSpan` and, as `written`, its text from the source range -- not `getText()`, whose
+joined tokens re-lex as different ones (`1 - -1` reads back `1--1`). A type's `text` is
+`getText()`, kept because today's output spells types that way; for an `array` or
+`template` it does not lex back as written and must not be re-lexed (#1940). Like a span,
+the plain data survives a JSON round trip.
+
+The target is that 1.2 lowers each file once and the later passes read its artifact. Today
+each caller lowers on demand -- 1.3, 2.1, `OperandTyper`, and `CodeGenWalker` as a stopgap
+that breaks the rule above -- and carrying the lowered form on 1.2's artifact, which
+removes the walker's calls, is a later slice of #1932.
 
 A helper that both sides call is written once, over the plain data: `ConstExprLowering`
 lowers a `TExpression`, so 1.3, 2.1 and codegen share one lowering rather than one per
-tree reader, and 1.4 resolves the one `TConstExpr` it produces. A pass that still walks the tree hands a helper the node's lowered form,
-never the node. Statements, declarations and comments follow the same way until the walk
+tree reader, and 1.4 resolves the one `TConstExpr` it produces. A pass that still walks
+the tree hands a helper the node's lowered form, never the node. Statements, declarations and comments follow the same way until the walk
 codegen runs over is plain data end to end (#1932).
 
 A `SourceSpan` is four integers -- `line`, `column`, `endLine`, `endColumn`. It names no

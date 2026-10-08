@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import CNextSourceParser from "../CNextSourceParser";
+import * as Parser from "../grammar/CNextParser";
 import SyntaxLowering from "../SyntaxLowering";
+import ConstExprLowering from "../../../utils/ConstExprLowering";
 import type TExpression from "../../../types/syntax/TExpression";
 import type TTypeSyntax from "../../../types/syntax/TTypeSyntax";
 
@@ -197,4 +199,104 @@ describe("SyntaxLowering", () => {
       expect(shape(SyntaxLowering.expression(expression!))).toBe(expected);
     },
   );
+});
+
+/*
+ * Random token runs, at a fixed seed, in every position a type or an
+ * expression is written. Lowering a recovered tree never throws: a getter the
+ * generated parser types as required can be null after recovery.
+ */
+describe("SyntaxLowering on recovered trees", () => {
+  const TOKENS = [
+    "a",
+    "1",
+    "0x1",
+    "true",
+    '"s"',
+    "u8",
+    "string<4>",
+    "sizeof",
+    "this",
+    "global",
+    "+",
+    "-",
+    "*",
+    "<",
+    "<-",
+    "||",
+    "!",
+    "~",
+    "&",
+    "<<",
+    "?",
+    ":",
+    ",",
+    ".",
+    "(",
+    ")",
+    "[",
+    "]",
+    "{",
+    "}",
+    "x:",
+    ";",
+  ];
+  const POSITIONS = [
+    (run: string) => `u32 q <- ${run};`,
+    (run: string) => `u32 q <- sizeof(${run});`,
+    (run: string) => `u32 q <- (${run}) a;`,
+    (run: string) => `${run} q;`,
+    (run: string) => `u8[${run}] q;`,
+    (run: string) => `Vec<${run}> q;`,
+    (run: string) => `u8[4] q <- [${run}];`,
+    (run: string) => `T q <- { x: ${run} };`,
+    (run: string) => `T q <- { x: 1, ${run} };`,
+    (run: string) => `u32 q <- (u8) ${run};`,
+    (run: string) => `u32 q <- a.${run};`,
+    (run: string) => `u32 q <- a(${run};`,
+  ];
+
+  /** A seeded pseudo-random generator, so every run sees the same cases */
+  function random(seed: number): () => number {
+    let state = seed;
+    return () => {
+      state = (state * 1103515245 + 12345) % 2147483648;
+      return state / 2147483648;
+    };
+  }
+
+  function lowerEverything(node: unknown, lowered: { count: number }): void {
+    if (node instanceof Parser.ExpressionContext) {
+      ConstExprLowering.lower(SyntaxLowering.expression(node));
+      lowered.count++;
+    } else if (node instanceof Parser.TypeContext) {
+      SyntaxLowering.type(node);
+      lowered.count++;
+    }
+    for (const child of (node as { children?: unknown[] }).children ?? []) {
+      lowerEverything(child, lowered);
+    }
+  }
+
+  it("never throws, and reaches every position", () => {
+    const next = random(1932);
+    const lowered = { count: 0 };
+    let recovered = 0;
+    for (let i = 0; i < 2000; i++) {
+      const length = 1 + Math.floor(next() * 6);
+      const run = Array.from(
+        { length },
+        () => TOKENS[Math.floor(next() * TOKENS.length)],
+      ).join(" ");
+      const position = POSITIONS[i % POSITIONS.length];
+      const { tree, parseErrors } = CNextSourceParser.parse(
+        `${position(run)}\n`,
+      );
+      if (parseErrors.length === 0) continue;
+      recovered++;
+      lowerEverything(tree, lowered);
+    }
+    expect(recovered).toBeGreaterThan(1500);
+    expect(lowered.count).toBeGreaterThan(recovered);
+  });
 });

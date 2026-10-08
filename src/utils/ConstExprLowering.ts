@@ -20,16 +20,13 @@ import type IConstantEnvironment from "./types/IConstantEnvironment";
 import type ISourcePosition from "./types/ISourcePosition";
 import type TConstExpr from "../types/TConstExpr";
 import type TExpression from "../types/syntax/TExpression";
+import type TExpressionOf from "../types/syntax/TExpressionOf";
 import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
 
 /** A name with no member, subscript or operator: C reads it as written */
 const BARE_NAME = /^[A-Za-z_]\w*$/;
 
 type TOtherWhat = Extract<TConstExpr, { kind: "other" }>["what"];
-type TExpressionOf<K extends TExpression["kind"]> = Extract<
-  TExpression,
-  { kind: K }
->;
 
 /** What a chain is, by the first operation that keeps it from naming a value */
 const BLOCKING_WHAT: Record<

@@ -1,8 +1,10 @@
 /**
- * The parse tree as plain data (#1932): 1.2 Parse lowers each expression and
- * type once, here, and every pass from 2.2 on reads the result instead of a
- * parse node. The tree is gone before 2.2 (owner ruling on #1932,
- * docs/architecture/README.md §2).
+ * The parse tree as plain data (#1932). The target: 1.2 Parse lowers each
+ * expression and type once, here, and every pass from 2.2 on reads the result
+ * instead of a parse node, because the tree is gone before 2.2 (owner ruling
+ * on #1932, docs/architecture/README.md §2). Today each caller lowers on
+ * demand -- 1.3, 2.1, `OperandTyper` and, as a stopgap, `CodeGenWalker` --
+ * until 1.2's artifact carries the lowered form (a later slice of #1932).
  *
  * Lowering decides nothing. It records what was written, in the grammar's
  * shape minus its pass-through levels -- see `TExpression` -- and leaves every
@@ -14,33 +16,16 @@ import ParserUtils from "../../utils/ParserUtils";
 import invariant from "../../utils/invariant";
 import type ISyntaxNode from "../../types/syntax/ISyntaxNode";
 import type TBinaryLevel from "../../types/syntax/TBinaryLevel";
+import BINARY_OPERATORS from "../../types/syntax/BINARY_OPERATORS";
 import type TBinaryOperator from "../../types/syntax/TBinaryOperator";
+import type TExpressionOf from "../../types/syntax/TExpressionOf";
 import type TExpression from "../../types/syntax/TExpression";
 import type TLiteralKind from "../../types/syntax/TLiteralKind";
 import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
 import type TTemplateArgumentSyntax from "../../types/syntax/TTemplateArgumentSyntax";
 import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
 
-const BINARY_OPERATORS: ReadonlySet<string> = new Set<TBinaryOperator>([
-  "*",
-  "/",
-  "%",
-  "+",
-  "-",
-  "<<",
-  ">>",
-  "&",
-  "^",
-  "|",
-  "<",
-  ">",
-  "<=",
-  ">=",
-  "=",
-  "!=",
-  "&&",
-  "||",
-]);
+const BINARY_OPERATOR_SET: ReadonlySet<string> = new Set(BINARY_OPERATORS);
 
 type TArrayElementAccessors = Pick<
   Parser.ArrayTypeContext,
@@ -58,28 +43,16 @@ class SyntaxLowering {
   }
 
   /**
-   * Any expression-level node: what a caller holding an operand rather than
-   * an `expression` lowers (a shift amount, one level of a composite, a
-   * subscript).
+   * An `expression`, a precedence level or a unary operand: what a caller
+   * holding an operand rather than an `expression` lowers (a shift amount, one
+   * level of a composite).
    */
   static expressionNode(node: ParserRuleContext): TExpression {
     if (node instanceof Parser.ExpressionContext) {
       return SyntaxLowering.expression(node);
     }
-    if (node instanceof Parser.TernaryExpressionContext) {
-      return SyntaxLowering.ternary(node);
-    }
     if (node instanceof Parser.UnaryExpressionContext) {
       return SyntaxLowering.unary(node);
-    }
-    if (node instanceof Parser.PostfixExpressionContext) {
-      return SyntaxLowering.postfix(node);
-    }
-    if (node instanceof Parser.PrimaryExpressionContext) {
-      return SyntaxLowering.primary(node);
-    }
-    if (node instanceof Parser.LiteralContext) {
-      return SyntaxLowering.literal(node);
     }
     return SyntaxLowering.binary(node, SyntaxLowering.levelOf(node));
   }
@@ -161,7 +134,7 @@ class SyntaxLowering {
   }
 
   private static isBinaryOperator(text: string): text is TBinaryOperator {
-    return BINARY_OPERATORS.has(text);
+    return BINARY_OPERATOR_SET.has(text);
   }
 
   private static unary(ctx: Parser.UnaryExpressionContext): TExpression {
@@ -179,7 +152,7 @@ class SyntaxLowering {
 
   private static unaryOperator(
     ctx: Parser.UnaryExpressionContext,
-  ): "!" | "-" | "~" | "&" {
+  ): TExpressionOf<"unary">["operator"] {
     if (ctx.MINUS()) return "-";
     if (ctx.BITNOT()) return "~";
     if (ctx.BITAND()) return "&";

@@ -7,9 +7,11 @@ import type TTypeSyntax from "./TTypeSyntax";
 import type IFieldInitializerSyntax from "./IFieldInitializerSyntax";
 
 /**
- * An expression as plain data, lowered from the parse tree once, by 1.2 Parse
- * (#1932). Every pass from 2.2 on reads this and never a parse node: the tree
- * is gone before 2.2 (owner ruling on #1932, docs/architecture/README.md §2).
+ * An expression as plain data, lowered from the parse tree by `SyntaxLowering`
+ * (#1932). The target is that 1.2 Parse lowers it once and every pass from 2.2
+ * on reads this and never a parse node, because the tree is gone before 2.2
+ * (owner ruling on #1932, docs/architecture/README.md §2). Today each caller
+ * lowers on demand; carrying it on 1.2's artifact is a later slice of #1932.
  *
  * The shape is the grammar's, minus its pass-through levels. A precedence
  * level with one operand is its operand, so `x` is an `identifier`, not ten

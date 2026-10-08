@@ -5,10 +5,14 @@ import type TTemplateArgumentSyntax from "./TTemplateArgumentSyntax";
 /**
  * A type as written, lowered from the grammar's `type` by 1.2 Parse (#1932).
  *
- * `text` is the tokens joined, which is how a type is spelled wherever one is
- * named in output or a message today (`string<8>`, `Scope.Type`, `u8[4]`).
- * A type's tokens never re-lex differently when joined, unlike an
- * expression's, so for a type the joined text is safe to read.
+ * `text` is the tokens joined (`getText()`), which is how a type is spelled
+ * wherever one is named in output or a message today (`string<8>`,
+ * `Scope.Type`, `u8[4]`), so it stays for byte-identical output. It lexes back
+ * as written only for a kind that holds no expression and no nested template.
+ * An `array`'s dimensions are expressions (`u8[N - -1]` joins to `u8[N--1]`)
+ * and a nested template's `> >` joins to `>>`, so the `array` and `template`
+ * `text` must not be re-lexed or emitted as source (#1940); read their parts,
+ * or `written`.
  */
 type TTypeSyntax = ISyntaxNode & { readonly text: string } & (
     | { readonly kind: "primitive"; readonly name: string }
