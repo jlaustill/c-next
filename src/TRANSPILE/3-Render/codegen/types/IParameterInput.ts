@@ -33,7 +33,7 @@ interface IParameterInput {
   /** Array dimensions as strings: ['10', '20'] or ['33'] for string capacity */
   arrayDimensions?: string[];
 
-  /** Whether this is a callback type (from CodeGenState.callbackTypes) */
+  /** Whether this is a callback type (from TranspileState.callbackTypes) */
   isCallback: boolean;
 
   /** The typedef name for callback types (e.g., 'HandleClickCallback') */

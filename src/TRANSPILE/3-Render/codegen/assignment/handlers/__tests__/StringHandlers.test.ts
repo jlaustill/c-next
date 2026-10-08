@@ -174,7 +174,7 @@ describe("StringHandlers", () => {
       });
 
       // Half one: the classifier must recognize it through the whole chain.
-      expect(AssignmentClassifier.classify(ctx, state)).toBe(
+      expect(AssignmentClassifier.classify(ctx)).toBe(
         AssignmentKind.STRING_THIS_MEMBER,
       );
 

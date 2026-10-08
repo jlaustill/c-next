@@ -1,0 +1,10 @@
+// test-error
+// test-adr: 030
+// #1866: from file scope, a bare `go` names nothing -- the included file
+// declares only `Lib.go` (C name `Lib__go`). It used to be accepted as an
+// external function by its bare name.
+#include "scope-lib.cnx"
+
+void main() {
+    go();
+}

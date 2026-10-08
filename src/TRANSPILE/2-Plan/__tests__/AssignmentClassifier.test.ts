@@ -189,9 +189,7 @@ describe("AssignmentClassifier - SIMPLE", () => {
       isSimpleIdentifier: true,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
-      AssignmentKind.SIMPLE,
-    );
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
   });
 
   it("classifies unknown pattern as SIMPLE fallback", () => {
@@ -201,9 +199,7 @@ describe("AssignmentClassifier - SIMPLE", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
-      AssignmentKind.SIMPLE,
-    );
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
   });
 });
 
@@ -231,7 +227,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.BITMAP_FIELD_SINGLE_BIT,
     );
   });
@@ -252,7 +248,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.BITMAP_FIELD_MULTI_BIT,
     );
   });
@@ -271,7 +267,7 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD,
     );
   });
@@ -295,12 +291,11 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
     expect(
       AssignmentClassifier.classify(
         typedStep(ctx, { before: { ...flags, bitmapTypeName: "DeviceFlags" } }),
-        state,
       ),
     ).toBe(AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD);
     // Control: the typer says the member is no bitmap
     expect(
-      AssignmentClassifier.classify(typedStep(ctx, { before: flags }), state),
+      AssignmentClassifier.classify(typedStep(ctx, { before: flags })),
     ).not.toBe(AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD);
   });
 });
@@ -327,9 +322,7 @@ describe("AssignmentClassifier - Integer Bit Access", () => {
       "bit_single",
     );
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
-      AssignmentKind.INTEGER_BIT,
-    );
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.INTEGER_BIT);
   });
 
   it("classifies bit range access on integer", () => {
@@ -347,7 +340,7 @@ describe("AssignmentClassifier - Integer Bit Access", () => {
       "u32",
     );
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.INTEGER_BIT_RANGE,
     );
   });
@@ -382,7 +375,7 @@ describe("AssignmentClassifier - Array Access", () => {
       "array_element",
     );
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.ARRAY_ELEMENT,
     );
   });
@@ -408,9 +401,7 @@ describe("AssignmentClassifier - Array Access", () => {
       "array_slice",
     );
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
-      AssignmentKind.ARRAY_SLICE,
-    );
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.ARRAY_SLICE);
   });
 });
 
@@ -438,7 +429,7 @@ describe("AssignmentClassifier - String Assignments", () => {
       isSimpleIdentifier: true,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.STRING_SIMPLE,
     );
   });
@@ -456,16 +447,12 @@ describe("AssignmentClassifier - String Assignments", () => {
 
     // #1737: the field's type is the typer's `.name` step
     expect(
-      AssignmentClassifier.classify(
-        typedStep(ctx, { after: stringField(64) }),
-        state,
-      ),
+      AssignmentClassifier.classify(typedStep(ctx, { after: stringField(64) })),
     ).toBe(AssignmentKind.STRING_STRUCT_FIELD);
     // Control: the typer says the field is no string<N>
     expect(
       AssignmentClassifier.classify(
         typedStep(ctx, { after: stringField(null) }),
-        state,
       ),
     ).not.toBe(AssignmentKind.STRING_STRUCT_FIELD);
   });
@@ -496,9 +483,7 @@ describe("AssignmentClassifier - Special Compound", () => {
       cOp: "+=",
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
-      AssignmentKind.ATOMIC_RMW,
-    );
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.ATOMIC_RMW);
   });
 
   it("classifies overflow clamp", () => {
@@ -517,7 +502,7 @@ describe("AssignmentClassifier - Special Compound", () => {
       cOp: "+=",
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.OVERFLOW_CLAMP,
     );
   });
@@ -539,9 +524,7 @@ describe("AssignmentClassifier - Special Compound", () => {
     });
 
     // Floats use native arithmetic, so not OVERFLOW_CLAMP
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
-      AssignmentKind.SIMPLE,
-    );
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
   });
 
   // #1668: `y *<- 2.5` is `y <- y * 2.5`. With a floating operand it is not
@@ -560,9 +543,7 @@ describe("AssignmentClassifier - Special Compound", () => {
       valueHasFloatingOperand: () => true,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
-      AssignmentKind.SIMPLE,
-    );
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
   });
 });
 
@@ -609,7 +590,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.GLOBAL_MEMBER,
     );
   });
@@ -633,7 +614,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       "array_element",
     );
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.ARRAY_ELEMENT,
     );
   });
@@ -650,9 +631,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
-      AssignmentKind.THIS_MEMBER,
-    );
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.THIS_MEMBER);
   });
 
   it("classifies this.arr[i]", () => {
@@ -673,7 +652,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       "array_element",
     );
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.ARRAY_ELEMENT,
     );
   });
@@ -704,9 +683,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       "bit_single",
     );
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
-      AssignmentKind.INTEGER_BIT,
-    );
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.INTEGER_BIT);
   });
 
   it("classifies this.value[0, 8] as INTEGER_BIT_RANGE for integer type", () => {
@@ -733,7 +710,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       "u16",
     );
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.INTEGER_BIT_RANGE,
     );
   });
@@ -762,7 +739,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
       "array_element",
     );
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.ARRAY_ELEMENT,
     );
   });
@@ -788,7 +765,7 @@ describe("AssignmentClassifier - Register Bit Access", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.REGISTER_BIT,
     );
   });
@@ -805,7 +782,7 @@ describe("AssignmentClassifier - Register Bit Access", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.REGISTER_BIT_RANGE,
     );
   });
@@ -826,7 +803,7 @@ describe("AssignmentClassifier - Register Bit Access", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.SCOPED_REGISTER_BIT,
     );
   });
@@ -862,7 +839,7 @@ describe("AssignmentClassifier - Scoped Register Bitmap Field", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
     );
   });
@@ -876,9 +853,7 @@ describe("AssignmentClassifier - Scoped Register Bitmap Field", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
-      AssignmentKind.SIMPLE,
-    );
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
   });
 });
 
@@ -913,7 +888,7 @@ describe("AssignmentClassifier - Bitmap Array Element Field", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD,
     );
   });
@@ -946,7 +921,7 @@ describe("AssignmentClassifier - Multi-dim Array Bit Indexing", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.ARRAY_ELEMENT_BIT,
     );
   });
@@ -969,7 +944,7 @@ describe("AssignmentClassifier - Multi-dim Array Bit Indexing", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.MULTI_DIM_ARRAY_ELEMENT,
     );
   });
@@ -1009,7 +984,7 @@ describe("AssignmentClassifier - Scoped Register Bit Range", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.SCOPED_REGISTER_BIT_RANGE,
     );
   });
@@ -1035,7 +1010,7 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.REGISTER_BIT,
     );
   });
@@ -1057,7 +1032,7 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.REGISTER_BIT_RANGE,
     );
   });
@@ -1075,7 +1050,7 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.REGISTER_BIT,
     );
   });
@@ -1119,7 +1094,7 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
         isSimpleIdentifier: false,
       });
 
-      expect(AssignmentClassifier.classify(ctx, state)).toBe(expected);
+      expect(AssignmentClassifier.classify(ctx)).toBe(expected);
     },
   );
 
@@ -1193,7 +1168,7 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
         kind,
       );
 
-      expect(AssignmentClassifier.classify(ctx, state)).toBe(expected);
+      expect(AssignmentClassifier.classify(ctx)).toBe(expected);
     },
   );
 
@@ -1209,7 +1184,7 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.STRUCT_CHAIN_BIT_RANGE,
     );
   });
@@ -1243,7 +1218,7 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
         isSimpleIdentifier: false,
       });
 
-      expect(AssignmentClassifier.classify(ctx, state)).toBe(
+      expect(AssignmentClassifier.classify(ctx)).toBe(
         AssignmentKind.STRUCT_CHAIN_BIT_RANGE,
       );
     },
@@ -1275,7 +1250,7 @@ describe("AssignmentClassifier - This Prefix Register Bitmap", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
     );
   });
@@ -1303,7 +1278,7 @@ describe("AssignmentClassifier - Member Chain", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.MEMBER_CHAIN,
     );
   });
@@ -1331,7 +1306,6 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
   });
 
   it("classifies this.member string as STRING_THIS_MEMBER", () => {
-    state.currentScopePath = "Logger";
     declare(
       "Logger__message",
       createTypeInfo({
@@ -1350,7 +1324,7 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
       hasThis: true,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.STRING_THIS_MEMBER,
     );
   });
@@ -1373,7 +1347,7 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
       hasGlobal: true,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.STRING_GLOBAL,
     );
   });
@@ -1404,7 +1378,7 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
       "array_element",
     );
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.STRING_ARRAY_ELEMENT,
     );
   });
@@ -1432,12 +1406,12 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
       );
 
     // #1737: what the subscript selects is one string<8>, the typer's step
-    expect(AssignmentClassifier.classify(element(stringField(8)), state)).toBe(
+    expect(AssignmentClassifier.classify(element(stringField(8)))).toBe(
       AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT,
     );
     // Control: the subscript selects a row of strings (`string<8>[2][3]`)
     expect(
-      AssignmentClassifier.classify(element(stringField(8, [3])), state),
+      AssignmentClassifier.classify(element(stringField(8, [3]))),
     ).not.toBe(AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT);
     // Control: two subscripts reach one string, but the kind renders one
     const twoDeep = createMockContext(state, {
@@ -1456,7 +1430,6 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
           { before: stringField(8, [3]), after: stringField(8) },
           "array_element",
         ),
-        state,
       ),
     ).not.toBe(AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT);
   });
@@ -1482,7 +1455,7 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx, state)).toBe(
+    expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.GLOBAL_ARRAY,
     );
   });

@@ -1,0 +1,34 @@
+// test-execution
+// test-adr: 029
+// Issue #1929: a callback typedef whose parameter names a function-as-type
+// declared LATER in the same file.
+//
+// `callIt` takes a `tickSource`, which is declared after it. C needs
+// `typedef uint32_t (*tickSource_fp)(void);` BEFORE
+// `typedef uint32_t (*callIt_fp)(tickSource_fp);`. The typedefs were emitted
+// in declaration order, so `callIt_fp` came first and named a type nothing
+// had declared yet: gcc read `tickSource_fp` as a parameter NAME and rejected
+// the header. They are now registered dependencies-first.
+//
+// param-from-include.test.cnx is the cross-file half: the same shape with
+// `tickSource` reached through an include.
+
+u32 callIt(tickSource source) {
+    return source() + 1;
+}
+
+u32 tickSource() {
+    return 3;
+}
+
+u32 useCaller(callIt c) {
+    return c(tickSource);
+}
+
+u32 main() {
+    // MISRA C:2012 Rule 13.5 forbids a call in an `if` condition, so the
+    // result is bound first and then compared.
+    u32 result <- useCaller(callIt);
+    if (result != 4) return 1;
+    return 0;
+}

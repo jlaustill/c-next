@@ -210,13 +210,12 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-14 linked fixtures with no derivable context:
+13 linked fixtures with no derivable context:
 
 - `adr-029/callback-assign.test.cnx`
 - `adr-029/callback-basic.test.cnx`
 - `adr-029/callback-multi-param.test.cnx`
 - `adr-029/callback-param-types.test.cnx`
-- `adr-029/callback-param.test.cnx`
 - `adr-029/callback-return-types.test.cnx`
 - `adr-029/callback-struct-member.test.cnx`
 - `bugs/issue-1491-cross-file-function-as-type/cross-file-callback.test.cnx`
@@ -232,11 +231,11 @@ cell is declared by the ADR that owns it.
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
 | global variable    | ok        | warn   | warn       | n/a         | n/a        |
-| top-level function | ok        | warn   | warn       | n/a         | n/a        |
+| top-level function | ok        | ok     | warn       | n/a         | n/a        |
 | scope member       | ok        | warn   | warn       | n/a         | n/a        |
-| scope method       | ok        | warn   | warn       | n/a         | n/a        |
+| scope method       | ok        | ok     | warn       | n/a         | n/a        |
 
-13 linked fixtures with no derivable context:
+14 linked fixtures with no derivable context:
 
 - `bugs/issue-1312-undefined-type-position/order-consumer-first.test.cnx`
 - `bugs/issue-1312-undefined-type-position/order-lib-first.test.cnx`
@@ -251,6 +250,7 @@ cell is declared by the ADR that owns it.
 - `bugs/issue-1582-undeclared-write-target/shadowed-write-resolves.test.cnx`
 - `bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-consumer-first.test.cnx`
 - `bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-source-first.test.cnx`
+- `bugs/issue-1866-scope-member-is-not-external/included-member-from-reopened-scope.test.cnx`
 
 ## ADR-034
 
@@ -365,7 +365,7 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-9 linked fixtures with no derivable context:
+10 linked fixtures with no derivable context:
 
 - `adr-057/local-shadows-scope.test.cnx`
 - `adr-057/scope-variable-does-not-capture-type.test.cnx`
@@ -376,6 +376,7 @@ cell is declared by the ADR that owns it.
 - `bugs/issue-1724-sibling-scope-type-not-included/sibling-declared-first.test.cnx`
 - `bugs/issue-1724-sibling-scope-type-not-included/sibling-declared-second.test.cnx`
 - `bugs/issue-1724-sibling-scope-type-not-included/typer-sees-own-closure-error.test.cnx`
+- `bugs/issue-1740-reopened-scope-this-call/this-call-across-files.test.cnx`
 
 ## ADR-058
 

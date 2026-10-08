@@ -46,7 +46,6 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import CppConstructorHelper from "../../utils/CppConstructorHelper";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
@@ -58,10 +57,7 @@ import type IAnalysisContext from "./types/IAnalysisContext";
 class CppClassInitializerListener extends CNextListener {
   private readonly found: ICppClassInitializerError[] = [];
 
-  public constructor(
-    private readonly symbolTable: SymbolTable,
-    private readonly context: IAnalysisContext,
-  ) {
+  public constructor(private readonly context: IAnalysisContext) {
     super();
   }
 
@@ -114,7 +110,9 @@ class CppClassInitializerListener extends CNextListener {
       typeText,
       scopePath,
     )) {
-      if (CppConstructorHelper.hasConstructor(candidate, this.symbolTable)) {
+      if (
+        CppConstructorHelper.hasConstructor(candidate, this.context.symbolTable)
+      ) {
         return CppConstructorHelper.toQualifiedName(candidate);
       }
     }
@@ -142,15 +140,12 @@ class CppClassInitializerAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(
-    tree: Parser.ProgramContext,
-    symbolTable: SymbolTable,
-  ): ICppClassInitializerError[] {
+  public analyze(tree: Parser.ProgramContext): ICppClassInitializerError[] {
     // C mode never emits a C++ class: a `.hpp` include in a C run is E0507,
     // reported before this pass, so there is nothing here to decide.
     if (!this.context.program.cppMode()) return [];
 
-    const listener = new CppClassInitializerListener(symbolTable, this.context);
+    const listener = new CppClassInitializerListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

@@ -20,7 +20,6 @@ import ScopeStack from "./ScopeStack";
 import ExpressionUtils from "../../utils/ExpressionUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import analyzePostfixOps from "../../utils/PostfixAnalysisUtils";
-import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../utils/ScopeUtils";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -438,9 +437,6 @@ class InitializationAnalyzer {
    */
   private cnextStructFields: Map<string, Set<string>> = new Map();
 
-  /** Symbol table for checking C++ types (Issue #503) */
-  private symbolTable: SymbolTable | null = null;
-
   /**
    * Get struct fields for a given struct type.
    * Checks C-Next structs first, then falls back to CodeGenState for external structs.
@@ -471,11 +467,7 @@ class InitializationAnalyzer {
    * @returns true if the type is from C++ (has constructor-based init)
    */
   private isCppClass(typeName: string): boolean {
-    if (!this.symbolTable) {
-      return false;
-    }
-
-    const symbols = this.symbolTable.getOverloads(typeName);
+    const symbols = this.context.symbolTable.getOverloads(typeName);
     for (const sym of symbols) {
       if (sym.sourceLanguage === ESourceLanguage.Cpp) {
         // C++ classes and structs have default constructors
@@ -491,16 +483,11 @@ class InitializationAnalyzer {
   /**
    * Analyze a parsed program for initialization errors
    * @param tree The parsed program AST
-   * @param symbolTable Optional symbol table for C++ type detection
    * @returns Array of initialization errors
    */
-  public analyze(
-    tree: Parser.ProgramContext,
-    symbolTable?: SymbolTable,
-  ): IInitializationError[] {
+  public analyze(tree: Parser.ProgramContext): IInitializationError[] {
     this.errors = [];
     this.scopeStack = new ScopeStack();
-    this.symbolTable = symbolTable ?? null;
     // Clear C-Next struct fields from previous analysis (external fields come from CodeGenState)
     this.cnextStructFields = new Map();
 

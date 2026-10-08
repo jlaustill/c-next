@@ -1,0 +1,11 @@
+// test-error
+// #1866: `global.helper()` names a global `helper`, and there is none -- only
+// `Test.helper` (C name `Test__helper`). The analyzer used to find the scope
+// member in the symbol table by its bare name and accept the call as
+// external, emitting `helper();` with no declaration.
+scope Test {
+    void helper() {}
+    void run() {
+        global.helper();
+    }
+}

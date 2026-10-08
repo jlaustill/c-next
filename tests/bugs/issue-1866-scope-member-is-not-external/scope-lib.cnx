@@ -1,0 +1,6 @@
+// Helper for the #1866 cross-file fixtures: `go` exists only as `Lib.go`.
+scope Lib {
+    public void go() {
+        u32 x <- 1;
+    }
+}

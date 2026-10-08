@@ -1,0 +1,38 @@
+// test-execution
+// test-adr: 029
+// Issue #1929: one builder makes every callback typedef, local and included.
+//
+// `callIt` is declared HERE and takes a parameter typed by `tickSource`, a
+// function-as-type declared in the INCLUDE. The typedef for `callIt` must name
+// `tickSource_fp` for that parameter. Before #1929 a second, parse-tree builder
+// rebuilt local typedefs after every included one existed, so this always
+// resolved. With one builder, building each typedef as it was found meant
+// `callIt` could be built before `tickSource` was known and get the function's
+// name (`tickSource`) where a type belongs -- which does not compile. The
+// builder now finds every function-as-type before it builds any.
+//
+// The header must also declare `tickSource_fp` BEFORE `callIt_fp`, which names
+// it. It used to emit them the other way round (on main too, before #1929), so
+// gcc read `tickSource_fp` as a parameter name and rejected the header.
+// param-declared-later.test.cnx is the same-file half.
+//
+// `useCaller` takes `callIt` itself as a parameter so the typedef is used, not
+// only declared: `c(tickSource)` calls through a `callIt_fp`.
+
+#include "tick-lib.cnx"
+
+u32 callIt(tickSource source) {
+    return source() + 1;
+}
+
+u32 useCaller(callIt c) {
+    return c(tickSource);
+}
+
+u32 main() {
+    // MISRA C:2012 Rule 13.5 forbids a call in an `if` condition, so the
+    // result is bound first and then compared.
+    u32 result <- useCaller(callIt);
+    if (result != 4) return 1;
+    return 0;
+}

@@ -48,7 +48,6 @@ class ReturnValueUseListener extends CNextListener {
 
   constructor(
     knownScopes: ReadonlySet<string>,
-    private readonly symbolTable: SymbolTable,
     private readonly context: IAnalysisContext,
   ) {
     super();
@@ -91,7 +90,6 @@ class ReturnValueUseListener extends CNextListener {
     const funcName = ReturnValueUseAnalyzer.nonVoidCallee(
       resolved,
       this.enclosing.current(),
-      this.symbolTable,
       this.context,
     );
     if (!funcName) return;
@@ -199,12 +197,9 @@ class ReturnValueUseAnalyzer {
   static nonVoidCallee(
     resolved: { name: string; isGlobalCall: boolean },
     currentScopePath: string,
-    symbolTable: SymbolTable,
     context: IAnalysisContext,
   ): string | null {
-    if (
-      ReturnValueUseAnalyzer.returnsAValue(resolved.name, symbolTable, context)
-    ) {
+    if (ReturnValueUseAnalyzer.returnsAValue(resolved.name, context)) {
       return resolved.name;
     }
 
@@ -213,10 +208,7 @@ class ReturnValueUseAnalyzer {
       currentScopePath,
       resolved.isGlobalCall,
     );
-    if (
-      fallback &&
-      ReturnValueUseAnalyzer.returnsAValue(fallback, symbolTable, context)
-    ) {
+    if (fallback && ReturnValueUseAnalyzer.returnsAValue(fallback, context)) {
       return fallback;
     }
 
@@ -227,11 +219,7 @@ class ReturnValueUseAnalyzer {
    * True only when C-Next can see a non-void return type for `name`.
    * Unresolvable names answer false: outside the rule's domain, not exempt.
    */
-  static returnsAValue(
-    name: string,
-    symbolTable: SymbolTable,
-    context: IAnalysisContext,
-  ): boolean {
+  static returnsAValue(name: string, context: IAnalysisContext): boolean {
     const builtin = StdlibFunctions.builtinReturnType(name);
     if (builtin !== null) {
       return builtin !== "void";
@@ -248,7 +236,7 @@ class ReturnValueUseAnalyzer {
     // precisely because these returns ARE visible -- just by a different route.
     const external = ReturnValueUseAnalyzer.externalReturnType(
       name,
-      symbolTable,
+      context.symbolTable,
     );
     if (external !== null) {
       return external !== "void";
@@ -305,12 +293,10 @@ class ReturnValueUseAnalyzer {
   /** Run the analysis over a parsed program. */
   static analyze(
     tree: Parser.ProgramContext,
-    symbolTable: SymbolTable,
     context: IAnalysisContext,
   ): IReturnValueUseError[] {
     const listener = new ReturnValueUseListener(
       ReturnValueUseAnalyzer.collectScopes(tree),
-      symbolTable,
       context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);

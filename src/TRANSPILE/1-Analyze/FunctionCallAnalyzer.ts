@@ -10,7 +10,6 @@
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../utils/ParserUtils";
 import AdrProvenance from "../../instrumentation/AdrProvenance";
@@ -236,9 +235,6 @@ class FunctionCallAnalyzer {
   /** Known scopes (for Scope.member -> Scope_member resolution) */
   private knownScopes: Set<string> = new Set();
 
-  /** External symbol table for C/C++ interop */
-  private symbolTable: SymbolTable | null = null;
-
   /** Included headers (for stdlib function lookup) */
   private includedHeaders: Set<string> = new Set();
 
@@ -248,30 +244,20 @@ class FunctionCallAnalyzer {
   /** ADR-040: Variables of type ISR or callback types that can be invoked */
   private callableVariables: Set<string> = new Set();
 
-  /**
-   * @param context the 2.1 analysis context. Optional only because this
-   *        analyzer's unit tests drive it without one (#1825 removed the
-   *        whole-program pass that was the other reason); #1866 makes it
-   *        required.
-   */
-  public constructor(private readonly context?: IAnalysisContext) {}
+  /** #1456: the 2.1 context is the one channel to the symbol table (#1659). */
+  public constructor(private readonly context: IAnalysisContext) {}
 
   /**
    * Analyze a parsed program for function call errors
    * @param tree The parsed program AST
-   * @param symbolTable Optional symbol table for external function lookup
    * @returns Array of function call errors
    */
-  public analyze(
-    tree: Parser.ProgramContext,
-    symbolTable?: SymbolTable,
-  ): IFunctionCallError[] {
+  public analyze(tree: Parser.ProgramContext): IFunctionCallError[] {
     this.errors = [];
     this.definedFunctions = new Set();
     this.allLocalFunctions = new Set();
     this.knownScopes = new Set();
     this.includedHeaders = new Set();
-    this.symbolTable = symbolTable ?? null;
     this.currentFunctionName = null;
     this.callableVariables = new Set();
 
@@ -334,7 +320,7 @@ class FunctionCallAnalyzer {
    * to the bare name is what the program does for a name it has not seen.
    */
   private scopePathOf(scopeName: string): string {
-    return this.context?.program.scopePathOf(scopeName) ?? scopeName;
+    return this.context.program.scopePathOf(scopeName);
   }
 
   /**
@@ -405,7 +391,7 @@ class FunctionCallAnalyzer {
   public isCallbackType(name: string): boolean {
     return (
       this.allLocalFunctions.has(name) ||
-      (this.context?.symbols?.functionReturnTypes.has(name) ?? false)
+      this.context.symbols.functionReturnTypes.has(name)
     );
   }
 
@@ -415,7 +401,7 @@ class FunctionCallAnalyzer {
    * whose underlying type contains "(*)" indicating a function pointer.
    */
   public isCFunctionPointerTypedef(typeName: string): boolean {
-    return this.symbolTable?.isCFunctionPointerTypedef(typeName) ?? false;
+    return this.context.symbolTable.isCFunctionPointerTypedef(typeName);
   }
 
   /**
@@ -487,8 +473,12 @@ class FunctionCallAnalyzer {
     // ADR-057: an unqualified call to a member of the enclosing scope --
     // `helper()` for `this.helper()`. Skipped for `global.` calls, which
     // explicitly mean global scope.
-    if (currentScopePath && !isGlobalCall) {
-      const qualifiedName = ScopeUtils.qualifyInScope(name, currentScopePath);
+    const qualifiedName = CalleeNameResolver.scopeQualifiedCandidate(
+      name,
+      currentScopePath,
+      isGlobalCall,
+    );
+    if (qualifiedName !== null) {
       if (this.definedFunctions.has(qualifiedName)) {
         // #1241: the enclosing scope resolved a bare call -- ADR-057's rule
         // firing at a position. Recorded HERE, where the candidate is
@@ -565,7 +555,7 @@ class FunctionCallAnalyzer {
     }
 
     // Check if function is external (from symbol table)
-    if (this.isExternalFunction(name)) {
+    if (this.isExternalFunction(name, line, currentScopePath, isGlobalCall)) {
       return; // OK - external C/C++ function
     }
 
@@ -619,36 +609,62 @@ class FunctionCallAnalyzer {
    * in the current file. Functions defined locally are subject to
    * define-before-use checking, even if they exist in the SymbolTable.
    */
-  private isExternalFunction(name: string): boolean {
+  private isExternalFunction(
+    name: string,
+    line: number,
+    currentScopePath: string,
+    isGlobalCall: boolean,
+  ): boolean {
     // If the function is defined in this file, it's not external
     // (even if it's also in the SymbolTable from symbol collection)
     if (this.allLocalFunctions.has(name)) {
       return false;
     }
 
-    if (!this.symbolTable) {
-      return false;
-    }
-
-    const symbols = this.symbolTable.getOverloads(name);
-    for (const sym of symbols) {
-      // Accept functions from any source language:
-      // - C/C++ functions from header includes
-      // - C-Next functions from .cnx file includes
-      if (sym.kind === "function") {
+    // Looked up by C name, so a bare `helper` never matches `Test__helper`.
+    // ADR-057: a bare call inside a scope may name a member of that scope
+    // declared in an included file -- the same rule `resolvesToCNextDefinition`
+    // applies to this file's members.
+    const scoped = CalleeNameResolver.scopeQualifiedCandidate(
+      name,
+      currentScopePath,
+      isGlobalCall,
+    );
+    if (scoped !== null) {
+      // ADR-030: this file's own member, defined later, is not external (#786)
+      if (this.allLocalFunctions.has(scoped)) {
+        return false;
+      }
+      if (this.namesExternalFunction(scoped)) {
+        AdrProvenance.record("057", line);
         return true;
       }
+    }
+    if (this.namesExternalFunction(name)) {
+      return true;
     }
 
     // Issue #985 recovery: a function-like MACRO recovered by translation-unit
     // preprocessing (e.g. FreeRTOS pdMS_TO_TICKS). Recovered functions are
-    // registered as full symbols (found above via getOverloads); macros have no
+    // registered as full symbols (found above by C name); macros have no
     // declaration to parse, so only their name is known.
-    if (this.symbolTable.hasExternalDeclaration(name)) {
+    if (this.context.symbolTable.hasExternalDeclaration(name)) {
       return true;
     }
 
     return false;
+  }
+
+  /**
+   * Whether the run-wide table holds a function with this C name. That table
+   * holds C/C++ headers' functions, included .cnx files', and also this file's
+   * own and its includer's: callers rule out this file's own first (#786), and
+   * whether an includer's member is reachable is #1865.
+   */
+  private namesExternalFunction(cName: string): boolean {
+    return this.context.symbolTable
+      .getOverloadsByCName(cName)
+      .some((sym) => sym.kind === "function");
   }
 }
 
