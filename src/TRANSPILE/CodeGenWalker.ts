@@ -4788,11 +4788,8 @@ class CodeGenWalker {
       toCOperator: (cnextOp, line) =>
         AssignmentOperatorMapper.toCOperator(cnextOp, line),
     });
-    // ADR-065: Handlers access CodeGenState directly, no deps needed
-    const assignmentKind = AssignmentClassifier.classify(
-      assignCtx,
-      this.host.state,
-    );
+    // ADR-065: the classifier and handlers reach 2.3's state through the context
+    const assignmentKind = AssignmentClassifier.classify(assignCtx);
     const handler = AssignmentHandlerRegistry.getHandler(assignmentKind);
     return handler(assignCtx);
   }
