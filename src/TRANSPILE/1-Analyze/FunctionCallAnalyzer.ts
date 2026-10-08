@@ -473,8 +473,12 @@ class FunctionCallAnalyzer {
     // ADR-057: an unqualified call to a member of the enclosing scope --
     // `helper()` for `this.helper()`. Skipped for `global.` calls, which
     // explicitly mean global scope.
-    if (currentScopePath && !isGlobalCall) {
-      const qualifiedName = ScopeUtils.qualifyInScope(name, currentScopePath);
+    const qualifiedName = CalleeNameResolver.scopeQualifiedCandidate(
+      name,
+      currentScopePath,
+      isGlobalCall,
+    );
+    if (qualifiedName !== null) {
       if (this.definedFunctions.has(qualifiedName)) {
         // #1241: the enclosing scope resolved a bare call -- ADR-057's rule
         // firing at a position. Recorded HERE, where the candidate is
@@ -621,8 +625,16 @@ class FunctionCallAnalyzer {
     // ADR-057: a bare call inside a scope may name a member of that scope
     // declared in an included file -- the same rule `resolvesToCNextDefinition`
     // applies to this file's members.
-    if (currentScopePath && !isGlobalCall) {
-      const scoped = ScopeUtils.qualifyInScope(name, currentScopePath);
+    const scoped = CalleeNameResolver.scopeQualifiedCandidate(
+      name,
+      currentScopePath,
+      isGlobalCall,
+    );
+    if (scoped !== null) {
+      // ADR-030: this file's own member, defined later, is not external (#786)
+      if (this.allLocalFunctions.has(scoped)) {
+        return false;
+      }
       if (this.namesExternalFunction(scoped)) {
         AdrProvenance.record("057", line);
         return true;
@@ -644,8 +656,10 @@ class FunctionCallAnalyzer {
   }
 
   /**
-   * Whether a function with this C name came from an include: a C/C++ header
-   * or another .cnx file.
+   * Whether the run-wide table holds a function with this C name. That table
+   * holds C/C++ headers' functions, included .cnx files', and also this file's
+   * own and its includer's: callers rule out this file's own first (#786), and
+   * whether an includer's member is reachable is #1865.
    */
   private namesExternalFunction(cName: string): boolean {
     return this.context.symbolTable

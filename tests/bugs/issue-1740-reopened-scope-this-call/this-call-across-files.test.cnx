@@ -1,0 +1,17 @@
+// test-execution
+// test-adr: 057
+// #1740: a reopened scope calls its own method, declared in the file it
+// includes, through `this.`. It used to be E0422 "called before definition".
+#include "lib.cnx"
+
+scope Lib {
+    public u32 run() {
+        return this.getU();
+    }
+}
+
+u32 main() {
+    u32 result <- Lib.run();
+    if (result != 300) return 1;
+    return 0;
+}

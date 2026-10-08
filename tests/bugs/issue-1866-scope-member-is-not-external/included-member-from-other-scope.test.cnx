@@ -1,0 +1,11 @@
+// test-error
+// test-adr: 030
+// #1866: inside `scope Other`, a bare `go` is `Other.go` or a global `go`
+// (ADR-057), never the included file's `Lib.go`.
+#include "scope-lib.cnx"
+
+scope Other {
+    public void run() {
+        go();
+    }
+}

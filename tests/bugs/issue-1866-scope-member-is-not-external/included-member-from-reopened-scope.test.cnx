@@ -1,0 +1,16 @@
+// test-execution
+// test-adr: 030, 057
+// #1866 negative control: reopening `scope Lib`, a bare `go` is `this.go`, and
+// `Lib.go` is declared in the included file, so the call is defined before use.
+#include "scope-lib.cnx"
+
+scope Lib {
+    public void run() {
+        go();
+    }
+}
+
+u32 main() {
+    Lib.run();
+    return 0;
+}
