@@ -29,8 +29,12 @@ interface IEmissionFacts {
    */
   readonly cppMode: boolean;
 
-  readonly needsStdint: boolean;
-  readonly needsStdbool: boolean;
+  /**
+   * The C type spellings this file's text uses (`uint8_t`, `bool`), from which
+   * `CTypeIncludes` decides `<stdint.h>` and `<stdbool.h>` -- the same
+   * predicate the companion header asks (#1927).
+   */
+  readonly emittedCTypes: ReadonlySet<string>;
   readonly needsString: boolean;
   readonly needsCMSIS: boolean;
   readonly needsLimits: boolean;

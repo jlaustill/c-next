@@ -145,6 +145,9 @@ export default class CodeGenerator implements IOrchestrator {
         case "isr":
           this.state.requireInclude("isr");
           break;
+        case "c-type":
+          this.state.emittedCTypes.add(effect.cType);
+          break;
 
         // Toolchain requirement effects (Issue #1143)
         case "requires":
@@ -164,10 +167,10 @@ export default class CodeGenerator implements IOrchestrator {
           this.state.usedSafeDivOps.add(
             `${effect.operation}_${effect.cnxType}`,
           );
-          // ADR-051 safe-div helpers return a bool error flag. Route that
-          // dependency through the single include path (#1108) rather than
-          // letting the helper emit its own #include <stdbool.h>.
-          this.state.requireInclude("stdbool");
+          // ADR-051 safe-div helpers return a bool error flag. Record the
+          // type, and the plan decides the header (#1108, #1927) rather than
+          // the helper emitting its own #include <stdbool.h>.
+          this.state.emittedCTypes.add("bool");
           break;
 
         // #1452 box 2: three "type registration" effects stood here --

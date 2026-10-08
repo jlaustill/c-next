@@ -5,8 +5,6 @@
 
 #include "f32-all-contexts.test.h"
 
-#include <stdint.h>
-
 // test-coverage: 1.3-f32-global-variable-declaration, 1.3-f32-global-variable-with-init
 // test-coverage: 1.3-f32-local-variable-declaration, 1.3-f32-local-variable-with-init
 // test-coverage: 1.3-f32-function-parameter, 1.3-f32-function-return-type

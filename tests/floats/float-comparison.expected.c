@@ -5,7 +5,6 @@
 
 #include "float-comparison.test.h"
 
-#include <stdint.h>
 #include <stdbool.h>
 
 // Test all float comparison operations

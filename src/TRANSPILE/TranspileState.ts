@@ -87,10 +87,11 @@ class TranspileState {
   /** Issue #369: Whether self-include was added */
   selfIncludeAdded: boolean = false;
 
-  /** For u8, u16, u32, u64, i8, i16, i32, i64 */
-  needsStdint: boolean = false;
-  /** For bool type */
-  needsStdbool: boolean = false;
+  /**
+   * The C type spellings this file's text uses, for `CTypeIncludes` to decide
+   * `<stdint.h>` / `<stdbool.h>` from (#1927).
+   */
+  emittedCTypes: Set<string> = new Set();
   /** ADR-045: For strlen, strncpy, etc. */
   needsString: boolean = false;
   /** ADR-049/050: For atomic intrinsics and critical sections */
@@ -131,7 +132,7 @@ class TranspileState {
    * Every line of the body writes this class and reads nothing from the
    * generator, so `state/` is where it already lived in all but name.
    *
-   * @param header - The header to require (stdint, stdbool, string, ...)
+   * @param header - The header to require (string, cmsis, limits, ...)
    * @param line - The `.cnx` line that asked, for deferred attribution
    */
   requireInclude(header: TIncludeHeader, line: number | null = null): void {
@@ -163,12 +164,6 @@ class TranspileState {
     }
 
     switch (header) {
-      case "stdint":
-        this.needsStdint = true;
-        break;
-      case "stdbool":
-        this.needsStdbool = true;
-        break;
       case "string":
         this.needsString = true;
         break;
@@ -1332,8 +1327,7 @@ class TranspileState {
     this.usedClampOps = new Set();
     this.usedSafeDivOps = new Set();
     this.usedCastHelpers = new Set();
-    this.needsStdint = false;
-    this.needsStdbool = false;
+    this.emittedCTypes = new Set();
     this.needsString = false;
     this.needsFloatStaticAssert = false;
     this.needsISR = false;

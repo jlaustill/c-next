@@ -326,9 +326,9 @@ describe("CodeGenWalker", () => {
       it("should process include effects", () => {
         const { host } = createMinimalGenerator(`void foo() { }`, false);
 
-        // Apply stdint include effect - verify it doesn't throw
+        // Apply string include effect - verify it doesn't throw
         expect(() =>
-          host.applyEffects([{ type: "include", header: "stdint" }]),
+          host.applyEffects([{ type: "include", header: "string" }]),
         ).not.toThrow();
 
         // Verify generator is still functional after applying effects

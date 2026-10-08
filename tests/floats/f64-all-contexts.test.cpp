@@ -5,8 +5,6 @@
 
 #include "f64-all-contexts.test.hpp"
 
-#include <stdint.h>
-
 // Test f64 in all language contexts
 // Global variable declarations
 double global_d = 3.141592653589793;

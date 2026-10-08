@@ -49,6 +49,7 @@ import type IEmissionPlan from "../../types/IEmissionPlan";
 import type IPlannedBlock from "../../types/IPlannedBlock";
 import type TRequirementKey from "../../types/TRequirementKey";
 import SYSTEM_INCLUDE_TARGETS from "./SYSTEM_INCLUDE_TARGETS";
+import CTypeIncludes from "./CTypeIncludes";
 import HeaderOwnership from "./HeaderOwnership";
 
 /**
@@ -67,9 +68,10 @@ const IRQ_WRAPPER_REQUIREMENTS: readonly TRequirementKey[] = [
 ];
 
 /**
- * System headers in emission order, each paired with the fact that asks for it.
+ * System headers in emission order, each paired with the fact that asks for it,
+ * after the ones `CTypeIncludes` decides from the emitted C types.
  *
- * A list rather than five `if` statements so that the order is data: adding a
+ * A list rather than three `if` statements so that the order is data: adding a
  * header is one row, and the order it emits in is visible in one place instead
  * of being the order somebody happened to write the branches.
  */
@@ -77,11 +79,9 @@ const SYSTEM_INCLUDES: readonly {
   readonly target: string;
   readonly needed: (facts: IEmissionFacts) => boolean;
 }[] = [
-  { target: SYSTEM_INCLUDE_TARGETS.stdint!, needed: (f) => f.needsStdint },
-  { target: SYSTEM_INCLUDE_TARGETS.stdbool!, needed: (f) => f.needsStdbool },
-  { target: SYSTEM_INCLUDE_TARGETS.string!, needed: (f) => f.needsString },
-  { target: SYSTEM_INCLUDE_TARGETS.cmsis!, needed: (f) => f.needsCMSIS },
-  { target: SYSTEM_INCLUDE_TARGETS.limits!, needed: (f) => f.needsLimits },
+  { target: SYSTEM_INCLUDE_TARGETS.string, needed: (f) => f.needsString },
+  { target: SYSTEM_INCLUDE_TARGETS.cmsis, needed: (f) => f.needsCMSIS },
+  { target: SYSTEM_INCLUDE_TARGETS.limits, needed: (f) => f.needsLimits },
 ];
 
 class EmissionPlan {
@@ -120,12 +120,16 @@ class EmissionPlan {
   ): readonly string[] {
     const already = new Set(facts.existingIncludeTargets);
     const decided: string[] = [];
-    for (const candidate of SYSTEM_INCLUDES) {
-      if (!candidate.needed(facts) || already.has(candidate.target)) {
+    const candidates = [
+      ...CTypeIncludes.decide(facts.emittedCTypes),
+      ...SYSTEM_INCLUDES.filter((c) => c.needed(facts)).map((c) => c.target),
+    ];
+    for (const target of candidates) {
+      if (already.has(target)) {
         continue;
       }
-      decided.push(candidate.target);
-      already.add(candidate.target);
+      decided.push(target);
+      already.add(target);
     }
     return decided;
   }

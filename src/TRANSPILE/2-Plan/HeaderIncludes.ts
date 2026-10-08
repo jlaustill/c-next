@@ -29,16 +29,16 @@
 
 import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import type TSymbol from "../../types/symbols/TSymbol";
-import SYSTEM_INCLUDE_TARGETS from "./SYSTEM_INCLUDE_TARGETS";
 import headerCType from "../../utils/headerCType";
+import CTypeIncludes from "./CTypeIncludes";
 import HeaderTypeNames from "./HeaderTypeNames";
-
-/** Fixed-width integer types, which `<stdint.h>` declares. */
-const STDINT_TYPES = /^(?:u?int(?:8|16|32|64)_t|u?intptr_t|u?intmax_t)$/;
 
 class HeaderIncludes {
   /**
    * The system headers this file's public header emits, in emission order.
+   *
+   * The decision is `CTypeIncludes`', the same one the implementation file
+   * makes (#1927); this only names the C types the header declares.
    *
    * @param exportedSymbols the file's public interface, as `PublicInterface`
    *   settled it -- the same list the header is generated from
@@ -48,36 +48,11 @@ class HeaderIncludes {
     exportedSymbols: readonly TSymbol[],
     symbolTable: SymbolTable | undefined,
   ): string[] {
-    const cTypes = new Set<string>();
-    for (const named of HeaderTypeNames.collect(exportedSymbols)) {
-      cTypes.add(HeaderIncludes.baseTypeOf(headerCType(named, symbolTable)));
-    }
-
-    const decided: string[] = [];
-    if ([...cTypes].some((type) => STDINT_TYPES.test(type))) {
-      decided.push(SYSTEM_INCLUDE_TARGETS.stdint!);
-    }
-    if (cTypes.has("bool")) {
-      decided.push(SYSTEM_INCLUDE_TARGETS.stdbool!);
-    }
-    return decided;
-  }
-
-  /**
-   * The type without its pointer or array decoration.
-   *
-   * `mapType` returns `uint8_t*` for a pointer and `char[65]` for a
-   * `string<64>`, and the question here is about the element type either way.
-   */
-  private static baseTypeOf(cType: string): string {
-    // Written without regular expressions on purpose. `/\s*\*+$/` and
-    // `/\[[^\]]*\]$/` both let one quantifier feed another over the same
-    // input, which SonarCloud flags as super-linear backtracking (S5852) --
-    // and this runs once per named type per file. Index arithmetic answers the
-    // same question in one pass and reads no worse.
-    const array = cType.indexOf("[");
-    const withoutArray = array === -1 ? cType : cType.slice(0, array);
-    return withoutArray.replaceAll("*", "").trim();
+    return CTypeIncludes.decide(
+      [...HeaderTypeNames.collect(exportedSymbols)].map((named) =>
+        headerCType(named, symbolTable),
+      ),
+    );
   }
 }
 

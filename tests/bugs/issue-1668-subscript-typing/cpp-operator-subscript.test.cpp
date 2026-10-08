@@ -10,8 +10,6 @@
 // typed `char`, so `fv[1] * k` was a false E0810 "character and floating".
 #include "float_vec.hpp"
 
-#include <stdint.h>
-
 float k = 2.0;
 
 void scale(void) {

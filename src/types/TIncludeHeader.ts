@@ -1,8 +1,10 @@
 /**
  * Header include types that can be required by generators.
  *
- * - stdint: Standard integer types (uint8_t, etc.)
- * - stdbool: Boolean type (bool)
+ * `<stdint.h>` and `<stdbool.h>` are not here: they are decided from the C
+ * types a file emits (`CTypeIncludes`, #1927), so a generator records the type
+ * rather than asking for the header.
+ *
  * - string: String functions (strlen, strncpy, etc.)
  * - cmsis: CMSIS intrinsics (for atomic operations)
  * - irq_wrappers: IRQ wrapper functions for critical sections (avoids macro collisions)
@@ -11,8 +13,6 @@
  * - isr: ISR function pointer typedef (ADR-040)
  */
 type TIncludeHeader =
-  | "stdint"
-  | "stdbool"
   | "string"
   | "cmsis"
   | "irq_wrappers"

@@ -419,13 +419,15 @@ class CodeGenWalker {
       this.host.state.requireInclude(requiredInclude);
     }
 
-    // Generate the C type using the helper with dependencies
-    return TypeGenerationHelper.generate(plan, {
+    const cType = TypeGenerationHelper.generate(plan, {
       checkNeedsStructKeyword: (name) =>
         this.host.state.symbolTable.checkNeedsStructKeyword(name),
       isCrossFileDeclaration: (name) =>
         this.host.state.isCrossFileDeclaration(name),
     });
+    // #1927: the plan decides `<stdint.h>` / `<stdbool.h>` from this spelling.
+    this.host.state.emittedCTypes.add(cType);
+    return cType;
   }
 
   /**
@@ -2084,8 +2086,7 @@ class CodeGenWalker {
   ): IEmissionFacts {
     return {
       cppMode: this.host.isCppMode(),
-      needsStdint: this.host.state.needsStdint,
-      needsStdbool: this.host.state.needsStdbool,
+      emittedCTypes: this.host.state.emittedCTypes,
       needsString: this.host.state.needsString,
       needsCMSIS: this.host.state.needsCMSIS,
       needsLimits: this.host.state.needsLimits,

@@ -17,6 +17,9 @@ type TGeneratorEffect =
   // requirement back to the .cnx line that asked for it (Issue #1143).
   | { type: "include"; header: TIncludeHeader; line?: number }
   | { type: "isr" } // Needs ISR typedef
+  // #1927: a C type the generated text uses. The plan, not the generator,
+  // decides which header that costs (`CTypeIncludes`).
+  | { type: "c-type"; cType: string }
 
   // === Toolchain Requirement Effects (Issue #1143) ===
   // Emitted by the branch that produced requirement-bearing text, so no

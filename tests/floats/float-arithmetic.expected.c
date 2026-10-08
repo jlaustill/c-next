@@ -5,8 +5,6 @@
 
 #include "float-arithmetic.test.h"
 
-#include <stdint.h>
-
 // Test all float arithmetic operations
 float result_f32 = 0.0f;
 
