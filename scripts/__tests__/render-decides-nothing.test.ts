@@ -132,7 +132,7 @@ const FLAG_READ =
  * second predicate has to either hand-roll the string or import the target,
  * and each is caught by one of the two checks.
  */
-const STD_HEADER_SPELLING = /"<std(?:int|bool)\.h>"/g;
+const STD_HEADER_SPELLING = /<std(?:int|bool)\.h>/g;
 const STD_HEADER_TARGET = /SYSTEM_INCLUDE_TARGETS\.(?:stdint|stdbool)\b/g;
 const STD_HEADER_SPELLER = join(
   "src",

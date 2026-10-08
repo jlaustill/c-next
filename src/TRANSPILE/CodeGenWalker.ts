@@ -239,7 +239,11 @@ class CodeGenWalker {
     this.host = host;
   }
 
-  /** Lookup map for primitive type zero initializers */
+  /**
+   * Lookup map for primitive type zero initializers. `false` needs no record
+   * of its own (#1927): it initializes a `bool` declaration, whose type
+   * `generateType` records.
+   */
   private static readonly PRIMITIVE_ZERO_VALUES: ReadonlyMap<string, string> =
     new Map([
       ["bool", "false"],
@@ -5548,6 +5552,10 @@ class CodeGenWalker {
    *
    * This avoids dependencies on CMSIS headers which may not be available on all platforms
    * (e.g., Teensy 4.x via Arduino.h doesn't expose __get_PRIMASK/__set_PRIMASK).
+   *
+   * Spells `uint32_t` / `uint8_t` without recording them (#1927): these are
+   * emitted only when `InterruptMask.wrap` asks for them, and that effect
+   * records `uint32_t`, so `<stdint.h>` is already decided.
    */
   private generateIrqWrappers(): string[] {
     return [

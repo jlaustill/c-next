@@ -3,6 +3,8 @@
  * Transforms C-Next AST to clean, readable C code
  */
 
+import TYPE_MAP from "./types/TYPE_MAP";
+import OverflowHelperTemplates from "./generators/support/OverflowHelperTemplates";
 import type IFloatBitWrite from "../../../types/IFloatBitWrite";
 import ReservedCnxName from "../../../utils/ReservedCnxName";
 
@@ -161,6 +163,11 @@ export default class CodeGenerator implements IOrchestrator {
           // Route through the single marker rather than writing the set
           // directly, so helper-op bookkeeping has one entry point (#1143).
           this.state.markClampOpUsed(effect.operation, effect.cnxType);
+          for (const cType of OverflowHelperTemplates.cTypesOf(
+            effect.cnxType,
+          )) {
+            this.state.emittedCTypes.add(cType);
+          }
           break;
         case "safe-div":
           // Internal helper-op key, not a scope-qualified C name
@@ -171,6 +178,7 @@ export default class CodeGenerator implements IOrchestrator {
           // type, and the plan decides the header (#1108, #1927) rather than
           // the helper emitting its own #include <stdbool.h>.
           this.state.emittedCTypes.add("bool");
+          this.state.emittedCTypes.add(TYPE_MAP[effect.cnxType]);
           break;
 
         // #1452 box 2: three "type registration" effects stood here --

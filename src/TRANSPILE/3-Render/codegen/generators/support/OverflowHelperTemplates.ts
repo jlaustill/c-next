@@ -394,6 +394,15 @@ class OverflowHelperTemplates {
   }
 
   /**
+   * The C types a clamp helper for `cnxType` spells -- its own and its wider
+   * arithmetic type -- so the plan can decide their header (#1927)
+   */
+  static cTypesOf(cnxType: string): string[] {
+    const info = resolveTypeInfo(cnxType);
+    return info === null ? [] : [info.cType, info.widerType];
+  }
+
+  /**
    * Resolve type information (exposed for testing)
    * @public test seam: OverflowHelperTemplates.test.ts drives this module function directly
    */

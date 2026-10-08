@@ -1,0 +1,9 @@
+// test-execution
+// test-target-xfail: atmega328p #1709 "Float bit indexing requires 64-bit double"
+// #1927: the float-bit union's uint64_t member is the file's only fixed-width
+// type, so <stdint.h> must come from that union alone
+f64 value <- 1.5;
+
+void main() {
+    value[0, 8] <- 5;
+}

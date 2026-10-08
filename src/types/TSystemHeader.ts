@@ -1,3 +1,5 @@
+import type TIncludeHeader from "./TIncludeHeader";
+
 /**
  * A system header the plan can decide a generated file includes.
  *
@@ -7,6 +9,9 @@
  * decided from the C types a file emits (#1927), so no generator can ask for
  * them.
  */
-type TSystemHeader = "stdint" | "stdbool" | "string" | "cmsis" | "limits";
+type TSystemHeader =
+  | "stdint"
+  | "stdbool"
+  | Exclude<TIncludeHeader, "isr" | "float_static_assert" | "irq_wrappers">;
 
 export default TSystemHeader;

@@ -1,0 +1,8 @@
+// test-execution
+// #1927: `(int32_t)INT32_MIN` is the file's only fixed-width type, so
+// <stdint.h> must come from that cast alone
+f64 value <- -2147483648;
+
+void main() {
+    value <- value + 1.0;
+}

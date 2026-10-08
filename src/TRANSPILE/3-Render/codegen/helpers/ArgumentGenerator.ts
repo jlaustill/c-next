@@ -123,6 +123,7 @@ class ArgumentGenerator {
     // coincidence of drawing from the same counter.
     const tempName = state.getNextTempVarName();
     const castExpr = CppModeHelper.cast(cType, value, state);
+    state.emittedCTypes.add(cType);
     state.pendingTempDeclarations.push(`${cType} ${tempName} = ${castExpr};`);
     return CppModeHelper.maybeAddressOf(tempName, state);
   }
@@ -142,6 +143,7 @@ class ArgumentGenerator {
 
     const cType = TYPE_MAP[targetParamBaseType];
     if (cType && !["float", "double", "bool", "void"].includes(cType)) {
+      state.emittedCTypes.add(cType);
       return CppModeHelper.reinterpretCast(`${cType}*`, expr, state);
     }
 

@@ -88,8 +88,11 @@ class TranspileState {
   selfIncludeAdded: boolean = false;
 
   /**
-   * The C type spellings this file's text uses, for `CTypeIncludes` to decide
-   * `<stdint.h>` / `<stdbool.h>` from (#1927).
+   * The C types render recorded spelling into this file (`uint8_t`, `bool`),
+   * from which the plan decides `<stdint.h>` / `<stdbool.h>` (#1927). Holds
+   * only what the recording sites add: every render site that spells a
+   * `<stdint.h>` / `<stdbool.h>` name records it, or says in a comment which
+   * record necessarily comes with it.
    */
   emittedCTypes: Set<string> = new Set();
   /** ADR-045: For strlen, strncpy, etc. */

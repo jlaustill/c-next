@@ -126,11 +126,12 @@ describe("CriticalGenerator", () => {
         orchestrator,
       );
 
-      expect(result.effects).toHaveLength(1);
+      expect(result.effects).toHaveLength(2);
       expect(result.effects[0]).toEqual({
         type: "include",
         header: "irq_wrappers",
       });
+      expect(result.effects[1]).toEqual({ type: "c-type", cType: "uint32_t" });
     });
 
     it("carries the construct's source line on the effect (#1143)", () => {

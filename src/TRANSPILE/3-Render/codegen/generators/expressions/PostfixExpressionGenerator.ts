@@ -455,10 +455,10 @@ const tryPropertyAccess = (
   switch (memberName) {
     // ADR-058: explicit length properties
     case "bit_length":
-      result = generateBitLengthProperty(ctx, input, state);
+      result = generateBitLengthProperty(ctx, input, state, effects);
       break;
     case "byte_length":
-      result = generateByteLengthProperty(ctx, input, state);
+      result = generateByteLengthProperty(ctx, input, state, effects);
       break;
     case "element_count":
       result = generateElementCountProperty(ctx, state);
@@ -550,6 +550,7 @@ const measuredLength = (
   ctx: IPropertyContext,
   input: IGeneratorInput,
   unitBits: 1 | 8,
+  effects: TGeneratorEffect[],
 ): string => {
   const measured = ctx.measured;
   invariant(
@@ -574,6 +575,7 @@ const measuredLength = (
     typeof dim === "number" ? `${dim}U` : `(${dim})`,
   );
   const unit = `${perElement}U`;
+  effects.push({ type: "c-type", cType: "uint32_t" });
   return `((uint32_t)${[...factors, unit].join(" * ")})`;
 };
 
@@ -585,13 +587,14 @@ const generateBitLengthProperty = (
   ctx: IPropertyContext,
   input: IGeneratorInput,
   state: IGeneratorState,
+  effects: TGeneratorEffect[],
 ): string => {
   // Special case: main function's args.bit_length -> not supported
   invariant(
     !(state.mainArgsName && ctx.rootIdentifier === state.mainArgsName),
     `E0867 rejects this in pass 2.1 -- .bit_length is not supported on 'args' parameter. Use .element_count for argc.`,
   );
-  return measuredLength(ctx, input, 1);
+  return measuredLength(ctx, input, 1, effects);
 };
 
 /**
@@ -602,13 +605,14 @@ const generateByteLengthProperty = (
   ctx: IPropertyContext,
   input: IGeneratorInput,
   state: IGeneratorState,
+  effects: TGeneratorEffect[],
 ): string => {
   // Special case: main function's args
   invariant(
     !(state.mainArgsName && ctx.rootIdentifier === state.mainArgsName),
     `E0867 rejects this in pass 2.1 -- .byte_length is not supported on 'args' parameter. Use .element_count for argc.`,
   );
-  return measuredLength(ctx, input, 8);
+  return measuredLength(ctx, input, 8, effects);
 };
 
 /**
@@ -1239,6 +1243,8 @@ const handleFloatBitRange = (
   effects.push({ type: "include", header: "float_static_assert" });
 
   const intType = FloatBitHelper.bitsTypeOf(ctx.baseType);
+  // The union's integer member: the plan decides its header (#1927)
+  effects.push({ type: "c-type", cType: intType });
   const shadowName = BitRangeHelper.getShadowVarName(ctx.rootIdentifier);
   const mask = BitUtils.generateMask(ctx.maskWidth, intType);
 

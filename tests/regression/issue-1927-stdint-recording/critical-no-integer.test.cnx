@@ -1,0 +1,12 @@
+// test-c-only
+// test-target-xfail: host #1147 "implicit declaration of function"
+// #1927 / #1941: the critical section's PRIMASK helpers and `uint32_t
+// __primask` are the file's only fixed-width types, so <stdint.h> must come
+// from the critical section alone
+bool ready <- false;
+
+void main() {
+    critical {
+        ready <- true;
+    }
+}

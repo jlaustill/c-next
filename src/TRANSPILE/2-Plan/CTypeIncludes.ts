@@ -2,10 +2,10 @@
  * 2.2 Plan -- which system headers declare the C types a file emits.
  *
  * The one predicate for `<stdint.h>` and `<stdbool.h>` (#1927). The `.c` asks
- * it about the C types its declarations rendered (`IEmissionFacts.
- * emittedCTypes`), and the `.h` about the C types its exported symbols map to
- * (`HeaderIncludes`). Different inputs, one question: "does this text use a
- * name that header declares?".
+ * it about the C types render recorded (`IEmissionFacts.emittedCTypes`), and
+ * the `.h` about the C types its exported symbols map to (`HeaderIncludes`).
+ * Different inputs, one question: "does this text use a name that header
+ * declares?".
  *
  * Before #1927 the `.c` asked a different question -- "is this C-Next name in
  * `TYPE_MAP`?" -- so `f32` pulled `<stdint.h>` into the `.c` while the `.h`,

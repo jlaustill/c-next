@@ -67,14 +67,14 @@ describe("UnaryExprGenerator", () => {
       const result = run("~", "c", "u8");
 
       expect(result.code).toBe("(uint8_t)~c");
-      expect(result.effects).toEqual([]);
+      expect(result.effects).toEqual([{ type: "c-type", cType: "uint8_t" }]);
     });
 
     it("should cast ~u16 to (uint16_t)~c in C mode", () => {
       const result = run("~", "c", "u16");
 
       expect(result.code).toBe("(uint16_t)~c");
-      expect(result.effects).toEqual([]);
+      expect(result.effects).toEqual([{ type: "c-type", cType: "uint16_t" }]);
     });
 
     it("should use static_cast in C++ mode", () => {
@@ -83,7 +83,7 @@ describe("UnaryExprGenerator", () => {
       const result = run("~", "c", "u8");
 
       expect(result.code).toBe("static_cast<uint8_t>(~c)");
-      expect(result.effects).toEqual([]);
+      expect(result.effects).toEqual([{ type: "c-type", cType: "uint8_t" }]);
     });
   });
 
