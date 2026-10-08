@@ -68,7 +68,7 @@ describe("InitializationAnalyzer", () => {
       });
 
       const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
-      const errors = analyzer.analyze(tree, state.symbolTable);
+      const errors = analyzer.analyze(tree);
 
       // Should have NO errors - C++ class is initialized by constructor
       expect(errors).toHaveLength(0);
@@ -89,8 +89,10 @@ describe("InitializationAnalyzer", () => {
       // No C++ symbols in symbol table - MyStruct is a C-Next struct
       const symbolTable = new SymbolTable();
 
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
-      const errors = analyzer.analyze(tree, symbolTable);
+      const analyzer = new InitializationAnalyzer(
+        testAnalysisContext(state, { symbolTable }),
+      );
+      const errors = analyzer.analyze(tree);
 
       // SHOULD have an error - C-Next struct is NOT initialized
       expect(errors.length).toBeGreaterThan(0);
@@ -125,7 +127,7 @@ describe("InitializationAnalyzer", () => {
       });
 
       const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
-      const errors = analyzer.analyze(tree, state.symbolTable);
+      const errors = analyzer.analyze(tree);
 
       // Should have NO errors - C++ structs also have default constructors
       expect(errors).toHaveLength(0);
@@ -159,7 +161,7 @@ describe("InitializationAnalyzer", () => {
       });
 
       const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
-      const errors = analyzer.analyze(tree, state.symbolTable);
+      const errors = analyzer.analyze(tree);
 
       // SHOULD have an error - C structs don't have constructors
       expect(errors.length).toBeGreaterThan(0);
@@ -1001,8 +1003,10 @@ describe("InitializationAnalyzer", () => {
         visibility: "public",
       });
 
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
-      const errors = analyzer.analyze(tree, symbolTable);
+      const analyzer = new InitializationAnalyzer(
+        testAnalysisContext(state, { symbolTable }),
+      );
+      const errors = analyzer.analyze(tree);
 
       // C++ enums don't have constructors - should flag as uninitialized
       expect(errors).toHaveLength(1);

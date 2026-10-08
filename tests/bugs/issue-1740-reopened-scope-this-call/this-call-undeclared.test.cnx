@@ -1,0 +1,11 @@
+// test-error
+// test-adr: 057
+// #1740 negative control: a method neither half of `scope Lib` declares is
+// still E0422.
+#include "lib.cnx"
+
+scope Lib {
+    public u32 run() {
+        return this.getMissing();
+    }
+}

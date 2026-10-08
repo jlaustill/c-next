@@ -17,7 +17,6 @@ import OperandTyper from "../../utils/OperandTyper";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
-import type TranspileState from "../TranspileState";
 
 /** ADR-044: the clamp helper each overflowing compound operator lowers to. */
 const CLAMP_HELPER_FOR_COMPOUND: Readonly<Partial<Record<string, string>>> = {
@@ -85,25 +84,22 @@ class AssignmentClassifier {
   /**
    * Classify an assignment context into an AssignmentKind.
    */
-  static classify(
-    ctx: IAssignmentContext,
-    state: TranspileState,
-  ): AssignmentKind {
+  static classify(ctx: IAssignmentContext): AssignmentKind {
     // === Priority 1: Bitmap field assignments ===
-    const bitmapKind = AssignmentClassifier.classifyBitmapField(ctx, state);
+    const bitmapKind = AssignmentClassifier.classifyBitmapField(ctx);
     if (bitmapKind !== null) {
       return bitmapKind;
     }
 
     // === Priority 2: Member access with subscripts (arrays, register bits) ===
     const memberSubscriptKind =
-      AssignmentClassifier.classifyMemberWithSubscript(ctx, state);
+      AssignmentClassifier.classifyMemberWithSubscript(ctx);
     if (memberSubscriptKind !== null) {
       return memberSubscriptKind;
     }
 
     // === Priority 3: Global/this prefix patterns ===
-    const prefixKind = AssignmentClassifier.classifyPrefixPattern(ctx, state);
+    const prefixKind = AssignmentClassifier.classifyPrefixPattern(ctx);
     if (prefixKind !== null) {
       return prefixKind;
     }
@@ -121,10 +117,7 @@ class AssignmentClassifier {
     }
 
     // === Priority 6: String assignments ===
-    const stringKind = AssignmentClassifier.classifyStringAssignment(
-      ctx,
-      state,
-    );
+    const stringKind = AssignmentClassifier.classifyStringAssignment(ctx);
     if (stringKind !== null) {
       return stringKind;
     }
@@ -145,7 +138,6 @@ class AssignmentClassifier {
    */
   private static classifyBitmapField(
     ctx: IAssignmentContext,
-    state: TranspileState,
   ): AssignmentKind | null {
     // Must have member access without subscripts
     if (!ctx.hasMemberAccess || ctx.hasArrayAccess) {
@@ -161,7 +153,7 @@ class AssignmentClassifier {
       return AssignmentClassifier.classifySimpleBitmapField(
         ctx.target.rootTypeInfo,
         ids[1],
-        state,
+        ctx,
       );
     }
 
@@ -171,12 +163,12 @@ class AssignmentClassifier {
         ids[1],
         ids[2],
         ctx.target,
-        state,
+        ctx,
       );
     }
 
     if (ids.length === 4) {
-      return AssignmentClassifier.classifyScopedRegisterBitmapField(ids, state);
+      return AssignmentClassifier.classifyScopedRegisterBitmapField(ids, ctx);
     }
 
     return null;
@@ -188,7 +180,7 @@ class AssignmentClassifier {
   private static classifySimpleBitmapField(
     typeInfo: TTypeInfo | undefined,
     fieldName: string,
-    state: TranspileState,
+    ctx: IAssignmentContext,
   ): AssignmentKind | null {
     if (!typeInfo?.isBitmap || !typeInfo.bitmapTypeName) {
       return null;
@@ -197,7 +189,7 @@ class AssignmentClassifier {
     const width = AssignmentClassifier.lookupBitmapFieldWidth(
       typeInfo.bitmapTypeName,
       fieldName,
-      state,
+      ctx,
     );
     if (width === null) {
       return null;
@@ -216,20 +208,20 @@ class AssignmentClassifier {
     secondName: string,
     fieldName: string,
     target: IChainBase,
-    state: TranspileState,
+    ctx: IAssignmentContext,
   ): AssignmentKind | null {
     // Check if register member bitmap field: REG.MEMBER.field
-    if (state.symbols!.knownRegisters.has(firstName)) {
+    if (ctx.state.symbols!.knownRegisters.has(firstName)) {
       const bitmapType = AssignmentClassifier.lookupRegisterMemberBitmapType(
         firstName,
         secondName,
-        state,
+        ctx,
       );
       if (bitmapType) {
         const width = AssignmentClassifier.lookupBitmapFieldWidth(
           bitmapType,
           fieldName,
-          state,
+          ctx,
         );
         if (width !== null) {
           return AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD;
@@ -239,7 +231,7 @@ class AssignmentClassifier {
     }
 
     // Check if struct member bitmap field: struct.bitmapMember.field
-    if (!AssignmentClassifier._isStructRoot(target.rootTypeInfo, state)) {
+    if (!AssignmentClassifier._isStructRoot(target.rootTypeInfo, ctx)) {
       return null;
     }
 
@@ -253,7 +245,7 @@ class AssignmentClassifier {
     const width = AssignmentClassifier.lookupBitmapFieldWidth(
       bitmapType,
       fieldName,
-      state,
+      ctx,
     );
     if (width !== null) {
       return AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD;
@@ -267,24 +259,24 @@ class AssignmentClassifier {
    */
   private static classifyScopedRegisterBitmapField(
     ids: readonly string[],
-    state: TranspileState,
+    ctx: IAssignmentContext,
   ): AssignmentKind | null {
     const scopeName = ids[0];
-    if (!state.isKnownScope(scopeName)) {
+    if (!ctx.state.isKnownScope(scopeName)) {
       return null;
     }
 
     // #1285: textual candidate built from parse-tree identifiers, not scope
     // qualification.
     const fullRegName = QualifiedCName.fromParts([scopeName, ids[1]]);
-    if (!state.symbols!.knownRegisters.has(fullRegName)) {
+    if (!ctx.state.symbols!.knownRegisters.has(fullRegName)) {
       return null;
     }
 
     const bitmapType = AssignmentClassifier.lookupRegisterMemberBitmapType(
       fullRegName,
       ids[2],
-      state,
+      ctx,
     );
     if (!bitmapType) {
       return null;
@@ -293,7 +285,7 @@ class AssignmentClassifier {
     const width = AssignmentClassifier.lookupBitmapFieldWidth(
       bitmapType,
       ids[3],
-      state,
+      ctx,
     );
     if (width !== null) {
       return AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD;
@@ -308,7 +300,6 @@ class AssignmentClassifier {
    */
   private static classifyMemberWithSubscript(
     ctx: IAssignmentContext,
-    state: TranspileState,
   ): AssignmentKind | null {
     // Need subscripts through memberAccess pattern
     if (!ctx.hasMemberAccess || ctx.subscriptCount === 0) {
@@ -333,7 +324,7 @@ class AssignmentClassifier {
     const registerKind = AssignmentClassifier.classifyRegisterBitAccess(
       ids,
       ctx.subscriptCount,
-      state,
+      ctx,
     );
     if (registerKind !== null) {
       return registerKind;
@@ -342,12 +333,7 @@ class AssignmentClassifier {
     // Bare `Scope.member[...]`: the fourth ADR-016 spelling (#1116). A bare
     // name resolves through ADR-057's tiers, so `resolvesBareName` is true.
     const scopeQualifiedKind =
-      AssignmentClassifier.classifyScopeQualifiedSubscript(
-        ctx,
-        "",
-        true,
-        state,
-      );
+      AssignmentClassifier.classifyScopeQualifiedSubscript(ctx, "", true);
     if (scopeQualifiedKind !== null) {
       return scopeQualifiedKind;
     }
@@ -372,7 +358,7 @@ class AssignmentClassifier {
         ids[1],
         typeInfo,
         ctx.subscriptCount,
-        state,
+        ctx,
       );
     }
 
@@ -409,14 +395,14 @@ class AssignmentClassifier {
   private static classifyRegisterBitAccess(
     ids: readonly string[],
     subscriptCount: number,
-    state: TranspileState,
+    ctx: IAssignmentContext,
   ): AssignmentKind | null {
     const firstId = ids[0];
 
     // Check for scoped register: Scope.REG.MEMBER[bit]
-    if (state.isKnownScope(firstId) && ids.length >= 3) {
+    if (ctx.state.isKnownScope(firstId) && ids.length >= 3) {
       const scopedRegName = QualifiedCName.fromParts([firstId, ids[1]]);
-      if (state.symbols!.knownRegisters.has(scopedRegName)) {
+      if (ctx.state.symbols!.knownRegisters.has(scopedRegName)) {
         return subscriptCount === 2
           ? AssignmentKind.REGISTER_BIT_RANGE
           : AssignmentKind.REGISTER_BIT;
@@ -424,7 +410,7 @@ class AssignmentClassifier {
     }
 
     // Check for non-scoped register: REG.MEMBER[bit]
-    if (state.symbols!.knownRegisters.has(firstId)) {
+    if (ctx.state.symbols!.knownRegisters.has(firstId)) {
       return subscriptCount === 2
         ? AssignmentKind.REGISTER_BIT_RANGE
         : AssignmentKind.REGISTER_BIT;
@@ -440,7 +426,7 @@ class AssignmentClassifier {
     secondId: string,
     typeInfo: TTypeInfo | undefined,
     subscriptCount: number,
-    state: TranspileState,
+    ctx: IAssignmentContext,
   ): AssignmentKind | null {
     if (subscriptCount !== 1) {
       return null;
@@ -453,7 +439,7 @@ class AssignmentClassifier {
     const width = AssignmentClassifier.lookupBitmapFieldWidth(
       typeInfo.bitmapTypeName,
       secondId,
-      state,
+      ctx,
     );
     if (width !== null) {
       return AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD;
@@ -467,18 +453,17 @@ class AssignmentClassifier {
    */
   private static classifyPrefixPattern(
     ctx: IAssignmentContext,
-    state: TranspileState,
   ): AssignmentKind | null {
     if (!ctx.hasGlobal && !ctx.hasThis) {
       return null;
     }
 
     if (ctx.hasGlobal && ctx.postfixOpsCount > 0) {
-      return AssignmentClassifier.classifyGlobalPrefix(ctx, state);
+      return AssignmentClassifier.classifyGlobalPrefix(ctx);
     }
 
     if (ctx.hasThis && ctx.postfixOpsCount > 0) {
-      return AssignmentClassifier.classifyThisPrefix(ctx, state);
+      return AssignmentClassifier.classifyThisPrefix(ctx);
     }
 
     return null;
@@ -487,10 +472,7 @@ class AssignmentClassifier {
   /**
    * Classify global.* patterns: global.reg[bit], global.arr[i], global.member
    */
-  private static classifyGlobalPrefix(
-    ctx: IAssignmentContext,
-    state: TranspileState,
-  ): AssignmentKind {
+  private static classifyGlobalPrefix(ctx: IAssignmentContext): AssignmentKind {
     const firstId = ctx.identifiers[0];
 
     if (ctx.hasArrayAccess) {
@@ -504,7 +486,7 @@ class AssignmentClassifier {
       const registerKind = AssignmentClassifier.classifyRegisterBitAccess(
         ctx.identifiers,
         ctx.subscriptCount,
-        state,
+        ctx,
       );
       if (registerKind !== null) {
         return registerKind;
@@ -517,7 +499,6 @@ class AssignmentClassifier {
           ctx,
           "global.",
           false,
-          state,
         );
       if (scopeQualifiedKind !== null) {
         return scopeQualifiedKind;
@@ -583,11 +564,10 @@ class AssignmentClassifier {
     ctx: IAssignmentContext,
     displayPrefix: string,
     resolvesBareName: boolean,
-    state: TranspileState,
   ): AssignmentKind | null {
     const ids = ctx.identifiers;
     const scopeName = ids[0];
-    if (!state.isKnownScope(scopeName)) {
+    if (!ctx.state.isKnownScope(scopeName)) {
       return null;
     }
 
@@ -615,37 +595,33 @@ class AssignmentClassifier {
   /**
    * Classify this.* patterns: this.reg[bit], this.member, this.REG.MEMBER.field
    */
-  private static classifyThisPrefix(
-    ctx: IAssignmentContext,
-    state: TranspileState,
-  ): AssignmentKind {
-    if (!state.currentScopePath) {
+  private static classifyThisPrefix(ctx: IAssignmentContext): AssignmentKind {
+    if (!ctx.state.currentScopePath) {
       return AssignmentKind.THIS_MEMBER;
     }
 
     const firstId = ctx.identifiers[0];
     const scopedRegName = ScopeUtils.qualifyInScope(
       firstId,
-      state.currentScopePath,
+      ctx.state.currentScopePath,
     );
 
     if (ctx.hasArrayAccess) {
       return AssignmentClassifier.classifyThisWithArrayAccess(
         ctx,
         scopedRegName,
-        state,
       );
     }
 
     // this.REG.MEMBER.field (scoped register bitmap field)
     if (
       ctx.identifiers.length === 3 &&
-      state.symbols!.knownRegisters.has(scopedRegName)
+      ctx.state.symbols!.knownRegisters.has(scopedRegName)
     ) {
       const bitmapType = AssignmentClassifier.lookupRegisterMemberBitmapType(
         scopedRegName,
         ctx.identifiers[1],
-        state,
+        ctx,
       );
       if (bitmapType) {
         return AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD;
@@ -668,10 +644,9 @@ class AssignmentClassifier {
   private static classifyThisWithArrayAccess(
     ctx: IAssignmentContext,
     scopedRegName: string,
-    state: TranspileState,
   ): AssignmentKind {
     // Check for scoped register first
-    if (state.symbols!.knownRegisters.has(scopedRegName)) {
+    if (ctx.state.symbols!.knownRegisters.has(scopedRegName)) {
       const hasBitRange = ctx.postfixOps.some(
         (op) => op.kind === "subscript" && op.indexCount === 2,
       );
@@ -890,9 +865,8 @@ class AssignmentClassifier {
    */
   private static _classifyThisMemberString(
     ctx: IAssignmentContext,
-    state: TranspileState,
   ): AssignmentKind | null {
-    if (!ctx.isSimpleThisAccess || !state.currentScopePath) return null;
+    if (!ctx.isSimpleThisAccess || !ctx.state.currentScopePath) return null;
     const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
     return AssignmentClassifier.isSimpleStringType(typeInfo)
       ? AssignmentKind.STRING_THIS_MEMBER
@@ -915,10 +889,11 @@ class AssignmentClassifier {
   /** Whether a chain's root is a variable of a known struct type */
   private static _isStructRoot(
     rootTypeInfo: TTypeInfo | undefined,
-    state: TranspileState,
+    ctx: IAssignmentContext,
   ): boolean {
     return (
-      rootTypeInfo !== undefined && state.isKnownStruct(rootTypeInfo.baseType)
+      rootTypeInfo !== undefined &&
+      ctx.state.isKnownStruct(rootTypeInfo.baseType)
     );
   }
 
@@ -933,14 +908,13 @@ class AssignmentClassifier {
   private static _writesStructString(
     ctx: IAssignmentContext,
     subscripts: number,
-    state: TranspileState,
   ): boolean {
     return (
       ctx.hasMemberAccess &&
       ctx.identifiers.length === 2 &&
       ctx.subscriptCount === subscripts &&
       ctx.hasArrayAccess === subscripts > 0 &&
-      AssignmentClassifier._isStructRoot(ctx.target.rootTypeInfo, state) &&
+      AssignmentClassifier._isStructRoot(ctx.target.rootTypeInfo, ctx) &&
       OperandTyper.scalarStringCapacity(ctx.target.last?.after) !== null
     );
   }
@@ -950,17 +924,13 @@ class AssignmentClassifier {
    */
   private static classifyStringAssignment(
     ctx: IAssignmentContext,
-    state: TranspileState,
   ): AssignmentKind | null {
     // Simple string variable
     const simpleVar = AssignmentClassifier._classifySimpleStringVar(ctx);
     if (simpleVar) return simpleVar;
 
     // this.member string
-    const thisMember = AssignmentClassifier._classifyThisMemberString(
-      ctx,
-      state,
-    );
+    const thisMember = AssignmentClassifier._classifyThisMemberString(ctx);
     if (thisMember) return thisMember;
 
     // global.member string
@@ -968,10 +938,10 @@ class AssignmentClassifier {
     if (globalMember) return globalMember;
 
     // struct.field or struct.arr[i] string
-    if (AssignmentClassifier._writesStructString(ctx, 0, state)) {
+    if (AssignmentClassifier._writesStructString(ctx, 0)) {
       return AssignmentKind.STRING_STRUCT_FIELD;
     }
-    if (AssignmentClassifier._writesStructString(ctx, 1, state)) {
+    if (AssignmentClassifier._writesStructString(ctx, 1)) {
       return AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT;
     }
 
@@ -985,9 +955,9 @@ class AssignmentClassifier {
   private static lookupBitmapFieldWidth(
     bitmapTypeName: string,
     fieldName: string,
-    state: TranspileState,
+    ctx: IAssignmentContext,
   ): number | null {
-    const fields = state.symbols!.bitmapFields.get(bitmapTypeName);
+    const fields = ctx.state.symbols!.bitmapFields.get(bitmapTypeName);
     if (fields?.has(fieldName)) {
       return fields.get(fieldName)!.width;
     }
@@ -1001,10 +971,10 @@ class AssignmentClassifier {
   private static lookupRegisterMemberBitmapType(
     registerName: string,
     memberName: string,
-    state: TranspileState,
+    ctx: IAssignmentContext,
   ): string | null {
     const key = QualifiedCName.fromParts([registerName, memberName]);
-    return state.symbols!.registerMemberTypes.get(key) ?? null;
+    return ctx.state.symbols!.registerMemberTypes.get(key) ?? null;
   }
 }
 

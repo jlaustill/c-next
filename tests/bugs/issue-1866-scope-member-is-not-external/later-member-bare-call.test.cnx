@@ -1,0 +1,17 @@
+// test-error
+// test-adr: 030
+// ADR-030: define-before-use has no exceptions. A bare `helper` inside
+// `scope Test` is `this.helper`, defined after `run`, so it is rejected exactly
+// like `this.helper()`. It used to be accepted as an external function.
+scope Test {
+    public void run() {
+        helper();
+    }
+    public void helper() {
+        u32 x <- 1;
+    }
+}
+
+void main() {
+    Test.run();
+}

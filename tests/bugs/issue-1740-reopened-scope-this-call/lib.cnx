@@ -1,0 +1,6 @@
+// Helper for the #1740 fixtures: the first half of `scope Lib`.
+scope Lib {
+    public u32 getU() {
+        return 300;
+    }
+}
