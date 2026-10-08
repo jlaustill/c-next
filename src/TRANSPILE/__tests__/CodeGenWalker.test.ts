@@ -14793,6 +14793,16 @@ describe("CodeGenWalker", () => {
 
         expect(code).toContain("strlen(msg)");
       });
+
+      // #1946: the cache measured the global a shadowing local hides.
+      it("caches the length of a shadowing local under its emitted name", () => {
+        const host = new CodeGenerator();
+        host.state.registerLocalRename("label", "test__label");
+
+        const decls = host.setupLengthCache(new Map([["label", 2]]));
+
+        expect(decls).toBe("size_t cnx_len_label = strlen(test__label);\n");
+      });
     });
 
     describe("child statement classification helpers", () => {

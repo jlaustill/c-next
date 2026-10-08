@@ -365,7 +365,9 @@ export default class CodeGenerator implements IOrchestrator {
       if (count >= 2) {
         const tempVar = ReservedCnxName.stringLengthCache(varName);
         cache.set(varName, tempVar);
-        declarations.push(`size_t ${tempVar} = strlen(${varName});`);
+        // #1946: a shadowing local is emitted under its renamed identifier.
+        const emittedName = this.state.emittedLocalName(varName);
+        declarations.push(`size_t ${tempVar} = strlen(${emittedName});`);
       }
     }
 
