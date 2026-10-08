@@ -11985,6 +11985,11 @@ describe("CodeGenWalker", () => {
         const host = new CodeGenerator();
         const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
+        // #1929: the symbol table is where the callback typedef is built from,
+        // so it is populated here exactly as the Pipeline populates it.
+        const symbolTable = new SymbolTable();
+        symbolTable.addTSymbols(tSymbols);
+        host.state.symbolTable = symbolTable;
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
@@ -13389,6 +13394,11 @@ describe("CodeGenWalker", () => {
         const host = new CodeGenerator();
         const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
+        // #1929: the symbol table is where the callback typedef is built from,
+        // so it is populated here exactly as the Pipeline populates it.
+        const symbolTable = new SymbolTable();
+        symbolTable.addTSymbols(tSymbols);
+        host.state.symbolTable = symbolTable;
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {

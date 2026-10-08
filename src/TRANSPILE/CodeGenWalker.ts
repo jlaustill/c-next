@@ -1708,11 +1708,9 @@ class CodeGenWalker {
     // ADR-055: Use pre-collected symbolInfo from Pipeline (TSymbolInfoAdapter)
     this.host.state.symbols = options.symbolInfo;
 
-    // ADR-029 + #1491: register function-as-types reached through an include
-    // BEFORE anything can reference one. Must run after `symbols` is set and
-    // before the declaration walk, which registers this file's own functions
-    // afterwards and correctly overwrites on a name collision.
-    this.registerIncludedCallbackTypes();
+    // ADR-029: register every function-as-type this file can see BEFORE
+    // anything can reference one. Must run after `symbols` is set.
+    this.registerCallbackTypes();
 
     // Initialize symbol data
     this.initializeSymbolData();
@@ -2308,8 +2306,6 @@ class CodeGenWalker {
       funcDecl.parameterList() ?? null,
     );
     this.host.state.functionSignatures.set(fullName, sig);
-    // ADR-029: Register scoped function as callback type
-    this.registerCallbackType(fullName, funcDecl);
     // #1484: locals in the body name callback types too.
     this._collectLocalCallbackTypeReferences(funcDecl.block());
   }
@@ -2351,8 +2347,6 @@ class CodeGenWalker {
       funcDecl.parameterList() ?? null,
     );
     this.host.state.functionSignatures.set(name, sig);
-    // ADR-029: Register function as callback type
-    this.registerCallbackType(name, funcDecl);
     // #1484: locals in the body name callback types too.
     this._collectLocalCallbackTypeReferences(funcDecl.block());
   }
@@ -2525,21 +2519,13 @@ class CodeGenWalker {
    * ADR-029 + ADR-006: what one parameter of a callback typedef MEANS -- its
    * rendered type and its pointer semantics.
    *
-   * Extracted because two callers build an `ICallbackTypeInfo`: the parse-tree
-   * path, for functions declared in this file, and the symbol path, for
-   * functions reached through an include (#1491). They differ only in how they
-   * OBTAIN a type name. What they must not differ on is what that name means,
-   * and two copies of this decision could only ever agree by coincidence.
-   *
-   * `renderType` is a thunk on purpose: the parse-tree renderer records
-   * required includes as a side effect, and the callback branch must not fire
-   * it -- it did not before this was extracted, and eager evaluation would add
-   * an include nobody asked for.
+   * Kept as one decision since two builders shared it (#1491, #1552); one
+   * builder is left (#1929).
    */
   private callbackParamShape(
     typeName: string,
     isArray: boolean,
-    renderType: () => string,
+    functionsAsTypes: ReadonlyMap<string, IFunctionSymbol>,
   ): {
     type: string;
     isStruct: boolean;
@@ -2550,11 +2536,10 @@ class CodeGenWalker {
     const isStruct = this.host.isKnownStruct(typeName);
 
     // ADR-029: a parameter whose type is itself a function-as-type.
-    const cbInfo = this.host.state.callbackTypes.get(typeName);
-    if (cbInfo) {
+    if (functionsAsTypes.has(typeName)) {
       // Function pointers are already pointers.
       return {
-        type: cbInfo.typedefName,
+        type: CodeGenWalker.callbackTypedefName(typeName),
         isStruct,
         isString: false,
         isOpaqueHandle: false,
@@ -2587,7 +2572,7 @@ class CodeGenWalker {
     // auto-const its prototype never takes.
     if (this.host.state.isHeldThroughPointer(typeName)) {
       return {
-        type: renderType(),
+        type: CodeGenWalker.callbackCType(typeName),
         isStruct: false,
         isString: false,
         isOpaqueHandle: true,
@@ -2597,7 +2582,7 @@ class CodeGenWalker {
     // ADR-006: a struct parameter is a pointer in C and a reference in C++,
     // which the formatter spells from `isStruct`.
     return {
-      type: renderType(),
+      type: CodeGenWalker.callbackCType(typeName),
       isStruct,
       isString: false,
       isOpaqueHandle: false,
@@ -2605,31 +2590,23 @@ class CodeGenWalker {
   }
 
   /**
-   * ADR-029 + #1491: a function reached through an include is a type HERE too.
+   * ADR-029: every function this file can see is a type here too, whether it
+   * is declared in this file or reached through an include (#1491).
    *
-   * `registerCallbackType` walks only this file's own declarations, so an
-   * included function-as-type was never registered and a variable declared
-   * with it emitted the FUNCTION's name where a type belongs --
-   * `sharedHelper viaInclude` rather than `sharedHelper_fp viaInclude` -- which
-   * does not compile. The analyzer half of the same bug reported the call as
-   * E0422; fixing that alone only moved the failure from cnext to cc.
-   *
-   * The signature is READ FROM THE SYMBOL, not re-derived from a parse tree
-   * this file does not have -- "after 1.3, nothing may compute a symbol's
-   * name." That is also what makes it safe: a symbol's `arrayDimensions` are
-   * already const-folded, which is the property the parse-tree path works to
-   * establish for MISRA Rule 18.8.
+   * One builder for both (#1929). The signature is READ FROM THE SYMBOL, not
+   * re-derived from a parse tree -- "after 1.3, nothing may compute a symbol's
+   * name." A symbol's `arrayDimensions` are already const-folded, which is the
+   * property MISRA Rule 18.8 needs (#1127). A second, parse-tree builder for
+   * local functions used to run afterwards and overwrite this one's result;
+   * the two had to share `callbackParamShape` and `typedefParamIsConst`
+   * because they disagreed twice (#1529, #1552).
    *
    * Registration is unconditional; EMISSION stays gated by
    * `headerOwnsCallbackTypedef`, which intersects with `callbackTypeReferences`.
    * So a visible function nobody uses as a type still yields no typedef and
    * cannot trip MISRA Rule 2.3 (unused type declarations).
-   *
-   * Local declarations register afterwards and overwrite, which is the right
-   * precedence: a name declared here wins over the same name reached through
-   * an include.
    */
-  private registerIncludedCallbackTypes(): void {
+  private registerCallbackTypes(): void {
     const symbols = this.host.state.symbols;
     if (!symbols) {
       return;
@@ -2637,11 +2614,12 @@ class CodeGenWalker {
 
     // The per-file VISIBLE set: what this file declares, plus what its includes
     // contribute via mergeExternalSymbols. Keyed by transpiled C name.
+    // Every function-as-type is found BEFORE any is built: a parameter may name
+    // one declared later, and building in one pass made `callIt_fp`'s
+    // parameter `tickSource` rather than `tickSource_fp` when `callIt` came
+    // first (#1929).
+    const functions = new Map<string, IFunctionSymbol>();
     for (const cName of symbols.functionReturnTypes.keys()) {
-      if (this.host.state.callbackTypes.has(cName)) {
-        continue;
-      }
-
       // Run-wide identity lookup -- the exact-name index, never the bare-name
       // one, which returns empty for every scoped symbol (#1139).
       const symbol = this.host.state.symbolTable
@@ -2653,11 +2631,31 @@ class CodeGenWalker {
         ) as IFunctionSymbol | undefined;
 
       if (symbol) {
-        this.host.state.callbackTypes.set(
-          cName,
-          this.callbackInfoFromSymbol(cName, symbol),
-        );
+        functions.set(cName, symbol);
       }
+    }
+
+    // Registered dependencies-first: every reader that walks `callbackTypes`
+    // emits in its order, and C needs `tickSource_fp` declared before a
+    // typedef whose parameter names it. A cycle cannot be written in C at
+    // all; `seen` also stops the walk from looping on one.
+    const seen = new Set<string>();
+    const register = (cName: string): void => {
+      const symbol = functions.get(cName);
+      if (!symbol || seen.has(cName)) {
+        return;
+      }
+      seen.add(cName);
+      for (const param of symbol.parameters) {
+        register(SymbolTypeResolver.getTypeName(param.type));
+      }
+      this.host.state.callbackTypes.set(
+        cName,
+        this.callbackInfoFromSymbol(cName, symbol, functions),
+      );
+    };
+    for (const cName of functions.keys()) {
+      register(cName);
     }
   }
 
@@ -2665,25 +2663,26 @@ class CodeGenWalker {
    * Build an `ICallbackTypeInfo` from a resolved function symbol.
    *
    * The symbol carries the resolved return type and parameters, so nothing here
-   * re-resolves a name. Parameter meaning is delegated to `callbackParamShape`,
-   * the same decision the parse-tree path makes.
+   * re-resolves a name. Parameter meaning is delegated to `callbackParamShape`.
    */
   private callbackInfoFromSymbol(
     cName: string,
     symbol: IFunctionSymbol,
+    functionsAsTypes: ReadonlyMap<string, IFunctionSymbol>,
   ): ICallbackTypeInfo {
-    const toCType = (typeName: string): string =>
-      CNEXT_TO_C_TYPE_MAP[typeName] ?? typeName;
-
     return {
       functionName: cName,
-      returnType: toCType(SymbolTypeResolver.getTypeName(symbol.returnType)),
+      returnType: CodeGenWalker.callbackCType(
+        SymbolTypeResolver.getTypeName(symbol.returnType),
+      ),
       parameters: symbol.parameters.map((param) => {
         const typeName = SymbolTypeResolver.getTypeName(param.type);
-        // Spread, not re-listed: a field the shape gains reaches this builder
-        // and the parse-tree one alike (#1552 was one of them dropping one).
-        const shape = this.callbackParamShape(typeName, param.isArray, () =>
-          toCType(typeName),
+        // Spread, not re-listed: a field the shape gains reaches the typedef
+        // (#1552 was a builder dropping one).
+        const shape = this.callbackParamShape(
+          typeName,
+          param.isArray,
+          functionsAsTypes,
         );
         return {
           name: param.name,
@@ -2709,15 +2708,16 @@ class CodeGenWalker {
     };
   }
 
+  /** ADR-029: a resolved C-Next type name, spelled as C in a `_fp` typedef. */
+  private static callbackCType(typeName: string): string {
+    return CNEXT_TO_C_TYPE_MAP[typeName] ?? typeName;
+  }
+
   /**
    * ADR-029: is this `_fp` typedef parameter const?
    *
-   * THE decision for both typedef emitters -- the local one below, which reads
-   * a parse tree, and `callbackInfoFromSymbol`, which reads a resolved symbol
-   * for a function reached through an include. They already shared the
-   * parameter SHAPE via `callbackParamShape`; sharing the shape while each
-   * re-derived the const is what let them disagree with the prototype, and
-   * with each other, at the same time:
+   * The const the prototype carries. Two typedef builders once each re-derived
+   * it and disagreed with the prototype, and with each other, at the same time:
    *
    * - the local path asked the per-file accumulator during the declaration
    *   walk, before any body had filled it, so a modifying body read as
@@ -2746,90 +2746,6 @@ class CodeGenWalker {
       return false;
     }
     return !state.isParameterModifiedAnywhere(funcName, paramName);
-  }
-
-  /**
-   * ADR-029: Register a function as a callback type
-   * The function name becomes both a callable function and a type for callback fields
-   */
-  private registerCallbackType(
-    name: string,
-    funcDecl: Parser.FunctionDeclarationContext,
-  ): void {
-    const returnType = this.generateType(funcDecl.type());
-    const parameters: ICallbackTypeInfo["parameters"] = [];
-
-    if (funcDecl.parameterList()) {
-      for (const param of funcDecl.parameterList()!.parameter()) {
-        const paramName = param.IDENTIFIER().getText();
-        const typeName = this.getTypeName(param.type());
-        const isConst = param.constModifier() !== null;
-        const dims = param.arrayDimension();
-        const arrayTypeCtx = param.type().arrayType();
-        const isArray = dims.length > 0 || arrayTypeCtx !== null;
-
-        // Spread below, not re-listed, exactly as `callbackInfoFromSymbol`
-        // does: a field the shape gains reaches both typedef builders.
-        const shape = this.callbackParamShape(typeName, isArray, () =>
-          this.generateType(param.type()),
-        );
-
-        // The typedef must carry the SAME const the prototype carries, or the
-        // two are incompatible pointer types and every assignment of the
-        // function to a variable of its own type warns. One decision, shared
-        // with the included-function path below -- #1529 and #1552 were this
-        // expression and its twin disagreeing with the prototype in OPPOSITE
-        // directions, which is what a second derivation of one fact buys.
-        const isEffectivelyConst = CodeGenWalker.typedefParamIsConst(
-          name,
-          paramName,
-          isConst,
-          shape.isStruct,
-          shape.isString,
-          this.host.state,
-        );
-
-        let arrayDims: string;
-        if (dims.length > 0) {
-          arrayDims = dims.map((d) => this.generateArrayDimension(d)).join("");
-        } else if (arrayTypeCtx) {
-          // Generate all dimensions from arrayType (supports multi-dimensional)
-          // Issue #1127: fold the same way ParameterInputAdapter does. Emitting
-          // the identifier here made one const render two ways in a single .c
-          // -- `void OnData(uint8_t buf[6])` beside
-          // `typedef void (*OnData_fp)(uint8_t buf[SIZE])` -- and the typedef
-          // form is a variably-modified type, which MISRA C:2012 Rule 18.8
-          // forbids and which gcc warns about under its variable-length-array
-          // diagnostic.
-          arrayDims = arrayTypeCtx
-            .arrayTypeDimension()
-            .map((d) => {
-              const expr = d.expression();
-              if (!expr) {
-                return "[]";
-              }
-              return `[${this.renderDimension(expr)}]`;
-            })
-            .join("");
-        } else {
-          arrayDims = "";
-        }
-        parameters.push({
-          name: paramName,
-          ...shape,
-          isConst: isEffectivelyConst,
-          isArray,
-          arrayDims,
-        });
-      }
-    }
-
-    this.host.state.callbackTypes.set(name, {
-      functionName: name,
-      returnType,
-      parameters,
-      typedefName: CodeGenWalker.callbackTypedefName(name),
-    });
   }
 
   /**

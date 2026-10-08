@@ -1,0 +1,5 @@
+// Helper for param-from-include.test.cnx (#1929): the function-as-type the
+// fixture's local callback takes as a parameter, declared in an INCLUDE.
+u32 tickSource() {
+    return 3;
+}
