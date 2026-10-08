@@ -225,11 +225,23 @@ class TranspileState {
     name: string,
     at: ISourcePosition,
   ): TTypeInfo | undefined {
-    const typing = this.typingContext();
-    const binding = this.bindingAt(root, name, at);
+    return this.sourceDeclarationTypeInfo(root, this.sourceLocalName(name), at);
+  }
+
+  /**
+   * #1934: declarationTypeInfo() for a name as the source spelled it, so it
+   * reads no rename 2.3 Render registered. 2.2 Plan's entry: it walks the
+   * parse tree, whose names are never emitted ones (E0201 keeps `__`, the
+   * rename separator, out of source identifiers).
+   */
+  sourceDeclarationTypeInfo(
+    root: TChainRoot,
+    sourceName: string,
+    at: ISourcePosition,
+  ): TTypeInfo | undefined {
     return DeclaredTypeInfo.of(
-      binding,
-      typing.symbols,
+      this.sourceBindingAt(root, sourceName, at),
+      this.typingContext().symbols,
       this.symbolTable,
       this.targetDescription,
     );
@@ -245,13 +257,17 @@ class TranspileState {
     name: string,
     at: ISourcePosition,
   ): TValueBinding | null {
+    return this.sourceBindingAt(root, this.sourceLocalName(name), at);
+  }
+
+  /** bindingAt() for a name as the source spelled it (#1934). */
+  private sourceBindingAt(
+    root: TChainRoot,
+    sourceName: string,
+    at: ISourcePosition,
+  ): TValueBinding | null {
     const typing = this.typingContext();
-    return typing.program.bindValue(
-      typing.sourceFile,
-      root,
-      this.sourceLocalName(name),
-      at,
-    );
+    return typing.program.bindValue(typing.sourceFile, root, sourceName, at);
   }
 
   /**

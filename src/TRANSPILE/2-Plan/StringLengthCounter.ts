@@ -202,7 +202,7 @@ class StringLengthCounter {
         const memberName = op.IDENTIFIER()?.getText();
         if (memberName === "char_count") {
           // Check if this is a string type
-          const typeInfo = state.declarationTypeInfo(
+          const typeInfo = state.sourceDeclarationTypeInfo(
             null,
             primaryId,
             ParserUtils.getPosition(ctx),

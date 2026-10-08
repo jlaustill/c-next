@@ -619,15 +619,12 @@ class AssignmentClassifier {
     ctx: IAssignmentContext,
     state: TranspileState,
   ): AssignmentKind {
-    if (!state.currentScopePath) {
+    if (!ctx.scopePath) {
       return AssignmentKind.THIS_MEMBER;
     }
 
     const firstId = ctx.identifiers[0];
-    const scopedRegName = ScopeUtils.qualifyInScope(
-      firstId,
-      state.currentScopePath,
-    );
+    const scopedRegName = ScopeUtils.qualifyInScope(firstId, ctx.scopePath);
 
     if (ctx.hasArrayAccess) {
       return AssignmentClassifier.classifyThisWithArrayAccess(
@@ -890,9 +887,8 @@ class AssignmentClassifier {
    */
   private static _classifyThisMemberString(
     ctx: IAssignmentContext,
-    state: TranspileState,
   ): AssignmentKind | null {
-    if (!ctx.isSimpleThisAccess || !state.currentScopePath) return null;
+    if (!ctx.isSimpleThisAccess || !ctx.scopePath) return null;
     const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
     return AssignmentClassifier.isSimpleStringType(typeInfo)
       ? AssignmentKind.STRING_THIS_MEMBER
@@ -957,10 +953,7 @@ class AssignmentClassifier {
     if (simpleVar) return simpleVar;
 
     // this.member string
-    const thisMember = AssignmentClassifier._classifyThisMemberString(
-      ctx,
-      state,
-    );
+    const thisMember = AssignmentClassifier._classifyThisMemberString(ctx);
     if (thisMember) return thisMember;
 
     // global.member string

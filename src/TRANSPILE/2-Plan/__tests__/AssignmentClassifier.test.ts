@@ -57,6 +57,7 @@ function createMockContext(
     postfixOps: [],
     hasThis: false,
     hasGlobal: false,
+    scopePath: "",
     hasMemberAccess: false,
     hasArrayAccess: false,
     postfixOpsCount: 0,
@@ -642,6 +643,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
     enterScope(state, "Counter");
 
     const ctx = createMockContext(state, {
+      scopePath: "Counter",
       identifiers: ["count"],
       hasThis: true,
       postfixOpsCount: 1,
@@ -660,6 +662,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
     // #1668 (C12): the typer types every subscript; this is its answer
     const ctx = typedLast(
       createMockContext(state, {
+        scopePath: "Buffer",
         identifiers: ["data"],
         subscriptCount: 1,
         hasThis: true,
@@ -689,6 +692,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
     const ctx = typedLast(
       createMockContext(state, {
+        scopePath: "Sensor",
         identifiers: ["flags"],
         subscriptCount: 1,
         hasThis: true,
@@ -716,6 +720,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
     const ctx = typedLast(
       createMockContext(state, {
+        scopePath: "Sensor",
         identifiers: ["value"],
         subscriptCount: 2,
         hasThis: true,
@@ -745,6 +750,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
     // #1668 (C12): the typer types every subscript; this is its answer
     const ctx = typedLast(
       createMockContext(state, {
+        scopePath: "Buffer",
         identifiers: ["data"],
         subscriptCount: 1,
         hasThis: true,
@@ -811,6 +817,7 @@ describe("AssignmentClassifier - Register Bit Access", () => {
     enterScope(state, "Teensy4");
 
     const ctx = createMockContext(state, {
+      scopePath: "Teensy4",
       identifiers: ["GPIO7", "DR_SET"],
       subscriptCount: 1,
       hasThis: true,
@@ -982,6 +989,7 @@ describe("AssignmentClassifier - Scoped Register Bit Range", () => {
     enterScope(state, "Teensy4");
 
     const ctx = createMockContext(state, {
+      scopePath: "Teensy4",
       identifiers: ["GPIO7", "ICR1"],
       subscriptCount: 2,
       hasThis: true,
@@ -1226,6 +1234,7 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
       declare(typeInfoKey, createTypeInfo({ baseType: "Point", bitWidth: 0 }));
 
       const ctx = createMockContext(state, {
+        scopePath: currentScopePath ?? "",
         identifiers: ["Other", "member"],
         subscriptCount: 1,
         lastSubscriptExprCount: 2,
@@ -1259,6 +1268,7 @@ describe("AssignmentClassifier - This Prefix Register Bitmap", () => {
     enterScope(state, "Motor");
 
     const ctx = createMockContext(state, {
+      scopePath: "Motor",
       identifiers: ["GPIO7", "ICR1", "Enable"],
       hasThis: true,
       postfixOpsCount: 3,
@@ -1332,6 +1342,7 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
     );
 
     const ctx = createMockContext(state, {
+      scopePath: "Logger",
       identifiers: ["message"],
       generatedValue: '"hi"',
       isSimpleIdentifier: false,

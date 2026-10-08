@@ -131,6 +131,13 @@ interface IAssignmentContext {
   /** Target starts with 'global' keyword */
   readonly hasGlobal: boolean;
 
+  /**
+   * The path of the scope enclosing the target, `""` at file scope (#1934).
+   * From Program's lexical frames, the answer 2.1 also uses, never from the
+   * scope 2.3 Render has entered on the state.
+   */
+  readonly scopePath: string;
+
   /** Target has .member access */
   readonly hasMemberAccess: boolean;
 
