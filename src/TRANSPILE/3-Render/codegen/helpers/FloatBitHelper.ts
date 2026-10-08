@@ -82,6 +82,8 @@ class FloatBitHelper {
 
     const target = bitWrite.target;
     const intType = FloatBitHelper.bitsTypeOf(bitWrite.floatType);
+    // The union's integer member: the plan decides its header (#1927)
+    state.emittedCTypes.add(intType);
     // The integer member is written like any other integer (#1668): a bit
     // or a bit range of a uint32_t or a uint64_t
     const write = (bits: string): string =>

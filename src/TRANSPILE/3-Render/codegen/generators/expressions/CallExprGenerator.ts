@@ -46,6 +46,7 @@ const wrapWithCppEnumCast = (
   if (argType && orchestrator.isCppEnumClass(argType)) {
     if (orchestrator.isIntegerType(targetParamBaseType)) {
       const cType = CallExprUtils.mapTypeToCType(targetParamBaseType);
+      orchestrator.state.emittedCTypes.add(cType);
       return `static_cast<${cType}>(${argCode})`;
     }
   }

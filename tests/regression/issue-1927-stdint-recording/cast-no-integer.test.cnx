@@ -1,0 +1,10 @@
+// test-execution
+// #1927: the cast's uint8_t is the file's only fixed-width type, so
+// <stdint.h> must come from the cast alone
+f32 value <- 3.75;
+
+void main() {
+    if ((u8)value = 3) {
+        value <- 1.5;
+    }
+}

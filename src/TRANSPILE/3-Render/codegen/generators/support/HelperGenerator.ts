@@ -110,9 +110,9 @@ const generateSafeDivHelpers = (
   const lines: string[] = [];
 
   // Issue #1108: the <stdbool.h> dependency (helpers return a bool error flag)
-  // is signalled via requireInclude("stdbool") when the safe-div effect is
-  // applied, so it flows through the single addAutoIncludes path. Emitting it
-  // here too would duplicate the include.
+  // is recorded as the `bool` type when the safe-div effect is applied, and the
+  // plan decides the header from it (#1927). Emitting it here too would
+  // duplicate the include.
   lines.push("// ADR-051: Safe division helper functions", "");
 
   const integerTypes = ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"];

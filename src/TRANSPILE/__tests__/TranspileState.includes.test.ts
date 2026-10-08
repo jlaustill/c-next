@@ -23,8 +23,6 @@ describe("TranspileState", () => {
     // Parameterized rather than eight near-identical blocks: that shape is
     // SonarCloud S5976, and the six it replaces were exactly it.
     it.each([
-      ["stdint", () => state.needsStdint],
-      ["stdbool", () => state.needsStdbool],
       ["string", () => state.needsString],
       ["cmsis", () => state.needsCMSIS],
       ["limits", () => state.needsLimits],
@@ -44,8 +42,6 @@ describe("TranspileState", () => {
       state.requireInclude("string");
 
       expect(state.needsString).toBe(true);
-      expect(state.needsStdint).toBe(false);
-      expect(state.needsStdbool).toBe(false);
       expect(state.needsCMSIS).toBe(false);
       expect(state.needsLimits).toBe(false);
       expect(state.needsISR).toBe(false);

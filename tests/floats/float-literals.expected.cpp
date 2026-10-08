@@ -5,8 +5,6 @@
 
 #include "float-literals.test.hpp"
 
-#include <stdint.h>
-
 // test-target-xfail: atmega328p #1766 "floating constant truncated to zero"
 // Test various float literal formats
 void test_decimal_literals(void) {

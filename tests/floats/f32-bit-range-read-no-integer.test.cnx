@@ -1,0 +1,11 @@
+// test-execution
+// test-target-xfail: atmega328p #1709 "Float bit indexing requires 64-bit double"
+// #1927: the float-bit read's union has the file's only fixed-width type
+// (uint32_t), so <stdint.h> must come from that union alone
+f32 value <- 1.5;
+
+void main() {
+    if (value[23, 8] = 127) {
+        value <- 2.5;
+    }
+}

@@ -5,8 +5,6 @@
 
 #include "function-param-scope.test.hpp"
 
-#include <stdint.h>
-
 // Test: Function parameters should be scoped to their function
 // Issue #221: Parameters were being treated as global symbols
 //

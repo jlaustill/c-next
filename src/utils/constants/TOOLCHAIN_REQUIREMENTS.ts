@@ -30,7 +30,7 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     extensions: [],
     platformLib: null,
     condition: null,
-    reason: "<stdint.h> fixed-width types, // comments, mixed declarations",
+    reason: "stdint fixed-width types, // comments, mixed declarations",
     incurredBy: "any C-Next file transpiled to C",
     probe: null,
     adr: "ADR-044",

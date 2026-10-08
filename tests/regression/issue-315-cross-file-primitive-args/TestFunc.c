@@ -5,8 +5,6 @@
 
 #include "TestFunc.h"
 
-#include <stdint.h>
-
 // Issue #315: Helper scope for cross-file primitive argument test
 // This file defines a scope with f32 parameters
 /* Scope: TestFunc */

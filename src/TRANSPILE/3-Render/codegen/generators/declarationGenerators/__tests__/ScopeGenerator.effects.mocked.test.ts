@@ -27,7 +27,7 @@ import TGeneratorEffect from "../../TGeneratorEffect";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 
 const REGISTER_EFFECTS: readonly TGeneratorEffect[] = [
-  { type: "include", header: "stdint" },
+  { type: "c-type", cType: "uint32_t" },
 ];
 
 vi.mock("../RegisterGenerator", () => ({

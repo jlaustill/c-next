@@ -45,23 +45,16 @@ describe("TypeGenerationHelper", () => {
 
   describe("generatePrimitiveType", () => {
     it.each([
-      ["maps bool type and requires stdbool", "bool", "bool", "stdbool"],
+      // #1927: `<stdint.h>` / `<stdbool.h>` are decided by the plan from the
+      // C type, so the primitive asks for neither -- only `ISR` asks for its
+      // deferred typedef.
+      ["maps bool type", "bool", "bool", null],
       ["maps ISR type and requires isr include", "ISR", "ISR", "isr"],
-      ["maps u8 to uint8_t and requires stdint", "u8", "uint8_t", "stdint"],
-      ["maps i32 to int32_t and requires stdint", "i32", "int32_t", "stdint"],
-      ["maps u64 to uint64_t and requires stdint", "u64", "uint64_t", "stdint"],
-      [
-        "maps f32 to float with stdint include (Note: floats are in TYPE_MAP so they require stdint per original logic)",
-        "f32",
-        "float",
-        "stdint",
-      ],
-      [
-        "maps f64 to double with stdint include (Note: doubles are in TYPE_MAP so they require stdint per original logic)",
-        "f64",
-        "double",
-        "stdint",
-      ],
+      ["maps u8 to uint8_t", "u8", "uint8_t", null],
+      ["maps i32 to int32_t", "i32", "int32_t", null],
+      ["maps u64 to uint64_t", "u64", "uint64_t", null],
+      ["maps f32 to float", "f32", "float", null],
+      ["maps f64 to double", "f64", "double", null],
     ])("%s", (_label, source, argument2, expected) => {
       const result = TypeGenerationHelper.generatePrimitiveType(source);
       expect(result.cType).toBe(argument2);
@@ -217,13 +210,8 @@ describe("TypeGenerationHelper", () => {
 
   describe("getRequiredInclude", () => {
     it.each([
-      ["stdbool for bool", plan({ primitiveName: "bool" }), "stdbool"],
-      ["stdint for an integer", plan({ primitiveName: "u32" }), "stdint"],
-      [
-        "stdint for a float, which is in TYPE_MAP",
-        plan({ primitiveName: "f32" }),
-        "stdint",
-      ],
+      ["isr for ISR", plan({ primitiveName: "ISR" }), "isr"],
+      ["nothing for an integer (#1927)", plan({ primitiveName: "u32" }), null],
       ["string for a bounded string", plan({ isString: true }), "string"],
     ])("returns %s", (_label, planned, expected) => {
       expect(TypeGenerationHelper.getRequiredInclude(planned)).toBe(expected);
@@ -252,9 +240,9 @@ describe("TypeGenerationHelper", () => {
     it("returns the element's include for an array of primitives", () => {
       expect(
         TypeGenerationHelper.getRequiredInclude(
-          plan({ primitiveName: "u8", isArray: true }),
+          plan({ primitiveName: "ISR", isArray: true }),
         ),
-      ).toBe("stdint");
+      ).toBe("isr");
     });
   });
 });

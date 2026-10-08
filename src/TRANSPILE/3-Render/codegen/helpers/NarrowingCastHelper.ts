@@ -84,6 +84,7 @@ class NarrowingCastHelper {
 
     // Get C type name for the target
     const cType = TYPE_MAP[targetType] ?? targetType;
+    state.emittedCTypes.add(cType);
     return CppModeHelper.cast(cType, expr, state);
   }
 

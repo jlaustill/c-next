@@ -12,8 +12,7 @@ import type IEmissionFacts from "../../../types/IEmissionFacts";
 
 const NOTHING: IEmissionFacts = {
   cppMode: false,
-  needsStdint: false,
-  needsStdbool: false,
+  emittedCTypes: new Set<string>(),
   needsString: false,
   needsCMSIS: false,
   needsLimits: false,
@@ -37,8 +36,6 @@ const facts = (over: Partial<IEmissionFacts>): IEmissionFacts => ({
 describe("EmissionPlan (2.2 Plan)", () => {
   describe("system includes", () => {
     it.each([
-      ["needsStdint", "<stdint.h>"],
-      ["needsStdbool", "<stdbool.h>"],
       ["needsString", "<string.h>"],
       ["needsCMSIS", "<cmsis_gcc.h>"],
       ["needsLimits", "<limits.h>"],
@@ -46,6 +43,21 @@ describe("EmissionPlan (2.2 Plan)", () => {
       const plan = EmissionPlan.build(facts({ [flag]: true }));
 
       expect(plan.systemIncludes).toEqual([target]);
+    });
+
+    // #1927: decided from the emitted C type by `CTypeIncludes`, the same
+    // predicate the header asks -- so `float` costs nothing.
+    it.each([
+      ["uint8_t", ["<stdint.h>"]],
+      ["bool", ["<stdbool.h>"]],
+      ["float", []],
+      ["char*", []],
+    ] as const)("an emitted %s decides %j", (cType, expected) => {
+      const plan = EmissionPlan.build(
+        facts({ emittedCTypes: new Set([cType]) }),
+      );
+
+      expect(plan.systemIncludes).toEqual(expected);
     });
 
     it("emits nothing when nothing asked", () => {
@@ -62,8 +74,7 @@ describe("EmissionPlan (2.2 Plan)", () => {
     it("keeps a fixed emission order", () => {
       const plan = EmissionPlan.build(
         facts({
-          needsStdint: true,
-          needsStdbool: true,
+          emittedCTypes: new Set(["bool", "uint32_t"]),
           needsString: true,
           needsCMSIS: true,
           needsLimits: true,
@@ -83,7 +94,7 @@ describe("EmissionPlan (2.2 Plan)", () => {
     it("does not re-emit a header the source already includes", () => {
       const plan = EmissionPlan.build(
         facts({
-          needsStdint: true,
+          emittedCTypes: new Set(["uint32_t"]),
           needsString: true,
           existingIncludeTargets: ["<stdint.h>"],
         }),

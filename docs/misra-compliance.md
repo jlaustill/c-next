@@ -25,7 +25,7 @@ assessment claimed N/A.
 
 | guideline | bears on                                    | emitted constructs                                                                                                                                         |
 | --------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.1       | baseline, float bit indexing                | `<stdint.h> fixed-width types, // comments, mixed declarations`; `nullptr, static_cast, reinterpret_cast`; `_Static_assert`                                |
+| 1.1       | baseline, float bit indexing                | `stdint fixed-width types, // comments, mixed declarations`; `nullptr, static_cast, reinterpret_cast`; `_Static_assert`                                    |
 | 1.2       | interrupt masking, struct initializer       | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `(T){ ... } in C++`                                                                  |
 | 20.8      | interrupt masking                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()` |
 | 20.9      | interrupt masking                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()` |

@@ -37,6 +37,9 @@ import type TranspileState from "../../../../TranspileState";
 function generateCast(plan: IPlannedCast, state: TranspileState): string {
   const cast = (type: string, expr: string): string =>
     CppModeHelper.cast(type, expr, state);
+  // `plan.targetType` needs no record of its own (#1927): it is the output of
+  // `generateType`, which recorded it. That also covers the helper's return
+  // type and the type whose limit macros the saturating form compares against.
   if (plan.clampForm === null) return cast(plan.targetType, plan.operandCode);
 
   // The plan saturates only a float source into a C-Next integer target

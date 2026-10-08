@@ -5,7 +5,5 @@
 
 #include "nested-forward-decl-types.hpp"
 
-#include <stdint.h>
-
 // Issue #404: Type definitions for nested forward declaration tests
 // Tests nested structs used across files

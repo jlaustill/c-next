@@ -154,7 +154,7 @@ describe("BitmapGenerator", () => {
   });
 
   describe("effects", () => {
-    it("includes stdint header effect", () => {
+    it("records the backing C type", () => {
       const input = createMockInput("Test", "uint8_t");
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
@@ -162,8 +162,8 @@ describe("BitmapGenerator", () => {
       const result = generateBitmap("Test", input, state, orchestrator);
 
       expect(result.effects).toContainEqual({
-        type: "include",
-        header: "stdint",
+        type: "c-type",
+        cType: "uint8_t",
       });
     });
   });

@@ -68,12 +68,11 @@ class TypeGenerationHelper {
   static generatePrimitiveType(type: string): IPrimitiveTypeResult {
     let include: TIncludeHeader | null = null;
 
-    if (type === "bool") {
-      include = "stdbool";
-    } else if (type === "ISR") {
+    // `<stdint.h>` / `<stdbool.h>` are decided from the C type returned here,
+    // not from the C-Next name (#1927): `f32` is in `TYPE_MAP` and needs
+    // neither.
+    if (type === "ISR") {
       include = "isr";
-    } else if (type in TYPE_MAP && type !== "void") {
-      include = "stdint";
     }
 
     const cType = TYPE_MAP[type] || type;

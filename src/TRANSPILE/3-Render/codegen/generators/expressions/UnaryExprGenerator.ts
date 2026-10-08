@@ -73,11 +73,17 @@ const generateUnaryExpr: TGeneratorFn<IPlannedUnary> = (
     // Cast is needed because INT32_MIN has type 'int', not 'int32_t'
     const effects: TGeneratorEffect[] = [];
     if (inner === INT32_MIN_LITERAL) {
-      effects.push({ type: "include", header: "limits" });
+      effects.push(
+        { type: "include", header: "limits" },
+        { type: "c-type", cType: "int32_t" },
+      );
       return { code: "(int32_t)INT32_MIN", effects };
     }
     if (inner === INT64_MIN_LITERAL || inner === INT64_MIN_LITERAL + "LL") {
-      effects.push({ type: "include", header: "limits" });
+      effects.push(
+        { type: "include", header: "limits" },
+        { type: "c-type", cType: "int64_t" },
+      );
       return { code: "(int64_t)INT64_MIN", effects };
     }
     return { code: `-${inner}`, effects };
@@ -88,7 +94,7 @@ const generateUnaryExpr: TGeneratorFn<IPlannedUnary> = (
       const cType = TYPE_MAP[innerType] ?? innerType;
       return {
         code: CppModeHelper.cast(cType, `~${inner}`, orchestrator.state),
-        effects: [],
+        effects: [{ type: "c-type", cType }],
       };
     }
     return { code: `~${inner}`, effects: [] };

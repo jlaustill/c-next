@@ -80,7 +80,7 @@ function hasUnsignedSuffix(text: string): boolean {
  *
  * @param text - The literal's source text, e.g. `3.14f32`, `true`, `'A'`
  * @param state - Current generation state (contains expectedType)
- * @returns Generated code and effects (stdbool include for bool literals)
+ * @returns Generated code and effects (the `bool` type for bool literals)
  */
 const generateLiteral = (
   text: string,
@@ -90,9 +90,9 @@ const generateLiteral = (
   const effects: TGeneratorEffect[] = [];
   let literalText = text;
 
-  // Track boolean literal usage to include stdbool.h
+  // `true`/`false` are `bool` values; the plan decides `<stdbool.h>` (#1927)
   if (literalText === "true" || literalText === "false") {
-    effects.push({ type: "include", header: "stdbool" });
+    effects.push({ type: "c-type", cType: "bool" });
     return { code: literalText, effects };
   }
 

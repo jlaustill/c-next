@@ -111,6 +111,7 @@ function generateLdrexStrexLoop(
   effects.push(
     { type: "include", header: "cmsis" },
     { type: "requires", key: "atomic-ldrex-cmsis", line: null },
+    { type: "c-type", cType },
   );
 
   // Generate LDREX/STREX retry loop

@@ -123,7 +123,29 @@ const CAPTURES = [
  * the questions the plan answers. Reading one at emission time is the defect.
  */
 const FLAG_READ =
-  /(?:\bstate|\w+\.state|\w+\.transpileState)\.(?:needs[A-Z]\w*|usedClampOps|usedSafeDivOps)(?!\.add\()/g;
+  /(?:\bstate|\w+\.state|\w+\.transpileState)\.(?:needs[A-Z]\w*|usedClampOps|usedSafeDivOps|emittedCTypes)(?!\.add\()/g;
+
+/**
+ * #1927: `<stdint.h>` / `<stdbool.h>` are decided by ONE predicate, which both
+ * the `.c` and the `.h` ask. Two shapes, as for annotations: the spelling has
+ * one owner, and the targets are taken from that owner by one decider -- so a
+ * second predicate has to either hand-roll the string or import the target,
+ * and each is caught by one of the two checks.
+ */
+const STD_HEADER_SPELLING = /<std(?:int|bool)\.h>/g;
+const STD_HEADER_TARGET = /SYSTEM_INCLUDE_TARGETS\.(?:stdint|stdbool)\b/g;
+const STD_HEADER_SPELLER = join(
+  "src",
+  "TRANSPILE",
+  "2-Plan",
+  "SYSTEM_INCLUDE_TARGETS.ts",
+);
+const STD_HEADER_DECIDER = join(
+  "src",
+  "TRANSPILE",
+  "2-Plan",
+  "CTypeIncludes.ts",
+);
 
 /**
  * The house form of a compliance annotation, keyed on its SHAPE: a C comment
@@ -403,6 +425,14 @@ describe("2.3 Render decides nothing (#1449)", () => {
     }
 
     expect(outside).toEqual([]);
+  });
+
+  it("spells <stdint.h> and <stdbool.h> in one table (#1927)", () => {
+    expect(filesMatching(STD_HEADER_SPELLING)).toEqual([STD_HEADER_SPELLER]);
+  });
+
+  it("decides <stdint.h> and <stdbool.h> in one predicate for the .c and the .h (#1927)", () => {
+    expect(filesMatching(STD_HEADER_TARGET)).toEqual([STD_HEADER_DECIDER]);
   });
 
   it("has one author for the compliance-annotation TYPE", () => {

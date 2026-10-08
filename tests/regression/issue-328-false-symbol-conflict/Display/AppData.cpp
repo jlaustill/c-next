@@ -5,6 +5,4 @@
 
 #include "Display/AppData.hpp"
 
-#include <stdint.h>
-
 // AppData struct definition (the original source)

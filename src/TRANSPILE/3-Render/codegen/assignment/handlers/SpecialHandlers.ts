@@ -11,6 +11,7 @@ import AssignmentClassifier from "../../../../2-Plan/AssignmentClassifier";
 import TAssignmentHandler from "./TAssignmentHandler";
 import TTypeInfo from "../../../../../types/TTypeInfo";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
+import OverflowHelperTemplates from "../../generators/support/OverflowHelperTemplates";
 
 /**
  * The target's type info. Both kinds are classified only when it resolved.
@@ -60,6 +61,9 @@ function handleOverflowClamp(ctx: IAssignmentContext): string {
     // helper decision, so only an actually-lowered clamp claims a cell.
     AdrProvenance.record("044", ctx.targetLine);
     ctx.state.markClampOpUsed(helperOp, typeInfo.baseType);
+    for (const cType of OverflowHelperTemplates.cTypesOf(typeInfo.baseType)) {
+      ctx.state.emittedCTypes.add(cType);
+    }
     return `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${ctx.generatedValue});`;
   }
 

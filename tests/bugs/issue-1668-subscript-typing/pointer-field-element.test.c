@@ -10,8 +10,6 @@
 // subscripted, so `fb.fp[1] * k` was a false E0810 "character and floating".
 #include "pointer_fields.h"
 
-#include <stdint.h>
-
 float k = 2.0;
 
 void scale(void) {
