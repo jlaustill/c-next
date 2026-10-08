@@ -10,7 +10,6 @@
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../utils/ParserUtils";
 import AdrProvenance from "../../instrumentation/AdrProvenance";
@@ -236,9 +235,6 @@ class FunctionCallAnalyzer {
   /** Known scopes (for Scope.member -> Scope_member resolution) */
   private knownScopes: Set<string> = new Set();
 
-  /** External symbol table for C/C++ interop */
-  private symbolTable: SymbolTable | null = null;
-
   /** Included headers (for stdlib function lookup) */
   private includedHeaders: Set<string> = new Set();
 
@@ -248,30 +244,20 @@ class FunctionCallAnalyzer {
   /** ADR-040: Variables of type ISR or callback types that can be invoked */
   private callableVariables: Set<string> = new Set();
 
-  /**
-   * @param context the 2.1 analysis context. Optional only because this
-   *        analyzer's unit tests drive it without one (#1825 removed the
-   *        whole-program pass that was the other reason); #1866 makes it
-   *        required.
-   */
-  public constructor(private readonly context?: IAnalysisContext) {}
+  /** #1456: the 2.1 context is the one channel to the symbol table (#1659). */
+  public constructor(private readonly context: IAnalysisContext) {}
 
   /**
    * Analyze a parsed program for function call errors
    * @param tree The parsed program AST
-   * @param symbolTable Optional symbol table for external function lookup
    * @returns Array of function call errors
    */
-  public analyze(
-    tree: Parser.ProgramContext,
-    symbolTable?: SymbolTable,
-  ): IFunctionCallError[] {
+  public analyze(tree: Parser.ProgramContext): IFunctionCallError[] {
     this.errors = [];
     this.definedFunctions = new Set();
     this.allLocalFunctions = new Set();
     this.knownScopes = new Set();
     this.includedHeaders = new Set();
-    this.symbolTable = symbolTable ?? null;
     this.currentFunctionName = null;
     this.callableVariables = new Set();
 
@@ -334,7 +320,7 @@ class FunctionCallAnalyzer {
    * to the bare name is what the program does for a name it has not seen.
    */
   private scopePathOf(scopeName: string): string {
-    return this.context?.program.scopePathOf(scopeName) ?? scopeName;
+    return this.context.program.scopePathOf(scopeName);
   }
 
   /**
@@ -405,7 +391,7 @@ class FunctionCallAnalyzer {
   public isCallbackType(name: string): boolean {
     return (
       this.allLocalFunctions.has(name) ||
-      (this.context?.symbols?.functionReturnTypes.has(name) ?? false)
+      this.context.symbols.functionReturnTypes.has(name)
     );
   }
 
@@ -415,7 +401,7 @@ class FunctionCallAnalyzer {
    * whose underlying type contains "(*)" indicating a function pointer.
    */
   public isCFunctionPointerTypedef(typeName: string): boolean {
-    return this.symbolTable?.isCFunctionPointerTypedef(typeName) ?? false;
+    return this.context.symbolTable.isCFunctionPointerTypedef(typeName);
   }
 
   /**
@@ -626,11 +612,7 @@ class FunctionCallAnalyzer {
       return false;
     }
 
-    if (!this.symbolTable) {
-      return false;
-    }
-
-    const symbols = this.symbolTable.getOverloads(name);
+    const symbols = this.context.symbolTable.getOverloadsByCName(name);
     for (const sym of symbols) {
       // Accept functions from any source language:
       // - C/C++ functions from header includes
@@ -644,7 +626,7 @@ class FunctionCallAnalyzer {
     // preprocessing (e.g. FreeRTOS pdMS_TO_TICKS). Recovered functions are
     // registered as full symbols (found above via getOverloads); macros have no
     // declaration to parse, so only their name is known.
-    if (this.symbolTable.hasExternalDeclaration(name)) {
+    if (this.context.symbolTable.hasExternalDeclaration(name)) {
       return true;
     }
 

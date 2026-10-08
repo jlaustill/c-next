@@ -37,11 +37,7 @@ const analyze = (source: string, table: SymbolTable, cppMode: boolean) => {
     symbolTable: table,
     cppMode,
   });
-  // Production hands the analyzer the same table its context carries.
-  return new CppClassInitializerAnalyzer(context).analyze(
-    tree,
-    context.symbolTable,
-  );
+  return new CppClassInitializerAnalyzer(context).analyze(tree);
 };
 
 describe("CppClassInitializerAnalyzer (E0508)", () => {

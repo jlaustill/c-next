@@ -205,7 +205,6 @@ function runAnalyzers(
 
   // #1456: the caller's, always. No fallback to shared state -- see the field.
   const context = options.context;
-  const symbolTable = context.symbolTable;
 
   const steps: readonly TAnalyzerStep[] = [
     {
@@ -229,8 +228,7 @@ function runAnalyzers(
       // settled before this pass.
       label:
         "C++ class initializers (Issue #517: no statement position at file scope)",
-      run: () =>
-        new CppClassInitializerAnalyzer(context).analyze(tree, symbolTable),
+      run: () => new CppClassInitializerAnalyzer(context).analyze(tree),
     },
     {
       // A malformed identifier feeds a bad name into every later analysis.
@@ -261,7 +259,7 @@ function runAnalyzers(
     },
     {
       label: "initialization (Rust-style use-before-init)",
-      run: () => new InitializationAnalyzer(context).analyze(tree, symbolTable),
+      run: () => new InitializationAnalyzer(context).analyze(tree),
     },
     {
       // Before the call and essential-type analyses: a type that denotes
@@ -278,7 +276,7 @@ function runAnalyzers(
     },
     {
       label: "call analysis (ADR-030: define-before-use)",
-      run: () => new FunctionCallAnalyzer(context).analyze(tree, symbolTable),
+      run: () => new FunctionCallAnalyzer(context).analyze(tree),
     },
     {
       label: "NULL checks (ADR-047: C library interop)",
@@ -330,7 +328,7 @@ function runAnalyzers(
     {
       label:
         "return-value use (ADR-070 / MISRA C:2012 Rule 17.7 at source level)",
-      run: () => ReturnValueUseAnalyzer.analyze(tree, symbolTable, context),
+      run: () => ReturnValueUseAnalyzer.analyze(tree, context),
     },
     // ---------------------------------------------------------------------
     // #1322 relocations: appended as a BLOCK, never inserted among the steps

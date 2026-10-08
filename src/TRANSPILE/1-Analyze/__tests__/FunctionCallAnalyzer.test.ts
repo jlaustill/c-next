@@ -3,9 +3,6 @@
  * Tests define-before-use enforcement for functions (ADR-030)
  */
 import { describe, it, expect } from "vitest";
-import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
-import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import FunctionCallAnalyzer from "../FunctionCallAnalyzer";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
@@ -13,16 +10,19 @@ import TTypeUtils from "../../../utils/TTypeUtils";
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
- * Helper to parse C-Next code and return the AST
+ * The analyzer over `source`, with the real 2.1 context production builds for
+ * it (#1866). Production never constructs one without a context, so a test
+ * that did was asserting behavior the transpiler cannot have.
  */
-function parse(source: string) {
-  const charStream = CharStream.fromString(source);
-  const lexer = new CNextLexer(charStream);
-  const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
-  return parser.program();
+function analyzerFor(source: string, symbolTable?: SymbolTable) {
+  const { tree, context } = testAnalysisContextFor(source, {
+    symbolTable,
+    cppMode: false,
+  });
+  return { tree, analyzer: new FunctionCallAnalyzer(context) };
 }
 
 describe("FunctionCallAnalyzer", () => {
@@ -40,8 +40,7 @@ describe("FunctionCallAnalyzer", () => {
           helper();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -56,8 +55,7 @@ describe("FunctionCallAnalyzer", () => {
           u32 x <- 5;
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -71,8 +69,7 @@ describe("FunctionCallAnalyzer", () => {
           unknownFunc();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -91,8 +88,7 @@ describe("FunctionCallAnalyzer", () => {
           factorial(n - 1);
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -110,8 +106,7 @@ describe("FunctionCallAnalyzer", () => {
           helper();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -134,8 +129,7 @@ describe("FunctionCallAnalyzer", () => {
           LED.on();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -152,8 +146,7 @@ describe("FunctionCallAnalyzer", () => {
           LED.off();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -172,8 +165,7 @@ describe("FunctionCallAnalyzer", () => {
           }
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -191,8 +183,7 @@ describe("FunctionCallAnalyzer", () => {
           }
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -214,8 +205,7 @@ describe("FunctionCallAnalyzer", () => {
           }
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       // ADR-057: Implicit resolution allows bare scope function calls
@@ -230,8 +220,7 @@ describe("FunctionCallAnalyzer", () => {
           }
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -252,8 +241,7 @@ describe("FunctionCallAnalyzer", () => {
           helper();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -274,8 +262,7 @@ describe("FunctionCallAnalyzer", () => {
           safe_div(result, 10, 0, 0);
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -288,8 +275,7 @@ describe("FunctionCallAnalyzer", () => {
           safe_mod(result, 10, 0, 0);
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -308,8 +294,7 @@ describe("FunctionCallAnalyzer", () => {
           printf("Hello");
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -321,8 +306,7 @@ describe("FunctionCallAnalyzer", () => {
           printf("Hello");
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -335,8 +319,7 @@ describe("FunctionCallAnalyzer", () => {
           u32 len <- strlen("test");
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -349,8 +332,7 @@ describe("FunctionCallAnalyzer", () => {
           f64 x <- sin(3.14);
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -368,7 +350,6 @@ describe("FunctionCallAnalyzer", () => {
           myExternalFunc();
         }
       `;
-      const tree = parse(code);
       const symbolTable = new SymbolTable();
       symbolTable.addCSymbol({
         name: "myExternalFunc",
@@ -380,8 +361,8 @@ describe("FunctionCallAnalyzer", () => {
         type: "void",
       });
 
-      const analyzer = new FunctionCallAnalyzer();
-      const errors = analyzer.analyze(tree, symbolTable);
+      const { tree, analyzer } = analyzerFor(code, symbolTable);
+      const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
     });
@@ -392,7 +373,6 @@ describe("FunctionCallAnalyzer", () => {
           cppHelper();
         }
       `;
-      const tree = parse(code);
       const symbolTable = new SymbolTable();
       symbolTable.addCppSymbol({
         name: "cppHelper",
@@ -404,8 +384,8 @@ describe("FunctionCallAnalyzer", () => {
         type: "void",
       });
 
-      const analyzer = new FunctionCallAnalyzer();
-      const errors = analyzer.analyze(tree, symbolTable);
+      const { tree, analyzer } = analyzerFor(code, symbolTable);
+      const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
     });
@@ -426,8 +406,7 @@ describe("FunctionCallAnalyzer", () => {
           handler();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -442,8 +421,7 @@ describe("FunctionCallAnalyzer", () => {
           callback();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -463,8 +441,7 @@ describe("FunctionCallAnalyzer", () => {
           baz();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(3);
@@ -480,8 +457,7 @@ describe("FunctionCallAnalyzer", () => {
       const code = `void main() {
   unknownFunc();
 }`;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors[0].line).toBe(2);
@@ -502,8 +478,7 @@ describe("FunctionCallAnalyzer", () => {
           bool result <- isnan(x);
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -518,7 +493,6 @@ describe("FunctionCallAnalyzer", () => {
           customExternalFunc();
         }
       `;
-      const tree = parse(code);
       const symbolTable = new SymbolTable();
       symbolTable.addCppSymbol({
         name: "customExternalFunc",
@@ -530,9 +504,9 @@ describe("FunctionCallAnalyzer", () => {
         type: "void",
       });
 
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code, symbolTable);
       // Pass symbolTable but func requires global. prefix
-      const errors = analyzer.analyze(tree, symbolTable);
+      const errors = analyzer.analyze(tree);
 
       // With symbol table, external funcs are allowed (no error)
       // This test documents current behavior - external funcs work without global.
@@ -545,8 +519,7 @@ describe("FunctionCallAnalyzer", () => {
           completelyUnknownFunc();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -560,8 +533,7 @@ describe("FunctionCallAnalyzer", () => {
           f64 x <- sqrt(4.0);
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -578,8 +550,7 @@ describe("FunctionCallAnalyzer", () => {
   describe("edge cases", () => {
     it("should handle empty program", () => {
       const code = ``;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -592,8 +563,7 @@ describe("FunctionCallAnalyzer", () => {
           u32 x <- globalVar;
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -609,8 +579,7 @@ describe("FunctionCallAnalyzer", () => {
           myObj.doSomething();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       // myObj is not a scope, so myObj.doSomething() is treated as
@@ -631,7 +600,6 @@ describe("FunctionCallAnalyzer", () => {
           cb();
         }
       `;
-      const tree = parse(code);
       const symbolTable = new SymbolTable();
       symbolTable.addCSymbol({
         name: "PointCallback",
@@ -643,8 +611,8 @@ describe("FunctionCallAnalyzer", () => {
         type: "void (*)(Point)",
       });
 
-      const analyzer = new FunctionCallAnalyzer();
-      const errors = analyzer.analyze(tree, symbolTable);
+      const { tree, analyzer } = analyzerFor(code, symbolTable);
+      const errors = analyzer.analyze(tree);
 
       // cb should be recognized as callable (no E0422 for cb())
       expect(errors).toHaveLength(0);
@@ -656,7 +624,6 @@ describe("FunctionCallAnalyzer", () => {
           cnextFunc();
         }
       `;
-      const tree = parse(code);
       const symbolTable = new SymbolTable();
       symbolTable.addTSymbol({
         ...TestSymbolUtils.base({
@@ -673,8 +640,8 @@ describe("FunctionCallAnalyzer", () => {
         visibility: "public",
       } as IFunctionSymbol);
 
-      const analyzer = new FunctionCallAnalyzer();
-      const errors = analyzer.analyze(tree, symbolTable);
+      const { tree, analyzer } = analyzerFor(code, symbolTable);
+      const errors = analyzer.analyze(tree);
 
       // Issue #786: Cross-file C-Next functions from includes are now allowed
       // without E0422 since they're defined in an included file
@@ -690,8 +657,8 @@ describe("FunctionCallAnalyzer", () => {
   // The analyzer still asks whether a typedef is a function pointer, for
   // ADR-040's callable variables, and asks the symbol table that owns the rule.
   describe("C function pointer typedefs", () => {
-    it("isCFunctionPointerTypedef returns false without symbol table", () => {
-      const analyzer = new FunctionCallAnalyzer();
+    it("isCFunctionPointerTypedef returns false for a name no table declares", () => {
+      const { analyzer } = analyzerFor("");
       expect(analyzer.isCFunctionPointerTypedef("PointCallback")).toBe(false);
     });
 
@@ -707,10 +674,7 @@ describe("FunctionCallAnalyzer", () => {
         type: "void",
       });
 
-      const analyzer = new FunctionCallAnalyzer();
-      // Need to call analyze to set the symbolTable
-      const tree = parse("");
-      analyzer.analyze(tree, symbolTable);
+      const { analyzer } = analyzerFor("", symbolTable);
 
       expect(analyzer.isCFunctionPointerTypedef("myFunc")).toBe(false);
     });
@@ -727,9 +691,7 @@ describe("FunctionCallAnalyzer", () => {
         type: "void (*)(int)",
       });
 
-      const analyzer = new FunctionCallAnalyzer();
-      const tree = parse("");
-      analyzer.analyze(tree, symbolTable);
+      const { analyzer } = analyzerFor("", symbolTable);
 
       expect(analyzer.isCFunctionPointerTypedef("Callback")).toBe(true);
     });
@@ -748,8 +710,7 @@ describe("FunctionCallAnalyzer", () => {
           }
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -769,8 +730,7 @@ describe("FunctionCallAnalyzer", () => {
           }
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -793,8 +753,7 @@ describe("FunctionCallAnalyzer", () => {
           }
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -809,8 +768,7 @@ describe("FunctionCallAnalyzer", () => {
           }
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -829,8 +787,7 @@ describe("FunctionCallAnalyzer", () => {
           }
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -849,8 +806,7 @@ describe("FunctionCallAnalyzer", () => {
           }
         }
       `;
-      const tree = parse(code);
-      const analyzer = new FunctionCallAnalyzer();
+      const { tree, analyzer } = analyzerFor(code);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -872,11 +828,10 @@ describe("FunctionCallAnalyzer", () => {
           }
         }
       `;
-      const tree = parse(code);
       const symbolTable = new SymbolTable();
 
-      const analyzer = new FunctionCallAnalyzer();
-      const errors = analyzer.analyze(tree, symbolTable);
+      const { tree, analyzer } = analyzerFor(code, symbolTable);
+      const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0422");
@@ -893,11 +848,10 @@ describe("FunctionCallAnalyzer", () => {
         void helper() {
         }
       `;
-      const tree = parse(code);
       const symbolTable = new SymbolTable();
 
-      const analyzer = new FunctionCallAnalyzer();
-      const errors = analyzer.analyze(tree, symbolTable);
+      const { tree, analyzer } = analyzerFor(code, symbolTable);
+      const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0422");
@@ -915,7 +869,6 @@ describe("FunctionCallAnalyzer", () => {
           }
         }
       `;
-      const tree = parse(code);
       const symbolTable = new SymbolTable();
       symbolTable.addCSymbol({
         name: "externalFunc",
@@ -928,8 +881,8 @@ describe("FunctionCallAnalyzer", () => {
         parameters: [],
       });
 
-      const analyzer = new FunctionCallAnalyzer();
-      const errors = analyzer.analyze(tree, symbolTable);
+      const { tree, analyzer } = analyzerFor(code, symbolTable);
+      const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
     });
@@ -955,8 +908,8 @@ describe("FunctionCallAnalyzer", () => {
           ${name}(1);
         }
       `;
-        const analyzer = new FunctionCallAnalyzer();
-        const errors = analyzer.analyze(parse(code));
+        const { tree, analyzer } = analyzerFor(code);
+        const errors = analyzer.analyze(tree);
 
         expect(errors).toHaveLength(1);
         expect(errors[0].code).toBe("E0902");
@@ -970,8 +923,8 @@ describe("FunctionCallAnalyzer", () => {
           malloc(1);
         }
       `;
-      const analyzer = new FunctionCallAnalyzer();
-      const errors = analyzer.analyze(parse(code));
+      const { tree, analyzer } = analyzerFor(code);
+      const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0902");
@@ -991,8 +944,8 @@ describe("FunctionCallAnalyzer", () => {
           cstring c_ptr <- malloc(100);
         }
       `;
-      const analyzer = new FunctionCallAnalyzer();
-      const errors = analyzer.analyze(parse(code));
+      const { tree, analyzer } = analyzerFor(code);
+      const errors = analyzer.analyze(tree);
 
       expect(errors.filter((e) => e.code === "E0902")).toHaveLength(1);
     });
@@ -1003,8 +956,8 @@ describe("FunctionCallAnalyzer", () => {
           heap_caps_malloc(1);
         }
       `;
-      const analyzer = new FunctionCallAnalyzer();
-      const errors = analyzer.analyze(parse(code));
+      const { tree, analyzer } = analyzerFor(code);
+      const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0902");
@@ -1026,8 +979,8 @@ describe("FunctionCallAnalyzer", () => {
           u32 r <- ${name}(1);
         }
       `;
-      const analyzer = new FunctionCallAnalyzer();
-      const errors = analyzer.analyze(parse(code));
+      const { tree, analyzer } = analyzerFor(code);
+      const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
     });
@@ -1043,8 +996,8 @@ describe("FunctionCallAnalyzer", () => {
           }
         }
       `;
-      const analyzer = new FunctionCallAnalyzer();
-      const errors = analyzer.analyze(parse(code));
+      const { tree, analyzer } = analyzerFor(code);
+      const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
     });
@@ -1072,8 +1025,8 @@ describe("FunctionCallAnalyzer", () => {
         parameters: [],
       });
 
-      const analyzer = new FunctionCallAnalyzer();
-      const errors = analyzer.analyze(parse(code), symbolTable);
+      const { tree, analyzer } = analyzerFor(code, symbolTable);
+      const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0902");
