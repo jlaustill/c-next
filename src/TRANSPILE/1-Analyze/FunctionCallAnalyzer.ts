@@ -551,7 +551,7 @@ class FunctionCallAnalyzer {
     }
 
     // Check if function is external (from symbol table)
-    if (this.isExternalFunction(name)) {
+    if (this.isExternalFunction(name, line, currentScopePath, isGlobalCall)) {
       return; // OK - external C/C++ function
     }
 
@@ -605,32 +605,52 @@ class FunctionCallAnalyzer {
    * in the current file. Functions defined locally are subject to
    * define-before-use checking, even if they exist in the SymbolTable.
    */
-  private isExternalFunction(name: string): boolean {
+  private isExternalFunction(
+    name: string,
+    line: number,
+    currentScopePath: string,
+    isGlobalCall: boolean,
+  ): boolean {
     // If the function is defined in this file, it's not external
     // (even if it's also in the SymbolTable from symbol collection)
     if (this.allLocalFunctions.has(name)) {
       return false;
     }
 
-    const symbols = this.context.symbolTable.getOverloadsByCName(name);
-    for (const sym of symbols) {
-      // Accept functions from any source language:
-      // - C/C++ functions from header includes
-      // - C-Next functions from .cnx file includes
-      if (sym.kind === "function") {
+    // Looked up by C name, so a bare `helper` never matches `Test__helper`.
+    // ADR-057: a bare call inside a scope may name a member of that scope
+    // declared in an included file -- the same rule `resolvesToCNextDefinition`
+    // applies to this file's members.
+    if (currentScopePath && !isGlobalCall) {
+      const scoped = ScopeUtils.qualifyInScope(name, currentScopePath);
+      if (this.namesExternalFunction(scoped)) {
+        AdrProvenance.record("057", line);
         return true;
       }
+    }
+    if (this.namesExternalFunction(name)) {
+      return true;
     }
 
     // Issue #985 recovery: a function-like MACRO recovered by translation-unit
     // preprocessing (e.g. FreeRTOS pdMS_TO_TICKS). Recovered functions are
-    // registered as full symbols (found above via getOverloads); macros have no
+    // registered as full symbols (found above by C name); macros have no
     // declaration to parse, so only their name is known.
     if (this.context.symbolTable.hasExternalDeclaration(name)) {
       return true;
     }
 
     return false;
+  }
+
+  /**
+   * Whether a function with this C name came from an include: a C/C++ header
+   * or another .cnx file.
+   */
+  private namesExternalFunction(cName: string): boolean {
+    return this.context.symbolTable
+      .getOverloadsByCName(cName)
+      .some((sym) => sym.kind === "function");
   }
 }
 
