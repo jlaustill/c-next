@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
 import ConstExprLowering from "../ConstExprLowering";
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import type TConstExpr from "../../types/TConstExpr";
 import ConstExprShape from "../__testUtils__/ConstExprShape";
 
@@ -9,7 +10,7 @@ function lowerOf(source: string): TConstExpr {
   const tree = CNextSourceParser.parse(`const u32 Q <- ${source};\n`).tree;
   const expression = tree.declaration()[0].variableDeclaration()?.expression();
   if (!expression) throw new Error(`no expression in: ${source}`);
-  return ConstExprLowering.lower(expression);
+  return ConstExprLowering.lower(SyntaxLowering.expression(expression));
 }
 
 describe("ConstExprLowering", () => {
@@ -80,4 +81,15 @@ describe("ConstExprLowering", () => {
     );
     expect(JSON.parse(JSON.stringify(lowered))).toEqual(lowered);
   });
+
+  // The editor's symbol collection lowers a tree with parse errors
+  it.each<[string, string]>([
+    ["a[", "<member a[>"],
+    ["(u8)", "(u8)"],
+  ])(
+    "lowers %s, which the parser recovered from, as %s",
+    (source, expected) => {
+      expect(ConstExprShape.of(lowerOf(source))).toBe(expected);
+    },
+  );
 });

@@ -119,6 +119,7 @@ import CppModeHelper from "./3-Render/codegen/helpers/CppModeHelper";
 import generateCast from "./3-Render/codegen/generators/expressions/CastExprGenerator";
 import type IPlannedCast from "./3-Render/codegen/types/IPlannedCast";
 import ConstExprLowering from "../utils/ConstExprLowering";
+import SyntaxLowering from "../PARSE/2-Parse/SyntaxLowering";
 import ConstantEvaluator from "../utils/ConstantEvaluator";
 import ConstantFold from "../utils/ConstantFold";
 import UNRESOLVED_DIMENSION from "../types/UNRESOLVED_DIMENSION";
@@ -906,7 +907,7 @@ class CodeGenWalker {
    */
   private constantValue(ctx: ParserRuleContext): string | null {
     const result = ConstantEvaluator.evaluate(
-      ConstExprLowering.lowerNode(ctx),
+      ConstExprLowering.lower(SyntaxLowering.expressionNode(ctx)),
       dimensionEvalOptions(this.transpileState),
       WIDEST_SIGNED,
     );
@@ -3989,7 +3990,7 @@ class CodeGenWalker {
     // fixture occupies the matrix cell it is written in
     AdrProvenance.record("036", expression.start?.line);
     const dimension = ConstantFold.settled(
-      ConstExprLowering.lower(expression),
+      ConstExprLowering.lower(SyntaxLowering.expression(expression)),
       dimensionEvalOptions(this.transpileState),
     );
     invariant(
@@ -4004,7 +4005,7 @@ class CodeGenWalker {
     expression: Parser.ExpressionContext,
   ): number | undefined {
     return ConstExprLowering.valueOf(
-      expression,
+      SyntaxLowering.expression(expression),
       dimensionEvalOptions(this.transpileState),
     );
   }

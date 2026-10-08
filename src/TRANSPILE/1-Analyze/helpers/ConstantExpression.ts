@@ -24,6 +24,7 @@
 
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import ConstExprLowering from "../../../utils/ConstExprLowering";
+import SyntaxLowering from "../../../PARSE/2-Parse/SyntaxLowering";
 import ConstantFold from "../../../utils/ConstantFold";
 import type IAnalysisContext from "../types/IAnalysisContext";
 
@@ -47,7 +48,7 @@ class ConstantExpression {
   ): number | null {
     return (
       ConstExprLowering.valueOf(
-        expr,
+        SyntaxLowering.expression(expr),
         ConstantFold.environment(context.program, context.sourceFile),
       ) ?? null
     );

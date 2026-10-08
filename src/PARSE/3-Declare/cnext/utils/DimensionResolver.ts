@@ -15,6 +15,7 @@
 
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ConstExprLowering from "../../../../utils/ConstExprLowering";
+import SyntaxLowering from "../../../2-Parse/SyntaxLowering";
 import ConstantEvaluator from "../../../../utils/ConstantEvaluator";
 import invariant from "../../../../utils/invariant";
 import UNRESOLVED_DIMENSION from "../../../../types/UNRESOLVED_DIMENSION";
@@ -45,7 +46,7 @@ class DimensionResolver {
    * is written (#1664 box 7).
    */
   static resolve(sizeExpr: Parser.ExpressionContext): IDeclaredDimension {
-    const expr = ConstExprLowering.lower(sizeExpr);
+    const expr = ConstExprLowering.lower(SyntaxLowering.expression(sizeExpr));
     const result = ConstantEvaluator.evaluate(expr, NO_NAMES);
     const size =
       result.kind === "value"

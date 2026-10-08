@@ -430,11 +430,17 @@ module.exports = {
       comment: "No circular dependencies allowed",
       severity: "error",
       from: {
-        // Allow circular type-only imports in types/symbols/ folder.
+        // Allow intentional circular type-only imports.
         // IScopeSymbol <-> IFunctionSymbol is an intentional mutual reference,
         // and IBaseSymbol.scope is an IScopeSymbol because every symbol is
-        // declared in a scope. Type-only cycles are erased at compile time.
-        pathNot: "^src/types/symbols/I(Scope|Function|Base)Symbol\\.ts$",
+        // declared in a scope. The syntax types (#1932) recurse as the grammar
+        // does: an expression holds postfix ops, field initializers and types,
+        // and a type holds template arguments and dimension expressions.
+        // Type-only cycles are erased at compile time.
+        pathNot: [
+          "^src/types/symbols/I(Scope|Function|Base)Symbol\\.ts$",
+          "^src/types/syntax/(TExpression|TTypeSyntax|TPostfixOpSyntax|TTemplateArgumentSyntax|IFieldInitializerSyntax)\\.ts$",
+        ],
       },
       to: { circular: true },
     },

@@ -21,6 +21,7 @@ import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
 import ParserUtils from "../../../../utils/ParserUtils";
 import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 import ConstExprLowering from "../../../../utils/ConstExprLowering";
+import SyntaxLowering from "../../../2-Parse/SyntaxLowering";
 import type TConstExpr from "../../../../types/TConstExpr";
 import type IDeclaredDimension from "../types/IDeclaredDimension";
 
@@ -241,7 +242,9 @@ class VariableCollector {
       initialValue,
       // #1175: a const's value folds from this, in 1.4, never from the text
       initialValueExpr:
-        isConst && initExpr ? ConstExprLowering.lower(initExpr) : null,
+        isConst && initExpr
+          ? ConstExprLowering.lower(SyntaxLowering.expression(initExpr))
+          : null,
       // #895: what the initializer calls, for `DeclaredPointer.of`
       initializerCallee: VariableCollector.calleeOf(initExpr),
     };

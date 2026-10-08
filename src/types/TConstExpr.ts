@@ -1,4 +1,5 @@
 import type TChainRoot from "./TChainRoot";
+import type TBinaryOperator from "./syntax/TBinaryOperator";
 import type ISourcePosition from "../utils/types/ISourcePosition";
 
 /**
@@ -59,25 +60,7 @@ type TConstExpr =
     }
   | {
       readonly kind: "binary";
-      readonly op:
-        | "*"
-        | "/"
-        | "%"
-        | "+"
-        | "-"
-        | "<<"
-        | ">>"
-        | "&"
-        | "^"
-        | "|"
-        | "<"
-        | ">"
-        | "<="
-        | ">="
-        | "="
-        | "!="
-        | "&&"
-        | "||";
+      readonly op: TBinaryOperator;
       readonly left: TConstExpr;
       readonly right: TConstExpr;
     }
