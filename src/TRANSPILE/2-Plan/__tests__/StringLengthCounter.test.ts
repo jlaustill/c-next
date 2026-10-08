@@ -10,6 +10,7 @@
 import { describe, it, expect } from "vitest";
 import StringLengthCounter from "../StringLengthCounter";
 import TranspileState from "../../TranspileState";
+import SyntaxLowering from "../../../PARSE/2-Parse/SyntaxLowering";
 import testAnalysisContextFor from "../../1-Analyze/__tests__/testAnalysisContextFor";
 import type * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 
@@ -39,7 +40,9 @@ function blockIn(declarations: string, statements: string) {
 function expressionIn(declarations: string, expression: string) {
   const { block, state } = blockIn(declarations, `${expression};`);
   const statements = block.statement();
-  const expr = statements.at(-1)!.expressionStatement()!.expression();
+  const expr = SyntaxLowering.expression(
+    statements.at(-1)!.expressionStatement()!.expression(),
+  );
   return { expr, state };
 }
 
@@ -88,7 +91,9 @@ describe("StringLengthCounter", () => {
         "struct O { u32 value; }\nvoid test() { O obj; obj.value; }",
       );
       const block = tree.declaration(1)!.functionDeclaration()!.block()!;
-      const expr = block.statement(1)!.expressionStatement()!.expression();
+      const expr = SyntaxLowering.expression(
+        block.statement(1)!.expressionStatement()!.expression(),
+      );
       const counts = StringLengthCounter.countExpression(expr, state);
 
       expect(counts.size).toBe(0);

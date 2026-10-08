@@ -3659,22 +3659,6 @@ describe("CodeGenWalker", () => {
     });
   });
 
-  describe("getSimpleIdentifier()", () => {
-    it("should return null for complex expressions", () => {
-      const { host } = createMinimalGenerator(
-        `
-        u32 a;
-        u32 b;
-        void foo() { }
-      `,
-        false,
-      );
-
-      // getSimpleIdentifier is tested indirectly through expression parsing
-      expect(host.getInput()).not.toBeNull();
-    });
-  });
-
   describe("Public scope member access", () => {
     it("should generate a public member access from outside the scope", () => {
       const source = `
