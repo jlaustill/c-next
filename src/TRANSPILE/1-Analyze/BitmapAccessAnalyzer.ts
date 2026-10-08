@@ -22,6 +22,7 @@
  * only in the register map. ADR-034 says a bitmap is addressed by named field.
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
@@ -206,7 +207,10 @@ class BitmapAccessListener extends CNextListener {
       return null;
     }
     // An ARRAY of bitmaps is not a bitmap: `arr[0].Mode` indexes the array
-    const declared = OperandTyper.chainOf(node, this.context).steps[0]?.before;
+    const declared = OperandTyper.chainOf(
+      SyntaxLowering.expressionNode(node),
+      this.context,
+    ).steps[0]?.before;
     const bitmap =
       declared?.dimensions.length === 0 ? declared.bitmapTypeName : null;
     return bitmap !== null && symbols.bitmapFields.has(bitmap)

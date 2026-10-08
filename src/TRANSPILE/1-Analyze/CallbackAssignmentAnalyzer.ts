@@ -41,6 +41,7 @@
  * parameters are not compared, as they were not.
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
@@ -79,7 +80,10 @@ class CallbackAssignmentListener extends CNextListener {
     const target = site.assignmentTarget();
     const description = CallbackAssignmentListener.describeTarget(target);
     this.check(
-      OperandTyper.typeOfTarget(target, this.context)?.typeName ?? null,
+      OperandTyper.typeOfTarget(
+        SyntaxLowering.assignmentTarget(target),
+        this.context,
+      )?.typeName ?? null,
       site.expression(),
       { verb: "assign", description },
     );
@@ -121,7 +125,7 @@ class CallbackAssignmentListener extends CNextListener {
     if (call === undefined) return;
     const callee = FunctionReference.ofCall(
       ctx,
-      OperandTyper.scopePathAt(ctx, this.context),
+      OperandTyper.scopePathAt(ParserUtils.getPosition(ctx), this.context),
       this.context,
     );
     if (callee === null) return;
@@ -173,7 +177,10 @@ class CallbackAssignmentListener extends CNextListener {
     slot: ISlot,
   ): void {
     if (slotTypeText === null) return;
-    const scopePath = OperandTyper.scopePathAt(value, this.context);
+    const scopePath = OperandTyper.scopePathAt(
+      ParserUtils.getPosition(value),
+      this.context,
+    );
     const expected = FunctionReference.ofTypeText(
       slotTypeText,
       scopePath,

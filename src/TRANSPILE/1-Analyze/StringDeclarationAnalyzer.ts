@@ -274,7 +274,11 @@ class StringDeclarationListener extends CNextListener {
    */
   private capacityOfName(name: string, at: ParserRuleContext): number | null {
     if (!/^[A-Za-z_]\w*$/.test(name)) return null;
-    const t = OperandTyper.typeOfName(name, at, this.context);
+    const t = OperandTyper.typeOfName(
+      name,
+      ParserUtils.getPosition(at),
+      this.context,
+    );
     return t !== null && t.dimensions.length === 0 ? t.stringCapacity : null;
   }
 

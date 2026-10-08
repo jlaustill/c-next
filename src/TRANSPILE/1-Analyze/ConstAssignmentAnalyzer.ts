@@ -120,7 +120,7 @@ class ConstAssignmentListener extends CNextListener {
     this.checkSafeDivisionOutput(ctx);
     const callee = FunctionReference.ofCall(
       ctx,
-      OperandTyper.scopePathAt(ctx, this.context),
+      OperandTyper.scopePathAt(ParserUtils.getPosition(ctx), this.context),
       this.context,
     );
     if (callee === null) return;

@@ -16,6 +16,7 @@
  * the essential-type analyzers share, instead of a per-analyzer cache.
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
@@ -72,7 +73,10 @@ class FloatModuloListener extends CNextListener {
 
   /** Floating by the one operand typer, whatever the operand's shape (#1668) */
   private isFloatOperand(ctx: Parser.UnaryExpressionContext): boolean {
-    return OperandTyper.typeOf(ctx, this.context)?.category === "floating";
+    return (
+      OperandTyper.typeOf(SyntaxLowering.expressionNode(ctx), this.context)
+        ?.category === "floating"
+    );
   }
 }
 

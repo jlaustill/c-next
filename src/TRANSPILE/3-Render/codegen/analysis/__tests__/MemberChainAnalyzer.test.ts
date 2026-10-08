@@ -10,6 +10,7 @@
  * an index queues a pending temp declaration, so a decision that rendered
  * would leak one per chain. The write renders, once (`writeBits`).
  */
+import SyntaxLowering from "../../../../../PARSE/2-Parse/SyntaxLowering";
 import { describe, it, expect } from "vitest";
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../../../../PARSE/2-Parse/grammar/CNextListener";
@@ -78,7 +79,10 @@ function analyze(statement: string): {
     };
   });
   const result = MemberChainAnalyzer.analyze(
-    OperandTyper.chainOf(found, context).steps.at(-1),
+    OperandTyper.chainOf(
+      SyntaxLowering.assignmentTarget(found),
+      context,
+    ).steps.at(-1),
     ops,
   );
   return { result, rendered };

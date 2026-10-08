@@ -13,22 +13,15 @@
  * or C++ header's operand is typed by `ForeignTypeFacts` from its spelling
  * and the run's target.
  */
-import { ParserRuleContext, ParseTree, TerminalNode } from "antlr4ng";
-
-import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import ConstExprLowering from "./ConstExprLowering";
-import SyntaxLowering from "../PARSE/2-Parse/SyntaxLowering";
 import ConstantEvaluator from "./ConstantEvaluator";
 import ConstantFold from "./ConstantFold";
 import TTypeUtils from "./TTypeUtils";
 import PrimitiveKindUtils from "./PrimitiveKindUtils";
-import ChainRoot from "./ChainRoot";
 import TypeCheckUtils from "./TypeCheckUtils";
 import TYPE_WIDTH from "../types/TYPE_WIDTH";
-import ExpressionUtils from "./ExpressionUtils";
 import ForeignTypeFacts from "./ForeignTypeFacts";
 import LiteralUtils from "./LiteralUtils";
-import ParserUtils from "./ParserUtils";
 import CompositeType from "./CompositeType";
 import QualifiedCName from "./QualifiedCName";
 import PROPERTY_NAMES from "./constants/PROPERTY_NAMES";
@@ -46,6 +39,10 @@ import type TEssentialCategory from "../types/TEssentialCategory";
 import type TType from "../types/TType";
 import type TValueBinding from "../types/TValueBinding";
 import type TSubscriptKind from "../types/TSubscriptKind";
+import type TExpression from "../types/syntax/TExpression";
+import type TExpressionOf from "../types/syntax/TExpressionOf";
+import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
+import type TTypeSyntax from "../types/syntax/TTypeSyntax";
 
 /** Where a chain walk stands between operations */
 type TChainValue =
@@ -68,9 +65,7 @@ type TChainValue =
 const UNKNOWN: TChainValue = { k: "unknown" };
 
 /** The operations a chain applies after its head */
-type TChainOps = ReadonlyArray<
-  Parser.PostfixOpContext | Parser.PostfixTargetOpContext
->;
+type TChainOps = readonly TPostfixOpSyntax[];
 
 /** A chain's head, typed, and the operations left to apply to it */
 interface IChainStart {
@@ -95,14 +90,35 @@ class OperandTyper {
    * own side effect and for a read-modify-write target that would evaluate
    * the expression twice (E0890).
    */
-  static hasSideEffect(
-    expr: Parser.ExpressionContext,
-    ctx: ITypingContext,
-  ): boolean {
+  static hasSideEffect(expr: TExpression, ctx: ITypingContext): boolean {
     return (
-      ExpressionUtils.hasFunctionCall(expr) ||
+      OperandTyper.callsAtTop(expr) ||
       OperandTyper.typeOf(expr, ctx)?.hasSideEffect === true
     );
+  }
+
+  /**
+   * Whether a call is one of an expression's own operations: through its
+   * operators and unary prefixes, not into a parenthesized expression or a
+   * call's arguments (#254, #366).
+   */
+  private static callsAtTop(expr: TExpression): boolean {
+    switch (expr.kind) {
+      case "ternary":
+        return [expr.condition, expr.whenTrue, expr.whenFalse].some((arm) =>
+          OperandTyper.callsAtTop(arm),
+        );
+      case "binary":
+        return expr.operands.some((operand) =>
+          OperandTyper.callsAtTop(operand),
+        );
+      case "unary":
+        return OperandTyper.callsAtTop(expr.operand);
+      case "postfix":
+        return expr.ops.some((op) => op.kind === "call");
+      default:
+        return false;
+    }
   }
 
   /**
@@ -125,41 +141,34 @@ class OperandTyper {
    * single-child levels, parentheses, unary operators, ternaries and
    * composites. Null when the operand has no type this can settle.
    */
-  static typeOf(
-    node: ParserRuleContext,
-    ctx: ITypingContext,
-  ): IOperandType | null {
-    const inner = OperandTyper.descend(node);
-    if (inner instanceof Parser.PostfixExpressionContext) {
-      return OperandTyper.chainResult(inner, ctx);
+  static typeOf(expr: TExpression, ctx: ITypingContext): IOperandType | null {
+    switch (expr.kind) {
+      case "postfix":
+        return OperandTyper.walkChain(expr, ctx).last;
+      case "identifier":
+        return OperandTyper.identifierType(expr, ctx);
+      case "parenthesized":
+        return OperandTyper.typeOf(expr.expression, ctx);
+      case "literal":
+        return OperandTyper.literalType(expr);
+      case "cast":
+        return OperandTyper.castType(expr, ctx);
+      case "unary":
+        return OperandTyper.unaryType(expr, ctx);
+      case "ternary":
+        return OperandTyper.ternaryType(expr, ctx);
+      case "binary":
+        if (OperandTyper.isBooleanLevel(expr)) {
+          return OperandTyper.booleanValue(false);
+        }
+        // `a << n` is `a`'s type; the shift count is never an operand (C01)
+        if (expr.level === "shift") {
+          return OperandTyper.typeOf(expr.operands[0], ctx);
+        }
+        return OperandTyper.compositeType(expr, ctx);
+      default:
+        return null;
     }
-    if (inner instanceof Parser.PrimaryExpressionContext) {
-      return OperandTyper.primaryType(inner, ctx);
-    }
-    if (inner instanceof Parser.LiteralContext) {
-      return OperandTyper.literalType(inner);
-    }
-    if (inner instanceof Parser.CastExpressionContext) {
-      return OperandTyper.castType(inner, ctx);
-    }
-    if (inner instanceof Parser.UnaryExpressionContext) {
-      return OperandTyper.unaryType(inner, ctx);
-    }
-    if (inner instanceof Parser.TernaryExpressionContext) {
-      return OperandTyper.ternaryType(inner, ctx);
-    }
-    if (OperandTyper.isBooleanLevel(inner)) {
-      return OperandTyper.booleanValue(false);
-    }
-    if (inner instanceof Parser.ShiftExpressionContext) {
-      // `a << n` is `a`'s type; the shift count is never an operand (C01)
-      const left = inner.additiveExpression()[0];
-      return left ? OperandTyper.typeOf(left, ctx) : null;
-    }
-    if (OperandTyper.isCompositeLevel(inner)) {
-      return OperandTyper.compositeType(inner, ctx);
-    }
-    return null;
   }
 
   /**
@@ -171,30 +180,23 @@ class OperandTyper {
    * `&x` and a shift count.
    */
   static valueLeaves(
-    node: ParserRuleContext,
+    expr: TExpression,
     ctx: ITypingContext,
   ): Array<IOperandType | null> {
-    const inner = OperandTyper.descend(node);
-    if (OperandTyper.isCompositeLevel(inner)) {
-      return OperandTyper.ruleChildren(inner).flatMap((child) =>
-        OperandTyper.valueLeaves(child, ctx),
+    if (OperandTyper.isCompositeLevel(expr)) {
+      return expr.operands.flatMap((operand) =>
+        OperandTyper.valueLeaves(operand, ctx),
       );
     }
-    if (inner instanceof Parser.TernaryExpressionContext) {
-      const arms = ParserUtils.ternaryValueArms(inner);
-      if (arms !== null) {
-        return arms.flatMap((arm) => OperandTyper.valueLeaves(arm, ctx));
-      }
+    if (expr.kind === "ternary") {
+      return [expr.whenTrue, expr.whenFalse].flatMap((arm) =>
+        OperandTyper.valueLeaves(arm, ctx),
+      );
     }
-    if (
-      inner instanceof Parser.UnaryExpressionContext &&
-      inner.getChild(0)?.getText() === "&"
-    ) {
-      return [];
-    }
-    const operand = OperandTyper.wrappedOperand(inner);
+    if (expr.kind === "unary" && expr.operator === "&") return [];
+    const operand = OperandTyper.wrappedOperand(expr);
     return operand === null
-      ? [OperandTyper.typeOf(inner, ctx)]
+      ? [OperandTyper.typeOf(expr, ctx)]
       : OperandTyper.valueLeaves(operand, ctx);
   }
 
@@ -209,34 +211,24 @@ class OperandTyper {
    * `-(a + 'A')` was scanned from leaves that disagree, where `(a + 'A')`
    * had its level's.
    */
-  private static wrappedOperand(
-    inner: ParserRuleContext,
-  ): ParserRuleContext | null {
-    if (inner instanceof Parser.PrimaryExpressionContext) {
-      return inner.expression();
+  private static wrappedOperand(expr: TExpression): TExpression | null {
+    if (expr.kind === "parenthesized") return expr.expression;
+    if (expr.kind === "binary" && expr.level === "shift") {
+      return expr.operands[0];
     }
-    if (inner instanceof Parser.ShiftExpressionContext) {
-      return inner.additiveExpression()[0] ?? null;
-    }
-    if (!(inner instanceof Parser.UnaryExpressionContext)) return null;
-    const operator = inner.getChild(0)?.getText();
-    const operand = inner.unaryExpression();
-    if ((operator !== "-" && operator !== "~") || !operand) return null;
+    if (expr.kind !== "unary") return null;
+    if (expr.operator !== "-" && expr.operator !== "~") return null;
     const negatedLiteral =
-      operator === "-" &&
-      OperandTyper.descend(operand) instanceof Parser.LiteralContext;
-    return negatedLiteral ? null : operand;
+      expr.operator === "-" && expr.operand.kind === "literal";
+    return negatedLiteral ? null : expr.operand;
   }
 
   /**
    * A postfix chain or assignment target, typed one operation at a time. A
    * `this.` or `global.` root has consumed its first `.name`.
    */
-  static chainOf(
-    node: Parser.PostfixExpressionContext | Parser.AssignmentTargetContext,
-    ctx: ITypingContext,
-  ): IChainTyping {
-    return OperandTyper.walkChain(node, ctx).typing;
+  static chainOf(chain: TExpression, ctx: ITypingContext): IChainTyping {
+    return OperandTyper.walkChain(chain, ctx).typing;
   }
 
   /**
@@ -253,12 +245,9 @@ class OperandTyper {
    * operands' width and declines where C would clamp, so that reason is gone,
    * and a fifth rule for a constant's value with it.
    */
-  static constantOf(
-    node: ParserRuleContext,
-    ctx: ITypingContext,
-  ): number | null {
+  static constantOf(expr: TExpression, ctx: ITypingContext): number | null {
     const result = ConstantEvaluator.evaluate(
-      ConstExprLowering.lower(SyntaxLowering.expressionNode(node)),
+      ConstExprLowering.lower(expr),
       ConstantFold.environment(ctx.program, ctx.sourceFile),
     );
     return result.kind === "value" && result.typeName !== "bool"
@@ -273,15 +262,10 @@ class OperandTyper {
    */
   static typeOfName(
     name: string,
-    at: ParserRuleContext,
+    at: { line: number; column: number },
     ctx: ITypingContext,
   ): IOperandType | null {
-    const binding = ctx.program.bindValue(
-      ctx.sourceFile,
-      null,
-      name,
-      ParserUtils.getPosition(at),
-    );
+    const binding = ctx.program.bindValue(ctx.sourceFile, null, name, at);
     return binding && binding.kind !== "scope"
       ? OperandTyper.boundValue(binding, ctx)
       : null;
@@ -289,7 +273,7 @@ class OperandTyper {
 
   /** The value type an assignment target writes */
   static typeOfTarget(
-    target: Parser.AssignmentTargetContext,
+    target: TExpression,
     ctx: ITypingContext,
   ): IOperandType | null {
     return OperandTyper.walkChain(target, ctx).last;
@@ -297,23 +281,22 @@ class OperandTyper {
 
   /** The chain typed, and the value it ends on */
   private static walkChain(
-    node: Parser.PostfixExpressionContext | Parser.AssignmentTargetContext,
+    chain: TExpression,
     ctx: ITypingContext,
   ): { typing: IChainTyping; last: IOperandType | null } {
-    const start = OperandTyper.chainStart(node, ctx);
+    const start = OperandTyper.chainStart(chain, ctx);
     const steps: IChainStep[] = [];
     let current = start.value;
     for (const op of start.ops) {
       const before = current.k === "value" ? current.t : null;
       const { next, subscript } = OperandTyper.applyOp(current, op, ctx);
-      const member = op.DOT() === null ? null : op.IDENTIFIER()?.getText();
+      const member = op.kind === "member" ? op.name : null;
       steps.push({
         before,
         subscript,
         after: next.k === "value" ? next.t : null,
         property:
           before !== null &&
-          member !== undefined &&
           member !== null &&
           OperandTyper.readsProperty(before, member, ctx)
             ? member
@@ -415,31 +398,13 @@ class OperandTyper {
   // --------------------------------------------------------------------------
 
   /** Through every level that has exactly one rule child and nothing else */
-  private static descend(node: ParserRuleContext): ParserRuleContext {
-    let current = node;
-    while (current.getChildCount() === 1) {
-      const child = current.getChild(0);
-      if (!(child instanceof ParserRuleContext)) break;
-      current = child;
-    }
-    return current;
-  }
 
-  private static ruleChildren(node: ParserRuleContext): ParserRuleContext[] {
-    const children: ParserRuleContext[] = [];
-    for (let i = 0; i < node.getChildCount(); i += 1) {
-      const child: ParseTree | null = node.getChild(i);
-      if (child instanceof ParserRuleContext) children.push(child);
-    }
-    return children;
-  }
-
-  private static isBooleanLevel(node: ParserRuleContext): boolean {
+  private static isBooleanLevel(expr: TExpressionOf<"binary">): boolean {
     return (
-      node instanceof Parser.OrExpressionContext ||
-      node instanceof Parser.AndExpressionContext ||
-      node instanceof Parser.EqualityExpressionContext ||
-      node instanceof Parser.RelationalExpressionContext
+      expr.level === "or" ||
+      expr.level === "and" ||
+      expr.level === "equality" ||
+      expr.level === "relational"
     );
   }
 
@@ -449,28 +414,30 @@ class OperandTyper {
    * descent `valueLeaves` flattens, for a rule that needs the level itself --
    * Rule 10.4's category of an operand that is an operation (#1760 review).
    */
-  static compositeLevelOf(node: ParserRuleContext): ParserRuleContext | null {
-    const inner = OperandTyper.descend(node);
-    if (OperandTyper.isCompositeLevel(inner)) return inner;
-    const operand = OperandTyper.wrappedOperand(inner);
+  static compositeLevelOf(expr: TExpression): TExpressionOf<"binary"> | null {
+    if (OperandTyper.isCompositeLevel(expr)) return expr;
+    const operand = OperandTyper.wrappedOperand(expr);
     return operand === null ? null : OperandTyper.compositeLevelOf(operand);
   }
 
-  private static isCompositeLevel(node: ParserRuleContext): boolean {
+  private static isCompositeLevel(
+    expr: TExpression,
+  ): expr is TExpressionOf<"binary"> {
     return (
-      node instanceof Parser.BitwiseOrExpressionContext ||
-      node instanceof Parser.BitwiseXorExpressionContext ||
-      node instanceof Parser.BitwiseAndExpressionContext ||
-      node instanceof Parser.AdditiveExpressionContext ||
-      node instanceof Parser.MultiplicativeExpressionContext
+      expr.kind === "binary" &&
+      (expr.level === "bitwiseOr" ||
+        expr.level === "bitwiseXor" ||
+        expr.level === "bitwiseAnd" ||
+        expr.level === "additive" ||
+        expr.level === "multiplicative")
     );
   }
 
   private static compositeType(
-    node: ParserRuleContext,
+    expr: TExpressionOf<"binary">,
     ctx: ITypingContext,
   ): IOperandType {
-    const leaves = OperandTyper.valueLeaves(node, ctx);
+    const leaves = OperandTyper.valueLeaves(expr, ctx);
     const typed = leaves.filter((leaf): leaf is IOperandType => leaf !== null);
     const categories = new Set(
       typed.map((leaf) => leaf.category).filter((c) => c !== "none"),
@@ -508,13 +475,11 @@ class OperandTyper {
   }
 
   private static ternaryType(
-    node: Parser.TernaryExpressionContext,
+    expr: TExpressionOf<"ternary">,
     ctx: ITypingContext,
   ): IOperandType | null {
-    const arms = ParserUtils.ternaryValueArms(node);
-    if (arms === null) return null;
-    const whenTrue = OperandTyper.typeOf(arms[0], ctx);
-    const whenFalse = OperandTyper.typeOf(arms[1], ctx);
+    const whenTrue = OperandTyper.typeOf(expr.whenTrue, ctx);
+    const whenFalse = OperandTyper.typeOf(expr.whenFalse, ctx);
     const same =
       whenTrue !== null &&
       whenFalse !== null &&
@@ -555,23 +520,19 @@ class OperandTyper {
   }
 
   private static unaryType(
-    node: Parser.UnaryExpressionContext,
+    expr: TExpressionOf<"unary">,
     ctx: ITypingContext,
   ): IOperandType | null {
-    const operator = node.getChild(0)?.getText();
-    const operand = node.unaryExpression();
-    if (operator === "!") {
+    if (expr.operator === "!") {
       return OperandTyper.booleanValue(
-        operand
-          ? (OperandTyper.typeOf(operand, ctx)?.hasSideEffect ?? false)
-          : false,
+        OperandTyper.typeOf(expr.operand, ctx)?.hasSideEffect ?? false,
       );
     }
-    if ((operator === "-" || operator === "~") && operand) {
-      const t = OperandTyper.typeOf(operand, ctx);
+    if (expr.operator === "-" || expr.operator === "~") {
+      const t = OperandTyper.typeOf(expr.operand, ctx);
       if (t === null) return null;
       const form =
-        operator === "-" && t.form.kind === "literal"
+        expr.operator === "-" && t.form.kind === "literal"
           ? { ...t.form, negated: !t.form.negated }
           : t.form;
       return { ...t, form, overflow: null, binding: null };
@@ -580,30 +541,26 @@ class OperandTyper {
     return null;
   }
 
-  private static primaryType(
-    node: Parser.PrimaryExpressionContext,
+  private static identifierType(
+    expr: TExpressionOf<"identifier">,
     ctx: ITypingContext,
   ): IOperandType | null {
-    const parenthesized = node.expression();
-    if (parenthesized) {
-      return OperandTyper.typeOf(parenthesized, ctx);
-    }
-    const literal = node.literal();
-    if (literal) return OperandTyper.literalType(literal);
-    const cast = node.castExpression();
-    if (cast) return OperandTyper.castType(cast, ctx);
-    const identifier = node.IDENTIFIER();
-    if (!identifier) return null;
-    const name = identifier.getText();
     const binding = ctx.program.bindValue(
       ctx.sourceFile,
       null,
-      name,
-      ParserUtils.getPosition(node),
+      expr.name,
+      OperandTyper.positionOf(expr),
     );
-    const macro = OperandTyper.headerMacroType(binding, name, ctx);
+    const macro = OperandTyper.headerMacroType(binding, expr.name, ctx);
     if (macro) return macro;
     return binding ? OperandTyper.boundValue(binding, ctx) : null;
+  }
+
+  private static positionOf(node: TExpression): {
+    line: number;
+    column: number;
+  } {
+    return { line: node.span.line, column: node.span.column };
   }
 
   // --------------------------------------------------------------------------
@@ -625,10 +582,12 @@ class OperandTyper {
     };
   }
 
-  private static literalType(node: Parser.LiteralContext): IOperandType | null {
-    const text = node.getText();
+  private static literalType(
+    expr: TExpressionOf<"literal">,
+  ): IOperandType | null {
+    const text = expr.text;
     if (text.startsWith("'")) return OperandTyper.characterLiteral();
-    const typeName = LiteralUtils.typeOf(node);
+    const typeName = LiteralUtils.typeOf(text);
     if (typeName === null) return null;
     if (typeName === "bool") {
       return {
@@ -667,15 +626,14 @@ class OperandTyper {
   }
 
   private static castType(
-    node: Parser.CastExpressionContext,
+    expr: TExpressionOf<"cast">,
     ctx: ITypingContext,
   ): IOperandType | null {
-    const operand = node.unaryExpression();
-    const inner = operand ? OperandTyper.typeOf(operand, ctx) : null;
+    const inner = OperandTyper.typeOf(expr.operand, ctx);
     const target = OperandTyper.typeOfWritten(
-      node.type(),
+      expr.type,
       ctx,
-      ParserUtils.getPosition(node),
+      OperandTyper.positionOf(expr),
     );
     if (target === null) return null;
     return {
@@ -691,11 +649,11 @@ class OperandTyper {
    * The scope path enclosing a node, from Program's lexical frames: the one
    * answer to "which scope is this in", which ADR-057 name lookups start from.
    */
-  static scopePathAt(node: ParserRuleContext, ctx: ITypingContext): string {
-    return ctx.program.lexicalFrameAt(
-      ctx.sourceFile,
-      ParserUtils.getPosition(node),
-    ).scopePath;
+  static scopePathAt(
+    at: { line: number; column: number },
+    ctx: ITypingContext,
+  ): string {
+    return ctx.program.lexicalFrameAt(ctx.sourceFile, at).scopePath;
   }
 
   /**
@@ -709,36 +667,30 @@ class OperandTyper {
    * members lost their anchor).
    */
   static typeOfWritten(
-    typeCtx: Parser.TypeContext | Parser.ArrayTypeContext,
+    type: TTypeSyntax,
     ctx: ITypingContext,
     at: { line: number; column: number },
   ): IOperandType | null {
-    const array =
-      typeCtx instanceof Parser.TypeContext ? typeCtx.arrayType() : null;
-    if (array) {
-      const element = OperandTyper.typeOfWritten(array, ctx, at);
+    if (type.kind === "array") {
+      const element = OperandTyper.typeOfWritten(type.element, ctx, at);
       if (element === null) return null;
       const env = ConstantFold.environment(ctx.program, ctx.sourceFile);
       // #1175: the size as 1.4 settles a declared one -- never the source
       // text, which named what C cannot see
-      const dimensions = array.arrayTypeDimension().map((dimension) => {
-        const size = dimension.expression();
-        return size
-          ? ConstantFold.dimension(
-              ConstExprLowering.lower(SyntaxLowering.expression(size)),
-              env,
-            )
-          : "";
-      });
+      const dimensions = type.dimensions.map((size) =>
+        size ? ConstantFold.dimension(ConstExprLowering.lower(size), env) : "",
+      );
       return {
         ...element,
         dimensions: [...dimensions, ...element.dimensions],
       };
     }
-    const primitive = typeCtx.primitiveType()?.getText();
-    if (primitive !== undefined && PrimitiveKindUtils.isPrimitive(primitive)) {
+    if (
+      type.kind === "primitive" &&
+      PrimitiveKindUtils.isPrimitive(type.name)
+    ) {
       return OperandTyper.fromType(
-        TTypeUtils.createPrimitive(primitive),
+        TTypeUtils.createPrimitive(type.name),
         [],
         ctx,
       );
@@ -747,21 +699,18 @@ class OperandTyper {
     // `TypeBinding` caller; whether the result is a C-Next type this file
     // sees is `declaresNamedType`, as in `fromType` (#1668 review: the trio
     // was spelled out here by hand)
-    const cName = TypeBinding.resolveNamedType(
-      typeCtx,
-      ctx.program.lexicalFrameAt(ctx.sourceFile, at).scopePath,
-      { isScopeType: OperandTyper.scopeTypesSeenBy(ctx) },
-    );
+    const cName =
+      TypeBinding.classifyNamed(
+        type,
+        ctx.program.lexicalFrameAt(ctx.sourceFile, at).scopePath,
+        { isScopeType: OperandTyper.scopeTypesSeenBy(ctx) },
+      )?.name ?? null;
     if (cName !== null && OperandTyper.declaresNamedType(cName, ctx)) {
       return OperandTyper.fromType({ kind: "struct", name: cName }, [], ctx);
     }
-    // A header's type: an array's element is its first child's spelling
-    const spelling =
-      typeCtx instanceof Parser.ArrayTypeContext
-        ? (typeCtx.getChild(0)?.getText() ?? "")
-        : typeCtx.getText();
+    // A header's type, by its spelling
     return ForeignTypeFacts.operandType(
-      spelling,
+      type.text,
       ctx.symbolTable,
       OperandTyper.target(ctx),
     );
@@ -902,69 +851,44 @@ class OperandTyper {
   // Chains
   // --------------------------------------------------------------------------
 
-  private static chainResult(
-    node: Parser.PostfixExpressionContext,
-    ctx: ITypingContext,
-  ): IOperandType | null {
-    return OperandTyper.walkChain(node, ctx).last;
-  }
-
+  /**
+   * A chain's head: a `this.`/`global.` root has its first `.name` in the
+   * chain's first op. An assignment target is lowered to the same shape.
+   */
   private static chainStart(
-    node: Parser.PostfixExpressionContext | Parser.AssignmentTargetContext,
+    chain: TExpression,
     ctx: ITypingContext,
   ): IChainStart {
-    return node instanceof Parser.AssignmentTargetContext
-      ? OperandTyper.targetStart(node, ctx)
-      : OperandTyper.expressionStart(node, ctx);
-  }
-
-  /** A target spells `this.name` in the rule itself */
-  private static targetStart(
-    node: Parser.AssignmentTargetContext,
-    ctx: ITypingContext,
-  ): IChainStart {
-    const at = ParserUtils.getPosition(node);
-    const ops = [...node.postfixTargetOp()];
-    const root = ChainRoot.ofTarget(node);
-    if (root !== null) {
-      const name = node.IDENTIFIER()?.getText();
-      return name
-        ? OperandTyper.rootedStart(root, name, ops, at, ctx)
-        : { binding: null, value: UNKNOWN, ops: [] };
-    }
-    const identifier = node.IDENTIFIER();
-    return identifier
-      ? OperandTyper.namedStart(identifier, ops, at, ctx)
-      : { binding: null, value: UNKNOWN, ops };
-  }
-
-  /** An expression's first postfix op is a `this.`/`global.` root's `.name` */
-  private static expressionStart(
-    node: Parser.PostfixExpressionContext,
-    ctx: ITypingContext,
-  ): IChainStart {
-    const at = ParserUtils.getPosition(node);
-    const primary = node.primaryExpression();
-    // The one head rule (#1760 review: this re-derived it, DOT guard and all)
-    const head = ChainRoot.headOf(primary, node.postfixOp());
-    const ops = node.postfixOp().slice(head.opsConsumed);
-    if (head.root !== null) {
-      if (head.identifier === null) {
+    const at = OperandTyper.positionOf(chain);
+    const head = chain.kind === "postfix" ? chain.primary : chain;
+    const ops = chain.kind === "postfix" ? chain.ops : [];
+    if (head.kind === "root") {
+      const first = ops[0];
+      if (first?.kind !== "member") {
         return { binding: null, value: UNKNOWN, ops: [] };
       }
-      const name = head.identifier.getText();
-      return OperandTyper.rootedStart(head.root, name, ops, at, ctx);
+      return OperandTyper.rootedStart(
+        head.root,
+        first.name,
+        ops.slice(1),
+        at,
+        ctx,
+      );
     }
-    if (head.identifier) {
-      return OperandTyper.namedStart(head.identifier, ops, at, ctx);
+    if (head.kind === "identifier") {
+      return OperandTyper.namedStart(head.name, ops, at, ctx);
     }
-    const t = OperandTyper.primaryType(primary, ctx);
+    const t = OperandTyper.typeOf(head, ctx);
     return {
       binding: null,
       value: t ? { k: "value", t, register: false } : UNKNOWN,
       ops,
     };
   }
+
+  /** A target spells `this.name` in the rule itself */
+
+  /** An expression's first postfix op is a `this.`/`global.` root's `.name` */
 
   /** `this.name` or `global.name`, with that first member consumed */
   private static rootedStart(
@@ -1014,12 +938,11 @@ class OperandTyper {
 
   /** A bare name at the head of a chain */
   private static namedStart(
-    identifier: TerminalNode,
+    name: string,
     ops: TChainOps,
     at: { line: number; column: number },
     ctx: ITypingContext,
   ): IChainStart {
-    const name = identifier.getText();
     const binding = ctx.program.bindValue(ctx.sourceFile, null, name, at);
     if (binding?.kind === "scope") {
       return {
@@ -1185,26 +1108,26 @@ class OperandTyper {
 
   private static applyOp(
     current: TChainValue,
-    op: Parser.PostfixOpContext | Parser.PostfixTargetOpContext,
+    op: TPostfixOpSyntax,
     ctx: ITypingContext,
   ): { next: TChainValue; subscript: TSubscriptKind | null } {
-    if (op.DOT() !== null) {
-      const member = op.IDENTIFIER()?.getText();
-      return {
-        next: member ? OperandTyper.memberOf(current, member, ctx) : UNKNOWN,
-        subscript: null,
-      };
+    switch (op.kind) {
+      case "member":
+        return {
+          next: OperandTyper.memberOf(current, op.name, ctx),
+          subscript: null,
+        };
+      case "subscript":
+        return OperandTyper.subscriptOf(current, op.indexes, ctx);
+      case "call":
+        return { next: OperandTyper.callOf(current, ctx), subscript: null };
+      case "missing":
+        return { next: UNKNOWN, subscript: null };
     }
-    if (op.LBRACKET() !== null) {
-      return OperandTyper.subscriptOf(current, op.expression(), ctx);
-    }
-    return { next: OperandTyper.callOf(current, ctx), subscript: null };
   }
 
-  private static isCall(
-    op: Parser.PostfixOpContext | Parser.PostfixTargetOpContext,
-  ): boolean {
-    return op.DOT() === null && op.LBRACKET() === null;
+  private static isCall(op: TPostfixOpSyntax): boolean {
+    return op.kind === "call";
   }
 
   private static memberOf(
@@ -1463,7 +1386,7 @@ class OperandTyper {
 
   private static subscriptOf(
     current: TChainValue,
-    indices: Parser.ExpressionContext[],
+    indices: readonly TExpression[],
     ctx: ITypingContext,
   ): { next: TChainValue; subscript: TSubscriptKind | null } {
     const t = current.k === "value" ? current.t : null;
@@ -1623,12 +1546,12 @@ class OperandTyper {
 
   /** A bit range's width, when it folds in the constants visible there */
   private static foldedWidth(
-    widthExpr: Parser.ExpressionContext | undefined,
+    widthExpr: TExpression | undefined,
     ctx: ITypingContext,
   ): number | null {
     if (!widthExpr) return null;
     const value = ConstExprLowering.valueOf(
-      SyntaxLowering.expression(widthExpr),
+      widthExpr,
       ConstantFold.environment(ctx.program, ctx.sourceFile),
     );
     return value !== undefined && value > 0 ? value : null;

@@ -205,7 +205,10 @@ class UndeclaredValueAnalyzer {
    */
   isVisible(name: string, root: TChainRoot, at: ParserRuleContext): boolean {
     const symbols = this.context.symbols;
-    const scopePath = OperandTyper.scopePathAt(at, this.context);
+    const scopePath = OperandTyper.scopePathAt(
+      ParserUtils.getPosition(at),
+      this.context,
+    );
 
     if (root === null) {
       return (

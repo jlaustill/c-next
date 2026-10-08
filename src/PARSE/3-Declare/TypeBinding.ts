@@ -42,6 +42,11 @@ import * as Parser from "../2-Parse/grammar/CNextParser";
 /**
  * Static utility class resolving a type context to its C name.
  */
+/** The four spellings a named type is written in */
+type TNamedTypeSpelling =
+  | { readonly kind: "scoped" | "global" | "user"; readonly name: string }
+  | { readonly kind: "qualified"; readonly path: readonly string[] };
+
 class TypeBinding {
   /**
    * The C name for a type context, or null when no alternative matched.
@@ -150,51 +155,73 @@ class TypeBinding {
     scopePath: string,
     deps?: ITypeBindingDeps,
   ): INamedTypeResolution | null {
-    // this.T -- the scope is stated, so qualify against the chain unconditionally
     const scoped = accessors.scopedType();
-    if (scoped) {
-      const written = scoped.IDENTIFIER().getText();
-      return {
-        branch: "this",
-        written,
-        name: ScopeUtils.qualifyInScope(written, scopePath),
-      };
-    }
-
-    // global.T -- explicitly opts out of scope qualification
     const global = accessors.globalType();
-    if (global) {
-      const written = global.IDENTIFIER().getText();
-      return { branch: "global", written, name: written };
-    }
-
-    // Scope.T -- the path is stated in full
     const qualified = accessors.qualifiedType();
-    if (qualified) {
-      const names = qualified.IDENTIFIER().map((id) => id.getText());
-      return {
-        branch: "qualified",
-        written: names.join("."),
-        name: deps?.resolveQualifiedType
-          ? deps.resolveQualifiedType(names)
-          : QualifiedCName.fromParts(names),
-      };
-    }
-
-    // Bare T -- the ONLY branch that resolves local -> scope -> global
     const user = accessors.userType();
-    if (user) {
-      const written = user.getText();
-      return {
-        branch: "bare",
-        written,
-        name: deps?.isScopeType
-          ? ScopeUtils.qualifyScopeType(written, scopePath, deps.isScopeType)
-          : written,
+    let spelling: TNamedTypeSpelling | null = null;
+    if (scoped) {
+      spelling = { kind: "scoped", name: scoped.IDENTIFIER().getText() };
+    } else if (global) {
+      spelling = { kind: "global", name: global.IDENTIFIER().getText() };
+    } else if (qualified) {
+      spelling = {
+        kind: "qualified",
+        path: qualified.IDENTIFIER().map((id) => id.getText()),
       };
+    } else if (user) {
+      spelling = { kind: "user", name: user.getText() };
     }
+    return spelling && TypeBinding.classifyNamed(spelling, scopePath, deps);
+  }
 
-    return null;
+  /**
+   * The ladder itself, over a written type's plain data: a lowered
+   * `TTypeSyntax` is one, so a pass that holds no parse tree asks the same
+   * question. Null for a type that is not a named one.
+   */
+  static classifyNamed(
+    type: TNamedTypeSpelling | { readonly kind: string },
+    scopePath: string,
+    deps?: ITypeBindingDeps,
+  ): INamedTypeResolution | null {
+    const named = type as TNamedTypeSpelling;
+    switch (named.kind) {
+      // this.T -- the scope is stated, so qualify against the chain unconditionally
+      case "scoped":
+        return {
+          branch: "this",
+          written: named.name,
+          name: ScopeUtils.qualifyInScope(named.name, scopePath),
+        };
+      // global.T -- explicitly opts out of scope qualification
+      case "global":
+        return { branch: "global", written: named.name, name: named.name };
+      // Scope.T -- the path is stated in full
+      case "qualified":
+        return {
+          branch: "qualified",
+          written: named.path.join("."),
+          name: deps?.resolveQualifiedType
+            ? deps.resolveQualifiedType([...named.path])
+            : QualifiedCName.fromParts([...named.path]),
+        };
+      // Bare T -- the ONLY branch that resolves local -> scope -> global
+      case "user":
+        return {
+          branch: "bare",
+          written: named.name,
+          name: deps?.isScopeType
+            ? ScopeUtils.qualifyScopeType(
+                named.name,
+                scopePath,
+                deps.isScopeType,
+              )
+            : named.name,
+        };
+      default:
+        return null;
+    }
   }
 
   /**

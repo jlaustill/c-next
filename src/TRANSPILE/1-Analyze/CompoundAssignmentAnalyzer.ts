@@ -28,6 +28,7 @@
  * where it decides something.
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParseTreeWalker } from "antlr4ng";
 
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
@@ -90,7 +91,10 @@ class CompoundAssignmentCheck {
     if (target.postfixTargetOp().some((op) => op.expression().length >= 2)) {
       return "bit range or slice";
     }
-    const typing = OperandTyper.chainOf(target, this.context);
+    const typing = OperandTyper.chainOf(
+      SyntaxLowering.assignmentTarget(target),
+      this.context,
+    );
     if (typing.steps.some((step) => step.subscript === "bit_single")) {
       return "bit index";
     }
@@ -98,7 +102,10 @@ class CompoundAssignmentCheck {
     // `name` is a `string<32>` field. A string is a buffer copied by
     // `strncpy`, not a value `+` can be applied to, wherever it is reached
     // from.
-    const last = OperandTyper.typeOfTarget(target, this.context);
+    const last = OperandTyper.typeOfTarget(
+      SyntaxLowering.assignmentTarget(target),
+      this.context,
+    );
     return OperandTyper.isScalarString(last) ? "string" : null;
   }
 }

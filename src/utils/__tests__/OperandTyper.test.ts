@@ -2,6 +2,7 @@
  * #1668: the one operand typer, a row per shape (design §3), through real
  * declared and resolved programs.
  */
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { describe, it, expect } from "vitest";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
@@ -85,7 +86,10 @@ function typeOf(
   helpers?: Record<string, string>,
 ): IOperandType | null {
   const { node, ctx } = initializerOf(source, name, symbolTable, helpers);
-  return OperandTyper.typeOf(node as ParserRuleContext, ctx);
+  return OperandTyper.typeOf(
+    SyntaxLowering.expressionNode(node as ParserRuleContext),
+    ctx,
+  );
 }
 
 /** The facts a row asserts */
@@ -205,7 +209,10 @@ describe("OperandTyper.typeOfWritten (#1668)", () => {
 describe("OperandTyper.constantOf (#1668)", () => {
   function constantOf(source: string): number | null {
     const { node, ctx } = initializerOf(source, "r");
-    return OperandTyper.constantOf(node as ParserRuleContext, ctx);
+    return OperandTyper.constantOf(
+      SyntaxLowering.expressionNode(node as ParserRuleContext),
+      ctx,
+    );
   }
 
   it.each([
@@ -656,9 +663,10 @@ describe("OperandTyper.typeOf: C and C++ operands (R4)", () => {
 describe("OperandTyper.valueLeaves", () => {
   function leaves(source: string) {
     const { node, ctx } = initializerOf(source, "r");
-    return OperandTyper.valueLeaves(node as ParserRuleContext, ctx).map(
-      (leaf) => leaf?.typeName ?? null,
-    );
+    return OperandTyper.valueLeaves(
+      SyntaxLowering.expressionNode(node as ParserRuleContext),
+      ctx,
+    ).map((leaf) => leaf?.typeName ?? null);
   }
 
   it("collects every value leaf of a composite", () => {
@@ -696,7 +704,10 @@ describe("CompositeType.integerOf", () => {
   function integerOf(source: string, table?: SymbolTable) {
     const { node, ctx } = initializerOf(source, "r", table);
     return CompositeType.integerOf(
-      OperandTyper.valueLeaves(node as ParserRuleContext, ctx),
+      OperandTyper.valueLeaves(
+        SyntaxLowering.expressionNode(node as ParserRuleContext),
+        ctx,
+      ),
     );
   }
 
@@ -825,7 +836,10 @@ describe("OperandTyper.chainOf", () => {
       tree,
     );
     expect(found).not.toBeNull();
-    return OperandTyper.chainOf(found!, { ...context, sourceFile: "test.cnx" });
+    return OperandTyper.chainOf(SyntaxLowering.assignmentTarget(found!), {
+      ...context,
+      sourceFile: "test.cnx",
+    });
   }
 
   it("types each operation of a target, with its subscript kind", () => {
@@ -867,7 +881,10 @@ void main() {
       const postfix = ExpressionUnwrapper.getPostfixExpression(node);
       expect(postfix).not.toBeNull();
       return (
-        OperandTyper.chainOf(postfix!, ctx).steps.at(-1)?.subscript ?? null
+        OperandTyper.chainOf(
+          SyntaxLowering.expressionNode(postfix!),
+          ctx,
+        ).steps.at(-1)?.subscript ?? null
       );
     }
 
@@ -914,7 +931,12 @@ extern Frame frame;`,
         const { node, ctx } = initializerOf(inMain(body), "r", table);
         const postfix = ExpressionUnwrapper.getPostfixExpression(node);
         expect(postfix).not.toBeNull();
-        return OperandTyper.chainOf(postfix!, ctx).steps.at(-1)?.after ?? null;
+        return (
+          OperandTyper.chainOf(
+            SyntaxLowering.expressionNode(postfix!),
+            ctx,
+          ).steps.at(-1)?.after ?? null
+        );
       }
       expect(elementOf("u8 r <- pod[1];", c)).toBeNull();
       const cpp = header(
@@ -959,7 +981,10 @@ describe("OperandTyper.chainOf: a field named like a property", () => {
     const { node, ctx } = initializerOf(`${decls}${inMain(body)}`, "r", table);
     const postfix = ExpressionUnwrapper.getPostfixExpression(node);
     expect(postfix).not.toBeNull();
-    return OperandTyper.chainOf(postfix!, ctx).steps.at(-1);
+    return OperandTyper.chainOf(
+      SyntaxLowering.expressionNode(postfix!),
+      ctx,
+    ).steps.at(-1);
   }
 
   it("types a C-Next struct's field as the field", () => {

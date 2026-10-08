@@ -43,6 +43,8 @@
  * 10.1 concern handled elsewhere (Issue #1085 review).
  */
 
+import type TExpression from "../../types/syntax/TExpression";
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
@@ -105,7 +107,7 @@ class MixedCategoryCheck {
    * running category it folded to, or null when a pair in it differed --
    * already reported there, once. Levels are checked innermost first.
    */
-  private readonly levelCategories = new Map<ParserRuleContext, Category>();
+  private readonly levelCategories = new Map<TExpression, Category>();
 
   constructor(
     private readonly analyzer: MixedTypeCategoryAnalyzer,
@@ -139,12 +141,13 @@ class MixedCategoryCheck {
    * reported at the inner operator, once.
    */
   private operandCategory(ctx: ParserRuleContext): Category {
-    const level = OperandTyper.compositeLevelOf(ctx);
+    const operand = SyntaxLowering.expressionNode(ctx);
+    const level = OperandTyper.compositeLevelOf(operand);
     if (level !== null && this.levelCategories.has(level)) {
       return this.levelCategories.get(level) ?? null;
     }
     let resolved: Category = null;
-    for (const leaf of OperandTyper.valueLeaves(ctx, this.context)) {
+    for (const leaf of OperandTyper.valueLeaves(operand, this.context)) {
       const category = MixedCategoryCheck.rule104Category(leaf);
       if (category === null) continue;
       if (resolved === null) {
@@ -190,7 +193,12 @@ class MixedCategoryCheck {
       }
       running = MixedCategoryCheck.fold(running, right, operator);
     }
-    if (parent) this.levelCategories.set(parent, mixed ? null : running);
+    if (parent) {
+      this.levelCategories.set(
+        SyntaxLowering.expressionNode(parent),
+        mixed ? null : running,
+      );
+    }
   }
 
   /** Whether this rule, not another, reports a mix between two operands */
@@ -311,7 +319,10 @@ class MixedCategoryCheck {
 
     const value = site.expression();
     const left = MixedCategoryCheck.rule104Category(
-      OperandTyper.typeOfTarget(site.assignmentTarget(), this.context),
+      OperandTyper.typeOfTarget(
+        SyntaxLowering.assignmentTarget(site.assignmentTarget()),
+        this.context,
+      ),
     );
     const right = this.operandCategory(value);
     if (MixedCategoryCheck.ownedElsewhere(left, right, "compound")) return;

@@ -28,6 +28,7 @@
  * operands they share; `admitsBoolean` is where E0810 defers to this rule.
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
@@ -65,7 +66,9 @@ class BooleanOperandListener extends CNextListener {
    * place its misuse can be reported (Issue #1183 review).
    */
   private isBooleanOperand(ctx: ParserRuleContext): boolean {
-    return OperandTyper.isBoolean(OperandTyper.typeOf(ctx, this.context));
+    return OperandTyper.isBoolean(
+      OperandTyper.typeOf(SyntaxLowering.expressionNode(ctx), this.context),
+    );
   }
 
   /**
@@ -83,7 +86,12 @@ class BooleanOperandListener extends CNextListener {
 
     const target = site.assignmentTarget();
     if (
-      OperandTyper.isBoolean(OperandTyper.typeOfTarget(target, this.context))
+      OperandTyper.isBoolean(
+        OperandTyper.typeOfTarget(
+          SyntaxLowering.assignmentTarget(target),
+          this.context,
+        ),
+      )
     ) {
       const { line, column } = ParserUtils.getPosition(target);
       this.analyzer.addCompoundAssignmentError(line, column, target.getText());

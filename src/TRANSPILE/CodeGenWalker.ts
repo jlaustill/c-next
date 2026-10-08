@@ -591,7 +591,10 @@ class CodeGenWalker {
     // step. A `this.`/`global.` chain consumes its first `.name`, so the
     // typer's steps are the op list's tail.
     const typing = this.host.state.typingContext();
-    const chain = OperandTyper.chainOf(ctx, typing);
+    const chain = OperandTyper.chainOf(
+      SyntaxLowering.expressionNode(ctx),
+      typing,
+    );
     const steps = chain.steps;
     const offset = ops.length - steps.length;
     const plannedOps = ops.map((op, i) =>
@@ -930,7 +933,10 @@ class CodeGenWalker {
    * conversion check cannot count a different set of operands
    */
   private compositeClampType(ctx: ParserRuleContext): string | null {
-    const t = OperandTyper.typeOf(ctx, this.host.state.typingContext());
+    const t = OperandTyper.typeOf(
+      SyntaxLowering.expressionNode(ctx),
+      this.host.state.typingContext(),
+    );
     return t?.bitWidth === null ? null : (t?.typeName ?? null);
   }
 
@@ -939,7 +945,9 @@ class CodeGenWalker {
     ctx: ParserRuleContext,
   ): TOverflowBehavior | null {
     const typing = this.host.state.typingContext();
-    return PlanTyping.overflowOf(OperandTyper.valueLeaves(ctx, typing));
+    return PlanTyping.overflowOf(
+      OperandTyper.valueLeaves(SyntaxLowering.expressionNode(ctx), typing),
+    );
   }
 
   private planMultiplicativeLevel(
@@ -991,7 +999,10 @@ class CodeGenWalker {
     // too, so the case label and the E0428/E0434 checks cannot disagree
     // about whether the switch is on an enum. A header's enum has no C-Next
     // enum type: its members are global C names and need no qualifying.
-    const t = OperandTyper.typeOf(ctx, this.host.state.typingContext());
+    const t = OperandTyper.typeOf(
+      SyntaxLowering.expressionNode(ctx),
+      this.host.state.typingContext(),
+    );
     return t?.category === "enum" ? t.enumTypeName : null;
   }
 
@@ -1013,7 +1024,10 @@ class CodeGenWalker {
     // #1737: one rule for every operand shape -- a name, a member at any
     // depth, an element of an array of strings (not a char of one string)
     return OperandTyper.isString(
-      OperandTyper.typeOf(ctx, this.host.state.typingContext()),
+      OperandTyper.typeOf(
+        SyntaxLowering.expressionNode(ctx),
+        this.host.state.typingContext(),
+      ),
     );
   }
 
@@ -1100,7 +1114,10 @@ class CodeGenWalker {
     const typing = this.host.state.typingContext();
     const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
     if (postfix === null) return undefined;
-    const chain = OperandTyper.chainOf(postfix, typing);
+    const chain = OperandTyper.chainOf(
+      SyntaxLowering.expressionNode(postfix),
+      typing,
+    );
     if (chain.steps.length !== DeclaredTypeInfo.nameSteps(chain)) {
       return undefined;
     }
@@ -1124,7 +1141,10 @@ class CodeGenWalker {
     const typing = this.host.state.typingContext();
     const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
     if (postfix === null) return false;
-    const chain = OperandTyper.chainOf(postfix, typing);
+    const chain = OperandTyper.chainOf(
+      SyntaxLowering.expressionNode(postfix),
+      typing,
+    );
     const subscript = chain.steps[DeclaredTypeInfo.nameSteps(chain)];
     if (subscript?.subscript !== "array_element") return false;
     const array = DeclaredTypeInfo.ofChain(
@@ -1147,7 +1167,10 @@ class CodeGenWalker {
   /** #1668 (C6c): an expression's one type for 2.2, PlanTyping's row */
   private directTypeOf(ctx: ParserRuleContext): string | null {
     return PlanTyping.directTypeName(
-      OperandTyper.typeOf(ctx, this.host.state.typingContext()),
+      OperandTyper.typeOf(
+        SyntaxLowering.expressionNode(ctx),
+        this.host.state.typingContext(),
+      ),
     );
   }
 
@@ -1162,7 +1185,9 @@ class CodeGenWalker {
   /** Whether any value leaf is floating, or indeterminate (CompositeType) */
   private hasFloatingLeaf(ctx: ParserRuleContext): boolean {
     const typing = this.host.state.typingContext();
-    return CompositeType.anyFloating(OperandTyper.valueLeaves(ctx, typing));
+    return CompositeType.anyFloating(
+      OperandTyper.valueLeaves(SyntaxLowering.expressionNode(ctx), typing),
+    );
   }
 
   /**
@@ -2998,7 +3023,10 @@ class CodeGenWalker {
       return "not-array";
     }
 
-    const member = OperandTyper.typeOf(ctx, this.host.state.typingContext());
+    const member = OperandTyper.typeOf(
+      SyntaxLowering.expressionNode(ctx),
+      this.host.state.typingContext(),
+    );
     if (member === null) {
       return "unknown";
     }
@@ -3477,7 +3505,10 @@ class CodeGenWalker {
       expressionType: () => this.getExpressionType(expression),
       isArray: () =>
         OperandTyper.decaysToPointer(
-          OperandTyper.typeOf(expression, this.host.state.typingContext()),
+          OperandTyper.typeOf(
+            SyntaxLowering.expressionNode(expression),
+            this.host.state.typingContext(),
+          ),
         ),
       isHandleArrayElement: () => this.isHandleArrayElement(expression),
       render: () => this.generateExpression(expression),
@@ -4634,7 +4665,7 @@ class CodeGenWalker {
   ): IChainBase {
     const typing = this.host.state.typingContext();
     return DeclaredTypeInfo.ofChain(
-      OperandTyper.chainOf(target, typing),
+      OperandTyper.chainOf(SyntaxLowering.assignmentTarget(target), typing),
       typing.symbols,
       this.host.state.symbolTable,
       this.host.state.targetDescription,
@@ -4658,7 +4689,7 @@ class CodeGenWalker {
   ): string | null {
     if (target.last?.subscript === "array_slice") return null;
     const written = OperandTyper.typeOfTarget(
-      targetCtx,
+      SyntaxLowering.assignmentTarget(targetCtx),
       this.host.state.typingContext(),
     );
     const name = written?.cType ?? written?.typeName ?? null;
@@ -5296,7 +5327,7 @@ class CodeGenWalker {
     const targetTypeName = ctx.type().getText();
     const operandCode = this.generateUnaryExpr(ctx.unaryExpression());
     const operand = OperandTyper.typeOf(
-      ctx.unaryExpression(),
+      SyntaxLowering.expressionNode(ctx.unaryExpression()),
       this.host.state.typingContext(),
     );
     const operandType = PlanTyping.castSourceType(operand);

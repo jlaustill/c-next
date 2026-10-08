@@ -23,6 +23,7 @@
  * differs; it does not.
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
@@ -57,7 +58,14 @@ class SwitchStatementListener extends CNextListener {
     const cases = ctx.switchCase();
     const defaultCase = ctx.defaultCase();
 
-    if (OperandTyper.isBoolean(OperandTyper.typeOf(switchExpr, this.context))) {
+    if (
+      OperandTyper.isBoolean(
+        OperandTyper.typeOf(
+          SyntaxLowering.expressionNode(switchExpr),
+          this.context,
+        ),
+      )
+    ) {
       this.report(
         switchExpr,
         "E0711",

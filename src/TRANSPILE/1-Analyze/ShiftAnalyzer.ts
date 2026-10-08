@@ -27,6 +27,7 @@
  * site is checked, `for` headers included (#1726).
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IShiftError from "./types/IShiftError";
@@ -84,7 +85,10 @@ class ShiftCheck {
     if (!left && operator.RSHIFT_ASSIGN() === null) return;
 
     const target = site.assignmentTarget();
-    const targetType = OperandTyper.typeOfTarget(target, this.context);
+    const targetType = OperandTyper.typeOfTarget(
+      SyntaxLowering.assignmentTarget(target),
+      this.context,
+    );
     if (targetType?.category === "signed") {
       const { line, column } = ParserUtils.getPosition(target);
       this.analyzer.addError(line, column, left ? "<<<-" : ">><-");
@@ -101,7 +105,7 @@ class ShiftCheck {
     left: ParserRuleContext,
     context: IAnalysisContext,
   ): IOperandType | null {
-    const t = OperandTyper.typeOf(left, context);
+    const t = OperandTyper.typeOf(SyntaxLowering.expressionNode(left), context);
     if (t?.form.kind !== "composite") return t;
     if (t.typeName === null || t.bitWidth === null) return null;
     return {
@@ -112,7 +116,10 @@ class ShiftCheck {
 
   /** Any value leaf signed, or a negated literal */
   private isSigned(operand: ParserRuleContext): boolean {
-    return OperandTyper.valueLeaves(operand, this.context).some(
+    return OperandTyper.valueLeaves(
+      SyntaxLowering.expressionNode(operand),
+      this.context,
+    ).some(
       (leaf) =>
         leaf !== null &&
         (leaf.category === "signed" ||
@@ -140,7 +147,10 @@ class ShiftCheck {
     const width = shifted.bitWidth;
     if (!integer || width === null || shifted.dimensions.length > 0) return;
     const leftType = shifted.typeName ?? shifted.category;
-    const amount = OperandTyper.constantOf(amountExpr, this.context);
+    const amount = OperandTyper.constantOf(
+      SyntaxLowering.expressionNode(amountExpr),
+      this.context,
+    );
     if (amount === null) return;
     const { line, column } = ParserUtils.getPosition(amountExpr);
     if (amount < 0) {

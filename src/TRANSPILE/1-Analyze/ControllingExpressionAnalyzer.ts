@@ -204,7 +204,13 @@ class ControllingExpressionListener extends CNextListener {
     const negated = text.startsWith("!");
     const base = negated ? text.slice(1) : text;
     if (
-      OperandTyper.isBoolean(OperandTyper.typeOfName(base, node, this.context))
+      OperandTyper.isBoolean(
+        OperandTyper.typeOfName(
+          base,
+          ParserUtils.getPosition(node),
+          this.context,
+        ),
+      )
     ) {
       return `write it out, e.g. ${base} = ${negated ? "false" : "true"}`;
     }
