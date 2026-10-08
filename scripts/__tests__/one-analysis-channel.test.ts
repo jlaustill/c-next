@@ -11,10 +11,11 @@
  *
  * Each arm has a population control, so none can pass by matching nothing.
  */
-import { describe, it, expect } from "vitest";
+import { beforeAll, describe, it, expect } from "vitest";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  type ClassDeclaration,
   Node,
   Project,
   type ParameterDeclaration,
@@ -39,8 +40,35 @@ function typeName(node: Node): string | undefined {
   return (type.getAliasSymbol() ?? type.getSymbol())?.getName();
 }
 
+/** The types an instance member can read through `this` */
+const classMemberTypes = new Map<ClassDeclaration, (string | undefined)[]>();
+function membersOf(cls: ClassDeclaration): (string | undefined)[] {
+  let members = classMemberTypes.get(cls);
+  if (!members) {
+    members = cls
+      .getProperties()
+      .map(typeName)
+      .concat(
+        cls.getConstructors().flatMap((c) =>
+          c
+            .getParameters()
+            .filter((p) => p.isParameterProperty())
+            .map(typeName),
+        ),
+      );
+    classMemberTypes.set(cls, members);
+  }
+  return members;
+}
+
+interface IFunctionSite {
+  where: string;
+  params: (string | undefined)[];
+  classMembers: (string | undefined)[];
+}
+
 /** Every function-like declaration with the parameters it takes */
-function functionsIn(files: SourceFile[]) {
+function functionsIn(files: SourceFile[]): IFunctionSite[] {
   return files.flatMap((file) =>
     file
       .getDescendants()
@@ -67,24 +95,23 @@ function functionsIn(files: SourceFile[]) {
         return {
           where: `${relative(repoRoot, file.getFilePath())}:${node.getStartLineNumber()}`,
           params: fn.getParameters().map(typeName),
-          classMembers: (cls?.getProperties() ?? []).map(typeName).concat(
-            (cls?.getConstructors() ?? []).flatMap((c) =>
-              c
-                .getParameters()
-                .filter((p) => p.isParameterProperty())
-                .map(typeName),
-            ),
-          ),
+          classMembers: cls ? membersOf(cls) : [],
         };
       }),
   );
 }
 
 describe("one channel per fact (#1659)", () => {
-  const analyzers = functionsIn(sourceFiles("src/TRANSPILE/1-Analyze/"));
+  // One type-checked scan of the pipeline, shared by every arm
+  let pipeline: IFunctionSite[] = [];
+  const under = (prefix: string) =>
+    pipeline.filter((fn) => fn.where.startsWith(prefix));
+  beforeAll(() => {
+    pipeline = functionsIn(sourceFiles("src/TRANSPILE/"));
+  }, 120_000);
 
   it("2.1: nothing that can reach an IAnalysisContext also takes a SymbolTable", () => {
-    const reachesContext = analyzers.filter(
+    const reachesContext = under("src/TRANSPILE/1-Analyze/").filter(
       (fn) =>
         fn.params.includes("IAnalysisContext") ||
         fn.classMembers.includes("IAnalysisContext"),
@@ -99,8 +126,7 @@ describe("one channel per fact (#1659)", () => {
   });
 
   it("2.2: nothing that takes an IAssignmentContext also takes a TranspileState", () => {
-    const classifierSide = functionsIn(sourceFiles("src/TRANSPILE/"));
-    const takesCtx = classifierSide.filter((fn) =>
+    const takesCtx = pipeline.filter((fn) =>
       fn.params.includes("IAssignmentContext"),
     );
     // Population control: 61 when this was written
@@ -113,9 +139,7 @@ describe("one channel per fact (#1659)", () => {
   });
 
   it("2.2: AssignmentClassifier reaches TranspileState only through ctx", () => {
-    const classifier = functionsIn(
-      sourceFiles("src/TRANSPILE/2-Plan/AssignmentClassifier.ts"),
-    );
+    const classifier = under("src/TRANSPILE/2-Plan/AssignmentClassifier.ts:");
     // Population control: 29 when this was written
     expect(classifier.length).toBeGreaterThan(20);
 
