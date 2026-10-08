@@ -100,7 +100,7 @@ import functionGenerator from "./3-Render/codegen/generators/declarationGenerato
 import scopeGenerator from "./3-Render/codegen/generators/declarationGenerators/ScopeGenerator";
 import FormatUtils from "../utils/FormatUtils";
 import TypeCheckUtils from "../utils/TypeCheckUtils";
-import ExpressionUtils from "../utils/ExpressionUtils";
+import ExpressionCalls from "../utils/ExpressionCalls";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
 import includeGenerators from "./3-Render/codegen/generators/support/IncludeGenerator";
 import commentUtils from "./3-Render/codegen/generators/support/CommentUtils";
@@ -5415,72 +5415,11 @@ class CodeGenWalker {
   }
 
   /**
-   * True when the text contains an identifier followed by `(`, as
-   * /[a-zA-Z_]\w*\s*\(/ did -- scanned rather than matched, because that
-   * pattern retries \w* from every position when no `(` follows (S8786).
-   *
-   * The match may begin anywhere inside a word run, so the run before the
-   * parenthesis needs only to contain one letter or underscore: "9a8(" matches
-   * (starting at 'a') while "99(" does not.
-   */
-  private static _hasIdentifierBeforeParen(text: string): boolean {
-    for (let index = 0; index < text.length; index += 1) {
-      if (text[index] !== "(") {
-        continue;
-      }
-      let cursor = index - 1;
-      while (cursor >= 0 && /\s/.test(text[cursor])) {
-        cursor -= 1;
-      }
-      let sawIdentifierStart = false;
-      while (cursor >= 0 && /\w/.test(text[cursor])) {
-        if (/[a-zA-Z_]/.test(text[cursor])) {
-          sawIdentifierStart = true;
-        }
-        cursor -= 1;
-      }
-      if (sawIdentifierStart) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
-   * ADR-023: Check if expression has side effects (E0602)
-   * Side effects include: assignments, function calls
+   * ADR-023 / MISRA C:2012 Rule 13.6: whether the operand contains a call --
+   * E0602's question, asked through the same predicate (#1932).
    */
   private hasSideEffects(expr: Parser.ExpressionContext): boolean {
-    const text = expr.getText();
-
-    // Check for assignment operators
-    if (text.includes("<-")) return true;
-    if (text.includes("+<-")) return true;
-    if (text.includes("-<-")) return true;
-    if (text.includes("*<-")) return true;
-    if (text.includes("/<-")) return true;
-    if (text.includes("%<-")) return true;
-    if (text.includes("&<-")) return true;
-    if (text.includes("|<-")) return true;
-    if (text.includes("^<-")) return true;
-    if (text.includes("<<<-")) return true;
-    if (text.includes(">><-")) return true;
-
-    // Check for function calls by looking for identifier followed by (
-    // This is a heuristic - looking for "name(" pattern that's not a cast
-    if (CodeGenWalker._hasIdentifierBeforeParen(text)) {
-      // Could be a function call - walk the tree to confirm
-      return this.hasPostfixFunctionCall(expr);
-    }
-
-    return false;
-  }
-
-  /**
-   * ADR-023: Check if expression contains a function call (postfix with argumentList)
-   */
-  private hasPostfixFunctionCall(expr: Parser.ExpressionContext): boolean {
-    return ExpressionUtils.hasFunctionCall(expr);
+    return ExpressionCalls.containsCall(SyntaxLowering.expression(expr));
   }
 
   /**

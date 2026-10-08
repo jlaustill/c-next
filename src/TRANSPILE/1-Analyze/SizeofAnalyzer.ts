@@ -30,6 +30,8 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
+import ExpressionCalls from "../../utils/ExpressionCalls";
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import ParserUtils from "../../utils/ParserUtils";
 import EnclosingFunction from "./helpers/EnclosingFunction";
 import ISizeofError from "./types/ISizeofError";
@@ -71,7 +73,10 @@ class SizeofListener extends CNextListener {
       }
     }
 
-    if (expr !== null && SizeofListener.containsCall(expr)) {
+    if (
+      expr !== null &&
+      ExpressionCalls.containsCall(SyntaxLowering.expression(expr))
+    ) {
       this.report(
         expr,
         "E0602",
@@ -80,28 +85,6 @@ class SizeofListener extends CNextListener {
       );
     }
   };
-
-  /**
-   * Whether a call appears anywhere in the operand.
-   *
-   * A call is the only side effect an expression can have here: assignment is
-   * a statement, and increment and decrement are not expressions either.
-   */
-  private static containsCall(node: ParserRuleContext): boolean {
-    if (node instanceof Parser.PostfixExpressionContext) {
-      if (node.postfixOp().some((op) => op.LPAREN() !== null)) return true;
-    }
-    for (let index = 0; index < node.getChildCount(); index += 1) {
-      const child = node.getChild(index);
-      if (
-        child instanceof ParserRuleContext &&
-        SizeofListener.containsCall(child)
-      ) {
-        return true;
-      }
-    }
-    return false;
-  }
 
   private report(
     at: ParserRuleContext,

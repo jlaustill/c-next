@@ -1,0 +1,17 @@
+// test-execution
+// #1932: `sizeof`'s render invariant asked the operand's TEXT for `<-`, and
+// the text joins tokens, so `a < -b` read as `a<-b` and the transpiler
+// stopped with "Internal: sizeof()'s operand has no side effects". It asks
+// E0602's question now: whether the operand contains a call.
+//
+// NEGATIVE CONTROL: `a > -b` never spelled `<-`, and sized before this too.
+i32 a <- 1;
+i32 b <- 2;
+
+u32 main() {
+    u32 relational <- sizeof(a < -b);
+    if (relational = 0) return 1;
+    u32 greater <- sizeof(a > -b);
+    if (greater = 0) return 2;
+    return 0;
+}
