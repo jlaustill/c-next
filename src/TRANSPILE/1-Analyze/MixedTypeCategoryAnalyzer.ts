@@ -107,7 +107,7 @@ class MixedCategoryCheck {
    * running category it folded to, or null when a pair in it differed --
    * already reported there, once. Levels are checked innermost first.
    */
-  private readonly levelCategories = new Map<TExpression, Category>();
+  private readonly levelCategories = new Map<string, Category>();
 
   constructor(
     private readonly analyzer: MixedTypeCategoryAnalyzer,
@@ -120,6 +120,15 @@ class MixedCategoryCheck {
    * An operand's Rule 10.4 category, or null when it has none. The policy
    * over the typer's facts, decided here and only here.
    */
+  /**
+   * One key per written node: each lowering builds new objects, so a level is
+   * known again by where it was written, not by identity.
+   */
+  private static writtenAt(expr: TExpression): string {
+    const { line, column, endLine, endColumn } = expr.span;
+    return `${expr.kind}:${line}:${column}:${endLine}:${endColumn}`;
+  }
+
   static rule104Category(t: IOperandType | null): Category {
     if (t === null) return null;
     // An array is not an arithmetic operand of any category (#1191)
@@ -143,8 +152,9 @@ class MixedCategoryCheck {
   private operandCategory(ctx: ParserRuleContext): Category {
     const operand = SyntaxLowering.expressionNode(ctx);
     const level = OperandTyper.compositeLevelOf(operand);
-    if (level !== null && this.levelCategories.has(level)) {
-      return this.levelCategories.get(level) ?? null;
+    const key = level === null ? null : MixedCategoryCheck.writtenAt(level);
+    if (key !== null && this.levelCategories.has(key)) {
+      return this.levelCategories.get(key) ?? null;
     }
     let resolved: Category = null;
     for (const leaf of OperandTyper.valueLeaves(operand, this.context)) {
@@ -195,7 +205,7 @@ class MixedCategoryCheck {
     }
     if (parent) {
       this.levelCategories.set(
-        SyntaxLowering.expressionNode(parent),
+        MixedCategoryCheck.writtenAt(SyntaxLowering.expressionNode(parent)),
         mixed ? null : running,
       );
     }
