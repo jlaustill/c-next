@@ -19,6 +19,13 @@ describe("ErrorLocation", () => {
         42,
         "Overflow at boundary",
       ],
+      [
+        "should preserve full message content after prefix",
+        "5:10 Error: Use bit indexing: value[0, 8]",
+        5,
+        10,
+        "Error: Use bit indexing: value[0, 8]",
+      ],
     ])("%s", (_label, source, line, column, message) => {
       const result = ErrorLocation.parse(source);
       expect(result.line).toBe(line);
@@ -26,49 +33,24 @@ describe("ErrorLocation", () => {
       expect(result.message).toBe(message);
     });
 
-    it("should default to line 1 column 0 when no prefix found", () => {
-      const result = ErrorLocation.parse("Error: something went wrong");
-      expect(result.line).toBe(1);
-      expect(result.column).toBe(0);
-      expect(result.message).toBe("Error: something went wrong");
-    });
-
     it.each([
-      ["should default for empty string", "", ""],
       [
-        "should not match non-numeric prefix",
-        "abc:def some error",
-        "abc:def some error",
+        "should default to line 1 column 0 when no prefix found",
+        "Error: something went wrong",
       ],
-      ["should not match if no space after column", "8:4", "8:4"],
-    ])("%s", (_label, source, expected) => {
+      ["should default for empty string", ""],
+      ["should not match non-numeric prefix", "abc:def some error"],
+      ["should not match if no space after column", "8:4"],
+      [
+        "should not match numeric line with non-numeric column",
+        "8:abc some error",
+      ],
+      ["should not match when colon is at position 0", ":4 some error"],
+    ])("%s", (_label, source) => {
       const result = ErrorLocation.parse(source);
       expect(result.line).toBe(1);
       expect(result.column).toBe(0);
-      expect(result.message).toBe(expected);
-    });
-
-    it("should preserve full message content after prefix", () => {
-      const result = ErrorLocation.parse(
-        "5:10 Error: Use bit indexing: value[0, 8]",
-      );
-      expect(result.line).toBe(5);
-      expect(result.column).toBe(10);
-      expect(result.message).toBe("Error: Use bit indexing: value[0, 8]");
-    });
-
-    it("should not match numeric line with non-numeric column", () => {
-      const result = ErrorLocation.parse("8:abc some error");
-      expect(result.line).toBe(1);
-      expect(result.column).toBe(0);
-      expect(result.message).toBe("8:abc some error");
-    });
-
-    it("should not match when colon is at position 0", () => {
-      const result = ErrorLocation.parse(":4 some error");
-      expect(result.line).toBe(1);
-      expect(result.column).toBe(0);
-      expect(result.message).toBe(":4 some error");
+      expect(result.message).toBe(source);
     });
   });
 });
