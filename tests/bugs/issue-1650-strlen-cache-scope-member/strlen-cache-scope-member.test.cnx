@@ -1,0 +1,36 @@
+// test-execution
+// test-no-warnings
+// test-adr: 016, 057
+// Issue #1650 (part 1): the strlen cache of a scope member named the bare member.
+//
+// `label` is emitted qualified (`Cfg__label`, ADR-016), but the length cache
+// was declared from the source name, as `strlen(label)` -- an undeclared
+// identifier, so gcc rejected the program the transpiler reported as fine.
+// The cache needs two `.char_count` reads; one read was already right.
+//
+// Negative controls: the member read ONCE (no cache, correct before the fix)
+// and a file-scope string read twice (cached as `strlen(title)`, which worked
+// and must keep working).
+
+string<8> title <- "xyz";
+
+scope Cfg {
+    public string<8> label <- "ab";
+
+    public u32 check() {
+        if (label.char_count != 2 || label.char_count < 1) {
+            return 1;
+        }
+        if (label.char_count != 2) {
+            return 2;
+        }
+        return 0;
+    }
+}
+
+u32 main() {
+    u32 result <- Cfg.check();
+    if (result != 0) return result;
+    if (title.char_count != 3 || title.char_count < 1) return 3;
+    return 0;
+}

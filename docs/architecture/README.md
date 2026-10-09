@@ -103,9 +103,10 @@ without opening the file.
 (#1443, owner ruling). `CodeGenWalker.ts` walks one file and calls into both 2.2 Plan and
 2.3 Render, so inside `2-Plan/` it would be Plan importing Render. `TranspileState.ts` is
 the per-file working data of 2.2 and 2.3. 2.3 and the walker write it. 2.2 writes none of
-it, but it reads two things 2.3 wrote earlier in the same file: the current scope path
-(`setCurrentScopeByPath`) and the local renames (`registerLocalVariable`, read through
-`declarationTypeInfo`). #1313 box 3 records that measurement. Placed in `3-Render/`, the
+it and reads nothing 2.3 writes: the fields it reads are written by the CLI and the walker.
+It takes a target's scope path from Program's lexical frames, as 2.1 does, and looks a name
+up as the source spells it, so it needs no rename (#1934). #1313 box 3 records that
+measurement, and `npm run plan-render-state:check` asserts it in CI. Placed in `3-Render/`, the
 state made eight Plan modules import Render. `types/` holds `ICodeGenApi`, the slot `TranspileState`
 fills. Each still has a place in the pass order: the state comes after 2.1 Analyze, which
 may not reach it (#1456), and before 2.2; the walker comes after 2.3. A layer holds its

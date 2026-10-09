@@ -1,0 +1,22 @@
+// test-execution
+// test-no-warnings
+// test-adr: 057
+// Issue #1650 (part 2): the strlen cache measured a whole array of strings.
+//
+// `names[0].char_count` read twice was counted under `names`, so the cache was
+// declared as `strlen(names)` -- a char[4][9] passed as a char *, which gcc
+// only warned about -- and no read used it, since each read measures the
+// element. An element's length is not the variable's, so it is not cached.
+//
+// Negative controls: the element read ONCE (no cache, correct before the fix)
+// and a plain string local read twice (cached, which worked and must keep
+// working).
+
+u32 main() {
+    string<8>[4] names <- ["ab"*];
+    if (names[0].char_count != 2 || names[0].char_count < 1) return 1;
+    if (names[1].char_count != 2) return 2;
+    string<8> word <- "abc";
+    if (word.char_count != 3 || word.char_count < 1) return 3;
+    return 0;
+}

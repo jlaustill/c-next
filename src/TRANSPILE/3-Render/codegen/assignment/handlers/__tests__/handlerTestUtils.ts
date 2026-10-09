@@ -186,14 +186,16 @@ function targetOf(
   state: TranspileState,
   ctx: Pick<
     IAssignmentContext,
-    "identifiers" | "resolvedBaseIdentifier" | "hasThis" | "hasGlobal"
+    | "identifiers"
+    | "resolvedBaseIdentifier"
+    | "hasThis"
+    | "hasGlobal"
+    | "scopePath"
   >,
 ): IChainBase {
   const declared = declarations.get(state) ?? new Map<string, TTypeInfo>();
   const ids = ctx.identifiers;
-  const member = declared.get(
-    ScopeUtils.qualifyInScope(ids[0], state.currentScopePath),
-  );
+  const member = declared.get(ScopeUtils.qualifyInScope(ids[0], ctx.scopePath));
   let rootTypeInfo: TTypeInfo | undefined;
   if (ctx.hasThis) rootTypeInfo = member;
   else if (ctx.hasGlobal) rootTypeInfo = declared.get(ids[0]);

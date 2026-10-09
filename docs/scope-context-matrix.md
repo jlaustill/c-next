@@ -365,12 +365,13 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-10 linked fixtures with no derivable context:
+11 linked fixtures with no derivable context:
 
 - `adr-057/local-shadows-scope.test.cnx`
 - `adr-057/scope-variable-does-not-capture-type.test.cnx`
 - `adr-057/shadowing-all-levels.test.cnx`
 - `bugs/issue-1472-global-qualifier-register-capture/global-vs-scoped-bitmap.test.cnx`
+- `bugs/issue-1650-strlen-cache-scope-member/strlen-cache-array-element.test.cnx`
 - `bugs/issue-1724-sibling-scope-type-not-included/frames-see-own-closure-error.test.cnx`
 - `bugs/issue-1724-sibling-scope-type-not-included/motor-uses-ext-alone.test.cnx`
 - `bugs/issue-1724-sibling-scope-type-not-included/sibling-declared-first.test.cnx`

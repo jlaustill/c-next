@@ -92,6 +92,7 @@ function loop(overrides: Partial<IPlannedLoop> = {}): IPlannedLoop {
 function ifPlan(overrides: Partial<IPlannedIf> = {}): IPlannedIf {
   return {
     lengthCounts: new Map(),
+    renderLengthOperand: (name) => name,
     renderCondition: () => "cond",
     renderThen: () => "{ then }",
     renderElse: null,
@@ -263,15 +264,19 @@ describe("ControlFlowGenerator", () => {
         lengthCacheDecls: "size_t cnx_len_s = strlen(s);\n",
       });
       const lengthCounts = new Map([["s", 3]]);
+      const renderLengthOperand = (name: string) => name;
 
       const result = generateIf(
-        ifPlan({ lengthCounts }),
+        ifPlan({ lengthCounts, renderLengthOperand }),
         INPUT,
         STATE,
         orchestrator,
       );
 
-      expect(orchestrator.setupLengthCache).toHaveBeenCalledWith(lengthCounts);
+      expect(orchestrator.setupLengthCache).toHaveBeenCalledWith(
+        lengthCounts,
+        renderLengthOperand,
+      );
       expect(result.code.startsWith("size_t cnx_len_s = strlen(s);\n")).toBe(
         true,
       );
