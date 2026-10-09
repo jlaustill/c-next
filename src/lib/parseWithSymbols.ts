@@ -4,7 +4,8 @@
  */
 
 import SymbolRegistry from "../PARSE/3-Declare/SymbolRegistry";
-import CNextResolver from "../PARSE/3-Declare/cnext/index";
+import Discover from "../PARSE/1-Discover/Discover";
+import TreePasses from "../TRANSPILE/1-Analyze/TreePasses";
 import DeferredTypes from "../PARSE/4-Resolve/DeferredTypes";
 import ScopeUtils from "../utils/ScopeUtils";
 import TypeResolver from "../utils/TypeResolver";
@@ -305,9 +306,8 @@ function parseWithSymbols(source: string): IParseWithSymbolsResult {
   // #1378, closed by construction (#1452 box 3): this path never reset the
   // global registry, so scopes from a previously parsed source leaked into the
   // next call. There is no global to reset now -- each call gets its own.
-  const resolved = CNextResolver.resolveSource(
-    source,
-    "<source>",
+  const resolved = TreePasses.declareFile(
+    Discover.inMemoryFile(source, "<source>"),
     new SymbolRegistry(),
   );
   const declared = resolved.symbols;

@@ -13,8 +13,6 @@ import ScopeUtils from "../../../utils/ScopeUtils";
 import TSymbol from "../../../types/symbols/TSymbol";
 import IFileSymbols from "../../../types/IFileSymbols";
 import SymbolRegistry from "../SymbolRegistry";
-import CNextSourceParser from "../../2-Parse/CNextSourceParser";
-import ITranspileError from "../../../types/ITranspileError";
 import BitmapCollector from "./collectors/BitmapCollector";
 import EnumCollector from "./collectors/EnumCollector";
 import StructCollector from "./collectors/StructCollector";
@@ -42,23 +40,6 @@ type TScopeMemberDeclaration =
   | null;
 
 class CNextResolver {
-  /**
-   * One C-Next source's text, parsed by 1.2 and resolved, for a caller with no
-   * pipeline (`lib/parseWithSymbols`). The tree stays inside 1.3, so the
-   * caller holds none (#1957).
-   */
-  static resolveSource(
-    source: string,
-    sourceFile: string,
-    registry: SymbolRegistry,
-  ): { symbols: IFileSymbols; parseErrors: readonly ITranspileError[] } {
-    const parsed = CNextSourceParser.parse(source);
-    return {
-      symbols: CNextResolver.resolve(parsed.tree, sourceFile, registry),
-      parseErrors: parsed.parseErrors,
-    };
-  }
-
   /**
    * Resolve all symbols from a C-Next program parse tree.
    *

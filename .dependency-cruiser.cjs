@@ -442,6 +442,54 @@ module.exports = {
       to: { path: PARSE_TREE_TYPES },
     },
     {
+      name: "only-tree-passes-parse",
+      comment:
+        "#1932, owner ruling 2026-10-09: 1.1 exports what 1.2 needs, 1.2 returns " +
+        "what 1.3 needs, and so on down the chain. Source text enters at 1.1, " +
+        "and only `TreePasses` hands it to a parser, so no pass -- 1.3 included " +
+        "-- can take text and parse it again. The old routes " +
+        "(`CNextResolver.resolveSource`, `HeaderDeclarations.resolveC`, " +
+        "`declare(text, ...)`) are deleted; this keeps them from coming back.",
+      severity: "error",
+      from: {
+        path: "^src/",
+        pathNot: [
+          "^src/PARSE/2-Parse/",
+          "^src/TRANSPILE/1-Analyze/TreePasses\\.ts$",
+          "__tests__/",
+          "__testUtils__/",
+          "\\.test\\.ts$",
+        ],
+      },
+      to: {
+        path: [
+          "^src/PARSE/2-Parse/CNextSourceParser\\.ts$",
+          "^src/PARSE/2-Parse/HeaderParser\\.ts$",
+        ],
+      },
+    },
+    {
+      name: "tree-passes-called-by-hosts-only",
+      comment:
+        "#1932: `TreePasses` is where text from 1.1 meets 1.2, so only the " +
+        "hosts that start a pipeline at 1.1 may call it: `cli/Transpiler.ts` " +
+        "and the `lib/` entry points. A later pass calling it would be a parse " +
+        "after 1.2.",
+      severity: "error",
+      from: {
+        path: "^src/",
+        pathNot: [
+          "^src/cli/Transpiler\\.ts$",
+          "^src/lib/",
+          "^src/TRANSPILE/1-Analyze/TreePasses\\.ts$",
+          "__tests__/",
+          "__testUtils__/",
+          "\\.test\\.ts$",
+        ],
+      },
+      to: { path: "^src/TRANSPILE/1-Analyze/TreePasses\\.ts$" },
+    },
+    {
       name: "parse-tree-confined-to-parser",
       comment:
         "#1932, owner ruling 2026-10-07: the parse tree is gone before 2.2. " +
@@ -453,8 +501,8 @@ module.exports = {
         "1.2's carrier `IParsedFile`; " +
         "and 1.1's `IncludeDiscovery`, which lexes with 1.2's `CNextLexer` and " +
         "builds no tree (#1745, owner ruling 2026-09-30; PASS_ORDER `mayRead`). " +
-        "The library entry points in `lib/` hand 1.3 source text and get " +
-        "symbols back, so they hold no tree and are not exempt (#1957). " +
+        "The library entry points in `lib/` start at 1.1 and go through " +
+        "`TreePasses`, so they hold no tree and are not exempt (#1957). " +
         "Nor is the host: 1-Analyze's `TreePasses` runs 1.2 through 2.1 as one " +
         "call, and `cli/Transpiler.ts` gets plain data in and out (#1932, " +
         "owner ruling 2026-10-09). " +

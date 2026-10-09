@@ -12,6 +12,16 @@
  * then 2.1 analyzes every file before any is planned (#1320).
  */
 import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
+import HeaderParser from "../../PARSE/2-Parse/HeaderParser";
+import EHeaderLanguage from "../../PARSE/1-Discover/types/EHeaderLanguage";
+import type IHeaderSource from "../../PARSE/1-Discover/types/IHeaderSource";
+import type IRecoveredSlice from "../../PARSE/1-Discover/types/IRecoveredSlice";
+import CResolver from "../../PARSE/3-Declare/c/index";
+import HeaderDeclarations from "../../PARSE/3-Declare/HeaderDeclarations";
+import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
+import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
+import type IFileSymbols from "../../types/IFileSymbols";
+import invariant from "../../utils/invariant";
 import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import type IPipelineFile from "../../PARSE/1-Discover/types/IPipelineFile";
 import type IAnalyzedFile from "../../types/IAnalyzedFile";
@@ -94,6 +104,73 @@ class TreePasses {
       diagnostics: Diagnostics.build(byFile),
       files: analyzed,
     };
+  }
+
+  /**
+   * One header from 1.1, through 1.2 into 1.3: its symbols written to the
+   * run's table, its tree a local here (#1932).
+   */
+  static declareHeader(
+    path: string,
+    source: IHeaderSource,
+    symbolTable: SymbolTable,
+  ): void {
+    HeaderDeclarations.declare(HeaderParser.parse(source), path, symbolTable);
+  }
+
+  /**
+   * Issue #985: 1.1's recovered slices (#1279), each parsed by 1.2 and
+   * declared by 1.3, and a clean per-slice C parse for
+   * `HeaderDeclarations.clearPhantomStructBodies`, which this returns.
+   */
+  static recoverDeclarations(
+    slices: ReadonlyMap<string, IRecoveredSlice>,
+    symbolTable: SymbolTable,
+  ): SymbolTable {
+    const cleanState = new SymbolTable();
+    for (const [path, slice] of slices) {
+      HeaderDeclarations.recoverSlice(
+        path,
+        HeaderParser.parse(slice),
+        HeaderParser.parseC(slice.text).tree,
+        symbolTable,
+        cleanState,
+      );
+    }
+    return cleanState;
+  }
+
+  /**
+   * One C-Next file from 1.1, through 1.2 into 1.3, for a caller with no run
+   * (`lib/parseWithSymbols`). Unlike `run`, a parse error does not stop it:
+   * the editor's symbol list is read while the text is mid-edit, so it is
+   * declared from the repaired tree and the errors travel beside the symbols.
+   */
+  static declareFile(
+    file: IPipelineFile,
+    registry: SymbolRegistry,
+  ): { symbols: IFileSymbols; parseErrors: readonly ITranspileError[] } {
+    const parsed = CNextSourceParser.parse(file.source);
+    return {
+      symbols: CNextResolver.resolve(parsed.tree, file.path, registry),
+      parseErrors: parsed.parseErrors,
+    };
+  }
+
+  /**
+   * One C header from 1.1, through 1.2 into 1.3, resolved on its own for a
+   * caller with no run (`lib/parseCHeader`); null when it cannot be parsed.
+   */
+  static resolveCHeader(
+    source: IHeaderSource,
+    path: string,
+  ): ReturnType<typeof CResolver.resolve> | null {
+    invariant(
+      source.language === EHeaderLanguage.C,
+      `resolveCHeader reads a C header, not ${source.language}`,
+    );
+    const { tree } = HeaderParser.parseC(source.text);
+    return tree ? CResolver.resolve(tree, path) : null;
   }
 
   /** True for a file the run analyzes, plans and writes, not only declares */

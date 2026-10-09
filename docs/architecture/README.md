@@ -276,10 +276,15 @@ returns without naming its type (#1957).
   lexer-only include scan (#1745), 1.2 and 1.3), 2.1, and the named shared helpers may
   import the grammar. The host is not exempt: 2.1's `TreePasses` runs 1.2 through 2.1 as
   one call, every tree a local of that call, and `src/cli/Transpiler.ts` hands it and
-  gets back plain data only (#1932). The library entry points in `src/lib/` hand 1.3
-  source text and get symbols back (`CNextResolver.resolveSource`,
-  `HeaderDeclarations.resolveC`), so they hold no tree (#1957). Each named helper is a target of the rule too,
+  gets back plain data only (#1932). The library entry points in `src/lib/` start at
+  1.1 too (`Discover.inMemoryFile`, `Discover.inMemoryCHeader`) and go through
+  `TreePasses`, so they hold no tree (#1957). Each named helper is a target of the rule too,
   so a pass after 2.1 that imports one fails as if it had imported the grammar.
+- `only-tree-passes-parse` (`error`): source text enters at 1.1, and only `TreePasses`
+  hands it to a parser (`CNextSourceParser`, `HeaderParser`). 1.3 takes 1.2's trees and
+  never text, so no pass can parse again; `tree-passes-called-by-hosts-only` (`error`)
+  lets only `src/cli/Transpiler.ts` and `src/lib/` call `TreePasses` (#1932, owner
+  ruling 2026-10-09).
 - The rule reads imports, not values. A helper a later pass may call must read plain data
   only: the type-name ladder, `utils/TypeNameLadder`, reads lowered types, so 1.3, 2.1,
   the walker and Render all call the same one (#1932). What a

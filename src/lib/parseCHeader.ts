@@ -3,7 +3,8 @@
  * ADR-055 Phase 7: Direct TCSymbol → ISymbolInfo conversion (no ISymbol intermediate)
  */
 
-import HeaderDeclarations from "../PARSE/3-Declare/HeaderDeclarations";
+import Discover from "../PARSE/1-Discover/Discover";
+import TreePasses from "../TRANSPILE/1-Analyze/TreePasses";
 import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
 import TSymbolKind from "./types/TSymbolKind";
@@ -115,7 +116,10 @@ function parseCHeader(
     // this one silenced the lexer too, so a token the C lexer cannot recognize
     // printed to stderr on the transpiler path and was silent here (#1306
     // review). Two paths that must agree is the bug, not the symptom.
-    const result = HeaderDeclarations.resolveC(source, filePath ?? "<header>");
+    const result = TreePasses.resolveCHeader(
+      Discover.inMemoryCHeader(source),
+      filePath ?? "<header>",
+    );
     if (result === null) {
       errors.push({
         line: 1,

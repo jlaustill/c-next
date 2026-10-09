@@ -1203,7 +1203,7 @@ class Transpiler {
     const recovered = input.recoveredDeclarations;
     if (recovered === null) return;
 
-    const cleanState = HeaderDeclarations.recoverSlices(
+    const cleanState = TreePasses.recoverDeclarations(
       recovered.slices,
       this.codeGenerator.transpileState.symbolTable,
     );
@@ -1657,10 +1657,9 @@ class Transpiler {
         `[DEBUG]   Parsing ${Transpiler._languageName(source.language)} header: ${file.path}`,
       );
     }
-    HeaderDeclarations.declare(
-      source.text,
+    TreePasses.declareHeader(
       file.path,
-      source.language,
+      source,
       this.codeGenerator.transpileState.symbolTable,
     );
   }
