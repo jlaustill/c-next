@@ -59,17 +59,21 @@ class SyntaxLowering {
       .map((op) => SyntaxLowering.postfixTargetOp(op));
     const root = ChainRoot.ofTarget(ctx);
     if (root === null) {
-      const head: TExpression = named
-        ? {
-            kind: "identifier",
-            name: named.getText(),
-            span: ParserUtils.getSpan({
-              start: named.symbol,
-              stop: named.symbol,
-            }),
-            written: named.getText(),
-          }
-        : SyntaxLowering.missing(ctx);
+      // The unrooted arm starts with its IDENTIFIER, and recovery never invents
+      // one there: 0 of 14,888 recovered targets in a seeded run (#1949 review)
+      invariant(
+        named !== null,
+        "an unrooted assignment target starts with a written name",
+      );
+      const head: TExpression = {
+        kind: "identifier",
+        name: named.getText(),
+        span: ParserUtils.getSpan({
+          start: named.symbol,
+          stop: named.symbol,
+        }),
+        written: named.getText(),
+      };
       if (ops.length === 0) return head;
       return {
         kind: "postfix",
