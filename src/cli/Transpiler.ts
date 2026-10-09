@@ -34,6 +34,7 @@ import Program from "../PARSE/4-Resolve/Program";
 import type IProgram from "../types/IProgram";
 import type IFileSymbols from "../types/IFileSymbols";
 import type IParsedFile from "../types/IParsedFile";
+import type IAnalyzedFile from "../types/IAnalyzedFile";
 import TSymbol from "../types/symbols/TSymbol";
 
 import IDiscoveredFile from "../PARSE/1-Discover/types/IDiscoveredFile";
@@ -181,12 +182,14 @@ class Transpiler {
   /**
    * #1301: each file's parse and declare, keyed by source path.
    *
-   * Stage 3 populates this; Stage 5 consumes it. It is the ONLY path by which
-   * Stage 5 obtains a tree -- there is deliberately no parse-if-absent fallback,
-   * because that fallback would be the duplicate code path this removes. Every
-   * file Stage 5 visits is a member of the same `input.cnextFiles` Stage 3 walked,
-   * and Stage 3 aborts the run on a parse error before Stage 5 begins, so a miss
-   * is a pipeline-ordering bug rather than a case to recover from.
+   * Stage 3 populates this; Stage 4d (2.1 Analyze) consumes it, and
+   * `_releaseParseTrees` empties it before Stage 5 (#1932). It is the ONLY path
+   * by which Stage 4d obtains a tree -- there is deliberately no parse-if-absent
+   * fallback, because that fallback would be the duplicate code path this
+   * removes. Every file Stage 4d visits is a member of the same
+   * `input.cnextFiles` Stage 3 walked, and Stage 3 aborts the run on a parse
+   * error before Stage 4d begins, so a miss is a pipeline-ordering bug rather
+   * than a case to recover from.
    *
    * Lives on the orchestrator rather than on `TranspilerState` so that `state/`
    * stays free of ANTLR contexts (#1317).
@@ -208,7 +211,8 @@ class Transpiler {
   private program: IProgram | null = null;
 
   /**
-   * The parses retained for Stage 5, keyed by source path.
+   * The parses retained for Stage 4d, keyed by source path; released before
+   * Stage 5 (#1932).
    *
    * #1445 box 2: this was a `Map<string, IDeclaredFile>`, and `IDeclaredFile`
    * was `{ parsed: IParsedFile; symbols: readonly TSymbol[] }` -- so the record
@@ -224,6 +228,14 @@ class Transpiler {
    * something a pass passes on.
    */
   private readonly retainedParses = new Map<string, IParsedFile>();
+
+  /**
+   * What Stage 5 reads instead of `retainedParses` (#1932): each file's plain
+   * data, handed over at the end of Stage 4d, when `_releaseParseTrees` drops
+   * every tree. Nothing after 2.1 Analyze can reach a parse tree through the
+   * orchestrator, because by then it no longer holds one.
+   */
+  private readonly analyzedFiles = new Map<string, IAnalyzedFile>();
 
   /**
    * Settles when this instance's previous run has (#1721). A run starts by
@@ -384,11 +396,8 @@ class Transpiler {
       // reddened nothing. Two sites for one invariant is the duplication CLAUDE.md
       // calls the worst anti-pattern, and the unreachable half is the #1143 shape.
       this.retainedParses.clear();
+      this.analyzedFiles.clear();
       this.sourceGraph = null;
-
-      // #1445 box 2: the walker holds the token stream and the comment scanner
-      // over it on its own fields, which the map clear above cannot reach.
-      this.codeGenerator.releaseParseState();
     }
   }
 
@@ -436,6 +445,7 @@ class Transpiler {
     // had already been emitted, and an analyzer reading state codegen fills saw
     // the PREVIOUS file's data (#1430).
     const diagnostics = this._analyzeProgram(input);
+    this._releaseParseTrees();
 
     // Stage 5: Plan and Render each C-Next file
     //
@@ -820,9 +830,9 @@ class Transpiler {
     tSymbols: ReadonlyArray<TSymbol>,
   ): ITranspileError[] | null {
     try {
-      // #1301: Stage 5 consumes this parse and this declare instead of repeating
-      // both. Recorded after settlement, so a file that throws while resolving
-      // leaves no half-built entry for Stage 5 to find.
+      // #1301: later stages consume this parse and this declare instead of
+      // repeating both. Recorded after settlement, so a file that throws while
+      // resolving leaves no half-built entry for a later stage to find.
       //
       // Only for files that will read it back. A symbol-only file is still DECLARED
       // and RESOLVED -- that is the entire reason it was discovered -- but nothing
@@ -965,7 +975,7 @@ class Transpiler {
     const sourcePath = file.path;
     const errors = diagnostics.forFile(sourcePath);
     const declarationCount =
-      this.retainedParses.get(sourcePath)?.declarationCount ?? 0;
+      this.analyzedFiles.get(sourcePath)?.declarationCount ?? 0;
 
     return errors.length > 0
       ? this.buildErrorResult(sourcePath, [...errors], declarationCount)
@@ -976,9 +986,9 @@ class Transpiler {
    * The parse and declare Stage 3 already performed for this file (#1301).
    *
    * There is no parse-if-absent fallback on purpose -- that fallback is the
-   * duplicate path #1301 removed. Stages 4d and 5 walk a subset of the same
+   * duplicate path #1301 removed. Stage 4d walks a subset of the same
    * `input.cnextFiles` Stage 3 walked, and Stage 3 aborts the run on a parse
-   * error before either begins, so a miss means the pipeline ran out of order
+   * error before it begins, so a miss means the pipeline ran out of order
    * and must say so rather than quietly reparse.
    *
    * This branch is an ASSERTION, not a covered path, and is deliberately left
@@ -991,6 +1001,32 @@ class Transpiler {
    * `Internal:` assertion (#1531), so the reader knows the transpiler broke,
    * not their program.
    */
+  /**
+   * The end of 2.1 (#1932): keep each file's plain data, drop its tree.
+   *
+   * Runs after Stage 4d whether or not analysis did (`parseOnly` skips it), so
+   * no path into Stage 5 still holds a tree.
+   */
+  private _releaseParseTrees(): void {
+    for (const [path, parsed] of this.retainedParses) {
+      this.analyzedFiles.set(path, {
+        program: parsed.program,
+        declarationCount: parsed.declarationCount,
+      });
+    }
+    this.retainedParses.clear();
+  }
+
+  /** Stage 5's input for this file, from `_releaseParseTrees` (#1932) */
+  private _requireAnalyzedFile(sourcePath: string): IAnalyzedFile {
+    const analyzed = this.analyzedFiles.get(sourcePath);
+    invariant(
+      analyzed,
+      `every file that reaches code generation was analyzed and its plain data kept, ${sourcePath} included`,
+    );
+    return analyzed;
+  }
+
   private _requireRetainedParse(sourcePath: string): IParsedFile {
     const declared = this.retainedParses.get(sourcePath);
     invariant(
@@ -1094,8 +1130,8 @@ class Transpiler {
     AdrProvenance.beginFile(sourcePath);
 
     try {
-      const { tree, tokenStream, declarationCount } =
-        this._requireRetainedParse(sourcePath);
+      const analyzed = this._requireAnalyzedFile(sourcePath);
+      const { declarationCount } = analyzed;
 
       // Parse only mode
       if (this.config.parseOnly) {
@@ -1112,7 +1148,7 @@ class Transpiler {
       const sourceRelativePath =
         file.sourceRelativePath ??
         this.anchor.pathResolver.getSourceRelativePath(sourcePath);
-      const code = this.codeGenerator.generate(tree, tokenStream, {
+      const code = this.codeGenerator.generate(analyzed.program, {
         debugMode: this.config.debugMode,
         targetDescription: this._runTarget().description,
         sourcePath,

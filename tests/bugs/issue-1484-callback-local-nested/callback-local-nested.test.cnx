@@ -1,0 +1,28 @@
+// test-execution
+// #1484 / #1951 review: a callback-typed local inside an `if` body and a
+// `while` body still gets its `_fp` typedef.
+u32 total <- 0;
+
+void onTick(u32 ms) {
+    total <- total + ms;
+}
+
+void onBeat(u32 n) {
+    total <- total + n;
+}
+
+u32 main() {
+    if (total = 0) {
+        onTick handler <- onTick;
+        handler(5);
+    }
+    if (total != 5) return 1;
+    u32 i <- 0;
+    while (i < 1) {
+        onBeat beat <- onBeat;
+        beat(2);
+        i <- i + 1;
+    }
+    if (total != 7) return 2;
+    return 0;
+}

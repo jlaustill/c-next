@@ -11,6 +11,7 @@ import { CharStream, CommonTokenStream, Parser, Token } from "antlr4ng";
 import { CNextLexer } from "./grammar/CNextLexer";
 import { CNextParser } from "./grammar/CNextParser";
 import CommentScanner from "./CommentScanner";
+import ProgramLowering from "./ProgramLowering";
 import IParsedFile from "../../types/IParsedFile";
 import ITranspileError from "../../types/ITranspileError";
 import CodedErrorText from "../../utils/CodedErrorText";
@@ -233,6 +234,9 @@ class CNextSourceParser {
       get comments() {
         return scanner.extractAll();
       },
+      // Lowered here, on parse (#1932): 1.2 authors the plain-data file, so
+      // the tree can be released once 2.1 is done with it.
+      program: ProgramLowering.program(tree, scanner),
       targetDirectives: TargetDirectives.read(tree),
       parseErrors: errors,
     };

@@ -1,3 +1,6 @@
+import type { CommonTokenStream } from "antlr4ng";
+import CommentScanner from "../../PARSE/2-Parse/CommentScanner";
+import ProgramLowering from "../../PARSE/2-Parse/ProgramLowering";
 import type * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import type SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
@@ -35,7 +38,7 @@ import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
  * as an orchestrator that names none would.
  */
 type ITestGenerateOptions = Omit<
-  Parameters<CodeGenWalker["generate"]>[2],
+  Parameters<CodeGenWalker["generate"]>[1],
   "targetDescription"
 > & {
   readonly targetDescription?: ITargetDescription;
@@ -46,7 +49,7 @@ class ProgramGeneration {
   static generate(
     generator: CodeGenWalker,
     tree: Parser.ProgramContext,
-    tokenStream: Parameters<CodeGenWalker["generate"]>[1],
+    tokenStream: CommonTokenStream | undefined,
     options: ITestGenerateOptions,
     registry: SymbolRegistry,
   ): ReturnType<CodeGenWalker["generate"]> {
@@ -71,10 +74,16 @@ class ProgramGeneration {
       },
     });
 
-    return generator.generate(tree, tokenStream, {
-      ...options,
-      targetDescription,
-    });
+    return generator.generate(
+      ProgramLowering.program(
+        tree,
+        tokenStream ? new CommentScanner(tokenStream) : null,
+      ),
+      {
+        ...options,
+        targetDescription,
+      },
+    );
   }
 }
 

@@ -1,3 +1,5 @@
+import type TDirectiveKind from "../../../../types/syntax/TDirectiveKind";
+
 /**
  * An ADR-037 preprocessor directive, reduced to which shape the parser matched
  * and the directive's own text.
@@ -15,13 +17,7 @@
  * the nested ternary S3358 flagged was hiding.
  */
 interface IPlannedDirective {
-  readonly kind:
-    | "define-flag"
-    | "define-function"
-    | "define-value"
-    | "define-other"
-    | "conditional"
-    | "none";
+  readonly kind: TDirectiveKind;
   readonly text: string;
 }
 
