@@ -1,13 +1,18 @@
 /**
- * CodeGenWalker -- the parse-tree walk that drives code generation.
+ * CodeGenWalker -- the walk over one file's plain-data `IProgramSyntax`
+ * that drives code generation.
  *
  * #1445 box 3: the render pass must not hold parse nodes. This class is the
  * half of the former `CodeGenerator` that did, extracted whole: every member
  * whose text names a `Parser.*Context`, `ParserRuleContext` or
  * `CommonTokenStream`, plus the parse-free members that only those call.
  *
+ * #1932 then took the walk itself off the tree: 1.2's `ProgramLowering`
+ * produces `IParsedFile.program`, the walker generates from it, and it names
+ * no parse type -- `parse-tree-confined-to-parser` is `error` here.
+ *
  * It lives at `src/TRANSPILE/` rather than in a pass because it is not one.
- * It walks the tree and drives 2.2 and 2.3 for a single file -- the same role
+ * It walks the file and drives 2.2 and 2.3 for a single file -- the same role
  * `Transpiler` plays for a run, and README §1's tree draws it there. It cannot
  * live in `2-Plan/`: `2-2-plan-reads-no-later-pass` is `error` with
  * `reachable: true`, and the walk
