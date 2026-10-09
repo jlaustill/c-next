@@ -52,7 +52,7 @@ interface IGeneratorState {
   /** Float shadows that have current values (skip redundant memcpy) */
   readonly floatShadowCurrent: ReadonlySet<string>;
 
-  /** Cached strlen values for optimization */
+  /** Cached strlen values for optimization: measured C operand -> temp */
   readonly lengthCache: ReadonlyMap<string, string> | null;
 }
 

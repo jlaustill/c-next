@@ -186,6 +186,10 @@ class StringLengthCounter {
 
   /**
    * Walk a postfix expression - this is where we detect .char_count accesses.
+   *
+   * #1650: only `name.char_count` counts -- the length of the variable itself,
+   * the operand the cache measures. `names[0].char_count` measures an element,
+   * which a cache of `names` cannot serve.
    */
   private static walkPostfixExpr(
     ctx: Parser.PostfixExpressionContext,
@@ -196,26 +200,20 @@ class StringLengthCounter {
     const primaryId = primary.IDENTIFIER()?.getText();
     const ops = ctx.postfixOp();
 
-    // Check for pattern: identifier.char_count where identifier is a string
-    if (primaryId && ops.length > 0) {
-      for (const op of ops) {
-        const memberName = op.IDENTIFIER()?.getText();
-        if (memberName === "char_count") {
-          // Check if this is a string type
-          const typeInfo = state.sourceDeclarationTypeInfo(
-            null,
-            primaryId,
-            ParserUtils.getPosition(ctx),
-          );
-          if (typeInfo?.isString) {
-            const currentCount = counts.get(primaryId) || 0;
-            counts.set(primaryId, currentCount + 1);
-          }
-        }
-        // Walk any nested expressions in array accesses or function calls
-        for (const expr of op.expression()) {
-          StringLengthCounter.walkExpression(expr, counts, state);
-        }
+    if (primaryId && ops[0]?.IDENTIFIER()?.getText() === "char_count") {
+      const typeInfo = state.sourceDeclarationTypeInfo(
+        null,
+        primaryId,
+        ParserUtils.getPosition(ctx),
+      );
+      if (typeInfo?.isString) {
+        counts.set(primaryId, (counts.get(primaryId) ?? 0) + 1);
+      }
+    }
+    // Walk any nested expressions in array accesses or function calls
+    for (const op of ops) {
+      for (const expr of op.expression()) {
+        StringLengthCounter.walkExpression(expr, counts, state);
       }
     }
 

@@ -55,12 +55,6 @@ interface ITrackingState {
   readonly base: IChainBase;
   result: string;
   isRegisterChain: boolean;
-  /**
-   * Whether a member has been read since the root. `.char_count`'s length
-   * cache is keyed by a variable's name, so it serves only a property taken
-   * of the variable itself.
-   */
-  afterMember: boolean;
   resolvedIdentifier: string | undefined;
   subscriptDepth: number;
   isGlobalAccess: boolean;
@@ -123,7 +117,6 @@ const initializeTrackingState = (
     base,
     result,
     isRegisterChain,
-    afterMember: false,
     resolvedIdentifier: rootIdentifier,
     subscriptDepth: 0,
     isGlobalAccess: false,
@@ -370,7 +363,6 @@ const handleMemberOp = (
     memberResult.isRegisterChain ?? tracking.isRegisterChain;
   tracking.isCppAccessChain =
     memberResult.isCppAccessChain ?? tracking.isCppAccessChain;
-  tracking.afterMember = true;
 };
 
 /**
@@ -449,7 +441,6 @@ const tryPropertyAccess = (
     result: tracking.result,
     rootIdentifier,
     resolvedIdentifier: tracking.resolvedIdentifier,
-    cacheable: tracking.subscriptDepth === 0 && !tracking.afterMember,
   };
   let result: string;
   switch (memberName) {
@@ -499,8 +490,6 @@ interface IPropertyContext {
   result: string;
   rootIdentifier: string | undefined;
   resolvedIdentifier: string | undefined;
-  /** A property of the variable itself: `.char_count`'s cache may serve it */
-  cacheable: boolean;
 }
 
 /**
@@ -656,13 +645,11 @@ const generateCharCountProperty = (
 
   effects.push({ type: "include", header: "string" });
 
-  // Check length cache first (only for the variable itself, not indexed)
-  if (
-    ctx.cacheable &&
-    ctx.resolvedIdentifier &&
-    state.lengthCache?.has(ctx.resolvedIdentifier)
-  ) {
-    return state.lengthCache.get(ctx.resolvedIdentifier)!;
+  // #1946/#1650: the cache is keyed by the operand it measured, rendered as
+  // this read renders it, so a read takes it exactly when both name one object.
+  const cached = state.lengthCache?.get(ctx.result);
+  if (cached !== undefined) {
+    return cached;
   }
 
   // Use ctx.result which contains the full expression including any subscripts

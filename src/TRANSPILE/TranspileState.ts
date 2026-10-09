@@ -67,7 +67,7 @@ class TranspileState {
   emittedCallbackTypedefs: Set<string> = new Set();
   /** Current indentation level */
   indentLevel: number = 0;
-  /** strlen optimization: variable name -> temp variable name */
+  /** strlen optimization: the measured C operand -> temp variable name */
   lengthCache: Map<string, string> | null = null;
   /**
    * Issue #1212: callback `_fp` typedefs awaiting placement.

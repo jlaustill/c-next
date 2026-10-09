@@ -21,6 +21,12 @@
 interface IPlannedIf {
   /** Variable name to number of `.char_count` reads, condition + then block. */
   readonly lengthCounts: Map<string, number>;
+  /**
+   * #1946: a counted name rendered as a read of it renders, at this statement,
+   * where its cache is declared. A read takes the cache only when it renders
+   * the same, so one decision names the C identifier for both.
+   */
+  readonly renderLengthOperand: (name: string) => string;
   readonly renderCondition: () => string;
   readonly renderThen: () => string;
   /** Null when the statement has no `else`. */

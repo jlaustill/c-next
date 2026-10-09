@@ -106,7 +106,7 @@ the per-file working data of 2.2 and 2.3. 2.3 and the walker write it. 2.2 write
 it and reads nothing 2.3 writes: the fields it reads are written by the CLI and the walker.
 It takes a target's scope path from Program's lexical frames, as 2.1 does, and looks a name
 up as the source spells it, so it needs no rename (#1934). #1313 box 3 records that
-measurement. Placed in `3-Render/`, the
+measurement, and `npm run plan-render-state:check` asserts it in CI. Placed in `3-Render/`, the
 state made eight Plan modules import Render. `types/` holds `ICodeGenApi`, the slot `TranspileState`
 fills. Each still has a place in the pass order: the state comes after 2.1 Analyze, which
 may not reach it (#1456), and before 2.2; the walker comes after 2.3. A layer holds its

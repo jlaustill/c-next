@@ -73,6 +73,7 @@ run_check "Static Analysis" "parse-tree:check"           npm run parse-tree:chec
 run_check "Static Analysis" "unused-code:check"          npm run unused-code:check
 run_check "Static Analysis" "typedef-const:parity:check" npm run typedef-const:parity:check
 run_check "Static Analysis" "layout:check"               npm run layout:check
+run_check "Static Analysis" "plan-render-state:check"    npm run plan-render-state:check
 run_check "Static Analysis" "gate:roster:check"         npm run gate:roster:check
 
 echo -e "\n${YELLOW}Build${NC}"

@@ -1306,7 +1306,6 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
   });
 
   it("classifies this.member string as STRING_THIS_MEMBER", () => {
-    state.currentScopePath = "Logger";
     declare(
       "Logger__message",
       createTypeInfo({

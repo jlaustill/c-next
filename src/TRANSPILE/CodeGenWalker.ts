@@ -4873,8 +4873,11 @@ class CodeGenWalker {
       );
     }
 
+    const at = ParserUtils.getPosition(ctx);
     return {
       lengthCounts,
+      renderLengthOperand: (name) =>
+        this._resolveIdentifierExpression(name, at),
       renderCondition: () => this.generateExpression(conditionCtx),
       renderThen: () => this.generateStatement(thenStmt),
       renderElse:

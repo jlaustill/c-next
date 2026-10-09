@@ -1,0 +1,20 @@
+// test-execution
+// Issue #1946 (review of #1948): the strlen cache measures what the name means
+// where the cache is declared.
+//
+// The shadowing local `label` ends with its block. The second `if` reads the
+// global twice, so its cache must be `strlen(label)`. Taking the cache's name
+// from the function-wide rename map emitted `strlen(main__label)` there, an
+// identifier out of scope after the block, and gcc rejected it.
+
+string<8> label <- "xyz";
+
+u32 main() {
+    u32 flag <- 1;
+    if (flag = 1) {
+        string<8> label <- "ab";
+        if (label.char_count != 2 || label.char_count < 1) return 1;
+    }
+    if (label.char_count != 3 || label.char_count < 1) return 2;
+    return 0;
+}

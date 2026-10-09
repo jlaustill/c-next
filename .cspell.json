@@ -397,6 +397,7 @@
     "PIOENV",
     "pipefail",
     "PJRC",
+    "planrenderstate",
     "platformio",
     "plugintest",
     "Plutora",

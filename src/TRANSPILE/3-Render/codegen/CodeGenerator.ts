@@ -357,17 +357,19 @@ export default class CodeGenerator implements IOrchestrator {
    * Setup length cache and return declarations.
    * Part of IOrchestrator interface.
    */
-  setupLengthCache(counts: Map<string, number>): string {
+  setupLengthCache(
+    counts: Map<string, number>,
+    renderOperand: (name: string) => string,
+  ): string {
     const declarations: string[] = [];
     const cache = new Map<string, string>();
 
     for (const [varName, count] of counts) {
       if (count >= 2) {
         const tempVar = ReservedCnxName.stringLengthCache(varName);
-        cache.set(varName, tempVar);
-        // #1946: a shadowing local is emitted under its renamed identifier.
-        const emittedName = this.state.emittedLocalName(varName);
-        declarations.push(`size_t ${tempVar} = strlen(${emittedName});`);
+        const operand = renderOperand(varName);
+        cache.set(operand, tempVar);
+        declarations.push(`size_t ${tempVar} = strlen(${operand});`);
       }
     }
 

@@ -114,8 +114,14 @@ interface IOrchestrator {
   // plans now, and the planner calls `StringLengthCounter` directly, so two of
   // this interface's parse-typed members are gone with them.
 
-  /** Setup length cache and return declarations */
-  setupLengthCache(counts: Map<string, number>): string;
+  /**
+   * Setup length cache and return declarations. Each counted name is measured,
+   * and keyed, as `renderOperand` renders it.
+   */
+  setupLengthCache(
+    counts: Map<string, number>,
+    renderOperand: (name: string) => string,
+  ): string;
 
   /** Clear length cache */
   clearLengthCache(): void;
