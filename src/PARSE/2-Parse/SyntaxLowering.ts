@@ -552,11 +552,11 @@ class SyntaxLowering {
   }
 
   /** Where the parser recovered from an error: see `TExpression`'s `missing` */
-  private static missing(ctx: ParserRuleContext): TExpression {
+  static missing(ctx: ParserRuleContext): TExpression {
     return { kind: "missing", ...SyntaxLowering.node(ctx) };
   }
 
-  private static node(ctx: ParserRuleContext): ISyntaxNode {
+  static node(ctx: ParserRuleContext): ISyntaxNode {
     return {
       span: ParserUtils.getSpan(ctx),
       written: SyntaxLowering.asWritten(ctx),
