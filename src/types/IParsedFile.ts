@@ -28,14 +28,13 @@ import type IProgramSyntax from "./syntax/IProgramSyntax";
  * A pass re-deriving a fact about the PARSE is what the lifetime axis forbids,
  * so it is computed once, here, by the pass that owns it.
  *
- * What did NOT move, and is not the same question: the render layer holds ONE
- * `CommentScanner` (built in `CodeGenerator`, passed into `CommentUtils`) and
- * asks it `getCommentsBefore` / `getCommentsAfter` to re-attach comments to
- * generated declarations. Those are queries about a token INDEX, not about the
- * file, and this field cannot answer them. An earlier draft of this comment
- * called that "two more derivations" and counted three in total; it is one
- * instance answering two positional queries, and the whole-file scan it was
- * being added to was only ever done once.
+ * What did NOT move, and is not the same question: 1.2 holds ONE
+ * `CommentScanner` per parse and `ProgramLowering` asks it `getCommentsBefore`
+ * to attach each item's leading comments to `program` (#1932). That is a query
+ * about a token INDEX, not about the file, and this field cannot answer it.
+ * An earlier draft of this comment called that "two more derivations" and
+ * counted three in total; it was one instance answering positional queries,
+ * and the whole-file scan it was being added to was only ever done once.
  *
  * ## Parse errors are carried, not returned beside it
  *

@@ -93,27 +93,6 @@ class CommentFormatter {
   }
 
   /**
-   * Format a trailing/inline comment
-   * @param comment The comment
-   * @returns Formatted inline comment (with leading spaces)
-   */
-  formatTrailingComment(comment: IComment): string {
-    switch (comment.type) {
-      case ECommentType.Line:
-      case ECommentType.Doc:
-        return `  //${comment.content}`;
-
-      case ECommentType.Block:
-        // For inline block comments, keep on single line if possible
-        if (!comment.content.includes("\n")) {
-          return `  /*${comment.content}*/`;
-        }
-        // Multi-line block comment shouldn't be inline
-        return `  /*${comment.content}*/`;
-    }
-  }
-
-  /**
    * Format a block comment preserving internal structure
    */
   private formatBlockComment(comment: IComment, indent: string): string {

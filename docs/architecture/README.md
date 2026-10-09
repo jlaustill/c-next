@@ -100,7 +100,7 @@ and "may it read that?" are both answerable from the path -- by a reader, and by
 without opening the file.
 
 **Three entries in `TRANSPILE/` are not passes, and the tree draws them on purpose**
-(#1443, owner ruling). `CodeGenWalker.ts` walks one file and calls into both 2.2 Plan and
+(#1443, owner ruling). `CodeGenWalker.ts` walks one file's plain-data `IProgramSyntax` (never its parse tree, #1932) and calls into both 2.2 Plan and
 2.3 Render, so inside `2-Plan/` it would be Plan importing Render. `TranspileState.ts` is
 the per-file working data of 2.2 and 2.3. 2.3 and the walker write it. 2.2 writes none of
 it, but it reads two things 2.3 wrote earlier in the same file: the current scope path
@@ -231,16 +231,16 @@ joined tokens re-lex as different ones (`1 - -1` reads back `1--1`). A type's `t
 `template` it does not lex back as written and must not be re-lexed (#1940). Like a span,
 the plain data survives a JSON round trip.
 
-The target is that 1.2 lowers each file once and the later passes read its artifact. Today
-each caller lowers on demand -- 1.3, 2.1, `OperandTyper`, and `CodeGenWalker` as a stopgap
-that breaks the rule above -- and carrying the lowered form on 1.2's artifact, which
-removes the walker's calls, is a later slice of #1932.
+1.2 lowers each file once: `ProgramLowering` turns the `ProgramContext` into an
+`IProgramSyntax` -- includes, directives, declarations, function bodies, and the comments
+above each item -- and `IParsedFile.program` carries it. `CodeGenWalker` generates from
+that and names no parse type (#1932). 1.3 and 2.1 still walk `IParsedFile.tree`, which
+they may.
 
 A helper that both sides call is written once, over the plain data: `ConstExprLowering`
 lowers a `TExpression`, so 1.3, 2.1 and codegen share one lowering rather than one per
-tree reader, and 1.4 resolves the one `TConstExpr` it produces. A pass that still walks
-the tree hands a helper the node's lowered form, never the node. Statements, declarations and comments follow the same way until the walk
-codegen runs over is plain data end to end (#1932).
+tree reader, and 1.4 resolves the one `TConstExpr` it produces. A pass that still walks the tree hands a helper it shares with a later pass the node's
+lowered form, never the node.
 
 A `SourceSpan` is four integers -- `line`, `column`, `endLine`, `endColumn`. It names no
 file, because the symbol or diagnostic carrying it already does. It is Tier 1 with a long
@@ -262,16 +262,23 @@ member's context is its name.
 the lifetime axis enforceable -- the tree is not reachable from any artifact a downstream
 pass holds, so a dependency rule is a backstop rather than the primary guard.
 
-The backstop now exists (#1317). `parse-tree-confined-to-parser` in
-`.dependency-cruiser.cjs` reports every module outside the parser that imports a generated
-context or the `antlr4ng` runtime, and `npm run parse-tree:check` holds that population to
-the baseline in [`parse-tree-sites.md`](parse-tree-sites.md). It is `warn`, not `error`,
-because the sentence above describes where the axis is going and not where it is: a
-substantial population holds a tree today, much of it in the render layer, which is how a
-diagnostic can originate there at all. The current count and its per-layer split are in
-that generated document, not quoted here -- a number in prose is an ungated reading and
-rots. What the gate forbids is that number RISING: a pass reaching for the tree to answer
-a question its own artifact should already answer.
+The backstop now exists (#1317), and since #1932 it is enforced. Two rules in
+`.dependency-cruiser.cjs` share one definition of what counts as holding a tree: importing
+a generated context, the `antlr4ng` runtime, or a carrier of 1.2's artifact.
+
+- `parse-tree-sites` (`info`) is the inventory: every module outside the parser that holds
+  one. `npm run parse-tree:check` holds that population to the baseline in
+  [`parse-tree-sites.md`](parse-tree-sites.md); what it forbids is the number RISING.
+- `parse-tree-confined-to-parser` (`error`) is the ruling. Only 1.3, 2.1, the shared
+  helpers only they call, the host that routes 1.2's artifact, and 1.1's lexer-only
+  include scan (#1745) may hold one. Each helper is a target of the rule too, so a later
+  pass that imports one fails as if it had imported the grammar.
+
+A rule over import paths cannot see a structural stand-in: a later pass declaring its own
+copy of a context's shape. `scripts/__tests__/artifact-lifetime.test.ts` asks the type
+checker instead, whether any parameter or field in 2.2, 2.3, the walker or 3.1 would accept
+a generated context. The current count and its per-layer split are in the generated
+document, not quoted here -- a number in prose is an ungated reading and rots.
 
 ### What a symbol carries
 

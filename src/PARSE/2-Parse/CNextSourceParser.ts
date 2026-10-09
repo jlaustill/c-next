@@ -221,9 +221,9 @@ class CNextSourceParser {
     // `CommentScanner` memoizes, so the field is still computed at most once
     // per parse (#1445).
     //
-    // What did NOT move: the render layer's `CommentScanner` asks
-    // `getCommentsBefore`/`getCommentsAfter` about a token INDEX. Those are
-    // positional queries, not a whole-file scan, so there was never a second
+    // What did NOT move: `ProgramLowering` asks the scanner
+    // `getCommentsBefore` about a token INDEX (#1932). That is a positional
+    // query, not a whole-file scan, so there was never a second
     // whole-file derivation to collapse -- an earlier draft of this comment
     // said there was, and `IParsedFile` already carries the correction.
     const scanner = new CommentScanner(tokenStream);

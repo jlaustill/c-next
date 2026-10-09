@@ -39,7 +39,7 @@ interface ICheckOutcome {
 
 class ParseTreeSites {
   /** The rule whose violations ARE this document. Named once. */
-  static readonly RULE = "parse-tree-confined-to-parser";
+  static readonly RULE = "parse-tree-sites";
 
   /**
    * The layer a module path belongs to, longest prefix first.
@@ -163,7 +163,7 @@ class ParseTreeSites {
       "that imports a generated parser context or the `antlr4ng` runtime.",
       "",
       "**The population is not scanned.** It is the violation set of the",
-      "`parse-tree-confined-to-parser` rule in `.dependency-cruiser.cjs`, so the",
+      "`parse-tree-sites` rule in `.dependency-cruiser.cjs`, so the",
       "rule is the single definition of what counts. A second definition here --",
       "a grep that must agree with the rule -- is the duplicate-path anti-pattern,",
       "and it fails quietly: where the two disagree a module is gated by neither",
@@ -175,12 +175,14 @@ class ParseTreeSites {
       "is what #1445 box 2 closed when it deleted `IDeclaredFile.ts`.",
       "What the lifetime axis forbids is the",
       "population GROWING -- a pass reaching for the tree to answer a question its",
-      "own artifact should already answer. So the rule is `warn`, not `error`, and",
+      "own artifact should already answer. So the inventory rule is `info`, and",
       "this document is the gate: `npm run parse-tree:check` fails when a module",
       "is added to the list, and when the list is stale because one was removed.",
       "",
-      "Flipping the rule to `error` is the last card of track D (#1313), not this",
-      "one.",
+      "Which holders are allowed is ruled by `parse-tree-confined-to-parser`,",
+      "at `error` (#1932): 1.2 Parse, 1.3 Declare, 2.1 Analyze, the shared",
+      "helpers only they call, the host that hands them 1.2's artifact, and 1.1's",
+      "lexer-only include scan. Nothing from 2.2 Plan on.",
       "",
       "## By layer",
       "",
