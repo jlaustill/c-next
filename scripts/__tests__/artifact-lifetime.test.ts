@@ -275,7 +275,13 @@ function parseNodeAcceptors(pattern: RegExp): string[] {
       if ((type.isUnion() ? type.getUnionTypes() : [type]).some(isTop))
         continue;
       const element = type.getArrayElementType();
-      const targets = element ? [type, element] : [type];
+      // `Map<string, Ctx>`, `ReadonlyArray<Ctx>`, `Ctx[]`: a context held
+      // inside a container is held all the same.
+      const targets = [
+        type,
+        ...type.getTypeArguments().filter((t) => !isTop(t)),
+        ...(element ? [element] : []),
+      ];
       if (contexts.some((c) => targets.some((t) => c.isAssignableTo(t))))
         found.push(
           `${relative(repoRoot, path)} ${node.getText().split(":")[0].trim()}`,
@@ -447,12 +453,19 @@ describe("artifact lifetime (#1445 box 2)", () => {
     "nothing after 2.1 accepts a parse node, by name or by shape (#1932)",
     () => {
       const afterAnalyze =
-        /src\/TRANSPILE\/(2-Plan|3-Render)\/|src\/TRANSPILE\/CodeGenWalker\.ts$|src\/WRITE\//;
+        /src\/TRANSPILE\/(2-Plan|3-Render|types)\/|src\/TRANSPILE\/(CodeGenWalker|TranspileState)\.ts$|src\/WRITE\//;
 
-      // POPULATION CONTROL: the pattern reaches the walker and all three layers.
+      // POPULATION CONTROL: the pattern reaches the walker, the state it
+      // writes into, and every layer and type directory after 2.1.
       const modules = matchingModules(afterAnalyze);
       expect(modules).toContain("src/TRANSPILE/CodeGenWalker.ts");
-      for (const layer of ["2-Plan/", "3-Render/", "src/WRITE/"])
+      expect(modules).toContain("src/TRANSPILE/TranspileState.ts");
+      for (const layer of [
+        "2-Plan/",
+        "3-Render/",
+        "TRANSPILE/types/",
+        "src/WRITE/",
+      ])
         expect(modules.some((m) => m.includes(layer))).toBe(true);
 
       // DETECTOR CONTROL: 2.1 is handed the tree and must be, so the same scan

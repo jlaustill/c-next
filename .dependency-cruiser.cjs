@@ -71,7 +71,6 @@ const passOrderRules = PASS_ORDER.slice(0, -1).map((place, index) => ({
   },
 }));
 
-/** @type {import('dependency-cruiser').IConfiguration} */
 /**
  * What counts as holding a parse tree -- the one definition, read by both
  * `parse-tree-sites` (the inventory) and `parse-tree-confined-to-parser` (the
@@ -109,6 +108,7 @@ const PARSE_TREE_HELPERS = [
   "^src/types/TAssignmentSite\\.ts$",
 ];
 
+/** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
     ...passOrderRules,
@@ -407,16 +407,11 @@ module.exports = {
         "the pipeline -- the argument scripts/__tests__/layer-rules.test.ts " +
         "makes for its `collectors-build-names-from-scopes` control. " +
         "`info`: this rule is the INVENTORY, and many holders are correct (IParsedFile " +
-        "IS 1.2's artifact). That is a CHOSEN cost, not an inherited one: at " +
-        "`warn` this rule prints every edge, so `npm run depcruise` went from " +
-        "`no dependency violations found` to ~255 lines, and `no-orphans` and " +
-        "`no-deprecated-core` -- also `warn`, also exit-0 -- now share that " +
-        "channel. Both report 0 today, so nothing is buried yet; a future one " +
-        'would be one line inside 255. `severity: "info"` still prints every ' +
-        "edge and dependency-cruiser has no per-rule reporter filter " +
-        "(`--include-only`, `--focus` and `--reaches` all select MODULES), so " +
-        "there is no knob short of hiding output, which is worse. Accepted " +
-        "because this rule is gated independently by `parse-tree:check`. " +
+        "IS 1.2's artifact), so a holder is not a violation and must not fail " +
+        "or warn. `info` still lists every edge in `npm run depcruise`; " +
+        "dependency-cruiser has no per-rule reporter filter (`--include-only`, " +
+        "`--focus` and `--reaches` all select MODULES), and hiding the list " +
+        "would be worse than printing it. " +
         "What must not happen is the count RISING, which " +
         "`npm run parse-tree:check` gates against " +
         "docs/architecture/parse-tree-sites.md. Which holders are allowed is " +

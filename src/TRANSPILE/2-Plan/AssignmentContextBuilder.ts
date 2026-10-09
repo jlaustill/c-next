@@ -12,7 +12,7 @@
  * what type is the value, fold this subscript, how many subscripts are there --
  * so the context carries the answers and the renders, and the walk stays here.
  *
- * That also fixes an under-measurement. `parse-tree-confined-to-parser` counts
+ * That also fixes an under-measurement. `parse-tree-sites` counts
  * modules that NAME a parse type, so the four handler files that read
  * `ctx.valueExpr` and `ctx.subscripts[0]` off this interface held parse trees
  * without ever being counted -- the contract was acting as an unsanctioned

@@ -53,17 +53,6 @@ const createMockStream = (
       }
       return result.length > 0 ? result : null;
     }),
-    getHiddenTokensToRight: vi.fn((idx: number) => {
-      const result = [];
-      for (let i = idx + 1; i < tokens.length; i++) {
-        if (tokens[i].channel === Token.HIDDEN_CHANNEL) {
-          result.push(tokens[i]);
-        } else {
-          break;
-        }
-      }
-      return result.length > 0 ? result : null;
-    }),
   } as unknown as MockStream;
 };
 
@@ -280,10 +269,6 @@ describe("CommentExtractor", () => {
       expect(comments).toHaveLength(0);
     });
   });
-
-  // ========================================================================
-  // getCommentsAfter (inline comments)
-  // ========================================================================
 
   // ========================================================================
   // validate - MISRA C:2012 Rules 3.1 and 3.2

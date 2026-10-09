@@ -7,7 +7,7 @@
  * downstream pass holds. Nothing enforced it.
  *
  * The population is NOT scanned here. It is read from the violations of
- * `parse-tree-confined-to-parser` in `.dependency-cruiser.cjs`, so the question
+ * `parse-tree-sites` in `.dependency-cruiser.cjs`, so the question
  * "what counts as holding a parse tree" has exactly one answer, in the rule,
  * rather than one in the rule and a second in a grep that must agree with it.
  * That second definition is the duplicate-path anti-pattern this project

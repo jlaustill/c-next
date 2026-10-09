@@ -159,7 +159,7 @@ function extractFloatLiteral(literalText: string): LiteralContext | null {
 
 describe("LiteralUtils", () => {
   // ========================================================================
-  // isZero: Integer Literals
+  // isZeroText: Integer Literals
   // ========================================================================
 
   describe("isZeroText of a parsed literal - integer literals", () => {
@@ -175,7 +175,7 @@ describe("LiteralUtils", () => {
   });
 
   // ========================================================================
-  // isZero: Hex Literals
+  // isZeroText: Hex Literals
   // ========================================================================
 
   describe("isZeroText of a parsed literal - hex literals", () => {
@@ -192,7 +192,7 @@ describe("LiteralUtils", () => {
   });
 
   // ========================================================================
-  // isZero: Binary Literals
+  // isZeroText: Binary Literals
   // ========================================================================
 
   describe("isZeroText of a parsed literal - binary literals", () => {
@@ -209,7 +209,7 @@ describe("LiteralUtils", () => {
   });
 
   // ========================================================================
-  // isZero: Suffixed Literals
+  // isZeroText: Suffixed Literals
   // ========================================================================
 
   describe("isZeroText of a parsed literal - suffixed decimal literals", () => {
@@ -249,7 +249,7 @@ describe("LiteralUtils", () => {
   });
 
   // ========================================================================
-  // isZero: Float Literals (Issue #1010)
+  // isZeroText: Float Literals (Issue #1010)
   // ========================================================================
 
   describe("isZeroText of a parsed literal - float literals (Issue #1010)", () => {

@@ -117,7 +117,6 @@ import type IChainHead from "../types/IChainHead";
 import ExpressionCalls from "../utils/ExpressionCalls";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
 import includeGenerators from "./3-Render/codegen/generators/support/IncludeGenerator";
-import commentUtils from "./3-Render/codegen/generators/support/CommentUtils";
 import DeclaredTypeInfo from "../PARSE/3-Declare/DeclaredTypeInfo";
 import DeclaredPointer from "../utils/DeclaredPointer";
 import type IChainBase from "../types/IChainBase";
@@ -200,8 +199,6 @@ const {
   transformIncludeDirective: includeTransformIncludeDirective,
   processPreprocessorDirective: includeProcessPreprocessorDirective,
 } = includeGenerators;
-
-const { formatLeadingComments: commentFormatLeadingComments } = commentUtils;
 
 interface FunctionSignature {
   name: string;
@@ -4777,11 +4774,7 @@ class CodeGenWalker {
    */
   private formatLeadingComments(comments: readonly IComment[]): string[] {
     const indent = FormatUtils.indent(this.host.state.indentLevel);
-    return commentFormatLeadingComments(
-      [...comments],
-      this.commentFormatter,
-      indent,
-    );
+    return this.commentFormatter.formatLeadingComments([...comments], indent);
   }
 
   /**
