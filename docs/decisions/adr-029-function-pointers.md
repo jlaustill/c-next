@@ -289,7 +289,7 @@ Controller Controller_init(void) {
 // Every declaration without an initializer holds the same default (#1283),
 // at file scope, in a scope, as a local, and in every array element:
 Controller ctrl = { ._handler = defaultHandler };
-Controller ctrls[2] = { { ._handler = defaultHandler }, { ._handler = defaultHandler } };
+Controller controllers[2] = { { ._handler = defaultHandler }, { ._handler = defaultHandler } };
 ```
 
 The default is a constant brace rather than a call to `Controller_init()`
