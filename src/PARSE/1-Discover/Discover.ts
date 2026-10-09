@@ -101,6 +101,31 @@ class Discover {
   ) {}
 
   /**
+   * 1.1's artifact for one C-Next text with no run around it: the editor's
+   * symbol list (`lib/parseWithSymbols`). No include is looked up and nothing
+   * is read, as before: that request stopped paying for a whole discovery per
+   * keystroke when the global registry went (#1378, #1452). The text still
+   * enters the pipeline here, so 1.2 takes it from 1.1 like every other text.
+   */
+  static inMemoryFile(source: string, path: string): IPipelineFile {
+    return {
+      path,
+      source,
+      discoveredFile: { path, type: EFileType.CNext, extension: ".cnx" },
+      cnextIncludes: [],
+      reachesForeignHeader: false,
+    };
+  }
+
+  /**
+   * 1.1's artifact for one header text the caller says is C
+   * (`lib/parseCHeader`), so 1.2 parses it with the C parser.
+   */
+  static inMemoryCHeader(text: string): IHeaderSource {
+    return { text, language: EHeaderLanguage.C };
+  }
+
+  /**
    * Discover a run's files, and anchor it.
    *
    * Branches on input kind:

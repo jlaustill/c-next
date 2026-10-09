@@ -7,7 +7,7 @@ import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import MockFileSystem from "./MockFileSystem";
-import ParserUtils from "../../utils/ParserUtils";
+import ErrorLocation from "../../utils/ErrorLocation";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 describe("Transpiler", () => {
@@ -186,7 +186,7 @@ describe("Transpiler", () => {
           "notANumber:0 still not a location",
           "12:notANumber also not one",
         ]) {
-          const parsed = ParserUtils.parseErrorLocation(message);
+          const parsed = ErrorLocation.parse(message);
           expect(parsed.line).toBe(1);
           expect(parsed.column).toBe(0);
           expect(parsed.message).toBe(message);
@@ -196,7 +196,7 @@ describe("Transpiler", () => {
       it("reads a location the message DOES carry", () => {
         // The other half, without which the case above passes for a parser
         // that always returns 1:0.
-        const parsed = ParserUtils.parseErrorLocation("12:4 something failed");
+        const parsed = ErrorLocation.parse("12:4 something failed");
         expect(parsed.line).toBe(12);
         expect(parsed.column).toBe(4);
       });

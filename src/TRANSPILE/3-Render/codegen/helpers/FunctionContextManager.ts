@@ -15,7 +15,7 @@
  * array, what its type is -- and everything after that comes from
  * `CodeGenState` and the callback typedef. Those three answers arrive as
  * `IPlannedFunctionParameter` now, and the type's alternatives come already
- * classified by `TypeBinding`, 1.3 Declare's one ladder, rather than from a
+ * classified by `TypeNameLadder`, the one ladder, rather than from a
  * fourth walk here.
  */
 
@@ -200,7 +200,7 @@ class FunctionContextManager {
    * qualification that the bare `userType()` branch applied -- `Mode[4] p`
    * and `Mode p` in the same scope resolved to different names.
    *
-   * #1445: that ladder is `TypeBinding`'s, asked once by the planner, so this
+   * #1445: that ladder is `TypeNameLadder`'s, asked once by the planner, so this
    * reads its answer rather than being a fourth caller of it. What is left is
    * the string asymmetry above, the primitive, and the consequences.
    */

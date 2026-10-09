@@ -8,20 +8,21 @@ import ITranspilerConfig from "../../types/ITranspilerConfig";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /**
- * #1301 review: the parse cache must be released when a run ENDS, not merely when
- * the next one starts.
+ * #1301 review: the run's per-file artifacts must be released when a run ENDS, not
+ * merely when the next one starts.
  *
  * `Transpiler` is not always per-process. `ServeCommand` holds one instance in a
  * static field and reuses it for every request, so a cache cleared only on entry
- * leaves the language server holding every `ProgramContext` and `CommonTokenStream`
- * from the last request for as long as the editor sits idle. Before #1301 both were
- * locals that died with `_transpileFile`.
+ * leaves the language server holding the last request's files for as long as the
+ * editor sits idle. Since #1932 what it holds is plain data: every parse tree is a
+ * local of `TreePasses.run` and never reaches `Transpiler`, which
+ * `scripts/__tests__/artifact-lifetime.test.ts` asserts of every field and value.
  *
  * Peak-RSS benchmarking cannot see this -- it measures the in-run high water mark,
  * and post-run residency is a different number -- so the property is asserted
  * directly instead.
  */
-describe("#1301: the retained-parse cache is released at end of run", () => {
+describe("#1301: the per-file cache is released at end of run", () => {
   let tempDir: string;
 
   beforeEach(() => {
@@ -34,38 +35,11 @@ describe("#1301: the retained-parse cache is released at end of run", () => {
 
   /** Reads the private cache without widening its visibility for production. */
   function cacheSize(transpiler: Transpiler): number {
-    // #1445 box 2 renamed the field with the type it holds: the cache keeps
-    // 1.2's `IParsedFile` directly now, instead of an `IDeclaredFile` record
-    // that re-exported it. The property under test is unchanged -- what is
-    // retained must not outlive the run.
-    return (transpiler as unknown as { retainedParses: Map<string, unknown> })
-      .retainedParses.size;
-  }
-
-  /**
-   * The walker's own parse state, which the cache clear cannot reach.
-   *
-   * #1445 box 2: `tokenStream` and the `CommentScanner` over it are assigned
-   * per file in `generate()` and used to live past the run, so the same idle
-   * language server that motivated the cache release was still holding the last
-   * request's token stream through the walker instead of through the map.
-   */
-  function walkerParseState(transpiler: Transpiler): string[] {
-    const walker = (
-      transpiler as unknown as {
-        codeGenerator: Record<string, unknown>;
-      }
-    ).codeGenerator;
-
-    // NAMES, never the values. `toEqual([])` against a live `CommonTokenStream`
-    // makes vitest serialize the token list, the parser and the ATN to build a
-    // diff, and the run dies with "JavaScript heap out of memory" before it can
-    // report which field leaked -- measured, by mutating the release away. A
-    // guard that cannot print its own failure is barely better than one that
-    // cannot fail.
-    return ["tokenStream", "commentExtractor"].filter(
-      (field) => walker[field] !== null && walker[field] !== undefined,
-    );
+    // #1932: the cache holds 2.1's plain-data `IAnalyzedFile`, not 1.2's
+    // `IParsedFile`. The property under test is unchanged -- what is retained
+    // must not outlive the run.
+    return (transpiler as unknown as { analyzedFiles: Map<string, unknown> })
+      .analyzedFiles.size;
   }
 
   function writeProject(): string {
@@ -105,15 +79,14 @@ describe("#1301: the retained-parse cache is released at end of run", () => {
     expect(result.files.length).toBeGreaterThan(0);
 
     expect(cacheSize(transpiler)).toBe(0);
-    expect(walkerParseState(transpiler)).toEqual([]);
   });
 
   it("holds nothing after a run that fails in stage 5", async () => {
-    // A failing run must not strand the trees either -- the `finally` covers the
+    // A failing run must not strand the cache either -- the `finally` covers the
     // error path, which a clear at the end of the happy path would miss.
     //
     // The failure has to occur AFTER stage 3 has populated the cache, or the test
-    // cannot fail: a parse error returns before `_declareFile` is ever reached, so
+    // cannot fail: a parse error stops `TreePasses` before it returns any file, so
     // the cache is empty regardless of the fix. E0800 is an analyzer diagnostic
     // raised in stage 5, by which point every file is cached. Mutation-checked --
     // removing the `finally` reddens this.
@@ -128,7 +101,6 @@ describe("#1301: the retained-parse cache is released at end of run", () => {
 
     expect(result.success).toBe(false);
     expect(cacheSize(transpiler)).toBe(0);
-    expect(walkerParseState(transpiler)).toEqual([]);
   });
 
   it("holds nothing between runs on a reused instance (the ServeCommand shape)", async () => {
@@ -138,11 +110,30 @@ describe("#1301: the retained-parse cache is released at end of run", () => {
     const first = await transpiler.transpile({ kind: "files" });
     expect(first.success).toBe(true);
     expect(cacheSize(transpiler)).toBe(0);
-    expect(walkerParseState(transpiler)).toEqual([]);
 
     const second = await transpiler.transpile({ kind: "files" });
     expect(second.success).toBe(true);
     expect(cacheSize(transpiler)).toBe(0);
-    expect(walkerParseState(transpiler)).toEqual([]);
+  });
+  it("Stage 5 reads every file's plain data (#1932)", async () => {
+    const transpiler = createTranspiler(writeProject());
+    const internals = transpiler as unknown as {
+      analyzedFiles: Map<string, unknown>;
+      _transpileFile: (...args: unknown[]) => unknown;
+    };
+    const seen: number[] = [];
+    const original = internals._transpileFile.bind(transpiler);
+    internals._transpileFile = (...args: unknown[]) => {
+      seen.push(internals.analyzedFiles.size);
+      return original(...args);
+    };
+
+    const result = await transpiler.transpile({ kind: "files" });
+
+    // NEGATIVE CONTROL: Stage 5 ran, once per file, and had the plain data.
+    expect(result.success).toBe(true);
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen).toEqual(seen.map(() => 2));
+    expect(internals.analyzedFiles.size).toBe(0);
   });
 });

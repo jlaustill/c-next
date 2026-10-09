@@ -14,9 +14,6 @@ import { availableParallelism } from "node:os";
 
 import IFileSystem from "../types/IFileSystem";
 
-import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
-import CNextSourceParser from "../PARSE/2-Parse/CNextSourceParser";
-
 import CodeGenWalker from "../TRANSPILE/CodeGenWalker";
 import invariant from "../utils/invariant";
 import AdrProvenance from "../instrumentation/AdrProvenance";
@@ -28,12 +25,10 @@ import HeaderRenderer from "../TRANSPILE/3-Render/headers/HeaderRenderer";
 import IHeaderEmissionFacts from "../TRANSPILE/3-Render/headers/types/IHeaderEmissionFacts";
 import SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
-import CNextResolver from "../PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "../PARSE/3-Declare/SymbolRegistry";
 import Program from "../PARSE/4-Resolve/Program";
 import type IProgram from "../types/IProgram";
-import type IFileSymbols from "../types/IFileSymbols";
-import type IParsedFile from "../types/IParsedFile";
+import type IAnalyzedFile from "../types/IAnalyzedFile";
 import TSymbol from "../types/symbols/TSymbol";
 
 import IDiscoveredFile from "../PARSE/1-Discover/types/IDiscoveredFile";
@@ -42,7 +37,7 @@ import type IHeaderSource from "../PARSE/1-Discover/types/IHeaderSource";
 import OutputExtensions from "../utils/OutputExtensions";
 import type IOutputExtensions from "../types/IOutputExtensions";
 
-import ParserUtils from "../utils/ParserUtils";
+import ErrorLocation from "../utils/ErrorLocation";
 import ITranspilerConfig from "../types/ITranspilerConfig";
 import ITranspilerResult from "./types/ITranspilerResult";
 import IFileResult from "../types/IFileResult";
@@ -56,8 +51,10 @@ import Discover from "../PARSE/1-Discover/Discover";
 import RunAnchor from "../PARSE/1-Discover/RunAnchor";
 import TTranspileInput from "../types/TTranspileInput";
 import ITranspileError from "../types/ITranspileError";
-import runAnalyzers from "../TRANSPILE/1-Analyze/runAnalyzers";
-import Diagnostics from "../TRANSPILE/1-Analyze/Diagnostics";
+import TreePasses from "../TRANSPILE/1-Analyze/TreePasses";
+import type IDeclaredSource from "../TRANSPILE/1-Analyze/types/IDeclaredSource";
+import type IAnalyzerOptions from "../TRANSPILE/1-Analyze/types/IAnalyzerOptions";
+import type TTreePassesResult from "../TRANSPILE/1-Analyze/types/TTreePassesResult";
 import type IDiagnostics from "../types/IDiagnostics";
 import type ICodeGenSymbols from "../types/ICodeGenSymbols";
 import CacheManager from "./cache/CacheManager";
@@ -179,19 +176,6 @@ class Transpiler {
     IHeaderEmissionFacts
   >();
   /**
-   * #1301: each file's parse and declare, keyed by source path.
-   *
-   * Stage 3 populates this; Stage 5 consumes it. It is the ONLY path by which
-   * Stage 5 obtains a tree -- there is deliberately no parse-if-absent fallback,
-   * because that fallback would be the duplicate code path this removes. Every
-   * file Stage 5 visits is a member of the same `input.cnextFiles` Stage 3 walked,
-   * and Stage 3 aborts the run on a parse error before Stage 5 begins, so a miss
-   * is a pipeline-ordering bug rather than a case to recover from.
-   *
-   * Lives on the orchestrator rather than on `TranspilerState` so that `state/`
-   * stays free of ANTLR contexts (#1317).
-   */
-  /**
    * The artifact 1.4 Resolve emitted for this run.
    *
    * Held so passes after 1.4 read a cross-file fact from here rather than
@@ -208,22 +192,11 @@ class Transpiler {
   private program: IProgram | null = null;
 
   /**
-   * The parses retained for Stage 5, keyed by source path.
-   *
-   * #1445 box 2: this was a `Map<string, IDeclaredFile>`, and `IDeclaredFile`
-   * was `{ parsed: IParsedFile; symbols: readonly TSymbol[] }` -- so the record
-   * 1.3 appeared to hand forward RE-EXPORTED the tree, which is the one thing
-   * the lifetime rule forbids. It was never 1.3's artifact: `_declareFile`
-   * returns `IFileSymbols`, and this map came from #1301 purely so Stage 5
-   * could reuse Stage 3's parse.
-   *
-   * Its `symbols` half had **no reader** -- every use of the map reached
-   * `.parsed` and nothing else -- so the bundle was carrying a dead field in
-   * order to look like an artifact. Holding 1.2's artifact under its own name
-   * says what is true: retention is the ORCHESTRATOR's bookkeeping, not
-   * something a pass passes on.
+   * What Stage 5 reads (#1932): each file's plain data, as `TreePasses`
+   * returned it. The host never holds a parse tree -- every tree is a local of
+   * `TreePasses.run` and is gone when it returns, before 2.2 Plan begins.
    */
-  private readonly retainedParses = new Map<string, IParsedFile>();
+  private readonly analyzedFiles = new Map<string, IAnalyzedFile>();
 
   /**
    * Settles when this instance's previous run has (#1721). A run starts by
@@ -365,17 +338,17 @@ class Transpiler {
     } catch (err) {
       return this._handleRunError(result, err);
     } finally {
-      // #1301 review: release the parse trees when the run ends, not merely when
-      // the next one starts. `Transpiler` is not always per-process --
-      // `ServeCommand` holds ONE instance in a static field and reuses it for
-      // every request -- so clearing only on entry would leave the language
-      // server holding every ProgramContext and CommonTokenStream from the last
-      // request for as long as the editor sits idle. Before this cache both were
-      // locals that died with `_transpileFile`.
+      // #1301 review: release the run's per-file artifacts when the run ends,
+      // not merely when the next one starts. `Transpiler` is not always
+      // per-process -- `ServeCommand` holds ONE instance in a static field and
+      // reuses it for every request -- so clearing only on entry would leave the
+      // language server holding the last request's files for as long as the
+      // editor sits idle. The parse trees need no clearing: since #1932 they are
+      // locals of `TreePasses.run` and never reach this class.
       //
       // Peak-RSS benchmarking cannot see this: it measures the in-run high water
       // mark, and post-run residency is a different number. Stage 6 does not need
-      // trees -- `_generateAllHeadersFromPipeline` reads `result.files[].headerCode`
+      // them -- `_generateAllHeadersFromPipeline` reads `result.files[].headerCode`
       // -- so the run is genuinely done with them here.
       //
       // This is the ONLY clear site. `_initializeRun` used to clear on entry too,
@@ -383,12 +356,8 @@ class Transpiler {
       // and a throw -- that one could never observe a non-empty map, so deleting it
       // reddened nothing. Two sites for one invariant is the duplication CLAUDE.md
       // calls the worst anti-pattern, and the unreachable half is the #1143 shape.
-      this.retainedParses.clear();
+      this.analyzedFiles.clear();
       this.sourceGraph = null;
-
-      // #1445 box 2: the walker holds the token stream and the comment scanner
-      // over it on its own fields, which the map clear above cannot reach.
-      this.codeGenerator.releaseParseState();
     }
   }
 
@@ -426,16 +395,31 @@ class Transpiler {
     // #1688: the macros each file's C includes define, typed (ADR-024)
     await this._collectHeaderMacros(input);
 
-    if (!this._passesProgramChecks(input, result)) {
+    // Stages 3 to 4d: 1.2 Parse, 1.3 Declare, then (through `resolve`) 1.4
+    // Resolve and the whole-program checks, then 2.1 Analyze -- EVERY file,
+    // before ANY file is planned (#1320). Analysis used to run inside the loop
+    // below, so file N was analyzed after files 1..N-1 had already been
+    // emitted, and an analyzer reading state codegen fills saw the PREVIOUS
+    // file's data (#1430).
+    //
+    // #1932: one call, because these are the passes that read the parse tree.
+    // Every tree is a local of `TreePasses.run`; what comes back is plain data.
+    //
+    // Parse-only mode analyzes nothing, exactly as before: `_transpileFile`
+    // returned its parse-only result before reaching the analyzers, so running
+    // them would be new work on a path that asked for none.
+    const front = this._runTreePasses(input, result);
+    if (front.kind === "stopped") {
+      if (front.errors.length > 0) {
+        result.errors.push(...front.errors);
+        result.success = false;
+      }
       return;
     }
-
-    // Stage 4d: 2.1 Analyze -- EVERY file, before ANY file is planned (#1320).
-    // This is the whole point of the stage existing separately: analysis used
-    // to run inside the loop below, so file N was analyzed after files 1..N-1
-    // had already been emitted, and an analyzer reading state codegen fills saw
-    // the PREVIOUS file's data (#1430).
-    const diagnostics = this._analyzeProgram(input);
+    for (const [path, analyzed] of front.files) {
+      this.analyzedFiles.set(path, analyzed);
+    }
+    const diagnostics = front.diagnostics;
 
     // Stage 5: Plan and Render each C-Next file
     //
@@ -499,17 +483,35 @@ class Transpiler {
   }
 
   /**
+   * Stages 3 to 4d through 2.1's `TreePasses`: the host supplies 1.4 Resolve,
+   * the whole-program checks and each file's 2.1 inputs, and gets plain data
+   * back (#1932).
+   */
+  private _runTreePasses(
+    input: ISourceGraph,
+    result: ITranspilerResult,
+  ): TTreePassesResult {
+    return TreePasses.run(input.cnextFiles, {
+      registry: this.symbolRegistry,
+      resolve: (declared) => this._passesProgramChecks(input, declared, result),
+      analysisInputs: this.config.parseOnly
+        ? null
+        : (file) => this._analysisInputs(file),
+    });
+  }
+
+  /**
    * Stages 3 to 4c: the whole-program checks every file waits on. Each records
    * its own errors; the first to fail ends the run, in this order.
    */
   private _passesProgramChecks(
     input: ISourceGraph,
+    declared: readonly IDeclaredSource[],
     result: ITranspilerResult,
   ): boolean {
     return (
-      // Stage 3: 1.3 Declare for every C-Next file, then 1.4 Resolve once
-      // over all of them
-      this._collectAllCNextSymbolsFromPipeline(input.cnextFiles, result) &&
+      // Stage 3: 1.4 Resolve once over every file `TreePasses` declared
+      this._resolveProgram(declared, result) &&
       // Stage 3b: the program's one target (ADR-049), settled by 1.4. Nothing
       // below may run for a program whose target is unknown or contested.
       this._checkRunTarget(input, result) &&
@@ -599,7 +601,7 @@ class Transpiler {
       // Mirrors buildCatchResult's shape for a .c/.cpp generation failure --
       // this is the same kind of thing (a generator exception), for the
       // header instead.
-      const parsed = ParserUtils.parseErrorLocation(errorMessage);
+      const parsed = ErrorLocation.parse(errorMessage);
       const error: ITranspileError = {
         line: parsed.line,
         column: parsed.column,
@@ -620,40 +622,14 @@ class Transpiler {
   }
 
   /**
-   * Stage 3 for pipeline files: Collect symbols from all C-Next files.
-   *
-   * Reads source from file.source or disk, then collects symbols.
+   * Stage 3: 1.4 Resolve over every declared C-Next file, then publish each
+   * file's resolved symbols.
    * @returns true if successful, false if errors occurred
    */
-  private _collectAllCNextSymbolsFromPipeline(
-    cnextFiles: readonly IPipelineFile[],
+  private _resolveProgram(
+    declared: readonly IDeclaredSource[],
     result: ITranspilerResult,
   ): boolean {
-    // 1.3 Declare, every file. Per-file facts only: a file's symbols are
-    // computable with its own parse tree open and nothing else.
-    const declared: Array<{
-      readonly file: IPipelineFile;
-      readonly parsed: IParsedFile;
-      readonly fileSymbols: IFileSymbols;
-    }> = [];
-    for (const file of cnextFiles) {
-      const outcome = this._declarePipelineFile(file);
-      if (outcome.errors) {
-        result.errors.push(...outcome.errors);
-        result.success = false;
-        continue;
-      }
-      declared.push({
-        file,
-        parsed: outcome.parsed,
-        fileSymbols: outcome.fileSymbols,
-      });
-    }
-
-    if (!result.success) {
-      return false;
-    }
-
     // 1.4 Resolve. The whole program exists only now that every file has been
     // declared, which is the entire reason the two loops are separate: a file's
     // bare type reference may name a scope type declared in a file that had not
@@ -728,7 +704,7 @@ class Transpiler {
             catalog: TargetCatalogFile.targets(this.fs),
             files: declared.map((entry) => ({
               sourcePath: entry.file.path,
-              directives: entry.parsed.targetDirectives,
+              directives: entry.targetDirectives,
             })),
           },
         },
@@ -737,15 +713,13 @@ class Transpiler {
       // re-deriving them. Set once per run, not per file.
       this.codeGenerator.transpileState.program = this.program;
     } catch (err) {
-      result.errors.push(Transpiler._collectionError(err));
+      result.errors.push(CaughtError.asTranspileError(err));
       result.success = false;
       return false;
     }
 
     for (const entry of declared) {
       const errors = this._publishResolvedFile(
-        entry.file,
-        entry.parsed,
         this.program.symbolsInFile(entry.file.path),
       );
       if (errors) {
@@ -755,51 +729,6 @@ class Transpiler {
     }
 
     return result.success;
-  }
-
-  /**
-   * 1.3 Declare one file: parse it and collect the symbols it declares.
-   *
-   * Per-file by construction -- nothing here reads another file's symbols, and
-   * `_declareFile` no longer receives a cross-file parameter. A bare type name
-   * this file cannot settle is recorded as deferred rather than guessed, and
-   * `Program.build` settles it once every file has been declared.
-   *
-   * @returns the parse and the file's artifact, or the errors that stopped it
-   */
-  private _declarePipelineFile(file: IPipelineFile):
-    | {
-        readonly errors: ITranspileError[];
-        readonly parsed?: undefined;
-        readonly fileSymbols?: undefined;
-      }
-    | {
-        readonly errors?: undefined;
-        readonly parsed: IParsedFile;
-        readonly fileSymbols: IFileSymbols;
-      } {
-    const parsed = CNextSourceParser.parse(file.source);
-
-    // Parse errors — return them with original line/column and sourcePath.
-    // #1445: 1.2 carries its own errors, so the artifact is what comes back
-    // and this stamps the path the text came from -- the one fact 1.2 cannot
-    // know, because it parses a string.
-    if (parsed.parseErrors.length > 0) {
-      return {
-        errors: parsed.parseErrors.map((e) => ({
-          ...e,
-          sourcePath: file.path,
-        })),
-      };
-    }
-
-    try {
-      // ADR-055 Phase 7: Use composable collectors via CNextResolver
-      const fileSymbols = this._declareFile(parsed.tree, file.path);
-      return { parsed, fileSymbols };
-    } catch (err) {
-      return { errors: [Transpiler._collectionError(err)] };
-    }
   }
 
   /**
@@ -815,92 +744,33 @@ class Transpiler {
    * names back into codegen through the cache.
    */
   private _publishResolvedFile(
-    file: IPipelineFile,
-    parsed: IParsedFile,
     tSymbols: ReadonlyArray<TSymbol>,
   ): ITranspileError[] | null {
     try {
-      // #1301: Stage 5 consumes this parse and this declare instead of repeating
-      // both. Recorded after settlement, so a file that throws while resolving
-      // leaves no half-built entry for Stage 5 to find.
-      //
-      // Only for files that will read it back. A symbol-only file is still DECLARED
-      // and RESOLVED -- that is the entire reason it was discovered -- but nothing
-      // reads its tree, so retaining one would be pure cost. Retention is this
-      // design's one real expense, so it is not paid for a consumer that does not
-      // exist.
-      if (Transpiler._producesOutput(file)) {
-        this.retainedParses.set(file.path, parsed);
-      }
-
       // ADR-055 Phase 7: Store TSymbol directly in SymbolTable (no ISymbol conversion)
       this.codeGenerator.transpileState.symbolTable.addTSymbols(tSymbols);
     } catch (err) {
-      return [Transpiler._collectionError(err)];
+      return [CaughtError.asTranspileError(err)];
     }
 
     return null;
   }
 
   /**
-   * Symbol collection and resolution errors (e.g. BitmapCollector) formatted
-   * the way a `.c` generation failure is, so both loops report one shape.
-   */
-  private static _collectionError(err: unknown): ITranspileError {
-    const rawMessage = CaughtError.messageOf(err);
-    const parsed = ParserUtils.parseErrorLocation(rawMessage);
-    return {
-      line: parsed.line,
-      column: parsed.column,
-      message: `Code generation failed: ${parsed.message}`,
-      severity: "error",
-    };
-  }
-
-  /**
-   * Stage 4d: 2.1 Analyze, over the WHOLE program (#1320).
+   * One file's 2.1 inputs, which `TreePasses` hands its analyzers.
    *
-   * Every file is analyzed here, before Stage 5 plans any of them. That order
-   * is the pass boundary `docs/architecture/README.md` specifies -- "After
-   * **1.4**, nothing may compute a cross-file fact. A pass that needs one reads
-   * it from `Program`, which is complete before 2.1 begins."
-   *
-   * Analysis used to be the first half of `_transpileFile`, which meant file N
-   * was analyzed after files 1..N-1 had been emitted. Nothing made that visible,
-   * and #1430 is what it cost: an analyzer read a map codegen fills, so it held
-   * the PREVIOUS file's names and `E0427` fired or not depending on include
-   * order. Hoisting removes the window rather than the one read that used it.
-   *
-   * Parse-only mode analyzes nothing, exactly as before: `_transpileFile`
-   * returned its parse-only result before reaching the analyzers, so running
-   * them here would be new work on a path that asked for none.
-   */
-  private _analyzeProgram(input: ISourceGraph): IDiagnostics {
-    const byFile = new Map<string, readonly ITranspileError[]>();
-
-    if (this.config.parseOnly) {
-      return Diagnostics.build(byFile);
-    }
-
-    for (const file of input.cnextFiles) {
-      if (!Transpiler._producesOutput(file)) {
-        continue;
-      }
-      byFile.set(file.path, this._analyzeFile(file));
-    }
-
-    return Diagnostics.build(byFile);
-  }
-
-  /**
-   * Run 2.1's analyzers over one file and return what they rejected.
+   * Stage 4d, over the WHOLE program (#1320): every file is analyzed before
+   * Stage 5 plans any of them. That order is the pass boundary
+   * `docs/architecture/README.md` specifies -- "After **1.4**, nothing may
+   * compute a cross-file fact. A pass that needs one reads it from `Program`,
+   * which is complete before 2.1 begins."
    *
    * The per-file `CodeGenState` an analyzer reads is established here, the same
    * way and from the same source as before the hoist -- `symbols` is a view of
    * `Program`, which 1.4 completed, so it does not depend on any file having
    * been emitted.
    */
-  private _analyzeFile(file: IPipelineFile): readonly ITranspileError[] {
+  private _analysisInputs(file: IPipelineFile): IAnalyzerOptions {
     const sourcePath = file.path;
 
     // #1241: attribute ADR provenance to the file being analyzed. Analysis runs
@@ -909,45 +779,39 @@ class Transpiler {
     // the first, which reads identically to "this rule never fires".
     AdrProvenance.beginFile(sourcePath);
 
-    try {
-      const parsed = this._requireRetainedParse(sourcePath);
+    const symbols = this._establishPerFileCodeGenState(sourcePath);
 
-      const symbols = this._establishPerFileCodeGenState(sourcePath);
+    // #1322: the ADR-010 include facts are handed in rather than read off
+    // CodeGenState, whose `sourcePath` is not written until `generate()` and
+    // so holds another file's value here.
+    // #1452: asserted, not defaulted. Stage 3 builds `Program` and returns
+    // false on failure before this runs, so a null here is a broken stage
+    // order -- and a default would only move the failure: ADR-010's rules
+    // read discovery's per-directive answers through `Program` (#1672), and
+    // an empty set of answers is not "this file includes nothing". Same
+    // reasoning as the conflict check.
+    invariant(
+      this.program,
+      "1.4 Resolve built Program before a later pass read its discovery facts",
+    );
 
-      // #1322: the ADR-010 include facts are handed in rather than read off
-      // CodeGenState, whose `sourcePath` is not written until `generate()` and
-      // so holds another file's value here.
-      // #1452: asserted, not defaulted. Stage 3 builds `Program` and returns
-      // false on failure before this runs, so a null here is a broken stage
-      // order -- and a default would only move the failure: ADR-010's rules
-      // read discovery's per-directive answers through `Program` (#1672), and
-      // an empty set of answers is not "this file includes nothing". Same
-      // reasoning as the conflict check.
-      invariant(
-        this.program,
-        "1.4 Resolve built Program before a later pass read its discovery facts",
-      );
-
-      return runAnalyzers(parsed.tree, parsed.comments, {
-        // #1456: handed over rather than reached for. Nineteen analyzer sites
-        // used to read these off `CodeGenState` themselves, for facts this
-        // caller is already holding.
-        context: {
-          symbols,
-          program: this.program,
-          symbolTable: this.codeGenerator.transpileState.symbolTable,
-          reachesForeignHeader: file.reachesForeignHeader,
-          sourceFile: sourcePath,
-        },
-        includes: {
-          resolutions: this._includesOf(sourcePath).resolutions,
-          cnextAlternatives: this._includesOf(sourcePath).cnextAlternatives,
-          kinds: this._includesOf(sourcePath).kinds,
-        },
-      });
-    } catch (err) {
-      return [Transpiler._collectionError(err)];
-    }
+    return {
+      // #1456: handed over rather than reached for. Nineteen analyzer sites
+      // used to read these off `CodeGenState` themselves, for facts this
+      // caller is already holding.
+      context: {
+        symbols,
+        program: this.program,
+        symbolTable: this.codeGenerator.transpileState.symbolTable,
+        reachesForeignHeader: file.reachesForeignHeader,
+        sourceFile: sourcePath,
+      },
+      includes: {
+        resolutions: this._includesOf(sourcePath).resolutions,
+        cnextAlternatives: this._includesOf(sourcePath).cnextAlternatives,
+        kinds: this._includesOf(sourcePath).kinds,
+      },
+    };
   }
 
   /**
@@ -965,39 +829,21 @@ class Transpiler {
     const sourcePath = file.path;
     const errors = diagnostics.forFile(sourcePath);
     const declarationCount =
-      this.retainedParses.get(sourcePath)?.declarationCount ?? 0;
+      this.analyzedFiles.get(sourcePath)?.declarationCount ?? 0;
 
     return errors.length > 0
       ? this.buildErrorResult(sourcePath, [...errors], declarationCount)
       : this.buildParseOnlyResult(sourcePath, declarationCount);
   }
 
-  /**
-   * The parse and declare Stage 3 already performed for this file (#1301).
-   *
-   * There is no parse-if-absent fallback on purpose -- that fallback is the
-   * duplicate path #1301 removed. Stages 4d and 5 walk a subset of the same
-   * `input.cnextFiles` Stage 3 walked, and Stage 3 aborts the run on a parse
-   * error before either begins, so a miss means the pipeline ran out of order
-   * and must say so rather than quietly reparse.
-   *
-   * This branch is an ASSERTION, not a covered path, and is deliberately left
-   * uncovered: every caller is downstream of a stage 3 that aborts the run on
-   * any error, so nothing reachable through the public API can miss. It cannot
-   * be mutation-checked either -- mis-keying the cache returns a WRONG entry,
-   * never `undefined`, so that mutation exercises the key rather than this
-   * guard. If it ever fired it would surface at line 1, since the message
-   * carries no `N:M` prefix for `parseErrorLocation` to find -- and as an
-   * `Internal:` assertion (#1531), so the reader knows the transpiler broke,
-   * not their program.
-   */
-  private _requireRetainedParse(sourcePath: string): IParsedFile {
-    const declared = this.retainedParses.get(sourcePath);
+  /** Stage 5's input for this file, from `TreePasses` (#1932) */
+  private _requireAnalyzedFile(sourcePath: string): IAnalyzedFile {
+    const analyzed = this.analyzedFiles.get(sourcePath);
     invariant(
-      declared,
-      `every file that reaches code generation was declared and its parse retained, ${sourcePath} included`,
+      analyzed,
+      `every file that reaches code generation was analyzed and its plain data kept, ${sourcePath} included`,
     );
-    return declared;
+    return analyzed;
   }
 
   /**
@@ -1018,7 +864,7 @@ class Transpiler {
    * as `Program.settleEveryFile`'s deferred-type check.
    */
   private _requireSymbolInfo(sourcePath: string): ICodeGenSymbols {
-    // #1452: see `_analyzeFile` -- the include rewrites below are asserted
+    // #1452: see `_analysisInputs` -- the include rewrites below are asserted
     // rather than defaulted, for the same reason.
     invariant(
       this.program,
@@ -1041,7 +887,7 @@ class Transpiler {
    * The per-file symbol view, required present.
    *
    * This used to PUBLISH the view onto the state as well, and that write is now
-   * dead in both directions. `_analyzeFile`'s readers are the analyzers, which
+   * dead in both directions. `_analysisInputs`'s readers are the analyzers, which
    * take `IAnalysisContext.symbols` since #1456 and are barred from the state by
    * `2-1-analyze-reads-no-later-pass`. `_transpileFile`'s next state access
    * is `generate()`, whose `reset()` sets `symbols = null` before the walker
@@ -1051,7 +897,7 @@ class Transpiler {
    *
    * It set `currentFileReachesForeignHeader` too, and that went the same way for
    * the same reason: #1456 moved its one reader onto `IAnalysisContext`, which
-   * `_analyzeFile` fills from the same expression, and `reset()` restored the
+   * `_analysisInputs` fills from the same expression, and `reset()` restored the
    * declining default over it at the top of `generate()`.
    *
    * What is left is the requirement itself, which is why the method stays: both
@@ -1094,8 +940,8 @@ class Transpiler {
     AdrProvenance.beginFile(sourcePath);
 
     try {
-      const { tree, tokenStream, declarationCount } =
-        this._requireRetainedParse(sourcePath);
+      const analyzed = this._requireAnalyzedFile(sourcePath);
+      const { declarationCount } = analyzed;
 
       // Parse only mode
       if (this.config.parseOnly) {
@@ -1112,7 +958,7 @@ class Transpiler {
       const sourceRelativePath =
         file.sourceRelativePath ??
         this.anchor.pathResolver.getSourceRelativePath(sourcePath);
-      const code = this.codeGenerator.generate(tree, tokenStream, {
+      const code = this.codeGenerator.generate(analyzed.program, {
         debugMode: this.config.debugMode,
         targetDescription: this._runTarget().description,
         sourcePath,
@@ -1208,7 +1054,7 @@ class Transpiler {
    * rather than introduced. Changing what "produces output" means is now one edit.
    */
   private static _producesOutput(file: IPipelineFile): boolean {
-    return !file.symbolOnly;
+    return TreePasses.producesOutput(file);
   }
 
   private _initializeRun(): void {
@@ -1357,7 +1203,7 @@ class Transpiler {
     const recovered = input.recoveredDeclarations;
     if (recovered === null) return;
 
-    const cleanState = HeaderDeclarations.recoverSlices(
+    const cleanState = TreePasses.recoverDeclarations(
       recovered.slices,
       this.codeGenerator.transpileState.symbolTable,
     );
@@ -1811,10 +1657,9 @@ class Transpiler {
         `[DEBUG]   Parsing ${Transpiler._languageName(source.language)} header: ${file.path}`,
       );
     }
-    HeaderDeclarations.declare(
-      source.text,
+    TreePasses.declareHeader(
       file.path,
-      source.language,
+      source,
       this.codeGenerator.transpileState.symbolTable,
     );
   }
@@ -1854,30 +1699,6 @@ class Transpiler {
    * directory, because rebuilding a search path is how it came to disagree
    * with discovery.
    */
-  private _declareFile(
-    tree: Parser.ProgramContext,
-    sourcePath: string,
-  ): IFileSymbols {
-    // #1472 item 2: no cross-file parameter. Declare is handed one tree and one
-    // path, and everything it authors is computable from those alone.
-    //
-    // The seed this replaced was the union of what each INCLUDED file declared,
-    // threaded in so a bare type reference could be qualified here. That made
-    // Declare answer a cross-file question, and it also made the answer depend
-    // on visit order: under an include cycle the toposort falls back to
-    // insertion order (#1167), so an include's entry could be missing and the
-    // seed silently short. Neither is true now -- 1.4 Resolve settles those
-    // references against what each file can see, its include closure, after
-    // every file is declared, so order cannot affect the result (#1724).
-    const declared = CNextResolver.resolve(
-      tree,
-      sourcePath,
-      this.symbolRegistry,
-    );
-
-    return declared;
-  }
-
   // ===========================================================================
   // Result Builder Helpers
   // ===========================================================================
@@ -1944,14 +1765,14 @@ class Transpiler {
    * Build a catch/exception result.
    */
   private buildCatchResult(sourcePath: string, err: unknown): IFileResult {
-    // #1320: formatted by `_collectionError`, not re-spelled here. How a thrown
+    // #1320: formatted by `CaughtError.asTranspileError`, not re-spelled here. How a thrown
     // error becomes a diagnostic is ONE decision; it used to be written out in
     // both places, so changing the wording meant editing two.
     return {
       sourcePath,
       code: "",
       success: false,
-      errors: [Transpiler._collectionError(err)],
+      errors: [CaughtError.asTranspileError(err)],
       declarationCount: 0,
     };
   }

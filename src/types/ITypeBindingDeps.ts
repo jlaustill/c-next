@@ -1,5 +1,5 @@
 /**
- * What `TypeBinding` needs injected to resolve a type name.
+ * What `TypeNameLadder` needs injected to resolve a type name.
  *
  * A shared contract rather than a module-private interface: 1.3 Declare
  * declares the resolver, 2.3 Render calls it, and `CodeGenState` binds its own
@@ -8,7 +8,7 @@
  * structural copy in `state/` that had to be kept in step by hand, which is the
  * duplication this type exists to end rather than one more instance of it.
  *
- * The predicates stay INJECTED. `TypeBinding` reading `CodeGenState` directly
+ * The predicates stay INJECTED. `TypeNameLadder` reading `CodeGenState` directly
  * would put codegen state behind a resolver 1.3 Declare also calls, and 1.3
  * runs long before any of that state exists.
  */

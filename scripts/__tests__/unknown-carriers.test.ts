@@ -2,7 +2,7 @@
  * #1652: an `unknown`-typed parameter or array field is how a production module
  * holds a parse node while naming none.
  *
- * `parse-tree-confined-to-parser` counts modules that NAME a parse type. Six
+ * `parse-tree-sites` counts modules that NAME a parse type. Six
  * production sites typed theirs `unknown` instead, and `ICodeGenApi`'s own
  * comment was candid about why:
  *

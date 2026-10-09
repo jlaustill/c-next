@@ -1,13 +1,18 @@
 /**
- * CodeGenWalker -- the parse-tree walk that drives code generation.
+ * CodeGenWalker -- the walk over one file's plain-data `IProgramSyntax`
+ * that drives code generation.
  *
  * #1445 box 3: the render pass must not hold parse nodes. This class is the
  * half of the former `CodeGenerator` that did, extracted whole: every member
  * whose text names a `Parser.*Context`, `ParserRuleContext` or
  * `CommonTokenStream`, plus the parse-free members that only those call.
  *
+ * #1932 then took the walk itself off the tree: 1.2's `ProgramLowering`
+ * produces `IParsedFile.program`, the walker generates from it, and it names
+ * no parse type -- `parse-tree-confined-to-parser` is `error` here.
+ *
  * It lives at `src/TRANSPILE/` rather than in a pass because it is not one.
- * It walks the tree and drives 2.2 and 2.3 for a single file -- the same role
+ * It walks the file and drives 2.2 and 2.3 for a single file -- the same role
  * `Transpiler` plays for a run, and README §1's tree draws it there. It cannot
  * live in `2-Plan/`: `2-2-plan-reads-no-later-pass` is `error` with
  * `reachable: true`, and the walk
@@ -26,9 +31,6 @@ import type IChainStep from "../types/IChainStep";
 import type EFileType from "../PARSE/1-Discover/types/EFileType";
 import type IStringConcatOps from "./3-Render/codegen/types/IStringConcatOps";
 import { basename } from "node:path";
-import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
-import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
-import CommentScanner from "../PARSE/2-Parse/CommentScanner";
 import CommentFormatter from "./3-Render/codegen/CommentFormatter";
 import IComment from "../types/IComment";
 import TYPE_MAP from "./3-Render/codegen/types/TYPE_MAP";
@@ -61,7 +63,18 @@ import generatePostfixExpression from "./3-Render/codegen/generators/expressions
 import controlFlowGenerators from "./3-Render/codegen/generators/statements/ControlFlowGenerator";
 import IPlannedFor from "./3-Render/codegen/types/IPlannedFor";
 import IPlannedForAssignment from "./3-Render/codegen/types/IPlannedForAssignment";
-import type TAssignmentSite from "../types/TAssignmentSite";
+import type IAssignmentSyntax from "../types/syntax/IAssignmentSyntax";
+import type IVariableDeclarationSyntax from "../types/syntax/IVariableDeclarationSyntax";
+import type TStatement from "../types/syntax/TStatement";
+import type IStructDeclarationSyntax from "../types/syntax/IStructDeclarationSyntax";
+import type IRegisterDeclarationSyntax from "../types/syntax/IRegisterDeclarationSyntax";
+import type IParameterSyntax from "../types/syntax/IParameterSyntax";
+import type IFunctionDeclarationSyntax from "../types/syntax/IFunctionDeclarationSyntax";
+import type TDeclarationSyntax from "../types/syntax/TDeclarationSyntax";
+import type IProgramSyntax from "../types/syntax/IProgramSyntax";
+import type TCaseLabelSyntax from "../types/syntax/TCaseLabelSyntax";
+import type TBlockSyntax from "../types/syntax/TBlockSyntax";
+import AssignmentTarget from "../utils/AssignmentTarget";
 import IPlannedForVarDecl from "./3-Render/codegen/types/IPlannedForVarDecl";
 import IPlannedForever from "./3-Render/codegen/types/IPlannedForever";
 import IPlannedIf from "./3-Render/codegen/types/IPlannedIf";
@@ -81,7 +94,6 @@ import type IPlannedFunction from "./3-Render/codegen/types/IPlannedFunction";
 import type IPlannedStruct from "./3-Render/codegen/types/IPlannedStruct";
 import type IPlannedDimension from "./3-Render/codegen/types/IPlannedDimension";
 import type IPlannedCallArgument from "./3-Render/codegen/types/IPlannedCallArgument";
-import type TRegisterAccessMode from "../types/TRegisterAccessMode";
 import structGenerator from "./3-Render/codegen/generators/declarationGenerators/StructGenerator";
 import ArrayDimensionUtils from "./3-Render/codegen/generators/declarationGenerators/ArrayDimensionUtils";
 import IPlannedArrayDeclaration from "./3-Render/codegen/types/IPlannedArrayDeclaration";
@@ -105,7 +117,6 @@ import type IChainHead from "../types/IChainHead";
 import ExpressionCalls from "../utils/ExpressionCalls";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
 import includeGenerators from "./3-Render/codegen/generators/support/IncludeGenerator";
-import commentUtils from "./3-Render/codegen/generators/support/CommentUtils";
 import DeclaredTypeInfo from "../PARSE/3-Declare/DeclaredTypeInfo";
 import DeclaredPointer from "../utils/DeclaredPointer";
 import type IChainBase from "../types/IChainBase";
@@ -122,7 +133,6 @@ import CppModeHelper from "./3-Render/codegen/helpers/CppModeHelper";
 import generateCast from "./3-Render/codegen/generators/expressions/CastExprGenerator";
 import type IPlannedCast from "./3-Render/codegen/types/IPlannedCast";
 import ConstExprLowering from "../utils/ConstExprLowering";
-import SyntaxLowering from "../PARSE/2-Parse/SyntaxLowering";
 import ConstantEvaluator from "../utils/ConstantEvaluator";
 import ConstantFold from "../utils/ConstantFold";
 import UNRESOLVED_DIMENSION from "../types/UNRESOLVED_DIMENSION";
@@ -144,20 +154,18 @@ import BaseIdentifierBuilder from "./3-Render/codegen/helpers/BaseIdentifierBuil
 import ISimpleIdentifierDeps from "./3-Render/codegen/types/ISimpleIdentifierDeps";
 import IPostfixChainDeps from "./3-Render/codegen/types/IPostfixChainDeps";
 import IPostfixOperation from "./3-Render/codegen/types/IPostfixOperation";
-import ExpressionUnwrapper from "../utils/ExpressionUnwrapper";
 import type TExpression from "../types/syntax/TExpression";
 import type TExpressionOf from "../types/syntax/TExpressionOf";
 import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
 import type TTypeSyntax from "../types/syntax/TTypeSyntax";
-import ParserUtils from "../utils/ParserUtils";
 import type ISourcePosition from "../utils/types/ISourcePosition";
+import type ISourceSpan from "../types/ISourceSpan";
 import IMemberSeparatorDeps from "./3-Render/codegen/types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./3-Render/codegen/types/IParameterDereferenceDeps";
 import ISeparatorContext from "./3-Render/codegen/types/ISeparatorContext";
 import TypeGenerationHelper from "./3-Render/codegen/helpers/TypeGenerationHelper";
 import type IPlannedType from "./3-Render/codegen/types/IPlannedType";
 import type IPlannedParameter from "./3-Render/codegen/types/IPlannedParameter";
-import type IPlannedDirective from "./3-Render/codegen/types/IPlannedDirective";
 import type IPlannedFunctionParameter from "./3-Render/codegen/types/IPlannedFunctionParameter";
 import FunctionContextManager from "./3-Render/codegen/helpers/FunctionContextManager";
 import BitRangeHelper from "./3-Render/codegen/helpers/BitRangeHelper";
@@ -172,8 +180,9 @@ import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import MisraSuppressionUtils from "./3-Render/MisraSuppressionUtils";
 import QualifiedCName from "../utils/QualifiedCName";
 import ToolchainRequirementUtils from "../utils/ToolchainRequirementUtils";
+import MainSignature from "../utils/MainSignature";
 import ScopeUtils from "../utils/ScopeUtils";
-import TypeBinding from "../PARSE/3-Declare/TypeBinding";
+import TypeNameLadder from "../utils/TypeNameLadder";
 import type ITargetDescription from "../types/ITargetDescription";
 import SymbolTypeResolver from "../utils/TypeResolver";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
@@ -191,11 +200,6 @@ const {
   transformIncludeDirective: includeTransformIncludeDirective,
   processPreprocessorDirective: includeProcessPreprocessorDirective,
 } = includeGenerators;
-
-const {
-  getLeadingComments: commentGetLeadingComments,
-  formatLeadingComments: commentFormatLeadingComments,
-} = commentUtils;
 
 interface FunctionSignature {
   name: string;
@@ -256,32 +260,7 @@ class CodeGenWalker {
       ["f64", "0.0"],
     ]);
 
-  /** Token stream for comment extraction (ADR-043) */
-  private tokenStream: CommonTokenStream | null = null;
-
-  private commentExtractor: CommentScanner | null = null;
-
   private readonly commentFormatter: CommentFormatter = new CommentFormatter();
-
-  /**
-   * Drop the parse state this walker accumulated during a run.
-   *
-   * #1445 box 2: `tokenStream` and the `CommentScanner` over it were assigned
-   * per file in `generate()` and **never cleared**, so after a run the walker
-   * still pointed at the LAST file's `CommonTokenStream`. `Transpiler` holds one
-   * walker for its whole life and `ServeCommand` holds one `Transpiler` in a
-   * static field, so a language server sitting idle retained that stream until
-   * the next request overwrote it.
-   *
-   * This is the residency defect #1301 already fixed for the retained parses,
-   * in a different field. That fix cleared a map the orchestrator owned; these
-   * two live on the walker, so the orchestrator cannot reach them -- hence a
-   * method rather than another `.clear()` in the same `finally`.
-   */
-  releaseParseState(): void {
-    this.tokenStream = null;
-    this.commentExtractor = null;
-  }
 
   /** Issue #644: String declaration helper for bounded/array/concat strings */
   /** Issue #644: Array initialization helper for size inference and fill-all */
@@ -355,14 +334,6 @@ class CodeGenWalker {
       : code;
   }
 
-  /**
-   * Generate a C expression from any expression context.
-   * Part of IOrchestrator interface.
-   */
-  generateExpression(ctx: Parser.ExpressionContext): string {
-    return this.renderExpression(SyntaxLowering.expression(ctx));
-  }
-
   private renderExpression(expr: TExpression): string {
     return this.invokeGenerator(generateTernaryExpr, this.planTernary(expr));
   }
@@ -384,42 +355,6 @@ class CodeGenWalker {
       renderTrue: () => this.renderBinary(whenTrue),
       renderFalse: () => this.renderBinary(whenFalse),
     };
-  }
-
-  /**
-   * Issue #477: Generate expression with a specific expected type context.
-   * Used by return statements to resolve unqualified enum values.
-   *
-   * #1450 box 4: this was a third hand-rolled save/restore of `expectedType`,
-   * beside `withExpectedType` and `withoutExpectedType`, justified by a note
-   * reading "uses explicit save/restore (not withExpectedType) to support null
-   * values". No caller passes one. Measured rather than argued: throwing here
-   * on a falsy argument leaves 1247/1247 fixtures green, and the control --
-   * throwing on a TRUTHY one -- fails 663 of them, so the line is reached and
-   * the falsy case simply never arrives.
-   *
-   * The parameter is therefore `string`, not `string | null`. That makes the
-   * fact the compiler's to keep rather than a comment's, which matters because
-   * the two spellings did OPPOSITE things on null: `withExpectedType(null)` is
-   * a no-op by contract, while this cleared the type. Two near-identically
-   * named operations disagreeing on their edge case is the trap; deleting the
-   * edge case is cheaper than documenting it.
-   */
-  generateExpressionWithExpectedType(
-    ctx: Parser.ExpressionContext,
-    expectedType: string,
-  ): string {
-    return this.host.state.withExpectedType(expectedType, () =>
-      this.generateExpression(ctx),
-    );
-  }
-
-  /**
-   * Generate type translation (C-Next type -> C type).
-   * Part of IOrchestrator interface.
-   */
-  generateType(ctx: Parser.TypeContext): string {
-    return this.renderType(SyntaxLowering.type(ctx));
   }
 
   private renderType(type: TTypeSyntax): string {
@@ -445,7 +380,7 @@ class CodeGenWalker {
   /**
    * A type context reduced to what the renderer asks of it (#1445).
    *
-   * The named branches come from `TypeBinding` -- 1.3 Declare's one ladder --
+   * The named branches come from `TypeNameLadder` -- the one ladder --
    * rather than from a second walk here, which is what `TypeGenerationHelper`
    * used to do. `typeBindingDeps` supplies the same two predicates that helper
    * was handed: ADR-057's scope-type test, and this generator's C++-aware
@@ -464,7 +399,7 @@ class CodeGenWalker {
     );
 
     return {
-      named: TypeBinding.classifyNamed(
+      named: TypeNameLadder.classifyNamed(
         element,
         this.host.state.currentScopePath,
         deps,
@@ -814,28 +749,8 @@ class CodeGenWalker {
     return this.invokeGenerator(generateBinaryExpr, this.planBinaryExpr(expr));
   }
 
-  /**
-   * Get the enum type of an expression.
-   * Part of IOrchestrator interface - delegates to private implementation.
-   */
-  getExpressionEnumType(ctx: Parser.ExpressionContext): string | null {
-    // #1445: the resolver takes the expression's TEXT plus a thunk for the
-    // struct-member-chain fallback, so it names no parse type. The walk stays
-    // here, where the node is.
-    //
-    // The parameter was `ExpressionContext | RelationalExpressionContext`. The
-    // second arm was dead: the only caller is `SwitchGenerator`, which passes
-    // `node.expression()`. The resolver's `!("ternaryExpression" in ctx)` guard
-    // existed to discriminate the union and could therefore never fire.
-    //
-    // #1668: the one operand typer's answer, which 2.1's ADR-017 rules read
-    // too, so the case label and the E0428/E0434 checks cannot disagree
-    // about whether the switch is on an enum. A header's enum has no C-Next
-    // enum type: its members are global C names and need no qualifying.
-    const t = OperandTyper.typeOf(
-      SyntaxLowering.expressionNode(ctx),
-      this.host.state.typingContext(),
-    );
+  private enumTypeOf(expr: TExpression): string | null {
+    const t = OperandTyper.typeOf(expr, this.host.state.typingContext());
     return t?.category === "enum" ? t.enumTypeName : null;
   }
 
@@ -857,6 +772,17 @@ class CodeGenWalker {
 
   private static positionOf(expr: TExpression): ISourcePosition {
     return { line: expr.span.line, column: expr.span.column };
+  }
+
+  /**
+   * Where a declaration's name binds to the declaration itself: just inside
+   * the name, since LexicalFrames binds a declaration that starts before the
+   * position asked about. Before the name, it is the one being shadowed.
+   */
+  private static declaredAt(decl: {
+    readonly nameSpan: ISourceSpan;
+  }): ISourcePosition {
+    return { line: decl.nameSpan.line, column: decl.nameSpan.column + 1 };
   }
 
   /**
@@ -962,14 +888,6 @@ class CodeGenWalker {
     return (array?.isArray ?? false) && (array?.isPointer ?? false);
   }
 
-  /**
-   * Issue #304: Get the type of an expression.
-   * Part of IOrchestrator interface.
-   */
-  getExpressionType(ctx: Parser.ExpressionContext): string | null {
-    return this.directTypeOf(SyntaxLowering.expression(ctx));
-  }
-
   /** #1668 (C6c): an expression's one type for 2.2, PlanTyping's row */
   private directTypeOf(expr: TExpression): string | null {
     return PlanTyping.directTypeName(
@@ -981,90 +899,109 @@ class CodeGenWalker {
    * The integer type an expression converts from: its one type, or a
    * composite's integer type -- the answer 2.1's E0869 reads
    */
-  private integerTypeOf(ctx: ParserRuleContext): string | null {
-    const expr = SyntaxLowering.expressionNode(ctx);
+  private integerTypeOf(expr: TExpression): string | null {
     return this.directTypeOf(expr) ?? this.compositeClampType(expr);
   }
 
   /** Whether any value leaf is floating, or indeterminate (CompositeType) */
-  private hasFloatingLeaf(ctx: ParserRuleContext): boolean {
+  private hasFloatingLeaf(expr: TExpression): boolean {
     const typing = this.host.state.typingContext();
-    return CompositeType.anyFloating(
-      OperandTyper.valueLeaves(SyntaxLowering.expressionNode(ctx), typing),
-    );
+    return CompositeType.anyFloating(OperandTyper.valueLeaves(expr, typing));
   }
 
-  /**
-   * Generate a block (curly braces with statements).
-   * Part of IOrchestrator interface.
-   */
-  generateBlock(ctx: Parser.BlockContext): string {
+  private renderBlock(block: Pick<TBlockSyntax, "statements">): string {
     const lines: string[] = ["{"];
     const innerIndent = FormatUtils.indent(1); // One level of relative indentation
-
-    for (const stmt of ctx.statement()) {
-      // Temporarily increment for any nested context that needs absolute level
+    for (const stmt of block.statements) {
       this.host.state.indentLevel++;
-      const stmtCode = this.generateStatement(stmt);
+      const stmtCode = this.renderStatement(stmt);
       this.host.state.indentLevel--;
-
       if (stmtCode) {
-        // Add one level of indent to each line (relative indentation)
         const indentedLines = stmtCode
           .split("\n")
           .map((line) => innerIndent + line);
         lines.push(indentedLines.join("\n"));
       }
     }
-
     lines.push("}");
-
     return lines.join("\n");
   }
 
-  /**
-   * Generate a single statement.
-   * Part of IOrchestrator interface.
-   */
-  generateStatement(ctx: Parser.StatementContext): string {
-    let result = "";
-
-    if (ctx.variableDeclaration()) {
-      result = this.generateVariableDecl(ctx.variableDeclaration()!);
-    } else if (ctx.assignmentStatement()) {
-      result = this.generateAssignment(ctx.assignmentStatement()!);
-    } else if (ctx.expressionStatement()) {
-      result =
-        this.generateExpression(ctx.expressionStatement()!.expression()) + ";";
-    } else if (ctx.ifStatement()) {
-      result = this.generateIf(ctx.ifStatement()!);
-    } else if (ctx.whileStatement()) {
-      result = this.generateWhile(ctx.whileStatement()!);
-    } else if (ctx.doWhileStatement()) {
-      result = this.generateDoWhile(ctx.doWhileStatement()!);
-    } else if (ctx.forStatement()) {
-      result = this.generateFor(ctx.forStatement()!);
-    } else if (ctx.foreverStatement()) {
-      result = this.generateForever(ctx.foreverStatement()!);
-    } else if (ctx.switchStatement()) {
-      result = this.generateSwitch(ctx.switchStatement()!);
-    } else if (ctx.returnStatement()) {
-      result = this.generateReturn(ctx.returnStatement()!);
-    } else if (ctx.criticalStatement()) {
-      // ADR-050: Critical statement for atomic multi-variable operations
-      result = this.generateCriticalStatement(ctx.criticalStatement()!);
-    } else if (ctx.block()) {
-      result = this.generateBlock(ctx.block()!);
-    }
-
-    // Issue #250: Prepend any pending temp variable declarations (C++ mode)
+  private renderStatement(statement: TStatement): string {
+    const result = this.renderStatementCode(statement);
+    // Issue #250: Prepend any pending temp declarations (C++ mode)
     if (this.host.state.pendingTempDeclarations.length > 0) {
       const tempDecls = this.host.state.pendingTempDeclarations.join("\n");
       this.host.state.pendingTempDeclarations = [];
       return tempDecls + "\n" + result;
     }
-
     return result;
+  }
+
+  private renderStatementCode(statement: TStatement): string {
+    switch (statement.kind) {
+      case "variableDeclaration":
+      case "constructorDeclaration":
+        return VariableDeclHelper.renderVariableDecl(
+          this.planVariableDecl(statement),
+          this.host.state,
+        );
+      case "assignment":
+        return this.generateAssignment(statement);
+      case "expression":
+        return this.renderExpression(statement.expression) + ";";
+      case "if":
+        return this.invokeGenerator(
+          controlFlowGenerators.generateIf,
+          this.planIf(statement),
+        );
+      case "while":
+        return this.invokeGenerator(
+          controlFlowGenerators.generateWhile,
+          this.planWhile(statement),
+        );
+      case "doWhile":
+        return this.invokeGenerator(
+          controlFlowGenerators.generateDoWhile,
+          this.planDoWhile(statement),
+        );
+      case "for":
+        return this.invokeGenerator(
+          controlFlowGenerators.generateFor,
+          this.planFor(statement),
+        );
+      case "forever":
+        return this.invokeGenerator(
+          controlFlowGenerators.generateForever,
+          this.planForever(statement),
+        );
+      case "switch":
+        return this.invokeGenerator(
+          generateSwitchStatement,
+          this.planSwitch(statement),
+        );
+      case "return":
+        return this.invokeGenerator(
+          controlFlowGenerators.generateReturn,
+          this.planReturn(statement),
+        );
+      case "critical":
+        // ADR-050: a critical statement for atomic multi-variable operations.
+        // #1445: the block is rendered here and the generator wraps it, so the
+        // block still renders before the wrapper's irq_wrappers effect is
+        // applied, and effect order is unchanged.
+        return this.invokeGenerator(generateCriticalStatement, {
+          blockCode: this.renderBlock(statement.body),
+          line: statement.span.line,
+        });
+      case "block":
+        return this.renderBlock(statement);
+      case "missing":
+        invariant(
+          false,
+          "a statement the parser repaired never reaches render -- the run stops at the parse error",
+        );
+    }
   }
 
   /**
@@ -1078,21 +1015,19 @@ class CodeGenWalker {
    *        a renamed local, a scope member or a struct parameter is spelled
    *        once, here.
    */
-  generateAssignmentTarget(
-    ctx: Parser.AssignmentTargetContext,
-    opCount?: number,
-  ): string {
-    const hasGlobal = ctx.GLOBAL() !== null;
-    const hasThis = ctx.THIS() !== null;
-    const identifier = ctx.IDENTIFIER()?.getText();
-    const postfixOps = ctx.postfixTargetOp().slice(0, opCount);
+  generateAssignmentTarget(ctx: TExpression, opCount?: number): string {
+    const parts = AssignmentTarget.parts(ctx);
+    const hasGlobal = parts.root === "global";
+    const hasThis = parts.root === "this";
+    const identifier = parts.identifier ?? undefined;
+    const postfixOps = parts.ops.slice(0, opCount);
 
     // SonarCloud S3776: Use SimpleIdentifierResolver for simple identifier case
     if (!hasGlobal && !hasThis && postfixOps.length === 0 && identifier) {
       return SimpleIdentifierResolver.resolve(
         identifier,
         this._buildSimpleIdentifierDeps(),
-        ParserUtils.getPosition(ctx),
+        parts.position,
       );
     }
 
@@ -1131,7 +1066,7 @@ class CodeGenWalker {
         // the local, in the same function, compiling clean.
         const resolved = TypeValidator.resolveBareIdentifier(
           identifier,
-          ParserUtils.getPosition(ctx),
+          parts.position,
           (name: string) => this.host.isKnownStruct(name),
           this.host.state,
         );
@@ -1172,41 +1107,19 @@ class CodeGenWalker {
     );
   }
 
-  /**
-   * Generate array dimensions.
-   * Part of IOrchestrator interface.
-   */
-  generateArrayDimensions(dims: Parser.ArrayDimensionContext[]): string {
-    return dims.map((d) => this.generateArrayDimension(d)).join("");
-  }
-
-  /** Generate single array dimension */
-  generateArrayDimension(dim: Parser.ArrayDimensionContext): string {
-    // Bug #8 folded only at file scope, where C requires a constant size.
-    // #1175: a dimension is a constant wherever it is written (ADR-023: no
-    // VLAs), so it folds everywhere, by the one rule
-    const expression = dim.expression();
-    if (expression) {
-      return `[${this.renderDimension(expression)}]`;
-    }
-    return "[]";
-  }
-
   /** Generate parameter list for function signature */
-  generateParameterList(ctx: Parser.ParameterListContext): string {
-    return ctx
-      .parameter()
-      .map((p, index) => this.generateParameter(p, index))
+  generateParameterList(params: readonly IParameterSyntax[]): string {
+    return params
+      .map((param, index) => this.generateParameter(param, index))
       .join(", ");
   }
 
-  /** Get the raw type name without C conversion */
-  getTypeName(ctx: Parser.TypeContext): string {
+  private typeNameOf(type: TTypeSyntax): string {
     // #1285: one ladder. This was the largest of seven copies, and the only one
     // that handled `arrayType` by peeking at two of its six element
-    // alternatives -- TypeBinding recurses into all of them.
-    const resolved = TypeBinding.resolveName(
-      ctx,
+    // alternatives -- TypeNameLadder recurses into all of them.
+    const resolved = TypeNameLadder.resolveWrittenName(
+      type,
       this.host.state.currentScopePath,
       this.host.state.typeBindingDeps((identifiers) =>
         this.resolveQualifiedType(identifiers),
@@ -1224,26 +1137,25 @@ class CodeGenWalker {
     // the two the matrix guidance warns against mixing: neither depends on a
     // diagnostic, and a fixture is credited once per position either way.
     if (resolved !== null && this.host.state.isCrossFileDeclaration(resolved)) {
-      AdrProvenance.record("010", ctx.start?.line);
+      AdrProvenance.record("010", type.span.line);
     }
-    return resolved ?? ctx.getText();
+    return resolved ?? type.text;
   }
 
   /** Try to evaluate a constant expression at compile time */
-  tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined {
+  tryEvaluateConstant(expr: TExpression): number | undefined {
     // Issue #1127: the shared builder, not a fourth inline copy of the same
     // three lookups. This is the orchestrator entry point that
     // ArrayDimensionUtils uses to emit declaration dimensions, so it is on the
     // hot path for exactly the divergences this work closes.
-    return this.dimensionValue(ctx);
+    return this.constantOf(expr);
   }
 
   /**
-   * Get zero initializer for a type.
-   * ADR-015: Get the appropriate zero initializer for a type
-   * ADR-017: Handle enum types by initializing to first member
+   * ADR-015: the zero initializer for a type.
+   * ADR-017: an enum initializes to its first member.
    */
-  getZeroInitializer(typeCtx: Parser.TypeContext, isArray: boolean): string {
+  private zeroInitializerOf(type: TTypeSyntax, isArray: boolean): string {
     // Issue #379 / #1004: arrays zero-init with the aggregate brace ({} in
     // C++, {0} in C) regardless of element type.
     if (isArray) {
@@ -1251,7 +1163,7 @@ class CodeGenWalker {
     }
 
     // Handle named types (scoped, global, qualified, user)
-    const resolved = this._resolveTypeNameFromContext(typeCtx);
+    const resolved = this.namedTypeOf(type);
     if (resolved) {
       // Check if enum
       if (this.host.state.symbols!.knownEnums.has(resolved.name)) {
@@ -1264,18 +1176,18 @@ class CodeGenWalker {
     }
 
     // Issue #295: C++ template types use value initialization {}
-    if (typeCtx.templateType()) {
+    if (type.kind === "template") {
       return "{}";
     }
 
     // Issue #1019: string<N> types use empty string initializer
-    if (typeCtx.stringType()) {
+    if (type.kind === "string") {
       return '""';
     }
 
     // Primitive types use lookup map
-    if (typeCtx.primitiveType()) {
-      const primType = typeCtx.primitiveType()!.getText();
+    if (type.kind === "primitive") {
+      const primType = type.name;
       return CodeGenWalker.PRIMITIVE_ZERO_VALUES.get(primType) ?? "0";
     }
 
@@ -1291,11 +1203,9 @@ class CodeGenWalker {
    * parameter list.
    */
   planFunctionParameters(
-    ctx: Parser.ParameterListContext | null,
+    params: readonly IParameterSyntax[] | null,
   ): readonly IPlannedFunctionParameter[] | null {
-    return (
-      ctx?.parameter().map((param) => this.planFunctionParameter(param)) ?? null
-    );
+    return params?.map((param) => this.planFunctionParameter(param)) ?? null;
   }
 
   /**
@@ -1311,8 +1221,9 @@ class CodeGenWalker {
    *
    * A fifth declaration site should call this rather than repeat the pairing.
    */
-  generateDeclaredType(typeCtx: Parser.TypeContext): string {
-    const declared = this.generateType(typeCtx);
+
+  private renderDeclaredType(type: TTypeSyntax): string {
+    const declared = this.renderType(type);
     return this.host.getCallbackTypedefName(declared) ?? declared;
   }
 
@@ -1367,9 +1278,9 @@ class CodeGenWalker {
 
   isMainFunctionWithArgs(
     name: string,
-    paramList: Parser.ParameterListContext | null,
+    params: readonly IParameterSyntax[] | null,
   ): boolean {
-    return ParserUtils.isMainFunctionWithArgs(name, paramList);
+    return MainSignature.takesArgs(name, params);
   }
 
   /**
@@ -1501,15 +1412,10 @@ class CodeGenWalker {
 
   /**
    * Generate C code from a C-Next program
-   * @param tree The parsed C-Next program
-   * @param tokenStream Token stream for comment preservation (ADR-043), when there is one
+   * @param program The file as plain data, lowered by 1.2 (#1932)
    * @param options Code generator options; `symbolInfo` and the target are required
    */
-  generate(
-    tree: Parser.ProgramContext,
-    tokenStream: CommonTokenStream | undefined,
-    options: ICodeGeneratorOptions,
-  ): string {
+  generate(program: IProgramSyntax, options: ICodeGeneratorOptions): string {
     // ADR-049: the target is decided before codegen, by the orchestrator;
     // this walk only reads it.
 
@@ -1517,7 +1423,7 @@ class CodeGenWalker {
     this.resetGeneratorState(options.targetDescription);
 
     // Initialize options and configuration (after reset)
-    this.initializeGenerateOptions(options, tokenStream);
+    this.initializeGenerateOptions(options);
 
     // ADR-055: Use pre-collected symbolInfo from Pipeline (TSymbolInfoAdapter)
     this.host.state.symbols = options.symbolInfo;
@@ -1530,22 +1436,19 @@ class CodeGenWalker {
     this.initializeSymbolData();
 
     // Initialize all helper objects
-    this.initializeHelperObjects(tree);
+    this.initializeHelperObjects(program);
 
     // Assemble and return the output
-    return this.assembleGeneratedOutput(tree, options);
+    return this.assembleGeneratedOutput(program, options);
   }
 
   /**
    * Initialize options and configuration for generate().
    */
-  private initializeGenerateOptions(
-    options: ICodeGeneratorOptions,
-    tokenStream: CommonTokenStream | undefined,
-  ): void {
+  private initializeGenerateOptions(options: ICodeGeneratorOptions): void {
     this.host.state.debugMode = options.debugMode ?? false;
     this.host.state.sourcePath = options.sourcePath ?? null;
-    // #1241: Transpiler._analyzeFile sets the provenance file before analyzers
+    // #1241: Transpiler._analysisInputs sets the provenance file before analyzers
     // run; re-assert it here for API callers that drive the generator directly
     // and never go through that path. (Said `_transpileFile` until #1320
     // hoisted analysis out of it into its own pass -- by the time
@@ -1562,11 +1465,6 @@ class CodeGenWalker {
     this.host.state.cppMode = program.cppMode();
     this.host.state.pendingTempDeclarations = [];
     this.host.state.pendingCppClassAssignments = [];
-
-    this.tokenStream = tokenStream ?? null;
-    this.commentExtractor = this.tokenStream
-      ? new CommentScanner(this.tokenStream)
-      : null;
   }
 
   /**
@@ -1605,16 +1503,16 @@ class CodeGenWalker {
   /**
    * Initialize all helper objects needed for code generation.
    */
-  private initializeHelperObjects(tree: Parser.ProgramContext): void {
+  private initializeHelperObjects(program: IProgramSyntax): void {
     // Collect function/callback information
-    this.collectFunctionsAndCallbacks(tree);
+    this.collectFunctionsAndCallbacks(program);
   }
 
   /**
    * Assemble the final generated output.
    */
   private assembleGeneratedOutput(
-    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
     options: ICodeGeneratorOptions,
   ): string {
     const output: string[] = [];
@@ -1654,22 +1552,26 @@ class CodeGenWalker {
     }
 
     // Process include directives
-    sourceIncludeTargets.push(...this.processIncludeDirectives(tree, output));
+    sourceIncludeTargets.push(
+      ...this.processIncludeDirectives(program, output),
+    );
 
     // Process preprocessor directives
-    this.processPreprocessorDirectives(tree, output);
+    this.processPreprocessorDirectives(program, output);
 
     // 2.2 Plan: the declaration decisions, settled BEFORE anything is rendered.
     // Unlike the emission plan below, neither answer depends on what rendering
     // turns out to produce, so Render reads them rather than interpreting the
     // state they came from.
     this.host.state.declarationPlanOrNull = DeclarationPlan.build(
-      tree.declaration().map((decl) => CodeGenWalker.declarationKindOf(decl)),
+      program.declarations.map((entry) =>
+        CodeGenWalker.declarationKindOf(entry.declaration),
+      ),
       this.host.state.selfIncludeAdded,
     );
 
     // Generate declarations
-    const declarations = this.generateAllDeclarations(tree);
+    const declarations = this.generateAllDeclarations(program);
 
     // 2.2 Plan: every "does this file need X?" question the declarations above
     // raised is answered ONCE, here, from state that is warm for exactly this
@@ -1735,22 +1637,14 @@ class CodeGenWalker {
    * Process all include directives and add to output.
    */
   private processIncludeDirectives(
-    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
     output: string[],
   ): string[] {
     const targets: string[] = [];
-    // #1322: ADR-010's two rejections (E0503, E0504) used to run here, with a
-    // line number threaded in as a NUMBER and spent on `Line N` prose while the
-    // diagnostic reported `1:0`. Both are decided in pass 2.1, which also means
-    // the second derivation of the angle search path that stood on the line
-    // above -- narrower than the one discovery built, and blind to `--include`
-    // -- is gone rather than duplicated.
-    for (const includeDir of tree.includeDirective()) {
-      const leadingComments = this.getLeadingComments(includeDir);
-      output.push(...this.formatLeadingComments(leadingComments));
-
-      // Issue #850: Add MISRA suppression for banned headers
-      const includeText = includeDir.getText();
+    for (const include of program.includes) {
+      output.push(...this.formatLeadingComments(include.leadingComments));
+      const includeText = include.written;
+      // Issue #850: a MISRA suppression for banned headers
       const suppression =
         MisraSuppressionUtils.getMisraSuppressionComment(includeText);
       if (suppression) {
@@ -1763,11 +1657,9 @@ class CodeGenWalker {
         targets.push(target);
       }
     }
-
-    if (tree.includeDirective().length > 0) {
+    if (program.includes.length > 0) {
       output.push("");
     }
-
     return targets;
   }
 
@@ -1775,19 +1667,20 @@ class CodeGenWalker {
    * Process all preprocessor directives and add to output.
    */
   private processPreprocessorDirectives(
-    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
     output: string[],
   ): void {
-    for (const ppDir of tree.preprocessorDirective()) {
-      const leadingComments = this.getLeadingComments(ppDir);
-      output.push(...this.formatLeadingComments(leadingComments));
-      const result = this.processPreprocessorDirective(ppDir);
+    for (const directive of program.directives) {
+      output.push(...this.formatLeadingComments(directive.leadingComments));
+      const result = includeProcessPreprocessorDirective({
+        kind: directive.kind,
+        text: directive.text,
+      });
       if (result) {
         output.push(result);
       }
     }
-
-    if (tree.preprocessorDirective().length > 0) {
+    if (program.directives.length > 0) {
       output.push("");
     }
   }
@@ -1803,15 +1696,15 @@ class CodeGenWalker {
    * answer a question about order (#1317).
    */
   private static declarationKindOf(
-    decl: Parser.DeclarationContext,
+    declaration: TDeclarationSyntax,
   ): TDeclarationKind {
-    if (decl.functionDeclaration() !== null) return "function";
-    if (decl.scopeDeclaration() !== null) return "scope";
+    if (declaration.kind === "function") return "function";
+    if (declaration.kind === "scope") return "scope";
     return "other";
   }
 
-  private generateAllDeclarations(tree: Parser.ProgramContext): string[] {
-    const sourceOrder = tree.declaration();
+  private generateAllDeclarations(program: IProgramSyntax): string[] {
+    const sourceOrder = program.declarations;
 
     // Issue #1212, #1449, #1450: WHICH declaration the callback typedef block
     // precedes is decided by 2.2 Plan and read off the plan here. WHERE that
@@ -1823,15 +1716,14 @@ class CodeGenWalker {
     const declarations: string[] = [];
     let firstFunctionIndex: number | null = null;
 
-    for (const [index, decl] of sourceOrder.entries()) {
-      const leadingComments = this.getLeadingComments(decl);
-      declarations.push(...this.formatLeadingComments(leadingComments));
+    for (const [index, entry] of sourceOrder.entries()) {
+      declarations.push(...this.formatLeadingComments(entry.leadingComments));
 
       if (index === precedes) {
         firstFunctionIndex = declarations.length;
       }
 
-      const code = this.generateDeclaration(decl);
+      const code = this.generateDeclaration(entry.declaration);
       if (code) {
         declarations.push(code);
       }
@@ -2023,23 +1915,14 @@ class CodeGenWalker {
    * Issue #60: Symbol collection extracted to SymbolCollector.
    * This method handles function signatures and callback types (not yet extracted).
    */
-  private collectFunctionsAndCallbacks(tree: Parser.ProgramContext): void {
-    for (const decl of tree.declaration()) {
-      // ADR-016: Handle scope declarations for function tracking
-      if (decl.scopeDeclaration()) {
-        this._collectScopeFunctions(decl.scopeDeclaration()!);
-        continue;
-      }
-
-      // ADR-029: Track callback field types in structs
-      if (decl.structDeclaration()) {
-        this._collectStructCallbackFields(decl.structDeclaration()!);
-        continue;
-      }
-
-      // Track top-level functions
-      if (decl.functionDeclaration()) {
-        this._collectTopLevelFunction(decl.functionDeclaration()!);
+  private collectFunctionsAndCallbacks(program: IProgramSyntax): void {
+    for (const { declaration } of program.declarations) {
+      if (declaration.kind === "scope") {
+        this._collectScopeFunctions(declaration);
+      } else if (declaration.kind === "struct") {
+        this._collectStructCallbackFields(declaration);
+      } else if (declaration.kind === "function") {
+        this._collectTopLevelFunction(declaration);
       }
     }
   }
@@ -2048,48 +1931,28 @@ class CodeGenWalker {
    * Collect scoped functions and their callback types
    */
   private _collectScopeFunctions(
-    scopeDecl: Parser.ScopeDeclarationContext,
+    scopeDecl: Extract<TDeclarationSyntax, { kind: "scope" }>,
   ): void {
-    const scopeName = scopeDecl.IDENTIFIER().getText();
-
-    // Scope context for scoped type resolution (`this.Type`), restored on exit
-    // even if a member throws.
+    const scopeName = scopeDecl.name;
     this.host.state.withScopePath(scopeName, () => {
-      // #1281/#1285: functions first, THEN everything that can reference one.
-      // A struct field naming a scope-local function-as-type is qualified through
-      // isScopeType and then looked up in callbackTypes -- which this loop is
-      // what fills. Walking members in source order made the answer depend on
-      // whether the function happened to be declared above the struct, so
-      // `Config` before `tickSource` resolved the field BARE and emitted a
-      // header naming something that is not a type. Registering every function
-      // before reading any reference makes the order irrelevant, which is the
-      // same declaration-order invariant ADR-057 states for the symbols layer's
-      // Pass 0b.
-      for (const member of scopeDecl.scopeMember()) {
-        const funcDecl = member.functionDeclaration();
-        if (funcDecl) {
-          // #1298: resolve the scope PATH rather than reading back mutable
-          // state, so the generated name does not depend on when it is asked.
+      for (const { declaration } of scopeDecl.members) {
+        if (declaration.kind === "function") {
           this._registerScopeFunction(
             this.host.state.program?.scopePathOf(scopeName) ?? scopeName,
-            funcDecl,
+            declaration,
           );
         }
       }
-
-      for (const member of scopeDecl.scopeMember()) {
-        // Issue #1200: a struct nested in a scope has callback fields just like a
-        // top-level one, and a scope member variable can itself be callback-typed.
-        // Neither was walked here, so neither ever registered its type.
-        if (member.structDeclaration()) {
-          this._collectStructCallbackFields(member.structDeclaration()!);
-          continue;
-        }
-        if (member.variableDeclaration()) {
-          const varType = this.getTypeName(
-            member.variableDeclaration()!.type(),
+      for (const { declaration } of scopeDecl.members) {
+        if (declaration.kind === "struct") {
+          this._collectStructCallbackFields(declaration);
+        } else if (
+          declaration.kind === "variableDeclaration" ||
+          declaration.kind === "constructorDeclaration"
+        ) {
+          this.host.state.notePublicCallbackTypeReference(
+            this.typeNameOf(declaration.type),
           );
-          this.host.state.notePublicCallbackTypeReference(varType);
         }
       }
     });
@@ -2103,42 +1966,31 @@ class CodeGenWalker {
    */
   private _registerScopeFunction(
     declaringScopePath: string,
-    funcDecl: Parser.FunctionDeclarationContext,
+    funcDecl: IFunctionDeclarationSyntax,
   ): void {
-    const funcName = funcDecl.IDENTIFIER().getText();
-    // Track fully qualified function name: Scope_function
     const fullName = QualifiedNameGenerator.forFunctionInScope(
       declaringScopePath,
-      funcName,
+      funcDecl.name,
       this.host.state.program,
     );
     this.host.state.knownFunctions.add(fullName);
-    // ADR-013: Track function signature for const checking
-    const sig = this.extractFunctionSignature(
-      fullName,
-      funcDecl.parameterList() ?? null,
-    );
+    const sig = this.extractFunctionSignature(fullName, funcDecl.parameters);
     this.host.state.functionSignatures.set(fullName, sig);
     // #1484: locals in the body name callback types too.
-    this._collectLocalCallbackTypeReferences(funcDecl.block());
+    this._collectLocalCallbackTypeReferences(funcDecl.body);
   }
 
   /**
    * Collect callback field types from struct declaration
    */
   private _collectStructCallbackFields(
-    structDecl: Parser.StructDeclarationContext,
+    structDecl: IStructDeclarationSyntax,
   ): void {
-    const structName = structDecl.IDENTIFIER().getText();
-
-    for (const member of structDecl.structMember()) {
-      const fieldName = member.IDENTIFIER().getText();
-      const fieldType = this.getTypeName(member.type());
-
-      // Track callback field types (needed for typedef generation)
+    for (const field of structDecl.fields) {
+      const fieldType = this.typeNameOf(field.type);
       if (this.host.state.callbackTypes.has(fieldType)) {
         this.host.state.callbackFieldTypes.set(
-          `${structName}.${fieldName}`,
+          `${structDecl.name}.${field.name}`,
           fieldType,
         );
       }
@@ -2149,19 +2001,15 @@ class CodeGenWalker {
   /**
    * Collect top-level function and register as callback type
    */
-  private _collectTopLevelFunction(
-    funcDecl: Parser.FunctionDeclarationContext,
-  ): void {
-    const name = funcDecl.IDENTIFIER().getText();
-    this.host.state.knownFunctions.add(name);
-    // ADR-013: Track function signature for const checking
+  private _collectTopLevelFunction(funcDecl: IFunctionDeclarationSyntax): void {
+    this.host.state.knownFunctions.add(funcDecl.name);
     const sig = this.extractFunctionSignature(
-      name,
-      funcDecl.parameterList() ?? null,
+      funcDecl.name,
+      funcDecl.parameters,
     );
-    this.host.state.functionSignatures.set(name, sig);
+    this.host.state.functionSignatures.set(funcDecl.name, sig);
     // #1484: locals in the body name callback types too.
-    this._collectLocalCallbackTypeReferences(funcDecl.block());
+    this._collectLocalCallbackTypeReferences(funcDecl.body);
   }
 
   /**
@@ -2174,31 +2022,21 @@ class CodeGenWalker {
    * rendered as C text.
    */
   private planFunctionParameter(
-    ctx: Parser.ParameterContext,
+    param: IParameterSyntax,
   ): IPlannedFunctionParameter {
-    const typeCtx = ctx.type();
-    // Check both C-Next style (u8[8] param) and legacy style (u8 param[8])
-    const cStyleDimensions = ctx.arrayDimension();
-    const arrayType = typeCtx.arrayType();
-    const isArray = cStyleDimensions.length > 0 || arrayType !== null;
-    const stringType = arrayType
-      ? arrayType.stringType()
-      : typeCtx.stringType();
-    const capacity = stringType?.INTEGER_LITERAL();
-
+    const arrayType = param.type.kind === "array" ? param.type : null;
+    const isArray = param.dimensions.length > 0 || arrayType !== null;
     return {
-      name: ctx.IDENTIFIER().getText(),
-      isConst: ctx.constModifier() !== null,
+      name: param.name,
+      isConst: param.const,
       isArray,
       arrayDimensions: this.foldParameterDimensions(
-        cStyleDimensions,
-        arrayType,
+        param.dimensions,
+        arrayType?.dimensions ?? null,
         isArray,
       ),
-      stringCapacity: capacity
-        ? Number.parseInt(capacity.getText(), 10)
-        : undefined,
-      type: this.planType(SyntaxLowering.type(typeCtx)),
+      stringCapacity: CodeGenWalker.stringCapacityOf(param.type) ?? undefined,
+      type: this.planType(param.type),
     };
   }
 
@@ -2213,32 +2051,21 @@ class CodeGenWalker {
    * emitted `uint8_t buf[6]` and still accepted `buf[9]`.
    */
   private foldParameterDimensions(
-    cStyleDimensions: Parser.ArrayDimensionContext[],
-    arrayType: Parser.ArrayTypeContext | null,
+    cStyleDimensions: ReadonlyArray<TExpression | null>,
+    typeDimensions: ReadonlyArray<TExpression | null> | null,
     isArray: boolean,
   ): readonly number[] {
     if (!isArray) return [];
-
-    // C-style first, which E0874 admits only for `main(string args[])`.
     if (cStyleDimensions.length > 0) {
-      // One entry per dimension: its value, or UNRESOLVED_DIMENSION for an
-      // unsized `[]` -- never omitted, or every later dimension shifts
-      return cStyleDimensions.map((dimension) => {
-        const expression = dimension.expression();
-        return (
-          (expression && this.dimensionValue(expression)) ??
-          UNRESOLVED_DIMENSION
-        );
-      });
+      return cStyleDimensions.map(
+        (dimension) =>
+          (dimension && this.constantOf(dimension)) ?? UNRESOLVED_DIMENSION,
+      );
     }
-
-    if (!arrayType) return [];
-
-    return arrayType.arrayTypeDimension().flatMap((dimension) => {
-      const expression = dimension.expression();
-      if (!expression) return [];
-      return [this.dimensionValue(expression) ?? UNRESOLVED_DIMENSION];
-    });
+    if (!typeDimensions) return [];
+    return typeDimensions.flatMap((dimension) =>
+      dimension ? [this.constantOf(dimension) ?? UNRESOLVED_DIMENSION] : [],
+    );
   }
 
   /**
@@ -2246,7 +2073,7 @@ class CodeGenWalker {
    */
   private extractFunctionSignature(
     name: string,
-    params: Parser.ParameterListContext | null,
+    params: readonly IParameterSyntax[] | null,
   ): FunctionSignature {
     const parameters: Array<{
       name: string;
@@ -2256,15 +2083,12 @@ class CodeGenWalker {
     }> = [];
 
     if (params) {
-      for (const param of params.parameter()) {
-        const paramName = param.IDENTIFIER().getText();
-        const isConst = param.constModifier() !== null;
-        // arrayDimension() returns an array (due to grammar's *), so check length
-        // Also check C-Next style array type (e.g., u8[8] param)
+      for (const param of params) {
+        const paramName = param.name;
+        const isConst = param.const;
         const isArray =
-          param.arrayDimension().length > 0 ||
-          param.type().arrayType() !== null;
-        const baseType = this.getTypeName(param.type());
+          param.dimensions.length > 0 || param.type.kind === "array";
+        const baseType = this.typeNameOf(param.type);
         // Issue #1201: a parameter naming a callback type needs that type's
         // typedef emitted, exactly as a struct field does.
         this.host.state.notePublicCallbackTypeReference(baseType);
@@ -2291,33 +2115,58 @@ class CodeGenWalker {
    * reference discovered while generating a later body would arrive after the
    * decision it exists to inform.
    */
-  private _collectLocalCallbackTypeReferences(
-    body: Parser.BlockContext | null,
-  ): void {
-    if (!body) {
-      return;
+  private _collectLocalCallbackTypeReferences(body: TBlockSyntax): void {
+    for (const statement of body.statements) {
+      this.collectCallbackTypeReferencesIn(statement);
     }
-    const visit = (node: ParserRuleContext): void => {
-      // Both declaration forms a body can hold. `forVarDecl` is its own
-      // grammar rule, so a `for` init is NOT a VariableDeclarationContext --
-      // missing it left `for (onTick f <- onTick; ...)` referencing a typedef
-      // nothing emitted.
-      if (
-        node instanceof Parser.VariableDeclarationContext ||
-        node instanceof Parser.ForVarDeclContext
-      ) {
+  }
+
+  private collectCallbackTypeReferencesIn(statement: TStatement): void {
+    const visit = (child: TStatement): void =>
+      this.collectCallbackTypeReferencesIn(child);
+    const visitBody = (body: { statements: readonly TStatement[] }): void =>
+      body.statements.forEach(visit);
+    switch (statement.kind) {
+      case "variableDeclaration":
+      case "constructorDeclaration":
         this.host.state.callbackTypeReferences.add(
-          this.getTypeName(node.type()),
+          this.typeNameOf(statement.type),
         );
-      }
-      for (let i = 0; i < node.getChildCount(); i++) {
-        const child = node.getChild(i);
-        if (child instanceof ParserRuleContext) {
-          visit(child);
+        return;
+      case "if":
+        visit(statement.whenTrue);
+        if (statement.whenFalse) visit(statement.whenFalse);
+        return;
+      case "while":
+      case "doWhile":
+      case "forever":
+      case "critical":
+        if ("kind" in statement.body) {
+          visit(statement.body);
+        } else {
+          visitBody(statement.body);
         }
-      }
-    };
-    visit(body);
+        return;
+      case "for":
+        if (statement.init?.kind === "variableDeclaration")
+          visit(statement.init);
+        visit(statement.body);
+        return;
+      case "switch":
+        statement.cases.forEach((switchCase) => visitBody(switchCase.body));
+        if (statement.defaultCase) visitBody(statement.defaultCase.body);
+        return;
+      case "block":
+        visitBody(statement);
+        return;
+      case "assignment":
+      case "expression":
+      case "return":
+      case "missing":
+        return;
+      default:
+        statement satisfies never;
+    }
   }
 
   /**
@@ -2582,25 +2431,20 @@ class CodeGenWalker {
    * ADR-029: Check if a function is used as a callback type (field type in a struct)
    */
   /**
-   * ADR-017: Check if an expression represents an integer literal or numeric type.
-   * Used to detect comparisons between enums and integers.
-   */
-  /**
    * ADR-045: Check if an expression is a string concatenation.
    *
-   * #1445: the shape question is `ExpressionUnwrapper`'s and the capacity
-   * question is `StringOperationsHelper`'s, so neither has to hold both.
+   * #1445: the shape question is read from the lowered expression and the
+   * capacity question is `StringOperationsHelper`'s, so neither holds both.
    */
   private _getStringConcatOperands(
-    ctx: Parser.ExpressionContext,
+    expression: TExpression,
   ): IStringConcatOps | null {
-    const operands = ExpressionUnwrapper.getAdditionOperandTexts(ctx);
+    const operands = ExpressionShape.additionOperands(expression);
     if (operands === null) return null;
-
     return StringOperationsHelper.getStringConcatOperands(
-      operands[0],
-      operands[1],
-      this.declaredTypeAt(ctx),
+      CodeGenWalker.stringTextOf(operands[0]),
+      CodeGenWalker.stringTextOf(operands[1]),
+      this.declaredTypeAt(expression.span),
     );
   }
 
@@ -2611,16 +2455,13 @@ class CodeGenWalker {
    * one queues a pending temp declaration in some shapes, and only the helper
    * knows whether this is a substring at all. See its comment.
    */
-  private _getSubstringOperands(
-    ctx: Parser.ExpressionContext,
-  ): ISubstringOps | null {
-    const subscript = ExpressionUnwrapper.getSubscriptedIdentifier(ctx);
-    if (subscript === null) return null;
-
+  private _getSubstringOperands(expression: TExpression): ISubstringOps | null {
+    const subscripted = ExpressionShape.subscriptedIdentifier(expression);
+    if (subscripted === null) return null;
     return StringOperationsHelper.getSubstringOperands(
-      subscript.name,
-      () => subscript.indexes.map((index) => this.generateExpression(index)),
-      this.declaredTypeAt(ctx),
+      subscripted.name,
+      () => subscripted.indexes.map((index) => this.renderExpression(index)),
+      this.declaredTypeAt(expression.span),
     );
   }
 
@@ -2629,10 +2470,10 @@ class CodeGenWalker {
    * that holds only an operand's text
    */
   private declaredTypeAt(
-    ctx: ParserRuleContext,
+    at: ISourcePosition,
   ): (name: string) => TTypeInfo | undefined {
-    const at = ParserUtils.getPosition(ctx);
-    return (name) => this.host.state.declarationTypeInfo(null, name, at);
+    const position = { line: at.line, column: at.column };
+    return (name) => this.host.state.declarationTypeInfo(null, name, position);
   }
 
   private _isFloatType(typeName: string): boolean {
@@ -2810,37 +2651,47 @@ class CodeGenWalker {
     );
   }
 
-  private generateDeclaration(ctx: Parser.DeclarationContext): string {
-    // ADR-016: Handle scope declarations (renamed from namespace)
-    if (ctx.scopeDeclaration()) {
-      return this.generateScope(ctx.scopeDeclaration()!);
+  private generateDeclaration(declaration: TDeclarationSyntax): string {
+    switch (declaration.kind) {
+      case "scope":
+        return this.invokeGenerator(
+          scopeGenerator,
+          this.planScope(declaration),
+        );
+      case "register":
+        return this.generateRegister(declaration);
+      // Issue #369 / #1164: the struct generator decides for itself what a
+      // self-include suppresses. Returning early here also skipped its
+      // callback-field effects and dropped the ADR-029 init function, which
+      // the header never carries.
+      case "struct":
+        return this.invokeGenerator(
+          structGenerator,
+          this.planStruct(declaration),
+        );
+      case "enum":
+        return this.invokeSuppressibleDeclaration(
+          enumGenerator,
+          declaration.name,
+        );
+      case "bitmap":
+        return this.invokeSuppressibleDeclaration(
+          bitmapGenerator,
+          declaration.name,
+        );
+      case "function":
+        return this.generateFunction(declaration);
+      case "variableDeclaration":
+      case "constructorDeclaration":
+        return (
+          VariableDeclHelper.renderVariableDecl(
+            this.planVariableDecl(declaration),
+            this.host.state,
+          ) + "\n"
+        );
+      case "missing":
+        return "";
     }
-    if (ctx.registerDeclaration()) {
-      return this.generateRegister(ctx.registerDeclaration()!);
-    }
-    // Issue #369: Skip struct/enum/bitmap definitions when self-include is added
-    // These types will be defined in the included header file
-    // Issue #1164: the struct generator decides for itself what a self-include
-    // suppresses. Returning early here also skipped its callback-field effects
-    // and dropped the ADR-029 init function, which the header never carries.
-    if (ctx.structDeclaration()) {
-      return this.generateStruct(ctx.structDeclaration()!);
-    }
-    // ADR-017: Handle enum declarations
-    if (ctx.enumDeclaration()) {
-      return this.generateEnum(ctx.enumDeclaration()!);
-    }
-    // ADR-034: Handle bitmap declarations
-    if (ctx.bitmapDeclaration()) {
-      return this.generateBitmap(ctx.bitmapDeclaration()!);
-    }
-    if (ctx.functionDeclaration()) {
-      return this.generateFunction(ctx.functionDeclaration()!);
-    }
-    if (ctx.variableDeclaration()) {
-      return this.generateVariableDecl(ctx.variableDeclaration()!) + "\n";
-    }
-    return "";
   }
 
   /**
@@ -2849,16 +2700,9 @@ class CodeGenWalker {
    * ordering: a struct naming an enum declared below it must still come second,
    * and the two files disagreeing on that was an exit-0 miscompile.
    */
-  private static readonly SCOPE_TYPE_KINDS: ReadonlyArray<{
-    readonly kind: IPlannedScope["typeDefinitions"][number]["kind"];
-    readonly declarationOf: (
-      member: Parser.ScopeMemberContext,
-    ) => { IDENTIFIER(): { getText(): string } } | null;
-  }> = [
-    { kind: "enum", declarationOf: (m) => m.enumDeclaration() },
-    { kind: "bitmap", declarationOf: (m) => m.bitmapDeclaration() },
-    { kind: "struct", declarationOf: (m) => m.structDeclaration() },
-  ];
+  private static readonly SCOPE_TYPE_KINDS: ReadonlyArray<
+    IPlannedScope["typeDefinitions"][number]["kind"]
+  > = ["enum", "bitmap", "struct"];
 
   /**
    * An ADR-016 scope: its members, and the types it contributes to the `.c`.
@@ -2873,25 +2717,20 @@ class CodeGenWalker {
    * is, which types the header already defines, and whether Issue #282 skips a
    * private const scalar. Those are pure reads of the declaration.
    */
-  private planScope(ctx: Parser.ScopeDeclarationContext): IPlannedScope {
-    const name = ctx.IDENTIFIER().getText();
-
-    // #1298: thread the whole scope PATH, not a leaf name, so every member
-    // qualifies against every outer component instead of re-joining one level.
-    // `getOrCreateScope` is the same resolver `setCurrentScopeByPath` uses, and
-    // it is cached, so this is one decision asked twice -- not two decisions.
+  private planScope(
+    scope: Extract<TDeclarationSyntax, { kind: "scope" }>,
+  ): IPlannedScope {
+    const name = scope.name;
     const declaringScopePath =
       this.host.state.program?.scopePathOf(name) ?? name;
-    const members = ctx.scopeMember();
-
     return {
       name,
       declaringScopePath,
       typeDefinitions: this.planScopeTypeDefinitions(
-        members,
+        scope.members,
         declaringScopePath,
       ),
-      members: members.map((member) =>
+      members: scope.members.map((member) =>
         this.planScopeMember(member, declaringScopePath),
       ),
     };
@@ -2905,33 +2744,27 @@ class CodeGenWalker {
    * compiler rejects it.
    */
   private planScopeTypeDefinitions(
-    members: readonly Parser.ScopeMemberContext[],
+    members: Extract<TDeclarationSyntax, { kind: "scope" }>["members"],
     declaringScopePath: string,
   ): IPlannedScope["typeDefinitions"] {
-    return CodeGenWalker.SCOPE_TYPE_KINDS.flatMap(({ kind, declarationOf }) =>
-      members
-        .map(declarationOf)
-        .filter((declaration) => declaration !== null)
-        .map((declaration) =>
-          this.scopeTypeCNameIfAbsentFromHeader(
-            declaration!,
-            declaringScopePath,
-          ),
-        )
-        .filter((cName): cName is string => cName !== null)
-        .map((cName) => ({ kind, cName })),
+    return CodeGenWalker.SCOPE_TYPE_KINDS.flatMap((kind) =>
+      members.flatMap(({ declaration }) => {
+        if (declaration.kind !== kind || !("name" in declaration)) return [];
+        const cName = this.scopeTypeCNameIfAbsentFromHeader(
+          declaration.name,
+          declaringScopePath,
+        );
+        return cName === null ? [] : [{ kind, cName }];
+      }),
     );
   }
 
   /** This type's transpiled C name, or null when the header already defines it. */
   private scopeTypeCNameIfAbsentFromHeader(
-    nameNode: { IDENTIFIER(): { getText(): string } },
+    name: string,
     declaringScopePath: string,
   ): string | null {
-    const fullName = QualifiedNameGenerator.forMember(
-      declaringScopePath,
-      nameNode.IDENTIFIER().getText(),
-    );
+    const fullName = QualifiedNameGenerator.forMember(declaringScopePath, name);
     const definedInHeader =
       this.host.state.sourcePath !== null &&
       PublicInterface.definesTypeInHeader(
@@ -2944,104 +2777,97 @@ class CodeGenWalker {
 
   /** Which of the four kinds this member is, and what rendering it needs. */
   private planScopeMember(
-    member: Parser.ScopeMemberContext,
+    member: Extract<TDeclarationSyntax, { kind: "scope" }>["members"][number],
     declaringScopePath: string,
   ): TPlannedScopeMember {
-    // #1241: recorded at the MEMBER's position, so a variable member and a
-    // function member land in different matrix contexts instead of both
-    // crediting whichever line the `scope` keyword sits on. Carried for every
-    // member, including the ones nothing is emitted for.
-    const adrLine = member.start?.line;
-
+    const adrLine = member.span.line;
+    const declaration = member.declaration;
     // ADR-016, via the one helper the symbols layer also asks (#1300). Codegen
     // used to recompute this, so the header and the body decided visibility
     // independently.
-    const isPrivate = ScopeUtils.getMemberVisibility(member) === "private";
-
-    const varDecl = member.variableDeclaration();
-    if (varDecl) {
-      return {
-        kind: "variable",
-        adrLine,
-        variable: this.planScopeVariable(
-          varDecl,
-          declaringScopePath,
+    const visibility = ScopeUtils.memberVisibility(
+      member.visibility,
+      declaration.kind === "function",
+    );
+    const isPrivate = visibility === "private";
+    switch (declaration.kind) {
+      case "variableDeclaration":
+      case "constructorDeclaration":
+        return {
+          kind: "variable",
+          adrLine,
+          variable: this.planScopeVariable(
+            declaration,
+            declaringScopePath,
+            isPrivate,
+          ),
+        };
+      case "function": {
+        const params = declaration.parameters;
+        return {
+          kind: "function",
+          adrLine,
           isPrivate,
-        ),
-      };
+          fullName: QualifiedNameGenerator.forFunctionInScope(
+            declaringScopePath,
+            declaration.name,
+            this.host.state.program,
+          ),
+          declaredTypeText: declaration.returnType.text,
+          renderReturnType: () => this.renderType(declaration.returnType),
+          planParameters: () => this.planFunctionParameters(params),
+          renderBody: () => this.renderBlock(declaration.body),
+          renderParameterList: () =>
+            params ? this.generateParameterList(params) : "void",
+        };
+      }
+      case "register":
+        return {
+          kind: "register",
+          adrLine,
+          planRegister: () => this.planRegister(declaration),
+        };
+      default:
+        return { kind: "other", adrLine };
     }
-
-    const funcDecl = member.functionDeclaration();
-    if (funcDecl) {
-      const parameterList = funcDecl.parameterList();
-      return {
-        kind: "function",
-        adrLine,
-        isPrivate,
-        fullName: QualifiedNameGenerator.forFunctionInScope(
-          declaringScopePath,
-          funcDecl.IDENTIFIER().getText(),
-          this.host.state.program,
-        ),
-        declaredTypeText: funcDecl.type().getText(),
-        renderReturnType: () => this.generateType(funcDecl.type()),
-        planParameters: () => this.planFunctionParameters(parameterList),
-        renderBody: () => this.generateBlock(funcDecl.block()),
-        renderParameterList: () =>
-          parameterList ? this.generateParameterList(parameterList) : "void",
-      };
-    }
-
-    const regDecl = member.registerDeclaration();
-    if (regDecl) {
-      return {
-        kind: "register",
-        adrLine,
-        planRegister: () => this.planRegister(regDecl),
-      };
-    }
-
-    return { kind: "other", adrLine };
   }
 
   /** Which of the three shapes a scope variable is emitted in. */
   private planScopeVariable(
-    varDecl: Parser.VariableDeclarationContext,
+    decl: Extract<
+      TDeclarationSyntax,
+      { kind: "variableDeclaration" | "constructorDeclaration" }
+    >,
     declaringScopePath: string,
     isPrivate: boolean,
   ): TPlannedScopeVariable {
     const fullName = QualifiedNameGenerator.forMember(
       declaringScopePath,
-      varDecl.IDENTIFIER().getText(),
+      decl.name,
     );
-
     // Issue #375: constructor syntax.
     //
     // #1322: the arguments are no longer VALIDATED here -- the const check that
     // stood beside this resolution is E0432 in pass 2.1, and it was the second
     // of two implementations of one decision.
-    const constructorArgList = varDecl.constructorArgumentList();
-    if (constructorArgList) {
+    if (decl.kind === "constructorDeclaration") {
       return {
         kind: "constructor",
         fullName,
         isPrivate,
-        args: constructorArgList
-          .IDENTIFIER()
-          .map((arg) =>
-            QualifiedNameGenerator.forMember(declaringScopePath, arg.getText()),
-          ),
-        renderType: () => this.generateType(varDecl.type()),
+        args: decl.arguments.map((arg) =>
+          QualifiedNameGenerator.forMember(declaringScopePath, arg.name),
+        ),
+        renderType: () => this.renderType(decl.type),
       };
     }
 
     // Issue #500: check for an array BEFORE skipping -- arrays must be emitted.
     // Both spellings count: C-style trailing dimensions and the C-Next arrayType.
-    const isConst = varDecl.constModifier() !== null;
-    const shape = CodeGenWalker.readArrayShape(varDecl);
-    const arrayDims = shape.arrayDims;
-    const arrayTypeCtx = shape.arrayTypeCtx;
-    const isArray = shape.isArray;
+    const isConst = decl.modifiers.const;
+    const arrayDims = decl.dimensions;
+    const arrayType = decl.type.kind === "array" ? decl.type : null;
+    const isArray = CodeGenWalker.isArrayDeclaration(decl);
 
     // Issue #282: a private const scalar is inlined at its uses, not emitted at
     // file scope. Issue #500 exempts arrays, which cannot be inlined. Decided
@@ -3049,40 +2875,40 @@ class CodeGenWalker {
     if (isPrivate && isConst && !isArray) {
       return { kind: "skipped" };
     }
-
     // Issue #998: the one modifier builder, which validates the atomic/volatile
     // mutual exclusion. Scope variables are file scope, and the initializer does
     // not affect volatile/atomic handling.
     const modifiers = VariableModifierBuilder.build(
-      varDecl,
+      decl.modifiers,
       false,
       false,
       this.host.state,
     );
-
     return {
       kind: "regular",
       fullName,
       isPrivate,
       isConst,
       isArray,
-      declarationLine: varDecl.start?.line,
+      declarationLine: decl.span.line,
       atomic: modifiers.atomic,
       volatile: modifiers.volatile,
-      renderType: () => this.generateType(varDecl.type()),
+      renderType: () => this.renderType(decl.type),
       renderArrayTypeDimensions: () =>
         ArrayDimensionUtils.renderArrayTypeDimensions(
-          this.planArrayTypeDimensions(arrayTypeCtx, varDecl),
+          arrayType
+            ? this.planLoweredArrayTypeDimensions(arrayType.dimensions, decl)
+            : null,
         ),
       renderCStyleDimensions:
         arrayDims.length > 0
-          ? () => this.generateArrayDimensions(arrayDims)
+          ? () => this.renderLoweredDimensions(arrayDims)
           : null,
       renderStringCapacityDimension: () =>
         ArrayDimensionUtils.renderStringCapacityDimension(
-          this.planStringCapacity(varDecl.type()),
+          CodeGenWalker.stringCapacityOf(decl.type),
         ),
-      renderInitializer: () => this.renderScopeInitializer(varDecl, isArray),
+      renderInitializer: () => this.renderScopeInitializer(decl, isArray),
     };
   }
 
@@ -3099,49 +2925,41 @@ class CodeGenWalker {
    * one. Two questions, two answers.
    */
   private renderScopeInitializer(
-    varDecl: Parser.VariableDeclarationContext,
+    decl: IVariableDeclarationSyntax,
     isArray: boolean,
   ): string {
-    const initializer = varDecl.expression();
+    const initializer = decl.initializer;
     if (initializer) {
-      const typeName = this.generateType(varDecl.type());
+      const typeName = this.renderType(decl.type);
       const state = this.host.state;
       state.resetArrayInitTracking();
       const rendered = state.withExpectedType(typeName, () =>
         state.withDeclarationInit(
-          () => ` = ${this.generateExpression(initializer)}`,
+          () => ` = ${this.renderExpression(initializer)}`,
         ),
       );
       // #1824 review: an omitted size is emitted from 1.3's count (the
       // planner), so the list rendered here must have exactly that many
       // elements -- the same check the statement renderer makes.
       const omitsSize =
-        varDecl
-          .type()
-          .arrayType()
-          ?.arrayTypeDimension()
-          .some((dim) => !dim.expression()) ?? false;
+        decl.type.kind === "array" && decl.type.dimensions.includes(null);
       if (omitsSize && state.wasArrayInit()) {
         ArrayInitHelper.assertInferredSize(
-          varDecl.IDENTIFIER().getText(),
-          this.countedSize(varDecl),
+          decl.name,
+          this.countedSize(decl),
           state,
         );
       }
       return rendered;
     }
     // ADR-015: Zero initialization for uninitialized scope variables
-    return ` = ${this.getZeroInitializer(varDecl.type(), isArray)}`;
+    return ` = ${this.zeroInitializerOf(decl.type, isArray)}`;
   }
 
-  private generateScope(ctx: Parser.ScopeDeclarationContext): string {
-    return this.invokeGenerator(scopeGenerator, this.planScope(ctx));
-  }
-
-  private generateRegister(ctx: Parser.RegisterDeclarationContext): string {
+  private generateRegister(register: IRegisterDeclarationSyntax): string {
     return this.invokeGenerator(
       registerGeneratorFor(this.host.getState().currentScopePath),
-      this.planRegister(ctx),
+      this.planRegister(register),
     );
   }
 
@@ -3161,22 +2979,17 @@ class CodeGenWalker {
    * explicit `global.Flags` arrives as `Flags`. Nothing downstream may
    * re-qualify it.
    */
-  planRegister(ctx: Parser.RegisterDeclarationContext): IPlannedRegister {
-    const baseAddress = this.generateExpression(ctx.expression());
-
+  planRegister(register: IRegisterDeclarationSyntax): IPlannedRegister {
+    const baseAddress = this.renderExpression(register.address);
     return {
-      name: ctx.IDENTIFIER().getText(),
+      name: register.name,
       baseAddress,
-      members: ctx.registerMember().map((member) => {
-        const cType = this.generateType(member.type());
-        const offset = this.generateExpression(member.expression());
-        return {
-          name: member.IDENTIFIER().getText(),
-          cType,
-          access: member.accessModifier().getText() as TRegisterAccessMode,
-          offset,
-        };
-      }),
+      members: register.members.map((member) => ({
+        name: member.name,
+        cType: this.renderType(member.type),
+        access: member.access,
+        offset: this.renderExpression(member.offset),
+      })),
     };
   }
 
@@ -3189,62 +3002,46 @@ class CodeGenWalker {
    * register effects, so rendering them all would emit effects for fields that
    * do not use them. See `IPlannedStructField`.
    */
-  private planStruct(ctx: Parser.StructDeclarationContext): IPlannedStruct {
+  private planStruct(struct: IStructDeclarationSyntax): IPlannedStruct {
     return {
-      name: ctx.IDENTIFIER().getText(),
-      fields: ctx.structMember().map((member) => {
-        const typeCtx = member.type();
-        // Use optional chaining for mock compatibility in tests
-        const arrayType = typeCtx.arrayType?.() ?? null;
-        // ADR-036: arrayDimension() returns an array, for multi-dimensional
-        // support
-        const nameDimensions = member.arrayDimension();
-
+      name: struct.name,
+      fields: struct.fields.map((field) => {
+        const arrayType = field.type.kind === "array" ? field.type : null;
         return {
-          name: member.IDENTIFIER().getText(),
-          typeName: this.getTypeName(typeCtx),
-          hasNameDimensions: nameDimensions.length > 0,
+          name: field.name,
+          typeName: this.typeNameOf(field.type),
+          hasNameDimensions: field.dimensions.length > 0,
           hasTypeDimensions: arrayType !== null,
-          renderCType: () => this.generateType(typeCtx),
+          renderCType: () => this.renderType(field.type),
           renderTypeDimensions: () =>
             ArrayDimensionUtils.renderArrayTypeDimensions(
-              this.planArrayTypeDimensions(arrayType),
+              arrayType
+                ? this.planLoweredArrayTypeDimensions(
+                    arrayType.dimensions,
+                    null,
+                  )
+                : null,
             ),
           renderNameDimensions: () =>
-            this.generateArrayDimensions(nameDimensions),
-          renderZeroInitializer: () => this.getZeroInitializer(typeCtx, false),
+            this.renderLoweredDimensions(field.dimensions),
+          renderZeroInitializer: () =>
+            this.zeroInitializerOf(field.type, false),
         };
       }),
     };
   }
 
-  /**
-   * An array TYPE's dimensions, decided (#1445).
-   *
-   * Issue #1159: a dimension that folds to a compile-time constant is emitted
-   * as its value. Emitting the identifier makes `u8[SIZE] buf` a VLA while the
-   * matching local declaration folds to `uint8_t b[6]` -- the same const
-   * rendered two ways in one .c. Expression generation is the fallback, and it
-   * stays behind a thunk because a caller may not emit these dimensions at all.
-   */
-  planArrayTypeDimensions(
-    ctx: Parser.ArrayTypeContext | null,
-    declaration: Parser.VariableDeclarationContext | null = null,
-  ): readonly IPlannedDimension[] | null {
-    if (ctx === null) return null;
-
-    return ctx.arrayTypeDimension().map((dimension) => {
-      const expression = dimension.expression();
-      // #1664 box 3: an omitted size is the declaration's count, the number
-      // the `.h` states, for every declaration renderer that asks here.
-      if (!expression) {
-        return { renderSize: () => String(this.omittedSizeOf(declaration)) };
-      }
-
-      return {
-        renderSize: () => this.renderDimension(expression),
-      };
-    });
+  private planLoweredArrayTypeDimensions(
+    dims: ReadonlyArray<TExpression | null>,
+    declaration: IVariableDeclarationSyntax | null,
+  ): readonly IPlannedDimension[] {
+    // #1664 box 3: an omitted size is the declaration's count, the number
+    // the `.h` states, for every declaration renderer that asks here.
+    return dims.map((size) =>
+      size
+        ? { renderSize: () => this.renderLoweredDimension(size) }
+        : { renderSize: () => String(this.omittedSizeOf(declaration)) },
+    );
   }
 
   /**
@@ -3280,42 +3077,11 @@ class CodeGenWalker {
    * A bounded string type's declared capacity, or null (#1445) -- of the
    * element for an array of them, `string<N>[M]` (#1569).
    */
-  planStringCapacity(ctx: Parser.TypeContext): number | null {
-    const stringCtx = ctx.stringType() ?? ctx.arrayType()?.stringType();
-    const literal = stringCtx?.INTEGER_LITERAL();
-    return literal ? Number.parseInt(literal.getText(), 10) : null;
-  }
-
-  private generateStruct(ctx: Parser.StructDeclarationContext): string {
-    return this.invokeGenerator(structGenerator, this.planStruct(ctx));
-  }
-
-  /**
-   * ADR-017: Generate enum declaration
-   * enum State { IDLE, RUNNING, ERROR <- 255 }
-   * -> typedef enum { State_IDLE = 0, State_RUNNING = 1, State_ERROR = 255 } State;
-   *
-   * Delegates to extracted EnumGenerator.
-   */
-  private generateEnum(ctx: Parser.EnumDeclarationContext): string {
-    return this.invokeSuppressibleDeclaration(
-      enumGenerator,
-      ctx.IDENTIFIER().getText(),
-    );
-  }
-
-  /**
-   * ADR-034: Generate bitmap declaration
-   * bitmap8 MotorFlags { Running, Direction, Mode[3], Reserved[2] }
-   * -> typedef uint8_t MotorFlags; (with field layout comment)
-   *
-   * Delegates to extracted generator if registered.
-   */
-  private generateBitmap(ctx: Parser.BitmapDeclarationContext): string {
-    return this.invokeSuppressibleDeclaration(
-      bitmapGenerator,
-      ctx.IDENTIFIER().getText(),
-    );
+  private static stringCapacityOf(type: TTypeSyntax): number | null {
+    const element = type.kind === "array" ? type.element : type;
+    return element.kind === "string" && element.capacity !== null
+      ? Number.parseInt(element.capacity, 10)
+      : null;
   }
 
   /**
@@ -3510,42 +3276,32 @@ class CodeGenWalker {
    * ORDER the generator's decision, and it cannot own that if it is handed
    * two strings.
    */
-  private planFunction(
-    ctx: Parser.FunctionDeclarationContext,
-  ): IPlannedFunction {
-    const parameterList = ctx.parameterList() ?? null;
-    const name = ctx.IDENTIFIER().getText();
-
+  private planFunction(fn: IFunctionDeclarationSyntax): IPlannedFunction {
+    const params = fn.parameters;
     return {
-      name,
-      returnType: this.generateType(ctx.type()),
-      returnTypeText: ctx.type().getText(),
-      isMainWithArgs: this.isMainFunctionWithArgs(name, parameterList),
-      firstParameterName: parameterList?.parameter()[0]?.IDENTIFIER().getText(),
-      parameters: this.planFunctionParameters(parameterList),
-      renderBody: () => this.generateBlock(ctx.block()),
-      renderParameterList: parameterList
-        ? () => this.generateParameterList(parameterList)
+      name: fn.name,
+      returnType: this.renderType(fn.returnType),
+      returnTypeText: fn.returnType.text,
+      isMainWithArgs: this.isMainFunctionWithArgs(fn.name, params),
+      firstParameterName: params?.[0]?.name,
+      parameters: this.planFunctionParameters(params),
+      renderBody: () => this.renderBlock(fn.body),
+      renderParameterList: params
+        ? () => this.generateParameterList(params)
         : null,
     };
   }
 
-  private generateFunction(ctx: Parser.FunctionDeclarationContext): string {
-    // #1285: no inline fallback. This used to carry a second, parallel
-    // implementation guarded by `if (generator)` against a registry lookup
-    // that could never miss, so the twin was unreachable and still had to be
-    // kept in step by hand. #1445 deleted the registry as well, so there is no
-    // lookup left to guard -- this wrapper is now indistinguishable from its
-    // eleven siblings, which is the point.
-    return this.invokeGenerator(functionGenerator, this.planFunction(ctx));
+  private generateFunction(fn: IFunctionDeclarationSyntax): string {
+    return this.invokeGenerator(functionGenerator, this.planFunction(fn));
   }
 
   private generateParameter(
-    ctx: Parser.ParameterContext,
+    param: IParameterSyntax,
     paramIndex?: number,
   ): string {
-    const typeName = this.getTypeName(ctx.type());
-    const name = ctx.IDENTIFIER().getText();
+    const typeName = this.typeNameOf(param.type);
+    const name = param.name;
 
     // #1322: a C-style or unbounded array parameter is E0874/E0875 in pass
     // 2.1 (ADR-036).
@@ -3591,7 +3347,7 @@ class CodeGenWalker {
       `a parameter is registered in its function's context before the signature renders ('${name}')`,
     );
 
-    const input = ParameterInputAdapter.fromAST(this.planParameter(ctx), {
+    const input = ParameterInputAdapter.fromAST(this.planParameter(param), {
       callbackTypes: this.host.state.callbackTypes,
       isKnownStruct: (t) => {
         if (this.host.isKnownStruct(t)) return true;
@@ -3641,85 +3397,67 @@ class CodeGenWalker {
    * which can queue a pending temp declaration -- so rendering one that is
    * then discarded leaks it.
    */
-  private planParameter(ctx: Parser.ParameterContext): IPlannedParameter {
-    const typeCtx = ctx.type();
-    const arrayType = typeCtx.arrayType();
-    const stringType = arrayType
-      ? arrayType.stringType()
-      : typeCtx.stringType();
-    const capacity = stringType?.INTEGER_LITERAL();
-
+  private planParameter(param: IParameterSyntax): IPlannedParameter {
+    const arrayType = param.type.kind === "array" ? param.type : null;
+    const element = arrayType ? arrayType.element : param.type;
+    const stringType = element.kind === "string" ? element : null;
     return {
-      name: ctx.IDENTIFIER().getText(),
-      isConst: ctx.constModifier() !== null,
-      typeName: this.getTypeName(typeCtx),
-      mappedType: this.generateType(typeCtx),
+      name: param.name,
+      isConst: param.const,
+      typeName: this.typeNameOf(param.type),
+      mappedType: this.renderType(param.type),
       renderDimensions: arrayType
         ? () =>
-            arrayType
-              .arrayTypeDimension()
-              .map((dimension) => this.renderArrayDimension(dimension))
+            arrayType.dimensions.map((dimension) =>
+              dimension ? this.renderLoweredDimension(dimension) : "",
+            )
         : null,
       isString: stringType !== null,
-      stringCapacity: capacity
-        ? Number.parseInt(capacity.getText(), 10)
-        : undefined,
-      line: ctx.start?.line,
-      stringTypeLine: stringType?.start?.line,
-      arrayTypeLine: arrayType?.start?.line,
+      stringCapacity: CodeGenWalker.stringCapacityOf(param.type) ?? undefined,
+      line: param.span.line,
+      stringTypeLine: stringType?.span.line,
+      arrayTypeLine: arrayType?.span.line,
     };
   }
 
   /**
-   * One array dimension of a parameter, as C should say it.
+   * One array dimension, as C should say it.
    *
    * Issue #1159: fold a compile-time constant to its value first. Emitting the
    * identifier makes `u8[SIZE] buf` a VLA parameter (`uint8_t buf[SIZE]`)
    * while the matching local declaration folds to `uint8_t b[6]` -- the same
    * const rendered two ways in one .c, and a construct CLAUDE.md rules out.
-   * Expression generation stays as the fallback for dimensions that are
-   * genuinely not constant.
+   * #1175: a dimension is a constant wherever it is written (ADR-023: no
+   * VLAs), so it folds everywhere, by the one rule.
    */
-  private renderArrayDimension(
-    dimension: Parser.ArrayTypeDimensionContext,
-  ): string {
-    const expression = dimension.expression();
-    if (!expression) {
-      return "";
-    }
-
-    return this.renderDimension(expression);
-  }
-
-  /**
-   * #1175: a dimension as the .c writes it -- its value, or, for one only C
-   * can evaluate (a header macro), the C the .h writes too, from the one
-   * printer. It used to fall back to the runtime expression generator, which
-   * wrote `cnx_clamp_add_u8(A, A)` where the .h wrote `A+A`, and `2` where
-   * the .h wrote `1--1`. `ConstantFold.settled` is the .h's decision too. A
-   * dimension with no value never reaches render: 2.1 rejects it (E0909,
-   * E0910).
-   */
-  private renderDimension(expression: Parser.ExpressionContext): string {
+  private renderLoweredDimension(expression: TExpression): string {
     // ADR-036: a dimension is a constant expression in every context, so a
     // fixture occupies the matrix cell it is written in
-    AdrProvenance.record("036", expression.start?.line);
+    AdrProvenance.record("036", expression.span.line);
     const dimension = ConstantFold.settled(
-      ConstExprLowering.lower(SyntaxLowering.expression(expression)),
+      ConstExprLowering.lower(expression),
       dimensionEvalOptions(this.transpileState),
     );
     invariant(
       dimension !== null,
-      `2.1 rejects a dimension with no value (E0909, E0910) before render: '${expression.getText()}'`,
+      `2.1 rejects a dimension with no value (E0909, E0910) before render: '${expression.written}'`,
     );
     return String(dimension);
   }
 
-  /** A dimension's value, by the one evaluator; undefined when it has none */
-  private dimensionValue(
-    expression: Parser.ExpressionContext,
-  ): number | undefined {
-    return this.constantOf(SyntaxLowering.expression(expression));
+  /**
+   * `[N][M]`, or `[]` for an omitted size. Bug #8 folded only at file scope;
+   * #1175: a dimension is a constant wherever it is written (ADR-023: no
+   * VLAs), so it folds everywhere, by the one rule.
+   */
+  private renderLoweredDimensions(
+    dimensions: ReadonlyArray<TExpression | null>,
+  ): string {
+    return dimensions
+      .map((dimension) =>
+        dimension ? `[${this.renderLoweredDimension(dimension)}]` : "[]",
+      )
+      .join("");
   }
 
   private constantOf(expr: TExpression): number | undefined {
@@ -3807,33 +3545,24 @@ class CodeGenWalker {
    * with the rendering lifted out of it.
    */
   private planVariableDecl(
-    ctx: Parser.VariableDeclarationContext,
+    decl: Extract<
+      TStatement,
+      { kind: "variableDeclaration" | "constructorDeclaration" }
+    >,
   ): TPlannedVariableDecl {
-    // Issue #375: Check for C++ constructor syntax - early return
-    const constructorArgList = ctx.constructorArgumentList();
-    if (constructorArgList) {
-      return this.planConstructorDecl(ctx, constructorArgList);
+    if (decl.kind === "constructorDeclaration") {
+      return this.planConstructorDecl(decl);
     }
-
-    // Issue #696: Use helper for modifier extraction and validation
-    // Issue #852 (MISRA Rule 8.5): hasInitializer and cppMode drive extern
+    // Issue #696: Use shared modifier builder
     const modifiers = VariableModifierBuilder.build(
-      ctx,
+      decl.modifiers,
       this.host.state.inFunctionBody,
-      ctx.expression() !== null,
+      decl.initializer !== null,
       this.host.state,
     );
-
-    const name = ctx.IDENTIFIER().getText();
-    const typeCtx = ctx.type();
-
-    // #1322: a C-style array declaration (u16 arr[8]) is E0874 in pass 2.1
-    // (ADR-036), raised by `ArrayDeclarationAnalyzer`.
-    const type = this._inferVariableType(ctx, name);
-
-    // Track local variable metadata
+    const name = decl.name;
+    const type = this._inferVariableType(decl);
     this._trackLocalVariable(name);
-
     // ADR-057: the identifier this declaration is EMITTED under. Computed once,
     // here, because the string and array forms below return before the plain
     // declaration is assembled -- a second call would be a second place
@@ -3841,33 +3570,24 @@ class CodeGenWalker {
     // generated text moves.
     const emittedName = this.host.state.emittedLocalNameAt(
       name,
-      CodeGenWalker.declaratorPosition(ctx),
+      CodeGenWalker.declaredAt(decl),
     );
-
-    // ADR-045: string types have their own three forms
-    const stringPlan = this.planStringDecl(
-      ctx,
-      typeCtx,
-      ctx.expression() ?? null,
-      ctx.arrayDimension(),
-    );
+    const stringPlan = this.planStringDecl(decl);
     if (stringPlan) {
       return {
         kind: "string",
         string: stringPlan,
         emittedName,
         modifiers,
-        isConst: ctx.constModifier() !== null,
+        isConst: decl.modifiers.const,
       };
     }
-
     // Statements rather than an object literal, because the ORDER matters and
     // an object literal's property order is not something a reader checks:
     // the array half renders its type dimensions eagerly, and it must do so
     // before anything the initializer renders.
-    const array = this.planArrayDeclaration(ctx, typeCtx);
-    const initializer = this.planVariableInitializer(ctx, typeCtx);
-
+    const array = this.planArrayDeclaration(decl);
+    const initializer = this.planVariableInitializer(decl);
     return {
       kind: "plain",
       sourceName: name,
@@ -3892,35 +3612,24 @@ class CodeGenWalker {
    * member is emitted by its qualified C name.
    */
   private planConstructorDecl(
-    ctx: Parser.VariableDeclarationContext,
-    argListCtx: Parser.ConstructorArgumentListContext,
+    decl: Extract<TStatement, { kind: "constructorDeclaration" }>,
   ): TPlannedVariableDecl {
-    const type = this.generateType(ctx.type());
-    const name = ctx.IDENTIFIER().getText();
-
-    // #1668: what each argument NAMES, by the one binder -- a scope member
-    // is emitted by its C name, a shadowing local by its ADR-057 name. It is
-    // the same answer a function argument takes (#1760 review): this was a
-    // second spelling of that decision beside ArgumentGenerator's own.
-    const args = argListCtx.IDENTIFIER().map((argNode) =>
-      this.boundName(argNode.getText(), {
-        line: argNode.symbol.line,
-        column: argNode.symbol.column,
+    const type = this.renderType(decl.type);
+    const args = decl.arguments.map((argument) =>
+      this.boundName(argument.name, {
+        line: argument.span.line,
+        column: argument.span.column,
       }),
     );
-
-    // Track as local variable if inside function body
     if (this.host.state.inFunctionBody) {
-      this.host.state.registerLocalVariable(name);
+      this.host.state.registerLocalVariable(decl.name);
     }
-
     return {
       kind: "constructor",
       type,
-      // ADR-057: emit under the name registration decided on, not the source one.
       emittedName: this.host.state.emittedLocalNameAt(
-        name,
-        CodeGenWalker.declaratorPosition(ctx),
+        decl.name,
+        CodeGenWalker.declaredAt(decl),
       ),
       args,
     };
@@ -3942,20 +3651,6 @@ class CodeGenWalker {
    * `arrayType?.()` keeps the scope path's defensive call -- `TypeContext`
    * always carries the rule, but a hand-built context in a unit test need not.
    */
-  private static readArrayShape(ctx: Parser.VariableDeclarationContext): {
-    arrayDims: Parser.ArrayDimensionContext[];
-    arrayTypeCtx: Parser.ArrayTypeContext | null;
-    isArray: boolean;
-  } {
-    const arrayDims = ctx.arrayDimension();
-    const arrayTypeCtx = ctx.type().arrayType?.() ?? null;
-
-    return {
-      arrayDims,
-      arrayTypeCtx,
-      isArray: arrayDims.length > 0 || arrayTypeCtx !== null,
-    };
-  }
 
   /**
    * The array half of a declaration (ADR-035/ADR-036).
@@ -3968,14 +3663,11 @@ class CodeGenWalker {
    * expressions raised.
    */
   private planArrayDeclaration(
-    ctx: Parser.VariableDeclarationContext,
-    typeCtx: Parser.TypeContext,
+    decl: IVariableDeclarationSyntax,
   ): IPlannedArrayDeclaration {
-    const shape = CodeGenWalker.readArrayShape(ctx);
-    const arrayDims = shape.arrayDims;
-    const arrayTypeCtx = shape.arrayTypeCtx;
-
-    if (!shape.isArray) {
+    const arrayDims = decl.dimensions;
+    const typeDims = decl.type.kind === "array" ? decl.type.dimensions : null;
+    if (!CodeGenWalker.isArrayDeclaration(decl)) {
       return {
         isArray: false,
         hasEmptyDimension: false,
@@ -3986,72 +3678,71 @@ class CodeGenWalker {
         init: null,
       };
     }
-
-    const typeDims = arrayTypeCtx?.arrayTypeDimension() ?? [];
-    const hasEmptyArrayTypeDimension = typeDims.some(
-      (dim) => !dim.expression(),
-    );
+    const hasEmptyArrayTypeDimension = (typeDims ?? []).includes(null);
     const hasEmptyDimension =
-      arrayDims.some((dim) => !dim.expression()) || hasEmptyArrayTypeDimension;
-    const initializer = ctx.expression();
+      arrayDims.includes(null) || hasEmptyArrayTypeDimension;
+    const initializer = decl.initializer;
     // #1822: the inferred path emits its one counted size as the whole suffix,
     // which is right only for a one-dimensional array. E0892 rejects every
     // other empty dimension in pass 2.1.
     invariant(
-      !hasEmptyDimension || typeDims.length + arrayDims.length === 1,
-      `an array that omits a size is one-dimensional -- E0892 rejects '${ctx.IDENTIFIER().getText()}' in pass 2.1, before this runs`,
+      !hasEmptyDimension || CodeGenWalker.arrayRank(decl) === 1,
+      `an array that omits a size is one-dimensional -- E0892 rejects '${decl.name}' in pass 2.1, before this runs`,
     );
-
     return {
       isArray: true,
       hasEmptyDimension,
       hasEmptyArrayTypeDimension,
-      // #1644: one evaluator, and one FUNCTION -- the type's dimensions and the
-      // trailing ones are the same question asked of two lists. They were two
-      // methods that had to be kept in step by hand, and the comment saying so
-      // is what this deletes.
-      // #1664 box 3: an inferred size is the declaration's, not a count of
-      // what render is about to emit.
       declaredSize: hasEmptyDimension
-        ? this.countedSize(ctx)
-        : (this.foldFirstDimension(typeDims) ??
+        ? this.countedSize(decl)
+        : (this.foldFirstDimension(typeDims ?? []) ??
           this.foldFirstDimension(arrayDims)),
-      // One renderer for the type's dimensions, not two. This used to call a
-      // private twin of `ArrayDimensionUtils.renderArrayTypeDimensions` that
-      // re-derived the same rule -- fold a constant, else generate, `[]` when
-      // unsized -- from the same node. They agreed only because both folded
-      // through `tryEvaluateConstant`, which is the "by coincidence" shape the
-      // house rule names. Still eager: the util calls each `renderSize` inside
-      // its `map`, so dimension effects are raised exactly where they were.
       arrayTypeDimensions: ArrayDimensionUtils.renderArrayTypeDimensions(
-        this.planArrayTypeDimensions(arrayTypeCtx, ctx),
+        typeDims === null
+          ? null
+          : this.planLoweredArrayTypeDimensions(typeDims, decl),
       ),
-      renderCStyleDimensions: () => this.generateArrayDimensions(arrayDims),
+      renderCStyleDimensions: () => this.renderLoweredDimensions(arrayDims),
       init: initializer
         ? {
-            renderExpression: () => this.generateExpression(initializer),
-            renderTypeName: () => this.getTypeName(typeCtx),
-            renderDimensions: () => this.generateArrayDimensions(arrayDims),
+            renderExpression: () => this.renderExpression(initializer),
+            renderTypeName: () => this.typeNameOf(decl.type),
+            renderDimensions: () => this.renderLoweredDimensions(arrayDims),
           }
         : null,
     };
   }
 
   /**
+   * Issue #500: both spellings make an array -- C-style trailing dimensions
+   * and the C-Next array type. The one predicate for a local, a scope member
+   * and a file-scope variable.
+   */
+  private static isArrayDeclaration(decl: IVariableDeclarationSyntax): boolean {
+    return decl.dimensions.length > 0 || decl.type.kind === "array";
+  }
+
+  /** How many dimensions a declaration states, in both spellings together */
+  private static arrayRank(decl: IVariableDeclarationSyntax): number {
+    return (
+      (decl.type.kind === "array" ? decl.type.dimensions.length : 0) +
+      decl.dimensions.length
+    );
+  }
+
+  /**
    * #1664 box 3: what this declaration says, as 1.3 recorded it and 1.4
-   * settled it -- the facts the `.h` is written from. The name binds to its
-   * own declaration from the end of the name on (LexicalFrames), so asking
-   * there reads this declaration, never one it shadows.
+   * settled it -- the facts the `.h` is written from. Asked at `declaredAt`,
+   * so it reads this declaration, never one it shadows.
    */
   private declaredHere(
-    ctx: Parser.VariableDeclarationContext,
+    decl: IVariableDeclarationSyntax,
   ): TTypeInfo | undefined {
-    const name = ctx.IDENTIFIER().symbol;
-    const text = name.text ?? "";
-    return this.host.state.declarationTypeInfo(null, text, {
-      line: name.line,
-      column: name.column + text.length,
-    });
+    return this.host.state.declarationTypeInfo(
+      null,
+      decl.name,
+      CodeGenWalker.declaredAt(decl),
+    );
   }
 
   /**
@@ -4059,22 +3750,20 @@ class CodeGenWalker {
    * null when there is none to read: only a one-dimensional declaration is
    * counted (E0892), and an uncounted size is `UNRESOLVED_DIMENSION`, 0.
    */
-  private countedSize(ctx: Parser.VariableDeclarationContext): number | null {
-    const rank =
-      (ctx.type().arrayType()?.arrayTypeDimension().length ?? 0) +
-      ctx.arrayDimension().length;
-    const size = this.declaredHere(ctx)?.arrayDimensions?.[0];
+  private countedSize(decl: IVariableDeclarationSyntax): number | null {
+    const rank = CodeGenWalker.arrayRank(decl);
+    const size = this.declaredHere(decl)?.arrayDimensions?.[0];
     return rank === 1 && size !== undefined && size > 0 ? size : null;
   }
 
   /** An omitted size as rendered: the declaration's count, asserted. */
   private omittedSizeOf(
-    declaration: Parser.VariableDeclarationContext | null,
+    declaration: IVariableDeclarationSyntax | null,
   ): number {
     const size = declaration === null ? null : this.countedSize(declaration);
     invariant(
       size !== null,
-      `an omitted array size is counted from a one-dimensional declaration's list or string literal -- E0892 rejects '${declaration?.IDENTIFIER().getText() ?? "a struct field"}' in pass 2.1, before this runs`,
+      `an omitted array size is counted from a one-dimensional declaration's list or string literal -- E0892 rejects '${declaration?.name ?? "a struct field"}' in pass 2.1, before this runs`,
     );
     return size;
   }
@@ -4087,37 +3776,30 @@ class CodeGenWalker {
    * the array is the declared length with the wrong contents (#1644).
    */
   private foldFirstDimension(
-    dims: readonly {
-      expression(): Parser.ExpressionContext | null;
-    }[],
+    dims: ReadonlyArray<TExpression | null>,
   ): number | null {
-    const sizeExpr = dims[0]?.expression();
-    if (!sizeExpr) {
-      return null;
-    }
-    return this.dimensionValue(sizeExpr) ?? null;
+    const size = dims[0];
+    return size ? (this.constantOf(size) ?? null) : null;
   }
 
   /**
    * How a variable's initializer is rendered (ADR-015 when there is none).
    */
   private planVariableInitializer(
-    ctx: Parser.VariableDeclarationContext,
-    typeCtx: Parser.TypeContext,
+    decl: IVariableDeclarationSyntax,
   ): TPlannedVariableInitializer {
-    const initializer = ctx.expression();
+    const initializer = decl.initializer;
     if (!initializer) {
       return {
         kind: "zero",
-        render: (isArray) => this.getZeroInitializer(typeCtx, isArray),
+        render: (isArray) => this.zeroInitializerOf(decl.type, isArray),
       };
     }
-
     return {
       kind: "expression",
-      renderTypeName: () => this.getTypeName(typeCtx),
-      renderExpression: () => this.generateExpression(initializer),
-      resolveExpressionType: () => this.getExpressionType(initializer),
+      renderTypeName: () => this.typeNameOf(decl.type),
+      renderExpression: () => this.renderExpression(initializer),
+      resolveExpressionType: () => this.directTypeOf(initializer),
     };
   }
 
@@ -4136,49 +3818,40 @@ class CodeGenWalker {
    * #1643.)
    */
   private planStringDecl(
-    ctx: Parser.VariableDeclarationContext,
-    typeCtx: Parser.TypeContext,
-    expression: Parser.ExpressionContext | null,
-    trailingDims: Parser.ArrayDimensionContext[],
+    decl: IVariableDeclarationSyntax,
   ): TPlannedStringDecl | null {
-    // Issue #1029: string array in arrayType syntax -- `string<32>[4] items`
-    const arrayTypeCtx = typeCtx.arrayType?.();
-    const arrayStringCtx = arrayTypeCtx?.stringType?.();
-    if (arrayTypeCtx && arrayStringCtx) {
-      // ADR-045: a sized string is copied and measured with <string.h>
+    const type = decl.type;
+    if (type.kind === "array" && type.element.kind === "string") {
       this.host.state.requireInclude("string");
-      return this.planStringArray(
-        ctx,
-        arrayTypeCtx,
-        arrayStringCtx,
-        expression,
-        trailingDims,
-      );
+      return this.planStringArray(decl, type.dimensions, type.element.capacity);
     }
-
-    const stringCtx = typeCtx.stringType();
-    if (!stringCtx) {
+    if (type.kind !== "string") {
       return null;
     }
-
-    const intLiteral = stringCtx.INTEGER_LITERAL();
-    if (!intLiteral) {
-      // Unsized string - requires const and a literal to infer from. Its
-      // capacity is the declaration's (#1664 box 3).
+    const initializer = decl.initializer;
+    if (type.capacity === null) {
       return {
         kind: "unsized",
-        initText: expression?.getText() ?? null,
-        declaredCapacity: this.declaredHere(ctx)?.stringCapacity ?? null,
+        initText: initializer ? CodeGenWalker.stringTextOf(initializer) : null,
+        declaredCapacity: this.declaredHere(decl)?.stringCapacity ?? null,
       };
     }
-
-    // ADR-045: a sized string is copied and measured with <string.h>
     this.host.state.requireInclude("string");
     return {
       kind: "bounded",
-      capacity: Number.parseInt(intLiteral.getText(), 10),
-      init: expression ? this.planStringInit(expression) : null,
+      capacity: Number.parseInt(type.capacity, 10),
+      init: initializer ? this.planStringInit(initializer) : null,
     };
+  }
+
+  /** What the string helpers test: a literal's token, a name, else as written */
+  private static stringTextOf(expression: TExpression): string {
+    if (expression.kind === "literal") {
+      return expression.text;
+    }
+    return expression.kind === "identifier"
+      ? expression.name
+      : expression.written;
   }
 
   /**
@@ -4192,18 +3865,17 @@ class CodeGenWalker {
    * include or queue a C++ temp, so raising those effects for an arm that is
    * not taken would change the emitted C.
    */
-  private planStringInit(
-    expression: Parser.ExpressionContext,
-  ): IPlannedStringInit {
+  private planStringInit(expression: TExpression): IPlannedStringInit {
+    const text = CodeGenWalker.stringTextOf(expression);
     return {
       concat: this._getStringConcatOperands(expression),
       renderSubstring: () => this._getSubstringOperands(expression),
-      text: expression.getText(),
+      text,
       sourceCapacity: StringOperationsHelper.getStringExprCapacity(
-        expression.getText(),
-        this.declaredTypeAt(expression),
+        text,
+        this.declaredTypeAt(expression.span),
       ),
-      render: () => this.generateExpression(expression),
+      render: () => this.renderExpression(expression),
     };
   }
 
@@ -4211,81 +3883,47 @@ class CodeGenWalker {
    * Issue #1029: `string<32>[4] items`.
    */
   private planStringArray(
-    ctx: Parser.VariableDeclarationContext,
-    arrayTypeCtx: Parser.ArrayTypeContext,
-    stringCtx: Parser.StringTypeContext,
-    expression: Parser.ExpressionContext | null,
-    trailingDims: Parser.ArrayDimensionContext[],
+    decl: IVariableDeclarationSyntax,
+    typeDims: ReadonlyArray<TExpression | null>,
+    elementCapacity: string | null,
   ): TPlannedStringDecl {
-    const intLiteral = stringCtx.INTEGER_LITERAL();
-    if (!intLiteral) {
-      // Unsized string array - not supported
+    if (elementCapacity === null) {
       invariant(
         false,
         "a string array states its element capacity -- E0862 rejects an unsized one in pass 2.1",
       );
     }
-
-    const dims = arrayTypeCtx.arrayTypeDimension();
-    // The one planner every declaration renders its type's dimensions with
-    // (#1824 review). This arm had its own loop: the same fold (Issue #1127:
-    // `string<32>[COUNT] items` must not be a VLA), a raw-text fallback, and,
-    // until #1664 box 3, `[]` for an omitted size, left to C to count.
     let dimensions = ArrayDimensionUtils.renderArrayTypeDimensions(
-      this.planArrayTypeDimensions(arrayTypeCtx, ctx),
+      this.planLoweredArrayTypeDimensions(typeDims, decl),
     );
-
-    // Any trailing dimensions from the variable declaration. Unconditional on
-    // this arm -- every string array emits its dimensions, initializer or not
-    // -- so the effects this raises are raised exactly as often as before.
-    dimensions += this.generateArrayDimensions(trailingDims);
-
+    dimensions += this.renderLoweredDimensions(decl.dimensions);
+    const initializer = decl.initializer;
     return {
       kind: "array",
-      elementCapacity: Number.parseInt(intLiteral.getText(), 10),
+      elementCapacity: Number.parseInt(elementCapacity, 10),
       dimensions,
       // #1644: the SAME call the loop above renders the declarator with. The
       // size used to expand a fill-all must equal the size emitted in `[...]`,
       // or the array is the declared length with the wrong contents.
       // An omitted size is the declaration's count; a written one folds.
-      declaredSize: dims[0]?.expression()
-        ? this.foldFirstDimension(dims)
-        : this.countedSize(ctx),
-      renderInit: expression ? () => this.generateExpression(expression) : null,
+      declaredSize: typeDims[0]
+        ? this.foldFirstDimension(typeDims)
+        : this.countedSize(decl),
+      renderInit: initializer ? () => this.renderExpression(initializer) : null,
     };
-  }
-
-  private generateVariableDecl(ctx: Parser.VariableDeclarationContext): string {
-    // Issue #792: Delegate to VariableDeclHelper
-    return VariableDeclHelper.renderVariableDecl(
-      this.planVariableDecl(ctx),
-      this.host.state,
-    );
   }
 
   /**
    * Issue #696: Infer variable type, handling nullable C pointer types.
    * Issue #895 Bug B: Infer pointer type from C function return type.
    */
-  private _inferVariableType(
-    ctx: Parser.VariableDeclarationContext,
-    name: string,
-  ): string {
-    // ADR-029 / #1484: a local variable declared with a function-as-type emits
-    // that function's `_fp` typedef. Asked of `generateDeclaredType`, which owns
-    // that consequence for every declaration site.
-    const type = this.generateDeclaredType(ctx.type());
-
-    // #958, #895 Bug B and ADR-046: whether the declaration is a C pointer is
-    // `DeclaredPointer`'s decision, read off the declaration's type info
-    // (#1668) -- the answer every later read of this name gets -- so the
-    // emitted type only follows it. Bound just past the declarator, where
-    // the name comes into scope.
-    const declarator = ctx.IDENTIFIER().symbol;
-    const info = this.host.state.declarationTypeInfo(null, name, {
-      line: declarator.line,
-      column: declarator.column + 1,
-    });
+  private _inferVariableType(decl: IVariableDeclarationSyntax): string {
+    const type = this.renderDeclaredType(decl.type);
+    const info = this.host.state.declarationTypeInfo(
+      null,
+      decl.name,
+      CodeGenWalker.declaredAt(decl),
+    );
     return DeclaredPointer.spell(type, info?.isPointer ?? false);
   }
 
@@ -4336,22 +3974,22 @@ class CodeGenWalker {
    * Returns { name, separator } or null if not a named type.
    * ADR-016: Handles scoped, global, qualified, and user types
    */
-  private _resolveTypeNameFromContext(
-    typeCtx: Parser.TypeContext,
+  private namedTypeOf(
+    type: TTypeSyntax,
   ): { name: string; separator: string } | null {
     // #1285: ask for named types by name. Everything else -- string, array,
     // template, primitive, `void` -- returns null and is handled by the
     // caller's own chain, which is where it was always handled. An enumerated
     // list of alternatives to SKIP would have to be kept in step with the
     // grammar from ~3000 lines away, and getting it wrong fails open.
-    const name = TypeBinding.resolveNamedType(
-      typeCtx,
+    const name = TypeNameLadder.classifyNamed(
+      type,
       this.host.state.currentScopePath,
       this.host.state.typeBindingDeps((parts) =>
         this.resolveQualifiedType(parts),
       ),
-    );
-    if (name === null) {
+    )?.name;
+    if (name === undefined) {
       return null;
     }
 
@@ -4378,14 +4016,14 @@ class CodeGenWalker {
    * @public
    */
   analyzeMemberChainForBitAccess(
-    targetCtx: Parser.AssignmentTargetContext,
+    targetExpr: TExpression,
     lastStep: IChainStep | undefined,
   ): IBitAccessAnalysis {
     // #1668 (C12): what the last subscript indexes is the typer's answer,
     // typed once with the target (`IChainBase.last`)
     return MemberChainAnalyzer.analyze(
       lastStep,
-      targetCtx.postfixTargetOp().map((op) => this.planTargetOp(op)),
+      AssignmentTarget.parts(targetExpr).ops.map((op) => this.planTargetOp(op)),
     );
   }
 
@@ -4398,30 +4036,26 @@ class CodeGenWalker {
    * rendering an index queues a pending temp declaration in some shapes. See
    * `TPlannedTargetOp`.
    */
-  private planTargetOp(op: Parser.PostfixTargetOpContext): TPlannedTargetOp {
-    const member = op.IDENTIFIER();
-    if (member) {
-      return { kind: "member", name: member.getText() };
+  private planTargetOp(op: TPostfixOpSyntax): TPlannedTargetOp {
+    if (op.kind === "member") {
+      return { kind: "member", name: op.name };
     }
 
-    const indexes = op.expression();
+    const indexes = op.kind === "subscript" ? op.indexes : [];
     return {
       kind: "subscript",
       indexCount: indexes.length,
-      renderIndexes: () =>
-        indexes.map((index) => this.generateExpression(index)),
+      renderIndexes: () => indexes.map((index) => this.renderExpression(index)),
       foldWidth: () =>
-        indexes.length === 2 ? this.tryEvaluateConstant(indexes[1]) : undefined,
+        indexes.length === 2 ? this.constantOf(indexes[1]) : undefined,
     };
   }
 
   /** #1668 (C7): what an assignment target writes, by the one binder */
-  private targetDeclaration(
-    target: Parser.AssignmentTargetContext,
-  ): IChainBase {
+  private targetDeclaration(target: TExpression): IChainBase {
     const typing = this.host.state.typingContext();
     return DeclaredTypeInfo.ofChain(
-      OperandTyper.chainOf(SyntaxLowering.assignmentTarget(target), typing),
+      OperandTyper.chainOf(target, typing),
       typing.symbols,
       this.host.state.symbolTable,
       this.host.state.targetDescription,
@@ -4440,12 +4074,12 @@ class CodeGenWalker {
    * its own width, so it has none (#1085).
    */
   private assignedValueType(
-    targetCtx: Parser.AssignmentTargetContext,
+    targetExpr: TExpression,
     target: IChainBase,
   ): string | null {
     if (target.last?.subscript === "array_slice") return null;
     const written = OperandTyper.typeOfTarget(
-      SyntaxLowering.assignmentTarget(targetCtx),
+      targetExpr,
       this.host.state.typingContext(),
     );
     const name = written?.cType ?? written?.typeName ?? null;
@@ -4457,16 +4091,16 @@ class CodeGenWalker {
         );
   }
 
-  private generateAssignment(ctx: TAssignmentSite): string {
-    const targetCtx = ctx.assignmentTarget();
+  private generateAssignment(site: IAssignmentSyntax): string {
+    const targetExpr = site.target;
 
     // #1668 (C7): what the target writes, bound once -- the expected type
     // below and every classifier rule and handler read this
-    const target = this.targetDeclaration(targetCtx);
-    const expectedType = this.assignedValueType(targetCtx, target);
+    const target = this.targetDeclaration(targetExpr);
+    const expectedType = this.assignedValueType(targetExpr, target);
     // withExpectedType restores expectedType however the render exits
     const value = this.host.state.withExpectedType(expectedType, () =>
-      this.generateExpression(ctx.expression()),
+      this.renderExpression(site.value),
     );
 
     // #1322: the operator was mapped to its C form here and used for nothing
@@ -4485,9 +4119,10 @@ class CodeGenWalker {
     // Writing to a float invalidates its bit-shadow: the union copy is stale
     // until the next read refreshes it. Only a whole-variable assignment does
     // this -- writing THROUGH a member or an element does not rebind the float.
-    if (targetCtx.postfixTargetOp().length === 0) {
-      const assignedName = targetCtx.IDENTIFIER()?.getText();
-      if (assignedName !== undefined) {
+    const parts = AssignmentTarget.parts(targetExpr);
+    if (parts.ops.length === 0) {
+      const assignedName = parts.identifier;
+      if (assignedName !== null) {
         this.host.state.floatShadowCurrent.delete(
           BitRangeHelper.getShadowVarName(assignedName),
         );
@@ -4496,7 +4131,7 @@ class CodeGenWalker {
 
     // ADR-065: Dispatch to assignment handlers
     // Build context, classify, and dispatch - all patterns handled by handlers
-    const assignCtx = buildAssignmentContext(ctx, {
+    const assignCtx = buildAssignmentContext(site, {
       target,
       state: this.host.state,
       // Already rendered, inside the expectedType window above -- never again.
@@ -4505,10 +4140,9 @@ class CodeGenWalker {
         this.generateAssignmentTarget(target, opCount),
       analyzeMemberChainForBitAccess: (target, lastStep) =>
         this.analyzeMemberChainForBitAccess(target, lastStep),
-      generateExpression: (expr) => this.generateExpression(expr),
+      generateExpression: (expr) => this.renderExpression(expr),
       tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
-      expressionType: (expr) =>
-        this.directTypeOf(SyntaxLowering.expressionNode(expr)),
+      expressionType: (expr) => this.directTypeOf(expr),
       integerExpressionType: (expr) => this.integerTypeOf(expr),
       hasFloatingOperand: (expr) => this.hasFloatingLeaf(expr),
       toCOperator: (cnextOp, line) =>
@@ -4553,17 +4187,17 @@ class CodeGenWalker {
    * Extract postfix operations from parser contexts
    */
   private _extractPostfixOperations(
-    postfixOps: Parser.PostfixTargetOpContext[],
+    postfixOps: readonly TPostfixOpSyntax[],
   ): IPostfixOperation[] {
     return postfixOps.map((op) => {
-      const expressions = op.expression();
+      const expressions = op.kind === "subscript" ? op.indexes : [];
       return {
-        memberName: op.IDENTIFIER()?.getText() ?? null,
+        memberName: op.kind === "member" ? op.name : null,
         indexCount: expressions.length,
         // #1652: the nodes stay closed over HERE, in the walk. What crosses
         // into the render layer is a count and a function returning strings.
         renderIndexes: () =>
-          expressions.map((expr) => this.generateExpression(expr)),
+          expressions.map((expr) => this.renderExpression(expr)),
       };
     });
   }
@@ -4615,18 +4249,21 @@ class CodeGenWalker {
    * What a `return` carries. `node.expression()` was asked twice here -- once
    * as a predicate and once with `!` -- which is what a union states once.
    */
-  private planReturn(ctx: Parser.ReturnStatementContext): TPlannedReturn {
-    const exprCtx = ctx.expression();
-    if (!exprCtx) {
+  private planReturn(
+    statement: Extract<TStatement, { kind: "return" }>,
+  ): TPlannedReturn {
+    const value = statement.value;
+    if (!value) {
       return { kind: "void" };
     }
-
     return {
       kind: "value",
       render: (expectedType) =>
         expectedType
-          ? this.generateExpressionWithExpectedType(exprCtx, expectedType)
-          : this.generateExpression(exprCtx),
+          ? this.host.state.withExpectedType(expectedType, () =>
+              this.renderExpression(value),
+            )
+          : this.renderExpression(value),
     };
   }
 
@@ -4643,43 +4280,37 @@ class CodeGenWalker {
    * cache a length read only on a path the declaration's own value may not
    * describe.
    */
-  private planIf(ctx: Parser.IfStatementContext): IPlannedIf {
-    const conditionCtx = ctx.expression();
-    const statements = ctx.statement();
-    const thenStmt = statements[0];
-
+  private planIf(statement: Extract<TStatement, { kind: "if" }>): IPlannedIf {
+    const { condition, whenTrue, whenFalse } = statement;
     const lengthCounts = StringLengthCounter.countExpression(
-      SyntaxLowering.expression(conditionCtx),
+      condition,
       this.host.state,
     );
-    const thenBlock = thenStmt.block();
-    if (thenBlock) {
+    if (whenTrue.kind === "block") {
       StringLengthCounter.countBlockInto(
-        thenBlock,
+        whenTrue,
         lengthCounts,
         this.host.state,
       );
     }
-
-    const at = ParserUtils.getPosition(ctx);
+    const at = { line: statement.span.line, column: statement.span.column };
     return {
       lengthCounts,
       renderLengthOperand: (name) =>
         this._resolveIdentifierExpression(name, at),
-      renderCondition: () => this.generateExpression(conditionCtx),
-      renderThen: () => this.generateStatement(thenStmt),
-      renderElse:
-        statements.length > 1
-          ? () => this.generateStatement(statements[1])
-          : null,
+      renderCondition: () => this.renderExpression(condition),
+      renderThen: () => this.renderStatement(whenTrue),
+      renderElse: whenFalse ? () => this.renderStatement(whenFalse) : null,
     };
   }
 
   /** A `while`: condition then body. */
-  private planWhile(ctx: Parser.WhileStatementContext): IPlannedLoop {
+  private planWhile(
+    statement: Extract<TStatement, { kind: "while" }>,
+  ): IPlannedLoop {
     return {
-      renderCondition: () => this.generateExpression(ctx.expression()),
-      renderBody: () => this.generateStatement(ctx.statement()),
+      renderCondition: () => this.renderExpression(statement.condition),
+      renderBody: () => this.renderStatement(statement.body),
     };
   }
 
@@ -4688,16 +4319,20 @@ class CodeGenWalker {
    * generator calls them in the other order. Note the body is a BLOCK here and
    * a statement there -- which is exactly the difference a thunk hides.
    */
-  private planDoWhile(ctx: Parser.DoWhileStatementContext): IPlannedLoop {
+  private planDoWhile(
+    statement: Extract<TStatement, { kind: "doWhile" }>,
+  ): IPlannedLoop {
     return {
-      renderCondition: () => this.generateExpression(ctx.expression()),
-      renderBody: () => this.generateBlock(ctx.block()),
+      renderCondition: () => this.renderExpression(statement.condition),
+      renderBody: () => this.renderBlock(statement.body),
     };
   }
 
   /** An ADR-068 `forever`: a body and nothing else. */
-  private planForever(ctx: Parser.ForeverStatementContext): IPlannedForever {
-    return { renderBody: () => this.generateBlock(ctx.block()) };
+  private planForever(
+    statement: Extract<TStatement, { kind: "forever" }>,
+  ): IPlannedForever {
+    return { renderBody: () => this.renderBlock(statement.body) };
   }
 
   /**
@@ -4710,42 +4345,31 @@ class CodeGenWalker {
    * what yields the EMITTED name (ADR-057), and an initializer rendered ahead
    * of it would resolve the loop variable's own name against the outer scope.
    */
-  /**
-   * Just past a declarator's first character, where its name binds to the
-   * declaration itself (a use binds only after the declaration starts).
-   */
-  private static declaratorPosition(ctx: {
-    IDENTIFIER(): { symbol: { line: number; column: number } };
-  }): ISourcePosition {
-    const declarator = ctx.IDENTIFIER().symbol;
-    return { line: declarator.line, column: declarator.column + 1 };
-  }
-
-  private planForVarDecl(ctx: Parser.ForVarDeclContext): IPlannedForVarDecl {
+  private planForVarDecl(decl: IVariableDeclarationSyntax): IPlannedForVarDecl {
     // Issue #696: Use shared modifier builder
-    const modifiers = VariableModifierBuilder.buildSimple(ctx);
+    const modifiers = VariableModifierBuilder.buildSimple(decl.modifiers);
     // #1484: a `for` init declares a variable like any other, including one
     // typed by an ADR-029 function-as-type.
-    const typeName = this.generateDeclaredType(ctx.type());
-    const arrayDims = ctx.arrayDimension();
-    const initCtx = ctx.expression();
-
+    const typeName = this.renderDeclaredType(decl.type);
+    const initializer = decl.initializer;
     return {
       atomic: modifiers.atomic,
       volatile: modifiers.volatile,
       typeName,
-      declaredName: ctx.IDENTIFIER().getText(),
+      declaredName: decl.name,
       emittedName: this.host.state.emittedLocalNameAt(
-        ctx.IDENTIFIER().getText(),
-        CodeGenWalker.declaratorPosition(ctx),
+        decl.name,
+        CodeGenWalker.declaredAt(decl),
       ),
       renderArrayDimensions:
-        arrayDims.length > 0
-          ? () => this.generateArrayDimensions(arrayDims)
+        decl.dimensions.length > 0
+          ? () => this.renderLoweredDimensions(decl.dimensions)
           : null,
-      renderInitializer: initCtx
+      renderInitializer: initializer
         ? (expectedType) =>
-            this.generateExpressionWithExpectedType(initCtx, expectedType)
+            this.host.state.withExpectedType(expectedType, () =>
+              this.renderExpression(initializer),
+            )
         : null,
     };
   }
@@ -4759,7 +4383,7 @@ class CodeGenWalker {
    * clamp and MISRA C:2012 Rule 7.2's suffix included. Only the terminator
    * differs, since a header clause is an expression, not a statement.
    */
-  private planForAssignment(site: TAssignmentSite): IPlannedForAssignment {
+  private planForAssignment(site: IAssignmentSyntax): IPlannedForAssignment {
     return {
       render: () => {
         const form = ForHeaderAssignment.multiStatementForm(
@@ -4778,93 +4402,35 @@ class CodeGenWalker {
   }
 
   /** A `for` header and its body. */
-  private planFor(ctx: Parser.ForStatementContext): IPlannedFor {
-    const forUpdate = ctx.forUpdate();
-
+  private planFor(
+    statement: Extract<TStatement, { kind: "for" }>,
+  ): IPlannedFor {
+    const { condition, update } = statement;
     return {
-      init: this.planForInit(ctx.forInit()),
-      // `for (;;)` is E0707 in pass 2.1, so the controlling expression is
-      // guaranteed present here.
-      renderCondition: () => this.generateExpression(ctx.expression()!),
-      update: forUpdate ? this.planForAssignment(forUpdate) : null,
-      renderBody: () => this.generateStatement(ctx.statement()),
+      init: this.planForInit(statement.init),
+      renderCondition: () => {
+        invariant(
+          condition !== null,
+          "a for header states its condition -- E0707 rejects an empty one in pass 2.1, before this runs",
+        );
+        return this.renderExpression(condition);
+      },
+      update: update ? this.planForAssignment(update) : null,
+      renderBody: () => this.renderStatement(statement.body),
     };
   }
 
   /** Which of the two `for` init forms this header uses, if either. */
-  private planForInit(ctx: Parser.ForInitContext | null): IPlannedFor["init"] {
-    const varDecl = ctx?.forVarDecl();
-    if (varDecl) {
-      return { kind: "varDecl", plan: this.planForVarDecl(varDecl) };
+  private planForInit(
+    init: Extract<TStatement, { kind: "for" }>["init"],
+  ): IPlannedFor["init"] {
+    if (init?.kind === "variableDeclaration") {
+      return { kind: "varDecl", plan: this.planForVarDecl(init) };
     }
-
-    const assignment = ctx?.forAssignment();
-    if (assignment) {
-      return {
-        kind: "assignment",
-        plan: this.planForAssignment(assignment),
-      };
+    if (init?.kind === "assignment") {
+      return { kind: "assignment", plan: this.planForAssignment(init) };
     }
-
     return null;
-  }
-
-  private generateIf(ctx: Parser.IfStatementContext): string {
-    return this.invokeGenerator(
-      controlFlowGenerators.generateIf,
-      this.planIf(ctx),
-    );
-  }
-
-  private generateWhile(ctx: Parser.WhileStatementContext): string {
-    return this.invokeGenerator(
-      controlFlowGenerators.generateWhile,
-      this.planWhile(ctx),
-    );
-  }
-
-  private generateDoWhile(ctx: Parser.DoWhileStatementContext): string {
-    return this.invokeGenerator(
-      controlFlowGenerators.generateDoWhile,
-      this.planDoWhile(ctx),
-    );
-  }
-
-  private generateFor(ctx: Parser.ForStatementContext): string {
-    return this.invokeGenerator(
-      controlFlowGenerators.generateFor,
-      this.planFor(ctx),
-    );
-  }
-
-  private generateForever(ctx: Parser.ForeverStatementContext): string {
-    return this.invokeGenerator(
-      controlFlowGenerators.generateForever,
-      this.planForever(ctx),
-    );
-  }
-
-  private generateReturn(ctx: Parser.ReturnStatementContext): string {
-    return this.invokeGenerator(
-      controlFlowGenerators.generateReturn,
-      this.planReturn(ctx),
-    );
-  }
-
-  /**
-   * ADR-050: Generate critical statement with PRIMASK wrapper
-   * Ensures atomic execution of multi-variable operations
-   */
-  private generateCriticalStatement(
-    ctx: Parser.CriticalStatementContext,
-  ): string {
-    // #1445: the block is rendered here, where the tree is, and the generator
-    // wraps it. `generateBlock` still runs before the wrapper's irq_wrappers
-    // effect is applied, so effect order is unchanged.
-    return this.invokeGenerator(generateCriticalStatement, {
-      blockCode: this.generateBlock(ctx.block()),
-      line: ctx.start?.line,
-    });
   }
 
   /**
@@ -4878,24 +4444,21 @@ class CodeGenWalker {
    * rendering a statement registers effects, and the generator decides how
    * deep each line indents.
    */
-  private planSwitch(ctx: Parser.SwitchStatementContext): IPlannedSwitch {
-    const subjectExpression = ctx.expression();
-    const subject = this.generateExpression(subjectExpression);
-    const subjectEnumType =
-      this.getExpressionEnumType(subjectExpression) ?? undefined;
-    const defaultCase = ctx.defaultCase();
-
+  private planSwitch(
+    statement: Extract<TStatement, { kind: "switch" }>,
+  ): IPlannedSwitch {
+    const subject = this.renderExpression(statement.subject);
+    const subjectEnumType = this.enumTypeOf(statement.subject) ?? undefined;
+    const defaultCase = statement.defaultCase;
     return {
       subject,
       subjectEnumType,
-      cases: ctx.switchCase().map((switchCase) => ({
-        labels: switchCase
-          .caseLabel()
-          .map((label) => this.planCaseLabel(label)),
-        renderBody: () => this.renderStatements(switchCase.block()),
+      cases: statement.cases.map((switchCase) => ({
+        labels: switchCase.labels.map((label) => this.planCaseLabel(label)),
+        renderBody: () => this.renderStatements(switchCase.body),
       })),
       renderDefaultBody: defaultCase
-        ? () => this.renderStatements(defaultCase.block())
+        ? () => this.renderStatements(defaultCase.body)
         : null,
     };
   }
@@ -4907,56 +4470,27 @@ class CodeGenWalker {
    * identifier, integer, hex, binary, char. A char literal is its own arm
    * because it is the one that ignores a leading minus.
    */
-  private planCaseLabel(ctx: Parser.CaseLabelContext): TPlannedCaseLabel {
-    // A minus is the first child, for a negative literal.
-    const negative =
-      ctx.children !== null && ctx.children[0]?.getText() === "-";
-
-    const qualified = ctx.qualifiedType();
-    if (qualified) {
-      return {
-        kind: "qualified",
-        parts: qualified.IDENTIFIER().map((id) => id.getText()),
-      };
+  private planCaseLabel(label: TCaseLabelSyntax): TPlannedCaseLabel {
+    switch (label.kind) {
+      case "qualified":
+        return { kind: "qualified", parts: label.path };
+      case "identifier":
+        return { kind: "identifier", name: label.name };
+      case "integer":
+      case "hex":
+        return { kind: "numeric", text: label.text, negative: label.negative };
+      case "binary":
+        return { kind: "binary", text: label.text, negative: false };
+      case "char":
+        return { kind: "char", text: label.text };
+      case "missing":
+        return { kind: "none" };
     }
-
-    const identifier = ctx.IDENTIFIER();
-    if (identifier) {
-      return { kind: "identifier", name: identifier.getText() };
-    }
-
-    const integer = ctx.INTEGER_LITERAL();
-    if (integer) {
-      return { kind: "numeric", text: integer.getText(), negative };
-    }
-
-    const hex = ctx.HEX_LITERAL();
-    if (hex) {
-      return { kind: "numeric", text: hex.getText(), negative };
-    }
-
-    const binary = ctx.BINARY_LITERAL();
-    if (binary) {
-      return { kind: "binary", text: binary.getText(), negative };
-    }
-
-    const char = ctx.CHAR_LITERAL();
-    if (char) {
-      return { kind: "char", text: char.getText() };
-    }
-
-    return { kind: "none" };
   }
 
   /** Every statement of a block, rendered in order. */
-  private renderStatements(ctx: Parser.BlockContext): readonly string[] {
-    return ctx
-      .statement()
-      .map((statement) => this.generateStatement(statement));
-  }
-
-  private generateSwitch(ctx: Parser.SwitchStatementContext): string {
-    return this.invokeGenerator(generateSwitchStatement, this.planSwitch(ctx));
+  private renderStatements(block: TBlockSyntax): readonly string[] {
+    return block.statements.map((statement) => this.renderStatement(statement));
   }
 
   /**
@@ -5272,73 +4806,11 @@ class CodeGenWalker {
   }
 
   /**
-   * Process a preprocessor directive
-   * Delegates to IncludeGenerator
-   */
-  /**
-   * Which of `defineDirective`'s four alternatives matched.
-   *
-   * Early returns rather than a ternary chain: as one expression this was two
-   * nested ternaries and SonarCloud S3358 flagged both (introduced by this
-   * card's slice 12, caught by the PR-scoped issue list while the quality gate
-   * still read OK -- which is why the list is the standard here and the gate
-   * is not).
-   */
-  private static defineDirectiveKind(
-    define: Parser.DefineDirectiveContext,
-  ): IPlannedDirective["kind"] {
-    if (define.DEFINE_FUNCTION()) return "define-function";
-    if (define.DEFINE_WITH_VALUE()) return "define-value";
-    if (define.DEFINE_FLAG()) return "define-flag";
-    return "define-other";
-  }
-
-  private processPreprocessorDirective(
-    ctx: Parser.PreprocessorDirectiveContext,
-  ): string | null {
-    // #1445: the generator takes the directive's SHAPE and its text.
-    // `getText()` is the concatenated token text, handed over VERBATIM --
-    // rebuilding it from source positions would change the emitted line. The
-    // generator trims, because trimming is string work and that is where its
-    // test can reach it.
-    const define = ctx.defineDirective();
-    if (define) {
-      return includeProcessPreprocessorDirective({
-        kind: CodeGenWalker.defineDirectiveKind(define),
-        text: define.getText(),
-      });
-    }
-
-    const conditional = ctx.conditionalDirective();
-    if (conditional) {
-      return includeProcessPreprocessorDirective({
-        kind: "conditional",
-        text: conditional.getText(),
-      });
-    }
-
-    return includeProcessPreprocessorDirective({ kind: "none", text: "" });
-  }
-
-  /**
-   * Get comments that appear before a parse tree node
-   */
-  private getLeadingComments(ctx: {
-    start?: { tokenIndex: number } | null;
-  }): IComment[] {
-    return commentGetLeadingComments(ctx, this.commentExtractor);
-  }
-
-  /**
    * Format leading comments with current indentation
    */
-  private formatLeadingComments(comments: IComment[]): string[] {
+  private formatLeadingComments(comments: readonly IComment[]): string[] {
     const indent = FormatUtils.indent(this.host.state.indentLevel);
-    return commentFormatLeadingComments(
-      comments,
-      this.commentFormatter,
-      indent,
-    );
+    return this.commentFormatter.formatLeadingComments([...comments], indent);
   }
 
   /**

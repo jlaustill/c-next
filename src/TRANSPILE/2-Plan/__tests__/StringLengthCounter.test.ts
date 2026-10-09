@@ -7,6 +7,7 @@
  * resolved program, rather than registering a type the source never states.
  */
 
+import StatementLowering from "../../../PARSE/2-Parse/StatementLowering";
 import { describe, it, expect } from "vitest";
 import StringLengthCounter from "../StringLengthCounter";
 import TranspileState from "../../TranspileState";
@@ -115,7 +116,11 @@ describe("StringLengthCounter", () => {
       const block = tree.declaration(1)!.functionDeclaration()!.block()!;
 
       const counts = new Map<string, number>();
-      StringLengthCounter.countBlockInto(block, counts, state);
+      StringLengthCounter.countBlockInto(
+        StatementLowering.block(block),
+        counts,
+        state,
+      );
 
       expect(counts.get("s")).toBe(1);
     });
@@ -131,7 +136,11 @@ describe("StringLengthCounter", () => {
       `,
       );
       const counts = new Map<string, number>();
-      StringLengthCounter.countBlockInto(block, counts, state);
+      StringLengthCounter.countBlockInto(
+        StatementLowering.block(block),
+        counts,
+        state,
+      );
 
       expect(counts.get("text")).toBe(1);
     });
@@ -149,7 +158,11 @@ describe("StringLengthCounter", () => {
       const counts = new Map<string, number>();
       counts.set("s1", 1);
 
-      StringLengthCounter.countBlockInto(block, counts, state);
+      StringLengthCounter.countBlockInto(
+        StatementLowering.block(block),
+        counts,
+        state,
+      );
 
       expect(counts.get("s1")).toBe(2); // 1 existing + 1 new
       expect(counts.get("s2")).toBe(1);

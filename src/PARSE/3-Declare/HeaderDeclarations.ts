@@ -1,83 +1,87 @@
-import HeaderParser from "../2-Parse/HeaderParser";
 import EHeaderLanguage from "../1-Discover/types/EHeaderLanguage";
-import type IRecoveredSlice from "../1-Discover/types/IRecoveredSlice";
+import type { CompilationUnitContext } from "../2-Parse/c/grammar/CParser";
+import type TParsedHeader from "../2-Parse/types/TParsedHeader";
 import CaughtError from "../../utils/CaughtError";
 import CResolver from "./c/index";
 import CppResolver from "./cpp/index";
 import SymbolTable from "./SymbolTable";
 
 /**
- * 1.3 Declare for C and C++ headers: one header's text, parsed with the parser
- * of the language 1.1 judged it to be, and its symbols written to the table.
+ * 1.3 Declare for C and C++ headers: one header's 1.2 tree, and its symbols
+ * written to the table.
  *
  * Moved out of the orchestrator by #1443. Everything here needs one header's
- * text and nothing else, which is `IFileSymbols`' admission test for 1.3.
+ * tree and nothing else, which is `IFileSymbols`' admission test for 1.3. It
+ * takes no text: 1.2 parses, so nothing here can parse again (#1932).
  */
 class HeaderDeclarations {
   /**
    * Issue #208: one parser per header, the one its language names. #1844:
-   * the language is 1.1's answer; nothing here judges the text again, so a
-   * cold run and a warm one cannot disagree (#1851).
+   * the language is 1.1's answer, and 1.2 parsed with it.
    */
   static declare(
-    content: string,
+    parsed: TParsedHeader,
     filePath: string,
-    language: EHeaderLanguage,
     symbolTable: SymbolTable,
   ): void {
-    switch (language) {
+    switch (parsed.language) {
       case EHeaderLanguage.Assembler:
-        // Not C: parsing its `.macro` bodies as C mis-collects instruction
-        // mnemonics like `loop` as C symbols that then false-conflict with
-        // C-Next symbols of the same name.
         return;
       case EHeaderLanguage.Cpp:
         // C++14 parser for typed enums, classes, namespaces, templates
-        HeaderDeclarations.declareCpp(content, filePath, symbolTable);
+        if (parsed.tree) {
+          // ADR-055 Phase 7: Store TCppSymbol directly
+          symbolTable.addCppSymbols(
+            CppResolver.resolve(parsed.tree, filePath, symbolTable).symbols,
+          );
+        }
         return;
       case EHeaderLanguage.C:
-        HeaderDeclarations.declarePureC(content, filePath, symbolTable);
+        if (parsed.tree) {
+          // ADR-055 Phase 7: Store TCSymbol directly
+          symbolTable.addCSymbols(
+            CResolver.resolve(parsed.tree, filePath, symbolTable).symbols,
+          );
+        }
         return;
     }
   }
 
   /**
-   * Parse every recovered slice (#1279) into the run's table, and return a
-   * clean per-file re-parse of the same slices for `clearPhantomStructBodies`.
+   * One recovered slice (#1279) declared into the run's table, and its clean
+   * C parse resolved into `cleanState` for `clearPhantomStructBodies`.
    *
-   * The clean pass parses each slice as C on its own: only its opaque/body
+   * The clean pass reads each slice as C on its own: only its opaque/body
    * verdict is consulted (opaque struct typedefs are a C concern), and it
-   * tolerates slices it cannot parse -- except a deliberate diagnostic, which
-   * propagates.
+   * tolerates slices it cannot resolve -- except a deliberate diagnostic,
+   * which propagates.
    */
-  static recoverSlices(
-    slices: ReadonlyMap<string, IRecoveredSlice>,
+  static recoverSlice(
+    path: string,
+    parsed: TParsedHeader,
+    asC: CompilationUnitContext | null,
     symbolTable: SymbolTable,
-  ): SymbolTable {
-    const cleanState = new SymbolTable();
-    for (const [path, { text: content, language }] of slices) {
-      try {
-        HeaderDeclarations.declare(content, path, language, symbolTable);
-      } catch (err) {
-        // #1319: same decision as the sibling catch in the host's header loop:
-        // swallowing a diagnostic here would produce the `Compiled N files` /
-        // exit 0 shape diagnostics exist to remove -- so "is this a deliberate
-        // diagnostic?" is answered in both places or in neither.
-        if (CaughtError.isDiagnostic(err)) {
-          throw err;
-        }
-        // A slice that won't parse leaves the (already-collected) symbols as they
-        // were — skip it rather than fail the build.
+    cleanState: SymbolTable,
+  ): void {
+    try {
+      HeaderDeclarations.declare(parsed, path, symbolTable);
+    } catch (err) {
+      // #1319: same decision as the sibling catch in the host's header loop:
+      // swallowing a diagnostic here would produce the `Compiled N files` /
+      // exit 0 shape diagnostics exist to remove -- so "is this a deliberate
+      // diagnostic?" is answered in both places or in neither.
+      if (CaughtError.isDiagnostic(err)) {
+        throw err;
       }
-      const { tree } = HeaderParser.parseC(content);
-      if (!tree) continue;
-      try {
-        CResolver.resolve(tree, path, cleanState);
-      } catch {
-        /* isolated best-effort — only its opaque/body verdict is consulted */
-      }
+      // A slice that won't parse leaves the (already-collected) symbols as they
+      // were — skip it rather than fail the build.
     }
-    return cleanState;
+    if (!asC) return;
+    try {
+      CResolver.resolve(asC, path, cleanState);
+    } catch {
+      /* isolated best-effort — only its opaque/body verdict is consulted */
+    }
   }
 
   /**
@@ -99,41 +103,6 @@ class HeaderDeclarations {
       if (tag && !cleanBodies.has(tag)) {
         symbolTable.clearStructTagHasBody(tag);
       }
-    }
-  }
-
-  /**
-   * Issue #208: Parse a pure C header (no C++ syntax detected)
-   * Uses CResolver for symbol collection
-   * ADR-055 Phase 7: Direct TCSymbol storage (no adapter conversion)
-   */
-  private static declarePureC(
-    content: string,
-    filePath: string,
-    symbolTable: SymbolTable,
-  ): void {
-    const { tree } = HeaderParser.parseC(content);
-    if (tree) {
-      const result = CResolver.resolve(tree, filePath, symbolTable);
-      // ADR-055 Phase 7: Store TCSymbol directly
-      symbolTable.addCSymbols(result.symbols);
-    }
-  }
-
-  /**
-   * Parse a C++ header using CppResolver
-   * ADR-055 Phase 7: Direct TCppSymbol storage (no adapter conversion)
-   */
-  private static declareCpp(
-    content: string,
-    filePath: string,
-    symbolTable: SymbolTable,
-  ): void {
-    const { tree } = HeaderParser.parseCpp(content);
-    if (tree) {
-      const result = CppResolver.resolve(tree, filePath, symbolTable);
-      // ADR-055 Phase 7: Store TCppSymbol directly
-      symbolTable.addCppSymbols(result.symbols);
     }
   }
 }

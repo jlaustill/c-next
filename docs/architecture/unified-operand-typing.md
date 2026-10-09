@@ -313,7 +313,7 @@ type TValueBinding =
   | { kind: "foreign"; name: string };
 ```
 
-- **Stable positions.** Stage 4d and Stage 5 reuse Stage 3's parse (`retainedParses`), so a node's position is the same in every pass.
+- **Stable positions.** 2.1 reads the same parse 1.3 declared (both inside `TreePasses.run`), and Stage 5 reads the plain data 1.2 lowered from that same parse (`analyzedFiles`, #1932), so a node's position is the same in every pass.
 - **Comparison.** Positions compare lexicographically on `(line, column)`.
 - **artifact-lifetime.**
   - `IFileSymbols` and `Program` are already in `ARTIFACTS` (`artifact-lifetime.test.ts:146-160`).
@@ -387,7 +387,7 @@ The walker's three call sites pass the node's position. The emitted names are ex
 
 | Shape                            | `IOperandType`                                                                                                                                                                          |
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cast `(T)x`                      | `T` resolved through `TypeBinding` (not raw text as at `ETR.ts:765-768`), form `cast`, `hasSideEffect` from the operand. A cast to a header float typedef is floating (C04, C23).       |
+| Cast `(T)x`                      | `T` resolved through `TypeNameLadder` (not raw text as at `ETR.ts:765-768`), form `cast`, `hasSideEffect` from the operand. A cast to a header float typedef is floating (C04, C23).    |
 | Literal                          | `LiteralUtils.typeOf` (`:137-160`). Integer is `int`, or `uN`/`iN` when suffixed. Float is `f32`/`f64`. `true`/`false` is `bool`. Policy decides what each consumer reads (§5).         |
 | Ternary                          | Form `ternary` with both arm types. `type` is the arms' common type, or category `none` when they disagree. The condition is never a leaf (`ParserUtils.ternaryValueArms`, `:252-258`). |
 | `(e)`                            | Recurses into `e`. A parenthesized composite or ternary is typed, which fixes `ETR.ts:759-763` and the `(g+1)+1` clamp loss.                                                            |
