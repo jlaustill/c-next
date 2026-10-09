@@ -80,7 +80,11 @@ describe("ExpressionCalls.callsAtTop", () => {
     ["should not look inside parentheses", "(getValue())", false],
     ["should not look inside a subscript", "arr[getIndex()]", false],
     ["should detect the call around call arguments", "foo(bar())", true],
-    ["should detect a call under nested unaries (#366)", "!!isReady()", true],
+    [
+      "should detect a call under nested unary operators (#366)",
+      "!!isReady()",
+      true,
+    ],
     ["should detect a call under negation (#366)", "-getValue()", true],
     ["should detect a call in a ternary arm", "(flag) ? getValue() : 0", true],
   ])("%s", (_label, source, expected) => {
