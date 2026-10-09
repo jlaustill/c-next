@@ -13458,7 +13458,7 @@ describe("CodeGenWalker", () => {
         const source = `
           struct Point { i32 x; i32 y; }
           void processPoints(Point[4] points) {
-            points[0U].x <- 10;
+            points[0].x <- 10;
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
