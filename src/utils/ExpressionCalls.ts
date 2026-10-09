@@ -1,3 +1,4 @@
+import invariant from "./invariant";
 import type TExpression from "../types/syntax/TExpression";
 import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
 
@@ -91,7 +92,10 @@ class ExpressionCalls {
 
   /** A new expression or op kind is a compile error here until it is walked */
   private static unhandled(value: never): never {
-    throw new Error(`Internal: unwalked ${JSON.stringify(value)}`);
+    invariant(
+      false,
+      `ExpressionCalls walks every kind: ${JSON.stringify(value)}`,
+    );
   }
 }
 
