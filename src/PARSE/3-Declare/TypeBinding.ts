@@ -59,7 +59,18 @@ type TNamedTypeSpelling = TWithoutNode<TNamedTypeSyntax>;
 
 class TypeBinding {
   /**
-   * The C name for a NAMED type -- `this.T`, `global.T`, `Scope.T` or a bare
+   * The ladder for a named type, reporting WHICH branch answered and what was
+   * written.
+   *
+   * 1.3 Declare needs both. A name alone loses them: a bare `Mode` that stayed
+   * bare is indistinguishable from `global.Mode` -- ADR-057's whole reason for
+   * qualifying at the parse tree. Only the bare branch can be unsettled, and
+   * only when it did not qualify, so a caller that must defer needs to see the
+   * branch and the written identifier rather than infer them from a string
+   * that no longer carries either. A caller that wants the name reads `.name`;
+   * one ladder is what #1285 collapsed.
+   *
+   * It answers for a NAMED type -- `this.T`, `global.T`, `Scope.T` or a bare
    * `T` -- and null for every other alternative.
    *
    * This is an ALLOW-LIST, and that direction is the point. Callers that only
@@ -72,30 +83,6 @@ class TypeBinding {
    * `= {0}` with no diagnostic. Asking for named types by name makes an
    * unrecognized alternative `null` by default, which is where the callers'
    * own fallbacks already handle it.
-   */
-  static resolveNamedType(
-    accessors: ITypeAccessors,
-    scopePath: string,
-    deps?: ITypeBindingDeps,
-  ): string | null {
-    return (
-      TypeBinding.classifyNamedType(accessors, scopePath, deps)?.name ?? null
-    );
-  }
-
-  /**
-   * The same ladder, reporting WHICH branch answered and what was written.
-   *
-   * 1.3 Declare needs both. `resolveNamedType` returns a name, and by then a
-   * bare `Mode` that stayed bare is indistinguishable from `global.Mode` --
-   * ADR-057's whole reason for qualifying at the parse tree. Only the bare
-   * branch can be unsettled, and only when it did not qualify, so a caller
-   * that must defer needs to see the branch and the written identifier rather
-   * than infer them from a string that no longer carries either.
-   *
-   * This is the ladder; `resolveNamedType` is a view over it. Two ladders is
-   * what #1285 collapsed, and the point of routing the string version through
-   * here is that a branch cannot be added to one and forgotten in the other.
    */
   static classifyNamedType(
     accessors: ITypeAccessors,
