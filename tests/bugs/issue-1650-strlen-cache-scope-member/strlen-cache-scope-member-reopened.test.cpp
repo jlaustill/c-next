@@ -16,7 +16,7 @@
 // named from the source spelling emits the undeclared `strlen(label)`.
 //
 // Negative control: the member read ONCE (no cache).
-#include "strlen-cache-cfg.hpp"
+#include "cfg-scope.hpp"
 
 #include <stdint.h>
 #include <string.h>

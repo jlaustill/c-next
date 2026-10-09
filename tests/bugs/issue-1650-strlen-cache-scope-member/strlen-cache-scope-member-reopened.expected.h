@@ -7,7 +7,7 @@
  */
 
 #include <stdint.h>
-#include "strlen-cache-cfg.h"
+#include "cfg-scope.h"
 
 #ifdef __cplusplus
 extern "C" {

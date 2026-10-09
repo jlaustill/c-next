@@ -9,7 +9,7 @@
 // named from the source spelling emits the undeclared `strlen(label)`.
 //
 // Negative control: the member read ONCE (no cache).
-#include "strlen-cache-cfg.cnx"
+#include "cfg-scope.cnx"
 
 scope Cfg {
     public u32 check() {
