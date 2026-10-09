@@ -29,7 +29,7 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
+import ExpressionShape from "../../utils/ExpressionShape";
 import ExpressionCalls from "../../utils/ExpressionCalls";
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import ParserUtils from "../../utils/ParserUtils";
@@ -58,7 +58,9 @@ class SizeofListener extends CNextListener {
     const expr = ctx.expression();
     const name =
       bareName ??
-      (expr === null ? null : ExpressionUnwrapper.getSimpleIdentifier(expr));
+      (expr === null
+        ? null
+        : ExpressionShape.simpleIdentifier(SyntaxLowering.expression(expr)));
 
     if (name !== null) {
       const parameter = EnclosingFunction.parameterOf(name, ctx);
