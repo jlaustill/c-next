@@ -63,6 +63,7 @@ import IPlannedFor from "./3-Render/codegen/types/IPlannedFor";
 import IPlannedForAssignment from "./3-Render/codegen/types/IPlannedForAssignment";
 import type IAssignmentSyntax from "../types/syntax/IAssignmentSyntax";
 import type IVariableDeclarationSyntax from "../types/syntax/IVariableDeclarationSyntax";
+import type TStatement from "../types/syntax/TStatement";
 import AssignmentTarget from "../utils/AssignmentTarget";
 import StatementLowering from "../PARSE/2-Parse/StatementLowering";
 import IPlannedForVarDecl from "./3-Render/codegen/types/IPlannedForVarDecl";
@@ -145,7 +146,6 @@ import BaseIdentifierBuilder from "./3-Render/codegen/helpers/BaseIdentifierBuil
 import ISimpleIdentifierDeps from "./3-Render/codegen/types/ISimpleIdentifierDeps";
 import IPostfixChainDeps from "./3-Render/codegen/types/IPostfixChainDeps";
 import IPostfixOperation from "./3-Render/codegen/types/IPostfixOperation";
-import ExpressionUnwrapper from "../utils/ExpressionUnwrapper";
 import type TExpression from "../types/syntax/TExpression";
 import type TExpressionOf from "../types/syntax/TExpressionOf";
 import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
@@ -1005,14 +1005,6 @@ class CodeGenWalker {
     return (array?.isArray ?? false) && (array?.isPointer ?? false);
   }
 
-  /**
-   * Issue #304: Get the type of an expression.
-   * Part of IOrchestrator interface.
-   */
-  getExpressionType(ctx: Parser.ExpressionContext): string | null {
-    return this.directTypeOf(SyntaxLowering.expression(ctx));
-  }
-
   /** #1668 (C6c): an expression's one type for 2.2, PlanTyping's row */
   private directTypeOf(expr: TExpression): string | null {
     return PlanTyping.directTypeName(
@@ -1359,9 +1351,6 @@ class CodeGenWalker {
    *
    * A fifth declaration site should call this rather than repeat the pairing.
    */
-  generateDeclaredType(typeCtx: Parser.TypeContext): string {
-    return this.renderDeclaredType(SyntaxLowering.type(typeCtx));
-  }
 
   private renderDeclaredType(type: TTypeSyntax): string {
     const declared = this.renderType(type);
@@ -2640,19 +2629,24 @@ class CodeGenWalker {
   /**
    * ADR-045: Check if an expression is a string concatenation.
    *
-   * #1445: the shape question is `ExpressionUnwrapper`'s and the capacity
-   * question is `StringOperationsHelper`'s, so neither has to hold both.
+   * #1445: the shape question is read from the lowered expression and the
+   * capacity question is `StringOperationsHelper`'s, so neither holds both.
    */
   private _getStringConcatOperands(
-    ctx: Parser.ExpressionContext,
+    expression: TExpression,
   ): IStringConcatOps | null {
-    const operands = ExpressionUnwrapper.getAdditionOperandTexts(ctx);
-    if (operands === null) return null;
-
+    if (
+      expression.kind !== "binary" ||
+      expression.level !== "additive" ||
+      expression.operands.length !== 2 ||
+      expression.operators[0] !== "+"
+    ) {
+      return null;
+    }
     return StringOperationsHelper.getStringConcatOperands(
-      operands[0],
-      operands[1],
-      this.declaredTypeAt(ctx),
+      CodeGenWalker.stringTextOf(expression.operands[0]),
+      CodeGenWalker.stringTextOf(expression.operands[1]),
+      this.declaredTypeAt(expression.span),
     );
   }
 
@@ -2663,16 +2657,20 @@ class CodeGenWalker {
    * one queues a pending temp declaration in some shapes, and only the helper
    * knows whether this is a substring at all. See its comment.
    */
-  private _getSubstringOperands(
-    ctx: Parser.ExpressionContext,
-  ): ISubstringOps | null {
-    const subscript = ExpressionUnwrapper.getSubscriptedIdentifier(ctx);
-    if (subscript === null) return null;
-
+  private _getSubstringOperands(expression: TExpression): ISubstringOps | null {
+    if (
+      expression.kind !== "postfix" ||
+      expression.primary.kind !== "identifier" ||
+      expression.ops.length !== 1 ||
+      expression.ops[0].kind !== "subscript"
+    ) {
+      return null;
+    }
+    const indexes = expression.ops[0].indexes;
     return StringOperationsHelper.getSubstringOperands(
-      subscript.name,
-      () => subscript.indexes.map((index) => this.generateExpression(index)),
-      this.declaredTypeAt(ctx),
+      expression.primary.name,
+      () => indexes.map((index) => this.renderExpression(index)),
+      this.declaredTypeAt(expression.span),
     );
   }
 
@@ -2681,10 +2679,10 @@ class CodeGenWalker {
    * that holds only an operand's text
    */
   private declaredTypeAt(
-    ctx: ParserRuleContext,
+    at: ISourcePosition,
   ): (name: string) => TTypeInfo | undefined {
-    const at = ParserUtils.getPosition(ctx);
-    return (name) => this.host.state.declarationTypeInfo(null, name, at);
+    const position = { line: at.line, column: at.column };
+    return (name) => this.host.state.declarationTypeInfo(null, name, position);
   }
 
   private _isFloatType(typeName: string): boolean {
@@ -3090,10 +3088,9 @@ class CodeGenWalker {
     // Issue #500: check for an array BEFORE skipping -- arrays must be emitted.
     // Both spellings count: C-style trailing dimensions and the C-Next arrayType.
     const isConst = varDecl.constModifier() !== null;
-    const shape = CodeGenWalker.readArrayShape(varDecl);
-    const arrayDims = shape.arrayDims;
-    const arrayTypeCtx = shape.arrayTypeCtx;
-    const isArray = shape.isArray;
+    const arrayDims = varDecl.arrayDimension();
+    const arrayTypeCtx = varDecl.type().arrayType?.() ?? null;
+    const isArray = arrayDims.length > 0 || arrayTypeCtx !== null;
 
     // Issue #282: a private const scalar is inlined at its uses, not emitted at
     // file scope. Issue #500 exempts arrays, which cannot be inlined. Decided
@@ -3176,7 +3173,7 @@ class CodeGenWalker {
       if (omitsSize && state.wasArrayInit()) {
         ArrayInitHelper.assertInferredSize(
           varDecl.IDENTIFIER().getText(),
-          this.countedSize(varDecl),
+          this.countedSize(StatementLowering.variableDeclaration(varDecl)),
           state,
         );
       }
@@ -3290,13 +3287,32 @@ class CodeGenWalker {
       // #1664 box 3: an omitted size is the declaration's count, the number
       // the `.h` states, for every declaration renderer that asks here.
       if (!expression) {
-        return { renderSize: () => String(this.omittedSizeOf(declaration)) };
+        return {
+          renderSize: () =>
+            String(
+              this.omittedSizeOf(
+                declaration &&
+                  StatementLowering.variableDeclaration(declaration),
+              ),
+            ),
+        };
       }
 
       return {
         renderSize: () => this.renderDimension(expression),
       };
     });
+  }
+
+  private planLoweredArrayTypeDimensions(
+    dims: ReadonlyArray<TExpression | null>,
+    declaration: IVariableDeclarationSyntax,
+  ): readonly IPlannedDimension[] {
+    return dims.map((size) =>
+      size
+        ? { renderSize: () => this.renderLoweredDimension(size) }
+        : { renderSize: () => String(this.omittedSizeOf(declaration)) },
+    );
   }
 
   /**
@@ -3874,64 +3890,37 @@ class CodeGenWalker {
    * with the rendering lifted out of it.
    */
   private planVariableDecl(
-    ctx: Parser.VariableDeclarationContext,
+    decl: Extract<
+      TStatement,
+      { kind: "variableDeclaration" | "constructorDeclaration" }
+    >,
   ): TPlannedVariableDecl {
-    // Issue #375: Check for C++ constructor syntax - early return
-    const constructorArgList = ctx.constructorArgumentList();
-    if (constructorArgList) {
-      return this.planConstructorDecl(ctx, constructorArgList);
+    if (decl.kind === "constructorDeclaration") {
+      return this.planConstructorDecl(decl);
     }
-
-    // Issue #696: Use helper for modifier extraction and validation
-    // Issue #852 (MISRA Rule 8.5): hasInitializer and cppMode drive extern
+    // Issue #696: Use shared modifier builder
     const modifiers = VariableModifierBuilder.build(
-      StatementLowering.variableDeclaration(ctx).modifiers,
+      decl.modifiers,
       this.host.state.inFunctionBody,
-      ctx.expression() !== null,
+      decl.initializer !== null,
       this.host.state,
     );
-
-    const name = ctx.IDENTIFIER().getText();
-    const typeCtx = ctx.type();
-
-    // #1322: a C-style array declaration (u16 arr[8]) is E0874 in pass 2.1
-    // (ADR-036), raised by `ArrayDeclarationAnalyzer`.
-    const type = this._inferVariableType(ctx, name);
-
-    // Track local variable metadata
+    const name = decl.name;
+    const type = this._inferVariableType(decl);
     this._trackLocalVariable(name);
-
-    // ADR-057: the identifier this declaration is EMITTED under. Computed once,
-    // here, because the string and array forms below return before the plain
-    // declaration is assembled -- a second call would be a second place
-    // deciding the same thing. Registries keep the source name; only the
-    // generated text moves.
     const emittedName = this.host.state.emittedLocalName(name);
-
-    // ADR-045: string types have their own three forms
-    const stringPlan = this.planStringDecl(
-      ctx,
-      typeCtx,
-      ctx.expression() ?? null,
-      ctx.arrayDimension(),
-    );
+    const stringPlan = this.planStringDecl(decl);
     if (stringPlan) {
       return {
         kind: "string",
         string: stringPlan,
         emittedName,
         modifiers,
-        isConst: ctx.constModifier() !== null,
+        isConst: decl.modifiers.const,
       };
     }
-
-    // Statements rather than an object literal, because the ORDER matters and
-    // an object literal's property order is not something a reader checks:
-    // the array half renders its type dimensions eagerly, and it must do so
-    // before anything the initializer renders.
-    const array = this.planArrayDeclaration(ctx, typeCtx);
-    const initializer = this.planVariableInitializer(ctx, typeCtx);
-
+    const array = this.planArrayDeclaration(decl);
+    const initializer = this.planVariableInitializer(decl);
     return {
       kind: "plain",
       sourceName: name,
@@ -3956,33 +3945,22 @@ class CodeGenWalker {
    * member is emitted by its qualified C name.
    */
   private planConstructorDecl(
-    ctx: Parser.VariableDeclarationContext,
-    argListCtx: Parser.ConstructorArgumentListContext,
+    decl: Extract<TStatement, { kind: "constructorDeclaration" }>,
   ): TPlannedVariableDecl {
-    const type = this.generateType(ctx.type());
-    const name = ctx.IDENTIFIER().getText();
-
-    // #1668: what each argument NAMES, by the one binder -- a scope member
-    // is emitted by its C name, a shadowing local by its ADR-057 name. It is
-    // the same answer a function argument takes (#1760 review): this was a
-    // second spelling of that decision beside ArgumentGenerator's own.
-    const args = argListCtx.IDENTIFIER().map((argNode) =>
-      this.boundName(argNode.getText(), {
-        line: argNode.symbol.line,
-        column: argNode.symbol.column,
+    const type = this.renderType(decl.type);
+    const args = decl.arguments.map((argument) =>
+      this.boundName(argument.name, {
+        line: argument.span.line,
+        column: argument.span.column,
       }),
     );
-
-    // Track as local variable if inside function body
     if (this.host.state.inFunctionBody) {
-      this.host.state.registerLocalVariable(name);
+      this.host.state.registerLocalVariable(decl.name);
     }
-
     return {
       kind: "constructor",
       type,
-      // ADR-057: emit under the name registration decided on, not the source one.
-      emittedName: this.host.state.emittedLocalName(name),
+      emittedName: this.host.state.emittedLocalName(decl.name),
       args,
     };
   }
@@ -4003,20 +3981,6 @@ class CodeGenWalker {
    * `arrayType?.()` keeps the scope path's defensive call -- `TypeContext`
    * always carries the rule, but a hand-built context in a unit test need not.
    */
-  private static readArrayShape(ctx: Parser.VariableDeclarationContext): {
-    arrayDims: Parser.ArrayDimensionContext[];
-    arrayTypeCtx: Parser.ArrayTypeContext | null;
-    isArray: boolean;
-  } {
-    const arrayDims = ctx.arrayDimension();
-    const arrayTypeCtx = ctx.type().arrayType?.() ?? null;
-
-    return {
-      arrayDims,
-      arrayTypeCtx,
-      isArray: arrayDims.length > 0 || arrayTypeCtx !== null,
-    };
-  }
 
   /**
    * The array half of a declaration (ADR-035/ADR-036).
@@ -4029,14 +3993,11 @@ class CodeGenWalker {
    * expressions raised.
    */
   private planArrayDeclaration(
-    ctx: Parser.VariableDeclarationContext,
-    typeCtx: Parser.TypeContext,
+    decl: IVariableDeclarationSyntax,
   ): IPlannedArrayDeclaration {
-    const shape = CodeGenWalker.readArrayShape(ctx);
-    const arrayDims = shape.arrayDims;
-    const arrayTypeCtx = shape.arrayTypeCtx;
-
-    if (!shape.isArray) {
+    const arrayDims = decl.dimensions;
+    const typeDims = decl.type.kind === "array" ? decl.type.dimensions : null;
+    if (arrayDims.length === 0 && typeDims === null) {
       return {
         isArray: false,
         hasEmptyDimension: false,
@@ -4047,52 +4008,35 @@ class CodeGenWalker {
         init: null,
       };
     }
-
-    const typeDims = arrayTypeCtx?.arrayTypeDimension() ?? [];
-    const hasEmptyArrayTypeDimension = typeDims.some(
-      (dim) => !dim.expression(),
+    const hasEmptyArrayTypeDimension = (typeDims ?? []).some(
+      (dim) => dim === null,
     );
     const hasEmptyDimension =
-      arrayDims.some((dim) => !dim.expression()) || hasEmptyArrayTypeDimension;
-    const initializer = ctx.expression();
-    // #1822: the inferred path emits its one counted size as the whole suffix,
-    // which is right only for a one-dimensional array. E0892 rejects every
-    // other empty dimension in pass 2.1.
+      arrayDims.some((dim) => dim === null) || hasEmptyArrayTypeDimension;
+    const initializer = decl.initializer;
     invariant(
-      !hasEmptyDimension || typeDims.length + arrayDims.length === 1,
-      `an array that omits a size is one-dimensional -- E0892 rejects '${ctx.IDENTIFIER().getText()}' in pass 2.1, before this runs`,
+      !hasEmptyDimension || (typeDims?.length ?? 0) + arrayDims.length === 1,
+      `an array that omits a size is one-dimensional -- E0892 rejects '${decl.name}' in pass 2.1, before this runs`,
     );
-
     return {
       isArray: true,
       hasEmptyDimension,
       hasEmptyArrayTypeDimension,
-      // #1644: one evaluator, and one FUNCTION -- the type's dimensions and the
-      // trailing ones are the same question asked of two lists. They were two
-      // methods that had to be kept in step by hand, and the comment saying so
-      // is what this deletes.
-      // #1664 box 3: an inferred size is the declaration's, not a count of
-      // what render is about to emit.
       declaredSize: hasEmptyDimension
-        ? this.countedSize(ctx)
-        : (this.foldFirstDimension(typeDims) ??
+        ? this.countedSize(decl)
+        : (this.foldFirstDimension(typeDims ?? []) ??
           this.foldFirstDimension(arrayDims)),
-      // One renderer for the type's dimensions, not two. This used to call a
-      // private twin of `ArrayDimensionUtils.renderArrayTypeDimensions` that
-      // re-derived the same rule -- fold a constant, else generate, `[]` when
-      // unsized -- from the same node. They agreed only because both folded
-      // through `tryEvaluateConstant`, which is the "by coincidence" shape the
-      // house rule names. Still eager: the util calls each `renderSize` inside
-      // its `map`, so dimension effects are raised exactly where they were.
       arrayTypeDimensions: ArrayDimensionUtils.renderArrayTypeDimensions(
-        this.planArrayTypeDimensions(arrayTypeCtx, ctx),
+        typeDims === null
+          ? null
+          : this.planLoweredArrayTypeDimensions(typeDims, decl),
       ),
-      renderCStyleDimensions: () => this.generateArrayDimensions(arrayDims),
+      renderCStyleDimensions: () => this.renderLoweredDimensions(arrayDims),
       init: initializer
         ? {
-            renderExpression: () => this.generateExpression(initializer),
-            renderTypeName: () => this.getTypeName(typeCtx),
-            renderDimensions: () => this.generateArrayDimensions(arrayDims),
+            renderExpression: () => this.renderExpression(initializer),
+            renderTypeName: () => this.typeNameOf(decl.type),
+            renderDimensions: () => this.renderLoweredDimensions(arrayDims),
           }
         : null,
     };
@@ -4105,13 +4049,11 @@ class CodeGenWalker {
    * there reads this declaration, never one it shadows.
    */
   private declaredHere(
-    ctx: Parser.VariableDeclarationContext,
+    decl: IVariableDeclarationSyntax,
   ): TTypeInfo | undefined {
-    const name = ctx.IDENTIFIER().symbol;
-    const text = name.text ?? "";
-    return this.host.state.declarationTypeInfo(null, text, {
-      line: name.line,
-      column: name.column + text.length,
+    return this.host.state.declarationTypeInfo(null, decl.name, {
+      line: decl.nameSpan.line,
+      column: decl.nameSpan.column + decl.name.length,
     });
   }
 
@@ -4120,22 +4062,22 @@ class CodeGenWalker {
    * null when there is none to read: only a one-dimensional declaration is
    * counted (E0892), and an uncounted size is `UNRESOLVED_DIMENSION`, 0.
    */
-  private countedSize(ctx: Parser.VariableDeclarationContext): number | null {
+  private countedSize(decl: IVariableDeclarationSyntax): number | null {
     const rank =
-      (ctx.type().arrayType()?.arrayTypeDimension().length ?? 0) +
-      ctx.arrayDimension().length;
-    const size = this.declaredHere(ctx)?.arrayDimensions?.[0];
+      (decl.type.kind === "array" ? decl.type.dimensions.length : 0) +
+      decl.dimensions.length;
+    const size = this.declaredHere(decl)?.arrayDimensions?.[0];
     return rank === 1 && size !== undefined && size > 0 ? size : null;
   }
 
   /** An omitted size as rendered: the declaration's count, asserted. */
   private omittedSizeOf(
-    declaration: Parser.VariableDeclarationContext | null,
+    declaration: IVariableDeclarationSyntax | null,
   ): number {
     const size = declaration === null ? null : this.countedSize(declaration);
     invariant(
       size !== null,
-      `an omitted array size is counted from a one-dimensional declaration's list or string literal -- E0892 rejects '${declaration?.IDENTIFIER().getText() ?? "a struct field"}' in pass 2.1, before this runs`,
+      `an omitted array size is counted from a one-dimensional declaration's list or string literal -- E0892 rejects '${declaration?.name ?? "a struct field"}' in pass 2.1, before this runs`,
     );
     return size;
   }
@@ -4148,37 +4090,30 @@ class CodeGenWalker {
    * the array is the declared length with the wrong contents (#1644).
    */
   private foldFirstDimension(
-    dims: readonly {
-      expression(): Parser.ExpressionContext | null;
-    }[],
+    dims: ReadonlyArray<TExpression | null>,
   ): number | null {
-    const sizeExpr = dims[0]?.expression();
-    if (!sizeExpr) {
-      return null;
-    }
-    return this.dimensionValue(sizeExpr) ?? null;
+    const size = dims[0];
+    return size ? (this.constantOf(size) ?? null) : null;
   }
 
   /**
    * How a variable's initializer is rendered (ADR-015 when there is none).
    */
   private planVariableInitializer(
-    ctx: Parser.VariableDeclarationContext,
-    typeCtx: Parser.TypeContext,
+    decl: IVariableDeclarationSyntax,
   ): TPlannedVariableInitializer {
-    const initializer = ctx.expression();
+    const initializer = decl.initializer;
     if (!initializer) {
       return {
         kind: "zero",
-        render: (isArray) => this.getZeroInitializer(typeCtx, isArray),
+        render: (isArray) => this.zeroInitializerOf(decl.type, isArray),
       };
     }
-
     return {
       kind: "expression",
-      renderTypeName: () => this.getTypeName(typeCtx),
-      renderExpression: () => this.generateExpression(initializer),
-      resolveExpressionType: () => this.getExpressionType(initializer),
+      renderTypeName: () => this.typeNameOf(decl.type),
+      renderExpression: () => this.renderExpression(initializer),
+      resolveExpressionType: () => this.directTypeOf(initializer),
     };
   }
 
@@ -4197,49 +4132,40 @@ class CodeGenWalker {
    * #1643.)
    */
   private planStringDecl(
-    ctx: Parser.VariableDeclarationContext,
-    typeCtx: Parser.TypeContext,
-    expression: Parser.ExpressionContext | null,
-    trailingDims: Parser.ArrayDimensionContext[],
+    decl: IVariableDeclarationSyntax,
   ): TPlannedStringDecl | null {
-    // Issue #1029: string array in arrayType syntax -- `string<32>[4] items`
-    const arrayTypeCtx = typeCtx.arrayType?.();
-    const arrayStringCtx = arrayTypeCtx?.stringType?.();
-    if (arrayTypeCtx && arrayStringCtx) {
-      // ADR-045: a sized string is copied and measured with <string.h>
+    const type = decl.type;
+    if (type.kind === "array" && type.element.kind === "string") {
       this.host.state.requireInclude("string");
-      return this.planStringArray(
-        ctx,
-        arrayTypeCtx,
-        arrayStringCtx,
-        expression,
-        trailingDims,
-      );
+      return this.planStringArray(decl, type.dimensions, type.element.capacity);
     }
-
-    const stringCtx = typeCtx.stringType();
-    if (!stringCtx) {
+    if (type.kind !== "string") {
       return null;
     }
-
-    const intLiteral = stringCtx.INTEGER_LITERAL();
-    if (!intLiteral) {
-      // Unsized string - requires const and a literal to infer from. Its
-      // capacity is the declaration's (#1664 box 3).
+    const initializer = decl.initializer;
+    if (type.capacity === null) {
       return {
         kind: "unsized",
-        initText: expression?.getText() ?? null,
-        declaredCapacity: this.declaredHere(ctx)?.stringCapacity ?? null,
+        initText: initializer ? CodeGenWalker.stringTextOf(initializer) : null,
+        declaredCapacity: this.declaredHere(decl)?.stringCapacity ?? null,
       };
     }
-
-    // ADR-045: a sized string is copied and measured with <string.h>
     this.host.state.requireInclude("string");
     return {
       kind: "bounded",
-      capacity: Number.parseInt(intLiteral.getText(), 10),
-      init: expression ? this.planStringInit(expression) : null,
+      capacity: Number.parseInt(type.capacity, 10),
+      init: initializer ? this.planStringInit(initializer) : null,
     };
+  }
+
+  /** What the string helpers test: a literal's token, a name, else as written */
+  private static stringTextOf(expression: TExpression): string {
+    if (expression.kind === "literal") {
+      return expression.text;
+    }
+    return expression.kind === "identifier"
+      ? expression.name
+      : expression.written;
   }
 
   /**
@@ -4253,18 +4179,17 @@ class CodeGenWalker {
    * include or queue a C++ temp, so raising those effects for an arm that is
    * not taken would change the emitted C.
    */
-  private planStringInit(
-    expression: Parser.ExpressionContext,
-  ): IPlannedStringInit {
+  private planStringInit(expression: TExpression): IPlannedStringInit {
+    const text = CodeGenWalker.stringTextOf(expression);
     return {
       concat: this._getStringConcatOperands(expression),
       renderSubstring: () => this._getSubstringOperands(expression),
-      text: expression.getText(),
+      text,
       sourceCapacity: StringOperationsHelper.getStringExprCapacity(
-        expression.getText(),
-        this.declaredTypeAt(expression),
+        text,
+        this.declaredTypeAt(expression.span),
       ),
-      render: () => this.generateExpression(expression),
+      render: () => this.renderExpression(expression),
     };
   }
 
@@ -4272,54 +4197,35 @@ class CodeGenWalker {
    * Issue #1029: `string<32>[4] items`.
    */
   private planStringArray(
-    ctx: Parser.VariableDeclarationContext,
-    arrayTypeCtx: Parser.ArrayTypeContext,
-    stringCtx: Parser.StringTypeContext,
-    expression: Parser.ExpressionContext | null,
-    trailingDims: Parser.ArrayDimensionContext[],
+    decl: IVariableDeclarationSyntax,
+    typeDims: ReadonlyArray<TExpression | null>,
+    elementCapacity: string | null,
   ): TPlannedStringDecl {
-    const intLiteral = stringCtx.INTEGER_LITERAL();
-    if (!intLiteral) {
-      // Unsized string array - not supported
+    if (elementCapacity === null) {
       invariant(
         false,
         "a string array states its element capacity -- E0862 rejects an unsized one in pass 2.1",
       );
     }
-
-    const dims = arrayTypeCtx.arrayTypeDimension();
-    // The one planner every declaration renders its type's dimensions with
-    // (#1824 review). This arm had its own loop: the same fold (Issue #1127:
-    // `string<32>[COUNT] items` must not be a VLA), a raw-text fallback, and,
-    // until #1664 box 3, `[]` for an omitted size, left to C to count.
     let dimensions = ArrayDimensionUtils.renderArrayTypeDimensions(
-      this.planArrayTypeDimensions(arrayTypeCtx, ctx),
+      this.planLoweredArrayTypeDimensions(typeDims, decl),
     );
-
-    // Any trailing dimensions from the variable declaration. Unconditional on
-    // this arm -- every string array emits its dimensions, initializer or not
-    // -- so the effects this raises are raised exactly as often as before.
-    dimensions += this.generateArrayDimensions(trailingDims);
-
+    dimensions += this.renderLoweredDimensions(decl.dimensions);
+    const initializer = decl.initializer;
     return {
       kind: "array",
-      elementCapacity: Number.parseInt(intLiteral.getText(), 10),
+      elementCapacity: Number.parseInt(elementCapacity, 10),
       dimensions,
-      // #1644: the SAME call the loop above renders the declarator with. The
-      // size used to expand a fill-all must equal the size emitted in `[...]`,
-      // or the array is the declared length with the wrong contents.
-      // An omitted size is the declaration's count; a written one folds.
-      declaredSize: dims[0]?.expression()
-        ? this.foldFirstDimension(dims)
-        : this.countedSize(ctx),
-      renderInit: expression ? () => this.generateExpression(expression) : null,
+      declaredSize: typeDims[0]
+        ? this.foldFirstDimension(typeDims)
+        : this.countedSize(decl),
+      renderInit: initializer ? () => this.renderExpression(initializer) : null,
     };
   }
 
   private generateVariableDecl(ctx: Parser.VariableDeclarationContext): string {
-    // Issue #792: Delegate to VariableDeclHelper
     return VariableDeclHelper.renderVariableDecl(
-      this.planVariableDecl(ctx),
+      this.planVariableDecl(StatementLowering.declaration(ctx)),
       this.host.state,
     );
   }
@@ -4328,24 +4234,11 @@ class CodeGenWalker {
    * Issue #696: Infer variable type, handling nullable C pointer types.
    * Issue #895 Bug B: Infer pointer type from C function return type.
    */
-  private _inferVariableType(
-    ctx: Parser.VariableDeclarationContext,
-    name: string,
-  ): string {
-    // ADR-029 / #1484: a local variable declared with a function-as-type emits
-    // that function's `_fp` typedef. Asked of `generateDeclaredType`, which owns
-    // that consequence for every declaration site.
-    const type = this.generateDeclaredType(ctx.type());
-
-    // #958, #895 Bug B and ADR-046: whether the declaration is a C pointer is
-    // `DeclaredPointer`'s decision, read off the declaration's type info
-    // (#1668) -- the answer every later read of this name gets -- so the
-    // emitted type only follows it. Bound just past the declarator, where
-    // the name comes into scope.
-    const declarator = ctx.IDENTIFIER().symbol;
-    const info = this.host.state.declarationTypeInfo(null, name, {
-      line: declarator.line,
-      column: declarator.column + 1,
+  private _inferVariableType(decl: IVariableDeclarationSyntax): string {
+    const type = this.renderDeclaredType(decl.type);
+    const info = this.host.state.declarationTypeInfo(null, decl.name, {
+      line: decl.nameSpan.line,
+      column: decl.nameSpan.column + 1,
     });
     return DeclaredPointer.spell(type, info?.isPointer ?? false);
   }

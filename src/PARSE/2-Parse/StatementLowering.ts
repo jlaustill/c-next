@@ -100,9 +100,12 @@ class StatementLowering {
     };
   }
 
-  private static declaration(
+  static declaration(
     ctx: Parser.VariableDeclarationContext,
-  ): TStatement {
+  ): Extract<
+    TStatement,
+    { kind: "variableDeclaration" | "constructorDeclaration" }
+  > {
     const constructorArguments = ctx.constructorArgumentList();
     if (!constructorArguments) {
       return {
