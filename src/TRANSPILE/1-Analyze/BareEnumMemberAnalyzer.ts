@@ -45,6 +45,7 @@
  * predicate is E0427's, shared rather than restated.
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import StructInitializerType from "./helpers/StructInitializerType";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
@@ -85,7 +86,10 @@ class BareEnumMemberListener extends CNextListener {
     const declaring = EnumMemberSuggestion.enumsDeclaring(name, symbols);
     if (declaring.length === 0) return;
 
-    const scopePath = OperandTyper.scopePathAt(ctx, this.context);
+    const scopePath = OperandTyper.scopePathAt(
+      ParserUtils.getPosition(ctx),
+      this.context,
+    );
     if (
       UndeclaredValueAnalyzer.isDeclaredValue(
         name,
@@ -227,7 +231,10 @@ class BareEnumMemberListener extends CNextListener {
       return null;
     }
     return (
-      OperandTyper.typeOfTarget(target, this.context)?.enumTypeName ?? null
+      OperandTyper.typeOfTarget(
+        SyntaxLowering.assignmentTarget(target),
+        this.context,
+      )?.enumTypeName ?? null
     );
   }
 
@@ -238,7 +245,7 @@ class BareEnumMemberListener extends CNextListener {
   ): TExpected {
     return (
       OperandTyper.typeOfWritten(
-        type,
+        SyntaxLowering.type(type),
         this.context,
         ParserUtils.getPosition(at),
       )?.enumTypeName ?? null

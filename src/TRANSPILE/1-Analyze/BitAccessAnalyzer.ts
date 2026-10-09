@@ -35,6 +35,7 @@
  * evaluated once and is not restricted.
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
@@ -136,7 +137,13 @@ class BitAccessListener extends CNextListener {
     if (!this.isReadModifyWrite(target)) return;
     const indices = target.postfixTargetOp().flatMap((op) => op.expression());
     for (const index of indices) {
-      if (!OperandTyper.hasSideEffect(index, this.context)) continue;
+      if (
+        !OperandTyper.hasSideEffect(
+          SyntaxLowering.expressionNode(index),
+          this.context,
+        )
+      )
+        continue;
       this.report(
         index,
         "E0890",
@@ -148,7 +155,10 @@ class BitAccessListener extends CNextListener {
 
   /** Whether writing `target` reads it back first to keep the other bits */
   private isReadModifyWrite(target: Parser.AssignmentTargetContext): boolean {
-    const last = OperandTyper.chainOf(target, this.context).steps.at(-1);
+    const last = OperandTyper.chainOf(
+      SyntaxLowering.assignmentTarget(target),
+      this.context,
+    ).steps.at(-1);
     if (last === undefined) return false;
     const writesBits =
       last.subscript === "bit_single" || last.subscript === "bit_range";
@@ -172,7 +182,8 @@ class BitAccessListener extends CNextListener {
     // its first subscript applies to (#1668). A `this.` root has spent its
     // `.name`, so the typer's steps begin at the subscripts in both shapes.
     const declared =
-      OperandTyper.chainOf(at, this.context).steps[0]?.before ?? null;
+      OperandTyper.chainOf(SyntaxLowering.expressionNode(at), this.context)
+        .steps[0]?.before ?? null;
     if (declared === null) return; // not a declaration this pass can measure
 
     const spelling = root === null ? name : `${root}.${name}`;

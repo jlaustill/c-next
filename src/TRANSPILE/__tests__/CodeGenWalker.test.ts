@@ -3659,22 +3659,6 @@ describe("CodeGenWalker", () => {
     });
   });
 
-  describe("getSimpleIdentifier()", () => {
-    it("should return null for complex expressions", () => {
-      const { host } = createMinimalGenerator(
-        `
-        u32 a;
-        u32 b;
-        void foo() { }
-      `,
-        false,
-      );
-
-      // getSimpleIdentifier is tested indirectly through expression parsing
-      expect(host.getInput()).not.toBeNull();
-    });
-  });
-
   describe("Public scope member access", () => {
     it("should generate a public member access from outside the scope", () => {
       const source = `
@@ -13474,7 +13458,7 @@ describe("CodeGenWalker", () => {
         const source = `
           struct Point { i32 x; i32 y; }
           void processPoints(Point[4] points) {
-            points[0U].x <- 10;
+            points[0].x <- 10;
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);

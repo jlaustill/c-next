@@ -95,9 +95,7 @@ class LiteralUtils {
    * floating operand as a veto, so both have to agree on which literal operands
    * are floating.
    */
-  static typeOf(ctx: Parser.LiteralContext): string | null {
-    const text = ctx.getText();
-
+  static typeOf(text: string): string | null {
     if (text === "true" || text === "false") return "bool";
 
     const suffixMatch = /([uUiI])(8|16|32|64)$/.exec(text);

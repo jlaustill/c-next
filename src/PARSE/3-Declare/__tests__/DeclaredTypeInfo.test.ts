@@ -2,6 +2,7 @@
  * #1668 (C7): `DeclaredTypeInfo` -- a binding's declared type, in the shape
  * 2.2 and render read -- asserted on real declared and resolved programs.
  */
+import SyntaxLowering from "../../../PARSE/2-Parse/SyntaxLowering";
 import { describe, expect, it } from "vitest";
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../2-Parse/grammar/CNextListener";
@@ -52,7 +53,7 @@ function targetOf(source: string) {
   );
   expect(target).not.toBeNull();
   return DeclaredTypeInfo.ofChain(
-    OperandTyper.chainOf(target!, context),
+    OperandTyper.chainOf(SyntaxLowering.assignmentTarget(target!), context),
     context.symbols,
     new SymbolTable(),
     null,

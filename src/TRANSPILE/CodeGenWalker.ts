@@ -100,7 +100,9 @@ import functionGenerator from "./3-Render/codegen/generators/declarationGenerato
 import scopeGenerator from "./3-Render/codegen/generators/declarationGenerators/ScopeGenerator";
 import FormatUtils from "../utils/FormatUtils";
 import TypeCheckUtils from "../utils/TypeCheckUtils";
-import ExpressionUtils from "../utils/ExpressionUtils";
+import ExpressionShape from "../utils/ExpressionShape";
+import type IChainHead from "../types/IChainHead";
+import ExpressionCalls from "../utils/ExpressionCalls";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
 import includeGenerators from "./3-Render/codegen/generators/support/IncludeGenerator";
 import commentUtils from "./3-Render/codegen/generators/support/CommentUtils";
@@ -143,6 +145,10 @@ import ISimpleIdentifierDeps from "./3-Render/codegen/types/ISimpleIdentifierDep
 import IPostfixChainDeps from "./3-Render/codegen/types/IPostfixChainDeps";
 import IPostfixOperation from "./3-Render/codegen/types/IPostfixOperation";
 import ExpressionUnwrapper from "../utils/ExpressionUnwrapper";
+import type TExpression from "../types/syntax/TExpression";
+import type TExpressionOf from "../types/syntax/TExpressionOf";
+import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
+import type TTypeSyntax from "../types/syntax/TTypeSyntax";
 import ParserUtils from "../utils/ParserUtils";
 import type ISourcePosition from "../utils/types/ISourcePosition";
 import IMemberSeparatorDeps from "./3-Render/codegen/types/IMemberSeparatorDeps";
@@ -153,7 +159,6 @@ import type IPlannedType from "./3-Render/codegen/types/IPlannedType";
 import type IPlannedParameter from "./3-Render/codegen/types/IPlannedParameter";
 import type IPlannedDirective from "./3-Render/codegen/types/IPlannedDirective";
 import type IPlannedFunctionParameter from "./3-Render/codegen/types/IPlannedFunctionParameter";
-import type ITypeAccessors from "../types/ITypeAccessors";
 import FunctionContextManager from "./3-Render/codegen/helpers/FunctionContextManager";
 import BitRangeHelper from "./3-Render/codegen/helpers/BitRangeHelper";
 import invariant from "../utils/invariant";
@@ -355,31 +360,29 @@ class CodeGenWalker {
    * Part of IOrchestrator interface.
    */
   generateExpression(ctx: Parser.ExpressionContext): string {
-    return this.invokeGenerator(
-      generateTernaryExpr,
-      this.planTernary(ctx.ternaryExpression()),
-    );
+    return this.renderExpression(SyntaxLowering.expression(ctx));
+  }
+
+  private renderExpression(expr: TExpression): string {
+    return this.invokeGenerator(generateTernaryExpr, this.planTernary(expr));
   }
 
   /**
    * A ternary reduced to its operands (#1445).
    *
-   * The child COUNT is the discrimination -- one `orExpression` is a plain
-   * expression, three are condition, true arm and false arm -- and that is a
-   * question about the tree, so it is asked here. The arms go over as thunks
+   * An expression that is not a ternary is a plain value. The arms go over as thunks
    * because Issue #992's rule is the generator's: see `TPlannedTernary`.
    */
-  private planTernary(ctx: Parser.TernaryExpressionContext): TPlannedTernary {
-    const operands = ctx.orExpression();
-    if (operands.length === 1) {
-      return { kind: "value", code: this.generateOrExpr(operands[0]) };
+  private planTernary(expr: TExpression): TPlannedTernary {
+    if (expr.kind !== "ternary") {
+      return { kind: "value", code: this.renderBinary(expr) };
     }
-
+    const { condition, whenTrue, whenFalse } = expr;
     return {
       kind: "ternary",
-      renderCondition: () => this.generateOrExpr(operands[0]),
-      renderTrue: () => this.generateOrExpr(operands[1]),
-      renderFalse: () => this.generateOrExpr(operands[2]),
+      renderCondition: () => this.renderBinary(condition),
+      renderTrue: () => this.renderBinary(whenTrue),
+      renderFalse: () => this.renderBinary(whenFalse),
     };
   }
 
@@ -416,7 +419,11 @@ class CodeGenWalker {
    * Part of IOrchestrator interface.
    */
   generateType(ctx: Parser.TypeContext): string {
-    const plan = this.planType(ctx);
+    return this.renderType(SyntaxLowering.type(ctx));
+  }
+
+  private renderType(type: TTypeSyntax): string {
+    const plan = this.planType(type);
 
     // Track required includes based on type usage
     const requiredInclude = TypeGenerationHelper.getRequiredInclude(plan);
@@ -450,67 +457,50 @@ class CodeGenWalker {
    * `getRequiredInclude` asks a narrower question than `generate` does -- see
    * its comment.
    */
-  private planType(ctx: Parser.TypeContext): IPlannedType {
-    const array = ctx.arrayType();
-    const accessors: ITypeAccessors = array ?? ctx;
+  private planType(type: TTypeSyntax): IPlannedType {
+    const element = type.kind === "array" ? type.element : type;
     const deps = this.host.state.typeBindingDeps((identifiers) =>
       this.resolveQualifiedType(identifiers),
     );
 
     return {
-      named: TypeBinding.classifyNamedType(
-        accessors,
+      named: TypeBinding.classifyNamed(
+        element,
         this.host.state.currentScopePath,
         deps,
       ),
-      isString: accessors.stringType() !== null,
-      stringTypeText: accessors.stringType()?.getText(),
-      primitiveName: accessors.primitiveType()?.getText() ?? null,
-      isArray: array !== null,
-      userTypeLine: accessors.userType()?.start?.line,
-      text: ctx.getText(),
+      isString: element.kind === "string",
+      stringTypeText: element.kind === "string" ? element.text : undefined,
+      primitiveName: element.kind === "primitive" ? element.text : null,
+      isArray: type.kind === "array",
+      userTypeLine: element.kind === "user" ? element.span.line : undefined,
+      text: type.text,
     };
   }
 
   /**
    * Generate a unary expression.
-   * Part of IOrchestrator interface.
    */
-  generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string {
+  private renderUnary(expr: TExpression): string {
     // #1445: the generator takes the operator and the operand's generated
-    // code. The recursion stays here, where the tree is.
-    const postfix = ctx.postfixExpression();
-    if (postfix) {
+    // code. The recursion stays here, where the expression is.
+    if (expr.kind !== "unary") {
       return this.invokeGenerator(generateUnaryExpr, {
         operator: null,
-        operandCode: this.generatePostfixExpr(postfix),
+        operandCode: this.renderPostfix(expr),
         operandType: () => null,
       });
     }
 
-    const operand = ctx.unaryExpression()!;
-    const text = ctx.getText();
-    const operator =
-      text.startsWith("!") ||
-      text.startsWith("-") ||
-      text.startsWith("~") ||
-      text.startsWith("&")
-        ? (text[0] as "!" | "-" | "~" | "&")
-        : null;
-
+    const operand = expr.operand;
     return this.invokeGenerator(generateUnaryExpr, {
-      operator,
-      operandCode: this.generateUnaryExpr(operand),
+      operator: expr.operator,
+      operandCode: this.renderUnary(operand),
       // lazy: only `~` consults it
       operandType: () => this.directTypeOf(operand),
     });
   }
 
-  /**
-   * Generate a postfix expression.
-   * Part of IOrchestrator interface.
-   * Issue #644: Delegates to extracted PostfixExpressionGenerator.
-   */
   /**
    * Resolve the variable that a leading subscript chain indexes (Issue #1106).
    *
@@ -530,33 +520,28 @@ class CodeGenWalker {
    * variable.
    */
   private resolveSubscriptBase(
-    ctx: Parser.PostfixExpressionContext,
-    rootIdentifier: string | undefined,
-    ops: readonly Parser.PostfixOpContext[],
+    head: IChainHead,
   ): { name: string; displayName: string; opOffset: number } | undefined {
-    if (rootIdentifier) {
-      return { name: rootIdentifier, displayName: rootIdentifier, opOffset: 0 };
-    }
-
-    const prefix = ctx.primaryExpression().getText();
-    if (prefix !== "this" && prefix !== "global") {
+    if (head.identifier === null) {
       return undefined;
     }
-
-    const memberName = ops[0]?.IDENTIFIER()?.getText();
-    if (!memberName) {
-      return undefined;
+    const written = head.identifier.name;
+    if (head.root === null) {
+      return { name: written, displayName: written, opOffset: 0 };
     }
-
     // `this.x` is the scope-qualified variable `Scope_x`; `global.x` is plain `x`.
     const name =
-      prefix === "this"
+      head.root === "this"
         ? QualifiedNameGenerator.forMember(
             this.host.state.currentScopePath,
-            memberName,
+            written,
           )
-        : memberName;
-    return { name, displayName: `${prefix}.${memberName}`, opOffset: 1 };
+        : written;
+    return {
+      name,
+      displayName: `${head.root}.${written}`,
+      opOffset: head.opsConsumed,
+    };
   }
 
   /**
@@ -570,13 +555,13 @@ class CodeGenWalker {
    * an operation the generator has not reached yet would take the name a
    * nearer expression holds today.
    */
-  private planPostfixExpression(
-    ctx: Parser.PostfixExpressionContext,
-  ): IPlannedPostfix {
-    const primary = ctx.primaryExpression();
-    const ops = ctx.postfixOp();
-    const rootIdentifier = primary.IDENTIFIER()?.getText();
-    const subscriptBase = this.resolveSubscriptBase(ctx, rootIdentifier, ops);
+  private planPostfixExpression(expr: TExpression): IPlannedPostfix {
+    const head = ExpressionShape.headOf(expr);
+    const primary = head.primary;
+    const ops = head.ops;
+    const rootIdentifier =
+      head.root === null ? (head.identifier?.name ?? undefined) : undefined;
+    const subscriptBase = this.resolveSubscriptBase(head);
 
     // #1445 review: planned FIRST, then counted off the planned ops.
     //
@@ -591,16 +576,16 @@ class CodeGenWalker {
     // step. A `this.`/`global.` chain consumes its first `.name`, so the
     // typer's steps are the op list's tail.
     const typing = this.host.state.typingContext();
-    const chain = OperandTyper.chainOf(ctx, typing);
+    const chain = OperandTyper.chainOf(expr, typing);
     const steps = chain.steps;
-    const offset = ops.length - steps.length;
+    const offset = head.opsConsumed;
     const plannedOps = ops.map((op, i) =>
       this.planPostfixOp(op, steps[i - offset] ?? null),
     );
 
     return {
       rootIdentifier,
-      renderPrimary: () => this.generatePrimaryExpr(primary),
+      renderPrimary: () => this.renderPrimary(primary),
       subscriptBase: subscriptBase
         ? { name: subscriptBase.name, displayName: subscriptBase.displayName }
         : null,
@@ -629,56 +614,60 @@ class CodeGenWalker {
    * it calls -- everything before it (#1561, #1696).
    */
   private planPostfixOp(
-    op: Parser.PostfixOpContext,
+    op: TPostfixOpSyntax,
     step: IChainStep | null,
   ): TPlannedPostfixOp {
     const typedAs = step?.subscript ?? null;
-    const identifier = op.IDENTIFIER();
-    if (identifier) {
-      return { kind: "member", name: identifier.getText(), step };
+    switch (op.kind) {
+      case "member":
+        return { kind: "member", name: op.name, step };
+      case "subscript": {
+        const indexes = op.indexes;
+        // Issue #1094: the final index is the WIDTH on the two-index arm, and
+        // folding it is what gets a const or macro width a precomputed mask
+        // rather than a runtime one.
+        const widthExpr = indexes.at(-1);
+        // The typer types every subscript it walks, an untyped value's
+        // included (the classifier's default for an unknown type)
+        invariant(typedAs !== null, "the typer typed this subscript");
+        return {
+          kind: "subscript",
+          indexCount: indexes.length,
+          renderIndexes: () =>
+            indexes.map((index) => this.renderExpression(index)),
+          foldWidth: () =>
+            widthExpr === undefined ? undefined : this.constantOf(widthExpr),
+          typedAs,
+          step,
+        };
+      }
+      case "call": {
+        const args = op.arguments;
+        return {
+          kind: "call",
+          // #1508: ADR-010 is recorded at the CALL rather than at the directive --
+          // an `#include` sits in no scope, function or variable, so the matrix's
+          // context axis has nothing to ask it.
+          line: op.span.line,
+          // ADR-029: a callback-typed value names the function that is its type,
+          // by C name -- the key `callbackTypes` holds. A function's own name is
+          // not a typed value, so the typer's step has no `before`: null.
+          calleeType: () => step?.before?.typeName ?? null,
+          planArguments: () =>
+            this.planCallArguments(args.length === 0 ? null : args),
+        };
+      }
+      case "missing":
+        invariant(
+          false,
+          "a missing postfix operation is a parse error, which stops the pipeline before render",
+        );
     }
-
-    const indexes = op.expression();
-    if (indexes.length > 0) {
-      // Issue #1094: the final index is the WIDTH on the two-index arm, and
-      // folding it is what gets a const or macro width a precomputed mask
-      // rather than a runtime one. Captured here rather than indexed inside
-      // the thunk so the arity check above is what guarantees it exists.
-      const widthExpr = indexes.at(-1);
-      // The typer types every subscript it walks, an untyped value's
-      // included (the classifier's default for an unknown type)
-      invariant(typedAs !== null, "the typer typed this subscript");
-      return {
-        kind: "subscript",
-        indexCount: indexes.length,
-        renderIndexes: () =>
-          indexes.map((index) => this.generateExpression(index)),
-        foldWidth: () =>
-          widthExpr === undefined
-            ? undefined
-            : this.tryEvaluateConstant(widthExpr),
-        typedAs,
-        step,
-      };
-    }
-
-    return {
-      kind: "call",
-      // #1508: ADR-010 is recorded at the CALL rather than at the directive --
-      // an `#include` sits in no scope, function or variable, so the matrix's
-      // context axis has nothing to ask it.
-      line: op.start?.line,
-      // ADR-029: a callback-typed value names the function that is its type,
-      // by C name -- the key `callbackTypes` holds. A function's own name is
-      // not a typed value, so the typer's step has no `before`: null.
-      calleeType: () => step?.before?.typeName ?? null,
-      planArguments: () => this.planCallArguments(op.argumentList() || null),
-    };
   }
 
-  generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string {
+  private renderPostfix(expr: TExpression): string {
     const result = generatePostfixExpression(
-      this.planPostfixExpression(ctx),
+      this.planPostfixExpression(expr),
       this.host.getInput(),
       this.host.getState(),
       this.host,
@@ -688,16 +677,11 @@ class CodeGenWalker {
   }
 
   /**
-   * Generate the full precedence chain from or-expression down.
-   * Part of IOrchestrator interface.
-   */
-  /**
    * The binary precedence ladder, collapsed.
    *
-   * Ten grammar levels, and nine of them are single-child pass-through levels for
-   * almost every expression -- so each `plan*Level` returns its CHILD's plan
-   * rather than wrapping it, and a plan ends up only as deep as the
-   * expression's real operator nesting.
+   * 1.2 lowers the grammar's ten levels to one `binary` node per real
+   * operator run (#1932), so a plan is only as deep as the expression's
+   * operator nesting, and a non-binary operand is a leaf.
    *
    * Every operand is a thunk that re-enters the planner one level down. That
    * laziness is in the PLANNER and not merely in a top-level thunk, because
@@ -706,18 +690,65 @@ class CodeGenWalker {
    * window the renderer opens, and anything rendered at plan time renders
    * outside it (#1032).
    */
-  private planBinaryExpr(ctx: Parser.OrExpressionContext): TPlannedBinaryExpr {
-    const children = ctx.andExpression();
-    if (children.length === 1) {
-      return this.planAndLevel(children[0]);
+  private planBinaryExpr(expr: TExpression): TPlannedBinaryExpr {
+    if (expr.kind !== "binary") {
+      return { kind: "leaf", render: () => this.renderUnary(expr) };
     }
-    return {
-      kind: "join",
-      separator: " || ",
-      renderOperands: children.map(
-        (child) => () => this.renderBinaryLevel(this.planAndLevel(child)),
-      ),
-    };
+    const operands = expr.operands;
+    const operators = [...expr.operators];
+    const renderOperands = operands.map(
+      (operand) => () => this.renderBinaryLevel(this.planBinaryExpr(operand)),
+    );
+    switch (expr.level) {
+      case "or":
+        return { kind: "join", separator: " || ", renderOperands };
+      case "and":
+        return { kind: "join", separator: " && ", renderOperands };
+      case "bitwiseOr":
+        return { kind: "join", separator: " | ", renderOperands };
+      case "bitwiseXor":
+        return { kind: "join", separator: " ^ ", renderOperands };
+      case "bitwiseAnd":
+        return { kind: "join", separator: " & ", renderOperands };
+      case "equality": {
+        const isStrcmp =
+          this.isStringExpression(operands[0]) ||
+          this.isStringExpression(operands[1]);
+        return {
+          kind: "comparison",
+          defaultOperator: "=",
+          operators,
+          mapOperator: BinaryExprUtils.mapEqualityOperator,
+          adrLine: operators.includes("=") ? expr.span.line : undefined,
+          strcmp: isStrcmp ? { isNotEqual: operators[0] === "!=" } : null,
+          renderOperands,
+        };
+      }
+      case "relational":
+        return {
+          kind: "comparison",
+          defaultOperator: "<",
+          operators,
+          mapOperator: null,
+          adrLine: undefined,
+          strcmp: null,
+          renderOperands,
+        };
+      case "shift":
+        return { kind: "shift", operators, renderOperands };
+      case "additive":
+      case "multiplicative":
+        return {
+          kind: "arithmetic",
+          constantValue: this.constantValue(expr),
+          defaultOperator: expr.level === "additive" ? "+" : "*",
+          operators,
+          clampType: () => this.compositeClampType(expr),
+          clampBehavior: () => this.compositeClampBehavior(expr),
+          adrLine: expr.span.line,
+          renderOperands,
+        };
+    }
   }
 
   /**
@@ -738,168 +769,6 @@ class CodeGenWalker {
     );
   }
 
-  private planAndLevel(ctx: Parser.AndExpressionContext): TPlannedBinaryExpr {
-    const children = ctx.equalityExpression();
-    if (children.length === 1) {
-      return this.planEqualityLevel(children[0]);
-    }
-    return {
-      kind: "join",
-      separator: " && ",
-      renderOperands: children.map(
-        (child) => () => this.renderBinaryLevel(this.planEqualityLevel(child)),
-      ),
-    };
-  }
-
-  private planEqualityLevel(
-    ctx: Parser.EqualityExpressionContext,
-  ): TPlannedBinaryExpr {
-    const children = ctx.relationalExpression();
-    if (children.length === 1) {
-      return this.planRelationalLevel(children[0]);
-    }
-
-    // #1302: read the operator from the parse tree, not from the text of the
-    // whole comparison. `node.getText()` includes both operands, so a string
-    // literal CONTAINING "!=" selected inequality -- `t = "a!=b"` generated
-    // `strcmp(t, "a!=b") != 0`, compiling clean with the condition inverted.
-    const operators = this.getOperatorsFromChildren(ctx);
-
-    // ADR-045: a string operand makes this a strcmp. A type-registry predicate
-    // that generates nothing, so it is decided here; the renderer raises the
-    // include.
-    const isStrcmp =
-      this.isStringExpression(children[0]) ||
-      this.isStringExpression(children[1]);
-
-    return {
-      kind: "comparison",
-      defaultOperator: "=",
-      operators,
-      mapOperator: BinaryExprUtils.mapEqualityOperator,
-      // ADR-001 fired only if `=` was written; `!=` is unchanged from C, and
-      // occupancy must not be invented for a cell the rule never reached.
-      adrLine: operators.includes("=") ? ctx.start?.line : undefined,
-      strcmp: isStrcmp ? { isNotEqual: operators[0] === "!=" } : null,
-      renderOperands: children.map(
-        (child) => () =>
-          this.renderBinaryLevel(this.planRelationalLevel(child)),
-      ),
-    };
-  }
-
-  private planRelationalLevel(
-    ctx: Parser.RelationalExpressionContext,
-  ): TPlannedBinaryExpr {
-    const children = ctx.bitwiseOrExpression();
-    if (children.length === 1) {
-      return this.planBitwiseOrLevel(children[0]);
-    }
-    return {
-      kind: "comparison",
-      defaultOperator: "<",
-      operators: this.getOperatorsFromChildren(ctx),
-      mapOperator: null,
-      adrLine: undefined,
-      strcmp: null,
-      renderOperands: children.map(
-        (child) => () => this.renderBinaryLevel(this.planBitwiseOrLevel(child)),
-      ),
-    };
-  }
-
-  private planBitwiseOrLevel(
-    ctx: Parser.BitwiseOrExpressionContext,
-  ): TPlannedBinaryExpr {
-    const children = ctx.bitwiseXorExpression();
-    if (children.length === 1) {
-      return this.planBitwiseXorLevel(children[0]);
-    }
-    return {
-      kind: "join",
-      separator: " | ",
-      renderOperands: children.map(
-        (child) => () =>
-          this.renderBinaryLevel(this.planBitwiseXorLevel(child)),
-      ),
-    };
-  }
-
-  private planBitwiseXorLevel(
-    ctx: Parser.BitwiseXorExpressionContext,
-  ): TPlannedBinaryExpr {
-    const children = ctx.bitwiseAndExpression();
-    if (children.length === 1) {
-      return this.planBitwiseAndLevel(children[0]);
-    }
-    return {
-      kind: "join",
-      separator: " ^ ",
-      renderOperands: children.map(
-        (child) => () =>
-          this.renderBinaryLevel(this.planBitwiseAndLevel(child)),
-      ),
-    };
-  }
-
-  private planBitwiseAndLevel(
-    ctx: Parser.BitwiseAndExpressionContext,
-  ): TPlannedBinaryExpr {
-    const children = ctx.shiftExpression();
-    if (children.length === 1) {
-      return this.planShiftLevel(children[0]);
-    }
-    return {
-      kind: "join",
-      separator: " & ",
-      renderOperands: children.map(
-        (child) => () => this.renderBinaryLevel(this.planShiftLevel(child)),
-      ),
-    };
-  }
-
-  private planShiftLevel(
-    ctx: Parser.ShiftExpressionContext,
-  ): TPlannedBinaryExpr {
-    const children = ctx.additiveExpression();
-    if (children.length === 1) {
-      return this.planAdditiveLevel(children[0]);
-    }
-    return {
-      kind: "shift",
-      operators: this.getOperatorsFromChildren(ctx),
-      renderOperands: children.map(
-        (child) => () => this.renderBinaryLevel(this.planAdditiveLevel(child)),
-      ),
-    };
-  }
-
-  private planAdditiveLevel(
-    ctx: Parser.AdditiveExpressionContext,
-  ): TPlannedBinaryExpr {
-    const children = ctx.multiplicativeExpression();
-    if (children.length === 1) {
-      return this.planMultiplicativeLevel(children[0]);
-    }
-    return {
-      kind: "arithmetic",
-      constantValue: this.constantValue(ctx),
-      defaultOperator: "+",
-      operators: this.getOperatorsFromChildren(ctx),
-      // Asked AFTER the operands render, which is where they are asked today.
-      // Both read the typer over 1.4's settled declarations, so the order is
-      // not load-bearing; it is kept because it is where the plan asks.
-      clampType: () => this.compositeClampType(ctx),
-      clampBehavior: () => this.compositeClampBehavior(ctx),
-      adrLine: ctx.start?.line,
-      renderOperands: children.map(
-        (child) => () =>
-          this.renderBinaryLevel(this.planMultiplicativeLevel(child)),
-      ),
-    };
-  }
-
   /**
    * #1175: an arithmetic chain's value when it is a constant expression, by
    * the one evaluator, where the tree is in hand. Render used to fold the
@@ -911,9 +780,9 @@ class CodeGenWalker {
    * no destination of its own -- `i64 big <- 2147483647 + 1` is 2147483648,
    * which no i32 step could give (#1863 review).
    */
-  private constantValue(ctx: ParserRuleContext): string | null {
+  private constantValue(expr: TExpression): string | null {
     const result = ConstantEvaluator.evaluate(
-      ConstExprLowering.lower(SyntaxLowering.expressionNode(ctx)),
+      ConstExprLowering.lower(expr),
       dimensionEvalOptions(this.transpileState),
       WIDEST_SIGNED,
     );
@@ -929,48 +798,20 @@ class CodeGenWalker {
    * answer 2.1's E0869 reads too -- so the clamp helper's width and the
    * conversion check cannot count a different set of operands
    */
-  private compositeClampType(ctx: ParserRuleContext): string | null {
-    const t = OperandTyper.typeOf(ctx, this.host.state.typingContext());
+  private compositeClampType(expr: TExpression): string | null {
+    const t = OperandTyper.typeOf(expr, this.host.state.typingContext());
     return t?.bitWidth === null ? null : (t?.typeName ?? null);
   }
 
   /** #1668 (C6b): ADR-044's behavior for a composite, PlanTyping's row */
-  private compositeClampBehavior(
-    ctx: ParserRuleContext,
-  ): TOverflowBehavior | null {
-    const typing = this.host.state.typingContext();
-    return PlanTyping.overflowOf(OperandTyper.valueLeaves(ctx, typing));
+  private compositeClampBehavior(expr: TExpression): TOverflowBehavior | null {
+    return PlanTyping.overflowOf(
+      OperandTyper.valueLeaves(expr, this.host.state.typingContext()),
+    );
   }
 
-  private planMultiplicativeLevel(
-    ctx: Parser.MultiplicativeExpressionContext,
-  ): TPlannedBinaryExpr {
-    const children = ctx.unaryExpression();
-    if (children.length === 1) {
-      return {
-        kind: "leaf",
-        render: () => this.generateUnaryExpr(children[0]),
-      };
-    }
-    return {
-      kind: "arithmetic",
-      constantValue: this.constantValue(ctx),
-      defaultOperator: "*",
-      operators: this.getOperatorsFromChildren(ctx),
-      clampType: () => this.compositeClampType(ctx),
-      clampBehavior: () => this.compositeClampBehavior(ctx),
-      adrLine: ctx.start?.line,
-      // `generateUnaryExpr` applies its own effects, so a leaf contributes
-      // none here -- matching the empty array the multiplicative tail passed.
-      renderOperands: children.map((child) => () => ({
-        code: this.generateUnaryExpr(child),
-        effects: [],
-      })),
-    };
-  }
-
-  generateOrExpr(ctx: Parser.OrExpressionContext): string {
-    return this.invokeGenerator(generateBinaryExpr, this.planBinaryExpr(ctx));
+  private renderBinary(expr: TExpression): string {
+    return this.invokeGenerator(generateBinaryExpr, this.planBinaryExpr(expr));
   }
 
   /**
@@ -991,59 +832,43 @@ class CodeGenWalker {
     // too, so the case label and the E0428/E0434 checks cannot disagree
     // about whether the switch is on an enum. A header's enum has no C-Next
     // enum type: its members are global C names and need no qualifying.
-    const t = OperandTyper.typeOf(ctx, this.host.state.typingContext());
+    const t = OperandTyper.typeOf(
+      SyntaxLowering.expressionNode(ctx),
+      this.host.state.typingContext(),
+    );
     return t?.category === "enum" ? t.enumTypeName : null;
   }
 
   /**
    * Check if an expression is a string type.
-   * Part of IOrchestrator interface.
    * ADR-045: Used to detect string comparisons and generate strcmp().
    * Issue #137: Extended to handle array element access (e.g., names[0])
    * Issue #1030: Extended to handle struct member access (e.g., person.name)
    */
-  isStringExpression(ctx: Parser.RelationalExpressionContext): boolean {
-    const text = ctx.getText();
-
-    // Check for string literals
-    if (text.startsWith('"') && text.endsWith('"')) {
+  private isStringExpression(expr: TExpression): boolean {
+    if (ExpressionShape.isStringLiteral(expr)) {
       return true;
     }
 
-    // #1737: one rule for every operand shape -- a name, a member at any
-    // depth, an element of an array of strings (not a char of one string)
     return OperandTyper.isString(
-      OperandTyper.typeOf(ctx, this.host.state.typingContext()),
+      OperandTyper.typeOf(expr, this.host.state.typingContext()),
     );
   }
 
-  /**
-   * Extract operators from parse tree children in correct order.
-   * Part of IOrchestrator interface - delegates to ParserUtils.
-   */
-  getOperatorsFromChildren(ctx: ParserRuleContext): string[] {
-    return ParserUtils.getOperatorsFromChildren(ctx);
-  }
-
-  /**
-   * Get simple identifier from expression, or null if complex.
-   * Part of IOrchestrator interface - delegates to ExpressionUnwrapper,
-   * which is the single implementation (#1445).
-   */
-  getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
-    return ExpressionUnwrapper.getSimpleIdentifier(ctx);
+  private static positionOf(expr: TExpression): ISourcePosition {
+    return { line: expr.span.line, column: expr.span.column };
   }
 
   /**
    * Generate function argument with pass-by-reference handling.
    * Part of IOrchestrator interface - delegates to ArgumentGenerator.
    */
-  generateFunctionArg(
-    ctx: Parser.ExpressionContext,
+  private generateFunctionArg(
+    expr: TExpression,
     targetParamBaseType?: string,
   ): string {
-    const simpleId = this.boundArgumentName(ctx);
-    const declared = this.nameTypeOf(ctx);
+    const simpleId = this.boundArgumentName(expr);
+    const declared = this.nameTypeOf(expr);
     // #1445: thunks closing over `ctx`. `ArgumentGenerator` never read a
     // member off the node -- it threaded it through five callbacks and four
     // private helpers only to hand it back -- so the node stays here, where
@@ -1053,12 +878,12 @@ class CodeGenWalker {
       declared,
       targetParamBaseType,
       {
-        generateExpression: () => this.generateExpression(ctx),
-        getLvalueType: () => this.getLvalueType(ctx),
-        getMemberAccessArrayStatus: () => this.getMemberAccessArrayStatus(ctx),
+        generateExpression: () => this.renderExpression(expr),
+        getLvalueType: () => this.getLvalueType(expr),
+        getMemberAccessArrayStatus: () => this.getMemberAccessArrayStatus(expr),
         isCppMemberConversionRequired: (t) =>
-          this.isCppMemberConversionRequired(ctx, t),
-        isStringSubscriptAccess: () => this.isStringSubscriptAccess(ctx),
+          this.isCppMemberConversionRequired(expr, t),
+        isStringSubscriptAccess: () => this.isStringSubscriptAccess(expr),
       },
       this.host.state,
     );
@@ -1070,11 +895,14 @@ class CodeGenWalker {
    * through `TypeValidator.resolveBareIdentifier`.
    */
   private boundArgumentName(
-    ctx: Parser.ExpressionContext,
+    expr: TExpression,
   ): { readonly id: string; readonly emitted: string } | null {
-    const id = ExpressionUnwrapper.getSimpleIdentifier(ctx);
+    const id = ExpressionShape.simpleIdentifier(expr);
     if (id === null) return null;
-    return { id, emitted: this.boundName(id, ParserUtils.getPosition(ctx)) };
+    return {
+      id,
+      emitted: this.boundName(id, CodeGenWalker.positionOf(expr)),
+    };
   }
 
   /** The C name a bare identifier at `at` is emitted under (ADR-057) */
@@ -1096,11 +924,10 @@ class CodeGenWalker {
    * were keyed by an argument's rendered text, which only ever matched a
    * name's.
    */
-  private nameTypeOf(ctx: Parser.ExpressionContext): TTypeInfo | undefined {
+  private nameTypeOf(expr: TExpression): TTypeInfo | undefined {
     const typing = this.host.state.typingContext();
-    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
-    if (postfix === null) return undefined;
-    const chain = OperandTyper.chainOf(postfix, typing);
+    if (ExpressionShape.postfixView(expr) === null) return undefined;
+    const chain = OperandTyper.chainOf(expr, typing);
     if (chain.steps.length !== DeclaredTypeInfo.nameSteps(chain)) {
       return undefined;
     }
@@ -1120,11 +947,10 @@ class CodeGenWalker {
    * from `DeclaredPointer`), for a parameter, a file-scope, local or scope
    * variable, and one declared in an included file alike.
    */
-  private isHandleArrayElement(ctx: Parser.ExpressionContext): boolean {
+  private isHandleArrayElement(expr: TExpression): boolean {
     const typing = this.host.state.typingContext();
-    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
-    if (postfix === null) return false;
-    const chain = OperandTyper.chainOf(postfix, typing);
+    if (ExpressionShape.postfixView(expr) === null) return false;
+    const chain = OperandTyper.chainOf(expr, typing);
     const subscript = chain.steps[DeclaredTypeInfo.nameSteps(chain)];
     if (subscript?.subscript !== "array_element") return false;
     const array = DeclaredTypeInfo.ofChain(
@@ -1141,13 +967,13 @@ class CodeGenWalker {
    * Part of IOrchestrator interface.
    */
   getExpressionType(ctx: Parser.ExpressionContext): string | null {
-    return this.directTypeOf(ctx);
+    return this.directTypeOf(SyntaxLowering.expression(ctx));
   }
 
   /** #1668 (C6c): an expression's one type for 2.2, PlanTyping's row */
-  private directTypeOf(ctx: ParserRuleContext): string | null {
+  private directTypeOf(expr: TExpression): string | null {
     return PlanTyping.directTypeName(
-      OperandTyper.typeOf(ctx, this.host.state.typingContext()),
+      OperandTyper.typeOf(expr, this.host.state.typingContext()),
     );
   }
 
@@ -1156,13 +982,16 @@ class CodeGenWalker {
    * composite's integer type -- the answer 2.1's E0869 reads
    */
   private integerTypeOf(ctx: ParserRuleContext): string | null {
-    return this.directTypeOf(ctx) ?? this.compositeClampType(ctx);
+    const expr = SyntaxLowering.expressionNode(ctx);
+    return this.directTypeOf(expr) ?? this.compositeClampType(expr);
   }
 
   /** Whether any value leaf is floating, or indeterminate (CompositeType) */
   private hasFloatingLeaf(ctx: ParserRuleContext): boolean {
     const typing = this.host.state.typingContext();
-    return CompositeType.anyFloating(OperandTyper.valueLeaves(ctx, typing));
+    return CompositeType.anyFloating(
+      OperandTyper.valueLeaves(SyntaxLowering.expressionNode(ctx), typing),
+    );
   }
 
   /**
@@ -1560,53 +1389,32 @@ class CodeGenWalker {
    * Generate a primary expression.
    * Part of IOrchestrator interface for PostfixExpressionGenerator.
    */
-  generatePrimaryExpr(ctx: Parser.PrimaryExpressionContext): string {
-    // ADR-023: sizeof expression - sizeof(u32) or sizeof(variable)
-    if (ctx.sizeofExpression()) {
-      return this.generateSizeofExpr(ctx.sizeofExpression()!);
+  private renderPrimary(expr: TExpression): string {
+    switch (expr.kind) {
+      case "sizeof":
+        return this.generateSizeofExpr(expr);
+      case "cast":
+        return generateCast(this.planCast(expr), this.host.state);
+      case "structInitializer":
+        return this.generateStructInitializer(expr);
+      case "arrayInitializer":
+        return this.generateArrayInitializer(expr);
+      case "root":
+        return expr.root === "this"
+          ? this._resolveThisKeyword()
+          : "__GLOBAL_PREFIX__";
+      case "identifier":
+        return this._resolveIdentifierExpression(
+          expr.name,
+          CodeGenWalker.positionOf(expr),
+        );
+      case "literal":
+        return this._generateLiteralExpression(expr.text);
+      case "parenthesized":
+        return `(${this.renderExpression(expr.expression)})`;
+      default:
+        return "";
     }
-    // ADR-017: Cast expression - (u8)State.IDLE
-    if (ctx.castExpression()) {
-      return generateCast(
-        this.planCast(ctx.castExpression()!),
-        this.host.state,
-      );
-    }
-    // ADR-014: Struct initializer - Point { x: 10, y: 20 }
-    if (ctx.structInitializer()) {
-      return this.generateStructInitializer(ctx.structInitializer()!);
-    }
-    // ADR-035: Array initializer - [1, 2, 3] or [0*]
-    if (ctx.arrayInitializer()) {
-      return this.generateArrayInitializer(ctx.arrayInitializer()!);
-    }
-
-    // ADR-016: Handle 'this' keyword for scope-local reference
-    const text = ctx.getText();
-    if (text === "this") {
-      return this._resolveThisKeyword();
-    }
-
-    // ADR-016: Handle 'global' keyword for global reference
-    if (text === "global") {
-      return "__GLOBAL_PREFIX__";
-    }
-
-    if (ctx.IDENTIFIER()) {
-      const id = ctx.IDENTIFIER()!.getText();
-      // #1322: `break`/`continue` (ADR-026, E0703) are rejected in pass 2.1.
-      return this._resolveIdentifierExpression(
-        id,
-        ParserUtils.getPosition(ctx),
-      );
-    }
-    if (ctx.literal()) {
-      return this._generateLiteralExpression(ctx.literal()!);
-    }
-    if (ctx.expression()) {
-      return `(${this.generateExpression(ctx.expression()!)})`;
-    }
-    return "";
   }
 
   /**
@@ -2390,7 +2198,7 @@ class CodeGenWalker {
       stringCapacity: capacity
         ? Number.parseInt(capacity.getText(), 10)
         : undefined,
-      type: this.planType(typeCtx),
+      type: this.planType(SyntaxLowering.type(typeCtx)),
     };
   }
 
@@ -2836,18 +2644,14 @@ class CodeGenWalker {
    * This includes member access (cursor.x) and array access (arr[i]).
    * Returns the type of lvalue or null if not an lvalue.
    */
-  private getLvalueType(
-    ctx: Parser.ExpressionContext,
-  ): "member" | "array" | null {
-    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
-    if (!postfix) return null;
+  private getLvalueType(expr: TExpression): "member" | "array" | null {
+    const view = ExpressionShape.postfixView(expr);
+    if (!view) return null;
 
-    const ops = postfix.postfixOp();
     const result = CppMemberHelper.getLastPostfixOpType(
-      this._toPostfixOps(ops),
+      CodeGenWalker.toPostfixOps(view.ops),
     );
 
-    // Function calls are not lvalues
     if (result === "function") return null;
     return result;
   }
@@ -2868,21 +2672,17 @@ class CodeGenWalker {
    * that says this module decides it.
    */
   private isCppMemberConversionRequired(
-    ctx: Parser.ExpressionContext,
+    expr: TExpression,
     targetParamBaseType?: string,
   ): boolean {
     if (!this.host.state.cppMode) return false;
     if (!targetParamBaseType) return false;
 
-    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
-    if (!postfix) return false;
+    const view = ExpressionShape.postfixView(expr);
+    const baseId = ExpressionShape.rootName(expr);
+    if (!view || !baseId) return false;
 
-    const primary = postfix.primaryExpression();
-    if (!primary) return false;
-    const baseId = primary.IDENTIFIER()?.getText();
-    if (!baseId) return false;
-
-    const ops = postfix.postfixOp();
+    const ops = view.ops;
 
     // Case 1: Direct parameter member access (cfg.value)
     const paramInfo = this.host.state.currentParameters.get(baseId);
@@ -2898,19 +2698,19 @@ class CodeGenWalker {
       ops,
       baseId,
       targetParamBaseType,
-      postfix,
+      CodeGenWalker.positionOf(expr),
     );
   }
 
   /**
    * Convert parser PostfixOpContext to IPostfixOp interface for CppMemberHelper.
    */
-  private _toPostfixOps(ops: Parser.PostfixOpContext[]): IPostfixOp[] {
+  private static toPostfixOps(ops: readonly TPostfixOpSyntax[]): IPostfixOp[] {
     return ops.map((op) => ({
-      hasExpression: op.expression() !== null,
-      hasIdentifier: op.IDENTIFIER() !== null,
-      hasArgumentList: op.argumentList() !== null,
-      textEndsWithParen: op.getText().endsWith(")"),
+      hasExpression: op.kind === "subscript",
+      hasIdentifier: op.kind === "member",
+      hasArgumentList: op.kind === "call" && op.arguments.length > 0,
+      textEndsWithParen: op.kind === "call",
     }));
   }
 
@@ -2922,18 +2722,14 @@ class CodeGenWalker {
    * postfix ops adapted to `IPostfixOp`) and reports its answer.
    */
   private isComplexMemberConversionRequired(
-    ops: Parser.PostfixOpContext[],
+    ops: readonly TPostfixOpSyntax[],
     baseId: string,
     targetParamBaseType: string,
-    at: Parser.PostfixExpressionContext,
+    at: ISourcePosition,
   ): boolean {
-    const typeInfo = this.host.state.declarationTypeInfo(
-      null,
-      baseId,
-      ParserUtils.getPosition(at),
-    );
+    const typeInfo = this.host.state.declarationTypeInfo(null, baseId, at);
     return CppMemberHelper.needsComplexMemberConversion(
-      this._toPostfixOps(ops),
+      CodeGenWalker.toPostfixOps(ops),
       typeInfo,
       targetParamBaseType,
     );
@@ -2944,24 +2740,22 @@ class CodeGenWalker {
    * For example, buf[0] where buf is a string<N>.
    * Used to determine when to cast char* to uint8_t* etc.
    */
-  private isStringSubscriptAccess(ctx: Parser.ExpressionContext): boolean {
-    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
-    if (!postfix) return false;
+  private isStringSubscriptAccess(expr: TExpression): boolean {
+    const view = ExpressionShape.postfixView(expr);
+    if (!view) return false;
 
-    const ops = postfix.postfixOp();
+    const ops = view.ops;
     const hasPostfixOps = ops.length > 0;
     const lastOpHasExpression =
-      hasPostfixOps && ops.at(-1)!.expression() !== null;
+      hasPostfixOps && ops.at(-1)!.kind === "subscript";
 
-    // Get the base identifier
-    const primary = postfix.primaryExpression();
-    const baseId = primary.IDENTIFIER()?.getText();
+    const baseId = ExpressionShape.rootName(expr);
     if (!baseId) return false;
 
     const typeInfo = this.host.state.declarationTypeInfo(
       null,
       baseId,
-      ParserUtils.getPosition(postfix),
+      CodeGenWalker.positionOf(expr),
     );
     const paramInfo = this.host.state.currentParameters.get(baseId);
 
@@ -2985,20 +2779,19 @@ class CodeGenWalker {
    *          "unknown" if struct field info is not available
    */
   private getMemberAccessArrayStatus(
-    ctx: Parser.ExpressionContext,
+    expr: TExpression,
   ): "array" | "not-array" | "unknown" {
-    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
-    if (!postfix) return "not-array";
+    const view = ExpressionShape.postfixView(expr);
+    if (!view) return "not-array";
 
-    // Last operator must be member access (.identifier)
-    if (!postfix.postfixOp().at(-1)?.IDENTIFIER()) return "not-array";
+    if (view.ops.at(-1)?.kind !== "member") return "not-array";
 
-    const baseId = postfix.primaryExpression()?.IDENTIFIER()?.getText();
-    if (!baseId || !this.rootBindsToVariable(baseId, postfix)) {
+    const baseId = ExpressionShape.rootName(expr);
+    if (!baseId || !this.rootBindsToVariable(baseId, expr)) {
       return "not-array";
     }
 
-    const member = OperandTyper.typeOf(ctx, this.host.state.typingContext());
+    const member = OperandTyper.typeOf(expr, this.host.state.typingContext());
     if (member === null) {
       return "unknown";
     }
@@ -3007,15 +2800,12 @@ class CodeGenWalker {
   }
 
   /** Whether a chain's root names a declaration (#1668) or a parameter */
-  private rootBindsToVariable(
-    baseId: string,
-    at: Parser.PostfixExpressionContext,
-  ): boolean {
+  private rootBindsToVariable(baseId: string, at: TExpression): boolean {
     return (
       this.host.state.declarationTypeInfo(
         null,
         baseId,
-        ParserUtils.getPosition(at),
+        CodeGenWalker.positionOf(at),
       ) !== undefined || this.host.state.currentParameters.has(baseId)
     );
   }
@@ -3466,21 +3256,21 @@ class CodeGenWalker {
    * walk, and Issue #268's pass-through tracking reads it for every argument
    * before any of them renders.
    */
-  planCallArguments(
-    ctx: Parser.ArgumentListContext | null,
+  private planCallArguments(
+    args: readonly TExpression[] | null,
   ): readonly IPlannedCallArgument[] | null {
-    if (ctx === null) return null;
+    if (args === null) return null;
 
-    return ctx.expression().map((expression) => ({
-      simpleIdentifier: this.getSimpleIdentifier(expression),
+    return args.map((expression) => ({
+      simpleIdentifier: ExpressionShape.simpleIdentifier(expression),
       declared: this.nameTypeOf(expression),
-      expressionType: () => this.getExpressionType(expression),
+      expressionType: () => this.directTypeOf(expression),
       isArray: () =>
         OperandTyper.decaysToPointer(
           OperandTyper.typeOf(expression, this.host.state.typingContext()),
         ),
       isHandleArrayElement: () => this.isHandleArrayElement(expression),
-      render: () => this.generateExpression(expression),
+      render: () => this.renderExpression(expression),
       renderByReference: (targetParamBaseType: string | undefined) =>
         this.generateFunctionArg(expression, targetParamBaseType),
     }));
@@ -3554,10 +3344,9 @@ class CodeGenWalker {
    * alternative that no position accepted, and it is removed.
    */
   private generateStructInitializer(
-    ctx: Parser.StructInitializerContext,
+    expr: TExpressionOf<"structInitializer">,
   ): string {
     const typeName = this._resolveStructInitializerTypeName();
-    const fieldList = ctx.fieldInitializerList();
 
     // Issue #517: Check if this is a C++ class with a user-defined constructor.
     // C++ classes with user-defined constructors are NOT aggregate types,
@@ -3587,11 +3376,11 @@ class CodeGenWalker {
     const structFieldTypes =
       this.host.state.symbolTable?.getStructFieldTypes(typeName);
 
-    const fields = fieldList.fieldInitializer().map((field) => {
-      const fieldName = field.IDENTIFIER().getText();
+    const fields = expr.fields.map((field) => {
+      const fieldName = field.name;
       const fieldType = this._resolveFieldType(fieldName, structFieldTypes);
       const value = this.host.state.withExpectedType(fieldType, () =>
-        this.generateExpression(field.expression()),
+        this.renderExpression(field.value),
       );
       return { fieldName, value };
     });
@@ -3682,38 +3471,26 @@ class CodeGenWalker {
    * Returns: { elements: string, count: number } for size inference
    */
   private generateArrayInitializer(
-    ctx: Parser.ArrayInitializerContext,
+    expr: TExpressionOf<"arrayInitializer">,
   ): string {
-    // Check for fill-all syntax: [value*]
-    if (ctx.expression() && ctx.getChild(2)?.getText() === "*") {
-      // Fill-all: [0*] -> {0}
-      const fillValue = this.generateExpression(ctx.expression()!);
-      // Store element count as 0 to signal fill-all (size comes from declaration)
+    if (expr.fill !== null) {
+      const fillValue = this.renderExpression(expr.fill);
       this.host.state.lastArrayInitCount = 0;
       this.host.state.lastArrayFillValue = fillValue;
       return `{${fillValue}}`;
     }
 
-    // Regular list: [1, 2, 3] -> {1, 2, 3}
-    const elements = ctx.arrayInitializerElement();
-    const generatedElements: string[] = [];
-
-    for (const elem of elements) {
-      if (elem.expression()) {
-        generatedElements.push(this.generateExpression(elem.expression()!));
-      } else if (elem.structInitializer()) {
-        generatedElements.push(
-          this.generateStructInitializer(elem.structInitializer()!),
-        );
-      } else if (elem.arrayInitializer()) {
-        // Nested array for multi-dimensional
-        generatedElements.push(
-          this.generateArrayInitializer(elem.arrayInitializer()!),
-        );
+    const generatedElements = expr.elements.map((element) => {
+      switch (element.kind) {
+        case "structInitializer":
+          return this.generateStructInitializer(element);
+        case "arrayInitializer":
+          return this.generateArrayInitializer(element);
+        default:
+          return this.renderExpression(element);
       }
-    }
+    });
 
-    // Store element count for size inference
     this.host.state.lastArrayInitCount = generatedElements.length;
     this.host.state.lastArrayFillValue = undefined;
 
@@ -3942,8 +3719,12 @@ class CodeGenWalker {
   private dimensionValue(
     expression: Parser.ExpressionContext,
   ): number | undefined {
+    return this.constantOf(SyntaxLowering.expression(expression));
+  }
+
+  private constantOf(expr: TExpression): number | undefined {
     return ConstExprLowering.valueOf(
-      SyntaxLowering.expression(expression),
+      expr,
       dimensionEvalOptions(this.transpileState),
     );
   }
@@ -4634,7 +4415,7 @@ class CodeGenWalker {
   ): IChainBase {
     const typing = this.host.state.typingContext();
     return DeclaredTypeInfo.ofChain(
-      OperandTyper.chainOf(target, typing),
+      OperandTyper.chainOf(SyntaxLowering.assignmentTarget(target), typing),
       typing.symbols,
       this.host.state.symbolTable,
       this.host.state.targetDescription,
@@ -4658,7 +4439,7 @@ class CodeGenWalker {
   ): string | null {
     if (target.last?.subscript === "array_slice") return null;
     const written = OperandTyper.typeOfTarget(
-      targetCtx,
+      SyntaxLowering.assignmentTarget(targetCtx),
       this.host.state.typingContext(),
     );
     const name = written?.cType ?? written?.typeName ?? null;
@@ -4720,7 +4501,8 @@ class CodeGenWalker {
         this.analyzeMemberChainForBitAccess(target, lastStep),
       generateExpression: (expr) => this.generateExpression(expr),
       tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
-      expressionType: (expr) => this.directTypeOf(expr),
+      expressionType: (expr) =>
+        this.directTypeOf(SyntaxLowering.expressionNode(expr)),
       integerExpressionType: (expr) => this.integerTypeOf(expr),
       hasFloatingOperand: (expr) => this.hasFloatingLeaf(expr),
       toCOperator: (cnextOp, line) =>
@@ -4861,7 +4643,7 @@ class CodeGenWalker {
     const thenStmt = statements[0];
 
     const lengthCounts = StringLengthCounter.countExpression(
-      conditionCtx,
+      SyntaxLowering.expression(conditionCtx),
       this.host.state,
     );
     const thenBlock = thenStmt.block();
@@ -5263,9 +5045,9 @@ class CodeGenWalker {
    * Generate a literal expression with C++ mode handling
    * Uses extracted literal generator
    */
-  private _generateLiteralExpression(ctx: Parser.LiteralContext): string {
+  private _generateLiteralExpression(text: string): string {
     const result = generateLiteral(
-      ctx.getText(),
+      text,
       this.host.getState(),
       this.transpileState,
     );
@@ -5294,12 +5076,12 @@ class CodeGenWalker {
    * #1322: ADR-024's cast rules -- narrowing and sign change -- are E0869 in
    * pass 2.1. They stood here as two throws that reached the user as `1:0`.
    */
-  private planCast(ctx: Parser.CastExpressionContext): IPlannedCast {
-    const targetType = this.generateType(ctx.type());
-    const targetTypeName = ctx.type().getText();
-    const operandCode = this.generateUnaryExpr(ctx.unaryExpression());
+  private planCast(expr: TExpressionOf<"cast">): IPlannedCast {
+    const targetType = this.renderType(expr.type);
+    const targetTypeName = expr.type.text;
+    const operandCode = this.renderUnary(expr.operand);
     const operand = OperandTyper.typeOf(
-      ctx.unaryExpression(),
+      expr.operand,
       this.host.state.typingContext(),
     );
     const operandType = PlanTyping.castSourceType(operand);
@@ -5338,9 +5120,9 @@ class CodeGenWalker {
    * ADR-023: Generate sizeof expression
    * Delegates to SizeofResolver which uses this.host.state.
    */
-  private generateSizeofExpr(ctx: Parser.SizeofExpressionContext): string {
+  private generateSizeofExpr(expr: TExpressionOf<"sizeof">): string {
     return SizeofResolver.generate(
-      this.planSizeofOperand(ctx),
+      this.planSizeofOperand(expr),
       this.host.state,
     );
   }
@@ -5354,105 +5136,31 @@ class CodeGenWalker {
    * rendering it as a type would register an include for a type the program
    * never names. See `TSizeofOperand`.
    */
-  private planSizeofOperand(
-    ctx: Parser.SizeofExpressionContext,
-  ): TSizeofOperand {
-    const typeCtx = ctx.type();
-    if (typeCtx) {
-      const qualified = typeCtx.qualifiedType();
-      if (qualified) {
-        const identifiers = qualified.IDENTIFIER();
+  private planSizeofOperand(expr: TExpressionOf<"sizeof">): TSizeofOperand {
+    const type = expr.type;
+    if (type) {
+      if (type.kind === "qualified") {
         return {
           kind: "qualified-type",
-          firstName: identifiers[0].getText(),
-          memberName: identifiers[1].getText(),
-          renderTypeName: () => this.generateType(typeCtx),
+          firstName: type.path[0],
+          memberName: type.path[1],
+          renderTypeName: () => this.renderType(type),
         };
       }
-      // The whole type's text, not the userType's: that is what this arm has
-      // always been given, and the two differ for a type carrying dimensions.
-      if (typeCtx.userType()) {
-        return { kind: "user-type", text: typeCtx.getText() };
+      if (type.kind === "user") {
+        return { kind: "user-type", text: type.text };
       }
-      return { kind: "plain-type", cTypeName: this.generateType(typeCtx) };
+      return { kind: "plain-type", cTypeName: this.renderType(type) };
     }
 
-    const expression = ctx.expression()!;
+    const expression = expr.expression;
+    invariant(expression !== null, "sizeof holds a type or an expression");
     return {
       kind: "expression",
-      simpleIdentifier: ExpressionUnwrapper.getSimpleIdentifier(expression),
-      hasSideEffects: this.hasSideEffects(expression),
-      code: this.generateExpression(expression),
+      simpleIdentifier: ExpressionShape.simpleIdentifier(expression),
+      hasSideEffects: ExpressionCalls.containsCall(expression),
+      code: this.renderExpression(expression),
     };
-  }
-
-  /**
-   * True when the text contains an identifier followed by `(`, as
-   * /[a-zA-Z_]\w*\s*\(/ did -- scanned rather than matched, because that
-   * pattern retries \w* from every position when no `(` follows (S8786).
-   *
-   * The match may begin anywhere inside a word run, so the run before the
-   * parenthesis needs only to contain one letter or underscore: "9a8(" matches
-   * (starting at 'a') while "99(" does not.
-   */
-  private static _hasIdentifierBeforeParen(text: string): boolean {
-    for (let index = 0; index < text.length; index += 1) {
-      if (text[index] !== "(") {
-        continue;
-      }
-      let cursor = index - 1;
-      while (cursor >= 0 && /\s/.test(text[cursor])) {
-        cursor -= 1;
-      }
-      let sawIdentifierStart = false;
-      while (cursor >= 0 && /\w/.test(text[cursor])) {
-        if (/[a-zA-Z_]/.test(text[cursor])) {
-          sawIdentifierStart = true;
-        }
-        cursor -= 1;
-      }
-      if (sawIdentifierStart) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
-   * ADR-023: Check if expression has side effects (E0602)
-   * Side effects include: assignments, function calls
-   */
-  private hasSideEffects(expr: Parser.ExpressionContext): boolean {
-    const text = expr.getText();
-
-    // Check for assignment operators
-    if (text.includes("<-")) return true;
-    if (text.includes("+<-")) return true;
-    if (text.includes("-<-")) return true;
-    if (text.includes("*<-")) return true;
-    if (text.includes("/<-")) return true;
-    if (text.includes("%<-")) return true;
-    if (text.includes("&<-")) return true;
-    if (text.includes("|<-")) return true;
-    if (text.includes("^<-")) return true;
-    if (text.includes("<<<-")) return true;
-    if (text.includes(">><-")) return true;
-
-    // Check for function calls by looking for identifier followed by (
-    // This is a heuristic - looking for "name(" pattern that's not a cast
-    if (CodeGenWalker._hasIdentifierBeforeParen(text)) {
-      // Could be a function call - walk the tree to confirm
-      return this.hasPostfixFunctionCall(expr);
-    }
-
-    return false;
-  }
-
-  /**
-   * ADR-023: Check if expression contains a function call (postfix with argumentList)
-   */
-  private hasPostfixFunctionCall(expr: Parser.ExpressionContext): boolean {
-    return ExpressionUtils.hasFunctionCall(expr);
   }
 
   /**

@@ -13,6 +13,8 @@
  * caller can go straight to `structFields`.
  */
 
+import ParserUtils from "../../../utils/ParserUtils";
+import SyntaxLowering from "../../../PARSE/2-Parse/SyntaxLowering";
 import { ParserRuleContext } from "antlr4ng";
 
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
@@ -55,7 +57,7 @@ class StructInitializerType {
       ? null
       : StructInitializerType.structNamed(
           typeText,
-          OperandTyper.scopePathAt(init, context),
+          OperandTyper.scopePathAt(ParserUtils.getPosition(init), context),
           context,
         );
   }
@@ -113,7 +115,7 @@ class StructInitializerType {
     const symbols = context.symbols;
     const candidates = FunctionReference.candidatesForTypeText(
       typeName,
-      OperandTyper.scopePathAt(init, context),
+      OperandTyper.scopePathAt(ParserUtils.getPosition(init), context),
     );
     if (candidates.some((c) => DeclaredTypeFacts.isBitmap(symbols, c))) {
       return { typeName, isBitmap: true };
@@ -313,7 +315,7 @@ class StructInitializerType {
     }
     if (cursor instanceof Parser.AssignmentStatementContext) {
       const target = OperandTyper.typeOfTarget(
-        cursor.assignmentTarget(),
+        SyntaxLowering.assignmentTarget(cursor.assignmentTarget()),
         context,
       );
       return {
@@ -391,7 +393,7 @@ class StructInitializerType {
     }
     const callee = FunctionReference.ofCall(
       postfix,
-      OperandTyper.scopePathAt(postfix, context),
+      OperandTyper.scopePathAt(ParserUtils.getPosition(postfix), context),
       context,
     );
     const param = callee?.parameters[index];

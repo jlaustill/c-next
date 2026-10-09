@@ -10,9 +10,11 @@
  * shape minus its pass-through levels -- see `TExpression` -- and leaves every
  * question about meaning to the pass that owns it.
  */
-import type { ParserRuleContext, ParseTree } from "antlr4ng";
+import { TerminalNode } from "antlr4ng";
+import type { ParserRuleContext, ParseTree, Token } from "antlr4ng";
 import * as Parser from "./grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
+import ChainRoot from "../../utils/ChainRoot";
 import invariant from "../../utils/invariant";
 import type ISyntaxNode from "../../types/syntax/ISyntaxNode";
 import type TBinaryLevel from "../../types/syntax/TBinaryLevel";
@@ -43,6 +45,115 @@ class SyntaxLowering {
   }
 
   /**
+   * An assignment target as the postfix chain it spells: `this.x[i].y` is a
+   * `this` root followed by `.x`, `[i]` and `.y`, the shape an expression's
+   * chain has, so one chain walk types both.
+   */
+  static assignmentTarget(ctx: Parser.AssignmentTargetContext): TExpression {
+    const identifier = ctx.IDENTIFIER();
+    const named =
+      identifier !== null && identifier.symbol.tokenIndex >= 0
+        ? identifier
+        : null;
+    const ops = ctx
+      .postfixTargetOp()
+      .map((op) => SyntaxLowering.postfixTargetOp(op));
+    const root = ChainRoot.ofTarget(ctx);
+    if (root === null) {
+      // The arm without a root starts with its IDENTIFIER, and recovery never invents
+      // one there: 0 of 14,888 recovered targets in a seeded run (#1949 review)
+      invariant(
+        named !== null,
+        "an assignment target without a root starts with a written name",
+      );
+      const head: TExpression = {
+        kind: "identifier",
+        name: named.getText(),
+        span: ParserUtils.getSpan({
+          start: named.symbol,
+          stop: named.symbol,
+        }),
+        written: named.getText(),
+      };
+      if (ops.length === 0) return head;
+      return {
+        kind: "postfix",
+        primary: head,
+        ops,
+        ...SyntaxLowering.node(ctx),
+      };
+    }
+    const rootToken = (ctx.THIS() ?? ctx.GLOBAL())!.symbol;
+    const first: TPostfixOpSyntax = named
+      ? {
+          kind: "member",
+          name: named.getText(),
+          nameSpan: ParserUtils.getSpan({
+            start: named.symbol,
+            stop: named.symbol,
+          }),
+          span: ParserUtils.getSpan({
+            start: SyntaxLowering.rootDot(ctx) ?? named.symbol,
+            stop: named.symbol,
+          }),
+          written: `.${named.getText()}`,
+        }
+      : { kind: "missing", ...SyntaxLowering.node(ctx) };
+    return {
+      kind: "postfix",
+      primary: {
+        kind: "root",
+        root,
+        span: ParserUtils.getSpan({ start: rootToken, stop: rootToken }),
+        written: root,
+      },
+      ops: [first, ...ops],
+      ...SyntaxLowering.node(ctx),
+    };
+  }
+
+  /**
+   * The `.` between a target's `this`/`global` and its first name, so that
+   * member op's span covers it the way an expression's member op does. Null
+   * when recovery left none written.
+   */
+  private static rootDot(ctx: Parser.AssignmentTargetContext): Token | null {
+    const dot = ctx.getChild(1);
+    return dot instanceof TerminalNode &&
+      dot.symbol.tokenIndex >= 0 &&
+      dot.getText() === "."
+      ? dot.symbol
+      : null;
+  }
+
+  private static postfixTargetOp(
+    ctx: Parser.PostfixTargetOpContext,
+  ): TPostfixOpSyntax {
+    const node = SyntaxLowering.node(ctx);
+    const identifier = ctx.IDENTIFIER();
+    if (identifier) {
+      if (identifier.symbol.tokenIndex < 0) return { kind: "missing", ...node };
+      return {
+        kind: "member",
+        name: identifier.getText(),
+        nameSpan: ParserUtils.getSpan({
+          start: identifier.symbol,
+          stop: identifier.symbol,
+        }),
+        ...node,
+      };
+    }
+    const indexes = ctx.expression().map((e) => SyntaxLowering.expression(e));
+    if (indexes.length === 1) {
+      return { kind: "subscript", indexes: [indexes[0]], ...node };
+    }
+    if (indexes.length === 2) {
+      return { kind: "subscript", indexes: [indexes[0], indexes[1]], ...node };
+    }
+    return { kind: "missing", ...node };
+  }
+
+  /**
    * An `expression`, a precedence level or a unary operand: what a caller
    * holding an operand rather than an `expression` lowers (a shift amount, one
    * level of a composite).
@@ -53,6 +164,18 @@ class SyntaxLowering {
     }
     if (node instanceof Parser.UnaryExpressionContext) {
       return SyntaxLowering.unary(node);
+    }
+    if (node instanceof Parser.PostfixExpressionContext) {
+      return SyntaxLowering.postfix(node);
+    }
+    if (node instanceof Parser.PrimaryExpressionContext) {
+      return SyntaxLowering.primary(node);
+    }
+    if (node instanceof Parser.TernaryExpressionContext) {
+      return SyntaxLowering.ternary(node);
+    }
+    if (node instanceof Parser.AssignmentTargetContext) {
+      return SyntaxLowering.assignmentTarget(node);
     }
     return SyntaxLowering.binary(node, SyntaxLowering.levelOf(node));
   }
@@ -178,7 +301,15 @@ class SyntaxLowering {
     if (identifier) {
       // a name the parser conjured to recover was never written
       if (identifier.symbol.tokenIndex < 0) return { kind: "missing", ...node };
-      return { kind: "member", name: identifier.getText(), ...node };
+      return {
+        kind: "member",
+        name: identifier.getText(),
+        nameSpan: ParserUtils.getSpan({
+          start: identifier.symbol,
+          stop: identifier.symbol,
+        }),
+        ...node,
+      };
     }
     const indexes = ctx.expression().map((e) => SyntaxLowering.expression(e));
     if (indexes.length === 1) {
@@ -223,12 +354,9 @@ class SyntaxLowering {
         ...SyntaxLowering.node(ctx),
       };
     }
-    if (ctx.THIS() || ctx.GLOBAL()) {
-      return {
-        kind: "root",
-        root: ctx.THIS() ? "this" : "global",
-        ...SyntaxLowering.node(ctx),
-      };
+    const root = ChainRoot.ofPrimary(ctx);
+    if (root !== null) {
+      return { kind: "root", root, ...SyntaxLowering.node(ctx) };
     }
     const identifier = ctx.IDENTIFIER();
     if (!identifier) return SyntaxLowering.missing(ctx);

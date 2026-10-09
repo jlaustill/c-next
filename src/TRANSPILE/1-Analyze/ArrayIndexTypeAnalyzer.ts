@@ -14,6 +14,7 @@
  * accepted (#1694). A prefix operator (`-i`) was not typed at all.
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
@@ -61,7 +62,10 @@ class IndexTypeListener extends CNextListener {
    * leaf of it, reported once, at the index.
    */
   private validateIndexExpression(ctx: Parser.ExpressionContext): void {
-    for (const leaf of OperandTyper.valueLeaves(ctx, this.context)) {
+    for (const leaf of OperandTyper.valueLeaves(
+      SyntaxLowering.expressionNode(ctx),
+      this.context,
+    )) {
       const verdict = IndexTypeListener.verdictOf(leaf);
       if (verdict === null) continue;
       const { line, column } = ParserUtils.getPosition(ctx);

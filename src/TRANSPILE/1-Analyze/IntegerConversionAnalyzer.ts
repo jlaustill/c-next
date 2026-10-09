@@ -55,6 +55,7 @@
  * headers included (#1726).
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
@@ -166,7 +167,10 @@ class IntegerConversionListener extends CNextListener {
     // field or element, not the root variable's own type. See the class
     // comment for what reading the root instead let through.
     const targetType =
-      OperandTyper.typeOfTarget(target, this.context)?.typeName ?? "";
+      OperandTyper.typeOfTarget(
+        SyntaxLowering.assignmentTarget(target),
+        this.context,
+      )?.typeName ?? "";
     if (!TypeCheckUtils.isInteger(targetType)) return;
     this.check(targetType, value, "assign", true);
   }
@@ -222,7 +226,10 @@ class IntegerConversionListener extends CNextListener {
    */
   private checkFloating(target: string, value: ParserRuleContext): boolean {
     const floating = CompositeType.floatingOf(
-      OperandTyper.valueLeaves(value, this.context),
+      OperandTyper.valueLeaves(
+        SyntaxLowering.expressionNode(value),
+        this.context,
+      ),
     );
     if (floating === null) return false;
     this.report(
@@ -317,7 +324,10 @@ class IntegerConversionListener extends CNextListener {
     composites: boolean,
   ): string | null {
     if (IntegerConversionListener.isTernary(expr)) return null;
-    const t = OperandTyper.typeOf(expr, this.context);
+    const t = OperandTyper.typeOf(
+      SyntaxLowering.expressionNode(expr),
+      this.context,
+    );
     if (t === null) return null;
     if (t.form.kind === "composite") {
       return composites && t.bitWidth !== null ? t.typeName : null;

@@ -28,6 +28,7 @@ import type IChainBase from "../../types/IChainBase";
 import type TranspileState from "../TranspileState";
 import type TAssignmentSite from "../../types/TAssignmentSite";
 import OperandTyper from "../../utils/OperandTyper";
+import ParserUtils from "../../utils/ParserUtils";
 
 /**
  * Dependencies for building context.
@@ -283,7 +284,10 @@ function buildAssignmentContext(
     postfixOps: ops,
     hasThis,
     hasGlobal,
-    scopePath: OperandTyper.scopePathAt(targetCtx, deps.state.typingContext()),
+    scopePath: OperandTyper.scopePathAt(
+      ParserUtils.getPosition(targetCtx),
+      deps.state.typingContext(),
+    ),
     hasMemberAccess,
     hasArrayAccess,
     postfixOpsCount: postfixOps.length,

@@ -38,10 +38,26 @@ import type ITypeBindingDeps from "../../types/ITypeBindingDeps";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import * as Parser from "../2-Parse/grammar/CNextParser";
+import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
+import type ISyntaxNode from "../../types/syntax/ISyntaxNode";
 
 /**
  * Static utility class resolving a type context to its C name.
  */
+/** A lowered type's four named arms */
+type TNamedTypeSyntax = Extract<
+  TTypeSyntax,
+  { readonly kind: "scoped" | "global" | "qualified" | "user" }
+>;
+type TWithoutNode<T> = T extends unknown
+  ? Omit<T, keyof ISyntaxNode | "text">
+  : never;
+/**
+ * The four spellings a named type is written in: `TTypeSyntax`'s own arms
+ * without their node fields, so a field renamed there is a compile error here.
+ */
+type TNamedTypeSpelling = TWithoutNode<TNamedTypeSyntax>;
+
 class TypeBinding {
   /**
    * The C name for a type context, or null when no alternative matched.
@@ -150,51 +166,72 @@ class TypeBinding {
     scopePath: string,
     deps?: ITypeBindingDeps,
   ): INamedTypeResolution | null {
-    // this.T -- the scope is stated, so qualify against the chain unconditionally
     const scoped = accessors.scopedType();
-    if (scoped) {
-      const written = scoped.IDENTIFIER().getText();
-      return {
-        branch: "this",
-        written,
-        name: ScopeUtils.qualifyInScope(written, scopePath),
-      };
-    }
-
-    // global.T -- explicitly opts out of scope qualification
     const global = accessors.globalType();
-    if (global) {
-      const written = global.IDENTIFIER().getText();
-      return { branch: "global", written, name: written };
-    }
-
-    // Scope.T -- the path is stated in full
     const qualified = accessors.qualifiedType();
-    if (qualified) {
-      const names = qualified.IDENTIFIER().map((id) => id.getText());
-      return {
-        branch: "qualified",
-        written: names.join("."),
-        name: deps?.resolveQualifiedType
-          ? deps.resolveQualifiedType(names)
-          : QualifiedCName.fromParts(names),
-      };
-    }
-
-    // Bare T -- the ONLY branch that resolves local -> scope -> global
     const user = accessors.userType();
-    if (user) {
-      const written = user.getText();
-      return {
-        branch: "bare",
-        written,
-        name: deps?.isScopeType
-          ? ScopeUtils.qualifyScopeType(written, scopePath, deps.isScopeType)
-          : written,
+    let spelling: TNamedTypeSpelling | null = null;
+    if (scoped) {
+      spelling = { kind: "scoped", name: scoped.IDENTIFIER().getText() };
+    } else if (global) {
+      spelling = { kind: "global", name: global.IDENTIFIER().getText() };
+    } else if (qualified) {
+      spelling = {
+        kind: "qualified",
+        path: qualified.IDENTIFIER().map((id) => id.getText()),
       };
+    } else if (user) {
+      spelling = { kind: "user", name: user.getText() };
     }
+    return spelling && TypeBinding.classifyNamed(spelling, scopePath, deps);
+  }
 
-    return null;
+  /**
+   * The ladder itself, over a written type's plain data: a lowered
+   * `TTypeSyntax` is one, so a pass that holds no parse tree asks the same
+   * question. Null for a type that is not a named one.
+   */
+  static classifyNamed(
+    type: TTypeSyntax | TNamedTypeSpelling,
+    scopePath: string,
+    deps?: ITypeBindingDeps,
+  ): INamedTypeResolution | null {
+    switch (type.kind) {
+      // this.T -- the scope is stated, so qualify against the chain unconditionally
+      case "scoped":
+        return {
+          branch: "this",
+          written: type.name,
+          name: ScopeUtils.qualifyInScope(type.name, scopePath),
+        };
+      // global.T -- explicitly opts out of scope qualification
+      case "global":
+        return { branch: "global", written: type.name, name: type.name };
+      // Scope.T -- the path is stated in full
+      case "qualified":
+        return {
+          branch: "qualified",
+          written: type.path.join("."),
+          name: deps?.resolveQualifiedType
+            ? deps.resolveQualifiedType([...type.path])
+            : QualifiedCName.fromParts([...type.path]),
+        };
+      // Bare T -- the ONLY branch that resolves local -> scope -> global
+      case "user":
+        return {
+          branch: "bare",
+          written: type.name,
+          name: deps?.isScopeType
+            ? ScopeUtils.qualifyScopeType(
+                type.name,
+                scopePath,
+                deps.isScopeType,
+              )
+            : type.name,
+        };
+      default:
+        return null;
+    }
   }
 
   /**

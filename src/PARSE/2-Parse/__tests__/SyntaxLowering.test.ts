@@ -254,6 +254,11 @@ describe("SyntaxLowering on recovered trees", () => {
     (run: string) => `u32 q <- (u8) ${run};`,
     (run: string) => `u32 q <- a.${run};`,
     (run: string) => `u32 q <- a(${run};`,
+    // #1949 review: a `for` header's clauses are where recovery still builds
+    // an assignment target around a missing piece
+    (run: string) => `void f() { for (a <- 0; a < 1; ${run} +<- 1) {} }`,
+    (run: string) => `void f() { for (${run} <- 0; a < 1; a +<- 1) {} }`,
+    (run: string) => `void f() { ${run} <- 1; }`,
   ];
 
   /** A seeded pseudo-random generator, so every run sees the same cases */
@@ -265,13 +270,20 @@ describe("SyntaxLowering on recovered trees", () => {
     };
   }
 
-  function lowerEverything(node: unknown, lowered: { count: number }): void {
+  function lowerEverything(
+    node: unknown,
+    lowered: { count: number; targets: number },
+  ): void {
     if (node instanceof Parser.ExpressionContext) {
       ConstExprLowering.lower(SyntaxLowering.expression(node));
       lowered.count++;
     } else if (node instanceof Parser.TypeContext) {
       SyntaxLowering.type(node);
       lowered.count++;
+    } else if (node instanceof Parser.AssignmentTargetContext) {
+      SyntaxLowering.assignmentTarget(node);
+      lowered.count++;
+      lowered.targets++;
     }
     for (const child of (node as { children?: unknown[] }).children ?? []) {
       lowerEverything(child, lowered);
@@ -280,7 +292,7 @@ describe("SyntaxLowering on recovered trees", () => {
 
   it("never throws, and reaches every position", () => {
     const next = random(1932);
-    const lowered = { count: 0 };
+    const lowered = { count: 0, targets: 0 };
     let recovered = 0;
     for (let i = 0; i < 2000; i++) {
       const length = 1 + Math.floor(next() * 6);
@@ -298,5 +310,110 @@ describe("SyntaxLowering on recovered trees", () => {
     }
     expect(recovered).toBeGreaterThan(1500);
     expect(lowered.count).toBeGreaterThan(recovered);
+    expect(lowered.targets).toBeGreaterThan(100);
+  });
+
+  /** Every assignment target in a recovered source, lowered */
+  function loweredTargets(source: string): TExpression[] {
+    const { tree, parseErrors } = CNextSourceParser.parse(`${source}\n`);
+    expect(parseErrors.length).toBeGreaterThan(0);
+    const targets: TExpression[] = [];
+    const visit = (node: unknown): void => {
+      if (node instanceof Parser.AssignmentTargetContext) {
+        targets.push(SyntaxLowering.assignmentTarget(node));
+      }
+      for (const child of (node as { children?: unknown[] }).children ?? []) {
+        visit(child);
+      }
+    };
+    visit(tree);
+    return targets;
+  }
+
+  /** The ops of a target whose head is `head`, after lowering */
+  function opKinds(target: TExpression, head: string): string[] | null {
+    if (target.kind !== "postfix") return null;
+    const primary = target.primary;
+    const named =
+      primary.kind === "root"
+        ? primary.root
+        : primary.kind === "identifier"
+          ? primary.name
+          : null;
+    return named === head ? target.ops.map((op) => op.kind) : null;
+  }
+
+  // Each source below was found by the seeded run above; each reaches one
+  // recovery branch of `assignmentTarget` / `postfixTargetOp`.
+  it.each([
+    [
+      "a name the parser invented after `this.`",
+      "void f() { for (a <- 0; a < 1; this ! . +<- 1) {} }",
+      "this",
+      ["missing"],
+    ],
+    [
+      "`this` with no `.name` at all",
+      "void f() { for (a <- 0; a < 1; this global <- b ; + +<- 1) {} }",
+      "this",
+      ["missing"],
+    ],
+    [
+      "a member name the parser invented",
+      "void f() { for (a <- 0; a < 1; a . +<- 1) {} }",
+      "a",
+      ["missing"],
+    ],
+    [
+      "a subscript with no index",
+      "void f() { for (a <- 0; a < 1; a [ +<- 1) {} }",
+      "a",
+      ["missing", "missing"],
+    ],
+  ])("lowers %s to a missing op", (_label, source, head, kinds) => {
+    const shapes = loweredTargets(source)
+      .map((target) => opKinds(target, head))
+      .filter((shape) => shape !== null);
+
+    expect(shapes).toContainEqual(kinds);
+  });
+});
+
+describe("SyntaxLowering member spans", () => {
+  function find<T>(
+    node: unknown,
+    kind: abstract new (...a: never[]) => T,
+  ): T[] {
+    const found: T[] = [];
+    if (node instanceof kind) found.push(node);
+    for (const child of (node as { children?: unknown[] }).children ?? []) {
+      found.push(...find(child, kind));
+    }
+    return found;
+  }
+
+  it("a rooted target's first member op covers the `.`, as an expression's does", () => {
+    const tree = CNextSourceParser.parse(
+      "scope S { u8 x; void f() { this.x <- 1; u8 y <- this.x; } }\n",
+    ).tree;
+    const target = SyntaxLowering.assignmentTarget(
+      find(tree, Parser.AssignmentTargetContext)[0],
+    );
+    const expression = SyntaxLowering.expression(
+      find(tree, Parser.ExpressionContext).find(
+        (e) => e.getText() === "this.x",
+      )!,
+    );
+    if (target.kind !== "postfix" || expression.kind !== "postfix") {
+      throw new Error("both lower to a postfix chain");
+    }
+    const targetOp = target.ops[0];
+    const expressionOp = expression.ops[0];
+    if (targetOp.kind !== "member" || expressionOp.kind !== "member") {
+      throw new Error("both start with a member op");
+    }
+
+    expect(targetOp.span.column).toBe(targetOp.nameSpan.column - 1);
+    expect(expressionOp.span.column).toBe(expressionOp.nameSpan.column - 1);
   });
 });

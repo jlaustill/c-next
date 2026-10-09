@@ -31,10 +31,10 @@ one.
 | ---------------- | ------: |
 | `src/TRANSPILE/` |      63 |
 | `src/PARSE/`     |      23 |
-| `src/utils/`     |      11 |
+| `src/utils/`     |      10 |
 | `src/types/`     |       3 |
 | `src/cli/`       |       1 |
-| **total**        | **101** |
+| **total**        | **100** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -137,13 +137,12 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/ast/AssignmentTargetExtractor.ts`                    | grammar           |
 | `src/utils/ast/ChildStatementCollector.ts`                      | grammar           |
 | `src/utils/ast/StatementExpressionCollector.ts`                 | grammar           |
-| `src/utils/ChainRoot.ts`                                        | antlr4ng, grammar |
+| `src/utils/ChainRoot.ts`                                        | grammar           |
 | `src/utils/ExpressionUnwrapper.ts`                              | grammar           |
 | `src/utils/ExpressionUtils.ts`                                  | grammar           |
 | `src/utils/LiteralUtils.ts`                                     | grammar           |
-| `src/utils/OperandTyper.ts`                                     | antlr4ng, grammar |
 | `src/utils/OverflowBehaviorUtils.ts`                            | grammar           |
 | `src/utils/ParserUtils.ts`                                      | antlr4ng, grammar |
 | `src/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-101 module(s).
+100 module(s).

@@ -30,11 +30,13 @@
  * diagnostics for one name is worse than one.
  */
 
-import { ParserRuleContext, ParseTreeWalker, TerminalNode } from "antlr4ng";
+import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import BUILTIN_TYPE_NAMES from "./BUILTIN_TYPE_NAMES";
-import ChainRoot from "../../utils/ChainRoot";
+import ExpressionShape from "../../utils/ExpressionShape";
+import type IChainHead from "../../types/IChainHead";
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import IUndeclaredValueError from "./types/IUndeclaredValueError";
 import NameExistence from "../../PARSE/3-Declare/NameExistence";
@@ -66,26 +68,17 @@ class UndeclaredValueListener extends CNextListener {
   override enterPostfixExpression = (
     ctx: Parser.PostfixExpressionContext,
   ): void => {
-    const primary = ctx.primaryExpression();
-    if (!primary) {
-      return;
-    }
-
-    const ops = ctx.postfixOp();
-    const { root, identifier, opsConsumed } = ChainRoot.headOf(primary, ops);
+    const head = ExpressionShape.headOf(SyntaxLowering.expressionNode(ctx));
 
     // `name(...)` is a call. E0422 owns undefined calls, with ADR-030/040/057
     // rules this analyzer deliberately does not reimplement. The root keyword
     // consumes the primary, so the parentheses sit `opsConsumed` further along
     // -- the offset travels with the root instead of being re-derived here.
-    if (
-      ops.length > opsConsumed &&
-      ops[opsConsumed].getText().startsWith("(")
-    ) {
+    if (head.ops[head.opsConsumed]?.kind === "call") {
       return;
     }
 
-    this.check(identifier, root, ctx);
+    this.check(head.identifier, head.root, ctx);
   };
 
   /**
@@ -100,7 +93,8 @@ class UndeclaredValueListener extends CNextListener {
   override enterAssignmentTarget = (
     ctx: Parser.AssignmentTargetContext,
   ): void => {
-    this.check(ctx.IDENTIFIER(), ChainRoot.ofTarget(ctx), ctx);
+    const head = ExpressionShape.headOf(SyntaxLowering.expressionNode(ctx));
+    this.check(head.identifier, head.root, ctx);
   };
 
   /**
@@ -117,7 +111,7 @@ class UndeclaredValueListener extends CNextListener {
    * assignment target asserts non-null over a `getToken` that can return null.
    */
   private check(
-    identifier: TerminalNode | null,
+    identifier: IChainHead["identifier"],
     root: TChainRoot,
     ctx: ParserRuleContext,
   ): void {
@@ -125,7 +119,7 @@ class UndeclaredValueListener extends CNextListener {
       return;
     }
 
-    const name = identifier.getText();
+    const name = identifier.name;
 
     // ADR-026: `break`/`continue` parse as identifiers and are rejected by
     // E0703, which names the structured alternative. Reporting them as
@@ -147,12 +141,8 @@ class UndeclaredValueListener extends CNextListener {
     }
 
     // The caret names the identifier, not the `this`/`global` keyword the
-    // spelling may start with. `getPosition` takes the shape structurally, so
-    // the terminal's own token is what carries the position here. For a bare
-    // name this is the primary's own start token, so no position moves.
-    const { line, column } = ParserUtils.getPosition({
-      start: identifier.symbol,
-    });
+    // spelling may start with: the head's span is the name's own token.
+    const { line, column } = identifier.span;
     this.analyzer.addError(name, line, column);
   }
 }
@@ -205,7 +195,10 @@ class UndeclaredValueAnalyzer {
    */
   isVisible(name: string, root: TChainRoot, at: ParserRuleContext): boolean {
     const symbols = this.context.symbols;
-    const scopePath = OperandTyper.scopePathAt(at, this.context);
+    const scopePath = OperandTyper.scopePathAt(
+      ParserUtils.getPosition(at),
+      this.context,
+    );
 
     if (root === null) {
       return (

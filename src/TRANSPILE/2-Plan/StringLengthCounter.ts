@@ -9,7 +9,9 @@
  * Updated for ADR-058: .length replaced with .char_count
  */
 
-import ParserUtils from "../../utils/ParserUtils";
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
+import type TExpression from "../../types/syntax/TExpression";
+import type TExpressionOf from "../../types/syntax/TExpressionOf";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import type TranspileState from "../TranspileState";
 
@@ -22,11 +24,11 @@ class StringLengthCounter {
    * Count .char_count accesses in an expression.
    */
   static countExpression(
-    ctx: Parser.ExpressionContext,
+    expr: TExpression,
     state: TranspileState,
   ): Map<string, number> {
     const counts = new Map<string, number>();
-    StringLengthCounter.walkExpression(ctx, counts, state);
+    StringLengthCounter.walkExpression(expr, counts, state);
     return counts;
   }
 
@@ -44,182 +46,81 @@ class StringLengthCounter {
   }
 
   /**
-   * Walk an expression tree, counting .char_count accesses.
-   * Uses generic traversal - only postfix expressions need special handling.
+   * Walk an expression, counting `.char_count` reads on string identifiers.
+   * Only identifier-rooted chains count, and only their subscript indexes are
+   * searched further; call arguments are not.
    */
   private static walkExpression(
-    ctx: Parser.ExpressionContext,
+    expr: TExpression,
     counts: Map<string, number>,
     state: TranspileState,
   ): void {
-    const ternary = ctx.ternaryExpression();
-    if (ternary) {
-      StringLengthCounter.walkTernary(ternary, counts, state);
-    }
-  }
-
-  private static walkTernary(
-    ctx: Parser.TernaryExpressionContext,
-    counts: Map<string, number>,
-    state: TranspileState,
-  ): void {
-    for (const orExpr of ctx.orExpression()) {
-      StringLengthCounter.walkOrExpr(orExpr, counts, state);
-    }
-  }
-
-  private static walkOrExpr(
-    ctx: Parser.OrExpressionContext,
-    counts: Map<string, number>,
-    state: TranspileState,
-  ): void {
-    for (const andExpr of ctx.andExpression()) {
-      StringLengthCounter.walkAndExpr(andExpr, counts, state);
-    }
-  }
-
-  private static walkAndExpr(
-    ctx: Parser.AndExpressionContext,
-    counts: Map<string, number>,
-    state: TranspileState,
-  ): void {
-    for (const eqExpr of ctx.equalityExpression()) {
-      StringLengthCounter.walkEqualityExpr(eqExpr, counts, state);
-    }
-  }
-
-  private static walkEqualityExpr(
-    ctx: Parser.EqualityExpressionContext,
-    counts: Map<string, number>,
-    state: TranspileState,
-  ): void {
-    for (const relExpr of ctx.relationalExpression()) {
-      StringLengthCounter.walkRelationalExpr(relExpr, counts, state);
-    }
-  }
-
-  private static walkRelationalExpr(
-    ctx: Parser.RelationalExpressionContext,
-    counts: Map<string, number>,
-    state: TranspileState,
-  ): void {
-    for (const borExpr of ctx.bitwiseOrExpression()) {
-      StringLengthCounter.walkBitwiseOrExpr(borExpr, counts, state);
-    }
-  }
-
-  private static walkBitwiseOrExpr(
-    ctx: Parser.BitwiseOrExpressionContext,
-    counts: Map<string, number>,
-    state: TranspileState,
-  ): void {
-    for (const bxorExpr of ctx.bitwiseXorExpression()) {
-      StringLengthCounter.walkBitwiseXorExpr(bxorExpr, counts, state);
-    }
-  }
-
-  private static walkBitwiseXorExpr(
-    ctx: Parser.BitwiseXorExpressionContext,
-    counts: Map<string, number>,
-    state: TranspileState,
-  ): void {
-    for (const bandExpr of ctx.bitwiseAndExpression()) {
-      StringLengthCounter.walkBitwiseAndExpr(bandExpr, counts, state);
-    }
-  }
-
-  private static walkBitwiseAndExpr(
-    ctx: Parser.BitwiseAndExpressionContext,
-    counts: Map<string, number>,
-    state: TranspileState,
-  ): void {
-    for (const shiftExpr of ctx.shiftExpression()) {
-      StringLengthCounter.walkShiftExpr(shiftExpr, counts, state);
-    }
-  }
-
-  private static walkShiftExpr(
-    ctx: Parser.ShiftExpressionContext,
-    counts: Map<string, number>,
-    state: TranspileState,
-  ): void {
-    for (const addExpr of ctx.additiveExpression()) {
-      StringLengthCounter.walkAdditiveExpr(addExpr, counts, state);
-    }
-  }
-
-  private static walkAdditiveExpr(
-    ctx: Parser.AdditiveExpressionContext,
-    counts: Map<string, number>,
-    state: TranspileState,
-  ): void {
-    for (const multExpr of ctx.multiplicativeExpression()) {
-      StringLengthCounter.walkMultiplicativeExpr(multExpr, counts, state);
-    }
-  }
-
-  private static walkMultiplicativeExpr(
-    ctx: Parser.MultiplicativeExpressionContext,
-    counts: Map<string, number>,
-    state: TranspileState,
-  ): void {
-    for (const unaryExpr of ctx.unaryExpression()) {
-      StringLengthCounter.walkUnaryExpr(unaryExpr, counts, state);
-    }
-  }
-
-  private static walkUnaryExpr(
-    ctx: Parser.UnaryExpressionContext,
-    counts: Map<string, number>,
-    state: TranspileState,
-  ): void {
-    const postfix = ctx.postfixExpression();
-    if (postfix) {
-      StringLengthCounter.walkPostfixExpr(postfix, counts, state);
-    }
-    // Also check nested unary expressions
-    const nestedUnary = ctx.unaryExpression();
-    if (nestedUnary) {
-      StringLengthCounter.walkUnaryExpr(nestedUnary, counts, state);
+    switch (expr.kind) {
+      case "ternary":
+        StringLengthCounter.walkExpression(expr.condition, counts, state);
+        StringLengthCounter.walkExpression(expr.whenTrue, counts, state);
+        StringLengthCounter.walkExpression(expr.whenFalse, counts, state);
+        return;
+      case "binary":
+        for (const operand of expr.operands) {
+          StringLengthCounter.walkExpression(operand, counts, state);
+        }
+        return;
+      case "unary":
+        StringLengthCounter.walkExpression(expr.operand, counts, state);
+        return;
+      case "parenthesized":
+        StringLengthCounter.walkExpression(expr.expression, counts, state);
+        return;
+      case "postfix":
+        StringLengthCounter.walkPostfix(expr, counts, state);
+        return;
+      default:
+        return;
     }
   }
 
   /**
-   * Walk a postfix expression - this is where we detect .char_count accesses.
-   *
    * #1650: only `name.char_count` counts -- the length of the variable itself,
    * the operand the cache measures. `names[0].char_count` measures an element,
    * which a cache of `names` cannot serve.
    */
-  private static walkPostfixExpr(
-    ctx: Parser.PostfixExpressionContext,
+  private static walkPostfix(
+    expr: TExpressionOf<"postfix">,
     counts: Map<string, number>,
     state: TranspileState,
   ): void {
-    const primary = ctx.primaryExpression();
-    const primaryId = primary.IDENTIFIER()?.getText();
-    const ops = ctx.postfixOp();
-
-    if (primaryId && ops[0]?.IDENTIFIER()?.getText() === "char_count") {
-      const typeInfo = state.sourceDeclarationTypeInfo(
-        null,
-        primaryId,
-        ParserUtils.getPosition(ctx),
-      );
-      if (typeInfo?.isString) {
-        counts.set(primaryId, (counts.get(primaryId) ?? 0) + 1);
+    const primary = expr.primary;
+    if (primary.kind === "parenthesized") {
+      StringLengthCounter.walkExpression(primary.expression, counts, state);
+      return;
+    }
+    if (primary.kind !== "identifier") return;
+    const [first] = expr.ops;
+    if (first?.kind === "member" && first.name === "char_count") {
+      StringLengthCounter.countLengthRead(primary.name, expr, counts, state);
+    }
+    for (const op of expr.ops) {
+      if (op.kind === "subscript") {
+        for (const index of op.indexes) {
+          StringLengthCounter.walkExpression(index, counts, state);
+        }
       }
     }
-    // Walk any nested expressions in array accesses or function calls
-    for (const op of ops) {
-      for (const expr of op.expression()) {
-        StringLengthCounter.walkExpression(expr, counts, state);
-      }
-    }
+  }
 
-    // Walk nested expression in primary if present
-    if (primary.expression()) {
-      StringLengthCounter.walkExpression(primary.expression()!, counts, state);
+  private static countLengthRead(
+    name: string,
+    expr: TExpression,
+    counts: Map<string, number>,
+    state: TranspileState,
+  ): void {
+    const typeInfo = state.sourceDeclarationTypeInfo(null, name, {
+      line: expr.span.line,
+      column: expr.span.column,
+    });
+    if (typeInfo?.isString) {
+      counts.set(name, (counts.get(name) || 0) + 1);
     }
   }
 
@@ -238,16 +139,24 @@ class StringLengthCounter {
       const target = assign.assignmentTarget();
       for (const op of target.postfixTargetOp()) {
         for (const expr of op.expression()) {
-          StringLengthCounter.walkExpression(expr, counts, state);
+          StringLengthCounter.walkExpression(
+            SyntaxLowering.expression(expr),
+            counts,
+            state,
+          );
         }
       }
       // Count in value expression
-      StringLengthCounter.walkExpression(assign.expression(), counts, state);
+      StringLengthCounter.walkExpression(
+        SyntaxLowering.expression(assign.expression()),
+        counts,
+        state,
+      );
     }
     // Expression statement
     if (ctx.expressionStatement()) {
       StringLengthCounter.walkExpression(
-        ctx.expressionStatement()!.expression(),
+        SyntaxLowering.expression(ctx.expressionStatement()!.expression()),
         counts,
         state,
       );
@@ -257,7 +166,7 @@ class StringLengthCounter {
       const varDecl = ctx.variableDeclaration()!;
       if (varDecl.expression()) {
         StringLengthCounter.walkExpression(
-          varDecl.expression()!,
+          SyntaxLowering.expression(varDecl.expression()!),
           counts,
           state,
         );
