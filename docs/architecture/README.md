@@ -264,7 +264,9 @@ pass holds, so a dependency rule is a backstop rather than the primary guard.
 
 The backstop now exists (#1317), and since #1932 it is enforced. Two rules in
 `.dependency-cruiser.cjs` share one definition of what counts as holding a tree: importing
-a generated context, the `antlr4ng` runtime, or a carrier of 1.2's artifact.
+a generated context, the `antlr4ng` runtime, a carrier of 1.2's artifact, or a 1.2 parser
+that returns a tree (`CNextSourceParser`, `HeaderParser`), since a caller holds what it
+returns without naming its type (#1957).
 
 - `parse-tree-sites` (`info`) is the inventory: every module outside the parser that holds
   one. `npm run parse-tree:check` holds that population to the baseline in
@@ -272,7 +274,9 @@ a generated context, the `antlr4ng` runtime, or a carrier of 1.2's artifact.
 - `parse-tree-confined-to-parser` (`error`) is the ruling. Only `src/PARSE/` (1.1's
   lexer-only include scan (#1745), 1.2 and 1.3), 2.1, the named shared helpers, and the
   host that routes 1.2's artifact (`src/cli/Transpiler.ts`, which also calls
-  `ParserUtils`) may import the grammar. Each named helper is a target of the rule too,
+  `ParserUtils`), and the library entry points `src/lib/parseWithSymbols.ts` and
+  `src/lib/parseCHeader.ts`, which parse one source for 1.3 alone (#1957), may import the
+  grammar. Each named helper is a target of the rule too,
   so a pass after 2.1 that imports one fails as if it had imported the grammar.
 - The rule reads imports, not values. A helper a later pass may call must read plain data
   only: `TypeBinding`, which reads parse contexts, is a named helper, and its plain-data

@@ -94,6 +94,10 @@ const PARSE_TREE_TYPES = [
   // half had no reader, so it was a bundle whose only live content was
   // the re-export.
   "^src/types/(IParsedFile|ITypeAccessors)\\.ts$",
+  // #1957: the 1.2 parsers that RETURN a tree. A module calling one holds the
+  // tree as a value -- `CNextSourceParser.parse(src).tree` -- while naming no
+  // grammar type, so without these it was counted by neither rule.
+  "^src/PARSE/2-Parse/(CNextSourceParser|HeaderParser)\\.ts$",
 ];
 
 /**
@@ -453,6 +457,10 @@ module.exports = {
         "1.2's carriers `IParsedFile` and `ITypeAccessors`; " +
         "and 1.1's `IncludeDiscovery`, which lexes with 1.2's `CNextLexer` and " +
         "builds no tree (#1745, owner ruling 2026-09-30; PASS_ORDER `mayRead`). " +
+        "Also the library entry points `lib/parseWithSymbols` and " +
+        "`lib/parseCHeader` (#1957): each parses one source and hands the tree " +
+        "only to 1.3 Declare for the extension's symbol list, and runs no pass " +
+        "after it. " +
         "A structural stand-in -- a later pass declaring its own copy of a " +
         "context's shape -- names no path this rule can match; " +
         "scripts/__tests__/artifact-lifetime.test.ts asks the type checker " +
@@ -467,6 +475,7 @@ module.exports = {
           "^src/types/(IParsedFile|ITypeAccessors)\\.ts$",
           "^src/cli/Transpiler\\.ts$",
           "^src/PARSE/1-Discover/IncludeDiscovery\\.ts$",
+          "^src/lib/(parseWithSymbols|parseCHeader)\\.ts$",
           ...PARSE_TREE_HELPERS,
           "__tests__/",
           "__testUtils__/",
