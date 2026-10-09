@@ -171,6 +171,7 @@ describe("StringHandlers", () => {
         identifiers: ["memberName"],
         hasThis: true,
         isSimpleThisAccess: true,
+        scopePath: "Outer.Inner",
       });
 
       // Half one: the classifier must recognize it through the whole chain.
