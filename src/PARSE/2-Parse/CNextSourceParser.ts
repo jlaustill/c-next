@@ -12,7 +12,6 @@ import { CNextLexer } from "./grammar/CNextLexer";
 import { CNextParser } from "./grammar/CNextParser";
 import CommentScanner from "./CommentScanner";
 import ProgramLowering from "./ProgramLowering";
-import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import IParsedFile from "../../types/IParsedFile";
 import ITranspileError from "../../types/ITranspileError";
 import CodedErrorText from "../../utils/CodedErrorText";
@@ -227,7 +226,6 @@ class CNextSourceParser {
     // whole-file derivation to collapse -- an earlier draft of this comment
     // said there was, and `IParsedFile` already carries the correction.
     const scanner = new CommentScanner(tokenStream);
-    let program: IProgramSyntax | null = null;
 
     return {
       tree,
@@ -236,10 +234,9 @@ class CNextSourceParser {
       get comments() {
         return scanner.extractAll();
       },
-      get program() {
-        program ??= ProgramLowering.program(tree, scanner);
-        return program;
-      },
+      // Lowered here, on parse (#1932): 1.2 authors the plain-data file, so
+      // the tree can be released once 2.1 is done with it.
+      program: ProgramLowering.program(tree, scanner),
       targetDirectives: TargetDirectives.read(tree),
       parseErrors: errors,
     };
