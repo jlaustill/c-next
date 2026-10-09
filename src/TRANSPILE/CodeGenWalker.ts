@@ -3981,11 +3981,9 @@ class CodeGenWalker {
         init: null,
       };
     }
-    const hasEmptyArrayTypeDimension = (typeDims ?? []).some(
-      (dim) => dim === null,
-    );
+    const hasEmptyArrayTypeDimension = (typeDims ?? []).includes(null);
     const hasEmptyDimension =
-      arrayDims.some((dim) => dim === null) || hasEmptyArrayTypeDimension;
+      arrayDims.includes(null) || hasEmptyArrayTypeDimension;
     const initializer = decl.initializer;
     invariant(
       !hasEmptyDimension || (typeDims?.length ?? 0) + arrayDims.length === 1,

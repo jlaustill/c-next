@@ -126,6 +126,24 @@ class StringLengthCounter {
   /**
    * Walk a statement, counting .char_count accesses.
    */
+  /** The index expressions an assignment target subscripts with */
+  private static walkTargetIndexes(
+    target: TExpression,
+    counts: Map<string, number>,
+    state: TranspileState,
+  ): void {
+    if (target.kind !== "postfix") {
+      return;
+    }
+    for (const op of target.ops) {
+      if (op.kind === "subscript") {
+        for (const index of op.indexes) {
+          StringLengthCounter.walkExpression(index, counts, state);
+        }
+      }
+    }
+  }
+
   private static walkStatement(
     statement: TStatement,
     counts: Map<string, number>,
@@ -133,15 +151,7 @@ class StringLengthCounter {
   ): void {
     switch (statement.kind) {
       case "assignment":
-        if (statement.target.kind === "postfix") {
-          for (const op of statement.target.ops) {
-            if (op.kind === "subscript") {
-              for (const index of op.indexes) {
-                StringLengthCounter.walkExpression(index, counts, state);
-              }
-            }
-          }
-        }
+        StringLengthCounter.walkTargetIndexes(statement.target, counts, state);
         StringLengthCounter.walkExpression(statement.value, counts, state);
         return;
       case "expression":
