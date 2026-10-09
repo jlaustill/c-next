@@ -177,6 +177,7 @@ import SizeofResolver from "./3-Render/codegen/resolution/SizeofResolver";
 import type TSizeofOperand from "./3-Render/codegen/types/TSizeofOperand";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import MisraSuppressionUtils from "./3-Render/MisraSuppressionUtils";
+import EnumZeroValue from "./3-Render/codegen/helpers/EnumZeroValue";
 import QualifiedCName from "../utils/QualifiedCName";
 import ToolchainRequirementUtils from "../utils/ToolchainRequirementUtils";
 import MainSignature from "../utils/MainSignature";
@@ -1130,6 +1131,35 @@ class CodeGenWalker {
     return resolved ?? type.text;
   }
 
+  /**
+   * #1283: the ADR-029 default of a declaration of a struct (or an array of
+   * one), or null when that struct's default is all zero. The dimensions are
+   * the declarator's -- the type's first, then any written after the name --
+   * because every element of an array must hold the default too.
+   */
+  private structDefaultOf(
+    type: TTypeSyntax,
+    nameDimensions: ReadonlyArray<TExpression | null>,
+  ): string | null {
+    const element = type.kind === "array" ? type.element : type;
+    const resolved = this.namedTypeOf(element);
+    if (!resolved) {
+      return null;
+    }
+    const written = [
+      ...(type.kind === "array" ? type.dimensions : []),
+      ...nameDimensions,
+    ];
+    return this.host.renderStructDefault(
+      resolved.name,
+      written.map((size) =>
+        size
+          ? (this.constantOf(size) ?? this.renderLoweredDimension(size))
+          : "",
+      ),
+    );
+  }
+
   /** Try to evaluate a constant expression at compile time */
   tryEvaluateConstant(expr: TExpression): number | undefined {
     // Issue #1127: the shared builder, not a fourth inline copy of the same
@@ -1143,7 +1173,18 @@ class CodeGenWalker {
    * ADR-015: the zero initializer for a type.
    * ADR-017: an enum initializes to its first member.
    */
-  private zeroInitializerOf(type: TTypeSyntax, isArray: boolean): string {
+  private zeroInitializerOf(
+    type: TTypeSyntax,
+    isArray: boolean,
+    nameDimensions: ReadonlyArray<TExpression | null> = [],
+  ): string {
+    // #1283: ADR-029 "Never Null" -- a struct whose callbacks have defaults
+    // (directly, in a nested struct, or in a callback array) is not zero.
+    const structDefault = this.structDefaultOf(type, nameDimensions);
+    if (structDefault !== null) {
+      return structDefault;
+    }
+
     // Issue #379 / #1004: arrays zero-init with the aggregate brace ({} in
     // C++, {0} in C) regardless of element type.
     if (isArray) {
@@ -2941,7 +2982,7 @@ class CodeGenWalker {
       return rendered;
     }
     // ADR-015: Zero initialization for uninitialized scope variables
-    return ` = ${this.zeroInitializerOf(decl.type, isArray)}`;
+    return ` = ${this.zeroInitializerOf(decl.type, isArray, decl.dimensions)}`;
   }
 
   private generateRegister(register: IRegisterDeclarationSyntax): string {
@@ -3012,8 +3053,6 @@ class CodeGenWalker {
             ),
           renderNameDimensions: () =>
             this.renderLoweredDimensions(field.dimensions),
-          renderZeroInitializer: () =>
-            this.zeroInitializerOf(field.type, false),
         };
       }),
     };
@@ -3774,7 +3813,8 @@ class CodeGenWalker {
     if (!initializer) {
       return {
         kind: "zero",
-        render: (isArray) => this.zeroInitializerOf(decl.type, isArray),
+        render: (isArray) =>
+          this.zeroInitializerOf(decl.type, isArray, decl.dimensions),
       };
     }
     return {
@@ -3929,25 +3969,11 @@ class CodeGenWalker {
     enumName: string,
     separator: string = QualifiedCName.SEPARATOR,
   ): string {
-    const members = this.host.state.symbols!.enumMembers.get(enumName);
-    if (!members) {
-      return `(${enumName})0`;
-    }
-
-    // Find member with explicit value 0
-    for (const [memberName, value] of members.entries()) {
-      if (value === 0) {
-        return `${enumName}${separator}${memberName}`;
-      }
-    }
-
-    // Fall back to first member
-    const firstMember = members.keys().next().value;
-    if (firstMember) {
-      return `${enumName}${separator}${firstMember}`;
-    }
-
-    return `(${enumName})0`;
+    return EnumZeroValue.of(
+      this.host.state.symbols!.enumMembers,
+      enumName,
+      separator,
+    );
   }
 
   /**

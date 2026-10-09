@@ -74,6 +74,16 @@ interface IOrchestrator {
    */
   getAggregateZeroInitBrace(): string;
 
+  /**
+   * #1283: the ADR-029 default of a struct, repeated over `dimensions` for an
+   * array, or null when the struct's default is all zero. One spelling for
+   * every declaration site and for the generated `<Struct>_init()`.
+   */
+  renderStructDefault(
+    structName: string,
+    dimensions: readonly (number | string)[],
+  ): string | null;
+
   // === Expression Analysis ===
 
   // === Function Call Helpers ===

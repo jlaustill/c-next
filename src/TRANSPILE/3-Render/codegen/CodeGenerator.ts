@@ -75,6 +75,8 @@ import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
 import type IRecordedRequirement from "../../../types/IRecordedRequirement";
 import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
 import TranspileState from "../../TranspileState";
+import StructDefaultInitializer from "./helpers/StructDefaultInitializer";
+import EnumZeroValue from "./helpers/EnumZeroValue";
 
 /**
  * Code Generator - Transpiles C-Next to C
@@ -318,6 +320,30 @@ export default class CodeGenerator implements IOrchestrator {
    */
   isCppMode(): boolean {
     return this.state.cppMode;
+  }
+
+  /**
+   * Part of IOrchestrator interface. See `StructDefault` for the decision and
+   * `StructDefaultInitializer` for its spelling.
+   */
+  renderStructDefault(
+    structName: string,
+    dimensions: readonly (number | string)[],
+  ): string | null {
+    const symbols = this.state.symbols;
+    if (!symbols) {
+      return null;
+    }
+    return StructDefaultInitializer.render(structName, dimensions, {
+      structFields: symbols.structFields,
+      structFieldDimensions: symbols.structFieldDimensions,
+      isCallbackType: (typeName) => this.state.callbackTypes.has(typeName),
+      cppMode: this.state.cppMode,
+      enumZeroOf: (typeName) =>
+        symbols.knownEnums.has(typeName)
+          ? EnumZeroValue.of(symbols.enumMembers, typeName)
+          : null,
+    });
   }
 
   /**

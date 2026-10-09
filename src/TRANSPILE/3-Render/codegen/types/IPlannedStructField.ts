@@ -50,9 +50,6 @@ interface IPlannedStructField {
 
   /** The rendered `[16]` from after the name, or `""` when there are none. */
   readonly renderNameDimensions: () => string;
-
-  /** ADR-017's zero for this field's type, rendered. */
-  readonly renderZeroInitializer: () => string;
 }
 
 export default IPlannedStructField;

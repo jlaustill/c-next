@@ -8,16 +8,15 @@
  * defines it, and the `.c` includes that header (#1205).
  *
  * Both spellings live here. The declaration must not be produced by asking the
- * header's own data whether a struct has a callback field: the `.c` walks the
- * parse tree and only top-level structs reach this generator, while the
- * header's `structFields` map also holds scope-nested structs, which get no
- * init function at all (#1283). Re-deriving the predicate on the header side
+ * header's own data whether a struct has a default: only top-level structs
+ * reach the generator that defines one, while the header's `structFields` map
+ * also holds scope-nested structs, which are initialized at their declarations
+ * but get no init function. Re-deriving the predicate on the header side
  * would declare `Scope__Nested_init` for a function nobody defines. The
  * existence decision is therefore recorded where it is made and read
  * everywhere else; only the spelling lives in this module.
  */
 import ComplianceAnnotations from "../../../2-Plan/ComplianceAnnotations";
-import IStructFieldInit from "../types/IStructFieldInit";
 
 /**
  * Compliance annotation for the emitted declarations (C-Next standard: codegen
@@ -45,45 +44,23 @@ class StructInitFunction {
   }
 
   /**
-   * The `.c` definition: zero the whole struct, then assign only the fields
-   * whose correct value is not zero.
+   * The `.c` definition: return the struct's ADR-029 default.
    *
-   * #1568: this was a compound literal naming each field with that type's zero
-   * initializer, and the zero came from the helper that answers for a
-   * *declaration* position. A designated initializer is a stricter position in
-   * both directions -- `.data = 0` for an array is
-   * `-Wmissing-braces`, and `.ticks = {0}` for a scalar typedef from a C header
-   * is `braces around scalar initializer`. Neither shape exists in the corpus,
-   * so both compiled green.
-   *
-   * Zeroing the aggregate once removes the question instead of answering it per
-   * field: arrays, foreign typedefs and nested structs are all covered by the
-   * one brace, and no array-ness has to be re-derived here. That matters beyond
-   * the bug -- the field declaration reads array-ness from three sources, so a
-   * per-field initializer would have had to re-derive all three and drift from
-   * them.
+   * #1283: the body is the same brace every declaration with no initializer
+   * uses (`StructDefaultInitializer`), so calling this function and declaring
+   * a variable cannot produce different values.
    *
    * @param structName - The struct being initialized
-   * @param zeroBrace - Aggregate zero for the current mode, from the orchestrator
-   * @param assignments - Fields whose value is not zero, in declaration order
+   * @param defaultBrace - The struct's default, from `StructDefaultInitializer`
    */
-  static definition(
-    structName: string,
-    zeroBrace: string,
-    assignments: readonly IStructFieldInit[],
-  ): string {
-    const lines: string[] = [
+  static definition(structName: string, defaultBrace: string): string {
+    return [
       `${StructInitFunction.signature(structName)} {`,
-      `    ${structName} value = ${zeroBrace};`,
-    ];
-
-    for (const field of assignments) {
-      lines.push(`    value.${field.fieldName} = ${field.initializer};`);
-    }
-
-    lines.push(`    return value;`, `}`, "");
-
-    return lines.join("\n");
+      `    ${structName} value = ${defaultBrace};`,
+      `    return value;`,
+      `}`,
+      "",
+    ].join("\n");
   }
 
   /**

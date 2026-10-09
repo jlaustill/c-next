@@ -26,7 +26,6 @@ import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import TGeneratorEffect from "../TGeneratorEffect";
 import ICodeGenSymbols from "../../../../../types/ICodeGenSymbols";
-import IStructFieldInit from "../../types/IStructFieldInit";
 import StructInitFunction from "../../helpers/StructInitFunction";
 import type IPlannedStruct from "../../types/IPlannedStruct";
 import type IPlannedStructField from "../../types/IPlannedStructField";
@@ -111,18 +110,6 @@ const generateStruct: TGeneratorFn<IPlannedStruct> = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
   const { name } = planned;
-  // #1566: the fields the ADR-029 init function assigns, in declaration order.
-  // Only the ones whose correct value is NOT zero -- everything else is covered
-  // by zeroing the aggregate once, so no array-ness is re-derived here.
-  //
-  // #1568: `hasCallbackField` is set in the loop below rather than by a second
-  // pass applying the same predicate. Two copies agree only while their text is
-  // identical: if callback detection gained a case and one copy learned it, the
-  // loop would collect fields while the flag reported no init function, and the
-  // header would declare nothing for a struct whose fields were still assigned.
-  const assignments: IStructFieldInit[] = [];
-  let hasCallbackField = false;
-
   const lines: string[] = [];
   // Issue #296: Use named struct for forward declaration compatibility
   lines.push(`typedef struct ${name} {`);
@@ -134,12 +121,6 @@ const generateStruct: TGeneratorFn<IPlannedStruct> = (
     // ADR-029: Check if this is a callback type field
     if (input.callbackTypes.has(typeName)) {
       const callbackInfo = input.callbackTypes.get(typeName)!;
-      hasCallbackField = true;
-      // ADR-029 "Never Null": a callback field initializes to the function its
-      // type was defined from. #1565: for an ARRAY of a callback type this
-      // assigns element 0 only and leaves the rest null, which that guarantee
-      // forbids -- filed, not fixed here, and unreachable from the corpus.
-      assignments.push({ fieldName, initializer: typeName });
 
       // Track callback field for assignment validation via effect
       effects.push({
@@ -150,20 +131,6 @@ const generateStruct: TGeneratorFn<IPlannedStruct> = (
 
       lines.push(generateCallbackField(field, callbackInfo));
     } else {
-      // An enum is the one non-callback field whose zero is not the aggregate's
-      // zero: `enum Mode { IDLE <- 5, RUNNING }` has no enumerator 0, so zeroing
-      // leaves the field holding a value outside its own type. Assigning a
-      // literal 0 is not the alternative -- that is `invalid conversion from
-      // 'int' to 'Mode'` in C++ -- so the value comes from the per-type zero,
-      // which resolves an enum to a real enumerator. Every other field is
-      // correctly covered by the aggregate zero and gets no assignment.
-      if (input.symbols?.knownEnums.has(typeName) === true) {
-        assignments.push({
-          fieldName,
-          initializer: field.renderZeroInitializer(),
-        });
-      }
-
       // Regular field handling
       lines.push(generateRegularField(field, name, input));
     }
@@ -180,15 +147,12 @@ const generateStruct: TGeneratorFn<IPlannedStruct> = (
   // #1205: the init function is emitted here and declared in the header. The
   // header is told which structs got one rather than working it out again --
   // see StructInitFunction for why re-deriving it there is wrong.
+  // #1283/#1570: a struct gets one exactly when its default is not all zero,
+  // which includes a struct whose only callback is in a nested struct field.
   const initFunction: string[] = [];
-  if (hasCallbackField) {
-    initFunction.push(
-      StructInitFunction.definition(
-        name,
-        orchestrator.getAggregateZeroInitBrace(),
-        assignments,
-      ),
-    );
+  const defaultBrace = orchestrator.renderStructDefault(name, []);
+  if (defaultBrace !== null) {
+    initFunction.push(StructInitFunction.definition(name, defaultBrace));
     effects.push({ type: "register-struct-init", structName: name });
   }
 

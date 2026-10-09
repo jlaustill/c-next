@@ -1,0 +1,33 @@
+// test-execution
+// test-adr: 029
+// #1570: a field whose type is a struct with an ADR-029 default holds that
+// default -- for a scalar field and every element of an array field.
+u32 onSample(u32 input) {
+    return input + 1;
+}
+
+struct Inner {
+    onSample handler;
+    u8 v;
+}
+
+struct Outer {
+    Inner inner;
+    Inner[2] inners;
+}
+
+Outer globalOuter;
+
+u32 main() {
+    u32 r <- 0;
+    Outer o;
+    r <- o.inner.handler(1);
+    if (r != 2) return 1;
+    r <- o.inners[1].handler(2);
+    if (r != 3) return 2;
+    r <- globalOuter.inner.handler(3);
+    if (r != 4) return 3;
+    r <- globalOuter.inners[1].handler(4);
+    if (r != 5) return 4;
+    return 0;
+}

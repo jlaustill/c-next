@@ -1,0 +1,29 @@
+// test-execution
+// test-no-warnings
+// test-adr: 029
+// #1565: every element of a callback array field holds the default function,
+// not element 0 only. test-no-warnings: the old `.handlers = onSample` was a
+// -Wmissing-braces warning that still compiled.
+u32 onSample(u32 input) {
+    return input + 1;
+}
+
+struct Bank {
+    onSample[3] handlers;
+}
+
+Bank globalBank;
+
+u32 main() {
+    u32 r <- 0;
+    Bank b;
+    r <- b.handlers[0](1);
+    if (r != 2) return 1;
+    r <- b.handlers[1](2);
+    if (r != 3) return 2;
+    r <- b.handlers[2](3);
+    if (r != 4) return 3;
+    r <- globalBank.handlers[2](4);
+    if (r != 5) return 4;
+    return 0;
+}

@@ -11,6 +11,8 @@
  * 7. Per-field struct tracking
  */
 
+import StructDefault from "../../utils/StructDefault";
+import type IStructDefaultFacts from "../../types/IStructDefaultFacts";
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
@@ -132,6 +134,11 @@ class InitializationListener extends CNextListener {
     // Check if this is a string type (string<N> or string)
     const isStringType = typeCtx.stringType() !== null;
 
+    // #1283: an array of structs is tracked as a whole, so its element type is
+    // what says whether ADR-029 already initialized it.
+    const arrayElementTypeName =
+      typeCtx.arrayType()?.userType()?.IDENTIFIER().getText() ?? null;
+
     this.analyzer.declareVariable(
       name,
       line,
@@ -139,6 +146,7 @@ class InitializationListener extends CNextListener {
       hasInitializer,
       typeName,
       isStringType,
+      arrayElementTypeName,
     );
   };
 
@@ -784,6 +792,7 @@ class InitializationAnalyzer {
     hasInitializer: boolean,
     typeName: string | null,
     isStringType: boolean = false,
+    arrayElementTypeName: string | null = null,
   ): void {
     if (!this.scopeStack.hasActiveScope()) {
       // Global scope - create implicit scope
@@ -797,7 +806,13 @@ class InitializationAnalyzer {
 
     // Issue #503: C++ classes with default constructors are automatically initialized
     const isCppClassType = typeName !== null && this.isCppClass(typeName);
-    const isInitialized = hasInitializer || isCppClassType;
+    // #1283: ADR-029 "Never Null" -- every element of an array of a struct
+    // with a default already holds it, which is all the whole-array tracking
+    // here can say.
+    const elementHasDefault =
+      arrayElementTypeName !== null &&
+      StructDefault.hasDefault(arrayElementTypeName, this.structDefaultFacts());
+    const isInitialized = hasInitializer || isCppClassType || elementHasDefault;
 
     const state: IVariableState = {
       declaration: { name, line, column },
@@ -805,11 +820,35 @@ class InitializationAnalyzer {
       typeName,
       isStruct,
       isStringType,
-      // If initialized with full struct initializer or C++ class, all fields are initialized
-      initializedFields: isInitialized ? new Set(fields) : new Set(),
+      // If initialized with full struct initializer or C++ class, all fields
+      // are initialized. Otherwise #1283: the fields ADR-029 gives a default
+      // (callbacks, and structs holding one) are initialized at declaration.
+      initializedFields: isInitialized
+        ? new Set(fields)
+        : new Set(
+            typeName === null
+              ? []
+              : StructDefault.fieldsOf(typeName, this.structDefaultFacts()).map(
+                  (field) => field.fieldName,
+                ),
+          ),
     };
 
     this.scopeStack.declare(name, state);
+  }
+
+  /**
+   * The program's struct table, for `StructDefault`. Its callback predicate is
+   * the per-file visible function set that codegen's `callbackTypes` is
+   * registered from (`registerCallbackTypes`).
+   */
+  private structDefaultFacts(): IStructDefaultFacts {
+    const symbols = this.context.symbols;
+    return {
+      structFields: symbols.structFields,
+      structFieldDimensions: symbols.structFieldDimensions,
+      isCallbackType: (typeName) => symbols.functionReturnTypes.has(typeName),
+    };
   }
 
   /**

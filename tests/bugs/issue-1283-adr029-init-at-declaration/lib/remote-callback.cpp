@@ -14,7 +14,6 @@ uint32_t remoteDefault(void) {
 }
 
 Remote Remote_init(void) {
-    Remote value = {};
-    value.handler = remoteDefault;
+    Remote value = { remoteDefault };
     return value;
 }

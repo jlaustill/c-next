@@ -39,8 +39,6 @@ interface IStructFieldDef {
   arrayDims?: string[];
   /** Dimensions written on the TYPE, e.g. "[16]" for `u8[16] data`. */
   typeDims?: string;
-  /** ADR-017's zero for the field's type. */
-  zero?: string;
 }
 
 /** A planned field. */
@@ -54,7 +52,6 @@ function field(def: IStructFieldDef): IPlannedStructField {
     renderTypeDimensions: () => def.typeDims ?? "",
     renderNameDimensions: () =>
       (def.arrayDims ?? []).map((dim) => `[${dim}]`).join(""),
-    renderZeroInitializer: () => def.zero ?? "0",
   };
 }
 
@@ -88,15 +85,24 @@ function createMockState(): IGeneratorState {
 }
 
 /**
- * The generator reaches the orchestrator for one thing now: the aggregate zero
- * brace the ADR-029 init function opens with. Everything else arrives planned.
- *
- * #1568: the init function zeroes the aggregate before assigning the fields
- * whose value is not zero. `{0}` is the C spelling.
+ * The generator reaches the orchestrator for one thing: the struct's ADR-029
+ * default brace, or null when it has none (#1283). The brace's spelling is
+ * `StructDefaultInitializer`'s and is tested there; this mock gives every
+ * struct with a callback field a designated brace naming those fields.
  */
-function createMockOrchestrator(): IOrchestrator {
+function createMockOrchestrator(
+  struct: IPlannedStruct,
+  input: IGeneratorInput,
+): IOrchestrator {
+  const callbackFields = struct.fields.filter((f) =>
+    input.callbackTypes.has(f.typeName),
+  );
+  const brace =
+    callbackFields.length === 0
+      ? null
+      : `{ ${callbackFields.map((f) => `.${f.name} = ${f.typeName}`).join(", ")} }`;
   return {
-    getAggregateZeroInitBrace: () => "{0}",
+    renderStructDefault: () => brace,
   } as unknown as IOrchestrator;
 }
 
@@ -106,7 +112,7 @@ function generate(struct: IPlannedStruct, input: IGeneratorInput) {
     struct,
     input,
     createMockState(),
-    createMockOrchestrator(),
+    createMockOrchestrator(struct, input),
   );
 }
 
@@ -273,13 +279,12 @@ describe("StructGenerator", () => {
 
       const result = generate(struct, input);
 
-      // #1568: the aggregate is zeroed first, then the callback assigned. The
-      // compound literal this replaces named every field with a per-type zero,
-      // which is invalid in a designated-initializer position for an array or a
-      // scalar typedef.
+      // #1283: the body is the struct's default brace, the same one every
+      // declaration with no initializer uses.
       expect(result.code).toContain("Handler Handler_init(void) {");
-      expect(result.code).toContain("Handler value = {0};");
-      expect(result.code).toContain("value.callback = MyCallback;");
+      expect(result.code).toContain(
+        "Handler value = { .callback = MyCallback };",
+      );
       expect(result.code).toContain("return value;");
       expect(result.code).not.toContain("return (Handler){");
     });
@@ -303,12 +308,8 @@ describe("StructGenerator", () => {
 
       const result = generate(struct, input);
 
-      expect(result.code).toContain("EventManager value = {0};");
-      expect(result.code).toContain("value.onStart = StartCallback;");
-      expect(result.code).toContain("value.onStop = StopCallback;");
-      // ADR-029 "Never Null": every callback field is assigned, not just the first
-      expect(result.code.indexOf("value.onStart")).toBeLessThan(
-        result.code.indexOf("value.onStop"),
+      expect(result.code).toContain(
+        "EventManager value = { .onStart = StartCallback, .onStop = StopCallback };",
       );
     });
 
