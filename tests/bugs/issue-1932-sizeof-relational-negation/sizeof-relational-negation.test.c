@@ -13,15 +13,18 @@
 // stopped with "Internal: sizeof()'s operand has no side effects". It asks
 // E0602's question now: whether the operand contains a call.
 //
+// The comparison sits in a ternary's condition because a bare `sizeof(a < -b)`
+// is cppcheck's sizeofCalculation warning, and the fixtures' C must pass it.
+//
 // NEGATIVE CONTROL: `a > -b` never spelled `<-`, and sized before this too.
 int32_t a = 1;
 
 int32_t b = 2;
 
 int main(void) {
-    uint32_t relational = sizeof(a < -b);
+    uint32_t relational = sizeof((a < -b) ? a : b);
     if (relational == 0) return 1U;
-    uint32_t greater = sizeof(a > -b);
+    uint32_t greater = sizeof((a > -b) ? a : b);
     if (greater == 0) return 2U;
     return 0U;
 }
