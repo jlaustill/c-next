@@ -1,0 +1,18 @@
+// test-execution
+// Issue #1946: the strlen cache of a shadowing string local measured the global.
+//
+// A local that shadows a global is emitted under its shadowing name
+// (`main__label`), but the length cache was declared from the source name, as
+// `strlen(label)` -- the u32 global, not the local. gcc only warned
+// (-Wint-conversion) and the program segfaulted, with the transpiler exiting 0.
+// The cache needs two `.char_count` reads; one read was already right.
+
+u32 label <- 0;
+
+u32 main() {
+    string<8> label <- "ab";
+
+    if (label.char_count != 2 || label.char_count < 1) return 1;
+
+    return 0;
+}

@@ -30,6 +30,7 @@ import TPlannedTargetOp from "../../types/TPlannedTargetOp";
 import type IChainBase from "../../types/IChainBase";
 import type TranspileState from "../TranspileState";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import OperandTyper from "../../utils/OperandTyper";
 
 /**
  * Dependencies for building context.
@@ -280,6 +281,10 @@ function buildAssignmentContext(
     postfixOps: ops,
     hasThis,
     hasGlobal,
+    scopePath: OperandTyper.scopePathAt(
+      { line: targetExpr.span.line, column: targetExpr.span.column },
+      deps.state.typingContext(),
+    ),
     hasMemberAccess,
     hasArrayAccess,
     postfixOpsCount: postfixOps.length,

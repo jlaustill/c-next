@@ -101,7 +101,10 @@ const generateIf = (
   const effects: TGeneratorEffect[] = [];
 
   // Set up cache and generate declarations
-  const cacheDecls = orchestrator.setupLengthCache(plan.lengthCounts);
+  const cacheDecls = orchestrator.setupLengthCache(
+    plan.lengthCounts,
+    plan.renderLengthOperand,
+  );
 
   // Generate with cache enabled
   const condition = plan.renderCondition();

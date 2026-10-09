@@ -131,7 +131,10 @@ describe("StringHandlers", () => {
       HandlerTestUtils.declareTypes(state, [
         ["TestScope__memberName", { stringCapacity: 64, baseType: "string" }],
       ]);
-      const ctx = createMockContext({ identifiers: ["memberName"] });
+      const ctx = createMockContext({
+        identifiers: ["memberName"],
+        scopePath: "TestScope",
+      });
 
       const handler = stringHandlers.find(
         ([kind]) => kind === AssignmentKind.STRING_THIS_MEMBER,
@@ -171,6 +174,7 @@ describe("StringHandlers", () => {
         identifiers: ["memberName"],
         hasThis: true,
         isSimpleThisAccess: true,
+        scopePath: "Outer.Inner",
       });
 
       // Half one: the classifier must recognize it through the whole chain.

@@ -14818,6 +14818,21 @@ describe("CodeGenWalker", () => {
 
         expect(code).toContain("strlen(msg)");
       });
+
+      // #1946: the cache measured the global a shadowing local hides.
+      it("measures and keys the cache by the operand as a read renders it", () => {
+        const host = new CodeGenerator();
+
+        const decls = host.setupLengthCache(
+          new Map([["label", 2]]),
+          (name) => `test__${name}`,
+        );
+
+        expect(decls).toBe("size_t cnx_len_label = strlen(test__label);\n");
+        expect(host.state.lengthCache).toEqual(
+          new Map([["test__label", "cnx_len_label"]]),
+        );
+      });
     });
 
     describe("child statement classification helpers", () => {

@@ -274,6 +274,16 @@ jobs:
         run: npm run layout:check
         continue-on-error: true
 
+      # Issue #1934: 2.2 Plan reads nothing 2.3 Render writes (#1313 box 3). It
+      # was a measurement kept in an issue comment, so nothing failed when a
+      # Plan module started reading a field Render sets. ts-morph references
+      # over every TranspileState member, with a probe of three known writes as
+      # the control, so a detector that sees nothing cannot report clean.
+      - name: Check 2.2 Plan reads nothing 2.3 Render writes
+        id: planrenderstate
+        run: npm run plan-render-state:check
+        continue-on-error: true
+
       # Issue #1526: the roster in CLAUDE.md is a list that reads as complete,
       # and it drifted three times in silence. The command it offered as proof
       # was itself wrong twice in ways that cancelled -- it matched the
@@ -311,6 +321,7 @@ jobs:
           [ "${{ steps.unusedcode.outcome }}" != "success" ] && echo "❌ Unused declarations" && FAILED=1 || echo "✅ Unused declarations"
           [ "${{ steps.typedefconst.outcome }}" != "success" ] && echo "❌ Typedef const parity" && FAILED=1 || echo "✅ Typedef const parity"
           [ "${{ steps.layout.outcome }}" != "success" ] && echo "❌ Pass-table layout" && FAILED=1 || echo "✅ Pass-table layout"
+          [ "${{ steps.planrenderstate.outcome }}" != "success" ] && echo "❌ Plan reads no Render state" && FAILED=1 || echo "✅ Plan reads no Render state"
           [ "${{ steps.gateroster.outcome }}" != "success" ] && echo "❌ Gate roster" && FAILED=1 || echo "✅ Gate roster"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
 

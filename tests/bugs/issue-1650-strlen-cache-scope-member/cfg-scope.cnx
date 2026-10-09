@@ -1,0 +1,5 @@
+// Helper for #1650's reopened-scope fixture. Declares scope Cfg's string
+// member; strlen-cache-scope-member-reopened.test.cnx reopens Cfg and reads it.
+scope Cfg {
+    public string<8> label <- "ab";
+}

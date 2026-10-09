@@ -596,15 +596,12 @@ class AssignmentClassifier {
    * Classify this.* patterns: this.reg[bit], this.member, this.REG.MEMBER.field
    */
   private static classifyThisPrefix(ctx: IAssignmentContext): AssignmentKind {
-    if (!ctx.state.currentScopePath) {
+    if (!ctx.scopePath) {
       return AssignmentKind.THIS_MEMBER;
     }
 
     const firstId = ctx.identifiers[0];
-    const scopedRegName = ScopeUtils.qualifyInScope(
-      firstId,
-      ctx.state.currentScopePath,
-    );
+    const scopedRegName = ScopeUtils.qualifyInScope(firstId, ctx.scopePath);
 
     if (ctx.hasArrayAccess) {
       return AssignmentClassifier.classifyThisWithArrayAccess(
@@ -866,7 +863,7 @@ class AssignmentClassifier {
   private static _classifyThisMemberString(
     ctx: IAssignmentContext,
   ): AssignmentKind | null {
-    if (!ctx.isSimpleThisAccess || !ctx.state.currentScopePath) return null;
+    if (!ctx.isSimpleThisAccess || !ctx.scopePath) return null;
     const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
     return AssignmentClassifier.isSimpleStringType(typeInfo)
       ? AssignmentKind.STRING_THIS_MEMBER

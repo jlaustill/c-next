@@ -136,6 +136,7 @@ describe("SpecialHandlers", () => {
         generateAssignmentTarget,
       });
       const ctx = createMockContext({
+        scopePath: "Motor",
         identifiers: ["count"],
         isSimpleIdentifier: false,
         isSimpleThisAccess: true,
@@ -183,6 +184,7 @@ describe("SpecialHandlers", () => {
           .mockReturnValue("Outer__Inner__count"),
       });
       const ctx = createMockContext({
+        scopePath: "Outer.Inner",
         identifiers: ["count"],
         isSimpleIdentifier: false,
         isSimpleThisAccess: true,
@@ -383,6 +385,7 @@ describe("SpecialHandlers", () => {
         generateAssignmentTarget,
       });
       const ctx = createMockContext({
+        scopePath: "Motor",
         identifiers: ["speed"],
         isSimpleIdentifier: false,
         isSimpleThisAccess: true,

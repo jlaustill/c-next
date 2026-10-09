@@ -4274,8 +4274,11 @@ class CodeGenWalker {
         this.host.state,
       );
     }
+    const at = { line: statement.span.line, column: statement.span.column };
     return {
       lengthCounts,
+      renderLengthOperand: (name) =>
+        this._resolveIdentifierExpression(name, at),
       renderCondition: () => this.renderExpression(condition),
       renderThen: () => this.renderStatement(whenTrue),
       renderElse: whenFalse ? () => this.renderStatement(whenFalse) : null,

@@ -80,6 +80,11 @@ class StringLengthCounter {
     }
   }
 
+  /**
+   * #1650: only `name.char_count` counts -- the length of the variable itself,
+   * the operand the cache measures. `names[0].char_count` measures an element,
+   * which a cache of `names` cannot serve.
+   */
   private static walkPostfix(
     expr: TExpressionOf<"postfix">,
     counts: Map<string, number>,
@@ -91,10 +96,11 @@ class StringLengthCounter {
       return;
     }
     if (primary.kind !== "identifier") return;
+    const [first] = expr.ops;
+    if (first?.kind === "member" && first.name === "char_count") {
+      StringLengthCounter.countLengthRead(primary.name, expr, counts, state);
+    }
     for (const op of expr.ops) {
-      if (op.kind === "member" && op.name === "char_count") {
-        StringLengthCounter.countLengthRead(primary.name, expr, counts, state);
-      }
       if (op.kind === "subscript") {
         for (const index of op.indexes) {
           StringLengthCounter.walkExpression(index, counts, state);
@@ -109,7 +115,7 @@ class StringLengthCounter {
     counts: Map<string, number>,
     state: TranspileState,
   ): void {
-    const typeInfo = state.declarationTypeInfo(null, name, {
+    const typeInfo = state.sourceDeclarationTypeInfo(null, name, {
       line: expr.span.line,
       column: expr.span.column,
     });
