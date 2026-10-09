@@ -3101,7 +3101,7 @@ class CodeGenWalker {
     // mutual exclusion. Scope variables are file scope, and the initializer does
     // not affect volatile/atomic handling.
     const modifiers = VariableModifierBuilder.build(
-      varDecl,
+      StatementLowering.variableDeclaration(varDecl).modifiers,
       false,
       false,
       this.host.state,
@@ -3865,7 +3865,7 @@ class CodeGenWalker {
     // Issue #696: Use helper for modifier extraction and validation
     // Issue #852 (MISRA Rule 8.5): hasInitializer and cppMode drive extern
     const modifiers = VariableModifierBuilder.build(
-      ctx,
+      StatementLowering.variableDeclaration(ctx).modifiers,
       this.host.state.inFunctionBody,
       ctx.expression() !== null,
       this.host.state,
@@ -4746,7 +4746,9 @@ class CodeGenWalker {
    */
   private planForVarDecl(ctx: Parser.ForVarDeclContext): IPlannedForVarDecl {
     // Issue #696: Use shared modifier builder
-    const modifiers = VariableModifierBuilder.buildSimple(ctx);
+    const modifiers = VariableModifierBuilder.buildSimple(
+      StatementLowering.variableDeclaration(ctx).modifiers,
+    );
     // #1484: a `for` init declares a variable like any other, including one
     // typed by an ADR-029 function-as-type.
     const typeName = this.generateDeclaredType(ctx.type());
