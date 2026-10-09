@@ -101,6 +101,7 @@ import scopeGenerator from "./3-Render/codegen/generators/declarationGenerators/
 import FormatUtils from "../utils/FormatUtils";
 import TypeCheckUtils from "../utils/TypeCheckUtils";
 import ExpressionShape from "../utils/ExpressionShape";
+import type IChainHead from "../types/IChainHead";
 import ExpressionCalls from "../utils/ExpressionCalls";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
 import includeGenerators from "./3-Render/codegen/generators/support/IncludeGenerator";
@@ -519,34 +520,28 @@ class CodeGenWalker {
    * variable.
    */
   private resolveSubscriptBase(
-    primary: TExpression,
-    rootIdentifier: string | undefined,
-    ops: readonly TPostfixOpSyntax[],
+    head: IChainHead,
   ): { name: string; displayName: string; opOffset: number } | undefined {
-    if (rootIdentifier) {
-      return { name: rootIdentifier, displayName: rootIdentifier, opOffset: 0 };
-    }
-
-    if (primary.kind !== "root") {
+    if (head.identifier === null) {
       return undefined;
     }
-    const prefix = primary.root;
-
-    const first = ops[0];
-    if (first?.kind !== "member") {
-      return undefined;
+    const written = head.identifier.name;
+    if (head.root === null) {
+      return { name: written, displayName: written, opOffset: 0 };
     }
-    const memberName = first.name;
-
     // `this.x` is the scope-qualified variable `Scope_x`; `global.x` is plain `x`.
     const name =
-      prefix === "this"
+      head.root === "this"
         ? QualifiedNameGenerator.forMember(
             this.host.state.currentScopePath,
-            memberName,
+            written,
           )
-        : memberName;
-    return { name, displayName: `${prefix}.${memberName}`, opOffset: 1 };
+        : written;
+    return {
+      name,
+      displayName: `${head.root}.${written}`,
+      opOffset: head.opsConsumed,
+    };
   }
 
   /**
@@ -566,11 +561,8 @@ class CodeGenWalker {
     const ops = expr.kind === "postfix" ? expr.ops : [];
     const rootIdentifier =
       primary.kind === "identifier" ? primary.name : undefined;
-    const subscriptBase = this.resolveSubscriptBase(
-      primary,
-      rootIdentifier,
-      ops,
-    );
+    const head = ExpressionShape.headOf(expr);
+    const subscriptBase = this.resolveSubscriptBase(head);
 
     // #1445 review: planned FIRST, then counted off the planned ops.
     //
@@ -587,7 +579,7 @@ class CodeGenWalker {
     const typing = this.host.state.typingContext();
     const chain = OperandTyper.chainOf(expr, typing);
     const steps = chain.steps;
-    const offset = ops.length - steps.length;
+    const offset = head.opsConsumed;
     const plannedOps = ops.map((op, i) =>
       this.planPostfixOp(op, steps[i - offset] ?? null),
     );

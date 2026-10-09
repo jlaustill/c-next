@@ -75,4 +75,33 @@ describe("ExpressionShape", () => {
       expect(ExpressionShape.rootName(lowered(source))).toBe(expected);
     });
   });
+  describe("headOf", () => {
+    it.each([
+      ["myVar", null, "myVar", 0],
+      ["x[1].y", null, "x", 0],
+      ["this.x.y", "this", "x", 1],
+      ["global.x", "global", "x", 1],
+      ["(a).b", null, null, 0],
+      ["a + b", null, null, 0],
+    ])("%s", (source, root, name, opsConsumed) => {
+      const head = ExpressionShape.headOf(lowered(source));
+
+      expect(head.root).toBe(root);
+      expect(head.identifier?.name ?? null).toBe(name);
+      expect(head.opsConsumed).toBe(opsConsumed);
+    });
+
+    it("puts a rooted chain's call after the consumed name", () => {
+      const head = ExpressionShape.headOf(lowered("this.read()"));
+
+      expect(head.ops[head.opsConsumed]?.kind).toBe("call");
+    });
+
+    it("places a rooted name at its own token, not at the dot", () => {
+      // `void main() { u32 x <- ` is 23 columns; `this.` takes 5 more
+      const head = ExpressionShape.headOf(lowered("this.myVar"));
+
+      expect(head.identifier?.span).toMatchObject({ line: 1, column: 28 });
+    });
+  });
 });

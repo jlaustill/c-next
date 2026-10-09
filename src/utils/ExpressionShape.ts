@@ -1,5 +1,6 @@
 import type TExpression from "../types/syntax/TExpression";
 import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
+import type IChainHead from "../types/IChainHead";
 
 /**
  * Shape questions over a lowered expression, asked by 2.1 Analyze (which lowers
@@ -41,6 +42,31 @@ class ExpressionShape {
   static simpleIdentifier(expr: TExpression): string | null {
     const view = ExpressionShape.postfixView(expr);
     return view?.ops.length === 0 ? ExpressionShape.rootName(expr) : null;
+  }
+
+  /**
+   * A chain's head. A `this.`/`global.` root consumes the chain's first op, and
+   * only a member op names it (`this[0]` names nothing). The typer, render's
+   * subscript base and `UndeclaredValueAnalyzer` all ask this one function, for
+   * expressions and assignment targets alike (#1932).
+   */
+  static headOf(chain: TExpression): IChainHead {
+    const view = ExpressionShape.postfixView(chain);
+    const primary = view?.primary ?? chain;
+    const ops = view?.ops ?? [];
+    if (primary.kind === "root") {
+      const first = ops[0];
+      const identifier =
+        first?.kind === "member"
+          ? { name: first.name, span: first.nameSpan }
+          : null;
+      return { primary, root: primary.root, identifier, ops, opsConsumed: 1 };
+    }
+    const identifier =
+      primary.kind === "identifier"
+        ? { name: primary.name, span: primary.span }
+        : null;
+    return { primary, root: null, identifier, ops, opsConsumed: 0 };
   }
 }
 

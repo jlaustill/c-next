@@ -83,6 +83,10 @@ class SyntaxLowering {
       ? {
           kind: "member",
           name: named.getText(),
+          nameSpan: ParserUtils.getSpan({
+            start: named.symbol,
+            stop: named.symbol,
+          }),
           span: ParserUtils.getSpan({
             start: named.symbol,
             stop: named.symbol,
@@ -110,7 +114,15 @@ class SyntaxLowering {
     const identifier = ctx.IDENTIFIER();
     if (identifier) {
       if (identifier.symbol.tokenIndex < 0) return { kind: "missing", ...node };
-      return { kind: "member", name: identifier.getText(), ...node };
+      return {
+        kind: "member",
+        name: identifier.getText(),
+        nameSpan: ParserUtils.getSpan({
+          start: identifier.symbol,
+          stop: identifier.symbol,
+        }),
+        ...node,
+      };
     }
     const indexes = ctx.expression().map((e) => SyntaxLowering.expression(e));
     if (indexes.length === 1) {
@@ -270,7 +282,15 @@ class SyntaxLowering {
     if (identifier) {
       // a name the parser conjured to recover was never written
       if (identifier.symbol.tokenIndex < 0) return { kind: "missing", ...node };
-      return { kind: "member", name: identifier.getText(), ...node };
+      return {
+        kind: "member",
+        name: identifier.getText(),
+        nameSpan: ParserUtils.getSpan({
+          start: identifier.symbol,
+          stop: identifier.symbol,
+        }),
+        ...node,
+      };
     }
     const indexes = ctx.expression().map((e) => SyntaxLowering.expression(e));
     if (indexes.length === 1) {
