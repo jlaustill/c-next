@@ -56,11 +56,10 @@ class SizeofListener extends CNextListener {
         ? ctx.type()!.getText()
         : null;
     const expr = ctx.expression();
+    const operand = expr === null ? null : SyntaxLowering.expression(expr);
     const name =
       bareName ??
-      (expr === null
-        ? null
-        : ExpressionShape.simpleIdentifier(SyntaxLowering.expression(expr)));
+      (operand === null ? null : ExpressionShape.simpleIdentifier(operand));
 
     if (name !== null) {
       const parameter = EnclosingFunction.parameterOf(name, ctx);
@@ -77,7 +76,8 @@ class SizeofListener extends CNextListener {
 
     if (
       expr !== null &&
-      ExpressionCalls.containsCall(SyntaxLowering.expression(expr))
+      operand !== null &&
+      ExpressionCalls.containsCall(operand)
     ) {
       this.report(
         expr,
