@@ -1,7 +1,6 @@
 import type ISyntaxNode from "./ISyntaxNode";
 import type TExpression from "./TExpression";
 import type TTypeSyntax from "./TTypeSyntax";
-import type TBlockSyntax from "./TBlockSyntax";
 import type TCaseLabelSyntax from "./TCaseLabelSyntax";
 import type IVariableDeclarationSyntax from "./IVariableDeclarationSyntax";
 import type IAssignmentSyntax from "./IAssignmentSyntax";
@@ -14,6 +13,9 @@ import type IAssignmentSyntax from "./IAssignmentSyntax";
  *
  * The shape is the grammar's: one kind per `statement` alternative.
  */
+/** `{ ... }`; `TBlockSyntax` names it for callers (declared here so the two do not import each other) */
+type TBody = ISyntaxNode & { readonly statements: readonly TStatement[] };
+
 type TStatement = ISyntaxNode &
   (
     | ({ readonly kind: "variableDeclaration" } & IVariableDeclarationSyntax)
@@ -41,7 +43,7 @@ type TStatement = ISyntaxNode &
       }
     | {
         readonly kind: "doWhile";
-        readonly body: TBlockSyntax;
+        readonly body: TBody;
         readonly condition: TExpression;
       }
     | {
@@ -56,25 +58,25 @@ type TStatement = ISyntaxNode &
         readonly update: IAssignmentSyntax | null;
         readonly body: TStatement;
       }
-    | { readonly kind: "forever"; readonly body: TBlockSyntax }
+    | { readonly kind: "forever"; readonly body: TBody }
     | {
         readonly kind: "switch";
         readonly subject: TExpression;
         readonly cases: readonly (ISyntaxNode & {
           readonly labels: readonly TCaseLabelSyntax[];
-          readonly body: TBlockSyntax;
+          readonly body: TBody;
         })[];
         readonly defaultCase:
           | (ISyntaxNode & {
               /** `default(n)`: the count as written, or null */
               readonly count: string | null;
-              readonly body: TBlockSyntax;
+              readonly body: TBody;
             })
           | null;
       }
     | { readonly kind: "return"; readonly value: TExpression | null }
-    | { readonly kind: "critical"; readonly body: TBlockSyntax }
-    | ({ readonly kind: "block" } & Pick<TBlockSyntax, "statements">)
+    | { readonly kind: "critical"; readonly body: TBody }
+    | ({ readonly kind: "block" } & Pick<TBody, "statements">)
   );
 
 export default TStatement;
