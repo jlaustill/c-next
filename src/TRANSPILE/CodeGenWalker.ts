@@ -854,8 +854,7 @@ class CodeGenWalker {
    * Issue #1030: Extended to handle struct member access (e.g., person.name)
    */
   private isStringExpression(expr: TExpression): boolean {
-    // `written` runs from the first token to the last, as `getText` did
-    if (expr.written.startsWith('"') && expr.written.endsWith('"')) {
+    if (expr.kind === "literal" && expr.literalKind === "string") {
       return true;
     }
 

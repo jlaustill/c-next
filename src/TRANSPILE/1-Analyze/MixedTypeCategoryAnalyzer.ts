@@ -117,10 +117,6 @@ class MixedCategoryCheck {
   }
 
   /**
-   * An operand's Rule 10.4 category, or null when it has none. The policy
-   * over the typer's facts, decided here and only here.
-   */
-  /**
    * One key per written node: each lowering builds new objects, so a level is
    * known again by where it was written, not by identity.
    */
@@ -129,6 +125,10 @@ class MixedCategoryCheck {
     return `${expr.kind}:${line}:${column}:${endLine}:${endColumn}`;
   }
 
+  /**
+   * An operand's Rule 10.4 category, or null when it has none. The policy
+   * over the typer's facts, decided here and only here.
+   */
   static rule104Category(t: IOperandType | null): Category {
     if (t === null) return null;
     // An array is not an arithmetic operand of any category (#1191)

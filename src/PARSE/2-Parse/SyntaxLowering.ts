@@ -13,6 +13,7 @@
 import type { ParserRuleContext, ParseTree } from "antlr4ng";
 import * as Parser from "./grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
+import ChainRoot from "../../utils/ChainRoot";
 import invariant from "../../utils/invariant";
 import type ISyntaxNode from "../../types/syntax/ISyntaxNode";
 import type TBinaryLevel from "../../types/syntax/TBinaryLevel";
@@ -56,11 +57,7 @@ class SyntaxLowering {
     const ops = ctx
       .postfixTargetOp()
       .map((op) => SyntaxLowering.postfixTargetOp(op));
-    const root: "this" | "global" | null = ctx.THIS()
-      ? "this"
-      : ctx.GLOBAL()
-        ? "global"
-        : null;
+    const root = ChainRoot.ofTarget(ctx);
     if (root === null) {
       const head: TExpression = named
         ? {

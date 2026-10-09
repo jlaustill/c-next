@@ -13,6 +13,7 @@
  * or C++ header's operand is typed by `ForeignTypeFacts` from its spelling
  * and the run's target.
  */
+import ExpressionCalls from "./ExpressionCalls";
 import ConstExprLowering from "./ConstExprLowering";
 import ConstantEvaluator from "./ConstantEvaluator";
 import ConstantFold from "./ConstantFold";
@@ -92,33 +93,9 @@ class OperandTyper {
    */
   static hasSideEffect(expr: TExpression, ctx: ITypingContext): boolean {
     return (
-      OperandTyper.callsAtTop(expr) ||
+      ExpressionCalls.callsAtTop(expr) ||
       OperandTyper.typeOf(expr, ctx)?.hasSideEffect === true
     );
-  }
-
-  /**
-   * Whether a call is one of an expression's own operations: through its
-   * operators and unary prefixes, not into a parenthesized expression or a
-   * call's arguments (#254, #366).
-   */
-  private static callsAtTop(expr: TExpression): boolean {
-    switch (expr.kind) {
-      case "ternary":
-        return [expr.condition, expr.whenTrue, expr.whenFalse].some((arm) =>
-          OperandTyper.callsAtTop(arm),
-        );
-      case "binary":
-        return expr.operands.some((operand) =>
-          OperandTyper.callsAtTop(operand),
-        );
-      case "unary":
-        return OperandTyper.callsAtTop(expr.operand);
-      case "postfix":
-        return expr.ops.some((op) => op.kind === "call");
-      default:
-        return false;
-    }
   }
 
   /**
@@ -396,8 +373,6 @@ class OperandTyper {
   // --------------------------------------------------------------------------
   // Levels
   // --------------------------------------------------------------------------
-
-  /** Through every level that has exactly one rule child and nothing else */
 
   private static isBooleanLevel(expr: TExpressionOf<"binary">): boolean {
     return (
@@ -885,10 +860,6 @@ class OperandTyper {
       ops,
     };
   }
-
-  /** A target spells `this.name` in the rule itself */
-
-  /** An expression's first postfix op is a `this.`/`global.` root's `.name` */
 
   /** `this.name` or `global.name`, with that first member consumed */
   private static rootedStart(
