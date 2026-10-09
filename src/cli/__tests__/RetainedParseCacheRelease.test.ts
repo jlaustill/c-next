@@ -42,32 +42,6 @@ describe("#1301: the retained-parse cache is released at end of run", () => {
       .retainedParses.size;
   }
 
-  /**
-   * The walker's own parse state, which the cache clear cannot reach.
-   *
-   * #1445 box 2: `tokenStream` and the `CommentScanner` over it are assigned
-   * per file in `generate()` and used to live past the run, so the same idle
-   * language server that motivated the cache release was still holding the last
-   * request's token stream through the walker instead of through the map.
-   */
-  function walkerParseState(transpiler: Transpiler): string[] {
-    const walker = (
-      transpiler as unknown as {
-        codeGenerator: Record<string, unknown>;
-      }
-    ).codeGenerator;
-
-    // NAMES, never the values. `toEqual([])` against a live `CommonTokenStream`
-    // makes vitest serialize the token list, the parser and the ATN to build a
-    // diff, and the run dies with "JavaScript heap out of memory" before it can
-    // report which field leaked -- measured, by mutating the release away. A
-    // guard that cannot print its own failure is barely better than one that
-    // cannot fail.
-    return ["tokenStream", "commentExtractor"].filter(
-      (field) => walker[field] !== null && walker[field] !== undefined,
-    );
-  }
-
   function writeProject(): string {
     writeFileSync(
       join(tempDir, "lib.cnx"),
@@ -105,7 +79,6 @@ describe("#1301: the retained-parse cache is released at end of run", () => {
     expect(result.files.length).toBeGreaterThan(0);
 
     expect(cacheSize(transpiler)).toBe(0);
-    expect(walkerParseState(transpiler)).toEqual([]);
   });
 
   it("holds nothing after a run that fails in stage 5", async () => {
@@ -128,7 +101,6 @@ describe("#1301: the retained-parse cache is released at end of run", () => {
 
     expect(result.success).toBe(false);
     expect(cacheSize(transpiler)).toBe(0);
-    expect(walkerParseState(transpiler)).toEqual([]);
   });
 
   it("holds nothing between runs on a reused instance (the ServeCommand shape)", async () => {
@@ -138,11 +110,9 @@ describe("#1301: the retained-parse cache is released at end of run", () => {
     const first = await transpiler.transpile({ kind: "files" });
     expect(first.success).toBe(true);
     expect(cacheSize(transpiler)).toBe(0);
-    expect(walkerParseState(transpiler)).toEqual([]);
 
     const second = await transpiler.transpile({ kind: "files" });
     expect(second.success).toBe(true);
     expect(cacheSize(transpiler)).toBe(0);
-    expect(walkerParseState(transpiler)).toEqual([]);
   });
 });

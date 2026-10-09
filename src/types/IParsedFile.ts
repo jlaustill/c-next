@@ -4,6 +4,7 @@ import type * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import type IComment from "./IComment";
 import type ITargetDirective from "./ITargetDirective";
 import type ITranspileError from "./ITranspileError";
+import type IProgramSyntax from "./syntax/IProgramSyntax";
 
 /**
  * What 1.2 Parse produces for one file: syntax, and nothing derived from it.
@@ -70,6 +71,8 @@ interface IParsedFile {
    * pass that can see it for free, not because a consumer was waiting.
    */
   readonly comments: readonly IComment[];
+  /** The file as plain data (#1932): what passes after 2.1 read instead of `tree` */
+  readonly program: IProgramSyntax;
 
   /**
    * The file's `#pragma` lines as plain data (ADR-049), for 1.4 to settle the

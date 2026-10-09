@@ -122,7 +122,7 @@ function createMinimalGenerator(
 const generateWithProgram = (
   generator: CodeGenWalker,
   tree: Parser.ProgramContext,
-  tokenStream: Parameters<CodeGenWalker["generate"]>[1],
+  tokenStream: Parameters<typeof ProgramGeneration.generate>[2],
   options: Parameters<typeof ProgramGeneration.generate>[3],
 ): ReturnType<CodeGenWalker["generate"]> =>
   ProgramGeneration.generate(generator, tree, tokenStream, options, registry);

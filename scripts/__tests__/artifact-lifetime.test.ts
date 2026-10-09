@@ -298,7 +298,7 @@ describe("artifact lifetime (#1445 box 2)", () => {
   it(
     "pins every field outside the parser that holds a parse node",
     () => {
-      // An EXHAUSTIVE roster, not an emptiness claim. Four fields legitimately
+      // An EXHAUSTIVE roster, not an emptiness claim. Two fields legitimately
       // hold one and all are released when the run ends; asserting "none" would
       // have to exempt them, and an exemption is invisible once written. A roster
       // makes a fifth holder a failing diff.
@@ -321,18 +321,13 @@ describe("artifact lifetime (#1445 box 2)", () => {
         [
           // #1301: Stage 5 reuses Stage 3's parse. Cleared in a `finally`, which
           // `RetainedParseCacheRelease.test.ts` asserts and mutation-checks.
-          "src/cli/Transpiler.ts Transpiler.codeGenerator",
+          // The walker held one too (`tokenStream` and its `CommentScanner`)
+          // until #1932 handed it the plain-data `IProgramSyntax` instead.
           "src/cli/Transpiler.ts Transpiler.retainedParses",
-          // The walk itself. `tokenStream` and the `CommentScanner` over it are
-          // ADR-043 comment plumbing, assigned per file and released by
-          // `releaseParseState()` at run end -- they used not to be, which is the
-          // residency defect #1445 box 2 found and fixed.
-          "src/TRANSPILE/CodeGenWalker.ts CodeGenWalker.commentExtractor",
-          "src/TRANSPILE/CodeGenWalker.ts CodeGenWalker.tokenStream",
           // The longest-lived holder in the codebase, and `private static` --
           // CLAUDE.md singles it out ("`ServeCommand` holds a static transpiler
           // and serves many requests"). Not a leak: it reaches a tree only
-          // through the two `Transpiler` fields above, which `Transpiler`
+          // through `Transpiler.retainedParses` above, which `Transpiler`
           // clears in a `finally`. It is here because the roster claims to be
           // exhaustive, and a holder reachable only transitively is the one
           // shape the generated `parse-tree-sites.md` backstop cannot see.

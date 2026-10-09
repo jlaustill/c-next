@@ -388,7 +388,6 @@ class Transpiler {
 
       // #1445 box 2: the walker holds the token stream and the comment scanner
       // over it on its own fields, which the map clear above cannot reach.
-      this.codeGenerator.releaseParseState();
     }
   }
 
@@ -1094,8 +1093,8 @@ class Transpiler {
     AdrProvenance.beginFile(sourcePath);
 
     try {
-      const { tree, tokenStream, declarationCount } =
-        this._requireRetainedParse(sourcePath);
+      const parsed = this._requireRetainedParse(sourcePath);
+      const { declarationCount } = parsed;
 
       // Parse only mode
       if (this.config.parseOnly) {
@@ -1112,7 +1111,7 @@ class Transpiler {
       const sourceRelativePath =
         file.sourceRelativePath ??
         this.anchor.pathResolver.getSourceRelativePath(sourcePath);
-      const code = this.codeGenerator.generate(tree, tokenStream, {
+      const code = this.codeGenerator.generate(parsed.program, {
         debugMode: this.config.debugMode,
         targetDescription: this._runTarget().description,
         sourcePath,

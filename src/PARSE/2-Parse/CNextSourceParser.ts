@@ -11,6 +11,8 @@ import { CharStream, CommonTokenStream, Parser, Token } from "antlr4ng";
 import { CNextLexer } from "./grammar/CNextLexer";
 import { CNextParser } from "./grammar/CNextParser";
 import CommentScanner from "./CommentScanner";
+import ProgramLowering from "./ProgramLowering";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import IParsedFile from "../../types/IParsedFile";
 import ITranspileError from "../../types/ITranspileError";
 import CodedErrorText from "../../utils/CodedErrorText";
@@ -225,6 +227,7 @@ class CNextSourceParser {
     // whole-file derivation to collapse -- an earlier draft of this comment
     // said there was, and `IParsedFile` already carries the correction.
     const scanner = new CommentScanner(tokenStream);
+    let program: IProgramSyntax | null = null;
 
     return {
       tree,
@@ -232,6 +235,10 @@ class CNextSourceParser {
       declarationCount,
       get comments() {
         return scanner.extractAll();
+      },
+      get program() {
+        program ??= ProgramLowering.program(tree, scanner);
+        return program;
       },
       targetDirectives: TargetDirectives.read(tree),
       parseErrors: errors,
