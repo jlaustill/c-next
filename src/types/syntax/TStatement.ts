@@ -13,7 +13,7 @@ import type IAssignmentSyntax from "./IAssignmentSyntax";
  *
  * The shape is the grammar's: one kind per `statement` alternative.
  */
-/** `{ ... }`; `TBlockSyntax` names it for callers (declared here so the two do not import each other) */
+/** `{ ... }`; `TBlockSyntax` derives its name for callers from here */
 type TBody = ISyntaxNode & { readonly statements: readonly TStatement[] };
 
 type TStatement = ISyntaxNode &
@@ -77,6 +77,8 @@ type TStatement = ISyntaxNode &
     | { readonly kind: "return"; readonly value: TExpression | null }
     | { readonly kind: "critical"; readonly body: TBody }
     | ({ readonly kind: "block" } & Pick<TBody, "statements">)
+    /** A statement the parser repaired, missing a part it requires */
+    | { readonly kind: "missing" }
   );
 
 export default TStatement;

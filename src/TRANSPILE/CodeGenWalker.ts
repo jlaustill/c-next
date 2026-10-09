@@ -1026,12 +1026,21 @@ class CodeGenWalker {
           this.planReturn(statement),
         );
       case "critical":
+        // ADR-050: a critical statement for atomic multi-variable operations.
+        // #1445: the block is rendered here and the generator wraps it, so the
+        // block still renders before the wrapper's irq_wrappers effect is
+        // applied, and effect order is unchanged.
         return this.invokeGenerator(generateCriticalStatement, {
           blockCode: this.renderBlock(statement.body),
           line: statement.span.line,
         });
       case "block":
         return this.renderBlock(statement);
+      case "missing":
+        invariant(
+          false,
+          "a statement the parser repaired never reaches render -- the run stops at the parse error",
+        );
     }
   }
 
@@ -3815,6 +3824,11 @@ class CodeGenWalker {
     const name = decl.name;
     const type = this._inferVariableType(decl);
     this._trackLocalVariable(name);
+    // ADR-057: the identifier this declaration is EMITTED under. Computed once,
+    // here, because the string and array forms below return before the plain
+    // declaration is assembled -- a second call would be a second place
+    // deciding the same thing. Registries keep the source name; only the
+    // generated text moves.
     const emittedName = this.host.state.emittedLocalName(name);
     const stringPlan = this.planStringDecl(decl);
     if (stringPlan) {
@@ -3826,6 +3840,10 @@ class CodeGenWalker {
         isConst: decl.modifiers.const,
       };
     }
+    // Statements rather than an object literal, because the ORDER matters and
+    // an object literal's property order is not something a reader checks:
+    // the array half renders its type dimensions eagerly, and it must do so
+    // before anything the initializer renders.
     const array = this.planArrayDeclaration(decl);
     const initializer = this.planVariableInitializer(decl);
     return {
@@ -3919,6 +3937,9 @@ class CodeGenWalker {
     const hasEmptyDimension =
       arrayDims.includes(null) || hasEmptyArrayTypeDimension;
     const initializer = decl.initializer;
+    // #1822: the inferred path emits its one counted size as the whole suffix,
+    // which is right only for a one-dimensional array. E0892 rejects every
+    // other empty dimension in pass 2.1.
     invariant(
       !hasEmptyDimension || CodeGenWalker.arrayRank(decl) === 1,
       `an array that omits a size is one-dimensional -- E0892 rejects '${decl.name}' in pass 2.1, before this runs`,
@@ -4136,6 +4157,10 @@ class CodeGenWalker {
       kind: "array",
       elementCapacity: Number.parseInt(elementCapacity, 10),
       dimensions,
+      // #1644: the SAME call the loop above renders the declarator with. The
+      // size used to expand a fill-all must equal the size emitted in `[...]`,
+      // or the array is the declared length with the wrong contents.
+      // An omitted size is the declaration's count; a written one folds.
       declaredSize: typeDims[0]
         ? this.foldFirstDimension(typeDims)
         : this.countedSize(decl),
@@ -4252,14 +4277,14 @@ class CodeGenWalker {
    * @public
    */
   analyzeMemberChainForBitAccess(
-    targetCtx: TExpression,
+    targetExpr: TExpression,
     lastStep: IChainStep | undefined,
   ): IBitAccessAnalysis {
     // #1668 (C12): what the last subscript indexes is the typer's answer,
     // typed once with the target (`IChainBase.last`)
     return MemberChainAnalyzer.analyze(
       lastStep,
-      AssignmentTarget.parts(targetCtx).ops.map((op) => this.planTargetOp(op)),
+      AssignmentTarget.parts(targetExpr).ops.map((op) => this.planTargetOp(op)),
     );
   }
 
@@ -4310,12 +4335,12 @@ class CodeGenWalker {
    * its own width, so it has none (#1085).
    */
   private assignedValueType(
-    targetCtx: TExpression,
+    targetExpr: TExpression,
     target: IChainBase,
   ): string | null {
     if (target.last?.subscript === "array_slice") return null;
     const written = OperandTyper.typeOfTarget(
-      targetCtx,
+      targetExpr,
       this.host.state.typingContext(),
     );
     const name = written?.cType ?? written?.typeName ?? null;
@@ -4328,12 +4353,12 @@ class CodeGenWalker {
   }
 
   private generateAssignment(site: IAssignmentSyntax): string {
-    const targetCtx = site.target;
+    const targetExpr = site.target;
 
     // #1668 (C7): what the target writes, bound once -- the expected type
     // below and every classifier rule and handler read this
-    const target = this.targetDeclaration(targetCtx);
-    const expectedType = this.assignedValueType(targetCtx, target);
+    const target = this.targetDeclaration(targetExpr);
+    const expectedType = this.assignedValueType(targetExpr, target);
     // withExpectedType restores expectedType however the render exits
     const value = this.host.state.withExpectedType(expectedType, () =>
       this.renderExpression(site.value),
@@ -4355,7 +4380,7 @@ class CodeGenWalker {
     // Writing to a float invalidates its bit-shadow: the union copy is stale
     // until the next read refreshes it. Only a whole-variable assignment does
     // this -- writing THROUGH a member or an element does not rebind the float.
-    const parts = AssignmentTarget.parts(targetCtx);
+    const parts = AssignmentTarget.parts(targetExpr);
     if (parts.ops.length === 0) {
       const assignedName = parts.identifier;
       if (assignedName !== null) {
@@ -4638,7 +4663,10 @@ class CodeGenWalker {
     return {
       init: this.planForInit(statement.init),
       renderCondition: () => {
-        invariant(condition !== null, "a for header states its condition");
+        invariant(
+          condition !== null,
+          "a for header states its condition -- E0707 rejects an empty one in pass 2.1, before this runs",
+        );
         return this.renderExpression(condition);
       },
       update: update ? this.planForAssignment(update) : null,

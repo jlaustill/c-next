@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import CNextSourceParser from "../CNextSourceParser";
 import * as Parser from "../grammar/CNextParser";
+import StatementLowering from "../StatementLowering";
 import SyntaxLowering from "../SyntaxLowering";
 import ConstExprLowering from "../../../utils/ConstExprLowering";
 import type TExpression from "../../../types/syntax/TExpression";
@@ -259,6 +260,11 @@ describe("SyntaxLowering on recovered trees", () => {
     (run: string) => `void f() { for (a <- 0; a < 1; ${run} +<- 1) {} }`,
     (run: string) => `void f() { for (${run} <- 0; a < 1; a +<- 1) {} }`,
     (run: string) => `void f() { ${run} <- 1; }`,
+    // #1950 review: statements whose required parts recovery drops
+    (run: string) => `void f() { if (${run}) { } }`,
+    (run: string) => `void f() { while (${run} }`,
+    (run: string) => `void f() { for (u8 i <- 0; ${run}) { } }`,
+    (run: string) => `void f() { ${run} }`,
   ];
 
   /** A seeded pseudo-random generator, so every run sees the same cases */
@@ -272,9 +278,13 @@ describe("SyntaxLowering on recovered trees", () => {
 
   function lowerEverything(
     node: unknown,
-    lowered: { count: number; targets: number },
+    lowered: { count: number; targets: number; statements: number },
   ): void {
-    if (node instanceof Parser.ExpressionContext) {
+    if (node instanceof Parser.StatementContext) {
+      StatementLowering.statement(node);
+      lowered.count++;
+      lowered.statements++;
+    } else if (node instanceof Parser.ExpressionContext) {
       ConstExprLowering.lower(SyntaxLowering.expression(node));
       lowered.count++;
     } else if (node instanceof Parser.TypeContext) {
@@ -292,7 +302,7 @@ describe("SyntaxLowering on recovered trees", () => {
 
   it("never throws, and reaches every position", () => {
     const next = random(1932);
-    const lowered = { count: 0, targets: 0 };
+    const lowered = { count: 0, targets: 0, statements: 0 };
     let recovered = 0;
     for (let i = 0; i < 2000; i++) {
       const length = 1 + Math.floor(next() * 6);
@@ -311,6 +321,26 @@ describe("SyntaxLowering on recovered trees", () => {
     expect(recovered).toBeGreaterThan(1500);
     expect(lowered.count).toBeGreaterThan(recovered);
     expect(lowered.targets).toBeGreaterThan(100);
+    expect(lowered.statements).toBeGreaterThan(100);
+  });
+
+  // #1950 review: each threw before statements had a `missing` kind
+  it.each([
+    "for (i <- 0; i < 3; i) { }",
+    "if () { }",
+    "u8 <- 3;",
+    "for (u8 i <- 0; ; i +<- ) { }",
+    "while (x < 3",
+    "x 5;",
+  ])("lowers the repaired statement in `%s` to a missing part", (body) => {
+    const { tree, parseErrors } = CNextSourceParser.parse(
+      `void f() { ${body} }\n`,
+    );
+    expect(parseErrors.length).toBeGreaterThan(0);
+    const block = tree.declaration()[0].functionDeclaration()!.block();
+    expect(JSON.stringify(StatementLowering.block(block))).toContain(
+      '"kind":"missing"',
+    );
   });
 
   /** Every assignment target in a recovered source, lowered */

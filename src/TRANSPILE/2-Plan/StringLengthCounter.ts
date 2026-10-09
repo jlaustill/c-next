@@ -118,9 +118,6 @@ class StringLengthCounter {
     }
   }
 
-  /**
-   * Walk a statement, counting .char_count accesses.
-   */
   /** The index expressions an assignment target subscripts with */
   private static walkTargetIndexes(
     target: TExpression,
@@ -139,6 +136,9 @@ class StringLengthCounter {
     }
   }
 
+  /**
+   * Walk a statement, counting .char_count accesses.
+   */
   private static walkStatement(
     statement: TStatement,
     counts: Map<string, number>,
