@@ -459,8 +459,8 @@ module.exports = {
         "builds no tree (#1745, owner ruling 2026-09-30; PASS_ORDER `mayRead`). " +
         "Also the library entry points `lib/parseWithSymbols` and " +
         "`lib/parseCHeader` (#1957): each parses one source and hands the tree " +
-        "only to 1.3 Declare for the extension's symbol list, and runs no pass " +
-        "after it. " +
+        "only to 1.3 Declare for the extension's symbol list; 1.4 Resolve then " +
+        "reads symbols, and nothing from 2.1 on runs. " +
         "A structural stand-in -- a later pass declaring its own copy of a " +
         "context's shape -- names no path this rule can match; " +
         "scripts/__tests__/artifact-lifetime.test.ts asks the type checker " +
