@@ -9,10 +9,10 @@
  * Updated for ADR-058: .length replaced with .char_count
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import type TExpression from "../../types/syntax/TExpression";
 import type TExpressionOf from "../../types/syntax/TExpressionOf";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import type TBlockSyntax from "../../types/syntax/TBlockSyntax";
+import type TStatement from "../../types/syntax/TStatement";
 import type TranspileState from "../TranspileState";
 
 /**
@@ -36,11 +36,11 @@ class StringLengthCounter {
    * Count .char_count accesses in a block, adding to existing counts.
    */
   static countBlockInto(
-    ctx: Parser.BlockContext,
+    block: Pick<TBlockSyntax, "statements">,
     counts: Map<string, number>,
     state: TranspileState,
   ): void {
-    for (const stmt of ctx.statement()) {
+    for (const stmt of block.statements) {
       StringLengthCounter.walkStatement(stmt, counts, state);
     }
   }
@@ -118,59 +118,55 @@ class StringLengthCounter {
     }
   }
 
+  /** The index expressions an assignment target subscripts with */
+  private static walkTargetIndexes(
+    target: TExpression,
+    counts: Map<string, number>,
+    state: TranspileState,
+  ): void {
+    if (target.kind !== "postfix") {
+      return;
+    }
+    for (const op of target.ops) {
+      if (op.kind === "subscript") {
+        for (const index of op.indexes) {
+          StringLengthCounter.walkExpression(index, counts, state);
+        }
+      }
+    }
+  }
+
   /**
    * Walk a statement, counting .char_count accesses.
    */
   private static walkStatement(
-    ctx: Parser.StatementContext,
+    statement: TStatement,
     counts: Map<string, number>,
     state: TranspileState,
   ): void {
-    // Assignment statement
-    if (ctx.assignmentStatement()) {
-      const assign = ctx.assignmentStatement()!;
-      // Count in target (array index expressions from postfix ops)
-      const target = assign.assignmentTarget();
-      for (const op of target.postfixTargetOp()) {
-        for (const expr of op.expression()) {
+    switch (statement.kind) {
+      case "assignment":
+        StringLengthCounter.walkTargetIndexes(statement.target, counts, state);
+        StringLengthCounter.walkExpression(statement.value, counts, state);
+        return;
+      case "expression":
+        StringLengthCounter.walkExpression(statement.expression, counts, state);
+        return;
+      case "variableDeclaration":
+        if (statement.initializer) {
           StringLengthCounter.walkExpression(
-            SyntaxLowering.expression(expr),
+            statement.initializer,
             counts,
             state,
           );
         }
-      }
-      // Count in value expression
-      StringLengthCounter.walkExpression(
-        SyntaxLowering.expression(assign.expression()),
-        counts,
-        state,
-      );
+        return;
+      case "block":
+        StringLengthCounter.countBlockInto(statement, counts, state);
+        return;
+      default:
+        return;
     }
-    // Expression statement
-    if (ctx.expressionStatement()) {
-      StringLengthCounter.walkExpression(
-        SyntaxLowering.expression(ctx.expressionStatement()!.expression()),
-        counts,
-        state,
-      );
-    }
-    // Variable declaration
-    if (ctx.variableDeclaration()) {
-      const varDecl = ctx.variableDeclaration()!;
-      if (varDecl.expression()) {
-        StringLengthCounter.walkExpression(
-          SyntaxLowering.expression(varDecl.expression()!),
-          counts,
-          state,
-        );
-      }
-    }
-    // Nested block
-    if (ctx.block()) {
-      StringLengthCounter.countBlockInto(ctx.block()!, counts, state);
-    }
-    // Note: Could add recursion for if/while/for bodies if deeper analysis needed
   }
 }
 

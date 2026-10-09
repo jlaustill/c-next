@@ -76,6 +76,42 @@ class ExpressionShape {
         : null;
     return { primary, root: null, identifier, ops, opsConsumed: 0 };
   }
+
+  /**
+   * The two operands of a two-operand `+`, or null for anything else: the
+   * shape of an ADR-045 concatenation. Subtraction is rejected on the
+   * operator, not the text, because a name or a string literal may contain a
+   * hyphen (#1445).
+   */
+  static additionOperands(
+    expr: TExpression,
+  ): readonly [TExpression, TExpression] | null {
+    if (
+      expr.kind !== "binary" ||
+      expr.level !== "additive" ||
+      expr.operands.length !== 2 ||
+      expr.operators[0] !== "+"
+    ) {
+      return null;
+    }
+    return [expr.operands[0], expr.operands[1]];
+  }
+
+  /**
+   * An identifier with exactly one subscript applied, `s[i]` or `s[i, n]`:
+   * the shape of an ADR-045 substring. The sibling of `simpleIdentifier`.
+   */
+  static subscriptedIdentifier(expr: TExpression): {
+    readonly name: string;
+    readonly indexes: readonly TExpression[];
+  } | null {
+    if (expr.kind !== "postfix" || expr.primary.kind !== "identifier") {
+      return null;
+    }
+    const [op, ...rest] = expr.ops;
+    if (op?.kind !== "subscript" || rest.length > 0) return null;
+    return { name: expr.primary.name, indexes: op.indexes };
+  }
 }
 
 export default ExpressionShape;

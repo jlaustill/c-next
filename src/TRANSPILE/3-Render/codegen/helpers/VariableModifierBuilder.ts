@@ -13,19 +13,13 @@
 import type TranspileState from "../../../TranspileState";
 import IRenderedModifiers from "../types/IRenderedModifiers";
 import invariant from "../../../../utils/invariant";
+import type IVariableDeclarationSyntax from "../../../../types/syntax/IVariableDeclarationSyntax";
 
-/**
- * Context interface for variable declarations that have modifiers.
- * This allows the builder to work with different parser contexts.
- * Uses unknown since we only check truthiness of modifier methods.
- * constModifier is optional because ForVarDeclContext doesn't have it.
- */
-interface IModifierContext {
-  constModifier?: () => unknown;
-  atomicModifier(): unknown;
-  volatileModifier(): unknown;
-  start?: { line?: number } | null;
-}
+/** The written modifiers, as 1.2 lowered them (#1932) */
+type TModifierFlags = Pick<
+  IVariableDeclarationSyntax["modifiers"],
+  "atomic" | "volatile" | "const"
+>;
 
 /**
  * Builds and validates variable modifiers from parser context.
@@ -34,7 +28,7 @@ class VariableModifierBuilder {
   /**
    * Build modifiers for a variable declaration.
    *
-   * @param ctx - Parser context with modifier methods
+   * @param modifiers - The written modifiers
    * @param inFunctionBody - Whether we're inside a function body (affects extern)
    * @param hasInitializer - Whether the variable has an initializer (affects extern in C mode)
    * @param mode - The run's mode, as `TranspileState` holds it from `Program` (#1428)
@@ -42,15 +36,15 @@ class VariableModifierBuilder {
    * @throws Error if both atomic and volatile are specified
    */
   static build(
-    ctx: IModifierContext,
+    modifiers: TModifierFlags,
     inFunctionBody: boolean,
     hasInitializer: boolean,
     mode: Pick<TranspileState, "cppMode">,
   ): IRenderedModifiers {
-    const hasConst = ctx.constModifier?.() ?? false;
+    const hasConst = modifiers.const;
     const constMod = hasConst ? "const " : "";
-    const atomicMod = ctx.atomicModifier() ? "volatile " : "";
-    const volatileMod = ctx.volatileModifier() ? "volatile " : "";
+    const atomicMod = modifiers.atomic ? "volatile " : "";
+    const volatileMod = modifiers.volatile ? "volatile " : "";
 
     // Issue #525: Add extern for top-level const in C++ for external linkage
     // In C++, const at file scope has internal linkage by default, so extern is needed.
@@ -71,7 +65,7 @@ class VariableModifierBuilder {
     // not belong in the builder that also decides linkage, and its position no
     // longer has to be spelled into the message.
     invariant(
-      !(ctx.atomicModifier() && ctx.volatileModifier()),
+      !(modifiers.atomic && modifiers.volatile),
       "a declaration carries `atomic` or `volatile`, not both -- E0889 rejects this in pass 2.1, before this runs",
     );
 
@@ -86,15 +80,15 @@ class VariableModifierBuilder {
   /**
    * Build simple modifiers (atomic and volatile only) for contexts like for-loop vars.
    *
-   * @param ctx - Parser context with modifier methods
+   * @param modifiers - The written modifiers
    * @returns Modifier strings (just atomic and volatile)
    */
   static buildSimple(
-    ctx: IModifierContext,
+    modifiers: Pick<TModifierFlags, "atomic" | "volatile">,
   ): Pick<IRenderedModifiers, "atomic" | "volatile"> {
     return {
-      atomic: ctx.atomicModifier() ? "volatile " : "",
-      volatile: ctx.volatileModifier() ? "volatile " : "",
+      atomic: modifiers.atomic ? "volatile " : "",
+      volatile: modifiers.volatile ? "volatile " : "",
     };
   }
 
