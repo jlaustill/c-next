@@ -1,7 +1,7 @@
 /**
  * NameExistence — one answer to "does this name denote anything visible HERE?"
  *
- * `TypeBinding` maps a type context to a C name; it never asks whether the name
+ * `TypeNameLadder` maps a written type to a C name; it never asks whether the name
  * denotes a type, and its `null` means "no grammar alternative matched", not
  * "not found". So every position that consumes a name fell back to emitting the
  * raw source text: `CodeGenerator.getTypeName` via `resolved ?? ctx.getText()`
@@ -64,7 +64,7 @@ class NameExistence {
    * Only the bare `userType()` branch belongs here. `this.T`, `global.T` and
    * `Scope.T` state their scope in the syntax and are resolved by their own
    * branches; once a name is a string those answers are indistinguishable from
-   * a bare one, which is the same reason `TypeBinding` keeps them separate.
+   * a bare one, which is the same reason `TypeNameLadder` keeps them separate.
    *
    * ## A register is not a type (#1336)
    *

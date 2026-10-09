@@ -8,8 +8,8 @@ import type IAssignmentSyntax from "./IAssignmentSyntax";
 /**
  * A statement as plain data, lowered from the parse tree by `SyntaxLowering`
  * (#1932). Its expressions are `TExpression`s, so nothing under it is a parse
- * node. Today the walker lowers each function body when it reaches it; 1.2
- * carrying the lowered file forward waits for declarations (a later slice).
+ * node. 1.2 lowers the whole file eagerly through `ProgramLowering` into
+ * `IParsedFile.program`, and that is all the walker reads.
  *
  * The shape is the grammar's: one kind per `statement` alternative.
  */

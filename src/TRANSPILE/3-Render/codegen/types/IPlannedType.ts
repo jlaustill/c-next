@@ -5,7 +5,7 @@ import type INamedTypeResolution from "../../../../types/INamedTypeResolution";
  *
  * #1445: `TypeGenerationHelper` used to take a `TypeContext` and re-walk the
  * six type alternatives itself. That was the seventh ladder #1285 set out to
- * collapse -- `TypeBinding`'s own header names this helper as one of the seven
+ * collapse -- `TypeNameLadder`'s own header names this helper as one of the seven
  * -- and it was still standing. The named branches come from that one ladder
  * now, so the renderer receives a classification instead of re-deriving one.
  *

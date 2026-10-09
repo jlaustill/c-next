@@ -16,8 +16,14 @@ extern "C" {
 extern uint32_t total;
 
 /* Function prototypes */
-void onTick(uint32_t ms);
-void onBeat(uint32_t n);
+void onIf(uint32_t n);
+void onWhile(uint32_t n);
+void onDo(uint32_t n);
+void onFor(uint32_t n);
+void onCase(uint32_t n);
+void onDefault(uint32_t n);
+void onForever(uint32_t n);
+void spinOnce(void);
 
 #ifdef __cplusplus
 }

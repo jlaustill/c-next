@@ -43,7 +43,7 @@ function setupGenerator(
   const {
     tree,
     parseErrors: errors,
-    tokenStream,
+    program,
   } = CNextSourceParser.parse(source);
   if (errors.length > 0) {
     throw new Error(`Parse failed: ${errors.map((e) => e.message).join(", ")}`);
@@ -68,7 +68,7 @@ function setupGenerator(
   const host = new CodeGenerator();
   const generator = new CodeGenWalker(host);
   host.state.symbolTable = symbolTable;
-  const code = generateWithProgram(generator, tree, tokenStream, {
+  const code = generateWithProgram(generator, tree, program, {
     symbolInfo: symbols,
     sourcePath: "test.cnx",
     cppMode: options.cppMode,
@@ -81,10 +81,10 @@ function setupGenerator(
 const generateWithProgram = (
   generator: CodeGenWalker,
   tree: Parser.ProgramContext,
-  tokenStream: Parameters<typeof ProgramGeneration.generate>[2],
+  program: Parameters<typeof ProgramGeneration.generate>[2],
   options: Parameters<typeof ProgramGeneration.generate>[3],
 ): ReturnType<CodeGenWalker["generate"]> =>
-  ProgramGeneration.generate(generator, tree, tokenStream, options, registry);
+  ProgramGeneration.generate(generator, tree, program, options, registry);
 
 let registry = new SymbolRegistry();
 
@@ -675,7 +675,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           p <- {x: 10, y: 20};
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       // Mark NamedPoint as requiring 'struct' keyword (simulates C header import)
@@ -695,7 +695,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
       host.state.symbolTable = symbolTable;
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: false,
@@ -724,7 +724,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           p <- {x: 1, y: 2};
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       // Do NOT mark as needing struct keyword (simulates typedef'd struct)
@@ -743,7 +743,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
       host.state.symbolTable = symbolTable;
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: false,
@@ -763,7 +763,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           p <- {x: 5, y: 10};
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       symbolTable.markNeedsStructKeyword("CppPoint");
@@ -782,7 +782,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
       host.state.symbolTable = symbolTable;
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: true,
@@ -1174,7 +1174,7 @@ describe("CodeGenWalker Coverage Tests", () => {
             pokeBoth onBoth;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         const symbolTable = new SymbolTable();
         // As a header's `typedef struct Dev Dev;` with no body registers it.
         symbolTable.markOpaqueType("Dev");
@@ -1187,7 +1187,7 @@ describe("CodeGenWalker Coverage Tests", () => {
         const host = new CodeGenerator();
         const generator = new CodeGenWalker(host);
         host.state.symbolTable = symbolTable;
-        generateWithProgram(generator, tree, tokenStream, {
+        generateWithProgram(generator, tree, program, {
           symbolInfo: TSymbolInfoAdapter.convert(tSymbols),
           sourcePath: "test.cnx",
           cppMode,
@@ -1314,7 +1314,7 @@ describe("CodeGenWalker Coverage Tests", () => {
         sourceFile: string;
       }>,
     ): string {
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       const tSymbols = [
@@ -1347,7 +1347,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const generator = new CodeGenWalker(host);
       host.state.symbolTable = symbolTable;
 
-      return generateWithProgram(generator, tree, tokenStream, {
+      return generateWithProgram(generator, tree, program, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: false,
@@ -1514,7 +1514,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           Outer o <- {dummy: 1};
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       const tSymbols = [
@@ -1545,7 +1545,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
       host.state.symbolTable = symbolTable;
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: false,
@@ -1563,7 +1563,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           Data d <- {value: 42};
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       const tSymbols = [
@@ -1584,7 +1584,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
       host.state.symbolTable = symbolTable;
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: false,

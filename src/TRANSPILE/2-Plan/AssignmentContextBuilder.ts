@@ -14,7 +14,8 @@
  *
  * That also fixes an under-measurement. `parse-tree-sites` counts
  * modules that NAME a parse type, so the four handler files that read
- * `ctx.valueExpr` and `ctx.subscripts[0]` off this interface held parse trees
+ * `ctx.valueCtx` and `ctx.subscripts[0]` off this interface -- parse contexts
+ * until #1950, plain `TExpression`s since -- held parse trees
  * without ever being counted -- the contract was acting as an unsanctioned
  * carrier. They hold no nodes now, and the two modules that did name types are
  * out of the population for real rather than by spelling.

@@ -74,7 +74,7 @@ function setupGenerator(
   const {
     tree,
     parseErrors: errors,
-    tokenStream,
+    program,
   } = CNextSourceParser.parse(source);
   if (errors.length > 0) {
     throw new Error(`Parse failed: ${errors.map((e) => e.message).join(", ")}`);
@@ -95,7 +95,7 @@ function setupGenerator(
   // Set symbolTable in TranspileState before generate (TranspileState owns SymbolTable)
   state.symbolTable = symbolTable;
   // Generate to initialize the generator state
-  generateWithProgram(generator, tree, tokenStream, {
+  generateWithProgram(generator, tree, program, {
     cppMode,
     symbolInfo: symbols,
     sourcePath: "test.cnx",
@@ -122,10 +122,10 @@ function createMinimalGenerator(
 const generateWithProgram = (
   generator: CodeGenWalker,
   tree: Parser.ProgramContext,
-  tokenStream: Parameters<typeof ProgramGeneration.generate>[2],
+  program: Parameters<typeof ProgramGeneration.generate>[2],
   options: Parameters<typeof ProgramGeneration.generate>[3],
 ): ReturnType<CodeGenWalker["generate"]> =>
-  ProgramGeneration.generate(generator, tree, tokenStream, options, registry);
+  ProgramGeneration.generate(generator, tree, program, options, registry);
 
 let registry = new SymbolRegistry();
 
@@ -144,7 +144,7 @@ describe("CodeGenWalker", () => {
   describe("generate()", () => {
     it("should generate basic C code from empty program", () => {
       const source = "";
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -153,7 +153,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -166,7 +166,7 @@ describe("CodeGenWalker", () => {
       const source = `
         void foo() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -175,7 +175,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -191,7 +191,7 @@ describe("CodeGenWalker", () => {
           val +<- 1;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -200,7 +200,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -215,7 +215,7 @@ describe("CodeGenWalker", () => {
       const source = `
         void foo() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -224,7 +224,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: true,
@@ -239,7 +239,7 @@ describe("CodeGenWalker", () => {
       const source = `
         void foo() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -248,7 +248,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -260,7 +260,7 @@ describe("CodeGenWalker", () => {
 
     it("should include source path in generation comment", () => {
       const source = `void test() { }`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -269,7 +269,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "led.cnx",
@@ -922,7 +922,7 @@ describe("CodeGenWalker", () => {
         bool k;
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -931,7 +931,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -959,7 +959,7 @@ describe("CodeGenWalker", () => {
           x <- 42;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -968,7 +968,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -989,7 +989,7 @@ describe("CodeGenWalker", () => {
           x /<- 2;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -998,7 +998,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1019,7 +1019,7 @@ describe("CodeGenWalker", () => {
           if (x = 10) { }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1028,7 +1028,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1048,7 +1048,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1057,7 +1057,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1078,7 +1078,7 @@ describe("CodeGenWalker", () => {
           value +<- 100;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1087,7 +1087,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1103,7 +1103,7 @@ describe("CodeGenWalker", () => {
     // the walk only records what it is given.
     it("records the target it is given", () => {
       const source = `void foo() { }`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
       const symbols = TSymbolInfoAdapter.convert(declareAndResolve(tree));
@@ -1112,7 +1112,7 @@ describe("CodeGenWalker", () => {
         NodeFileSystem.instance,
       )!;
 
-      generateWithProgram(generator, tree, tokenStream, {
+      generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1133,7 +1133,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1142,7 +1142,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1163,7 +1163,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1172,7 +1172,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1191,7 +1191,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1200,7 +1200,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1218,7 +1218,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1227,7 +1227,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1246,7 +1246,7 @@ describe("CodeGenWalker", () => {
           } while (x > 0);
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1255,7 +1255,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1277,7 +1277,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1286,7 +1286,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1305,7 +1305,7 @@ describe("CodeGenWalker", () => {
           return 42;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1314,7 +1314,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1333,7 +1333,7 @@ describe("CodeGenWalker", () => {
         u32[10] arr;
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1342,7 +1342,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1356,7 +1356,7 @@ describe("CodeGenWalker", () => {
         u32[3] arr <- [1, 2, 3];
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1365,7 +1365,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1380,7 +1380,7 @@ describe("CodeGenWalker", () => {
         u32[3][3] matrix;
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1389,7 +1389,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1404,7 +1404,7 @@ describe("CodeGenWalker", () => {
       const source = `
         void add(u32 a, u32 b) { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1413,7 +1413,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1431,7 +1431,7 @@ describe("CodeGenWalker", () => {
           p.x <- 10;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1440,7 +1440,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1454,7 +1454,7 @@ describe("CodeGenWalker", () => {
       const source = `
         void process(u32[10] arr) { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1463,7 +1463,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1483,7 +1483,7 @@ describe("CodeGenWalker", () => {
           c <- a + b * 2 - 1;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1492,7 +1492,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1513,7 +1513,7 @@ describe("CodeGenWalker", () => {
           result <- a <= b;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1522,7 +1522,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1545,7 +1545,7 @@ describe("CodeGenWalker", () => {
           result <- !a;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1554,7 +1554,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1577,7 +1577,7 @@ describe("CodeGenWalker", () => {
           result <- ~a;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1586,7 +1586,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1607,7 +1607,7 @@ describe("CodeGenWalker", () => {
           result <- a >> 2;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1616,7 +1616,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1635,7 +1635,7 @@ describe("CodeGenWalker", () => {
           result <- +a;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1644,7 +1644,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1662,7 +1662,7 @@ describe("CodeGenWalker", () => {
           a -<- 1;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1671,7 +1671,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1692,7 +1692,7 @@ describe("CodeGenWalker", () => {
           p.y <- 20;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1701,7 +1701,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1717,7 +1717,7 @@ describe("CodeGenWalker", () => {
         Point p <- {x: 10, y: 20};
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1726,7 +1726,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1746,7 +1746,7 @@ describe("CodeGenWalker", () => {
           c <- Color.RED;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1755,7 +1755,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1771,7 +1771,7 @@ describe("CodeGenWalker", () => {
         const u32 MAX_SIZE <- 100;
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1780,7 +1780,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1798,7 +1798,7 @@ describe("CodeGenWalker", () => {
         }
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1807,7 +1807,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1828,7 +1828,7 @@ describe("CodeGenWalker", () => {
           result <- add(1, 2);
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1837,7 +1837,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1858,7 +1858,7 @@ describe("CodeGenWalker", () => {
           result <- Math.square(5);
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1867,7 +1867,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1885,7 +1885,7 @@ describe("CodeGenWalker", () => {
         f64 b <- 2.5;
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1894,7 +1894,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1911,7 +1911,7 @@ describe("CodeGenWalker", () => {
         atomic u32 counter <- 0;
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1920,7 +1920,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1937,7 +1937,7 @@ describe("CodeGenWalker", () => {
         #include "myheader.h"
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1946,7 +1946,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1968,7 +1968,7 @@ describe("CodeGenWalker", () => {
         #include "nonexistent.cnx"
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1977,7 +1977,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1996,7 +1996,7 @@ describe("CodeGenWalker", () => {
           public void start() { }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2005,7 +2005,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "myfile.cnx",
@@ -2049,7 +2049,7 @@ describe("CodeGenWalker", () => {
           result <- (a > b) ? 1 : 0;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2058,7 +2058,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2077,7 +2077,7 @@ describe("CodeGenWalker", () => {
           result <- flags[4, 4];
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2086,7 +2086,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2108,7 +2108,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2117,7 +2117,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2138,7 +2138,7 @@ describe("CodeGenWalker", () => {
           obj.inner.value <- 42;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2147,7 +2147,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2171,7 +2171,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2180,7 +2180,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2202,7 +2202,7 @@ describe("CodeGenWalker", () => {
           return p;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2211,7 +2211,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2230,7 +2230,7 @@ describe("CodeGenWalker", () => {
           localVar +<- 50;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2239,7 +2239,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2263,7 +2263,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2272,7 +2272,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2293,7 +2293,7 @@ describe("CodeGenWalker", () => {
           result <- a % 5;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2302,7 +2302,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2321,7 +2321,7 @@ describe("CodeGenWalker", () => {
           result <- a / 4;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2330,7 +2330,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2347,7 +2347,7 @@ describe("CodeGenWalker", () => {
         string<32> name <- "Hello";
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2356,7 +2356,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2374,7 +2374,7 @@ describe("CodeGenWalker", () => {
         bool b <- false;
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2383,7 +2383,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2400,7 +2400,7 @@ describe("CodeGenWalker", () => {
         wrap u32 a <- 0xFF;
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2409,7 +2409,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2423,7 +2423,7 @@ describe("CodeGenWalker", () => {
         wrap u32 a <- 0b1010;
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2432,7 +2432,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2448,7 +2448,7 @@ describe("CodeGenWalker", () => {
       const source = `
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2457,7 +2457,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2472,7 +2472,7 @@ describe("CodeGenWalker", () => {
           return 0;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2481,7 +2481,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2506,7 +2506,7 @@ describe("CodeGenWalker", () => {
           result <- (a + b) * c;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2515,7 +2515,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2534,7 +2534,7 @@ describe("CodeGenWalker", () => {
           arr[5] <- 100;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2543,7 +2543,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2560,7 +2560,7 @@ describe("CodeGenWalker", () => {
         ISR timer_handler() {
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2569,7 +2569,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2589,7 +2589,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2598,7 +2598,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2618,7 +2618,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2627,7 +2627,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2654,7 +2654,7 @@ describe("CodeGenWalker", () => {
           Motor.stop();
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2663,7 +2663,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2681,7 +2681,7 @@ describe("CodeGenWalker", () => {
           size <- sizeof(u32);
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2690,7 +2690,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2707,7 +2707,7 @@ describe("CodeGenWalker", () => {
           bool isNull <- (NULL = NULL);
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2716,7 +2716,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2733,7 +2733,7 @@ describe("CodeGenWalker", () => {
         u32 sub(u32 a, u32 b) { return a - b; }
         u32 mul(u32 a, u32 b) { return a * b; }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2742,7 +2742,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2764,7 +2764,7 @@ describe("CodeGenWalker", () => {
         volatile u32 sharedData <- 0;
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2773,7 +2773,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2791,7 +2791,7 @@ describe("CodeGenWalker", () => {
         i32 c <- -2147483648;
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2800,7 +2800,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2821,7 +2821,7 @@ describe("CodeGenWalker", () => {
           if (a != 5) { }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2830,7 +2830,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2850,7 +2850,7 @@ describe("CodeGenWalker", () => {
           flags ^<- 0xAA;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2859,7 +2859,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2879,7 +2879,7 @@ describe("CodeGenWalker", () => {
           value %<- 7;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2888,7 +2888,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2907,7 +2907,7 @@ describe("CodeGenWalker", () => {
           value >><- 2;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2916,7 +2916,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2939,7 +2939,7 @@ describe("CodeGenWalker", () => {
           public void toggle() { on <- !on; }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2948,7 +2948,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2967,7 +2967,7 @@ describe("CodeGenWalker", () => {
         u32[] values <- [1, 2, 3, 4, 5];
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2976,7 +2976,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -2993,7 +2993,7 @@ describe("CodeGenWalker", () => {
         u8 ch <- 'A';
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3002,7 +3002,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3020,7 +3020,7 @@ describe("CodeGenWalker", () => {
           u32 addr <- &value;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3029,7 +3029,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3046,7 +3046,7 @@ describe("CodeGenWalker", () => {
           counter +<- 1;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3055,7 +3055,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3085,7 +3085,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3094,7 +3094,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3112,7 +3112,7 @@ describe("CodeGenWalker", () => {
       const source = `
         void noop() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3121,7 +3121,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3144,7 +3144,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3153,7 +3153,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3174,7 +3174,7 @@ describe("CodeGenWalker", () => {
         u32 d <- 4;
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3183,7 +3183,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3203,7 +3203,7 @@ describe("CodeGenWalker", () => {
         #define MAX_SIZE 100
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3213,7 +3213,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() =>
-        generateWithProgram(generator, tree, tokenStream, {
+        generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -3226,7 +3226,7 @@ describe("CodeGenWalker", () => {
         #define DEBUG_MODE
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3235,7 +3235,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3254,7 +3254,7 @@ describe("CodeGenWalker", () => {
           current <- State.RUNNING;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3263,7 +3263,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3284,7 +3284,7 @@ describe("CodeGenWalker", () => {
           buf.data[0] <- 0xFF;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3293,7 +3293,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3313,7 +3313,7 @@ describe("CodeGenWalker", () => {
           public u32 getCount() { return count; }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3322,7 +3322,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3341,7 +3341,7 @@ describe("CodeGenWalker", () => {
         i64 bigSigned <- -9223372036854775807;
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3350,7 +3350,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3376,7 +3376,7 @@ describe("CodeGenWalker", () => {
           result <- f.enabled;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3385,7 +3385,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3401,7 +3401,7 @@ describe("CodeGenWalker", () => {
         const u32[4] LOOKUP <- [10, 20, 30, 40];
         void main() { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3410,7 +3410,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3428,7 +3428,7 @@ describe("CodeGenWalker", () => {
           return value > 0;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3437,7 +3437,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3457,7 +3457,7 @@ describe("CodeGenWalker", () => {
           if (a > 0 && b < 20) { }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3466,7 +3466,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3485,7 +3485,7 @@ describe("CodeGenWalker", () => {
           if (a = 0 || b = 0) { }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3494,7 +3494,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3514,7 +3514,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3523,7 +3523,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3545,7 +3545,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3554,7 +3554,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3578,7 +3578,7 @@ describe("CodeGenWalker", () => {
           modifyPoint(pt);
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3587,7 +3587,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3611,7 +3611,7 @@ describe("CodeGenWalker", () => {
           result <- a * b + c * (a - b);
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3620,7 +3620,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3640,7 +3640,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3649,7 +3649,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3669,7 +3669,7 @@ describe("CodeGenWalker", () => {
           Motor.speed <- 100;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3679,7 +3679,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       // Should not throw
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3695,7 +3695,7 @@ describe("CodeGenWalker", () => {
         enum State { IDLE, RUNNING, ERROR }
         State current;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3704,7 +3704,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3719,7 +3719,7 @@ describe("CodeGenWalker", () => {
         enum Priority { LOW <- 1, MEDIUM <- 5, HIGH <- 10 }
         Priority p;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3728,7 +3728,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3747,7 +3747,7 @@ describe("CodeGenWalker", () => {
           this.Mode currentMode;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3756,7 +3756,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3773,7 +3773,7 @@ describe("CodeGenWalker", () => {
           this.Data latest;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3782,7 +3782,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3800,7 +3800,7 @@ describe("CodeGenWalker", () => {
           global.GlobalState state;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3809,7 +3809,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3828,7 +3828,7 @@ describe("CodeGenWalker", () => {
         }
         Config.Level setting;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3837,7 +3837,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3853,7 +3853,7 @@ describe("CodeGenWalker", () => {
       const source = `
         u32[10] data <- [0*];
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3862,7 +3862,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3876,7 +3876,7 @@ describe("CodeGenWalker", () => {
       const source = `
         u8[4] buffer <- [255*];
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3885,7 +3885,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3901,7 +3901,7 @@ describe("CodeGenWalker", () => {
       const source = `
         u32[2][3] matrix <- [[1, 2, 3], [4, 5, 6]];
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3910,7 +3910,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3926,7 +3926,7 @@ describe("CodeGenWalker", () => {
         struct Point { i32 x; i32 y; }
         Point[2] points <- [{x: 1, y: 2}, {x: 3, y: 4}];
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3935,7 +3935,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3949,7 +3949,7 @@ describe("CodeGenWalker", () => {
   describe("Primitive type zero initialization", () => {
     it("should initialize bool to false", () => {
       const source = `bool flag;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3958,7 +3958,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3969,7 +3969,7 @@ describe("CodeGenWalker", () => {
 
     it("should initialize f32 to 0.0f", () => {
       const source = `f32 value;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3978,7 +3978,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -3989,7 +3989,7 @@ describe("CodeGenWalker", () => {
 
     it("should initialize f64 to 0.0", () => {
       const source = `f64 value;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3998,7 +3998,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4018,7 +4018,7 @@ describe("CodeGenWalker", () => {
           } while (x < 10);
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4027,7 +4027,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4048,7 +4048,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4057,7 +4057,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4075,7 +4075,7 @@ describe("CodeGenWalker", () => {
           return 42;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4084,7 +4084,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4099,7 +4099,7 @@ describe("CodeGenWalker", () => {
           return;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4108,7 +4108,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4124,7 +4124,7 @@ describe("CodeGenWalker", () => {
         struct Point { i32 x; i32 y; }
         Point origin;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4133,7 +4133,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4149,7 +4149,7 @@ describe("CodeGenWalker", () => {
       const source = `
         atomic volatile u32 badVar;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4159,7 +4159,7 @@ describe("CodeGenWalker", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() =>
-        generateWithProgram(generator, tree, tokenStream, {
+        generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -4183,7 +4183,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4192,7 +4192,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4217,7 +4217,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4226,7 +4226,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4244,7 +4244,7 @@ describe("CodeGenWalker", () => {
         const u32 SIZE <- 10;
         u32[SIZE] data;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4253,7 +4253,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4269,7 +4269,7 @@ describe("CodeGenWalker", () => {
       const source = `
         u8[2][3][4] cube;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4278,7 +4278,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4296,7 +4296,7 @@ describe("CodeGenWalker", () => {
           doSomething();
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4305,7 +4305,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4326,7 +4326,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4335,7 +4335,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4352,7 +4352,7 @@ describe("CodeGenWalker", () => {
         bool flag <- true;
         bool result <- !flag;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4361,7 +4361,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4375,7 +4375,7 @@ describe("CodeGenWalker", () => {
         wrap u8 mask <- 0x0F;
         wrap u8 inverted <- ~mask;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4384,7 +4384,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4398,7 +4398,7 @@ describe("CodeGenWalker", () => {
         i32 pos <- 10;
         i32 neg <- -pos;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4407,7 +4407,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4424,7 +4424,7 @@ describe("CodeGenWalker", () => {
         wrap u8 b <- 0xF0;
         wrap u8 result <- a & b;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4433,7 +4433,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4448,7 +4448,7 @@ describe("CodeGenWalker", () => {
         wrap u8 b <- 0xF0;
         wrap u8 result <- a | b;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4457,7 +4457,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4472,7 +4472,7 @@ describe("CodeGenWalker", () => {
         wrap u8 b <- 0xAA;
         wrap u8 result <- a ^ b;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4481,7 +4481,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4495,7 +4495,7 @@ describe("CodeGenWalker", () => {
         wrap u8 a <- 1;
         wrap u8 result <- a << 4;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4504,7 +4504,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4518,7 +4518,7 @@ describe("CodeGenWalker", () => {
         wrap u8 a <- 0x80;
         wrap u8 result <- a >> 4;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4527,7 +4527,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4544,7 +4544,7 @@ describe("CodeGenWalker", () => {
         bool b <- false;
         bool result <- a && b;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4553,7 +4553,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4568,7 +4568,7 @@ describe("CodeGenWalker", () => {
         bool b <- false;
         bool result <- a || b;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4577,7 +4577,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4594,7 +4594,7 @@ describe("CodeGenWalker", () => {
         u32 b <- 10;
         bool result <- a <= b;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4603,7 +4603,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4618,7 +4618,7 @@ describe("CodeGenWalker", () => {
         u32 b <- 10;
         bool result <- a >= b;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4627,7 +4627,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4642,7 +4642,7 @@ describe("CodeGenWalker", () => {
         u32 b <- 10;
         bool result <- a != b;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4651,7 +4651,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4672,7 +4672,7 @@ describe("CodeGenWalker", () => {
         u8 small <- 100;
         u32 big <- small as u32;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4681,7 +4681,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4697,7 +4697,7 @@ describe("CodeGenWalker", () => {
         u32 big <- 1000;
         u8 small <- big[0, 8];
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4706,7 +4706,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4722,7 +4722,7 @@ describe("CodeGenWalker", () => {
         f32 floatVal <- 100.5;
         i32 intVal <- (i32)floatVal;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4731,7 +4731,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4752,7 +4752,7 @@ describe("CodeGenWalker", () => {
           return a + b + c;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4761,7 +4761,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4781,7 +4781,7 @@ describe("CodeGenWalker", () => {
           obj.child.value <- 100;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4790,7 +4790,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4809,7 +4809,7 @@ describe("CodeGenWalker", () => {
           data[i * 2 + 1] <- 42;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4818,7 +4818,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4837,7 +4837,7 @@ describe("CodeGenWalker", () => {
           c <- Color.GREEN;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4846,7 +4846,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4859,7 +4859,7 @@ describe("CodeGenWalker", () => {
   describe("String type", () => {
     it("should generate bounded string declaration", () => {
       const source = `string<32> name <- "hello";`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4868,7 +4868,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4882,7 +4882,7 @@ describe("CodeGenWalker", () => {
   describe("Volatile variable", () => {
     it("should generate volatile declaration", () => {
       const source = `volatile u32 hwReg;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4891,7 +4891,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4907,7 +4907,7 @@ describe("CodeGenWalker", () => {
         struct Config { u32 value; }
         const Config defaultConfig <- {value: 100};
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4916,7 +4916,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4936,7 +4936,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4945,7 +4945,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4960,7 +4960,7 @@ describe("CodeGenWalker", () => {
   describe("Atomic variable", () => {
     it("should generate volatile for atomic variable", () => {
       const source = `atomic u32 counter <- 0;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4969,7 +4969,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -4985,7 +4985,7 @@ describe("CodeGenWalker", () => {
       const source = `
         u32 size <- sizeof(u32);
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4994,7 +4994,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5008,7 +5008,7 @@ describe("CodeGenWalker", () => {
         struct Point { i32 x; i32 y; }
         u32 size <- sizeof(Point);
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5017,7 +5017,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5033,7 +5033,7 @@ describe("CodeGenWalker", () => {
         u32[10] data;
         u32 len <- data.element_count;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5042,7 +5042,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5056,7 +5056,7 @@ describe("CodeGenWalker", () => {
   describe("Hex and binary literals", () => {
     it("should generate hex literal", () => {
       const source = `u32 mask <- 0xFF00;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5065,7 +5065,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5076,7 +5076,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate binary literal", () => {
       const source = `u8 pattern <- 0b10101010;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5085,7 +5085,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5099,7 +5099,7 @@ describe("CodeGenWalker", () => {
   describe("Character literal", () => {
     it("should generate character literal", () => {
       const source = `u8 ch <- 'A';`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5108,7 +5108,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5126,7 +5126,7 @@ describe("CodeGenWalker", () => {
           public void stop() { }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5135,7 +5135,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5156,7 +5156,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5165,7 +5165,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5182,7 +5182,7 @@ describe("CodeGenWalker", () => {
         wrap u32 b <- 5;
         wrap u32 result <- a % b;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5191,7 +5191,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5208,7 +5208,7 @@ describe("CodeGenWalker", () => {
         wrap u32 b <- 4;
         wrap u32 result <- a / b;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5217,7 +5217,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5237,7 +5237,7 @@ describe("CodeGenWalker", () => {
           mask &<- 0x0F;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5246,7 +5246,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5262,7 +5262,7 @@ describe("CodeGenWalker", () => {
           flags |<- 0x01;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5271,7 +5271,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5287,7 +5287,7 @@ describe("CodeGenWalker", () => {
           bits ^<- 0xFF;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5296,7 +5296,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5312,7 +5312,7 @@ describe("CodeGenWalker", () => {
           val <<<- 2;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5321,7 +5321,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5337,7 +5337,7 @@ describe("CodeGenWalker", () => {
           val >><- 2;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5346,7 +5346,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5362,7 +5362,7 @@ describe("CodeGenWalker", () => {
           val *<- 3;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5371,7 +5371,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5387,7 +5387,7 @@ describe("CodeGenWalker", () => {
           val /<- 4;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5396,7 +5396,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5412,7 +5412,7 @@ describe("CodeGenWalker", () => {
           val %<- 5;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5421,7 +5421,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5439,7 +5439,7 @@ describe("CodeGenWalker", () => {
         wrap u32 c <- 4;
         wrap u32 result <- (a + b) * c;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5448,7 +5448,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5466,7 +5466,7 @@ describe("CodeGenWalker", () => {
         }
         u32 result <- add(10, 20);
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5475,7 +5475,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5493,7 +5493,7 @@ describe("CodeGenWalker", () => {
           return Status.OK;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5502,7 +5502,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5521,7 +5521,7 @@ describe("CodeGenWalker", () => {
           processData(myData);
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5530,7 +5530,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5551,7 +5551,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5560,7 +5560,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5574,7 +5574,7 @@ describe("CodeGenWalker", () => {
   describe("String literal", () => {
     it("should generate string literal", () => {
       const source = `string<20> msg <- "Hello World";`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5583,7 +5583,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5601,7 +5601,7 @@ describe("CodeGenWalker", () => {
         u32 c;
         u64 d;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5610,7 +5610,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5629,7 +5629,7 @@ describe("CodeGenWalker", () => {
         i32 c;
         i64 d;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5638,7 +5638,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5654,7 +5654,7 @@ describe("CodeGenWalker", () => {
   describe("Negative number literal", () => {
     it("should generate negative literal", () => {
       const source = `i32 val <- -42;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5663,7 +5663,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5676,7 +5676,7 @@ describe("CodeGenWalker", () => {
   describe("Float literals", () => {
     it("should generate f32 literal with suffix", () => {
       const source = `f32 val <- 3.14;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5685,7 +5685,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5696,7 +5696,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate f64 literal", () => {
       const source = `f64 val <- 2.718281828;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5705,7 +5705,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5718,7 +5718,7 @@ describe("CodeGenWalker", () => {
   describe("Boolean literals", () => {
     it("should generate true literal", () => {
       const source = `bool flag <- true;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5727,7 +5727,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5738,7 +5738,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate false literal", () => {
       const source = `bool flag <- false;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5747,7 +5747,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5764,7 +5764,7 @@ describe("CodeGenWalker", () => {
         u32 b <- 10;
         u32 max <- (a > b) ? a : b;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5773,7 +5773,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5789,7 +5789,7 @@ describe("CodeGenWalker", () => {
         u8 flags <- 0xFF;
         bool bit0 <- flags[0, 1] = 1;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5798,7 +5798,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5814,7 +5814,7 @@ describe("CodeGenWalker", () => {
         u8 data <- 0xAB;
         u8 nibble <- data[4, 4];
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5823,7 +5823,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5843,7 +5843,7 @@ describe("CodeGenWalker", () => {
         struct Vec3 { i32 x; i32 y; i32 z; }
         Vec3 pos <- {x: 1, y: 2, z: 3};
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5852,7 +5852,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5872,7 +5872,7 @@ describe("CodeGenWalker", () => {
           local <- local + 1;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5881,7 +5881,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5900,7 +5900,7 @@ describe("CodeGenWalker", () => {
           p.x <- p.x + 1;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5909,7 +5909,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5928,7 +5928,7 @@ describe("CodeGenWalker", () => {
           a.x <- a.x + b.x;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5937,7 +5937,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -5954,7 +5954,7 @@ describe("CodeGenWalker", () => {
       // A definition (with initializer) should NOT have extern in C mode.
       // The extern declaration comes from the header.
       const source = `const u32 VERSION <- 1;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5963,7 +5963,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: false,
@@ -5978,7 +5978,7 @@ describe("CodeGenWalker", () => {
       // In C++, const at file scope has internal linkage by default.
       // extern is needed for cross-file access, even for definitions.
       const source = `const u32 VERSION <- 1;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5987,7 +5987,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: true,
@@ -6001,7 +6001,7 @@ describe("CodeGenWalker", () => {
   describe("Empty function body", () => {
     it("should generate function with empty body", () => {
       const source = `void noop() { }`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6010,7 +6010,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6027,7 +6027,7 @@ describe("CodeGenWalker", () => {
           return x > 0;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6036,7 +6036,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6058,7 +6058,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6067,7 +6067,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6083,7 +6083,7 @@ describe("CodeGenWalker", () => {
         u32[10] arr;
         u32 size <- sizeof(arr);
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6092,7 +6092,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6108,7 +6108,7 @@ describe("CodeGenWalker", () => {
         const u32 BUFFER_SIZE <- 256;
         u8[BUFFER_SIZE] buffer;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6117,7 +6117,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6136,7 +6136,7 @@ describe("CodeGenWalker", () => {
           output[1] <- 2;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6145,7 +6145,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6165,7 +6165,7 @@ describe("CodeGenWalker", () => {
         wrap u32 c <- 3;
         wrap u32 result <- a + b - c;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6174,7 +6174,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6193,7 +6193,7 @@ describe("CodeGenWalker", () => {
         wrap u32 d <- 5;
         wrap u32 result <- ((a + b) * c) - d;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6202,7 +6202,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6219,7 +6219,7 @@ describe("CodeGenWalker", () => {
         f32 b <- 2.5;
         f32 sum <- a + b;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6228,7 +6228,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6243,7 +6243,7 @@ describe("CodeGenWalker", () => {
         f32 b <- 2.5;
         bool less <- a < b;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6252,7 +6252,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6274,7 +6274,7 @@ describe("CodeGenWalker", () => {
           msg.data[0] <- 0x01;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6283,7 +6283,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6302,7 +6302,7 @@ describe("CodeGenWalker", () => {
           if (current = State.RUNNING) { }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6311,7 +6311,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6336,7 +6336,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6345,7 +6345,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6364,7 +6364,7 @@ describe("CodeGenWalker", () => {
           u32[SIZE] data;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6373,7 +6373,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6393,7 +6393,7 @@ describe("CodeGenWalker", () => {
           flags[0, 1] <- 1;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6402,7 +6402,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6417,7 +6417,7 @@ describe("CodeGenWalker", () => {
   describe("Long hex literal", () => {
     it("should generate 64-bit hex literal", () => {
       const source = `u64 big <- 0xFFFFFFFFFFFFFFFF;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6426,7 +6426,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6447,7 +6447,7 @@ describe("CodeGenWalker", () => {
           return a / b;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6456,7 +6456,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6478,7 +6478,7 @@ describe("CodeGenWalker", () => {
           Settings.cfg.value <- 200;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6487,7 +6487,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6504,7 +6504,7 @@ describe("CodeGenWalker", () => {
           arr[0] <- 1;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6513,7 +6513,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6527,7 +6527,7 @@ describe("CodeGenWalker", () => {
   describe("Escape sequences in strings", () => {
     it("should preserve escape sequences", () => {
       const source = `string<10> newline <- "\\n";`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6536,7 +6536,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6554,7 +6554,7 @@ describe("CodeGenWalker", () => {
           val +<- 1000;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6563,7 +6563,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6580,7 +6580,7 @@ describe("CodeGenWalker", () => {
           val -<- 200;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6589,7 +6589,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6607,7 +6607,7 @@ describe("CodeGenWalker", () => {
         u32 b <- 10;
         bool result <- a < b;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6616,7 +6616,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6631,7 +6631,7 @@ describe("CodeGenWalker", () => {
       const source = `
         scope Empty { }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6640,7 +6640,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6658,7 +6658,7 @@ describe("CodeGenWalker", () => {
         }
         Types.Mode selected <- Types.Mode.AUTO;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6667,7 +6667,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6685,7 +6685,7 @@ describe("CodeGenWalker", () => {
           val +<- 500000000;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6694,7 +6694,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6710,7 +6710,7 @@ describe("CodeGenWalker", () => {
         void readOnly(const u32 val) {
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6719,7 +6719,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6737,7 +6737,7 @@ describe("CodeGenWalker", () => {
           if (x = 5) { }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6746,7 +6746,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6763,7 +6763,7 @@ describe("CodeGenWalker", () => {
         i32 b <- 20;
         i32 diff <- b - a;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6772,7 +6772,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6791,7 +6791,7 @@ describe("CodeGenWalker", () => {
           doWork();
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6800,7 +6800,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6820,7 +6820,7 @@ describe("CodeGenWalker", () => {
           public void methodB() { }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6829,7 +6829,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6847,7 +6847,7 @@ describe("CodeGenWalker", () => {
           public u32 speed <- 100;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6856,7 +6856,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6874,7 +6874,7 @@ describe("CodeGenWalker", () => {
           big +<- 1;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6883,7 +6883,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6902,7 +6902,7 @@ describe("CodeGenWalker", () => {
           tiny -<- 50;
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6911,7 +6911,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6924,7 +6924,7 @@ describe("CodeGenWalker", () => {
   describe("Array with literal size", () => {
     it("should generate array with integer literal size", () => {
       const source = `u32[100] buffer;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6933,7 +6933,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6949,7 +6949,7 @@ describe("CodeGenWalker", () => {
         i32 a <- 5;
         i32 b <- -a;
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6958,7 +6958,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6971,7 +6971,7 @@ describe("CodeGenWalker", () => {
   describe("Comment preservation", () => {
     it("should include generated file header", () => {
       const source = `void main() { }`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6980,7 +6980,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -6993,7 +6993,7 @@ describe("CodeGenWalker", () => {
   describe("Stdint include", () => {
     it("should include stdint.h for fixed-width types", () => {
       const source = `u32 val <- 0;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -7002,7 +7002,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -7015,7 +7015,7 @@ describe("CodeGenWalker", () => {
   describe("Stdbool include", () => {
     it("should include stdbool.h for bool type", () => {
       const source = `bool flag <- false;`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -7024,7 +7024,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -7037,7 +7037,7 @@ describe("CodeGenWalker", () => {
   describe("Array initialization with values", () => {
     it("should generate array with initialization list", () => {
       const source = `u8[4] data <- [1, 2, 3, 4];`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -7046,7 +7046,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -7065,7 +7065,7 @@ describe("CodeGenWalker", () => {
           process(local);
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -7074,7 +7074,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -7093,7 +7093,7 @@ describe("CodeGenWalker", () => {
             bool flag;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7102,7 +7102,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7117,7 +7117,7 @@ describe("CodeGenWalker", () => {
             f32 value;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7126,7 +7126,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7141,7 +7141,7 @@ describe("CodeGenWalker", () => {
             f64 value;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7150,7 +7150,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7165,7 +7165,7 @@ describe("CodeGenWalker", () => {
             u32 value;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7174,7 +7174,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7192,7 +7192,7 @@ describe("CodeGenWalker", () => {
             Color c;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7201,7 +7201,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7219,7 +7219,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7228,7 +7228,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7246,7 +7246,7 @@ describe("CodeGenWalker", () => {
             Motor.Direction d;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7255,7 +7255,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7273,7 +7273,7 @@ describe("CodeGenWalker", () => {
             Status s;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7282,7 +7282,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7301,7 +7301,7 @@ describe("CodeGenWalker", () => {
             Point p;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7310,7 +7310,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7328,7 +7328,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7337,7 +7337,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7355,7 +7355,7 @@ describe("CodeGenWalker", () => {
             Config.Settings cfg;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7364,7 +7364,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7381,7 +7381,7 @@ describe("CodeGenWalker", () => {
             u32[10] values;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7390,7 +7390,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7406,7 +7406,7 @@ describe("CodeGenWalker", () => {
             Point[5] points;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7415,7 +7415,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7432,7 +7432,7 @@ describe("CodeGenWalker", () => {
             ExternalClass obj;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7441,7 +7441,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7458,7 +7458,7 @@ describe("CodeGenWalker", () => {
             Point p;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7467,7 +7467,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7488,7 +7488,7 @@ describe("CodeGenWalker", () => {
               buf[0] <- 0xFF;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7497,7 +7497,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7515,7 +7515,7 @@ describe("CodeGenWalker", () => {
               return data[0];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7524,7 +7524,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7541,7 +7541,7 @@ describe("CodeGenWalker", () => {
               buf[0] <- 0xFF;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7550,7 +7550,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7567,7 +7567,7 @@ describe("CodeGenWalker", () => {
               u32[8] counters;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7576,7 +7576,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7593,7 +7593,7 @@ describe("CodeGenWalker", () => {
               UnknownType[4] items;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7602,7 +7602,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7619,7 +7619,7 @@ describe("CodeGenWalker", () => {
               Point[3] pts;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7628,7 +7628,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7652,7 +7652,7 @@ describe("CodeGenWalker", () => {
               GPIO.DR[3] <- true;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7661,7 +7661,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7680,7 +7680,7 @@ describe("CodeGenWalker", () => {
               TIMER.CTRL[4] <- 0x0F;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7689,7 +7689,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7709,7 +7709,7 @@ describe("CodeGenWalker", () => {
               GPIO.DR <- 0xFF;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7718,7 +7718,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7736,7 +7736,7 @@ describe("CodeGenWalker", () => {
               CONTROL.COMMAND <- 0x42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7745,7 +7745,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7767,7 +7767,7 @@ describe("CodeGenWalker", () => {
               }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7776,7 +7776,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7795,7 +7795,7 @@ describe("CodeGenWalker", () => {
               Motor.position.x <- 10;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7804,7 +7804,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7823,7 +7823,7 @@ describe("CodeGenWalker", () => {
               items[0].value <- 42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7832,7 +7832,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7854,7 +7854,7 @@ describe("CodeGenWalker", () => {
               }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7863,7 +7863,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7883,7 +7883,7 @@ describe("CodeGenWalker", () => {
               Counter.value <- 42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7892,7 +7892,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7910,7 +7910,7 @@ describe("CodeGenWalker", () => {
               cfg.enabled <- true;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7919,7 +7919,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7941,7 +7941,7 @@ describe("CodeGenWalker", () => {
               }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7949,7 +7949,7 @@ describe("CodeGenWalker", () => {
         const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7968,7 +7968,7 @@ describe("CodeGenWalker", () => {
               Timer.count <- 0;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7977,7 +7977,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -7997,7 +7997,7 @@ describe("CodeGenWalker", () => {
               }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8006,7 +8006,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8022,7 +8022,7 @@ describe("CodeGenWalker", () => {
               p.x <- 10;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8031,7 +8031,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8055,7 +8055,7 @@ describe("CodeGenWalker", () => {
             u32 x <- RED;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8065,7 +8065,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() =>
-          generateWithProgram(generator, tree, tokenStream, {
+          generateWithProgram(generator, tree, program, {
             cppMode: false,
             symbolInfo: symbols,
             sourcePath: "test.cnx",
@@ -8085,7 +8085,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8094,7 +8094,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8113,7 +8113,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8122,7 +8122,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8141,7 +8141,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8150,7 +8150,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8168,7 +8168,7 @@ describe("CodeGenWalker", () => {
             LED.Color c <- LED.Color.RED;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8177,7 +8177,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8199,7 +8199,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8208,7 +8208,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8229,7 +8229,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8238,7 +8238,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8259,7 +8259,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8268,7 +8268,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8286,7 +8286,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8295,7 +8295,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8314,7 +8314,7 @@ describe("CodeGenWalker", () => {
             } while (i < 10);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8323,7 +8323,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8342,7 +8342,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8351,7 +8351,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8369,7 +8369,7 @@ describe("CodeGenWalker", () => {
             State s <- State.IDLE;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8378,7 +8378,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8399,7 +8399,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8408,7 +8408,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8430,7 +8430,7 @@ describe("CodeGenWalker", () => {
             callee(val);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8439,7 +8439,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8456,7 +8456,7 @@ describe("CodeGenWalker", () => {
             callee(data);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8465,7 +8465,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8482,7 +8482,7 @@ describe("CodeGenWalker", () => {
             callee(p.x);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8491,7 +8491,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8508,7 +8508,7 @@ describe("CodeGenWalker", () => {
             callee(arr[0]);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8517,7 +8517,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8536,7 +8536,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8545,7 +8545,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8563,7 +8563,7 @@ describe("CodeGenWalker", () => {
             callee(a + b);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8572,7 +8572,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8589,7 +8589,7 @@ describe("CodeGenWalker", () => {
             callee(d.values);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8598,7 +8598,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8614,7 +8614,7 @@ describe("CodeGenWalker", () => {
             callee(param);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8623,7 +8623,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8640,7 +8640,7 @@ describe("CodeGenWalker", () => {
             callee(src);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8649,7 +8649,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8667,7 +8667,7 @@ describe("CodeGenWalker", () => {
             processData(cfg.data);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8676,7 +8676,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8694,13 +8694,13 @@ describe("CodeGenWalker", () => {
             show(p.name);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         const host = new CodeGenerator();
         const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8720,13 +8720,13 @@ describe("CodeGenWalker", () => {
             fill(o.inner.data);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         const host = new CodeGenerator();
         const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8743,7 +8743,7 @@ describe("CodeGenWalker", () => {
             callee(42);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8752,7 +8752,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8769,7 +8769,7 @@ describe("CodeGenWalker", () => {
             callee(getValue());
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8778,7 +8778,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8794,7 +8794,7 @@ describe("CodeGenWalker", () => {
             callee((cond = true) ? 1 : 0);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8803,7 +8803,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8820,7 +8820,7 @@ describe("CodeGenWalker", () => {
             callee(p.x);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8829,7 +8829,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -8846,7 +8846,7 @@ describe("CodeGenWalker", () => {
             u32 y <- x;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8855,7 +8855,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8870,7 +8870,7 @@ describe("CodeGenWalker", () => {
             u32 x <- arr[0];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8879,7 +8879,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8895,7 +8895,7 @@ describe("CodeGenWalker", () => {
             u32 x <- p.x;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8904,7 +8904,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8919,7 +8919,7 @@ describe("CodeGenWalker", () => {
             u32 y <- x;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8928,7 +8928,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8943,7 +8943,7 @@ describe("CodeGenWalker", () => {
             bool result <- flag;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8952,7 +8952,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8967,7 +8967,7 @@ describe("CodeGenWalker", () => {
             f32 result <- val;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8976,7 +8976,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -8991,7 +8991,7 @@ describe("CodeGenWalker", () => {
             u32 sum <- a + b + c;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9000,7 +9000,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9016,7 +9016,7 @@ describe("CodeGenWalker", () => {
             State result <- s;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9025,7 +9025,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9042,7 +9042,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(u32);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9051,7 +9051,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9067,7 +9067,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(Point);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9076,7 +9076,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9092,7 +9092,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(arr);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9101,7 +9101,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9116,7 +9116,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(arr);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9126,7 +9126,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() =>
-          generateWithProgram(generator, tree, tokenStream, {
+          generateWithProgram(generator, tree, program, {
             cppMode: false,
             symbolInfo: symbols,
             sourcePath: "test.cnx",
@@ -9142,7 +9142,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(d.values);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9151,7 +9151,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9169,7 +9169,7 @@ describe("CodeGenWalker", () => {
             u32 val <- arr[5];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9178,7 +9178,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9194,7 +9194,7 @@ describe("CodeGenWalker", () => {
             u8 byte <- val[8, 8];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9203,7 +9203,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9219,7 +9219,7 @@ describe("CodeGenWalker", () => {
             u32 val <- arr[0];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9228,7 +9228,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9244,7 +9244,7 @@ describe("CodeGenWalker", () => {
             u32 val <- d.values[0];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9263,7 +9263,7 @@ describe("CodeGenWalker", () => {
         symbolTable.addTSymbols(tSymbols);
         host.state.symbolTable = symbolTable;
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9279,7 +9279,7 @@ describe("CodeGenWalker", () => {
             u32 val <- arr[5];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9288,7 +9288,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -9304,7 +9304,7 @@ describe("CodeGenWalker", () => {
             u32 val <- matrix[1][2];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9313,7 +9313,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9330,7 +9330,7 @@ describe("CodeGenWalker", () => {
             public u32 speed;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9339,7 +9339,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9354,7 +9354,7 @@ describe("CodeGenWalker", () => {
             public void start() { }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9363,7 +9363,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9382,7 +9382,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9398,7 +9398,7 @@ describe("CodeGenWalker", () => {
         host.state.symbolTable.addTSymbols(tSymbols);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9417,7 +9417,7 @@ describe("CodeGenWalker", () => {
             u32 x <- p.x;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9426,7 +9426,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -9444,7 +9444,7 @@ describe("CodeGenWalker", () => {
             u32 x <- o.inner.val;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9453,7 +9453,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9469,7 +9469,7 @@ describe("CodeGenWalker", () => {
             u32 x <- cfg.value;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9478,7 +9478,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -9495,7 +9495,7 @@ describe("CodeGenWalker", () => {
             u32 x <- d.values[0];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9508,7 +9508,7 @@ describe("CodeGenWalker", () => {
         host.state.symbolTable = symbolTable;
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -9525,7 +9525,7 @@ describe("CodeGenWalker", () => {
             u32 x <- points[0].x;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9534,7 +9534,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9551,7 +9551,7 @@ describe("CodeGenWalker", () => {
             u32 x <- getConfig().value;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9560,7 +9560,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9577,7 +9577,7 @@ describe("CodeGenWalker", () => {
             u32 x <- 42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9586,7 +9586,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9601,7 +9601,7 @@ describe("CodeGenWalker", () => {
             i32 x <- -42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9610,7 +9610,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9625,7 +9625,7 @@ describe("CodeGenWalker", () => {
             f32 x <- 3.14;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9634,7 +9634,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9649,7 +9649,7 @@ describe("CodeGenWalker", () => {
             u32 x <- 0xFF;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9658,7 +9658,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9673,7 +9673,7 @@ describe("CodeGenWalker", () => {
             u8 x <- 0b1010;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9682,7 +9682,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9701,7 +9701,7 @@ describe("CodeGenWalker", () => {
             u8 nibble <- flags[4, 4];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9710,7 +9710,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9728,7 +9728,7 @@ describe("CodeGenWalker", () => {
             u8 byte <- value[0, 8];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9737,7 +9737,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9757,7 +9757,7 @@ describe("CodeGenWalker", () => {
             counter +<- 10;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9766,7 +9766,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9782,7 +9782,7 @@ describe("CodeGenWalker", () => {
             counter -<- 20;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9791,7 +9791,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9809,7 +9809,7 @@ describe("CodeGenWalker", () => {
             u32 result <- a / 5;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9818,7 +9818,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9834,7 +9834,7 @@ describe("CodeGenWalker", () => {
             u32 result <- a % 7;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9843,7 +9843,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9860,7 +9860,7 @@ describe("CodeGenWalker", () => {
             u32 x <- 1;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9869,7 +9869,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9891,7 +9891,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9900,7 +9900,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9924,7 +9924,7 @@ describe("CodeGenWalker", () => {
             h.onClick <- handleClick;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9933,7 +9933,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9951,7 +9951,7 @@ describe("CodeGenWalker", () => {
           const u32 MAX_SIZE <- 100;
           u32[MAX_SIZE] buffer;
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9960,7 +9960,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -9979,7 +9979,7 @@ describe("CodeGenWalker", () => {
             counter +<- 1;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9988,7 +9988,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10009,7 +10009,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10018,7 +10018,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10034,7 +10034,7 @@ describe("CodeGenWalker", () => {
             arr[5] <- 42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10043,7 +10043,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10060,7 +10060,7 @@ describe("CodeGenWalker", () => {
             u32 val <- 42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10070,7 +10070,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         // Generate to initialize state
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10089,7 +10089,7 @@ describe("CodeGenWalker", () => {
             helper();
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10098,7 +10098,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10118,7 +10118,7 @@ describe("CodeGenWalker", () => {
             u8 val <- flags[0];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10127,7 +10127,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10146,7 +10146,7 @@ describe("CodeGenWalker", () => {
             p.x +<- 10;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10155,7 +10155,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10172,7 +10172,7 @@ describe("CodeGenWalker", () => {
             p.x +<- 10;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10181,7 +10181,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -10199,7 +10199,7 @@ describe("CodeGenWalker", () => {
             string<32> name <- "Hello";
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10208,7 +10208,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10227,7 +10227,7 @@ describe("CodeGenWalker", () => {
             string<64> result <- a + b;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10236,7 +10236,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10258,7 +10258,7 @@ describe("CodeGenWalker", () => {
             Config config;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10274,7 +10274,7 @@ describe("CodeGenWalker", () => {
         host.state.symbolTable.addTSymbols(tSymbols);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10295,7 +10295,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10304,7 +10304,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10325,7 +10325,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10334,7 +10334,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10353,7 +10353,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10362,7 +10362,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10384,7 +10384,7 @@ describe("CodeGenWalker", () => {
             } while (i < 10);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10393,7 +10393,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10414,7 +10414,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10423,7 +10423,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10442,7 +10442,7 @@ describe("CodeGenWalker", () => {
             u32 result <- (x > 3) ? 10 : 20;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10451,7 +10451,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10472,7 +10472,7 @@ describe("CodeGenWalker", () => {
             bool result <- a && b;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10481,7 +10481,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10498,7 +10498,7 @@ describe("CodeGenWalker", () => {
             bool result <- a || b;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10507,7 +10507,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10526,7 +10526,7 @@ describe("CodeGenWalker", () => {
             u32 result <- a & b;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10535,7 +10535,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10552,7 +10552,7 @@ describe("CodeGenWalker", () => {
             u32 right <- a >> 4;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10561,7 +10561,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10580,7 +10580,7 @@ describe("CodeGenWalker", () => {
             bool result <- !a;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10589,7 +10589,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10605,7 +10605,7 @@ describe("CodeGenWalker", () => {
             u32 result <- ~a;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10614,7 +10614,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10632,7 +10632,7 @@ describe("CodeGenWalker", () => {
             Color c <- Color.RED;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10641,7 +10641,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10662,7 +10662,7 @@ describe("CodeGenWalker", () => {
             return p;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10671,7 +10671,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10688,7 +10688,7 @@ describe("CodeGenWalker", () => {
           #pragma target teensy41
           void test() { }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10697,7 +10697,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10715,7 +10715,7 @@ describe("CodeGenWalker", () => {
             u32[5] arr <- [1, 2, 3, 4, 5];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10724,7 +10724,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10741,7 +10741,7 @@ describe("CodeGenWalker", () => {
             val +<- 1;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10750,7 +10750,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10766,7 +10766,7 @@ describe("CodeGenWalker", () => {
             p.x <- 10;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10775,7 +10775,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10790,7 +10790,7 @@ describe("CodeGenWalker", () => {
             arr[0] <- 1;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10799,7 +10799,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10814,7 +10814,7 @@ describe("CodeGenWalker", () => {
             u32 copy <- val;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10823,7 +10823,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10838,7 +10838,7 @@ describe("CodeGenWalker", () => {
             u32 len <- name.char_count;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10847,7 +10847,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10864,7 +10864,7 @@ describe("CodeGenWalker", () => {
             callback();
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10873,7 +10873,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10891,7 +10891,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10900,7 +10900,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10923,7 +10923,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10932,7 +10932,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10952,7 +10952,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10961,7 +10961,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -10979,7 +10979,7 @@ describe("CodeGenWalker", () => {
             Motor.State s <- Motor.State.RUNNING;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10988,7 +10988,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11008,7 +11008,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(Motor.Config);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11017,7 +11017,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11033,7 +11033,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(x + 1);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11042,7 +11042,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11061,7 +11061,7 @@ describe("CodeGenWalker", () => {
             o.inner.value <- 42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11070,7 +11070,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -11087,7 +11087,7 @@ describe("CodeGenWalker", () => {
             c.points[0].x <- 5;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11096,7 +11096,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -11116,7 +11116,7 @@ describe("CodeGenWalker", () => {
             modify(x);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11125,7 +11125,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11144,7 +11144,7 @@ describe("CodeGenWalker", () => {
             process(d.value);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11153,7 +11153,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11169,7 +11169,7 @@ describe("CodeGenWalker", () => {
             u32 result <- compute(5 + 3);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11178,7 +11178,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11196,7 +11196,7 @@ describe("CodeGenWalker", () => {
             u32 count <- 0;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11205,7 +11205,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11222,7 +11222,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11231,7 +11231,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11248,7 +11248,7 @@ describe("CodeGenWalker", () => {
             i32 negative <- -42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11257,7 +11257,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11272,7 +11272,7 @@ describe("CodeGenWalker", () => {
             u32 x <- 123;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11281,7 +11281,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11302,7 +11302,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11311,7 +11311,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11330,7 +11330,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11339,7 +11339,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11357,7 +11357,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11366,7 +11366,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11392,7 +11392,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11401,7 +11401,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11422,7 +11422,7 @@ describe("CodeGenWalker", () => {
             u8 nibble <- flags[8, 4];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11431,7 +11431,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11452,7 +11452,7 @@ describe("CodeGenWalker", () => {
             small <- large[0, 8];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11461,7 +11461,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11479,7 +11479,7 @@ describe("CodeGenWalker", () => {
             u32 cap <- message.char_count;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11488,7 +11488,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11506,7 +11506,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11515,7 +11515,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11536,7 +11536,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11545,7 +11545,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11563,7 +11563,7 @@ describe("CodeGenWalker", () => {
             u32 v <- c.value;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11572,7 +11572,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -11595,7 +11595,7 @@ describe("CodeGenWalker", () => {
             i32 x <- getOrigin().x;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11604,7 +11604,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11621,7 +11621,7 @@ describe("CodeGenWalker", () => {
             i32 neg <- -100;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11630,7 +11630,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11645,7 +11645,7 @@ describe("CodeGenWalker", () => {
             f32 neg <- -3.14;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11654,7 +11654,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11676,7 +11676,7 @@ describe("CodeGenWalker", () => {
             r.value <- 25.5f;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11685,7 +11685,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11702,7 +11702,7 @@ describe("CodeGenWalker", () => {
             value +<- 1;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11711,7 +11711,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11727,7 +11727,7 @@ describe("CodeGenWalker", () => {
             Color current <- c;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11736,7 +11736,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11755,7 +11755,7 @@ describe("CodeGenWalker", () => {
             d.status <- State.ON;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11764,7 +11764,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11784,7 +11784,7 @@ describe("CodeGenWalker", () => {
             o.middle.inner.val <- 42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11793,7 +11793,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -11811,7 +11811,7 @@ describe("CodeGenWalker", () => {
             bool other <- false;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11820,7 +11820,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11836,7 +11836,7 @@ describe("CodeGenWalker", () => {
             string<16> s <- "test";
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11845,7 +11845,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11863,7 +11863,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(value);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11872,7 +11872,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11888,7 +11888,7 @@ describe("CodeGenWalker", () => {
             return sizeof(d);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11897,7 +11897,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11912,7 +11912,7 @@ describe("CodeGenWalker", () => {
             return sizeof(val);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11921,7 +11921,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11937,7 +11937,7 @@ describe("CodeGenWalker", () => {
             return sizeof(arr);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11947,7 +11947,7 @@ describe("CodeGenWalker", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() =>
-          generateWithProgram(generator, tree, tokenStream, {
+          generateWithProgram(generator, tree, program, {
             cppMode: false,
             symbolInfo: symbols,
             sourcePath: "test.cnx",
@@ -11962,7 +11962,7 @@ describe("CodeGenWalker", () => {
             return sizeof(cb);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11976,7 +11976,7 @@ describe("CodeGenWalker", () => {
         host.state.symbolTable = symbolTable;
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -11993,7 +11993,7 @@ describe("CodeGenWalker", () => {
             return flags[0, 1];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12002,7 +12002,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12018,7 +12018,7 @@ describe("CodeGenWalker", () => {
             return arr[5];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12027,7 +12027,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12045,7 +12045,7 @@ describe("CodeGenWalker", () => {
             return val[0, 8];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12054,7 +12054,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12071,7 +12071,7 @@ describe("CodeGenWalker", () => {
             return s[0, 1];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12080,7 +12080,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12099,7 +12099,7 @@ describe("CodeGenWalker", () => {
             u32 bits <- value[0, 32];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12108,7 +12108,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12126,7 +12126,7 @@ describe("CodeGenWalker", () => {
             u64 bits <- value[0, 64];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12135,7 +12135,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12157,7 +12157,7 @@ describe("CodeGenWalker", () => {
             } while (i < 5);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12166,7 +12166,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12183,7 +12183,7 @@ describe("CodeGenWalker", () => {
               x +<- 1;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12192,7 +12192,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12213,7 +12213,7 @@ describe("CodeGenWalker", () => {
             Device.Mode m <- Device.Mode.ACTIVE;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12222,7 +12222,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12243,7 +12243,7 @@ describe("CodeGenWalker", () => {
             process(arr);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12252,7 +12252,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12275,7 +12275,7 @@ describe("CodeGenWalker", () => {
             f32 xCoord <- vec.x;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12284,7 +12284,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12304,7 +12304,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12313,7 +12313,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12333,7 +12333,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12342,7 +12342,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12367,7 +12367,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12376,7 +12376,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12397,7 +12397,7 @@ describe("CodeGenWalker", () => {
             b.data[0] <- 0xFF;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12406,7 +12406,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12422,7 +12422,7 @@ describe("CodeGenWalker", () => {
             c.values[0] <- 42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12431,7 +12431,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12450,7 +12450,7 @@ describe("CodeGenWalker", () => {
             counter +<- 10;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12459,7 +12459,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12481,7 +12481,7 @@ describe("CodeGenWalker", () => {
             Status s <- getStatus();
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12490,7 +12490,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12510,7 +12510,7 @@ describe("CodeGenWalker", () => {
             u32 v <- Device.getValue();
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12519,7 +12519,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12540,7 +12540,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12549,7 +12549,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12570,7 +12570,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12579,7 +12579,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12597,7 +12597,7 @@ describe("CodeGenWalker", () => {
             buffer[0] <- 0xFF;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12606,7 +12606,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12623,7 +12623,7 @@ describe("CodeGenWalker", () => {
             buffer[0] <- 0;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12632,7 +12632,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12647,7 +12647,7 @@ describe("CodeGenWalker", () => {
             u8[] data <- [1, 2, 3];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12656,7 +12656,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12672,7 +12672,7 @@ describe("CodeGenWalker", () => {
             matrix[0][0] <- 0;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12681,7 +12681,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12699,7 +12699,7 @@ describe("CodeGenWalker", () => {
             string<32> greeting <- "Hello " + name;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12708,7 +12708,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12725,7 +12725,7 @@ describe("CodeGenWalker", () => {
             string<16> prefix <- name[0, 5];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12734,7 +12734,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12753,7 +12753,7 @@ describe("CodeGenWalker", () => {
             u32 sum <- a + b;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12762,7 +12762,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12781,7 +12781,7 @@ describe("CodeGenWalker", () => {
             u32 result <- (a + b) * c;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12790,7 +12790,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12814,7 +12814,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12823,7 +12823,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12841,7 +12841,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12850,7 +12850,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12869,7 +12869,7 @@ describe("CodeGenWalker", () => {
             f32 doubled <- pi * 2.0f;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12878,7 +12878,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12895,7 +12895,7 @@ describe("CodeGenWalker", () => {
             f32 negFloat <- -3.14;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12904,7 +12904,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12925,7 +12925,7 @@ describe("CodeGenWalker", () => {
             o.inner.value <- 42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12934,7 +12934,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12954,7 +12954,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12963,7 +12963,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -12981,7 +12981,7 @@ describe("CodeGenWalker", () => {
               x <- 1;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12990,7 +12990,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13008,7 +13008,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13017,7 +13017,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13034,7 +13034,7 @@ describe("CodeGenWalker", () => {
               sum +<- i;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13043,7 +13043,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13064,7 +13064,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13073,7 +13073,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13094,7 +13094,7 @@ describe("CodeGenWalker", () => {
             } while (i < 5);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13103,7 +13103,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13124,7 +13124,7 @@ describe("CodeGenWalker", () => {
             u8 red <- c.r;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13133,7 +13133,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13151,7 +13151,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13160,7 +13160,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13178,7 +13178,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13187,7 +13187,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13203,7 +13203,7 @@ describe("CodeGenWalker", () => {
             u32 v <- d.value;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13212,7 +13212,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13227,7 +13227,7 @@ describe("CodeGenWalker", () => {
             string<64> msg <- "Hello, " + name;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13236,7 +13236,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13258,7 +13258,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13267,7 +13267,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13286,7 +13286,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13295,7 +13295,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13313,7 +13313,7 @@ describe("CodeGenWalker", () => {
             LED.Color c <- LED.Color.RED;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13322,7 +13322,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13343,7 +13343,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13352,7 +13352,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13371,7 +13371,7 @@ describe("CodeGenWalker", () => {
             h();
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13385,7 +13385,7 @@ describe("CodeGenWalker", () => {
         host.state.symbolTable = symbolTable;
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13404,7 +13404,7 @@ describe("CodeGenWalker", () => {
           struct Point { i32 x; }
           void onPoint(Point p) { p.x <- 1; }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         const host = new CodeGenerator();
         const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
@@ -13415,7 +13415,7 @@ describe("CodeGenWalker", () => {
         host.state.symbolTable = symbolTable;
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        generateWithProgram(generator, tree, tokenStream, {
+        generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13434,7 +13434,7 @@ describe("CodeGenWalker", () => {
             matrix[0][0] <- 1;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13443,7 +13443,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13461,7 +13461,7 @@ describe("CodeGenWalker", () => {
             points[0].x <- 10;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13470,7 +13470,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13486,7 +13486,7 @@ describe("CodeGenWalker", () => {
             items[0].value <- 42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13495,7 +13495,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13513,7 +13513,7 @@ describe("CodeGenWalker", () => {
             matrix[0][0] <- 1;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13522,7 +13522,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13537,7 +13537,7 @@ describe("CodeGenWalker", () => {
             cube[0][0][0] <- 0xFF;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13546,7 +13546,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13563,7 +13563,7 @@ describe("CodeGenWalker", () => {
             names[0] <- "test";
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13572,7 +13572,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13588,7 +13588,7 @@ describe("CodeGenWalker", () => {
             messages[0] <- "hello";
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13597,7 +13597,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13614,7 +13614,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(u32);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13623,7 +13623,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13639,7 +13639,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(Data);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13648,7 +13648,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13666,7 +13666,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(IO.Buffer);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13675,7 +13675,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13691,7 +13691,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(value);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13700,7 +13700,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13716,7 +13716,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(buffer);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13725,7 +13725,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13743,7 +13743,7 @@ describe("CodeGenWalker", () => {
             u8 lowBits <- flags[0, 4];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13752,7 +13752,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13770,7 +13770,7 @@ describe("CodeGenWalker", () => {
             flags[0, 4] <- 0x0F;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13779,7 +13779,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13795,7 +13795,7 @@ describe("CodeGenWalker", () => {
             u32 bits <- val[0, 32];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13804,7 +13804,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13824,7 +13824,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13833,7 +13833,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13851,7 +13851,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13860,7 +13860,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13878,7 +13878,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13887,7 +13887,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13905,7 +13905,7 @@ describe("CodeGenWalker", () => {
             u32 val <- arr[5];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13914,7 +13914,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13931,7 +13931,7 @@ describe("CodeGenWalker", () => {
             u32 val <- arr[i];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13940,7 +13940,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13957,7 +13957,7 @@ describe("CodeGenWalker", () => {
             string<32> first <- names[0];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13966,7 +13966,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -13988,7 +13988,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13997,7 +13997,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14020,7 +14020,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14029,7 +14029,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14048,7 +14048,7 @@ describe("CodeGenWalker", () => {
             u8 ready <- f[0];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14057,7 +14057,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14076,7 +14076,7 @@ describe("CodeGenWalker", () => {
             u32 wid <- w.id;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14085,7 +14085,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14106,7 +14106,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14115,7 +14115,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14134,7 +14134,7 @@ describe("CodeGenWalker", () => {
             u32 result <- 10 + 5;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14143,7 +14143,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14162,7 +14162,7 @@ describe("CodeGenWalker", () => {
             i32 px <- p.x;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14171,7 +14171,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -14189,7 +14189,7 @@ describe("CodeGenWalker", () => {
             i32 v <- o.inner.val;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14198,7 +14198,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -14219,7 +14219,7 @@ describe("CodeGenWalker", () => {
             increment(x);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14228,7 +14228,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14249,7 +14249,7 @@ describe("CodeGenWalker", () => {
             processData(myData);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14258,7 +14258,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14279,7 +14279,7 @@ describe("CodeGenWalker", () => {
             useValue(c.val);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14288,7 +14288,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14305,7 +14305,7 @@ describe("CodeGenWalker", () => {
             i32 neg <- -42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14314,7 +14314,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14329,7 +14329,7 @@ describe("CodeGenWalker", () => {
             f32 neg <- -3.14;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14338,7 +14338,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14353,7 +14353,7 @@ describe("CodeGenWalker", () => {
             u32 val <- 100;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14362,7 +14362,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14380,7 +14380,7 @@ describe("CodeGenWalker", () => {
             u8 small <- big[0, 8];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14389,7 +14389,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14409,7 +14409,7 @@ describe("CodeGenWalker", () => {
             items[0].id <- 42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14418,7 +14418,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14442,7 +14442,7 @@ describe("CodeGenWalker", () => {
             u32 c <- res.code;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14451,7 +14451,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14474,7 +14474,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14483,7 +14483,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14501,7 +14501,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14510,7 +14510,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14530,7 +14530,7 @@ describe("CodeGenWalker", () => {
             u32 bits <- floatVal[0, 32];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14539,7 +14539,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14558,7 +14558,7 @@ describe("CodeGenWalker", () => {
             u64 bits <- doubleVal[8, 11];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14567,7 +14567,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14587,7 +14587,7 @@ describe("CodeGenWalker", () => {
             u8 high <- val[24, 8];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14596,7 +14596,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14618,7 +14618,7 @@ describe("CodeGenWalker", () => {
             u8 lowByte <- flags[0, 8];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14627,7 +14627,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14647,7 +14647,7 @@ describe("CodeGenWalker", () => {
             u8 highByte <- flags[8, 8];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14656,7 +14656,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14673,7 +14673,7 @@ describe("CodeGenWalker", () => {
         const source = `
           void doNothing() { }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14682,7 +14682,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14699,7 +14699,7 @@ describe("CodeGenWalker", () => {
           }
           Motor.State status;
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14708,7 +14708,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14722,7 +14722,7 @@ describe("CodeGenWalker", () => {
           struct Point { i32 x; i32 y; }
           Point[10] points;
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14731,7 +14731,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14745,7 +14745,7 @@ describe("CodeGenWalker", () => {
           u8[256] buffer;
           i32[10] numbers;
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14754,7 +14754,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14775,7 +14775,7 @@ describe("CodeGenWalker", () => {
             u32 c <- name.char_count;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14784,7 +14784,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14801,7 +14801,7 @@ describe("CodeGenWalker", () => {
             u32 len <- msg.char_count;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14810,7 +14810,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14829,7 +14829,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14838,7 +14838,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14857,7 +14857,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14866,7 +14866,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14889,7 +14889,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14898,7 +14898,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14916,7 +14916,7 @@ describe("CodeGenWalker", () => {
             u32 result <- count + offset;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14925,7 +14925,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14942,7 +14942,7 @@ describe("CodeGenWalker", () => {
             u32 len <- name.char_count;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14951,7 +14951,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14967,7 +14967,7 @@ describe("CodeGenWalker", () => {
             u32 total <- 0;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14976,7 +14976,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -14995,7 +14995,7 @@ describe("CodeGenWalker", () => {
             Category cat <- global.Category.A;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15004,7 +15004,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15020,7 +15020,7 @@ describe("CodeGenWalker", () => {
             State current <- this.State.IDLE;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15029,7 +15029,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15045,7 +15045,7 @@ describe("CodeGenWalker", () => {
           }
           Motor.State status <- Motor.State.IDLE;
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15054,7 +15054,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15072,7 +15072,7 @@ describe("CodeGenWalker", () => {
             setOffset(-5);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15081,7 +15081,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15096,7 +15096,7 @@ describe("CodeGenWalker", () => {
             u32 val <- 42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15105,7 +15105,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15124,7 +15124,7 @@ describe("CodeGenWalker", () => {
             process(data);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15133,7 +15133,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15151,7 +15151,7 @@ describe("CodeGenWalker", () => {
             setX(p.x);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15160,7 +15160,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15177,7 +15177,7 @@ describe("CodeGenWalker", () => {
             process(x + 5);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15186,7 +15186,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15206,7 +15206,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15215,7 +15215,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15233,7 +15233,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15242,7 +15242,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15259,7 +15259,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(u32);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15268,7 +15268,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15284,7 +15284,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(Data);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15293,7 +15293,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15309,7 +15309,7 @@ describe("CodeGenWalker", () => {
             u32 size <- sizeof(value);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15318,7 +15318,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15336,7 +15336,7 @@ describe("CodeGenWalker", () => {
             u8 val <- buffer[5];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15345,7 +15345,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15362,7 +15362,7 @@ describe("CodeGenWalker", () => {
             u8 val <- data[idx];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15371,7 +15371,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15394,7 +15394,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15403,7 +15403,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15422,7 +15422,7 @@ describe("CodeGenWalker", () => {
             Priority level <- global.Priority.HIGH;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15431,7 +15431,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15449,7 +15449,7 @@ describe("CodeGenWalker", () => {
             u16 midBits <- value[8, 16];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15458,7 +15458,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15478,7 +15478,7 @@ describe("CodeGenWalker", () => {
             u8 lowByte <- val[0, 8];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15487,7 +15487,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15507,7 +15507,7 @@ describe("CodeGenWalker", () => {
             u8 b3 <- data[16, 8];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15516,7 +15516,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15538,7 +15538,7 @@ describe("CodeGenWalker", () => {
             u32 len2 <- msg.char_count;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15547,7 +15547,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15565,7 +15565,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15574,7 +15574,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15591,7 +15591,7 @@ describe("CodeGenWalker", () => {
             u32 len <- s.char_count;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15600,7 +15600,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15624,7 +15624,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15633,7 +15633,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15654,7 +15654,7 @@ describe("CodeGenWalker", () => {
             u32 v <- Utils.getValue();
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15663,7 +15663,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15683,7 +15683,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15692,7 +15692,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15715,7 +15715,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15724,7 +15724,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15743,7 +15743,7 @@ describe("CodeGenWalker", () => {
             bool isZero <- (val = 0);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15752,7 +15752,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15769,7 +15769,7 @@ describe("CodeGenWalker", () => {
             bool check <- (flags = 0xFF);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15778,7 +15778,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15794,7 +15794,7 @@ describe("CodeGenWalker", () => {
             bool check <- (mode = 0b1010);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15803,7 +15803,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15821,7 +15821,7 @@ describe("CodeGenWalker", () => {
             bool check <- (code = limit);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15830,7 +15830,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15847,7 +15847,7 @@ describe("CodeGenWalker", () => {
             bool check <- (s = "hello");
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15856,7 +15856,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15874,7 +15874,7 @@ describe("CodeGenWalker", () => {
             bool check <- (s1 = s2);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15883,7 +15883,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15901,7 +15901,7 @@ describe("CodeGenWalker", () => {
             bool check <- (names[0] = "Alice");
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15910,7 +15910,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15929,7 +15929,7 @@ describe("CodeGenWalker", () => {
             buffer[0] <- 0xFF;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15938,7 +15938,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15954,7 +15954,7 @@ describe("CodeGenWalker", () => {
             matrix[0][0] <- 0;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15963,7 +15963,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -15979,7 +15979,7 @@ describe("CodeGenWalker", () => {
             values[0] <- 100;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15988,7 +15988,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16003,7 +16003,7 @@ describe("CodeGenWalker", () => {
             const u8[4] data <- [1, 2, 3, 4];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16012,7 +16012,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16032,7 +16032,7 @@ describe("CodeGenWalker", () => {
             points[0].x <- 10;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16041,7 +16041,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16066,7 +16066,7 @@ describe("CodeGenWalker", () => {
             flags[0].active <- true;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16075,7 +16075,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16098,7 +16098,7 @@ describe("CodeGenWalker", () => {
             colors[0] <- Color.RED;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16107,7 +16107,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16124,7 +16124,7 @@ describe("CodeGenWalker", () => {
           }
           const Item[2] items <- [{id: 1}, {id: 2}];
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16133,7 +16133,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16154,7 +16154,7 @@ describe("CodeGenWalker", () => {
             u32 v <- cfg.value;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16163,7 +16163,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -16183,7 +16183,7 @@ describe("CodeGenWalker", () => {
             u32 first <- items[0].id;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16192,7 +16192,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -16211,7 +16211,7 @@ describe("CodeGenWalker", () => {
             u32 v <- cfg.value;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16220,7 +16220,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: false,
@@ -16240,7 +16240,7 @@ describe("CodeGenWalker", () => {
             u32 t <- s.timeout;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16249,7 +16249,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -16268,7 +16268,7 @@ describe("CodeGenWalker", () => {
             rw u32 DR @ 0x00;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16277,7 +16277,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16295,7 +16295,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16304,7 +16304,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16325,7 +16325,7 @@ describe("CodeGenWalker", () => {
             c <- Color.GREEN;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16334,7 +16334,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16354,7 +16354,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16363,7 +16363,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16382,7 +16382,7 @@ describe("CodeGenWalker", () => {
             Result r <- getResult();
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16391,7 +16391,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16410,7 +16410,7 @@ describe("CodeGenWalker", () => {
             val +<- 10;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16419,7 +16419,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16435,7 +16435,7 @@ describe("CodeGenWalker", () => {
             val -<- 10;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16444,7 +16444,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16460,7 +16460,7 @@ describe("CodeGenWalker", () => {
           #include <stdio.h>
           void test() {}
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16469,7 +16469,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16484,7 +16484,7 @@ describe("CodeGenWalker", () => {
           #define DEBUG_MODE
           void test() {}
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16493,7 +16493,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16511,7 +16511,7 @@ describe("CodeGenWalker", () => {
             u8 byte <- val[8, 8];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16520,7 +16520,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16538,7 +16538,7 @@ describe("CodeGenWalker", () => {
             val[8, 8] <- 0xFF;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16547,7 +16547,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16564,7 +16564,7 @@ describe("CodeGenWalker", () => {
             flags[3] <- true;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16573,7 +16573,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16591,7 +16591,7 @@ describe("CodeGenWalker", () => {
             arr[5] <- 42;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16600,7 +16600,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16616,7 +16616,7 @@ describe("CodeGenWalker", () => {
             u8 lowByte <- val[0, 8];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16625,7 +16625,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16642,7 +16642,7 @@ describe("CodeGenWalker", () => {
             u32 upper <- val[32, 32];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16651,7 +16651,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16672,7 +16672,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16681,7 +16681,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16699,7 +16699,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16708,7 +16708,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16730,7 +16730,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16739,7 +16739,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16762,7 +16762,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16771,7 +16771,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16792,7 +16792,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16801,7 +16801,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16820,7 +16820,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16829,7 +16829,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16851,7 +16851,7 @@ describe("CodeGenWalker", () => {
             } while (i < 10);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16860,7 +16860,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16878,7 +16878,7 @@ describe("CodeGenWalker", () => {
             return a + b;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16887,7 +16887,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16904,7 +16904,7 @@ describe("CodeGenWalker", () => {
             u32 val <- arr[0];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16913,7 +16913,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16928,7 +16928,7 @@ describe("CodeGenWalker", () => {
         const source = `
           u32 globalCounter <- 0;
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16937,7 +16937,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16951,7 +16951,7 @@ describe("CodeGenWalker", () => {
         const source = `
           const u32 MAX_VALUE <- 100;
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16960,7 +16960,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -16979,7 +16979,7 @@ describe("CodeGenWalker", () => {
             u32 b <- a % 3;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16988,7 +16988,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17007,7 +17007,7 @@ describe("CodeGenWalker", () => {
             u32 e <- ~a;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17016,7 +17016,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17036,7 +17036,7 @@ describe("CodeGenWalker", () => {
             u32 c <- a >> 2;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17045,7 +17045,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17066,7 +17066,7 @@ describe("CodeGenWalker", () => {
             bool d <- a || b;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17075,7 +17075,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17092,7 +17092,7 @@ describe("CodeGenWalker", () => {
             bool b <- !a;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17101,7 +17101,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17119,7 +17119,7 @@ describe("CodeGenWalker", () => {
             u32 b <- (a > 3) ? 10 : 20;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17128,7 +17128,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17149,7 +17149,7 @@ describe("CodeGenWalker", () => {
             i32 b <- -a;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17158,7 +17158,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17174,7 +17174,7 @@ describe("CodeGenWalker", () => {
             u32 b <- ~a;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17183,7 +17183,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17211,7 +17211,7 @@ describe("CodeGenWalker", () => {
             bool isSet <- f.bit0;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17220,7 +17220,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17240,7 +17240,7 @@ describe("CodeGenWalker", () => {
             u32 result <- multiply(5, 10);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17249,7 +17249,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17269,7 +17269,7 @@ describe("CodeGenWalker", () => {
             u32 result <- Math.square(5);
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17278,7 +17278,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17295,7 +17295,7 @@ describe("CodeGenWalker", () => {
             u32 x <- 1;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17304,7 +17304,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17323,7 +17323,7 @@ describe("CodeGenWalker", () => {
             counter <- 1;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17332,7 +17332,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17350,7 +17350,7 @@ describe("CodeGenWalker", () => {
             val +<- 10;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17359,7 +17359,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17381,7 +17381,7 @@ describe("CodeGenWalker", () => {
             u32 c <- a / b;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17390,7 +17390,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17411,7 +17411,7 @@ describe("CodeGenWalker", () => {
             u32 result <- (a + b) * c;
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17420,7 +17420,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17443,7 +17443,7 @@ describe("CodeGenWalker", () => {
             u32 val <- arr[5];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17452,7 +17452,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17468,7 +17468,7 @@ describe("CodeGenWalker", () => {
             u8 val <- data[idx];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17477,7 +17477,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17493,7 +17493,7 @@ describe("CodeGenWalker", () => {
             u8 byte <- value[8, 8];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17502,7 +17502,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17519,7 +17519,7 @@ describe("CodeGenWalker", () => {
             u8 byte <- fval[0, 8];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17528,7 +17528,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17547,7 +17547,7 @@ describe("CodeGenWalker", () => {
             u8 byte <- dval[0, 8];
           }
         `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
+        const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -17556,7 +17556,7 @@ describe("CodeGenWalker", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generateWithProgram(generator, tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
           symbolInfo: symbols,
           sourcePath: "test.cnx",
@@ -17581,7 +17581,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -17590,7 +17590,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -17612,7 +17612,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -17621,7 +17621,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -17642,7 +17642,7 @@ describe("CodeGenWalker", () => {
         struct Point { i32 x; i32 y; }
         Point origin <- {x: 0, y: 0};
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -17651,7 +17651,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -17670,7 +17670,7 @@ describe("CodeGenWalker", () => {
           Point p <- {x: 10, y: 20};
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -17679,7 +17679,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -17695,7 +17695,7 @@ describe("CodeGenWalker", () => {
         struct Line { Point start; Point end; }
         Line seg <- {start: {x: 0, y: 0}, end: {x: 100, y: 100}};
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -17704,7 +17704,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -17726,7 +17726,7 @@ describe("CodeGenWalker", () => {
           p <- {x: 10, y: 20};
         }
       `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
+      const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -17735,7 +17735,7 @@ describe("CodeGenWalker", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generateWithProgram(generator, tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, program, {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",

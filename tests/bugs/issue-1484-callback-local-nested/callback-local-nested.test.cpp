@@ -21,34 +21,110 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 // test-execution
-// #1484 / #1951 review: a callback-typed local inside an `if` body and a
-// `while` body still gets its `_fp` typedef.
+// #1484 / #1951 review / #1960 review: a callback-typed local nested in each
+// statement kind the pre-pass walks still gets its `_fp` typedef. Each kind
+// uses its own callback type, so dropping any one arm of the walk loses
+// exactly one typedef and the C no longer compiles. `critical` is in
+// callback-local-critical, which cannot run on host until #1147.
 uint32_t total = 0U;
 
 
-typedef void (*onTick_fp)(uint32_t);
-typedef void (*onBeat_fp)(uint32_t);
+typedef void (*onIf_fp)(uint32_t);
+typedef void (*onWhile_fp)(uint32_t);
+typedef void (*onDo_fp)(uint32_t);
+typedef void (*onFor_fp)(uint32_t);
+typedef void (*onCase_fp)(uint32_t);
+typedef void (*onDefault_fp)(uint32_t);
+typedef void (*onForever_fp)(uint32_t);
 
-void onTick(uint32_t ms) {
-    total = cnx_clamp_add_u32(total, ms);
+void onIf(uint32_t n) {
+    total = cnx_clamp_add_u32(total, n);
 }
 
-void onBeat(uint32_t n) {
+void onWhile(uint32_t n) {
     total = cnx_clamp_add_u32(total, n);
+}
+
+void onDo(uint32_t n) {
+    total = cnx_clamp_add_u32(total, n);
+}
+
+void onFor(uint32_t n) {
+    total = cnx_clamp_add_u32(total, n);
+}
+
+void onCase(uint32_t n) {
+    total = cnx_clamp_add_u32(total, n);
+}
+
+void onDefault(uint32_t n) {
+    total = cnx_clamp_add_u32(total, n);
+}
+
+void onForever(uint32_t n) {
+    total = cnx_clamp_add_u32(total, n);
+}
+
+// A forever loop is only legal in a void function (E0705).
+void spinOnce(void) {
+    /* MISRA C:2012 Rule 14.3: infinite loop written as `for (;;)` for C-Next `forever` (`while (1)` has a controlling expression with an invariant value, which the rule forbids). */
+    for (;;) {
+        onForever_fp spin = onForever;
+        spin(1U);
+        return;
+    }
 }
 
 int main(void) {
     if (total == 0) {
-        onTick_fp handler = onTick;
+        onIf_fp handler = onIf;
         handler(5U);
     }
     if (total != 5) return 1U;
     uint32_t i = 0U;
     while (i < 1) {
-        onBeat_fp beat = onBeat;
+        onWhile_fp beat = onWhile;
         beat(2U);
         i = cnx_clamp_add_u32(i, 1U);
     }
     if (total != 7) return 2U;
+    do {
+        onDo_fp step = onDo;
+        step(1U);
+    } while (total < 8);
+    if (total != 8) return 3U;
+    for (uint32_t j = 0U; j < 1; j = cnx_clamp_add_u32(j, 1U)) {
+        onFor_fp tick = onFor;
+        tick(2U);
+    }
+    if (total != 10) return 4U;
+    switch (total) {
+        case 10: {
+            onCase_fp matched = onCase;
+            matched(1U);
+            break;
+        }
+        default: {
+            onDefault_fp unmatched = onDefault;
+            unmatched(100U);
+            break;
+        }
+    }
+    if (total != 11) return 5U;
+    switch (total) {
+        case 0: {
+            onCase_fp never = onCase;
+            never(100U);
+            break;
+        }
+        default: {
+            onDefault_fp fallback = onDefault;
+            fallback(1U);
+            break;
+        }
+    }
+    if (total != 12) return 6U;
+    spinOnce();
+    if (total != 13) return 7U;
     return 0U;
 }

@@ -1,0 +1,20 @@
+// test-c-only
+// test-execution
+// test-target-xfail: host #1147 "implicit declaration of function"
+// #1484 / #1960 review: a callback-typed local inside a `critical` block still
+// gets its `_fp` typedef. Its own fixture because a critical section cannot
+// run on host until #1147; callback-local-nested covers every other kind.
+u32 total <- 0;
+
+void onCritical(u32 n) {
+    total <- total + n;
+}
+
+u32 main() {
+    critical {
+        onCritical guarded <- onCritical;
+        guarded(1);
+    }
+    if (total != 1) return 1;
+    return 0;
+}

@@ -1,28 +1,94 @@
 // test-execution
-// #1484 / #1951 review: a callback-typed local inside an `if` body and a
-// `while` body still gets its `_fp` typedef.
+// #1484 / #1951 review / #1960 review: a callback-typed local nested in each
+// statement kind the pre-pass walks still gets its `_fp` typedef. Each kind
+// uses its own callback type, so dropping any one arm of the walk loses
+// exactly one typedef and the C no longer compiles. `critical` is in
+// callback-local-critical, which cannot run on host until #1147.
 u32 total <- 0;
 
-void onTick(u32 ms) {
-    total <- total + ms;
+void onIf(u32 n) {
+    total <- total + n;
 }
 
-void onBeat(u32 n) {
+void onWhile(u32 n) {
     total <- total + n;
+}
+
+void onDo(u32 n) {
+    total <- total + n;
+}
+
+void onFor(u32 n) {
+    total <- total + n;
+}
+
+void onCase(u32 n) {
+    total <- total + n;
+}
+
+void onDefault(u32 n) {
+    total <- total + n;
+}
+
+void onForever(u32 n) {
+    total <- total + n;
+}
+
+// A forever loop is only legal in a void function (E0705).
+void spinOnce() {
+    forever {
+        onForever spin <- onForever;
+        spin(1);
+        return;
+    }
 }
 
 u32 main() {
     if (total = 0) {
-        onTick handler <- onTick;
+        onIf handler <- onIf;
         handler(5);
     }
     if (total != 5) return 1;
     u32 i <- 0;
     while (i < 1) {
-        onBeat beat <- onBeat;
+        onWhile beat <- onWhile;
         beat(2);
         i <- i + 1;
     }
     if (total != 7) return 2;
+    do {
+        onDo step <- onDo;
+        step(1);
+    } while (total < 8);
+    if (total != 8) return 3;
+    for (u32 j <- 0; j < 1; j <- j + 1) {
+        onFor tick <- onFor;
+        tick(2);
+    }
+    if (total != 10) return 4;
+    switch (total) {
+        case 10 {
+            onCase matched <- onCase;
+            matched(1);
+        }
+        default {
+            onDefault unmatched <- onDefault;
+            unmatched(100);
+        }
+    }
+    if (total != 11) return 5;
+    switch (total) {
+        case 0 {
+            onCase never <- onCase;
+            never(100);
+        }
+        default {
+            onDefault fallback <- onDefault;
+            fallback(1);
+        }
+    }
+    if (total != 12) return 6;
+    spinOnce();
+    if (total != 13) return 7;
     return 0;
 }

@@ -33,10 +33,10 @@ lexer-only include scan. Nothing from 2.2 Plan on.
 | Layer            | Modules |
 | ---------------- | ------: |
 | `src/TRANSPILE/` |      61 |
-| `src/PARSE/`     |      24 |
+| `src/PARSE/`     |      23 |
 | `src/utils/`     |       9 |
-| `src/types/`     |       3 |
-| **total**        |  **97** |
+| `src/types/`     |       2 |
+| **total**        |  **95** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -69,7 +69,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/PARSE/3-Declare/cpp/index.ts`                              | grammar           |
 | `src/PARSE/3-Declare/cpp/utils/DeclaratorUtils.ts`              | grammar           |
 | `src/PARSE/3-Declare/HeaderDeclarations.ts`                     | grammar           |
-| `src/PARSE/3-Declare/TypeBinding.ts`                            | grammar           |
 | `src/TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts`           | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ArrayIndexBoundsAnalyzer.ts`           | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ArrayIndexTypeAnalyzer.ts`             | antlr4ng, grammar |
@@ -132,7 +131,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/1-Analyze/UndeclaredTypeAnalyzer.ts`             | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/UndeclaredValueAnalyzer.ts`            | antlr4ng, grammar |
 | `src/types/IParsedFile.ts`                                      | antlr4ng, grammar |
-| `src/types/ITypeAccessors.ts`                                   | grammar           |
 | `src/types/TAssignmentSite.ts`                                  | grammar           |
 | `src/utils/ast/AssignmentTargetExtractor.ts`                    | grammar           |
 | `src/utils/ast/ChildStatementCollector.ts`                      | grammar           |
@@ -144,4 +142,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/ParserUtils.ts`                                      | antlr4ng, grammar |
 | `src/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-97 module(s).
+95 module(s).

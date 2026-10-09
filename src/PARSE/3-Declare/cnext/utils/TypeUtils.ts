@@ -4,14 +4,12 @@
 
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import CNEXT_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
-import TypeBinding from "../../TypeBinding";
 import TypeNameLadder from "../../../../utils/TypeNameLadder";
 import SyntaxLowering from "../../../2-Parse/SyntaxLowering";
 import TypeResolver from "../../../../utils/TypeResolver";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import type TType from "../../../../types/TType";
-import type ITypeAccessors from "../../../../types/ITypeAccessors";
 
 /**
  * Static utility class for extracting and converting C-Next type names.
@@ -93,9 +91,10 @@ class TypeUtils {
    * At file scope there is nothing to defer: ADR-057 qualification does not
    * apply, so a bare name there is already its own answer.
    *
-   * Arrays recurse, because `resolveWrittenName` treats an array context as its
-   * ELEMENT type -- dimensions live in their own slot on the symbol -- so an
-   * array of an unsettled scope type must defer on the element.
+   * An array defers on its ELEMENT type, because `resolveWrittenName` treats an
+   * array as its element -- dimensions live in their own slot on the symbol.
+   * The type is lowered once and classified by the same `TypeNameLadder` that
+   * `getTypeName` resolves through, so the spelling is derived in one place.
    */
   private static deferredIfUnsettled(
     ctx: Parser.TypeContext | null,
@@ -106,17 +105,9 @@ class TypeUtils {
       return null;
     }
 
-    const accessors = ctx as ITypeAccessors;
-    const array = accessors.arrayType?.();
-    if (array) {
-      return TypeUtils.deferredIfUnsettled(
-        array as unknown as Parser.TypeContext,
-        scopePath,
-        isScopeType,
-      );
-    }
-
-    const classified = TypeBinding.classifyNamedType(accessors, scopePath, {
+    const lowered = SyntaxLowering.type(ctx);
+    const element = lowered.kind === "array" ? lowered.element : lowered;
+    const classified = TypeNameLadder.classifyNamed(element, scopePath, {
       isScopeType,
     });
     if (classified?.branch !== "bare") {

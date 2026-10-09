@@ -103,15 +103,12 @@ function reachesParseNode(
   }
 
   // What a callable HANDS BACK. This is the difference between a thunk and a
-  // re-export, and it is the whole reason these artifacts are legal.
-  // `IAssignmentContext` carries eight functions that close over
-  // `Parser.AssignmentTargetContext` and friends, and `ICodeGenApi` takes parse
-  // nodes as `unknown`; a consumer therefore RETAINS a tree for the duration of
-  // a render. But every one returns `string`, `IBitAccessAnalysis`,
-  // `number | undefined` -- a value, never a node -- so no later pass can
-  // OBTAIN a parse node from an artifact and walk it. Retention for the length
-  // of the render is the lifetime the design asks for; handing the node back is
-  // what box 2 forbids, and only this check can tell the two apart.
+  // re-export. A closure's captures are invisible to the type checker, so what
+  // this can check is the return type: a callable returning `string`,
+  // `IBitAccessAnalysis` or `number | undefined` hands back a value, never a
+  // node, so no later pass can OBTAIN a parse node from it and walk it. Since
+  // #1950 the closures in `IAssignmentContext` capture plain `TExpression`s, not
+  // parser contexts; this is what catches one that starts returning a node.
   try {
     for (const sig of type.getCallSignatures())
       if (reachesParseNode(sig.getReturnType(), depth + 1, seen)) return true;
@@ -158,8 +155,9 @@ const ARTIFACTS: ReadonlyArray<readonly [string, string]> = [
   ["src/PARSE/4-Resolve/VisibleSymbols.ts", "VisibleSymbols"],
   ["src/PARSE/3-Declare/SymbolTable.ts", "SymbolTable"],
   ["src/PARSE/3-Declare/SymbolRegistry.ts", "SymbolRegistry"],
-  // The two artifacts whose RUNTIME values retain a tree through closures --
-  // included precisely so the return-type check above is exercised on them.
+  // The two artifacts built of closures -- included so the return-type check
+  // above runs on real function-valued fields. Their closures capture plain
+  // `TExpression`s since #1950; a parse node handed back would turn this red.
   ["src/TRANSPILE/2-Plan/types/IAssignmentContext.ts", "IAssignmentContext"],
   ["src/types/TPlannedTargetOp.ts", "TPlannedTargetOp"],
 ];

@@ -181,7 +181,7 @@ describe("RegisterCollector", () => {
       // Production ALWAYS supplies this predicate -- CNextResolver builds it
       // from pass 0b -- so passing it is what makes this test model production.
       // The collector does not qualify names itself; it reads what the one
-      // TypeBinding ladder resolved. The version of this test that omitted the
+      // TypeNameLadder resolved. The version of this test that omitted the
       // predicate passed only because the collector re-qualified the result,
       // which is precisely the capture #1472 removed.
       const isScopeType = (qualifiedName: string): boolean =>

@@ -64,8 +64,9 @@ interface IParsedFile {
    * OF the parse, because the token stream it walks is this artifact's own.
    *
    * Each entry carries `tokenIndex`. Nothing reads it today: the positional
-   * question ("which comments precede THIS token") is answered by the render
-   * layer's `CommentScanner` off the token stream, and an index-ordered array
+   * question ("which comments precede THIS token") is answered in 1.2 by
+   * `ProgramLowering`, which asks the parse's `CommentScanner` while it lowers
+   * each item into `program` (see above), and an index-ordered array
    * is not obviously the better answer. It is recorded because 1.2 is the
    * pass that can see it for free, not because a consumer was waiting.
    */

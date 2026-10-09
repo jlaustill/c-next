@@ -280,8 +280,8 @@ returns without naming its type (#1957).
   `HeaderDeclarations.resolveC`), so they hold no tree (#1957). Each named helper is a target of the rule too,
   so a pass after 2.1 that imports one fails as if it had imported the grammar.
 - The rule reads imports, not values. A helper a later pass may call must read plain data
-  only: `TypeBinding`, which reads parse contexts, is a named helper, and its plain-data
-  half, `utils/TypeNameLadder`, is what 2.1, the walker and Render call (#1932). What a
+  only: the type-name ladder, `utils/TypeNameLadder`, reads lowered types, so 1.3, 2.1,
+  the walker and Render all call the same one (#1932). What a
   call returns is checked by type, not by import, in
   `scripts/__tests__/artifact-lifetime.test.ts` (#1957).
 

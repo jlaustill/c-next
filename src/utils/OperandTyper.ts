@@ -633,7 +633,7 @@ class OperandTyper {
   }
 
   /**
-   * A written type -- a cast's, a declaration's -- resolved by 1.3's one
+   * A written type -- a cast's, a declaration's -- resolved by the one
    * ladder (`TypeNameLadder`), so `this.T`, `global.T`, `Scope.T` and a bare `T`
    * name what they name everywhere else; qualifying the source text by hand
    * read `this.EMode` as a type called `this_EMode`.

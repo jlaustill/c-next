@@ -93,7 +93,7 @@ const PARSE_TREE_TYPES = [
   // -- exactly what naming the carriers here was for. Its `symbols`
   // half had no reader, so it was a bundle whose only live content was
   // the re-export.
-  "^src/types/(IParsedFile|ITypeAccessors)\\.ts$",
+  "^src/types/IParsedFile\\.ts$",
   // #1957: the 1.2 parsers that RETURN a tree. A module calling one holds the
   // tree as a value -- `CNextSourceParser.parse(src).tree` -- while naming no
   // grammar type, so without these it was counted by neither rule.
@@ -110,9 +110,6 @@ const PARSE_TREE_HELPERS = [
   "^src/utils/ast/(AssignmentTargetExtractor|ChildStatementCollector|StatementExpressionCollector)\\.ts$",
   "^src/utils/(ChainRoot|ExpressionUnwrapper|ExpressionUtils|OverflowBehaviorUtils|ParserUtils|PostfixAnalysisUtils)\\.ts$",
   "^src/types/TAssignmentSite\\.ts$",
-  // #1932: reads parse contexts through `ITypeAccessors`; its plain-data half
-  // is `utils/TypeNameLadder`, which later passes call instead.
-  "^src/PARSE/3-Declare/TypeBinding\\.ts$",
 ];
 
 /** @type {import('dependency-cruiser').IConfiguration} */
@@ -285,7 +282,7 @@ module.exports = {
         "`reachable` because the drag is the whole defect: a contract two hops " +
         "from a pass root is as coupled as one that names it. " +
         "The exceptions are the sanctioned carriers that already have their " +
-        "own rules -- `IParsedFile`/`ITypeAccessors` carry the parse tree by " +
+        "own rules -- `IParsedFile` carries the parse tree by " +
         "design (see `parse-tree-confined-to-parser`), and `symbols/` names " +
         "`SymbolRegistry` for the scope back-reference `no-circular` exempts.",
       severity: "error",
@@ -453,7 +450,7 @@ module.exports = {
         "Write, and not a helper any of them calls. Also exempt: the helpers in " +
         "PARSE_TREE_HELPERS, which are `to` targets too, so only an allowed pass " +
         "can call one; " +
-        "1.2's carriers `IParsedFile` and `ITypeAccessors`; " +
+        "1.2's carrier `IParsedFile`; " +
         "and 1.1's `IncludeDiscovery`, which lexes with 1.2's `CNextLexer` and " +
         "builds no tree (#1745, owner ruling 2026-09-30; PASS_ORDER `mayRead`). " +
         "The library entry points in `lib/` hand 1.3 source text and get " +
@@ -472,7 +469,7 @@ module.exports = {
           "^src/PARSE/2-Parse/",
           "^src/PARSE/3-Declare/",
           "^src/TRANSPILE/1-Analyze/",
-          "^src/types/(IParsedFile|ITypeAccessors)\\.ts$",
+          "^src/types/IParsedFile\\.ts$",
           "^src/PARSE/1-Discover/IncludeDiscovery\\.ts$",
           ...PARSE_TREE_HELPERS,
           "__tests__/",

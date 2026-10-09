@@ -8,8 +8,8 @@
  *
  * ## It renders a plan, not a type context (#1445)
  *
- * The six type alternatives are classified once, by `TypeNameLadder` -- 1.3
- * Declare's one ladder, whose header already named this helper as one of the
+ * The six type alternatives are classified once, by `TypeNameLadder` -- the
+ * one ladder every pass asks, whose header already named this helper as one of the
  * seven it was meant to collapse. This module received `ITypeAccessors` and
  * walked them again, so the ladder was still standing in two places and the
  * two agreed only because nothing had changed either since #1285.

@@ -1,3 +1,4 @@
+import ExpressionShape from "./ExpressionShape";
 import invariant from "./invariant";
 import type ISourcePosition from "./types/ISourcePosition";
 import type TExpression from "../types/syntax/TExpression";
@@ -6,7 +7,8 @@ import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
 /**
  * An assignment target in the grammar's terms (#1932): `assignmentTarget` is
  * `(this | global) '.' IDENTIFIER ops` or `IDENTIFIER ops`, and its lowered
- * form folds the root's first member into the ops. This splits it back out.
+ * form folds the root's first member into the ops. This splits it back out,
+ * reading the chain head from `ExpressionShape.headOf` -- the one decision.
  */
 interface IAssignmentTargetParts {
   readonly root: "this" | "global" | null;
@@ -20,38 +22,27 @@ interface IAssignmentTargetParts {
 class AssignmentTarget {
   static parts(target: TExpression): IAssignmentTargetParts {
     const position = { line: target.span.line, column: target.span.column };
-    if (target.kind === "identifier") {
-      return { root: null, identifier: target.name, ops: [], position };
-    }
-    if (target.kind === "missing") {
-      return { root: null, identifier: null, ops: [], position };
-    }
     invariant(
-      target.kind === "postfix",
+      target.kind === "identifier" ||
+        target.kind === "missing" ||
+        target.kind === "postfix",
       `an assignment target lowers to an identifier or a postfix chain, not ${target.kind}`,
     );
-    const { primary, ops } = target;
-    if (primary.kind === "root") {
-      const [first, ...rest] = ops;
+    const head = ExpressionShape.headOf(target);
+    if (target.kind === "postfix") {
       invariant(
-        first?.kind === "member",
+        head.root === null || head.identifier !== null,
         `a rooted assignment target names a member first: '${target.written}'`,
       );
-      return {
-        root: primary.root,
-        identifier: first.name,
-        ops: rest,
-        position,
-      };
+      invariant(
+        head.root !== null || head.identifier !== null,
+        `an assignment target without a root starts with a name: '${target.written}'`,
+      );
     }
-    invariant(
-      primary.kind === "identifier",
-      `an assignment target without a root starts with a name: '${target.written}'`,
-    );
     return {
-      root: null,
-      identifier: primary.name,
-      ops,
+      root: head.root,
+      identifier: head.identifier?.name ?? null,
+      ops: head.ops.slice(head.opsConsumed),
       position,
     };
   }

@@ -1,6 +1,3 @@
-import type { CommonTokenStream } from "antlr4ng";
-import CommentScanner from "../../PARSE/2-Parse/CommentScanner";
-import ProgramLowering from "../../PARSE/2-Parse/ProgramLowering";
 import type * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import type SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
@@ -10,6 +7,7 @@ import TargetResolver from "../../cli/TargetResolver";
 import invariant from "../../utils/invariant";
 import type CodeGenWalker from "../CodeGenWalker";
 import type ITargetDescription from "../../types/ITargetDescription";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /**
@@ -27,6 +25,9 @@ import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
  * handed -- one name settles both, as the orchestrator does. `CodeGenWalker.test`
  * and `CodeGenWalker.coverage.test` each carried a verbatim copy of this, and
  * neither gave the program a target, so the first C call the typer met threw.
+ *
+ * The lowered program is the one `CNextSourceParser.parse` produced, as in
+ * production: 1.2 lowers once, so this helper lowers nothing itself.
  *
  * #1428: the program also carries the run's mode, which codegen reads from it
  * and from nowhere else. A test has no 1.1 to detect one, so it states it:
@@ -49,7 +50,7 @@ class ProgramGeneration {
   static generate(
     generator: CodeGenWalker,
     tree: Parser.ProgramContext,
-    tokenStream: CommonTokenStream | undefined,
+    program: IProgramSyntax,
     options: ITestGenerateOptions,
     registry: SymbolRegistry,
   ): ReturnType<CodeGenWalker["generate"]> {
@@ -74,16 +75,10 @@ class ProgramGeneration {
       },
     });
 
-    return generator.generate(
-      ProgramLowering.program(
-        tree,
-        tokenStream ? new CommentScanner(tokenStream) : null,
-      ),
-      {
-        ...options,
-        targetDescription,
-      },
-    );
+    return generator.generate(program, {
+      ...options,
+      targetDescription,
+    });
   }
 }
 
