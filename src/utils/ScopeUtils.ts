@@ -190,13 +190,21 @@ class ScopeUtils {
     visibilityModifier(): { getText(): string } | null;
     functionDeclaration(): unknown;
   }): TVisibility {
-    const explicit = member.visibilityModifier()?.getText() as
+    const written = member.visibilityModifier()?.getText() as
       | TVisibility
       | undefined;
-    return (
-      explicit ??
-      ScopeUtils.getDefaultVisibility(member.functionDeclaration() !== null)
+    return ScopeUtils.memberVisibility(
+      written ?? null,
+      member.functionDeclaration() !== null,
     );
+  }
+
+  /** A member's visibility: the written one, else its kind's default */
+  static memberVisibility(
+    written: TVisibility | null,
+    isFunction: boolean,
+  ): TVisibility {
+    return written ?? ScopeUtils.getDefaultVisibility(isFunction);
   }
 
   // ============================================================================

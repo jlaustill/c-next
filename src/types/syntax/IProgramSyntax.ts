@@ -1,6 +1,7 @@
 import type IComment from "../IComment";
 import type ISyntaxNode from "./ISyntaxNode";
 import type TDeclarationSyntax from "./TDeclarationSyntax";
+import type TDirectiveKind from "./TDirectiveKind";
 
 /** Comments written directly above a top-level item */
 type TCommented = { readonly leadingComments: readonly IComment[] };
@@ -11,13 +12,7 @@ interface IProgramSyntax {
   readonly directives: ReadonlyArray<
     ISyntaxNode &
       TCommented & {
-        readonly kind:
-          | "define-function"
-          | "define-value"
-          | "define-flag"
-          | "define-other"
-          | "conditional"
-          | "none";
+        readonly kind: TDirectiveKind;
         readonly text: string;
       }
   >;

@@ -71,7 +71,12 @@ interface IParsedFile {
    * pass that can see it for free, not because a consumer was waiting.
    */
   readonly comments: readonly IComment[];
-  /** The file as plain data (#1932): what passes after 2.1 read instead of `tree` */
+  /**
+   * The file as plain data (#1932): what passes after 2.1 read instead of
+   * `tree`. Meaningful only when `parseErrors` is empty -- a repaired tree's
+   * invented names (`<missing IDENTIFIER>`) pass through as names, and the
+   * run stops at the parse error before anything reads this.
+   */
   readonly program: IProgramSyntax;
 
   /**

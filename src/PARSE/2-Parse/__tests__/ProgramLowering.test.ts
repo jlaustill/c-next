@@ -36,6 +36,24 @@ describe("ProgramLowering", () => {
     ]);
   });
 
+  it("is plain data: it survives a JSON round trip unchanged", () => {
+    const program = lower(`
+      #include <stdint.h>
+      #define DEBUG
+      scope Motor { public void run() { if (true) { u8 n <- 1; } } u8 speed; }
+      register GPIO @ 0x40000000 { DR: u32 rw @ 0x04, }
+      struct Point { i32 x; u8 tags[4]; }
+      enum Color { RED, GREEN }
+      bitmap8 Flags { a, b[7] }
+      u32 add(const u32 a, u8 buf[]) { while (a > 0) { { return a; } } return 0; }
+      u32 total <- 0;
+      Widget w(total);
+    `);
+    expect(program.includes).toHaveLength(1);
+    expect(program.directives).toHaveLength(1);
+    expect(JSON.parse(JSON.stringify(program))).toEqual(program);
+  });
+
   it("records a scope member's written visibility, or null when unwritten", () => {
     const [{ declaration }] = lower(
       "scope Motor { public void run() { } u8 speed; private u8 gear; }",

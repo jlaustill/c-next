@@ -175,6 +175,7 @@ import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import MisraSuppressionUtils from "./3-Render/MisraSuppressionUtils";
 import QualifiedCName from "../utils/QualifiedCName";
 import ToolchainRequirementUtils from "../utils/ToolchainRequirementUtils";
+import MainSignature from "../utils/MainSignature";
 import ScopeUtils from "../utils/ScopeUtils";
 import TypeBinding from "../PARSE/3-Declare/TypeBinding";
 import type ITargetDescription from "../types/ITargetDescription";
@@ -255,8 +256,6 @@ class CodeGenWalker {
       ["f32", "0.0f"],
       ["f64", "0.0"],
     ]);
-
-  /** Token stream for comment extraction (ADR-043) */
 
   private readonly commentFormatter: CommentFormatter = new CommentFormatter();
 
@@ -1139,6 +1138,10 @@ class CodeGenWalker {
     return this.constantOf(expr);
   }
 
+  /**
+   * ADR-015: the zero initializer for a type.
+   * ADR-017: an enum initializes to its first member.
+   */
   private zeroInitializerOf(type: TTypeSyntax, isArray: boolean): string {
     // Issue #379 / #1004: arrays zero-init with the aggregate brace ({} in
     // C++, {0} in C) regardless of element type.
@@ -1264,18 +1267,7 @@ class CodeGenWalker {
     name: string,
     params: readonly IParameterSyntax[] | null,
   ): boolean {
-    if (name !== "main" || params?.length !== 1) {
-      return false;
-    }
-    const [{ type, dimensions }] = params;
-    if (type.kind === "string" && dimensions.length === 1) {
-      return true;
-    }
-    return (
-      type.kind === "primitive" &&
-      (type.name === "u8" || type.name === "i8") &&
-      dimensions.length === 2
-    );
+    return MainSignature.takesArgs(name, params);
   }
 
   /**
@@ -1407,8 +1399,7 @@ class CodeGenWalker {
 
   /**
    * Generate C code from a C-Next program
-   * @param tree The parsed C-Next program
-   * @param tokenStream Token stream for comment preservation (ADR-043), when there is one
+   * @param program The file as plain data, lowered by 1.2 (#1932)
    * @param options Code generator options; `symbolInfo` and the target are required
    */
   generate(program: IProgramSyntax, options: ICodeGeneratorOptions): string {
@@ -1640,6 +1631,7 @@ class CodeGenWalker {
     for (const include of program.includes) {
       output.push(...this.formatLeadingComments(include.leadingComments));
       const includeText = include.written;
+      // Issue #850: a MISRA suppression for banned headers
       const suppression =
         MisraSuppressionUtils.getMisraSuppressionComment(includeText);
       if (suppression) {
@@ -1971,6 +1963,7 @@ class CodeGenWalker {
     this.host.state.knownFunctions.add(fullName);
     const sig = this.extractFunctionSignature(fullName, funcDecl.parameters);
     this.host.state.functionSignatures.set(fullName, sig);
+    // #1484: locals in the body name callback types too.
     this._collectLocalCallbackTypeReferences(funcDecl.body);
   }
 
@@ -2002,6 +1995,7 @@ class CodeGenWalker {
       funcDecl.parameters,
     );
     this.host.state.functionSignatures.set(funcDecl.name, sig);
+    // #1484: locals in the body name callback types too.
     this._collectLocalCallbackTypeReferences(funcDecl.body);
   }
 
@@ -2152,8 +2146,13 @@ class CodeGenWalker {
       case "block":
         visitBody(statement);
         return;
-      default:
+      case "assignment":
+      case "expression":
+      case "return":
+      case "missing":
         return;
+      default:
+        statement satisfies never;
     }
   }
 
@@ -2648,6 +2647,10 @@ class CodeGenWalker {
         );
       case "register":
         return this.generateRegister(declaration);
+      // Issue #369 / #1164: the struct generator decides for itself what a
+      // self-include suppresses. Returning early here also skipped its
+      // callback-field effects and dropped the ADR-029 init function, which
+      // the header never carries.
       case "struct":
         return this.invokeGenerator(
           structGenerator,
@@ -2766,9 +2769,13 @@ class CodeGenWalker {
   ): TPlannedScopeMember {
     const adrLine = member.span.line;
     const declaration = member.declaration;
-    const visibility =
-      member.visibility ??
-      ScopeUtils.getDefaultVisibility(declaration.kind === "function");
+    // ADR-016, via the one helper the symbols layer also asks (#1300). Codegen
+    // used to recompute this, so the header and the body decided visibility
+    // independently.
+    const visibility = ScopeUtils.memberVisibility(
+      member.visibility,
+      declaration.kind === "function",
+    );
     const isPrivate = visibility === "private";
     switch (declaration.kind) {
       case "variableDeclaration":
@@ -2825,6 +2832,11 @@ class CodeGenWalker {
       declaringScopePath,
       decl.name,
     );
+    // Issue #375: constructor syntax.
+    //
+    // #1322: the arguments are no longer VALIDATED here -- the const check that
+    // stood beside this resolution is E0432 in pass 2.1, and it was the second
+    // of two implementations of one decision.
     if (decl.kind === "constructorDeclaration") {
       return {
         kind: "constructor",
@@ -2850,6 +2862,9 @@ class CodeGenWalker {
     if (isPrivate && isConst && !isArray) {
       return { kind: "skipped" };
     }
+    // Issue #998: the one modifier builder, which validates the atomic/volatile
+    // mutual exclusion. Scope variables are file scope, and the initializer does
+    // not affect volatile/atomic handling.
     const modifiers = VariableModifierBuilder.build(
       decl.modifiers,
       false,
@@ -2910,6 +2925,9 @@ class CodeGenWalker {
           () => ` = ${this.renderExpression(initializer)}`,
         ),
       );
+      // #1824 review: an omitted size is emitted from 1.3's count (the
+      // planner), so the list rendered here must have exactly that many
+      // elements -- the same check the statement renderer makes.
       const omitsSize =
         decl.type.kind === "array" && decl.type.dimensions.includes(null);
       if (omitsSize && state.wasArrayInit()) {
@@ -2921,6 +2939,7 @@ class CodeGenWalker {
       }
       return rendered;
     }
+    // ADR-015: Zero initialization for uninitialized scope variables
     return ` = ${this.zeroInitializerOf(decl.type, isArray)}`;
   }
 
@@ -3388,6 +3407,16 @@ class CodeGenWalker {
     };
   }
 
+  /**
+   * One array dimension, as C should say it.
+   *
+   * Issue #1159: fold a compile-time constant to its value first. Emitting the
+   * identifier makes `u8[SIZE] buf` a VLA parameter (`uint8_t buf[SIZE]`)
+   * while the matching local declaration folds to `uint8_t b[6]` -- the same
+   * const rendered two ways in one .c, and a construct CLAUDE.md rules out.
+   * #1175: a dimension is a constant wherever it is written (ADR-023: no
+   * VLAs), so it folds everywhere, by the one rule.
+   */
   private renderLoweredDimension(expression: TExpression): string {
     // ADR-036: a dimension is a constant expression in every context, so a
     // fixture occupies the matrix cell it is written in
@@ -4737,11 +4766,6 @@ class CodeGenWalker {
       "",
     ];
   }
-
-  /**
-   * Process a preprocessor directive
-   * Delegates to IncludeGenerator
-   */
 
   /**
    * Format leading comments with current indentation
