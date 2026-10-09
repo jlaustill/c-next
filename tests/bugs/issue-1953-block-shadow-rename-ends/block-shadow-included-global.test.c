@@ -14,8 +14,8 @@
 int main(void) {
     uint32_t flag = 1U;
     if (flag == 1) {
-        uint8_t shared[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-        if (sizeof(shared) != 8) return 1U;
+        uint8_t main__shared[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+        if (sizeof(main__shared) != 8) return 1U;
         if (shared[0U] != 1) return 2U;
     }
     if (sizeof(shared) != 4) return 3U;

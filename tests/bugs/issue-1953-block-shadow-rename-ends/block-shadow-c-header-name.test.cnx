@@ -1,0 +1,17 @@
+// test-execution
+// test-adr: 057
+// Issue #1953: a block-local named like a C header's function is renamed inside its block,
+// so the header's declaration stays visible to the rest of the file
+
+#include "ticks.h"
+
+u32 main() {
+    u32 flag <- 1;
+    if (flag = 1) {
+        u32 ticks_total <- 3;
+        if (ticks_total != 3) return 1;
+    }
+    u32 fresh <- 2;
+    if (fresh != 2) return 2;
+    return 0;
+}

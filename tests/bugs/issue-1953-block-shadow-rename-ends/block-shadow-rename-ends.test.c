@@ -17,18 +17,18 @@ uint8_t count = 7U;
 int main(void) {
     uint32_t flag = 1U;
     if (flag == 1) {
-        uint8_t buf[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-        if (sizeof(buf) != 8) return 1U;
+        uint8_t main__buf[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+        if (sizeof(main__buf) != 8) return 1U;
     }
     if (sizeof(buf) != 4) return 2U;
     if (flag == 1) {
-        uint8_t buf[2] = {0U, 0U};
-        if (sizeof(buf) != 2) return 3U;
+        uint8_t main__buf[2] = {0U, 0U};
+        if (sizeof(main__buf) != 2) return 3U;
     }
     if (sizeof(buf) != 4) return 4U;
     if (flag == 1) {
-        uint8_t count = 3U;
-        if (count != 3) return 5U;
+        uint8_t main__count = 3U;
+        if (main__count != 3) return 5U;
     }
     if (count != 7) return 6U;
     uint32_t fresh = 5U;
