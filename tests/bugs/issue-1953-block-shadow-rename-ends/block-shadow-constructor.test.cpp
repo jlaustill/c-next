@@ -19,7 +19,7 @@ int main(void) {
     uint32_t flag = 1U;
     const uint8_t seed = 3U;
     if (flag == 1) {
-        Tally shared(seed);
+        Tally main__shared(seed);
         if (main__shared.start != 3) return 1U;
     }
     if (shared != 4) return 2U;
