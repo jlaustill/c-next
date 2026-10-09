@@ -47,6 +47,7 @@
  * headers included (#1726).
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
@@ -88,7 +89,7 @@ class EnumTypeSafetyListener extends CNextListener {
     if (!expression) return;
     this.checkAssignment(
       OperandTyper.typeOfWritten(
-        ctx.type(),
+        SyntaxLowering.type(ctx.type()),
         this.context,
         ParserUtils.getPosition(ctx),
       ),
@@ -103,7 +104,10 @@ class EnumTypeSafetyListener extends CNextListener {
     // mistake.
     if (!site.assignmentOperator().ASSIGN()) return;
     this.checkAssignment(
-      OperandTyper.typeOfTarget(site.assignmentTarget(), this.context),
+      OperandTyper.typeOfTarget(
+        SyntaxLowering.assignmentTarget(site.assignmentTarget()),
+        this.context,
+      ),
       site.expression(),
     );
   }

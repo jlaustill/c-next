@@ -152,7 +152,10 @@ class ScopeAccessListener extends CNextListener {
     // goes through the single encoder rather than being spelled by hand.
     if (this.isScopedRegister(access)) return;
 
-    const here = OperandTyper.scopePathAt(node, this.context);
+    const here = OperandTyper.scopePathAt(
+      ParserUtils.getPosition(node),
+      this.context,
+    );
 
     if (this.reportOwnScope(access, here)) return;
     if (this.reportPrivate(access, here)) return;

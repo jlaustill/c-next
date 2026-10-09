@@ -137,30 +137,6 @@ class ExpressionUnwrapper {
   }
 
   /**
-   * Extract a simple identifier from an expression.
-   * Returns the identifier name if the expression is a simple variable
-   * reference with no postfix operators (member access, indexing).
-   * Returns null for complex expressions.
-   *
-   * Use this for cases like:
-   * - Checking if an expression is a specific variable
-   * - Parameter lookup
-   * - Simple variable references
-   */
-  static getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
-    const postfix = this.getPostfixExpression(ctx);
-    if (!postfix) return null;
-
-    const ops = postfix.postfixOp();
-    // Must have no postfix operations (no member access, no indexing)
-    if (ops.length !== 0) return null;
-
-    const primary = postfix.primaryExpression();
-    const id = primary.IDENTIFIER();
-    return id ? id.getText() : null;
-  }
-
-  /**
    * The two operand texts of a two-operand `+`, or null for anything else.
    *
    * #1445: lifted out of `StringOperationsHelper`, whose ADR-045 concatenation
@@ -189,7 +165,8 @@ class ExpressionUnwrapper {
   /**
    * An identifier with exactly one subscript applied: `s[i]` or `s[i, n]`.
    *
-   * The sibling of `getSimpleIdentifier`, which answers the no-suffix case.
+   * The sibling of `ExpressionShape.simpleIdentifier`, which answers the
+   * no-suffix case over a lowered expression.
    *
    * `postfixOp` has four shapes and only the two subscripts carry expressions
    * -- a member access carries an IDENTIFIER and a call carries an

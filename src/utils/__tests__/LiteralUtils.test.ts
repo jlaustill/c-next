@@ -384,8 +384,7 @@ describe("LiteralUtils", () => {
   });
 
   describe("typeOf", () => {
-    const mockLiteral = (text: string) =>
-      ({ getText: () => text }) as Parameters<typeof LiteralUtils.typeOf>[0];
+    const mockLiteral = (text: string) => text;
 
     describe("boolean literals", () => {
       it("should return bool for true", () => {

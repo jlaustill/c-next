@@ -16,6 +16,7 @@
  * member however it is qualified, and a C enum is an enum.
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParserRuleContext, ParseTree } from "antlr4ng";
 
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
@@ -38,7 +39,9 @@ class EnumValueResolver {
   public constructor(private readonly context: IAnalysisContext) {}
 
   public classify(ctx: ParserRuleContext): TValueKind {
-    return EnumValueResolver.kindOf(OperandTyper.typeOf(ctx, this.context));
+    return EnumValueResolver.kindOf(
+      OperandTyper.typeOf(SyntaxLowering.expressionNode(ctx), this.context),
+    );
   }
 
   /**

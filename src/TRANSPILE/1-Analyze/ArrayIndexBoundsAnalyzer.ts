@@ -30,6 +30,7 @@
  * two-expression subscript, which is a slice or a bit range (ADR-007).
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
@@ -83,7 +84,10 @@ class ArrayIndexBoundsListener extends CNextListener {
   ): void {
     const subscripts = ArrayIndexBoundsListener.subscriptsOf(ops);
     if (subscripts.length === 0) return;
-    const typing = OperandTyper.chainOf(ctx, this.context);
+    const typing = OperandTyper.chainOf(
+      SyntaxLowering.expressionNode(ctx),
+      this.context,
+    );
     for (const subscript of subscripts) {
       const step = typing.steps.at(-1 - subscript.opsAfter);
       this.check(

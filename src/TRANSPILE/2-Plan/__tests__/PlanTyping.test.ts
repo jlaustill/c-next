@@ -2,6 +2,7 @@
  * #1668: PlanTyping's rows over the one operand typer's facts, each asserted
  * on a real declared and resolved program.
  */
+import SyntaxLowering from "../../../PARSE/2-Parse/SyntaxLowering";
 import { describe, expect, it } from "vitest";
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../../PARSE/2-Parse/grammar/CNextListener";
@@ -31,7 +32,12 @@ function initializerOf(source: string) {
 /** ADR-044's behavior for the initializer of `r` */
 function overflowOf(source: string): string | null {
   const { expression, context } = initializerOf(source);
-  return PlanTyping.overflowOf(OperandTyper.valueLeaves(expression, context));
+  return PlanTyping.overflowOf(
+    OperandTyper.valueLeaves(
+      SyntaxLowering.expressionNode(expression),
+      context,
+    ),
+  );
 }
 
 describe("PlanTyping.castSourceType (ADR-024)", () => {
@@ -53,7 +59,9 @@ describe("PlanTyping.castSourceType (ADR-024)", () => {
       tree,
     );
     expect(operand).not.toBeNull();
-    return PlanTyping.castSourceType(OperandTyper.typeOf(operand!, context));
+    return PlanTyping.castSourceType(
+      OperandTyper.typeOf(SyntaxLowering.expressionNode(operand!), context),
+    );
   };
 
   // A Boolean converts 0 or 1, so it is never saturated as its operand's
@@ -74,7 +82,9 @@ describe("PlanTyping.directTypeName", () => {
     const { expression, context } = initializerOf(
       `${globals}void main() {\n${body}\n}`,
     );
-    return PlanTyping.directTypeName(OperandTyper.typeOf(expression, context));
+    return PlanTyping.directTypeName(
+      OperandTyper.typeOf(SyntaxLowering.expressionNode(expression), context),
+    );
   };
 
   it.each([

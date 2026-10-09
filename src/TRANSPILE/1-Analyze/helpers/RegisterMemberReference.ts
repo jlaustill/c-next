@@ -175,7 +175,10 @@ class RegisterMemberReference {
     // A bare root that names a declared value here -- a local, a member, a
     // global, this file's or an included one's -- shadows a register of that
     // spelling; Program's one binder decides what the name means (#1668)
-    const scopePath = OperandTyper.scopePathAt(node, context);
+    const scopePath = OperandTyper.scopePathAt(
+      ParserUtils.getPosition(node),
+      context,
+    );
     const binding =
       root === null
         ? context.program.bindValue(

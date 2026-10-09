@@ -33,6 +33,7 @@
  * keeps one (#1664 box 7).
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParseTreeWalker } from "antlr4ng";
 
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
@@ -82,8 +83,10 @@ class SliceAssignmentListener {
     // The buffer as its declaration states it, bound by the one binder --
     // this file's locals first, then scope members, globals and includes
     // (#1668), so a buffer declared in an included file is found
-    const declared = OperandTyper.chainOf(target, this.context).steps[0]
-      ?.before;
+    const declared = OperandTyper.chainOf(
+      SyntaxLowering.assignmentTarget(target),
+      this.context,
+    ).steps[0]?.before;
     // Not established, or a SCALAR base -- on a scalar, two subscripts are a
     // bit RANGE (ADR-007), which is a different construct with its own rules.
     if (name === undefined || !declared) return;
@@ -267,7 +270,8 @@ class SliceAssignmentListener {
     // An integer composite's type is the typer's (`CompositeType`); null
     // when it cannot name one (a mixed composite, an unknown-width C integer)
     const sourceType =
-      OperandTyper.typeOf(value, this.context)?.typeName ?? null;
+      OperandTyper.typeOf(SyntaxLowering.expressionNode(value), this.context)
+        ?.typeName ?? null;
     if (sourceType === null) return;
 
     const bits = TYPE_WIDTH[sourceType];

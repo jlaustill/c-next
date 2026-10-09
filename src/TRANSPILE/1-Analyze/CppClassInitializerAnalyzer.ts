@@ -78,7 +78,7 @@ class CppClassInitializerListener extends CNextListener {
 
     const cppClass = this.cppClassWithConstructor(
       typeText,
-      OperandTyper.scopePathAt(ctx, this.context),
+      OperandTyper.scopePathAt(ParserUtils.getPosition(ctx), this.context),
     );
     if (cppClass === null) return;
 

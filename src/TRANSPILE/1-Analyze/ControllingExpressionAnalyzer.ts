@@ -30,7 +30,8 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ExpressionUtils from "../../utils/ExpressionUtils";
+import ExpressionCalls from "../../utils/ExpressionCalls";
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import IControllingExpressionError from "./types/IControllingExpressionError";
@@ -86,7 +87,7 @@ class ControllingExpressionListener extends CNextListener {
   // --- The one decision -----------------------------------------------------
 
   private check(ctx: Parser.ExpressionContext, kind: string): void {
-    if (ExpressionUtils.hasFunctionCall(ctx)) {
+    if (ExpressionCalls.callsAtTop(SyntaxLowering.expressionNode(ctx))) {
       this.reportCall(ctx, kind);
       return;
     }
@@ -113,7 +114,7 @@ class ControllingExpressionListener extends CNextListener {
     ctx: Parser.OrExpressionContext,
     kind: string,
   ): void {
-    if (ExpressionUtils.hasFunctionCallInOr(ctx)) {
+    if (ExpressionCalls.callsAtTop(SyntaxLowering.expressionNode(ctx))) {
       this.reportCall(ctx, kind);
       return;
     }
@@ -204,7 +205,13 @@ class ControllingExpressionListener extends CNextListener {
     const negated = text.startsWith("!");
     const base = negated ? text.slice(1) : text;
     if (
-      OperandTyper.isBoolean(OperandTyper.typeOfName(base, node, this.context))
+      OperandTyper.isBoolean(
+        OperandTyper.typeOfName(
+          base,
+          ParserUtils.getPosition(node),
+          this.context,
+        ),
+      )
     ) {
       return `write it out, e.g. ${base} = ${negated ? "false" : "true"}`;
     }

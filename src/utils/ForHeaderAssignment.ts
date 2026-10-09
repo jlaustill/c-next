@@ -9,6 +9,7 @@
  * header renderer asserts it, so neither derives it again.
  */
 
+import SyntaxLowering from "../PARSE/2-Parse/SyntaxLowering";
 import OperandTyper from "./OperandTyper";
 import type IOperandType from "../types/IOperandType";
 import type ITypingContext from "../types/ITypingContext";
@@ -21,14 +22,20 @@ class ForHeaderAssignment {
     ctx: ITypingContext,
   ): string | null {
     const target = site.assignmentTarget();
-    const steps = OperandTyper.chainOf(target, ctx).steps;
+    const steps = OperandTyper.chainOf(
+      SyntaxLowering.assignmentTarget(target),
+      ctx,
+    ).steps;
     const last = steps.at(-1);
     const isBitWrite =
       last?.subscript === "bit_single" || last?.subscript === "bit_range";
     if (isBitWrite && last.before?.category === "floating") {
       return "a float bit write";
     }
-    const written = OperandTyper.typeOfTarget(target, ctx);
+    const written = OperandTyper.typeOfTarget(
+      SyntaxLowering.assignmentTarget(target),
+      ctx,
+    );
     const isPlain = site.assignmentOperator().ASSIGN() !== null;
     if (ForHeaderAssignment.isAtomic(written)) {
       return isPlain ? "an atomic store" : "an atomic read-modify-write";

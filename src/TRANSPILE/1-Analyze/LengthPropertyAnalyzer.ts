@@ -38,6 +38,7 @@
  * decision where it belongs.
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
@@ -74,7 +75,10 @@ class LengthPropertyListener extends CNextListener {
     if (!PROPERTY_NAMES.has(last.IDENTIFIER()?.getText() ?? "")) return;
     // #1760 review: whether the name reads the property or a field named
     // like it is the typer's, on the step (ADR-058: a field is a field)
-    const step = OperandTyper.chainOf(ctx, this.context).steps.at(-1);
+    const step = OperandTyper.chainOf(
+      SyntaxLowering.expressionNode(ctx),
+      this.context,
+    ).steps.at(-1);
     const property = step?.property ?? null;
     if (property === null) return;
 

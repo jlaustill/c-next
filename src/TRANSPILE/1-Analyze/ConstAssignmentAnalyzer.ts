@@ -30,6 +30,8 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
+import ExpressionShape from "../../utils/ExpressionShape";
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import ChainRoot from "../../utils/ChainRoot";
@@ -120,7 +122,7 @@ class ConstAssignmentListener extends CNextListener {
     this.checkSafeDivisionOutput(ctx);
     const callee = FunctionReference.ofCall(
       ctx,
-      OperandTyper.scopePathAt(ctx, this.context),
+      OperandTyper.scopePathAt(ParserUtils.getPosition(ctx), this.context),
       this.context,
     );
     if (callee === null) return;
@@ -146,7 +148,9 @@ class ConstAssignmentListener extends CNextListener {
    * -- or null for anything else (an expression has no binding to protect).
    */
   private constArgumentName(arg: Parser.ExpressionContext): string | null {
-    const bare = ExpressionUnwrapper.getSimpleIdentifier(arg);
+    const bare = ExpressionShape.simpleIdentifier(
+      SyntaxLowering.expression(arg),
+    );
     if (bare !== null) {
       return this.constKind(null, bare, arg) === null ? null : bare;
     }
