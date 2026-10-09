@@ -1,0 +1,42 @@
+// test-execution
+// test-adr: 029
+// #1283: a local struct's callback field holds its default from the
+// declaration (ADR-029: no null state), so reading it before any assignment
+// is defined behaviour, not E0381 -- for a plain local and for an element
+// of a local array. Before the fix this was rejected with
+// E0381 -- the only thing standing between it and a NULL call, since the
+// declaration emitted `Ticker t = {0};` and never called Ticker_init().
+u32 tickDefault() {
+    return 10;
+}
+
+u32 tickOther() {
+    return 20;
+}
+
+struct Ticker {
+    tickDefault handler;
+    u32 count;
+}
+
+u32 viaLocalArray() {
+    Ticker[3] tickers;
+    return tickers[2].handler();
+}
+
+u32 main() {
+    u32 r <- 0;
+    Ticker t;
+    r <- t.handler();
+    if (r != 10) return 1;
+
+    // Reassignment still works after the default.
+    t.handler <- tickOther;
+    r <- t.handler();
+    if (r != 20) return 2;
+
+    // Every element of a local array holds the default too.
+    r <- viaLocalArray();
+    if (r != 10) return 3;
+    return 0;
+}

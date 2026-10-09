@@ -1,0 +1,58 @@
+// test-execution
+// test-adr: 029
+// #1283: ADR-029 "Callback fields are always initialized to their default
+// function. There is no null state." Every declaration below has no
+// initializer, so each callback must already hold its default function.
+// Before the fix every one of them was zero-filled ({0}): the C compiled
+// cleanly and each call jumped through a NULL function pointer.
+#include "lib/remote-callback.cnx"
+
+u32 tickDefault() {
+    return 10;
+}
+
+struct Ticker {
+    tickDefault handler;
+    u32 count;
+}
+
+// File-scope variable and array.
+Ticker globalTicker;
+Ticker[2] globalTickers;
+
+// Cross-file struct.
+Remote globalRemote;
+
+scope Outer {
+    // Scope member of a top-level struct type.
+    Ticker member;
+
+    // Struct declared inside a scope (a separate emitter today).
+    public struct Nested {
+        tickDefault handler;
+    }
+
+    public u32 viaMember() {
+        return this.member.handler();
+    }
+
+    public u32 viaNestedLocal() {
+        this.Nested n;
+        return n.handler();
+    }
+}
+
+u32 main() {
+    u32 r <- 0;
+    r <- globalTicker.handler();
+    if (r != 10) return 1;
+    r <- globalTickers[1].handler();
+    if (r != 10) return 2;
+    r <- globalRemote.handler();
+    if (r != 50) return 3;
+    r <- Outer.viaMember();
+    if (r != 10) return 4;
+    r <- Outer.viaNestedLocal();
+    if (r != 10) return 5;
+    return 0;
+}

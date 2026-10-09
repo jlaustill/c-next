@@ -1,0 +1,16 @@
+// test-error
+// #1283 negative control: ADR-029 initializes only the callback fields. A
+// non-callback field read before assignment is still E0381.
+u32 tickDefault() {
+    return 10;
+}
+
+struct Ticker {
+    tickDefault handler;
+    u32 count;
+}
+
+u32 main() {
+    Ticker t;
+    return t.count;
+}
