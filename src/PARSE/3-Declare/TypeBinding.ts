@@ -38,7 +38,6 @@ import type ITypeBindingDeps from "../../types/ITypeBindingDeps";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
-import * as Parser from "../2-Parse/grammar/CNextParser";
 
 /**
  * Static utility class resolving a type context to its C name.
@@ -49,69 +48,6 @@ type TNamedTypeSpelling =
   | { readonly kind: "qualified"; readonly path: readonly string[] };
 
 class TypeBinding {
-  /**
-   * The C name for a type context, or null when no alternative matched.
-   *
-   * The six alternatives are mutually exclusive in the grammar, so branch order
-   * carries no meaning -- which is why seven ladders in different orders behaved
-   * the same and why collapsing them is safe.
-   */
-  static resolveName(
-    accessors: ITypeAccessors,
-    scopePath: string,
-    deps?: ITypeBindingDeps,
-  ): string | null {
-    const direct = TypeBinding.resolveNamedOrPrimitiveType(
-      accessors,
-      scopePath,
-      deps,
-    );
-    if (direct !== null) {
-      return direct;
-    }
-
-    // Arrays carry their element type; recurse rather than re-deriving it.
-    const array = accessors.arrayType?.();
-    if (array) {
-      return TypeBinding.resolveName(array, scopePath, deps);
-    }
-
-    const str = accessors.stringType();
-    if (str) {
-      return TypeBinding.resolveStringType(str);
-    }
-
-    return null;
-  }
-
-  /**
-   * The C name for a type that names itself outright -- a named type or a
-   * primitive -- and null for the two alternatives that WRAP another type.
-   *
-   * This is the allow-list a caller wants when it handles `arrayType` and
-   * `stringType` itself because it needs a bit width or a capacity alongside
-   * the name, which is what TypeRegistrationEngine's variable-registration path
-   * did (deleted with the registry, #1668 C8). Asking `resolveNamedType` there dropped every primitive on the floor:
-   * its caller treats a falsy base type as "not registerable" and returns, so
-   * `u32 counter` registered no type info at all and the ADR-044 overflow
-   * helpers stopped being emitted across 478 fixtures. Naming the pair the
-   * caller accepts keeps that an allow-list rather than reinstating the
-   * grammar-tracking exclusion list it replaced.
-   */
-  static resolveNamedOrPrimitiveType(
-    accessors: ITypeAccessors,
-    scopePath: string,
-    deps?: ITypeBindingDeps,
-  ): string | null {
-    const named = TypeBinding.resolveNamedType(accessors, scopePath, deps);
-    if (named !== null) {
-      return named;
-    }
-
-    const primitive = accessors.primitiveType();
-    return primitive ? primitive.getText() : null;
-  }
-
   /**
    * The C name for a NAMED type -- `this.T`, `global.T`, `Scope.T` or a bare
    * `T` -- and null for every other alternative.
@@ -226,14 +162,15 @@ class TypeBinding {
   }
 
   /**
-   * `string<32>` keeps its capacity; a bare `string` does not (Issue #139).
+   * The C-Next name a type is written as -- a named type resolved, a primitive,
+   * an array's element, `string<N>` or `string` -- or null for template and
+   * `void`, which each caller answers for itself.
+   *
+   * The one ladder: 1.3's symbols (the `.h`, through `TypeUtils.getTypeName`)
+   * and the walker (the `.c`) both ask it, so the two files cannot disagree on
+   * a type's name. Its alternatives are exclusive in the grammar, so branch
+   * order carries no meaning (#1285, #1932).
    */
-  static resolveStringType(stringCtx: Parser.StringTypeContext): string {
-    const intLiteral = stringCtx.INTEGER_LITERAL();
-    return intLiteral ? `string<${intLiteral.getText()}>` : "string";
-  }
-
-  /** `resolveName` over a lowered type, for a pass that holds no parse tree (#1932) */
   static resolveWrittenName(
     type: TTypeSyntax,
     scopePath: string,
