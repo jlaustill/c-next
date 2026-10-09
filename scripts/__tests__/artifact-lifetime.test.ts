@@ -248,12 +248,13 @@ function parseNodeAcceptors(pattern: RegExp): string[] {
   const grammar = project.getSourceFileOrThrow(
     join(repoRoot, "src/PARSE/2-Parse/grammar/CNextParser.ts"),
   );
-  const contexts = [
-    "ProgramContext",
-    "ExpressionContext",
-    "LiteralContext",
-    "TypeContext",
-  ].map((name) => grammar.getClassOrThrow(name).getType());
+  // Every generated context, not a sample: a stand-in copies the shape of the
+  // ONE context its pass reads (`IModifierContext` was a variable
+  // declaration's), so a sample of four would miss most of them.
+  const contexts = grammar
+    .getClasses()
+    .filter((c) => c.getName()?.endsWith("Context"))
+    .map((c) => c.getType());
   const isTop = (t: Type): boolean =>
     t.isAny() ||
     t.isUnknown() ||
