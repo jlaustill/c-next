@@ -1,0 +1,29 @@
+// test-execution
+// test-no-warnings
+// test-adr: 016, 057
+// Issue #1650 (part 1, across a file): the scope member is declared in an
+// included file, and this file reopens the scope and reads it.
+//
+// `label` is emitted qualified (`Cfg__label`, ADR-016) wherever the scope is
+// reopened, so the cache of two reads must be `strlen(Cfg__label)`. A cache
+// named from the source spelling emits the undeclared `strlen(label)`.
+//
+// Negative control: the member read ONCE (no cache).
+#include "strlen-cache-cfg.cnx"
+
+scope Cfg {
+    public u32 check() {
+        if (label.char_count != 2 || label.char_count < 1) {
+            return 1;
+        }
+        if (label.char_count != 2) {
+            return 2;
+        }
+        return 0;
+    }
+}
+
+u32 main() {
+    u32 result <- Cfg.check();
+    return result;
+}
