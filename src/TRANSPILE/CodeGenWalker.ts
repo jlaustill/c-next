@@ -64,6 +64,8 @@ import IPlannedForAssignment from "./3-Render/codegen/types/IPlannedForAssignmen
 import type IAssignmentSyntax from "../types/syntax/IAssignmentSyntax";
 import type IVariableDeclarationSyntax from "../types/syntax/IVariableDeclarationSyntax";
 import type TStatement from "../types/syntax/TStatement";
+import type TCaseLabelSyntax from "../types/syntax/TCaseLabelSyntax";
+import type TBlockSyntax from "../types/syntax/TBlockSyntax";
 import AssignmentTarget from "../utils/AssignmentTarget";
 import StatementLowering from "../PARSE/2-Parse/StatementLowering";
 import IPlannedForVarDecl from "./3-Render/codegen/types/IPlannedForVarDecl";
@@ -385,34 +387,6 @@ class CodeGenWalker {
       renderTrue: () => this.renderBinary(whenTrue),
       renderFalse: () => this.renderBinary(whenFalse),
     };
-  }
-
-  /**
-   * Issue #477: Generate expression with a specific expected type context.
-   * Used by return statements to resolve unqualified enum values.
-   *
-   * #1450 box 4: this was a third hand-rolled save/restore of `expectedType`,
-   * beside `withExpectedType` and `withoutExpectedType`, justified by a note
-   * reading "uses explicit save/restore (not withExpectedType) to support null
-   * values". No caller passes one. Measured rather than argued: throwing here
-   * on a falsy argument leaves 1247/1247 fixtures green, and the control --
-   * throwing on a TRUTHY one -- fails 663 of them, so the line is reached and
-   * the falsy case simply never arrives.
-   *
-   * The parameter is therefore `string`, not `string | null`. That makes the
-   * fact the compiler's to keep rather than a comment's, which matters because
-   * the two spellings did OPPOSITE things on null: `withExpectedType(null)` is
-   * a no-op by contract, while this cleared the type. Two near-identically
-   * named operations disagreeing on their edge case is the trap; deleting the
-   * edge case is cheaper than documenting it.
-   */
-  generateExpressionWithExpectedType(
-    ctx: Parser.ExpressionContext,
-    expectedType: string,
-  ): string {
-    return this.host.state.withExpectedType(expectedType, () =>
-      this.generateExpression(ctx),
-    );
   }
 
   /**
@@ -825,28 +799,8 @@ class CodeGenWalker {
     return this.invokeGenerator(generateBinaryExpr, this.planBinaryExpr(expr));
   }
 
-  /**
-   * Get the enum type of an expression.
-   * Part of IOrchestrator interface - delegates to private implementation.
-   */
-  getExpressionEnumType(ctx: Parser.ExpressionContext): string | null {
-    // #1445: the resolver takes the expression's TEXT plus a thunk for the
-    // struct-member-chain fallback, so it names no parse type. The walk stays
-    // here, where the node is.
-    //
-    // The parameter was `ExpressionContext | RelationalExpressionContext`. The
-    // second arm was dead: the only caller is `SwitchGenerator`, which passes
-    // `node.expression()`. The resolver's `!("ternaryExpression" in ctx)` guard
-    // existed to discriminate the union and could therefore never fire.
-    //
-    // #1668: the one operand typer's answer, which 2.1's ADR-017 rules read
-    // too, so the case label and the E0428/E0434 checks cannot disagree
-    // about whether the switch is on an enum. A header's enum has no C-Next
-    // enum type: its members are global C names and need no qualifying.
-    const t = OperandTyper.typeOf(
-      SyntaxLowering.expressionNode(ctx),
-      this.host.state.typingContext(),
-    );
+  private enumTypeOf(expr: TExpression): string | null {
+    const t = OperandTyper.typeOf(expr, this.host.state.typingContext());
     return t?.category === "enum" ? t.enumTypeName : null;
   }
 
@@ -1031,74 +985,93 @@ class CodeGenWalker {
    * Part of IOrchestrator interface.
    */
   generateBlock(ctx: Parser.BlockContext): string {
+    return this.renderBlock(StatementLowering.block(ctx));
+  }
+
+  private renderBlock(block: Pick<TBlockSyntax, "statements">): string {
     const lines: string[] = ["{"];
     const innerIndent = FormatUtils.indent(1); // One level of relative indentation
-
-    for (const stmt of ctx.statement()) {
-      // Temporarily increment for any nested context that needs absolute level
+    for (const stmt of block.statements) {
       this.host.state.indentLevel++;
-      const stmtCode = this.generateStatement(stmt);
+      const stmtCode = this.renderStatement(stmt);
       this.host.state.indentLevel--;
-
       if (stmtCode) {
-        // Add one level of indent to each line (relative indentation)
         const indentedLines = stmtCode
           .split("\n")
           .map((line) => innerIndent + line);
         lines.push(indentedLines.join("\n"));
       }
     }
-
     lines.push("}");
-
     return lines.join("\n");
   }
 
-  /**
-   * Generate a single statement.
-   * Part of IOrchestrator interface.
-   */
-  generateStatement(ctx: Parser.StatementContext): string {
-    let result = "";
-
-    if (ctx.variableDeclaration()) {
-      result = this.generateVariableDecl(ctx.variableDeclaration()!);
-    } else if (ctx.assignmentStatement()) {
-      result = this.generateAssignment(
-        StatementLowering.assignment(ctx.assignmentStatement()!),
-      );
-    } else if (ctx.expressionStatement()) {
-      result =
-        this.generateExpression(ctx.expressionStatement()!.expression()) + ";";
-    } else if (ctx.ifStatement()) {
-      result = this.generateIf(ctx.ifStatement()!);
-    } else if (ctx.whileStatement()) {
-      result = this.generateWhile(ctx.whileStatement()!);
-    } else if (ctx.doWhileStatement()) {
-      result = this.generateDoWhile(ctx.doWhileStatement()!);
-    } else if (ctx.forStatement()) {
-      result = this.generateFor(ctx.forStatement()!);
-    } else if (ctx.foreverStatement()) {
-      result = this.generateForever(ctx.foreverStatement()!);
-    } else if (ctx.switchStatement()) {
-      result = this.generateSwitch(ctx.switchStatement()!);
-    } else if (ctx.returnStatement()) {
-      result = this.generateReturn(ctx.returnStatement()!);
-    } else if (ctx.criticalStatement()) {
-      // ADR-050: Critical statement for atomic multi-variable operations
-      result = this.generateCriticalStatement(ctx.criticalStatement()!);
-    } else if (ctx.block()) {
-      result = this.generateBlock(ctx.block()!);
-    }
-
-    // Issue #250: Prepend any pending temp variable declarations (C++ mode)
+  private renderStatement(statement: TStatement): string {
+    const result = this.renderStatementCode(statement);
+    // Issue #250: Prepend any pending temp declarations (C++ mode)
     if (this.host.state.pendingTempDeclarations.length > 0) {
       const tempDecls = this.host.state.pendingTempDeclarations.join("\n");
       this.host.state.pendingTempDeclarations = [];
       return tempDecls + "\n" + result;
     }
-
     return result;
+  }
+
+  private renderStatementCode(statement: TStatement): string {
+    switch (statement.kind) {
+      case "variableDeclaration":
+      case "constructorDeclaration":
+        return VariableDeclHelper.renderVariableDecl(
+          this.planVariableDecl(statement),
+          this.host.state,
+        );
+      case "assignment":
+        return this.generateAssignment(statement);
+      case "expression":
+        return this.renderExpression(statement.expression) + ";";
+      case "if":
+        return this.invokeGenerator(
+          controlFlowGenerators.generateIf,
+          this.planIf(statement),
+        );
+      case "while":
+        return this.invokeGenerator(
+          controlFlowGenerators.generateWhile,
+          this.planWhile(statement),
+        );
+      case "doWhile":
+        return this.invokeGenerator(
+          controlFlowGenerators.generateDoWhile,
+          this.planDoWhile(statement),
+        );
+      case "for":
+        return this.invokeGenerator(
+          controlFlowGenerators.generateFor,
+          this.planFor(statement),
+        );
+      case "forever":
+        return this.invokeGenerator(
+          controlFlowGenerators.generateForever,
+          this.planForever(statement),
+        );
+      case "switch":
+        return this.invokeGenerator(
+          generateSwitchStatement,
+          this.planSwitch(statement),
+        );
+      case "return":
+        return this.invokeGenerator(
+          controlFlowGenerators.generateReturn,
+          this.planReturn(statement),
+        );
+      case "critical":
+        return this.invokeGenerator(generateCriticalStatement, {
+          blockCode: this.renderBlock(statement.body),
+          line: statement.span.line,
+        });
+      case "block":
+        return this.renderBlock(statement);
+    }
   }
 
   /**
@@ -4565,18 +4538,21 @@ class CodeGenWalker {
    * What a `return` carries. `node.expression()` was asked twice here -- once
    * as a predicate and once with `!` -- which is what a union states once.
    */
-  private planReturn(ctx: Parser.ReturnStatementContext): TPlannedReturn {
-    const exprCtx = ctx.expression();
-    if (!exprCtx) {
+  private planReturn(
+    statement: Extract<TStatement, { kind: "return" }>,
+  ): TPlannedReturn {
+    const value = statement.value;
+    if (!value) {
       return { kind: "void" };
     }
-
     return {
       kind: "value",
       render: (expectedType) =>
         expectedType
-          ? this.generateExpressionWithExpectedType(exprCtx, expectedType)
-          : this.generateExpression(exprCtx),
+          ? this.host.state.withExpectedType(expectedType, () =>
+              this.renderExpression(value),
+            )
+          : this.renderExpression(value),
     };
   }
 
@@ -4593,40 +4569,34 @@ class CodeGenWalker {
    * cache a length read only on a path the declaration's own value may not
    * describe.
    */
-  private planIf(ctx: Parser.IfStatementContext): IPlannedIf {
-    const conditionCtx = ctx.expression();
-    const statements = ctx.statement();
-    const thenStmt = statements[0];
-
+  private planIf(statement: Extract<TStatement, { kind: "if" }>): IPlannedIf {
+    const { condition, whenTrue, whenFalse } = statement;
     const lengthCounts = StringLengthCounter.countExpression(
-      SyntaxLowering.expression(conditionCtx),
+      condition,
       this.host.state,
     );
-    const thenBlock = thenStmt.block();
-    if (thenBlock) {
+    if (whenTrue.kind === "block") {
       StringLengthCounter.countBlockInto(
-        thenBlock,
+        whenTrue,
         lengthCounts,
         this.host.state,
       );
     }
-
     return {
       lengthCounts,
-      renderCondition: () => this.generateExpression(conditionCtx),
-      renderThen: () => this.generateStatement(thenStmt),
-      renderElse:
-        statements.length > 1
-          ? () => this.generateStatement(statements[1])
-          : null,
+      renderCondition: () => this.renderExpression(condition),
+      renderThen: () => this.renderStatement(whenTrue),
+      renderElse: whenFalse ? () => this.renderStatement(whenFalse) : null,
     };
   }
 
   /** A `while`: condition then body. */
-  private planWhile(ctx: Parser.WhileStatementContext): IPlannedLoop {
+  private planWhile(
+    statement: Extract<TStatement, { kind: "while" }>,
+  ): IPlannedLoop {
     return {
-      renderCondition: () => this.generateExpression(ctx.expression()),
-      renderBody: () => this.generateStatement(ctx.statement()),
+      renderCondition: () => this.renderExpression(statement.condition),
+      renderBody: () => this.renderStatement(statement.body),
     };
   }
 
@@ -4635,16 +4605,20 @@ class CodeGenWalker {
    * generator calls them in the other order. Note the body is a BLOCK here and
    * a statement there -- which is exactly the difference a thunk hides.
    */
-  private planDoWhile(ctx: Parser.DoWhileStatementContext): IPlannedLoop {
+  private planDoWhile(
+    statement: Extract<TStatement, { kind: "doWhile" }>,
+  ): IPlannedLoop {
     return {
-      renderCondition: () => this.generateExpression(ctx.expression()),
-      renderBody: () => this.generateBlock(ctx.block()),
+      renderCondition: () => this.renderExpression(statement.condition),
+      renderBody: () => this.renderBlock(statement.body),
     };
   }
 
   /** An ADR-068 `forever`: a body and nothing else. */
-  private planForever(ctx: Parser.ForeverStatementContext): IPlannedForever {
-    return { renderBody: () => this.generateBlock(ctx.block()) };
+  private planForever(
+    statement: Extract<TStatement, { kind: "forever" }>,
+  ): IPlannedForever {
+    return { renderBody: () => this.renderBlock(statement.body) };
   }
 
   /**
@@ -4710,100 +4684,32 @@ class CodeGenWalker {
   }
 
   /** A `for` header and its body. */
-  private planFor(ctx: Parser.ForStatementContext): IPlannedFor {
-    const forUpdate = ctx.forUpdate();
-
+  private planFor(
+    statement: Extract<TStatement, { kind: "for" }>,
+  ): IPlannedFor {
+    const { condition, update } = statement;
     return {
-      init: this.planForInit(ctx.forInit()),
-      // `for (;;)` is E0707 in pass 2.1, so the controlling expression is
-      // guaranteed present here.
-      renderCondition: () => this.generateExpression(ctx.expression()!),
-      update: forUpdate
-        ? this.planForAssignment(StatementLowering.assignment(forUpdate))
-        : null,
-      renderBody: () => this.generateStatement(ctx.statement()),
+      init: this.planForInit(statement.init),
+      renderCondition: () => {
+        invariant(condition !== null, "a for header states its condition");
+        return this.renderExpression(condition);
+      },
+      update: update ? this.planForAssignment(update) : null,
+      renderBody: () => this.renderStatement(statement.body),
     };
   }
 
   /** Which of the two `for` init forms this header uses, if either. */
-  private planForInit(ctx: Parser.ForInitContext | null): IPlannedFor["init"] {
-    const varDecl = ctx?.forVarDecl();
-    if (varDecl) {
-      return {
-        kind: "varDecl",
-        plan: this.planForVarDecl(
-          StatementLowering.variableDeclaration(varDecl),
-        ),
-      };
+  private planForInit(
+    init: Extract<TStatement, { kind: "for" }>["init"],
+  ): IPlannedFor["init"] {
+    if (init?.kind === "variableDeclaration") {
+      return { kind: "varDecl", plan: this.planForVarDecl(init) };
     }
-
-    const assignment = ctx?.forAssignment();
-    if (assignment) {
-      return {
-        kind: "assignment",
-        plan: this.planForAssignment(StatementLowering.assignment(assignment)),
-      };
+    if (init?.kind === "assignment") {
+      return { kind: "assignment", plan: this.planForAssignment(init) };
     }
-
     return null;
-  }
-
-  private generateIf(ctx: Parser.IfStatementContext): string {
-    return this.invokeGenerator(
-      controlFlowGenerators.generateIf,
-      this.planIf(ctx),
-    );
-  }
-
-  private generateWhile(ctx: Parser.WhileStatementContext): string {
-    return this.invokeGenerator(
-      controlFlowGenerators.generateWhile,
-      this.planWhile(ctx),
-    );
-  }
-
-  private generateDoWhile(ctx: Parser.DoWhileStatementContext): string {
-    return this.invokeGenerator(
-      controlFlowGenerators.generateDoWhile,
-      this.planDoWhile(ctx),
-    );
-  }
-
-  private generateFor(ctx: Parser.ForStatementContext): string {
-    return this.invokeGenerator(
-      controlFlowGenerators.generateFor,
-      this.planFor(ctx),
-    );
-  }
-
-  private generateForever(ctx: Parser.ForeverStatementContext): string {
-    return this.invokeGenerator(
-      controlFlowGenerators.generateForever,
-      this.planForever(ctx),
-    );
-  }
-
-  private generateReturn(ctx: Parser.ReturnStatementContext): string {
-    return this.invokeGenerator(
-      controlFlowGenerators.generateReturn,
-      this.planReturn(ctx),
-    );
-  }
-
-  /**
-   * ADR-050: Generate critical statement with PRIMASK wrapper
-   * Ensures atomic execution of multi-variable operations
-   */
-  private generateCriticalStatement(
-    ctx: Parser.CriticalStatementContext,
-  ): string {
-    // #1445: the block is rendered here, where the tree is, and the generator
-    // wraps it. `generateBlock` still runs before the wrapper's irq_wrappers
-    // effect is applied, so effect order is unchanged.
-    return this.invokeGenerator(generateCriticalStatement, {
-      blockCode: this.generateBlock(ctx.block()),
-      line: ctx.start?.line,
-    });
   }
 
   /**
@@ -4817,24 +4723,21 @@ class CodeGenWalker {
    * rendering a statement registers effects, and the generator decides how
    * deep each line indents.
    */
-  private planSwitch(ctx: Parser.SwitchStatementContext): IPlannedSwitch {
-    const subjectExpression = ctx.expression();
-    const subject = this.generateExpression(subjectExpression);
-    const subjectEnumType =
-      this.getExpressionEnumType(subjectExpression) ?? undefined;
-    const defaultCase = ctx.defaultCase();
-
+  private planSwitch(
+    statement: Extract<TStatement, { kind: "switch" }>,
+  ): IPlannedSwitch {
+    const subject = this.renderExpression(statement.subject);
+    const subjectEnumType = this.enumTypeOf(statement.subject) ?? undefined;
+    const defaultCase = statement.defaultCase;
     return {
       subject,
       subjectEnumType,
-      cases: ctx.switchCase().map((switchCase) => ({
-        labels: switchCase
-          .caseLabel()
-          .map((label) => this.planCaseLabel(label)),
-        renderBody: () => this.renderStatements(switchCase.block()),
+      cases: statement.cases.map((switchCase) => ({
+        labels: switchCase.labels.map((label) => this.planCaseLabel(label)),
+        renderBody: () => this.renderStatements(switchCase.body),
       })),
       renderDefaultBody: defaultCase
-        ? () => this.renderStatements(defaultCase.block())
+        ? () => this.renderStatements(defaultCase.body)
         : null,
     };
   }
@@ -4846,56 +4749,27 @@ class CodeGenWalker {
    * identifier, integer, hex, binary, char. A char literal is its own arm
    * because it is the one that ignores a leading minus.
    */
-  private planCaseLabel(ctx: Parser.CaseLabelContext): TPlannedCaseLabel {
-    // A minus is the first child, for a negative literal.
-    const negative =
-      ctx.children !== null && ctx.children[0]?.getText() === "-";
-
-    const qualified = ctx.qualifiedType();
-    if (qualified) {
-      return {
-        kind: "qualified",
-        parts: qualified.IDENTIFIER().map((id) => id.getText()),
-      };
+  private planCaseLabel(label: TCaseLabelSyntax): TPlannedCaseLabel {
+    switch (label.kind) {
+      case "qualified":
+        return { kind: "qualified", parts: label.path };
+      case "identifier":
+        return { kind: "identifier", name: label.name };
+      case "integer":
+      case "hex":
+        return { kind: "numeric", text: label.text, negative: label.negative };
+      case "binary":
+        return { kind: "binary", text: label.text, negative: false };
+      case "char":
+        return { kind: "char", text: label.text };
+      case "missing":
+        return { kind: "none" };
     }
-
-    const identifier = ctx.IDENTIFIER();
-    if (identifier) {
-      return { kind: "identifier", name: identifier.getText() };
-    }
-
-    const integer = ctx.INTEGER_LITERAL();
-    if (integer) {
-      return { kind: "numeric", text: integer.getText(), negative };
-    }
-
-    const hex = ctx.HEX_LITERAL();
-    if (hex) {
-      return { kind: "numeric", text: hex.getText(), negative };
-    }
-
-    const binary = ctx.BINARY_LITERAL();
-    if (binary) {
-      return { kind: "binary", text: binary.getText(), negative };
-    }
-
-    const char = ctx.CHAR_LITERAL();
-    if (char) {
-      return { kind: "char", text: char.getText() };
-    }
-
-    return { kind: "none" };
   }
 
   /** Every statement of a block, rendered in order. */
-  private renderStatements(ctx: Parser.BlockContext): readonly string[] {
-    return ctx
-      .statement()
-      .map((statement) => this.generateStatement(statement));
-  }
-
-  private generateSwitch(ctx: Parser.SwitchStatementContext): string {
-    return this.invokeGenerator(generateSwitchStatement, this.planSwitch(ctx));
+  private renderStatements(block: TBlockSyntax): readonly string[] {
+    return block.statements.map((statement) => this.renderStatement(statement));
   }
 
   /**
