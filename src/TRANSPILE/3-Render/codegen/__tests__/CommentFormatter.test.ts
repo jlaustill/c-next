@@ -200,31 +200,4 @@ describe("CommentFormatter", () => {
       expect(result[1]).toBe("  /** doc */");
     });
   });
-
-  // ========================================================================
-  // formatTrailingComment() - Inline comments after code
-  // ========================================================================
-
-  describe("formatTrailingComment", () => {
-    it("should format line comment with leading spaces", () => {
-      const comment = makeComment(ECommentType.Line, " inline note");
-      expect(formatter.formatTrailingComment(comment)).toBe("  // inline note");
-    });
-
-    it("should format doc comment as line comment style", () => {
-      const comment = makeComment(ECommentType.Doc, " documented");
-      expect(formatter.formatTrailingComment(comment)).toBe("  // documented");
-    });
-
-    it("should format single-line block comment", () => {
-      const comment = makeComment(ECommentType.Block, " block ");
-      expect(formatter.formatTrailingComment(comment)).toBe("  /* block */");
-    });
-
-    it("should format multi-line block comment (edge case)", () => {
-      const comment = makeComment(ECommentType.Block, " line1\nline2 ");
-      const result = formatter.formatTrailingComment(comment);
-      expect(result).toBe("  /* line1\nline2 */");
-    });
-  });
 });

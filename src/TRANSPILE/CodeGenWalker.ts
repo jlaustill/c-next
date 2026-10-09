@@ -1,13 +1,18 @@
 /**
- * CodeGenWalker -- the parse-tree walk that drives code generation.
+ * CodeGenWalker -- the walk over one file's plain-data `IProgramSyntax`
+ * that drives code generation.
  *
  * #1445 box 3: the render pass must not hold parse nodes. This class is the
  * half of the former `CodeGenerator` that did, extracted whole: every member
  * whose text names a `Parser.*Context`, `ParserRuleContext` or
  * `CommonTokenStream`, plus the parse-free members that only those call.
  *
+ * #1932 then took the walk itself off the tree: 1.2's `ProgramLowering`
+ * produces `IParsedFile.program`, the walker generates from it, and it names
+ * no parse type -- `parse-tree-confined-to-parser` is `error` here.
+ *
  * It lives at `src/TRANSPILE/` rather than in a pass because it is not one.
- * It walks the tree and drives 2.2 and 2.3 for a single file -- the same role
+ * It walks the file and drives 2.2 and 2.3 for a single file -- the same role
  * `Transpiler` plays for a run, and README §1's tree draws it there. It cannot
  * live in `2-Plan/`: `2-2-plan-reads-no-later-pass` is `error` with
  * `reachable: true`, and the walk
@@ -112,7 +117,6 @@ import type IChainHead from "../types/IChainHead";
 import ExpressionCalls from "../utils/ExpressionCalls";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
 import includeGenerators from "./3-Render/codegen/generators/support/IncludeGenerator";
-import commentUtils from "./3-Render/codegen/generators/support/CommentUtils";
 import DeclaredTypeInfo from "../PARSE/3-Declare/DeclaredTypeInfo";
 import DeclaredPointer from "../utils/DeclaredPointer";
 import type IChainBase from "../types/IChainBase";
@@ -177,7 +181,7 @@ import QualifiedCName from "../utils/QualifiedCName";
 import ToolchainRequirementUtils from "../utils/ToolchainRequirementUtils";
 import MainSignature from "../utils/MainSignature";
 import ScopeUtils from "../utils/ScopeUtils";
-import TypeBinding from "../PARSE/3-Declare/TypeBinding";
+import TypeNameLadder from "../utils/TypeNameLadder";
 import type ITargetDescription from "../types/ITargetDescription";
 import SymbolTypeResolver from "../utils/TypeResolver";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
@@ -195,8 +199,6 @@ const {
   transformIncludeDirective: includeTransformIncludeDirective,
   processPreprocessorDirective: includeProcessPreprocessorDirective,
 } = includeGenerators;
-
-const { formatLeadingComments: commentFormatLeadingComments } = commentUtils;
 
 interface FunctionSignature {
   name: string;
@@ -377,7 +379,7 @@ class CodeGenWalker {
   /**
    * A type context reduced to what the renderer asks of it (#1445).
    *
-   * The named branches come from `TypeBinding` -- 1.3 Declare's one ladder --
+   * The named branches come from `TypeNameLadder` -- the one ladder --
    * rather than from a second walk here, which is what `TypeGenerationHelper`
    * used to do. `typeBindingDeps` supplies the same two predicates that helper
    * was handed: ADR-057's scope-type test, and this generator's C++-aware
@@ -396,7 +398,7 @@ class CodeGenWalker {
     );
 
     return {
-      named: TypeBinding.classifyNamed(
+      named: TypeNameLadder.classifyNamed(
         element,
         this.host.state.currentScopePath,
         deps,
@@ -1103,8 +1105,8 @@ class CodeGenWalker {
   private typeNameOf(type: TTypeSyntax): string {
     // #1285: one ladder. This was the largest of seven copies, and the only one
     // that handled `arrayType` by peeking at two of its six element
-    // alternatives -- TypeBinding recurses into all of them.
-    const resolved = TypeBinding.resolveWrittenName(
+    // alternatives -- TypeNameLadder recurses into all of them.
+    const resolved = TypeNameLadder.resolveWrittenName(
       type,
       this.host.state.currentScopePath,
       this.host.state.typeBindingDeps((identifiers) =>
@@ -1434,7 +1436,7 @@ class CodeGenWalker {
   private initializeGenerateOptions(options: ICodeGeneratorOptions): void {
     this.host.state.debugMode = options.debugMode ?? false;
     this.host.state.sourcePath = options.sourcePath ?? null;
-    // #1241: Transpiler._analyzeFile sets the provenance file before analyzers
+    // #1241: Transpiler._analysisInputs sets the provenance file before analyzers
     // run; re-assert it here for API callers that drive the generator directly
     // and never go through that path. (Said `_transpileFile` until #1320
     // hoisted analysis out of it into its own pass -- by the time
@@ -3961,7 +3963,7 @@ class CodeGenWalker {
     // caller's own chain, which is where it was always handled. An enumerated
     // list of alternatives to SKIP would have to be kept in step with the
     // grammar from ~3000 lines away, and getting it wrong fails open.
-    const name = TypeBinding.classifyNamed(
+    const name = TypeNameLadder.classifyNamed(
       type,
       this.host.state.currentScopePath,
       this.host.state.typeBindingDeps((parts) =>
@@ -4771,11 +4773,7 @@ class CodeGenWalker {
    */
   private formatLeadingComments(comments: readonly IComment[]): string[] {
     const indent = FormatUtils.indent(this.host.state.indentLevel);
-    return commentFormatLeadingComments(
-      [...comments],
-      this.commentFormatter,
-      indent,
-    );
+    return this.commentFormatter.formatLeadingComments([...comments], indent);
   }
 
   /**

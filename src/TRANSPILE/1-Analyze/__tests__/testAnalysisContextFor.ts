@@ -30,7 +30,7 @@ const TEST_SOURCE = "test.cnx";
  *   `Transpiler._publishResolvedFile` does, on top of any C/C++ symbols the
  *   test put in the table it passes;
  * - the per-file view from `program.codeGenSymbolsFor`, as
- *   `Transpiler._analyzeFile` reads it.
+ *   `Transpiler._analysisInputs` reads it.
  *
  * It refuses a context whose program has no resolved target, or declares a
  * function with no lexical frame, so a test cannot run an analyzer against an

@@ -4,7 +4,6 @@
  */
 
 import SymbolRegistry from "../PARSE/3-Declare/SymbolRegistry";
-import CNextSourceParser from "../PARSE/2-Parse/CNextSourceParser";
 import CNextResolver from "../PARSE/3-Declare/cnext/index";
 import DeferredTypes from "../PARSE/4-Resolve/DeferredTypes";
 import ScopeUtils from "../utils/ScopeUtils";
@@ -295,9 +294,6 @@ function convertScope(
  * ```
  */
 function parseWithSymbols(source: string): IParseWithSymbolsResult {
-  // Parse C-Next source
-  const { tree, parseErrors: errors } = CNextSourceParser.parse(source);
-
   // ADR-055 Phase 7: Direct TSymbol → ISymbolInfo conversion (no ISymbol intermediate)
   //
   // #1472: both passes, because this API has the same obligation the pipeline
@@ -309,11 +305,13 @@ function parseWithSymbols(source: string): IParseWithSymbolsResult {
   // #1378, closed by construction (#1452 box 3): this path never reset the
   // global registry, so scopes from a previously parsed source leaked into the
   // next call. There is no global to reset now -- each call gets its own.
-  const declared = CNextResolver.resolve(
-    tree,
+  const resolved = CNextResolver.resolveSource(
+    source,
     "<source>",
     new SymbolRegistry(),
   );
+  const declared = resolved.symbols;
+  const errors = resolved.parseErrors;
   // No header reaches this API, so no typedef here can be opaque (ADR-030,
   // #1722): opacity is decided over the headers a program includes.
   const tSymbols = DeferredTypes.settle(

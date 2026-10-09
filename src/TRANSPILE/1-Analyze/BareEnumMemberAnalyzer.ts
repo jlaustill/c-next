@@ -153,7 +153,7 @@ class BareEnumMemberListener extends CNextListener {
     // #1668 review: each answers with the enum the typer gives the position's
     // type. The positions used to answer with the type as WRITTEN, qualified
     // here by hand -- `this.`, `global.`, then the enclosing scope -- beside
-    // the typer's `TypeBinding`, which every other rule reads for the same
+    // the typer's `TypeNameLadder`, which every other rule reads for the same
     // spelling.
     if (cursor instanceof Parser.VariableDeclarationContext) {
       return this.enumOfWritten(cursor.type(), cursor);

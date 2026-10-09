@@ -71,6 +71,50 @@ const passOrderRules = PASS_ORDER.slice(0, -1).map((place, index) => ({
   },
 }));
 
+/**
+ * What counts as holding a parse tree -- the one definition, read by both
+ * `parse-tree-sites` (the inventory) and `parse-tree-confined-to-parser` (the
+ * ruling, #1932).
+ */
+const PARSE_TREE_TYPES = [
+  "^src/PARSE/2-Parse/.*grammar/",
+  "node_modules/antlr4ng/",
+  // The sanctioned carriers. `IParsedFile` is documented as the way a
+  // pass takes the tree "instead of re-parsing", and `IParsedFile["tree"]`
+  // IS `ProgramContext` -- so a module reaches the tree through this hop
+  // while naming neither the grammar nor the runtime, and the count stays
+  // flat as the coupling grows. Measured: a probe in `state/` holding
+  // `IParsedFile["tree"]` left the gate at 141 and exit 0, while the same
+  // probe spelled `ParserRuleContext` failed loudly. The guard was
+  // catching the honest spelling and missing the recommended one.
+  // #1445 box 2 removed `IDeclaredFile` from this alternation with the
+  // type itself. It was 1.3's apparent artifact and held
+  // `parsed: IParsedFile`, so importing it reached the tree in one hop
+  // -- exactly what naming the carriers here was for. Its `symbols`
+  // half had no reader, so it was a bundle whose only live content was
+  // the re-export.
+  "^src/types/(IParsedFile|ITypeAccessors)\\.ts$",
+  // #1957: the 1.2 parsers that RETURN a tree. A module calling one holds the
+  // tree as a value -- `CNextSourceParser.parse(src).tree` -- while naming no
+  // grammar type, so without these it was counted by neither rule.
+  "^src/PARSE/2-Parse/(CNextSourceParser|HeaderParser)\\.ts$",
+];
+
+/**
+ * #1932 box 2: the shared helpers that hold a parse tree. Each is allowed only
+ * because every caller is 1.2 Parse, 1.3 Declare or 2.1 Analyze, so each is
+ * also a `to` of `parse-tree-confined-to-parser`: a later pass importing one
+ * fails exactly as if it had imported the grammar.
+ */
+const PARSE_TREE_HELPERS = [
+  "^src/utils/ast/(AssignmentTargetExtractor|ChildStatementCollector|StatementExpressionCollector)\\.ts$",
+  "^src/utils/(ChainRoot|ExpressionUnwrapper|ExpressionUtils|OverflowBehaviorUtils|ParserUtils|PostfixAnalysisUtils)\\.ts$",
+  "^src/types/TAssignmentSite\\.ts$",
+  // #1932: reads parse contexts through `ITypeAccessors`; its plain-data half
+  // is `utils/TypeNameLadder`, which later passes call instead.
+  "^src/PARSE/3-Declare/TypeBinding\\.ts$",
+];
+
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
@@ -344,7 +388,7 @@ module.exports = {
       to: { path: "^(node:)?fs(/promises)?$" },
     },
     {
-      name: "parse-tree-confined-to-parser",
+      name: "parse-tree-sites",
       comment:
         "#1317: docs/architecture/README.md makes the AST Tier 1 with a short " +
         "lifetime, and rests the whole lifetime axis on one rule -- 1.3 " +
@@ -369,22 +413,17 @@ module.exports = {
         "almost every module, since everything reaches the grammar through " +
         "the pipeline -- the argument scripts/__tests__/layer-rules.test.ts " +
         "makes for its `collectors-build-names-from-scopes` control. " +
-        "`warn`, and it stays `warn`: some holders are correct (IParsedFile " +
-        "IS 1.2's artifact). That is a CHOSEN cost, not an inherited one: at " +
-        "`warn` this rule prints every edge, so `npm run depcruise` went from " +
-        "`no dependency violations found` to ~255 lines, and `no-orphans` and " +
-        "`no-deprecated-core` -- also `warn`, also exit-0 -- now share that " +
-        "channel. Both report 0 today, so nothing is buried yet; a future one " +
-        'would be one line inside 255. `severity: "info"` still prints every ' +
-        "edge and dependency-cruiser has no per-rule reporter filter " +
-        "(`--include-only`, `--focus` and `--reaches` all select MODULES), so " +
-        "there is no knob short of hiding output, which is worse. Accepted " +
-        "because this rule is gated independently by `parse-tree:check`. " +
+        "`info`: this rule is the INVENTORY, and many holders are correct (IParsedFile " +
+        "IS 1.2's artifact), so a holder is not a violation and must not fail " +
+        "or warn. `info` still lists every edge in `npm run depcruise`; " +
+        "dependency-cruiser has no per-rule reporter filter (`--include-only`, " +
+        "`--focus` and `--reaches` all select MODULES), and hiding the list " +
+        "would be worse than printing it. " +
         "What must not happen is the count RISING, which " +
         "`npm run parse-tree:check` gates against " +
-        "docs/architecture/parse-tree-sites.md. Flipping this to `error` is " +
-        "the last card of track D, not this one.",
-      severity: "warn",
+        "docs/architecture/parse-tree-sites.md. Which holders are allowed is " +
+        "ruled by `parse-tree-confined-to-parser`, below (#1932), at `error`.",
+      severity: "info",
       from: {
         path: "^src/",
         pathNot: [
@@ -403,27 +442,45 @@ module.exports = {
           "\\.test\\.ts$",
         ],
       },
-      to: {
-        path: [
-          "^src/PARSE/2-Parse/.*grammar/",
-          "node_modules/antlr4ng/",
-          // The sanctioned carriers. `IParsedFile` is documented as the way a
-          // pass takes the tree "instead of re-parsing", and `IParsedFile["tree"]`
-          // IS `ProgramContext` -- so a module reaches the tree through this hop
-          // while naming neither the grammar nor the runtime, and the count stays
-          // flat as the coupling grows. Measured: a probe in `state/` holding
-          // `IParsedFile["tree"]` left the gate at 141 and exit 0, while the same
-          // probe spelled `ParserRuleContext` failed loudly. The guard was
-          // catching the honest spelling and missing the recommended one.
-          // #1445 box 2 removed `IDeclaredFile` from this alternation with the
-          // type itself. It was 1.3's apparent artifact and held
-          // `parsed: IParsedFile`, so importing it reached the tree in one hop
-          // -- exactly what naming the carriers here was for. Its `symbols`
-          // half had no reader, so it was a bundle whose only live content was
-          // the re-export.
+      to: { path: PARSE_TREE_TYPES },
+    },
+    {
+      name: "parse-tree-confined-to-parser",
+      comment:
+        "#1932, owner ruling 2026-10-07: the parse tree is gone before 2.2. " +
+        "1.2 Parse makes it; 1.3 Declare and 2.1 Analyze may read it; nothing " +
+        "from 2.2 Plan on may -- not Plan, not Render, not CodeGenWalker, not " +
+        "Write, and not a helper any of them calls. Also exempt: the helpers in " +
+        "PARSE_TREE_HELPERS, which are `to` targets too, so only an allowed pass " +
+        "can call one; " +
+        "1.2's carriers `IParsedFile` and `ITypeAccessors`; " +
+        "and 1.1's `IncludeDiscovery`, which lexes with 1.2's `CNextLexer` and " +
+        "builds no tree (#1745, owner ruling 2026-09-30; PASS_ORDER `mayRead`). " +
+        "The library entry points in `lib/` hand 1.3 source text and get " +
+        "symbols back, so they hold no tree and are not exempt (#1957). " +
+        "Nor is the host: 1-Analyze's `TreePasses` runs 1.2 through 2.1 as one " +
+        "call, and `cli/Transpiler.ts` gets plain data in and out (#1932, " +
+        "owner ruling 2026-10-09). " +
+        "A structural stand-in -- a later pass declaring its own copy of a " +
+        "context's shape -- names no path this rule can match; " +
+        "scripts/__tests__/artifact-lifetime.test.ts asks the type checker " +
+        "instead. `parse-tree-sites` above is the inventory.",
+      severity: "error",
+      from: {
+        path: "^src/",
+        pathNot: [
+          "^src/PARSE/2-Parse/",
+          "^src/PARSE/3-Declare/",
+          "^src/TRANSPILE/1-Analyze/",
           "^src/types/(IParsedFile|ITypeAccessors)\\.ts$",
+          "^src/PARSE/1-Discover/IncludeDiscovery\\.ts$",
+          ...PARSE_TREE_HELPERS,
+          "__tests__/",
+          "__testUtils__/",
+          "\\.test\\.ts$",
         ],
       },
+      to: { path: [...PARSE_TREE_TYPES, ...PARSE_TREE_HELPERS] },
     },
     {
       name: "no-circular",

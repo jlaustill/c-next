@@ -53,17 +53,6 @@ const createMockStream = (
       }
       return result.length > 0 ? result : null;
     }),
-    getHiddenTokensToRight: vi.fn((idx: number) => {
-      const result = [];
-      for (let i = idx + 1; i < tokens.length; i++) {
-        if (tokens[i].channel === Token.HIDDEN_CHANNEL) {
-          result.push(tokens[i]);
-        } else {
-          break;
-        }
-      }
-      return result.length > 0 ? result : null;
-    }),
   } as unknown as MockStream;
 };
 
@@ -277,113 +266,6 @@ describe("CommentExtractor", () => {
       const comments = extractor.getCommentsBefore(1);
 
       // Whitespace token on hidden channel should be filtered out
-      expect(comments).toHaveLength(0);
-    });
-  });
-
-  // ========================================================================
-  // getCommentsAfter (inline comments)
-  // ========================================================================
-
-  describe("getCommentsAfter", () => {
-    it("should get inline comments on same line", () => {
-      const tokens = [
-        createToken({
-          type: CNextLexer.IDENTIFIER,
-          text: "x",
-          line: 1,
-          column: 0,
-          tokenIndex: 0,
-          channel: Token.DEFAULT_CHANNEL,
-        }),
-        createToken({
-          type: CNextLexer.LINE_COMMENT,
-          text: "// inline",
-          line: 1,
-          column: 5,
-          tokenIndex: 1,
-        }),
-      ];
-      const stream = createMockStream(tokens);
-      const extractor = new CommentScanner(stream);
-
-      const comments = extractor.getCommentsAfter(0);
-
-      expect(comments).toHaveLength(1);
-      expect(comments[0].content).toBe(" inline");
-    });
-
-    it("should not include comments on different lines", () => {
-      const tokens = [
-        createToken({
-          type: CNextLexer.IDENTIFIER,
-          text: "x",
-          line: 1,
-          column: 0,
-          tokenIndex: 0,
-          channel: Token.DEFAULT_CHANNEL,
-        }),
-        createToken({
-          type: CNextLexer.LINE_COMMENT,
-          text: "// next line",
-          line: 2, // Different line
-          column: 0,
-          tokenIndex: 1,
-        }),
-      ];
-      const stream = createMockStream(tokens);
-      const extractor = new CommentScanner(stream);
-
-      const comments = extractor.getCommentsAfter(0);
-
-      expect(comments).toHaveLength(0);
-    });
-
-    it("should return empty array when no comments after", () => {
-      const tokens = [
-        createToken({
-          type: CNextLexer.IDENTIFIER,
-          text: "x",
-          line: 1,
-          column: 0,
-          tokenIndex: 0,
-          channel: Token.DEFAULT_CHANNEL,
-        }),
-      ];
-      const stream = createMockStream(tokens);
-      (stream as { getHiddenTokensToRight: unknown }).getHiddenTokensToRight =
-        vi.fn(() => null);
-      const extractor = new CommentScanner(stream);
-
-      const comments = extractor.getCommentsAfter(0);
-
-      expect(comments).toHaveLength(0);
-    });
-
-    it("should filter out non-comment hidden tokens after (whitespace)", () => {
-      const tokens = [
-        createToken({
-          type: CNextLexer.IDENTIFIER,
-          text: "x",
-          line: 1,
-          column: 0,
-          tokenIndex: 0,
-          channel: Token.DEFAULT_CHANNEL,
-        }),
-        createToken({
-          type: CNextLexer.WS,
-          text: "   ",
-          line: 1,
-          column: 1,
-          tokenIndex: 1,
-        }),
-      ];
-      const stream = createMockStream(tokens);
-      const extractor = new CommentScanner(stream);
-
-      const comments = extractor.getCommentsAfter(0);
-
-      // Whitespace token on hidden channel, same line, should be filtered out
       expect(comments).toHaveLength(0);
     });
   });

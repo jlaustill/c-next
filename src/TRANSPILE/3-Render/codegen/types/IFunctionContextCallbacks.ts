@@ -3,7 +3,7 @@
  * Issue #793: Used by FunctionContextManager for CodeGenerator dependencies.
  *
  * #1445: `resolveQualifiedType` is gone. It was the C++-namespace half of the
- * `Scope.Type` decision, threaded here so the manager could run `TypeBinding`
+ * `Scope.Type` decision, threaded here so the manager could run `TypeNameLadder`
  * itself; the planner runs that ladder now and the manager receives its
  * answer, so the callback had no reader left.
  */

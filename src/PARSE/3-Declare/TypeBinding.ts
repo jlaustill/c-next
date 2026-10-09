@@ -27,36 +27,20 @@
  * in exactly those two places, both verified as corrections rather than
  * regressions before their snapshots were regenerated.
  *
- * Lives in 1.3 Declare so both the symbols layer and codegen can reach it, and
- * the predicates are injected rather than read from CodeGenState so nothing
- * here depends on codegen state.
+ * The ladder itself reads plain data and lives in `utils/TypeNameLadder`
+ * (#1932), so a pass after 2.1 reaches it without importing this module,
+ * which reads parse contexts. What stays here is the parse-context entry point
+ * 1.3 uses. The predicates are injected rather than read from codegen state.
  */
 
 import ITypeAccessors from "../../types/ITypeAccessors";
 import type INamedTypeResolution from "../../types/INamedTypeResolution";
 import type ITypeBindingDeps from "../../types/ITypeBindingDeps";
-import QualifiedCName from "../../utils/QualifiedCName";
-import ScopeUtils from "../../utils/ScopeUtils";
-import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
-import type ISyntaxNode from "../../types/syntax/ISyntaxNode";
+import TypeNameLadder from "../../utils/TypeNameLadder";
 
 /**
  * Static utility class resolving a type context to its C name.
  */
-/** A lowered type's four named arms */
-type TNamedTypeSyntax = Extract<
-  TTypeSyntax,
-  { readonly kind: "scoped" | "global" | "qualified" | "user" }
->;
-type TWithoutNode<T> = T extends unknown
-  ? Omit<T, keyof ISyntaxNode | "text">
-  : never;
-/**
- * The four spellings a named type is written in: `TTypeSyntax`'s own arms
- * without their node fields, so a field renamed there is a compile error here.
- */
-type TNamedTypeSpelling = TWithoutNode<TNamedTypeSyntax>;
-
 class TypeBinding {
   /**
    * The ladder for a named type, reporting WHICH branch answered and what was
@@ -93,7 +77,8 @@ class TypeBinding {
     const global = accessors.globalType();
     const qualified = accessors.qualifiedType();
     const user = accessors.userType();
-    let spelling: TNamedTypeSpelling | null = null;
+    let spelling: Parameters<typeof TypeNameLadder.classifyNamed>[0] | null =
+      null;
     if (scoped) {
       spelling = { kind: "scoped", name: scoped.IDENTIFIER().getText() };
     } else if (global) {
@@ -106,86 +91,7 @@ class TypeBinding {
     } else if (user) {
       spelling = { kind: "user", name: user.getText() };
     }
-    return spelling && TypeBinding.classifyNamed(spelling, scopePath, deps);
-  }
-
-  /**
-   * The ladder itself, over a written type's plain data: a lowered
-   * `TTypeSyntax` is one, so a pass that holds no parse tree asks the same
-   * question. Null for a type that is not a named one.
-   */
-  static classifyNamed(
-    type: TTypeSyntax | TNamedTypeSpelling,
-    scopePath: string,
-    deps?: ITypeBindingDeps,
-  ): INamedTypeResolution | null {
-    switch (type.kind) {
-      // this.T -- the scope is stated, so qualify against the chain unconditionally
-      case "scoped":
-        return {
-          branch: "this",
-          written: type.name,
-          name: ScopeUtils.qualifyInScope(type.name, scopePath),
-        };
-      // global.T -- explicitly opts out of scope qualification
-      case "global":
-        return { branch: "global", written: type.name, name: type.name };
-      // Scope.T -- the path is stated in full
-      case "qualified":
-        return {
-          branch: "qualified",
-          written: type.path.join("."),
-          name: deps?.resolveQualifiedType
-            ? deps.resolveQualifiedType([...type.path])
-            : QualifiedCName.fromParts([...type.path]),
-        };
-      // Bare T -- the ONLY branch that resolves local -> scope -> global
-      case "user":
-        return {
-          branch: "bare",
-          written: type.name,
-          name: deps?.isScopeType
-            ? ScopeUtils.qualifyScopeType(
-                type.name,
-                scopePath,
-                deps.isScopeType,
-              )
-            : type.name,
-        };
-      default:
-        return null;
-    }
-  }
-
-  /**
-   * The C-Next name a type is written as -- a named type resolved, a primitive,
-   * an array's element, `string<N>` or `string` -- or null for template and
-   * `void`, which each caller answers for itself.
-   *
-   * The one ladder: 1.3's symbols (the `.h`, through `TypeUtils.getTypeName`)
-   * and the walker (the `.c`) both ask it, so the two files cannot disagree on
-   * a type's name. Its alternatives are exclusive in the grammar, so branch
-   * order carries no meaning (#1285, #1932).
-   */
-  static resolveWrittenName(
-    type: TTypeSyntax,
-    scopePath: string,
-    deps?: ITypeBindingDeps,
-  ): string | null {
-    const named = TypeBinding.classifyNamed(type, scopePath, deps);
-    if (named !== null) {
-      return named.name;
-    }
-    switch (type.kind) {
-      case "primitive":
-        return type.name;
-      case "array":
-        return TypeBinding.resolveWrittenName(type.element, scopePath, deps);
-      case "string":
-        return type.capacity === null ? "string" : `string<${type.capacity}>`;
-      default:
-        return null;
-    }
+    return spelling && TypeNameLadder.classifyNamed(spelling, scopePath, deps);
   }
 }
 

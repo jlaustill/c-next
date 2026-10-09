@@ -159,100 +159,100 @@ function extractFloatLiteral(literalText: string): LiteralContext | null {
 
 describe("LiteralUtils", () => {
   // ========================================================================
-  // isZero: Integer Literals
+  // isZeroText: Integer Literals
   // ========================================================================
 
-  describe("isZero - integer literals", () => {
+  describe("isZeroText of a parsed literal - integer literals", () => {
     it.each([
       ["0", true],
       ["1", false],
       ["42", false],
-    ])("isZero(%s) is %s", (source, expected) => {
+    ])("isZeroText(%s) is %s", (source, expected) => {
       const literal = extractLiteral(source);
       expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(expected);
+      expect(LiteralUtils.isZeroText(literal!.getText())).toBe(expected);
     });
   });
 
   // ========================================================================
-  // isZero: Hex Literals
+  // isZeroText: Hex Literals
   // ========================================================================
 
-  describe("isZero - hex literals", () => {
+  describe("isZeroText of a parsed literal - hex literals", () => {
     it.each([
       ["0x0", true],
       ["0X0", true],
       ["0xFF", false],
       ["0x1", false],
-    ])("isZero(%s) is %s", (source, expected) => {
+    ])("isZeroText(%s) is %s", (source, expected) => {
       const literal = extractLiteral(source);
       expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(expected);
+      expect(LiteralUtils.isZeroText(literal!.getText())).toBe(expected);
     });
   });
 
   // ========================================================================
-  // isZero: Binary Literals
+  // isZeroText: Binary Literals
   // ========================================================================
 
-  describe("isZero - binary literals", () => {
+  describe("isZeroText of a parsed literal - binary literals", () => {
     it.each([
       ["0b0", true],
       ["0B0", true],
       ["0b1010", false],
       ["0b1", false],
-    ])("isZero(%s) is %s", (source, expected) => {
+    ])("isZeroText(%s) is %s", (source, expected) => {
       const literal = extractLiteral(source);
       expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(expected);
+      expect(LiteralUtils.isZeroText(literal!.getText())).toBe(expected);
     });
   });
 
   // ========================================================================
-  // isZero: Suffixed Literals
+  // isZeroText: Suffixed Literals
   // ========================================================================
 
-  describe("isZero - suffixed decimal literals", () => {
+  describe("isZeroText of a parsed literal - suffixed decimal literals", () => {
     it.each([
       ["0u8", true],
       ["0i32", true],
       ["5u32", false],
-    ])("isZero(%s) is %s", (source, expected) => {
+    ])("isZeroText(%s) is %s", (source, expected) => {
       const literal = extractLiteral(source);
       expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(expected);
+      expect(LiteralUtils.isZeroText(literal!.getText())).toBe(expected);
     });
   });
 
-  describe("isZero - suffixed hex literals", () => {
+  describe("isZeroText of a parsed literal - suffixed hex literals", () => {
     it.each([
       ["0x0u8", true],
       ["0X0i32", true],
       ["0xFFu8", false],
-    ])("isZero(%s) is %s", (source, expected) => {
+    ])("isZeroText(%s) is %s", (source, expected) => {
       const literal = extractLiteral(source);
       expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(expected);
+      expect(LiteralUtils.isZeroText(literal!.getText())).toBe(expected);
     });
   });
 
-  describe("isZero - suffixed binary literals", () => {
+  describe("isZeroText of a parsed literal - suffixed binary literals", () => {
     it.each([
       ["0b0u8", true],
       ["0B0i16", true],
       ["0b1u8", false],
-    ])("isZero(%s) is %s", (source, expected) => {
+    ])("isZeroText(%s) is %s", (source, expected) => {
       const literal = extractLiteral(source);
       expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(expected);
+      expect(LiteralUtils.isZeroText(literal!.getText())).toBe(expected);
     });
   });
 
   // ========================================================================
-  // isZero: Float Literals (Issue #1010)
+  // isZeroText: Float Literals (Issue #1010)
   // ========================================================================
 
-  describe("isZero - float literals (Issue #1010)", () => {
+  describe("isZeroText of a parsed literal - float literals (Issue #1010)", () => {
     it.each([
       ["0.0", true],
       ["0.0f", true],
@@ -260,10 +260,10 @@ describe("LiteralUtils", () => {
       [".0", true],
       ["1.0", false],
       ["0.001", false],
-    ])("isZero(%s) is %s", (source, expected) => {
+    ])("isZeroText(%s) is %s", (source, expected) => {
       const literal = extractFloatLiteral(source);
       expect(literal).not.toBeNull();
-      expect(LiteralUtils.isZero(literal!)).toBe(expected);
+      expect(LiteralUtils.isZeroText(literal!.getText())).toBe(expected);
     });
 
     it("should return false for negative float (-0.5)", () => {
@@ -271,7 +271,7 @@ describe("LiteralUtils", () => {
       // Note: -0.5 may not parse as a single literal due to negation
       // This is expected - the unary minus is a separate operator
       if (literal) {
-        expect(LiteralUtils.isZero(literal!)).toBe(false);
+        expect(LiteralUtils.isZeroText(literal!.getText())).toBe(false);
       }
     });
   });

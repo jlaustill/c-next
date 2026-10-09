@@ -75,32 +75,6 @@ class CommentScanner {
   }
 
   /**
-   * Get inline comments that appear after a given token index (same line)
-   */
-  getCommentsAfter(tokenIndex: number): IComment[] {
-    const hiddenTokens = this.tokenStream.getHiddenTokensToRight(
-      tokenIndex,
-      Token.HIDDEN_CHANNEL,
-    );
-    if (!hiddenTokens) return [];
-
-    const comments: IComment[] = [];
-    const sourceToken = this.tokenStream.get(tokenIndex);
-    const sourceLine = sourceToken.line;
-
-    for (const token of hiddenTokens) {
-      // Only include comments on the same line (inline comments)
-      if (token.line !== sourceLine) break;
-
-      const comment = this.tokenToComment(token);
-      if (comment) {
-        comments.push(comment);
-      }
-    }
-    return comments;
-  }
-
-  /**
    * Convert a token to an IComment, or null if not a comment token
    */
   private tokenToComment(token: Token): IComment | null {
