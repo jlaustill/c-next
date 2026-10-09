@@ -38,14 +38,24 @@ import type ITypeBindingDeps from "../../types/ITypeBindingDeps";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
+import type ISyntaxNode from "../../types/syntax/ISyntaxNode";
 
 /**
  * Static utility class resolving a type context to its C name.
  */
-/** The four spellings a named type is written in */
-type TNamedTypeSpelling =
-  | { readonly kind: "scoped" | "global" | "user"; readonly name: string }
-  | { readonly kind: "qualified"; readonly path: readonly string[] };
+/** A lowered type's four named arms */
+type TNamedTypeSyntax = Extract<
+  TTypeSyntax,
+  { readonly kind: "scoped" | "global" | "qualified" | "user" }
+>;
+type TWithoutNode<T> = T extends unknown
+  ? Omit<T, keyof ISyntaxNode | "text">
+  : never;
+/**
+ * The four spellings a named type is written in: `TTypeSyntax`'s own arms
+ * without their node fields, so a field renamed there is a compile error here.
+ */
+type TNamedTypeSpelling = TWithoutNode<TNamedTypeSyntax>;
 
 class TypeBinding {
   /**
@@ -118,43 +128,42 @@ class TypeBinding {
    * question. Null for a type that is not a named one.
    */
   static classifyNamed(
-    type: TNamedTypeSpelling | { readonly kind: string },
+    type: TTypeSyntax | TNamedTypeSpelling,
     scopePath: string,
     deps?: ITypeBindingDeps,
   ): INamedTypeResolution | null {
-    const named = type as TNamedTypeSpelling;
-    switch (named.kind) {
+    switch (type.kind) {
       // this.T -- the scope is stated, so qualify against the chain unconditionally
       case "scoped":
         return {
           branch: "this",
-          written: named.name,
-          name: ScopeUtils.qualifyInScope(named.name, scopePath),
+          written: type.name,
+          name: ScopeUtils.qualifyInScope(type.name, scopePath),
         };
       // global.T -- explicitly opts out of scope qualification
       case "global":
-        return { branch: "global", written: named.name, name: named.name };
+        return { branch: "global", written: type.name, name: type.name };
       // Scope.T -- the path is stated in full
       case "qualified":
         return {
           branch: "qualified",
-          written: named.path.join("."),
+          written: type.path.join("."),
           name: deps?.resolveQualifiedType
-            ? deps.resolveQualifiedType([...named.path])
-            : QualifiedCName.fromParts([...named.path]),
+            ? deps.resolveQualifiedType([...type.path])
+            : QualifiedCName.fromParts([...type.path]),
         };
       // Bare T -- the ONLY branch that resolves local -> scope -> global
       case "user":
         return {
           branch: "bare",
-          written: named.name,
+          written: type.name,
           name: deps?.isScopeType
             ? ScopeUtils.qualifyScopeType(
-                named.name,
+                type.name,
                 scopePath,
                 deps.isScopeType,
               )
-            : named.name,
+            : type.name,
         };
       default:
         return null;

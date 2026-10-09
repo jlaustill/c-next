@@ -86,25 +86,20 @@ class StringLengthCounter {
     state: TranspileState,
   ): void {
     const primary = expr.primary;
-    if (primary.kind === "identifier" && expr.ops.length > 0) {
-      for (const op of expr.ops) {
-        if (op.kind === "member" && op.name === "char_count") {
-          StringLengthCounter.countLengthRead(
-            primary.name,
-            expr,
-            counts,
-            state,
-          );
-        }
-        if (op.kind === "subscript") {
-          for (const index of op.indexes) {
-            StringLengthCounter.walkExpression(index, counts, state);
-          }
-        }
-      }
-    }
     if (primary.kind === "parenthesized") {
       StringLengthCounter.walkExpression(primary.expression, counts, state);
+      return;
+    }
+    if (primary.kind !== "identifier") return;
+    for (const op of expr.ops) {
+      if (op.kind === "member" && op.name === "char_count") {
+        StringLengthCounter.countLengthRead(primary.name, expr, counts, state);
+      }
+      if (op.kind === "subscript") {
+        for (const index of op.indexes) {
+          StringLengthCounter.walkExpression(index, counts, state);
+        }
+      }
     }
   }
 
