@@ -14,10 +14,9 @@ import type TPlannedVariableInitializer from "./TPlannedVariableInitializer";
  *
  * ## The planner writes state, and it has to
  *
- * Building this plan registers the variable's type info, marks it as a pointer
- * when its type was inferred as one, and resolves its EMITTED name. Those are
- * writes, and they are ordered against each other and against the reads that
- * follow: `emittedLocalName` is only correct after registration, and ADR-045's
+ * Building this plan registers the variable's type info and marks it as a
+ * pointer when its type was inferred as one. Those are writes, and they are
+ * ordered against each other and against the reads that follow: ADR-045's
  * string discrimination reads the type registry that registration filled --
  * which is why `string<32> s <- s + "x"` is detected as a concatenation at all.
  *

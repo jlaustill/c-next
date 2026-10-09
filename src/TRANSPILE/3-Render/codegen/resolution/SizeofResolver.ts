@@ -42,12 +42,13 @@ export default class SizeofResolver {
         return (
           this.sizeofQualifiedType(
             operand.firstName,
+            operand.emittedFirstName,
             operand.memberName,
             state,
           ) ?? `sizeof(${operand.renderTypeName()})`
         );
       case "user-type":
-        return this.sizeofUserType(operand.text, state);
+        return this.sizeofUserType(operand.text, operand.emittedText, state);
       case "plain-type":
         return `sizeof(${operand.cTypeName})`;
       case "expression":
@@ -61,6 +62,7 @@ export default class SizeofResolver {
    */
   private static sizeofQualifiedType(
     firstName: string,
+    emittedFirstName: string,
     memberName: string,
     state: TranspileState,
   ): string | null {
@@ -69,7 +71,7 @@ export default class SizeofResolver {
       // ADR-057: a local that shadows a file-scope name is emitted under a
       // distinct C identifier. Without this, `sizeof(cfg.x)` measured the
       // GLOBAL `cfg` -- a wrong number, compiling clean.
-      return `sizeof(${state.emittedLocalName(firstName)}.${memberName})`;
+      return `sizeof(${emittedFirstName}.${memberName})`;
     }
 
     // Check if first identifier is a parameter (struct parameter)
@@ -94,6 +96,7 @@ export default class SizeofResolver {
    */
   private static sizeofUserType(
     varName: string,
+    emittedName: string,
     state: TranspileState,
   ): string {
     // Check if it's a known parameter
@@ -106,11 +109,11 @@ export default class SizeofResolver {
     // For all these cases, generate sizeof(name) directly
     // Unknown identifiers are also treated as variables for safety
     //
-    // ADR-057: emittedLocalName is a no-op for type names and for locals that
-    // shadow nothing -- a rename exists only for a local of this exact name in
-    // this function. Without it `sizeof(arr)` measured the GLOBAL array: 16
+    // ADR-057: the emitted name is the name itself for a type name and for a
+    // local that shadows nothing; it is a rename only where a shadowing local
+    // binds, here. Without it `sizeof(arr)` measured the GLOBAL array: 16
     // bytes where 8 was correct, with no diagnostic and a clean compile.
-    return `sizeof(${state.emittedLocalName(varName)})`;
+    return `sizeof(${emittedName})`;
   }
 
   /**

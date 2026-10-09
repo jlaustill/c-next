@@ -131,6 +131,7 @@ class FrameListener extends CNextListener {
         initialValueExpr: null,
         initializerCallee: null,
         constValue: null,
+        emittedName: null,
       });
     });
   };
@@ -191,6 +192,7 @@ class FrameListener extends CNextListener {
       initialValueExpr: facts.initialValueExpr,
       initializerCallee: facts.initializerCallee,
       constValue: null,
+      emittedName: null,
     });
   }
 }

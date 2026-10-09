@@ -42,6 +42,14 @@ interface ILocalDeclaration {
    * it has none; null for anything else
    */
   readonly constValue: TSettledConst | null;
+  /**
+   * #1934: the C identifier the declaration is emitted under, settled by 1.4.
+   * ADR-057: a local that shadows a file-scope name is `<function>__<name>`,
+   * so `global.name` still reaches past it; anything else keeps its name.
+   * Null until 1.4 settles it. Every reference reads this, through the
+   * binding at its own position, so a block's rename ends with the block.
+   */
+  readonly emittedName: string | null;
 }
 
 export default ILocalDeclaration;

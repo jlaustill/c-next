@@ -47,7 +47,10 @@ describe("SizeofResolver", () => {
       declareParameter("arr", { isArray: true });
 
       expect(() =>
-        SizeofResolver.generate({ kind: "user-type", text: "arr" }, state),
+        SizeofResolver.generate(
+          { kind: "user-type", text: "arr", emittedText: "arr" },
+          state,
+        ),
       ).toThrow("E0601 rejects this in pass 2.1");
     });
 
@@ -55,7 +58,10 @@ describe("SizeofResolver", () => {
       declareParameter("value");
 
       expect(
-        SizeofResolver.generate({ kind: "user-type", text: "value" }, state),
+        SizeofResolver.generate(
+          { kind: "user-type", text: "value", emittedText: "value" },
+          state,
+        ),
       ).toBe("sizeof(*value)");
     });
 
@@ -66,22 +72,25 @@ describe("SizeofResolver", () => {
       declareParameter("p", overrides);
 
       expect(
-        SizeofResolver.generate({ kind: "user-type", text: "p" }, state),
+        SizeofResolver.generate(
+          { kind: "user-type", text: "p", emittedText: "p" },
+          state,
+        ),
       ).toBe("sizeof(p)");
     });
 
     /**
-     * The emitted name is written out literally, not read back from
-     * `emittedLocalName`: asserting against the same call the resolver makes
-     * compares the function to itself and passes however the resolver spells
-     * the name. Measured -- with the lookup bypassed that shape stayed green.
+     * The emitted name is 1.4's (#1934) and arrives on the operand; the
+     * resolver must write it, not the source spelling.
      */
     it("uses the emitted name of a shadowing local (ADR-057)", () => {
       state.localVariables.add("arr");
-      state.registerLocalRename("arr", "main__arr");
 
       expect(
-        SizeofResolver.generate({ kind: "user-type", text: "arr" }, state),
+        SizeofResolver.generate(
+          { kind: "user-type", text: "arr", emittedText: "main__arr" },
+          state,
+        ),
       ).toBe("sizeof(main__arr)");
     });
   });
@@ -104,6 +113,7 @@ describe("SizeofResolver", () => {
         {
           kind: "qualified-type",
           firstName: "myStruct",
+          emittedFirstName: "myStruct",
           memberName: "field",
           renderTypeName: spy.renderTypeName,
         },
@@ -118,13 +128,13 @@ describe("SizeofResolver", () => {
 
     it("uses the emitted name when the local shadows a file-scope name", () => {
       state.localVariables.add("cfg");
-      state.registerLocalRename("cfg", "main__cfg");
 
       expect(
         SizeofResolver.generate(
           {
             kind: "qualified-type",
             firstName: "cfg",
+            emittedFirstName: "main__cfg",
             memberName: "x",
             renderTypeName: renderSpy().renderTypeName,
           },
@@ -141,6 +151,7 @@ describe("SizeofResolver", () => {
           {
             kind: "qualified-type",
             firstName: "param",
+            emittedFirstName: "param",
             memberName: "field",
             renderTypeName: renderSpy().renderTypeName,
           },
@@ -157,6 +168,7 @@ describe("SizeofResolver", () => {
           {
             kind: "qualified-type",
             firstName: "param",
+            emittedFirstName: "param",
             memberName: "field",
             renderTypeName: renderSpy().renderTypeName,
           },
@@ -172,6 +184,7 @@ describe("SizeofResolver", () => {
         {
           kind: "qualified-type",
           firstName: "config",
+          emittedFirstName: "config",
           memberName: "field",
           renderTypeName: spy.renderTypeName,
         },
@@ -192,6 +205,7 @@ describe("SizeofResolver", () => {
         {
           kind: "qualified-type",
           firstName: "Motor",
+          emittedFirstName: "Motor",
           memberName: "State",
           renderTypeName: spy.renderTypeName,
         },

@@ -15,7 +15,6 @@ import DeclaredTypeFacts from "../utils/DeclaredTypeFacts";
 import DeclaredPointer from "../utils/DeclaredPointer";
 import OutputExtensions from "../utils/OutputExtensions";
 import type IOutputExtensions from "../types/IOutputExtensions";
-import QualifiedCName from "../utils/QualifiedCName";
 import ScopeUtils from "../utils/ScopeUtils";
 import type ITypeBindingDeps from "../types/ITypeBindingDeps";
 import type IProgram from "../types/IProgram";
@@ -217,30 +216,17 @@ class TranspileState {
    * `at`, then `DeclaredTypeInfo.of`. This replaces the per-file registry,
    * whose one flat key space per function could not tell an inner block's
    * `x` from its sibling's, nor `global.x` from a local `x`. `root` is the
-   * chain's `this`/`global`, as the source spelled it; `name` may be a
-   * shadowing local's emitted name, which is mapped back to its source name.
+   * chain's `this`/`global`, as the source spelled it, and so is `name`:
+   * the parse tree's names are never emitted ones (E0201 keeps `__`, the
+   * rename separator, out of source identifiers).
    */
   declarationTypeInfo(
     root: TChainRoot,
     name: string,
     at: ISourcePosition,
   ): TTypeInfo | undefined {
-    return this.sourceDeclarationTypeInfo(root, this.sourceLocalName(name), at);
-  }
-
-  /**
-   * #1934: declarationTypeInfo() for a name as the source spelled it, so it
-   * reads no rename 2.3 Render registered. 2.2 Plan's entry: it walks the
-   * parse tree, whose names are never emitted ones (E0201 keeps `__`, the
-   * rename separator, out of source identifiers).
-   */
-  sourceDeclarationTypeInfo(
-    root: TChainRoot,
-    sourceName: string,
-    at: ISourcePosition,
-  ): TTypeInfo | undefined {
     return DeclaredTypeInfo.of(
-      this.sourceBindingAt(root, sourceName, at),
+      this.bindingAt(root, name, at),
       this.typingContext().symbols,
       this.symbolTable,
       this.targetDescription,
@@ -249,25 +235,31 @@ class TranspileState {
 
   /**
    * #1668 (C7): which declaration a name means where it is used -- the
-   * binder's local -> scope -> global order (ADR-057). `name` may be a
-   * shadowing local's emitted name, mapped back to its source name.
+   * binder's local -> scope -> global order (ADR-057), for a name as the
+   * source spelled it.
    */
   bindingAt(
     root: TChainRoot,
     name: string,
     at: ISourcePosition,
   ): TValueBinding | null {
-    return this.sourceBindingAt(root, this.sourceLocalName(name), at);
+    const typing = this.typingContext();
+    return typing.program.bindValue(typing.sourceFile, root, name, at);
   }
 
-  /** bindingAt() for a name as the source spelled it (#1934). */
-  private sourceBindingAt(
-    root: TChainRoot,
-    sourceName: string,
-    at: ISourcePosition,
-  ): TValueBinding | null {
-    const typing = this.typingContext();
-    return typing.program.bindValue(typing.sourceFile, root, sourceName, at);
+  /**
+   * #1934: the C identifier a name is emitted under where it is used -- the
+   * bound local's, as 1.4 settled it (ADR-057), else the name as written.
+   * Bound at `at`, so a block's shadowing local is renamed only inside it.
+   */
+  emittedLocalNameAt(name: string, at: ISourcePosition): string {
+    const binding = this.bindingAt(null, name, at);
+    if (binding?.kind !== "local") {
+      return name;
+    }
+    const { emittedName } = binding.declaration;
+    invariant(emittedName !== null, "1.4 settled every local it binds");
+    return emittedName;
   }
 
   /**
@@ -647,23 +639,6 @@ class TranspileState {
   /** ADR-016: Local variables in current function (allowed as bare identifiers) */
   localVariables: Set<string> = new Set();
 
-  /**
-   * ADR-057: bare source name -> the C identifier a shadowing local is emitted
-   * under.
-   *
-   * A local that shadows a file-scope name must NOT be emitted under that bare
-   * name: C has no `::` and no other syntax for reaching a shadowed outer
-   * identifier, so `global.x` would silently bind to the local. C-Next promises
-   * shadowing works and that `global.` still reaches past it, which means the
-   * *local* moves rather than the global becoming unreachable.
-   *
-   * Populated only when a collision actually exists, so the generated C keeps
-   * plain names in the common case -- the generated file is a certification
-   * artifact and a reviewer should not have to decode every local. Empty for
-   * the overwhelming majority of functions.
-   */
-  private localRenames: Map<string, string> = new Map();
-
   /** Scope member names: scope -> Set of member names */
   private scopeMembers: Map<string, Set<string>> = new Map();
 
@@ -794,14 +769,13 @@ class TranspileState {
    *
    * One owner for the whole family. Four copies of this block existed, and they
    * had already diverged: one of them cleared three of the four registers and
-   * left a local-array set (since deleted, #1668) to leak between functions. Adding `localRenames` to four
-   * call sites would have made that five. (The copy that diverged lived on
+   * left a local-array set (since deleted, #1668) to leak between functions. A fifth member
+   * at four call sites would have made that five. (The copy that diverged lived on
    * `FunctionContextManager`, which #1450 deleted as production-dead; the point
    * survives it, so it is stated without the name.)
    */
   private clearFunctionLocals(): void {
     this.localVariables.clear();
-    this.localRenames.clear();
     this.floatBitShadows.clear();
     this.floatShadowCurrent.clear();
   }
@@ -1164,108 +1138,9 @@ class TranspileState {
     this.currentScopePath = ScopeUtils.pathOf(scope);
   }
 
-  /**
-   * ADR-057: whether a bare name is already taken by a FILE-SCOPE C identifier.
-   *
-   * Asks the canonical-identity index, not the bare-name one: a symbol whose
-   * transpiled C name IS the bare spelling is by definition at file scope,
-   * because anything inside a scope carries its scope in that name
-   * (`Counter__count`). So a scope member never counts as a collision -- it is
-   * still reachable as `this.count` regardless of what the local is called.
-   *
-   * An outer *local* is excluded deliberately. C block scoping already gives
-   * the language's shadowing semantics there, and neither `global.` nor `this.`
-   * can name an outer local, so nothing becomes unreachable.
-   */
-  shadowsFileScopeSymbol(name: string): boolean {
-    if (this.localVariables.has(name)) {
-      return false;
-    }
-    if (this.knownFunctions.has(name)) {
-      return true;
-    }
-    return this.symbolTable.getOverloadsByCName(name).length > 0;
-  }
-
-  /**
-   * Record that a shadowing local is emitted under a different C identifier.
-   *
-   * Keyed on the BARE name because that is what every reference in the source
-   * says and what `localVariables` is keyed by. Only the emitted text moves.
-   */
-  registerLocalRename(name: string, emittedName: string): void {
-    this.localRenames.set(name, emittedName);
-  }
-
-  /**
-   * The C identifier a local is emitted under -- its own name unless it shadows
-   * a file-scope symbol. Call at every point a local's name is WRITTEN into C;
-   * never when looking one up.
-   */
-  emittedLocalName(name: string): string {
-    return this.localRenames.get(name) ?? name;
-  }
-
-  /**
-   * The source name behind an emitted local identifier -- the inverse of
-   * `emittedLocalName`.
-   *
-   * Derived by scanning the one rename map rather than kept as a second map,
-   * so the two directions cannot drift apart. The map holds only shadowing
-   * locals, so it is empty in almost every function.
-   *
-   * Needed where a helper is handed the emitted name for code generation but
-   * must still register under the name the source used: every registry
-   * (`localVariables`) is keyed by the source
-   * spelling, because that is what references in the source say.
-   */
-  sourceLocalName(emittedName: string): string {
-    for (const [source, emitted] of this.localRenames) {
-      if (emitted === emittedName) {
-        return source;
-      }
-    }
-    return emittedName;
-  }
-
-  /**
-   * Register a local variable, deciding its emitted C name first.
-   *
-   * The single registration point for every kind of local -- declarations,
-   * `for` init variables, and generator effects all arrive here. The shadow
-   * decision has to sit in front of the registration and cannot be duplicated
-   * into the callers: `shadowsFileScopeSymbol` consults `localVariables`, so a
-   * caller that registered first would ask about a name that is already local
-   * and always be told "no collision".
-   */
+  /** Register a local variable by its source name. */
   registerLocalVariable(name: string): void {
-    this.planShadowingLocalName(name);
     this.localVariables.add(name);
-  }
-
-  /**
-   * ADR-057: give a local that shadows a file-scope name a distinct C
-   * identifier, so `global.x` still reaches past it.
-   *
-   * C has no `::`. Emitting the local as plain `count` makes an outer `count`
-   * unreachable for the rest of the function, so `global.count` would silently
-   * bind to the local -- wrong code, no diagnostic, clean compile. C-Next
-   * guarantees shadowing works AND that `global.` sees through it, so the local
-   * is what moves.
-   *
-   * `currentFunctionName` is already the qualified function name
-   * (`Counter__test`), so this adds one component to the existing encoder
-   * rather than inventing a second naming scheme.
-   */
-  private planShadowingLocalName(name: string): void {
-    const functionName = this.currentFunctionName;
-    if (!functionName || !this.shadowsFileScopeSymbol(name)) {
-      return;
-    }
-    this.registerLocalRename(
-      name,
-      QualifiedCName.fromParts([functionName, name]),
-    );
   }
 
   // ===========================================================================
@@ -1311,7 +1186,6 @@ class TranspileState {
     this.currentFunctionName = null;
     this.currentParameters = new Map();
     this.localVariables = new Set();
-    this.localRenames = new Map();
     this.scopeMembers = new Map();
     this.floatBitShadows = new Set();
     this.floatShadowCurrent = new Set();

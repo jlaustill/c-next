@@ -3839,7 +3839,10 @@ class CodeGenWalker {
     // declaration is assembled -- a second call would be a second place
     // deciding the same thing. Registries keep the source name; only the
     // generated text moves.
-    const emittedName = this.host.state.emittedLocalName(name);
+    const emittedName = this.host.state.emittedLocalNameAt(
+      name,
+      CodeGenWalker.declaratorPosition(ctx),
+    );
 
     // ADR-045: string types have their own three forms
     const stringPlan = this.planStringDecl(
@@ -3915,7 +3918,10 @@ class CodeGenWalker {
       kind: "constructor",
       type,
       // ADR-057: emit under the name registration decided on, not the source one.
-      emittedName: this.host.state.emittedLocalName(name),
+      emittedName: this.host.state.emittedLocalNameAt(
+        name,
+        CodeGenWalker.declaratorPosition(ctx),
+      ),
       args,
     };
   }
@@ -4704,6 +4710,17 @@ class CodeGenWalker {
    * what yields the EMITTED name (ADR-057), and an initializer rendered ahead
    * of it would resolve the loop variable's own name against the outer scope.
    */
+  /**
+   * Just past a declarator's first character, where its name binds to the
+   * declaration itself (a use binds only after the declaration starts).
+   */
+  private static declaratorPosition(ctx: {
+    IDENTIFIER(): { symbol: { line: number; column: number } };
+  }): ISourcePosition {
+    const declarator = ctx.IDENTIFIER().symbol;
+    return { line: declarator.line, column: declarator.column + 1 };
+  }
+
   private planForVarDecl(ctx: Parser.ForVarDeclContext): IPlannedForVarDecl {
     // Issue #696: Use shared modifier builder
     const modifiers = VariableModifierBuilder.buildSimple(ctx);
@@ -4718,6 +4735,10 @@ class CodeGenWalker {
       volatile: modifiers.volatile,
       typeName,
       declaredName: ctx.IDENTIFIER().getText(),
+      emittedName: this.host.state.emittedLocalNameAt(
+        ctx.IDENTIFIER().getText(),
+        CodeGenWalker.declaratorPosition(ctx),
+      ),
       renderArrayDimensions:
         arrayDims.length > 0
           ? () => this.generateArrayDimensions(arrayDims)
@@ -5143,12 +5164,23 @@ class CodeGenWalker {
         return {
           kind: "qualified-type",
           firstName: type.path[0],
+          emittedFirstName: this.host.state.emittedLocalNameAt(
+            type.path[0],
+            CodeGenWalker.positionOf(expr),
+          ),
           memberName: type.path[1],
           renderTypeName: () => this.renderType(type),
         };
       }
       if (type.kind === "user") {
-        return { kind: "user-type", text: type.text };
+        return {
+          kind: "user-type",
+          text: type.text,
+          emittedText: this.host.state.emittedLocalNameAt(
+            type.text,
+            CodeGenWalker.positionOf(expr),
+          ),
+        };
       }
       return { kind: "plain-type", cTypeName: this.renderType(type) };
     }

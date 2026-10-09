@@ -24,6 +24,8 @@ type TSizeofOperand =
       readonly kind: "qualified-type";
       /** The two identifiers of `a.b`, before anything decides what `a` is. */
       readonly firstName: string;
+      /** #1934: `firstName` as emitted where the `sizeof` is (ADR-057) */
+      readonly emittedFirstName: string;
       readonly memberName: string;
       /** The C type name, evaluated only if `a.b` does name a type. */
       readonly renderTypeName: () => string;
@@ -32,6 +34,8 @@ type TSizeofOperand =
       readonly kind: "user-type";
       /** The whole type's source text -- which may be a variable's name. */
       readonly text: string;
+      /** #1934: `text` as emitted where the `sizeof` is (ADR-057) */
+      readonly emittedText: string;
     }
   | {
       readonly kind: "plain-type";

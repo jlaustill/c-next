@@ -238,6 +238,11 @@ class Program {
                 files: fileFacts,
               }),
             ),
+          // ADR-057: the program's own file-scope C names, and the run's
+          // (which carries the headers' too)
+          (cName) =>
+            dimensioned.symbolsByCName.has(cName) ||
+            symbolTable.getOverloadsByCName(cName).length > 0,
           settledLocals,
         ),
       ]),

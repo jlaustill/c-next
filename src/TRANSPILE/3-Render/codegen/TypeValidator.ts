@@ -95,7 +95,7 @@ class TypeValidator {
       // ADR-057: a local normally emits under its own name (null = "leave it
       // alone"). One that shadows a file-scope symbol was given a distinct C
       // identifier at its declaration, and every reference must follow it.
-      const emitted = state.emittedLocalName(identifier);
+      const emitted = state.emittedLocalNameAt(identifier, at);
       if (emitted === identifier) {
         return null;
       }

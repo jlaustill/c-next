@@ -115,7 +115,7 @@ class StringLengthCounter {
     counts: Map<string, number>,
     state: TranspileState,
   ): void {
-    const typeInfo = state.sourceDeclarationTypeInfo(null, name, {
+    const typeInfo = state.declarationTypeInfo(null, name, {
       line: expr.span.line,
       column: expr.span.column,
     });

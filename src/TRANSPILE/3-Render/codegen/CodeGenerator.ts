@@ -393,9 +393,8 @@ export default class CodeGenerator implements IOrchestrator {
    * Register a local variable.
    * Part of IOrchestrator interface.
    */
-  registerLocalVariable(name: string): string {
+  registerLocalVariable(name: string): void {
     this.state.registerLocalVariable(name);
-    return this.state.emittedLocalName(name);
   }
 
   // === Declaration Generation ===

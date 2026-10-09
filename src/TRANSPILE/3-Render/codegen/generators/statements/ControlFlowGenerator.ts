@@ -218,7 +218,8 @@ const generateForVarDecl = (
   // shadows a file-scope name moves, so `global.x` inside the loop body still
   // reaches the global rather than the counter. It happens before the
   // dimensions and the initializer render, which is why those two are thunks.
-  const name = orchestrator.registerLocalVariable(plan.declaredName);
+  orchestrator.registerLocalVariable(plan.declaredName);
+  const name = plan.emittedName;
 
   let result = `${plan.atomic}${plan.volatile}${plan.typeName} ${name}`;
 

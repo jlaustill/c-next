@@ -18,6 +18,7 @@ import type TConstResult from "../../types/TConstResult";
 import type ILexicalFrame from "../../types/ILexicalFrame";
 import type ILocalDeclaration from "../../types/ILocalDeclaration";
 import type ISourceSpan from "../../types/ISourceSpan";
+import QualifiedCName from "../../utils/QualifiedCName";
 
 /** A use's position */
 type TPosition = Pick<ISourceSpan, "line" | "column">;
@@ -35,6 +36,14 @@ type TValueOf = (
   settled: (declaration: ILocalDeclaration) => ILocalDeclaration | undefined,
 ) => TConstResult;
 
+/** What settling a frame reads, the same for every frame of a file */
+interface ISettleFacts {
+  readonly isScopeType: (qualifiedName: string) => boolean;
+  readonly isFileScopeName: (cName: string) => boolean;
+  readonly env: IConstantEnvironment;
+  readonly settledOf: Map<ILocalDeclaration, ILocalDeclaration>;
+}
+
 class LexicalFrames {
   /**
    * The settled, frozen copy of a file's frames.
@@ -48,6 +57,8 @@ class LexicalFrames {
     valueOf: TValueOf,
     /** A type name as C spells it where it is written (ADR-057) */
     cTypeName: IConstantEnvironment["cTypeName"],
+    /** Whether a C identifier is a file-scope symbol's, in any file or header */
+    isFileScopeName: (cName: string) => boolean,
     /**
      * Filled with each declaration's settled copy, for a caller that must read
      * the same answer -- a function's parameters, which the header writes
@@ -60,7 +71,12 @@ class LexicalFrames {
         valueOf(name, (declaration) => settledOf.get(declaration)),
       cTypeName,
     };
-    return LexicalFrames.settleFrame(frame, isScopeType, env, settledOf);
+    return LexicalFrames.settleFrame(frame, null, {
+      isScopeType,
+      isFileScopeName,
+      env,
+      settledOf,
+    });
   }
 
   /** The innermost frame containing `at`; the file frame if none does */
@@ -144,10 +160,10 @@ class LexicalFrames {
 
   private static settleFrame(
     frame: ILexicalFrame,
-    isScopeType: (qualifiedName: string) => boolean,
-    env: IConstantEnvironment,
-    settledOf: Map<ILocalDeclaration, ILocalDeclaration>,
+    enclosingFunction: string | null,
+    facts: ISettleFacts,
   ): ILexicalFrame {
+    const functionCName = frame.functionCName ?? enclosingFunction;
     // Declarations and child frames in source order, so each local is
     // settled before any use that can bind it.
     const declarations: ILocalDeclaration[] = [];
@@ -160,16 +176,16 @@ class LexicalFrames {
     for (const item of items) {
       if ("child" in item) {
         children.push(
-          LexicalFrames.settleFrame(item.child, isScopeType, env, settledOf),
+          LexicalFrames.settleFrame(item.child, functionCName, facts),
         );
         continue;
       }
       const settled = LexicalFrames.settleDeclaration(
         item.declaration,
-        isScopeType,
-        env,
+        functionCName,
+        facts,
       );
-      settledOf.set(item.declaration, settled);
+      facts.settledOf.set(item.declaration, settled);
       declarations.push(settled);
     }
 
@@ -193,8 +209,8 @@ class LexicalFrames {
    */
   private static settleDeclaration(
     declaration: ILocalDeclaration,
-    isScopeType: (qualifiedName: string) => boolean,
-    env: IConstantEnvironment,
+    functionCName: string | null,
+    { isScopeType, env, isFileScopeName }: ISettleFacts,
   ): ILocalDeclaration {
     const arrayDimensions = declaration.arrayDimensions.map((dimension, i) => {
       const expr = declaration.arrayDimensionExprs[i];
@@ -212,7 +228,36 @@ class LexicalFrames {
       type,
       arrayDimensions: Object.freeze(arrayDimensions),
       constValue,
+      emittedName: LexicalFrames.emittedName(
+        declaration,
+        functionCName,
+        isFileScopeName,
+      ),
     });
+  }
+
+  /**
+   * ADR-057: a local that shadows a file-scope name moves to
+   * `<function>__<name>`. C has no `::`, so emitted as plain `name` it would
+   * make the outer one unreachable and `global.name` would bind the local.
+   * A parameter keeps its name: it is the signature the header declares.
+   * `__` cannot be written in a C-Next identifier (E0201), so the moved name
+   * collides with nothing the source declares.
+   */
+  private static emittedName(
+    declaration: ILocalDeclaration,
+    functionCName: string | null,
+    isFileScopeName: (cName: string) => boolean,
+  ): string {
+    const { name } = declaration;
+    if (
+      declaration.kind === "parameter" ||
+      functionCName === null ||
+      !isFileScopeName(name)
+    ) {
+      return name;
+    }
+    return QualifiedCName.fromParts([functionCName, name]);
   }
 
   private static compare(a: TPosition, b: TPosition): number {

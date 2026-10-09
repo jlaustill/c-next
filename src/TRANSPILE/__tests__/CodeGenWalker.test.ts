@@ -683,12 +683,9 @@ describe("CodeGenWalker", () => {
       it("should add variable to local variables", () => {
         const { host } = createMinimalGenerator(`void foo() { }`, false);
 
-        const emitted = host.registerLocalVariable("localVar");
+        host.registerLocalVariable("localVar");
 
         expect(host.getState().localVariables.has("localVar")).toBe(true);
-        // ADR-057: nothing at file scope is called `localVar`, so it keeps its
-        // own name. The emitted name is the return value, not the argument.
-        expect(emitted).toBe("localVar");
       });
     });
 

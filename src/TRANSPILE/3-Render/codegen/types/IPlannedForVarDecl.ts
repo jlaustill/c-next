@@ -22,6 +22,8 @@ interface IPlannedForVarDecl {
   readonly typeName: string;
   /** The identifier AS WRITTEN. The generator registers it to get the emitted one. */
   readonly declaredName: string;
+  /** #1934: the C identifier it is emitted under, as 1.4 settled it (ADR-057) */
+  readonly emittedName: string;
   /** ADR-036 dimensions, or null when the declaration is not an array. */
   readonly renderArrayDimensions: (() => string) | null;
   /**

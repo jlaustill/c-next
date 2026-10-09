@@ -182,56 +182,11 @@ describe("TranspileState", () => {
       );
     });
 
-    it("registerLocalVariable leaves a non-shadowing local under its own name", () => {
-      state.currentFunctionName = "Counter__test";
-
-      state.registerLocalVariable("fresh");
-
-      expect(state.emittedLocalName("fresh")).toBe("fresh");
-    });
-
-    it("registerLocalVariable qualifies a local that shadows a global function", () => {
-      state.currentFunctionName = "Counter__test";
-      state.knownFunctions.add("count");
-
+    it("exitFunctionBody drops the function's locals", () => {
       state.registerLocalVariable("count");
-
-      expect(state.emittedLocalName("count")).toBe("Counter__test__count");
-    });
-
-    it("registerLocalVariable does not qualify when there is no function context", () => {
-      state.currentFunctionName = null;
-      state.knownFunctions.add("count");
-
-      state.registerLocalVariable("count");
-
-      expect(state.emittedLocalName("count")).toBe("count");
-    });
-
-    it("shadowsFileScopeSymbol ignores an enclosing local", () => {
-      state.localVariables.add("outer");
-      state.knownFunctions.add("outer");
-
-      // Already local, so C block scoping already gives the right answer and
-      // neither `this.` nor `global.` can name an enclosing local.
-      expect(state.shadowsFileScopeSymbol("outer")).toBe(false);
-    });
-
-    it("shadowsFileScopeSymbol is false for an unknown name", () => {
-      expect(state.shadowsFileScopeSymbol("nothingNamedThis")).toBe(false);
-    });
-
-    it("exitFunctionBody drops the rename map with the other locals", () => {
-      state.currentFunctionName = "Counter__test";
-      state.knownFunctions.add("count");
-      state.registerLocalVariable("count");
-      expect(state.emittedLocalName("count")).toBe("Counter__test__count");
 
       state.exitFunctionBody();
 
-      // A rename surviving into the next function would rewrite an unrelated
-      // local of the same name.
-      expect(state.emittedLocalName("count")).toBe("count");
       expect(state.localVariables.size).toBe(0);
     });
   });

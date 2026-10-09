@@ -126,16 +126,11 @@ interface IOrchestrator {
   /** Clear length cache */
   clearLengthCache(): void;
 
-  /** Register a local variable */
   /**
-   * Register a local and get back the C identifier it must be emitted under.
-   *
-   * ADR-057: a local that shadows a file-scope name is emitted under a distinct
-   * name so `global.x` still reaches past it. Returning it keeps generators out
-   * of CodeGenState -- the caller cannot forget to ask, because the name it
-   * needs is the return value.
+   * Register a local by its source name. The C identifier it is emitted under
+   * is 1.4's (#1934, ADR-057) and arrives on the plan, not from here.
    */
-  registerLocalVariable(name: string): string;
+  registerLocalVariable(name: string): void;
 
   // === Declaration Generation ===
 
