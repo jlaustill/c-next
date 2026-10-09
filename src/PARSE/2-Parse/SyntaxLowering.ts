@@ -59,11 +59,11 @@ class SyntaxLowering {
       .map((op) => SyntaxLowering.postfixTargetOp(op));
     const root = ChainRoot.ofTarget(ctx);
     if (root === null) {
-      // The unrooted arm starts with its IDENTIFIER, and recovery never invents
+      // The arm without a root starts with its IDENTIFIER, and recovery never invents
       // one there: 0 of 14,888 recovered targets in a seeded run (#1949 review)
       invariant(
         named !== null,
-        "an unrooted assignment target starts with a written name",
+        "an assignment target without a root starts with a written name",
       );
       const head: TExpression = {
         kind: "identifier",
