@@ -1143,19 +1143,17 @@ class CodeGenWalker {
    * Part of IOrchestrator interface.
    */
   generateArrayDimensions(dims: Parser.ArrayDimensionContext[]): string {
-    return dims.map((d) => this.generateArrayDimension(d)).join("");
+    return this.renderLoweredDimensions(CodeGenWalker.loweredDimensions(dims));
   }
 
-  /** Generate single array dimension */
-  generateArrayDimension(dim: Parser.ArrayDimensionContext): string {
-    // Bug #8 folded only at file scope, where C requires a constant size.
-    // #1175: a dimension is a constant wherever it is written (ADR-023: no
-    // VLAs), so it folds everywhere, by the one rule
-    const expression = dim.expression();
-    if (expression) {
-      return `[${this.renderDimension(expression)}]`;
-    }
-    return "[]";
+  /** Parse-side dimensions, lowered so one renderer decides them */
+  private static loweredDimensions(
+    dims: ReadonlyArray<{ expression(): Parser.ExpressionContext | null }>,
+  ): Array<TExpression | null> {
+    return dims.map((dim) => {
+      const expression = dim.expression();
+      return expression ? SyntaxLowering.expression(expression) : null;
+    });
   }
 
   /** Generate parameter list for function signature */
@@ -2557,10 +2555,6 @@ class CodeGenWalker {
    * ADR-029: Check if a function is used as a callback type (field type in a struct)
    */
   /**
-   * ADR-017: Check if an expression represents an integer literal or numeric type.
-   * Used to detect comparisons between enums and integers.
-   */
-  /**
    * ADR-045: Check if an expression is a string concatenation.
    *
    * #1445: the shape question is read from the lowered expression and the
@@ -2569,17 +2563,11 @@ class CodeGenWalker {
   private _getStringConcatOperands(
     expression: TExpression,
   ): IStringConcatOps | null {
-    if (
-      expression.kind !== "binary" ||
-      expression.level !== "additive" ||
-      expression.operands.length !== 2 ||
-      expression.operators[0] !== "+"
-    ) {
-      return null;
-    }
+    const operands = ExpressionShape.additionOperands(expression);
+    if (operands === null) return null;
     return StringOperationsHelper.getStringConcatOperands(
-      CodeGenWalker.stringTextOf(expression.operands[0]),
-      CodeGenWalker.stringTextOf(expression.operands[1]),
+      CodeGenWalker.stringTextOf(operands[0]),
+      CodeGenWalker.stringTextOf(operands[1]),
       this.declaredTypeAt(expression.span),
     );
   }
@@ -2592,18 +2580,11 @@ class CodeGenWalker {
    * knows whether this is a substring at all. See its comment.
    */
   private _getSubstringOperands(expression: TExpression): ISubstringOps | null {
-    if (
-      expression.kind !== "postfix" ||
-      expression.primary.kind !== "identifier" ||
-      expression.ops.length !== 1 ||
-      expression.ops[0].kind !== "subscript"
-    ) {
-      return null;
-    }
-    const indexes = expression.ops[0].indexes;
+    const subscripted = ExpressionShape.subscriptedIdentifier(expression);
+    if (subscripted === null) return null;
     return StringOperationsHelper.getSubstringOperands(
-      expression.primary.name,
-      () => indexes.map((index) => this.renderExpression(index)),
+      subscripted.name,
+      () => subscripted.indexes.map((index) => this.renderExpression(index)),
       this.declaredTypeAt(expression.span),
     );
   }
@@ -3022,9 +3003,8 @@ class CodeGenWalker {
     // Issue #500: check for an array BEFORE skipping -- arrays must be emitted.
     // Both spellings count: C-style trailing dimensions and the C-Next arrayType.
     const isConst = varDecl.constModifier() !== null;
-    const arrayDims = varDecl.arrayDimension();
-    const arrayTypeCtx = varDecl.type().arrayType?.() ?? null;
-    const isArray = arrayDims.length > 0 || arrayTypeCtx !== null;
+    const lowered = StatementLowering.variableDeclaration(varDecl);
+    const isArray = CodeGenWalker.isArrayDeclaration(lowered);
 
     // Issue #282: a private const scalar is inlined at its uses, not emitted at
     // file scope. Issue #500 exempts arrays, which cannot be inlined. Decided
@@ -3037,7 +3017,7 @@ class CodeGenWalker {
     // mutual exclusion. Scope variables are file scope, and the initializer does
     // not affect volatile/atomic handling.
     const modifiers = VariableModifierBuilder.build(
-      StatementLowering.variableDeclaration(varDecl).modifiers,
+      lowered.modifiers,
       false,
       false,
       this.host.state,
@@ -3055,11 +3035,16 @@ class CodeGenWalker {
       renderType: () => this.generateType(varDecl.type()),
       renderArrayTypeDimensions: () =>
         ArrayDimensionUtils.renderArrayTypeDimensions(
-          this.planArrayTypeDimensions(arrayTypeCtx, varDecl),
+          lowered.type.kind === "array"
+            ? this.planLoweredArrayTypeDimensions(
+                lowered.type.dimensions,
+                lowered,
+              )
+            : null,
         ),
       renderCStyleDimensions:
-        arrayDims.length > 0
-          ? () => this.generateArrayDimensions(arrayDims)
+        lowered.dimensions.length > 0
+          ? () => this.renderLoweredDimensions(lowered.dimensions)
           : null,
       renderStringCapacityDimension: () =>
         ArrayDimensionUtils.renderStringCapacityDimension(
@@ -3212,36 +3197,20 @@ class CodeGenWalker {
    */
   planArrayTypeDimensions(
     ctx: Parser.ArrayTypeContext | null,
-    declaration: Parser.VariableDeclarationContext | null = null,
   ): readonly IPlannedDimension[] | null {
     if (ctx === null) return null;
-
-    return ctx.arrayTypeDimension().map((dimension) => {
-      const expression = dimension.expression();
-      // #1664 box 3: an omitted size is the declaration's count, the number
-      // the `.h` states, for every declaration renderer that asks here.
-      if (!expression) {
-        return {
-          renderSize: () =>
-            String(
-              this.omittedSizeOf(
-                declaration &&
-                  StatementLowering.variableDeclaration(declaration),
-              ),
-            ),
-        };
-      }
-
-      return {
-        renderSize: () => this.renderDimension(expression),
-      };
-    });
+    return this.planLoweredArrayTypeDimensions(
+      CodeGenWalker.loweredDimensions(ctx.arrayTypeDimension()),
+      null,
+    );
   }
 
   private planLoweredArrayTypeDimensions(
     dims: ReadonlyArray<TExpression | null>,
-    declaration: IVariableDeclarationSyntax,
+    declaration: IVariableDeclarationSyntax | null,
   ): readonly IPlannedDimension[] {
+    // #1664 box 3: an omitted size is the declaration's count, the number
+    // the `.h` states, for every declaration renderer that asks here.
     return dims.map((size) =>
       size
         ? { renderSize: () => this.renderLoweredDimension(size) }
@@ -3721,7 +3690,11 @@ class CodeGenWalker {
     return String(dimension);
   }
 
-  /** `[N][M]`, or `[]` for an omitted size */
+  /**
+   * `[N][M]`, or `[]` for an omitted size. Bug #8 folded only at file scope;
+   * #1175: a dimension is a constant wherever it is written (ADR-023: no
+   * VLAs), so it folds everywhere, by the one rule.
+   */
   private renderLoweredDimensions(
     dimensions: ReadonlyArray<TExpression | null>,
   ): string {
@@ -3931,7 +3904,7 @@ class CodeGenWalker {
   ): IPlannedArrayDeclaration {
     const arrayDims = decl.dimensions;
     const typeDims = decl.type.kind === "array" ? decl.type.dimensions : null;
-    if (arrayDims.length === 0 && typeDims === null) {
+    if (!CodeGenWalker.isArrayDeclaration(decl)) {
       return {
         isArray: false,
         hasEmptyDimension: false,
@@ -3947,7 +3920,7 @@ class CodeGenWalker {
       arrayDims.includes(null) || hasEmptyArrayTypeDimension;
     const initializer = decl.initializer;
     invariant(
-      !hasEmptyDimension || (typeDims?.length ?? 0) + arrayDims.length === 1,
+      !hasEmptyDimension || CodeGenWalker.arrayRank(decl) === 1,
       `an array that omits a size is one-dimensional -- E0892 rejects '${decl.name}' in pass 2.1, before this runs`,
     );
     return {
@@ -3975,6 +3948,23 @@ class CodeGenWalker {
   }
 
   /**
+   * Issue #500: both spellings make an array -- C-style trailing dimensions
+   * and the C-Next array type. The one predicate for a local, a scope member
+   * and a file-scope variable.
+   */
+  private static isArrayDeclaration(decl: IVariableDeclarationSyntax): boolean {
+    return decl.dimensions.length > 0 || decl.type.kind === "array";
+  }
+
+  /** How many dimensions a declaration states, in both spellings together */
+  private static arrayRank(decl: IVariableDeclarationSyntax): number {
+    return (
+      (decl.type.kind === "array" ? decl.type.dimensions.length : 0) +
+      decl.dimensions.length
+    );
+  }
+
+  /**
    * #1664 box 3: what this declaration says, as 1.3 recorded it and 1.4
    * settled it -- the facts the `.h` is written from. The name binds to its
    * own declaration from the end of the name on (LexicalFrames), so asking
@@ -3995,9 +3985,7 @@ class CodeGenWalker {
    * counted (E0892), and an uncounted size is `UNRESOLVED_DIMENSION`, 0.
    */
   private countedSize(decl: IVariableDeclarationSyntax): number | null {
-    const rank =
-      (decl.type.kind === "array" ? decl.type.dimensions.length : 0) +
-      decl.dimensions.length;
+    const rank = CodeGenWalker.arrayRank(decl);
     const size = this.declaredHere(decl)?.arrayDimensions?.[0];
     return rank === 1 && size !== undefined && size > 0 ? size : null;
   }
