@@ -1,4 +1,4 @@
-import type { ParserRuleContext } from "antlr4ng";
+import type { ParserRuleContext, ParseTree, TerminalNode } from "antlr4ng";
 import * as Parser from "./grammar/CNextParser";
 import type CommentScanner from "./CommentScanner";
 import SyntaxLowering from "./SyntaxLowering";
@@ -52,6 +52,9 @@ class ProgramLowering {
     if (!scope) {
       return ProgramLowering.member(ctx);
     }
+    if (ProgramLowering.isRepaired(scope.IDENTIFIER())) {
+      return { kind: "missing", ...SyntaxLowering.node(ctx) };
+    }
     return {
       kind: "scope",
       name: scope.IDENTIFIER().getText(),
@@ -74,6 +77,9 @@ class ProgramLowering {
   private static member(
     ctx: Parser.DeclarationContext | Parser.ScopeMemberContext,
   ): TMemberDeclaration {
+    if (ProgramLowering.isRepairedMember(ctx)) {
+      return { kind: "missing", ...SyntaxLowering.node(ctx) };
+    }
     const variable = ctx.variableDeclaration();
     if (variable) return StatementLowering.declaration(variable);
     const fn = ctx.functionDeclaration();
@@ -94,6 +100,72 @@ class ProgramLowering {
       };
     }
     return { kind: "missing", ...SyntaxLowering.node(ctx) };
+  }
+
+  /**
+   * A member recovery repaired lowers as `missing`, as a statement does
+   * (#1932): 1.2 lowers every file, so a recovered one must not throw here,
+   * and a name the parser invented must not reach a reader as if written.
+   */
+  private static isRepairedMember(
+    ctx: Parser.DeclarationContext | Parser.ScopeMemberContext,
+  ): boolean {
+    const variable = ctx.variableDeclaration();
+    if (variable) {
+      return ProgramLowering.isRepaired(variable.IDENTIFIER(), variable.type());
+    }
+    const fn = ctx.functionDeclaration();
+    if (fn) {
+      const parameters = fn.parameterList()?.parameter() ?? [];
+      return (
+        ProgramLowering.isRepaired(fn.IDENTIFIER(), fn.type(), fn.block()) ||
+        parameters.some((parameter) =>
+          ProgramLowering.isRepaired(parameter.IDENTIFIER(), parameter.type()),
+        )
+      );
+    }
+    const register = ctx.registerDeclaration();
+    if (register) {
+      return (
+        ProgramLowering.isRepaired(
+          register.IDENTIFIER(),
+          register.expression(),
+        ) ||
+        register
+          .registerMember()
+          .some((member) =>
+            ProgramLowering.isRepaired(
+              member.IDENTIFIER(),
+              member.type(),
+              member.accessModifier(),
+              member.expression(),
+            ),
+          )
+      );
+    }
+    const struct = ctx.structDeclaration();
+    if (struct) {
+      return (
+        ProgramLowering.isRepaired(struct.IDENTIFIER()) ||
+        struct
+          .structMember()
+          .some((member) =>
+            ProgramLowering.isRepaired(member.IDENTIFIER(), member.type()),
+          )
+      );
+    }
+    const named = ctx.enumDeclaration() ?? ctx.bitmapDeclaration();
+    return named !== null && ProgramLowering.isRepaired(named.IDENTIFIER());
+  }
+
+  /** Recovery dropped a required part, or invented the name */
+  private static isRepaired(
+    name: TerminalNode | null,
+    ...required: ReadonlyArray<ParseTree | null>
+  ): boolean {
+    return (
+      name === null || name.symbol.tokenIndex < 0 || required.includes(null)
+    );
   }
 
   private static function(

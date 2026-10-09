@@ -158,3 +158,89 @@ describe("ProgramLowering", () => {
     expect(program.declarations[0].leadingComments).toEqual([]);
   });
 });
+
+/**
+ * #1932: 1.2 lowers every file on parse, so lowering a recovered file must
+ * never throw. A declaration recovery repaired lowers as `missing`.
+ */
+describe("ProgramLowering on recovered files", () => {
+  const TOKENS = [
+    "u8",
+    "x",
+    "<-",
+    "1",
+    ";",
+    "{",
+    "}",
+    "(",
+    ")",
+    "scope",
+    "struct",
+    "register",
+    "@",
+    "rw",
+    ":",
+    ",",
+    "[",
+    "]",
+    "void",
+    "enum",
+    "public",
+  ];
+  const POSITIONS: ReadonlyArray<(run: string) => string> = [
+    (run) => run,
+    (run) => `struct S {\n${run}\n}`,
+    (run) => `register R @ 0x40000000 {\n${run}\n}`,
+    (run) => `scope S {\n${run}\n}`,
+    (run) => `void f(${run}) { }`,
+    (run) => `enum ${run}`,
+  ];
+
+  /** A seeded pseudo-random generator, so every run sees the same cases */
+  function random(seed: number): () => number {
+    let state = seed;
+    return () => {
+      state = (state * 1103515245 + 12345) % 2147483648;
+      return state / 2147483648;
+    };
+  }
+
+  function missingCount(source: string): number {
+    const parsed = CNextSourceParser.parse(source);
+    if (parsed.parseErrors.length === 0) return -1;
+    return JSON.stringify(parsed.program).split('"kind":"missing"').length - 1;
+  }
+
+  it("never throws, and repairs declarations as missing", () => {
+    const next = random(1932);
+    let recovered = 0;
+    let repaired = 0;
+    for (let i = 0; i < 2000; i++) {
+      const length = 1 + Math.floor(next() * 6);
+      const run = Array.from(
+        { length },
+        () => TOKENS[Math.floor(next() * TOKENS.length)],
+      ).join(" ");
+      const count = missingCount(POSITIONS[i % POSITIONS.length](run));
+      if (count < 0) continue;
+      recovered++;
+      repaired += count;
+    }
+    expect(recovered).toBeGreaterThan(1000);
+    expect(repaired).toBeGreaterThan(100);
+  });
+
+  // Each threw before declarations lowered a repaired member as `missing`
+  it.each([
+    [
+      "a scope keyword in a struct body",
+      "struct S {\n    scope B { u8 x <- 1; }\n}",
+    ],
+    [
+      "a scope keyword in a register body",
+      "register R @ 0x40000000 {\n    scope B { u8 x <- 1; }\n}",
+    ],
+  ])("lowers %s as missing", (_, source) => {
+    expect(missingCount(source)).toBeGreaterThan(0);
+  });
+});

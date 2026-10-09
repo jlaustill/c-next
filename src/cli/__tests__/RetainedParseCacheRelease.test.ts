@@ -115,4 +115,29 @@ describe("#1301: the retained-parse cache is released at end of run", () => {
     expect(second.success).toBe(true);
     expect(cacheSize(transpiler)).toBe(0);
   });
+  it("holds no parse tree once 2.1 Analyze is done (#1932)", async () => {
+    const transpiler = createTranspiler(writeProject());
+    const internals = transpiler as unknown as {
+      retainedParses: Map<string, unknown>;
+      analyzedFiles: Map<string, unknown>;
+      _transpileFile: (...args: unknown[]) => unknown;
+    };
+    const seen: { trees: number; analyzed: number }[] = [];
+    const original = internals._transpileFile.bind(transpiler);
+    internals._transpileFile = (...args: unknown[]) => {
+      seen.push({
+        trees: internals.retainedParses.size,
+        analyzed: internals.analyzedFiles.size,
+      });
+      return original(...args);
+    };
+
+    const result = await transpiler.transpile({ kind: "files" });
+
+    // NEGATIVE CONTROL: Stage 5 ran, once per file, and had the plain data.
+    expect(result.success).toBe(true);
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen).toEqual(seen.map(() => ({ trees: 0, analyzed: 2 })));
+    expect(internals.analyzedFiles.size).toBe(0);
+  });
 });
