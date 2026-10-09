@@ -181,7 +181,7 @@ import QualifiedCName from "../utils/QualifiedCName";
 import ToolchainRequirementUtils from "../utils/ToolchainRequirementUtils";
 import MainSignature from "../utils/MainSignature";
 import ScopeUtils from "../utils/ScopeUtils";
-import TypeBinding from "../PARSE/3-Declare/TypeBinding";
+import TypeNameLadder from "../utils/TypeNameLadder";
 import type ITargetDescription from "../types/ITargetDescription";
 import SymbolTypeResolver from "../utils/TypeResolver";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
@@ -379,7 +379,7 @@ class CodeGenWalker {
   /**
    * A type context reduced to what the renderer asks of it (#1445).
    *
-   * The named branches come from `TypeBinding` -- 1.3 Declare's one ladder --
+   * The named branches come from `TypeNameLadder` -- the one ladder --
    * rather than from a second walk here, which is what `TypeGenerationHelper`
    * used to do. `typeBindingDeps` supplies the same two predicates that helper
    * was handed: ADR-057's scope-type test, and this generator's C++-aware
@@ -398,7 +398,7 @@ class CodeGenWalker {
     );
 
     return {
-      named: TypeBinding.classifyNamed(
+      named: TypeNameLadder.classifyNamed(
         element,
         this.host.state.currentScopePath,
         deps,
@@ -1106,8 +1106,8 @@ class CodeGenWalker {
   private typeNameOf(type: TTypeSyntax): string {
     // #1285: one ladder. This was the largest of seven copies, and the only one
     // that handled `arrayType` by peeking at two of its six element
-    // alternatives -- TypeBinding recurses into all of them.
-    const resolved = TypeBinding.resolveWrittenName(
+    // alternatives -- TypeNameLadder recurses into all of them.
+    const resolved = TypeNameLadder.resolveWrittenName(
       type,
       this.host.state.currentScopePath,
       this.host.state.typeBindingDeps((identifiers) =>
@@ -3964,7 +3964,7 @@ class CodeGenWalker {
     // caller's own chain, which is where it was always handled. An enumerated
     // list of alternatives to SKIP would have to be kept in step with the
     // grammar from ~3000 lines away, and getting it wrong fails open.
-    const name = TypeBinding.classifyNamed(
+    const name = TypeNameLadder.classifyNamed(
       type,
       this.host.state.currentScopePath,
       this.host.state.typeBindingDeps((parts) =>

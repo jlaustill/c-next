@@ -5,6 +5,7 @@
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import CNEXT_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
 import TypeBinding from "../../TypeBinding";
+import TypeNameLadder from "../../../../utils/TypeNameLadder";
 import SyntaxLowering from "../../../2-Parse/SyntaxLowering";
 import TypeResolver from "../../../../utils/TypeResolver";
 import TTypeUtils from "../../../../utils/TTypeUtils";
@@ -38,7 +39,7 @@ class TypeUtils {
 
     // #1285/#1932: one ladder for a type's written name. The walker asks the
     // same `resolveWrittenName`, so the `.h` and the `.c` cannot disagree.
-    const result = TypeBinding.resolveWrittenName(
+    const result = TypeNameLadder.resolveWrittenName(
       SyntaxLowering.type(ctx),
       scopePath,
       { isScopeType },

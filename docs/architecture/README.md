@@ -274,9 +274,11 @@ a generated context, the `antlr4ng` runtime, or a carrier of 1.2's artifact.
   host that routes 1.2's artifact (`src/cli/Transpiler.ts`, which also calls
   `ParserUtils`) may import the grammar. Each named helper is a target of the rule too,
   so a pass after 2.1 that imports one fails as if it had imported the grammar.
-- The rule reads imports, not values. A 1.3 module is allowed wholesale even when a later
-  pass calls it -- `TypeBinding` imports the grammar and is called from 2.2 and 2.3 -- so
-  what such a call passes or returns is not checked here (#1957).
+- The rule reads imports, not values. A helper a later pass may call must read plain data
+  only: `TypeBinding`, which reads parse contexts, is a named helper, and its plain-data
+  half, `utils/TypeNameLadder`, is what 2.1, the walker and Render call (#1932). What a
+  call returns is checked by type, not by import, in
+  `scripts/__tests__/artifact-lifetime.test.ts` (#1957).
 
 A rule over import paths cannot see a structural stand-in: a later pass declaring its own
 copy of a context's shape. `scripts/__tests__/artifact-lifetime.test.ts` asks the type

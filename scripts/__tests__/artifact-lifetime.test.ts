@@ -29,6 +29,7 @@
  */
 import { describe, it, expect } from "vitest";
 import {
+  Node,
   Project,
   SyntaxKind,
   type ClassDeclaration,
@@ -274,14 +275,9 @@ function parseNodeAcceptors(pattern: RegExp): string[] {
       const type = node.getType();
       if ((type.isUnion() ? type.getUnionTypes() : [type]).some(isTop))
         continue;
-      const element = type.getArrayElementType();
-      // `Map<string, Ctx>`, `ReadonlyArray<Ctx>`, `Ctx[]`: a context held
-      // inside a container is held all the same.
-      const targets = [
-        type,
-        ...type.getTypeArguments().filter((t) => !isTop(t)),
-        ...(element ? [element] : []),
-      ];
+      // `Map<string, Ctx>`, `ReadonlyArray<Ctx>`, `Ctx[]`, and containers of
+      // containers: a context held inside one is held all the same.
+      const targets = containedTypes(type).filter((t) => !isTop(t));
       if (contexts.some((c) => targets.some((t) => c.isAssignableTo(t))))
         found.push(
           `${relative(repoRoot, path)} ${node.getText().split(":")[0].trim()}`,
@@ -290,6 +286,77 @@ function parseNodeAcceptors(pattern: RegExp): string[] {
   }
   return found;
 }
+
+/** `type` and every type argument and array element inside it, recursively */
+function containedTypes(type: Type, depth = 0): Type[] {
+  if (depth > 3) return [type];
+  const element = type.getArrayElementType();
+  const inner = [...type.getTypeArguments(), ...(element ? [element] : [])];
+  return [type, ...inner.flatMap((t) => containedTypes(t, depth + 1))];
+}
+
+/** Whether `type`, a union member, or anything it contains is a parse type */
+function containsParseType(type: Type): boolean {
+  const members = type.isUnion() ? type.getUnionTypes() : [type];
+  return members.some((member) => containedTypes(member).some(isParseType));
+}
+
+/**
+ * `reachesParseNode` for a call's result, answered once per type: most calls
+ * return one of a few hundred types, and the walk was 95% of the sweep's time.
+ */
+const callResultCache = new Map<Type["compilerType"], boolean>();
+function callResultReaches(type: Type): boolean {
+  let reaches = callResultCache.get(type.compilerType);
+  if (reaches === undefined) {
+    reaches = reachesParseNode(type);
+    callResultCache.set(type.compilerType, reaches);
+  }
+  return reaches;
+}
+
+/**
+ * Every expression under `pattern` whose value is a parse node, however the
+ * module got it (#1957).
+ *
+ * `parse-tree-confined-to-parser` reads imports, so a module that gets a tree
+ * as a RETURN VALUE -- `CNextSourceParser.parse(src).tree` -- names no parse
+ * type and passes it. This asks the type checker about every expression
+ * instead. A call is also walked by reachability, so a call handing back a
+ * bundle that carries a tree (`IParsedFile`) is found before anyone reads it.
+ */
+function heldParseValues(pattern: RegExp, stopAfter = Infinity): string[] {
+  const found: string[] = [];
+  for (const sf of project.getSourceFiles()) {
+    const path = sf.getFilePath();
+    if (path.includes("__tests__") || !pattern.test(path)) continue;
+    // Every way a value is obtained or named: a call, a member read, an
+    // index, a declared variable. Bare identifiers only re-read one of these,
+    // and skipping them keeps the sweep inside the coverage-run timeout.
+    const nodes = [
+      ...sf.getDescendantsOfKind(SyntaxKind.CallExpression),
+      ...sf.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression),
+      ...sf.getDescendantsOfKind(SyntaxKind.ElementAccessExpression),
+      ...sf.getDescendantsOfKind(SyntaxKind.VariableDeclaration),
+    ];
+    for (const node of nodes) {
+      if (found.length >= stopAfter) break;
+      const type = node.getType();
+      if (
+        containsParseType(type) ||
+        (Node.isCallExpression(node) && callResultReaches(type))
+      )
+        found.push(
+          `${relative(repoRoot, path)}:${node.getStartLineNumber()} ${node.getText().slice(0, 60)}`,
+        );
+    }
+  }
+  return found;
+}
+
+/** The modules after 2.1 Analyze: the walker, its state, and every later layer */
+const AFTER_ANALYZE =
+  /src\/TRANSPILE\/(2-Plan|3-Render|types)\/|src\/TRANSPILE\/(CodeGenWalker|TranspileState)\.ts$|src\/WRITE\//;
 
 /**
  * Each assertion walks types across the whole program, and `npm run unit` runs
@@ -380,7 +447,8 @@ describe("artifact lifetime (#1445 box 2)", () => {
 
       expect(holders.sort()).toEqual(
         [
-          // #1301: Stage 5 reuses Stage 3's parse. Cleared in a `finally`, which
+          // #1301: Stage 4d reuses Stage 3's parse, and `_releaseParseTrees`
+          // empties it before Stage 5 (#1932). Cleared in a `finally`, which
           // `RetainedParseCacheRelease.test.ts` asserts and mutation-checks.
           // The walker held one too (`tokenStream` and its `CommentScanner`)
           // until #1932 handed it the plain-data `IProgramSyntax` instead.
@@ -452,8 +520,7 @@ describe("artifact lifetime (#1445 box 2)", () => {
   it(
     "nothing after 2.1 accepts a parse node, by name or by shape (#1932)",
     () => {
-      const afterAnalyze =
-        /src\/TRANSPILE\/(2-Plan|3-Render|types)\/|src\/TRANSPILE\/(CodeGenWalker|TranspileState)\.ts$|src\/WRITE\//;
+      const afterAnalyze = AFTER_ANALYZE;
 
       // POPULATION CONTROL: the pattern reaches the walker, the state it
       // writes into, and every layer and type directory after 2.1.
@@ -476,6 +543,18 @@ describe("artifact lifetime (#1445 box 2)", () => {
       ).toBeGreaterThan(0);
 
       expect(parseNodeAcceptors(afterAnalyze)).toEqual([]);
+    },
+    WALK_TIMEOUT_MS,
+  );
+  it(
+    "nothing after 2.1 holds a parse node as a value, however obtained (#1957)",
+    () => {
+      // DETECTOR CONTROL: 2.1 walks the tree, so the same sweep over it must
+      // find parse-node values -- otherwise an empty result below could mean
+      // a sweep that cannot match.
+      expect(heldParseValues(/src\/TRANSPILE\/1-Analyze\//, 1)).toHaveLength(1);
+
+      expect(heldParseValues(AFTER_ANALYZE)).toEqual([]);
     },
     WALK_TIMEOUT_MS,
   );

@@ -11,7 +11,7 @@
  *
  * Everything that is one decision at both scopes runs under `describe.each`.
  * What stays separate is what is genuinely scope-specific: the #1472 guards
- * that nothing below the TypeBinding ladder re-qualifies a resolved name.
+ * that nothing below the TypeNameLadder ladder re-qualifies a resolved name.
  *
  * #1445 box 3: the generator takes `IPlannedRegister`, so these build plans.
  * The `cType` is the value `orchestrator.generateType` returned -- which is

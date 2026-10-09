@@ -106,6 +106,9 @@ const PARSE_TREE_HELPERS = [
   "^src/utils/ast/(AssignmentTargetExtractor|ChildStatementCollector|StatementExpressionCollector)\\.ts$",
   "^src/utils/(ChainRoot|ExpressionUnwrapper|ExpressionUtils|OverflowBehaviorUtils|ParserUtils|PostfixAnalysisUtils)\\.ts$",
   "^src/types/TAssignmentSite\\.ts$",
+  // #1932: reads parse contexts through `ITypeAccessors`; its plain-data half
+  // is `utils/TypeNameLadder`, which later passes call instead.
+  "^src/PARSE/3-Declare/TypeBinding\\.ts$",
 ];
 
 /** @type {import('dependency-cruiser').IConfiguration} */

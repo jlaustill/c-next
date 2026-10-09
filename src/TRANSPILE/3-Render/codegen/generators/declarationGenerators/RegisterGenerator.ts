@@ -47,7 +47,7 @@ import type IPlannedRegister from "../../types/IPlannedRegister";
 /*
  * No scoped-bitmap resolver on the planning side, deliberately.
  * `orchestrator.generateType` already applies ADR-057 qualification through
- * the one TypeBinding ladder, so a bare `Flags` inside `scope Chip` arrives as
+ * the one TypeNameLadder ladder, so a bare `Flags` inside `scope Chip` arrives as
  * `Chip__Flags` and an explicit `global.Flags` arrives as `Flags`.
  *
  * A resolver on the scoped path used to re-qualify that ALREADY-resolved name

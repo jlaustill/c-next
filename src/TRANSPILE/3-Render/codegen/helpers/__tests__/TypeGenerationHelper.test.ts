@@ -5,13 +5,13 @@
  * #1445: the helper takes an `IPlannedType` now, so these build plans instead
  * of parsing source. What moved OUT of this file with the parse contexts is
  * the mapping from a type context to that plan -- `CodeGenerator.planType`,
- * which delegates the named branches to `TypeBinding` and is exercised by the
+ * which delegates the named branches to `TypeNameLadder` and is exercised by the
  * 1254 integration fixtures rather than here.
  *
  * Three methods moved out with it: `generateScopedType`, `generateGlobalType`
  * and `generateQualifiedType` had no caller but this file, so their tests were
  * the only thing keeping knip quiet about them (#1418). Those decisions are
- * `TypeBinding`'s.
+ * `TypeNameLadder`'s.
  */
 
 import { describe, it, expect } from "vitest";
@@ -34,7 +34,7 @@ describe("TypeGenerationHelper", () => {
     };
   }
 
-  /** A named-type branch as `TypeBinding` reports it. */
+  /** A named-type branch as `TypeNameLadder` reports it. */
   function named(
     branch: INamedTypeResolution["branch"],
     written: string,
@@ -117,7 +117,7 @@ describe("TypeGenerationHelper", () => {
         "char",
       ],
       [
-        "this.T, qualified by TypeBinding",
+        "this.T, qualified by TypeNameLadder",
         plan({ named: named("this", "State", "Motor__State") }),
         "Motor__State",
       ],

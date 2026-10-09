@@ -12,7 +12,7 @@
  * `extractParamArrayDimensions` read a `TypeContext` and a `ParameterContext`
  * and nothing else; their work is `CodeGenerator.planFunctionParameter`'s now,
  * and the 1259 integration fixtures exercise it. `resolveParameterTypeInfo`'s
- * qualified/scoped/global cases are likewise `TypeBinding`'s answer, supplied
+ * qualified/scoped/global cases are likewise `TypeNameLadder`'s answer, supplied
  * here as the classification rather than re-derived.
  */
 
@@ -57,7 +57,7 @@ function plannedType(overrides: Partial<IPlannedType> = {}): IPlannedType {
   };
 }
 
-/** A named-type branch as `TypeBinding` reports it. */
+/** A named-type branch as `TypeNameLadder` reports it. */
 function named(
   branch: INamedTypeResolution["branch"],
   written: string,
@@ -377,7 +377,7 @@ describe("FunctionContextManager", () => {
     });
 
     /**
-     * The four named branches arrive already resolved -- `TypeBinding` decided
+     * The four named branches arrive already resolved -- `TypeNameLadder` decided
      * them, and what it decided is its own test's business. What THIS module
      * decides is the consequence: struct-ness, callback-ness, and that the
      * name is used verbatim.

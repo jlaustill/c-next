@@ -30,7 +30,7 @@ import PROPERTY_NAMES from "./constants/PROPERTY_NAMES";
 import ScopeUtils from "./ScopeUtils";
 import SubscriptClassifier from "./SubscriptClassifier";
 import TypeResolver from "./TypeResolver";
-import TypeBinding from "../PARSE/3-Declare/TypeBinding";
+import TypeNameLadder from "./TypeNameLadder";
 import type THeaderMacro from "../types/THeaderMacro";
 import type IChainStep from "../types/IChainStep";
 import type IChainTyping from "../types/IChainTyping";
@@ -634,7 +634,7 @@ class OperandTyper {
 
   /**
    * A written type -- a cast's, a declaration's -- resolved by 1.3's one
-   * ladder (`TypeBinding`), so `this.T`, `global.T`, `Scope.T` and a bare `T`
+   * ladder (`TypeNameLadder`), so `this.T`, `global.T`, `Scope.T` and a bare `T`
    * name what they name everywhere else; qualifying the source text by hand
    * read `this.EMode` as a type called `this_EMode`.
    *
@@ -672,11 +672,11 @@ class OperandTyper {
       );
     }
     // ADR-057's qualification is the program's one answer, as for every
-    // `TypeBinding` caller; whether the result is a C-Next type this file
+    // `TypeNameLadder` caller; whether the result is a C-Next type this file
     // sees is `declaresNamedType`, as in `fromType` (#1668 review: the trio
     // was spelled out here by hand)
     const cName =
-      TypeBinding.classifyNamed(
+      TypeNameLadder.classifyNamed(
         type,
         ctx.program.lexicalFrameAt(ctx.sourceFile, at).scopePath,
         { isScopeType: OperandTyper.scopeTypesSeenBy(ctx) },

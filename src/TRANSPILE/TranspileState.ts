@@ -926,7 +926,7 @@ class TranspileState {
     this.isScopeType(qualifiedName);
 
   /**
-   * ADR-057: bind this state's type sets to `TypeBinding`'s injected deps.
+   * ADR-057: bind this state's type sets to `TypeNameLadder`'s injected deps.
    *
    * THE binding, for the sites that resolve a whole `TypeContext`.
    * `isScopeType` is an instance method reading `this.program`, so it cannot be
@@ -936,7 +936,7 @@ class TranspileState {
    *
    * It had a bare-name sibling, `qualifyScopeType`, which CLAUDE.md told codegen
    * to call. Nothing did: the bare-name path resolves in the symbols layer
-   * (`3-Declare/TypeBinding`), and codegen reaches the same decision through
+   * (`utils/TypeNameLadder`), and codegen reaches the same decision through
    * this method. Deleted under #1452 with the rule that named it.
    *
    * `resolveQualifiedType` stays the caller's: it is the one half that really
