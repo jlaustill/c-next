@@ -45,6 +45,14 @@ class ExpressionShape {
   }
 
   /**
+   * A string literal itself -- not an expression whose text merely starts and
+   * ends with a quote, like `"a" < "b"` (#1956).
+   */
+  static isStringLiteral(expr: TExpression): boolean {
+    return expr.kind === "literal" && expr.literalKind === "string";
+  }
+
+  /**
    * A chain's head. A `this.`/`global.` root consumes the chain's first op, and
    * only a member op names it (`this[0]` names nothing). The typer, render's
    * subscript base and `UndeclaredValueAnalyzer` all ask this one function, for

@@ -408,3 +408,42 @@ describe("SyntaxLowering on recovered trees", () => {
     expect(shapes).toContainEqual(kinds);
   });
 });
+
+describe("SyntaxLowering member spans", () => {
+  function find<T>(
+    node: unknown,
+    kind: abstract new (...a: never[]) => T,
+  ): T[] {
+    const found: T[] = [];
+    if (node instanceof kind) found.push(node);
+    for (const child of (node as { children?: unknown[] }).children ?? []) {
+      found.push(...find(child, kind));
+    }
+    return found;
+  }
+
+  it("a rooted target's first member op covers the `.`, as an expression's does", () => {
+    const tree = CNextSourceParser.parse(
+      "scope S { u8 x; void f() { this.x <- 1; u8 y <- this.x; } }\n",
+    ).tree;
+    const target = SyntaxLowering.assignmentTarget(
+      find(tree, Parser.AssignmentTargetContext)[0],
+    );
+    const expression = SyntaxLowering.expression(
+      find(tree, Parser.ExpressionContext).find(
+        (e) => e.getText() === "this.x",
+      )!,
+    );
+    if (target.kind !== "postfix" || expression.kind !== "postfix") {
+      throw new Error("both lower to a postfix chain");
+    }
+    const targetOp = target.ops[0];
+    const expressionOp = expression.ops[0];
+    if (targetOp.kind !== "member" || expressionOp.kind !== "member") {
+      throw new Error("both start with a member op");
+    }
+
+    expect(targetOp.span.column).toBe(targetOp.nameSpan.column - 1);
+    expect(expressionOp.span.column).toBe(expressionOp.nameSpan.column - 1);
+  });
+});
