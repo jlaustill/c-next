@@ -151,7 +151,6 @@ function createMockOrchestrator(overrides?: {
     getZeroInitializer: vi.fn(),
     getExpressionEnumType: vi.fn(),
     isStringExpression: vi.fn(),
-    getOperatorsFromChildren: vi.fn(),
     // #1445: the call generator takes planned arguments, and the orchestrator
     // is where they are built -- this is its only dispatcher. Mirrors what
     // `CodeGenerator.planCallArguments` does against this file's mock nodes.
