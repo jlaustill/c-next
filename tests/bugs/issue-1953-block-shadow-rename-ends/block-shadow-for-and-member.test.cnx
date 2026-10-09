@@ -1,0 +1,29 @@
+// test-execution
+// Issue #1953: the other readers of a shadowing local's name end with its block too:
+// a for-loop variable, and sizeof of a struct member through the shadowing name
+
+struct Pair {
+    u8 a;
+    u32 b;
+}
+
+Pair cfg;
+u8 i <- 9;
+
+u32 main() {
+    u32 flag <- 1;
+    u32 sum <- 0;
+    for (u8 i <- 0; i < 3; i +<- 1) {
+        sum +<- i;
+    }
+    if (sum != 3) return 1;
+    if (i != 9) return 2;
+
+    if (flag = 1) {
+        u8[16] cfg <- [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        if (sizeof(cfg) != 16) return 3;
+    }
+    if (sizeof(cfg.b) != 4) return 4;
+    if (sizeof(cfg) != sizeof(Pair)) return 5;
+    return 0;
+}

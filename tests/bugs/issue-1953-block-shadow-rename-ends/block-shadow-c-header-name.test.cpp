@@ -14,8 +14,8 @@
 int main(void) {
     uint32_t flag = 1U;
     if (flag == 1) {
-        uint32_t ticks_total = 3U;
-        if (ticks_total != 3) return 1U;
+        uint32_t main__ticks_total = 3U;
+        if (main__ticks_total != 3) return 1U;
     }
     uint32_t fresh = 2U;
     if (fresh != 2) return 2U;
