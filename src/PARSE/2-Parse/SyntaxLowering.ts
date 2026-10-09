@@ -13,6 +13,7 @@
 import type { ParserRuleContext, ParseTree } from "antlr4ng";
 import * as Parser from "./grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
+import ChainRoot from "../../utils/ChainRoot";
 import invariant from "../../utils/invariant";
 import type ISyntaxNode from "../../types/syntax/ISyntaxNode";
 import type TBinaryLevel from "../../types/syntax/TBinaryLevel";
@@ -56,23 +57,23 @@ class SyntaxLowering {
     const ops = ctx
       .postfixTargetOp()
       .map((op) => SyntaxLowering.postfixTargetOp(op));
-    const root: "this" | "global" | null = ctx.THIS()
-      ? "this"
-      : ctx.GLOBAL()
-        ? "global"
-        : null;
+    const root = ChainRoot.ofTarget(ctx);
     if (root === null) {
-      const head: TExpression = named
-        ? {
-            kind: "identifier",
-            name: named.getText(),
-            span: ParserUtils.getSpan({
-              start: named.symbol,
-              stop: named.symbol,
-            }),
-            written: named.getText(),
-          }
-        : SyntaxLowering.missing(ctx);
+      // The arm without a root starts with its IDENTIFIER, and recovery never invents
+      // one there: 0 of 14,888 recovered targets in a seeded run (#1949 review)
+      invariant(
+        named !== null,
+        "an assignment target without a root starts with a written name",
+      );
+      const head: TExpression = {
+        kind: "identifier",
+        name: named.getText(),
+        span: ParserUtils.getSpan({
+          start: named.symbol,
+          stop: named.symbol,
+        }),
+        written: named.getText(),
+      };
       if (ops.length === 0) return head;
       return {
         kind: "postfix",
@@ -86,6 +87,10 @@ class SyntaxLowering {
       ? {
           kind: "member",
           name: named.getText(),
+          nameSpan: ParserUtils.getSpan({
+            start: named.symbol,
+            stop: named.symbol,
+          }),
           span: ParserUtils.getSpan({
             start: named.symbol,
             stop: named.symbol,
@@ -113,7 +118,15 @@ class SyntaxLowering {
     const identifier = ctx.IDENTIFIER();
     if (identifier) {
       if (identifier.symbol.tokenIndex < 0) return { kind: "missing", ...node };
-      return { kind: "member", name: identifier.getText(), ...node };
+      return {
+        kind: "member",
+        name: identifier.getText(),
+        nameSpan: ParserUtils.getSpan({
+          start: identifier.symbol,
+          stop: identifier.symbol,
+        }),
+        ...node,
+      };
     }
     const indexes = ctx.expression().map((e) => SyntaxLowering.expression(e));
     if (indexes.length === 1) {
@@ -273,7 +286,15 @@ class SyntaxLowering {
     if (identifier) {
       // a name the parser conjured to recover was never written
       if (identifier.symbol.tokenIndex < 0) return { kind: "missing", ...node };
-      return { kind: "member", name: identifier.getText(), ...node };
+      return {
+        kind: "member",
+        name: identifier.getText(),
+        nameSpan: ParserUtils.getSpan({
+          start: identifier.symbol,
+          stop: identifier.symbol,
+        }),
+        ...node,
+      };
     }
     const indexes = ctx.expression().map((e) => SyntaxLowering.expression(e));
     if (indexes.length === 1) {

@@ -33,7 +33,7 @@ function capacityOf(ctx: IAssignmentContext): number {
 }
 
 /**
- * Emit a bounded copy into whatever `ctx.targetCtx` renders to, sized by the
+ * Emit a bounded copy into whatever the target renders to, sized by the
  * `string<N>` the target writes.
  *
  * STRING_SIMPLE, STRING_GLOBAL and STRING_THIS_MEMBER differed in exactly one

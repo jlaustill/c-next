@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import CNextSourceParser from "../CNextSourceParser";
 import * as Parser from "../grammar/CNextParser";
+import StatementLowering from "../StatementLowering";
 import SyntaxLowering from "../SyntaxLowering";
 import ConstExprLowering from "../../../utils/ConstExprLowering";
 import type TExpression from "../../../types/syntax/TExpression";
@@ -254,6 +255,16 @@ describe("SyntaxLowering on recovered trees", () => {
     (run: string) => `u32 q <- (u8) ${run};`,
     (run: string) => `u32 q <- a.${run};`,
     (run: string) => `u32 q <- a(${run};`,
+    // #1949 review: a `for` header's clauses are where recovery still builds
+    // an assignment target around a missing piece
+    (run: string) => `void f() { for (a <- 0; a < 1; ${run} +<- 1) {} }`,
+    (run: string) => `void f() { for (${run} <- 0; a < 1; a +<- 1) {} }`,
+    (run: string) => `void f() { ${run} <- 1; }`,
+    // #1950 review: statements whose required parts recovery drops
+    (run: string) => `void f() { if (${run}) { } }`,
+    (run: string) => `void f() { while (${run} }`,
+    (run: string) => `void f() { for (u8 i <- 0; ${run}) { } }`,
+    (run: string) => `void f() { ${run} }`,
   ];
 
   /** A seeded pseudo-random generator, so every run sees the same cases */
@@ -265,13 +276,24 @@ describe("SyntaxLowering on recovered trees", () => {
     };
   }
 
-  function lowerEverything(node: unknown, lowered: { count: number }): void {
-    if (node instanceof Parser.ExpressionContext) {
+  function lowerEverything(
+    node: unknown,
+    lowered: { count: number; targets: number; statements: number },
+  ): void {
+    if (node instanceof Parser.StatementContext) {
+      StatementLowering.statement(node);
+      lowered.count++;
+      lowered.statements++;
+    } else if (node instanceof Parser.ExpressionContext) {
       ConstExprLowering.lower(SyntaxLowering.expression(node));
       lowered.count++;
     } else if (node instanceof Parser.TypeContext) {
       SyntaxLowering.type(node);
       lowered.count++;
+    } else if (node instanceof Parser.AssignmentTargetContext) {
+      SyntaxLowering.assignmentTarget(node);
+      lowered.count++;
+      lowered.targets++;
     }
     for (const child of (node as { children?: unknown[] }).children ?? []) {
       lowerEverything(child, lowered);
@@ -280,7 +302,7 @@ describe("SyntaxLowering on recovered trees", () => {
 
   it("never throws, and reaches every position", () => {
     const next = random(1932);
-    const lowered = { count: 0 };
+    const lowered = { count: 0, targets: 0, statements: 0 };
     let recovered = 0;
     for (let i = 0; i < 2000; i++) {
       const length = 1 + Math.floor(next() * 6);
@@ -298,5 +320,91 @@ describe("SyntaxLowering on recovered trees", () => {
     }
     expect(recovered).toBeGreaterThan(1500);
     expect(lowered.count).toBeGreaterThan(recovered);
+    expect(lowered.targets).toBeGreaterThan(100);
+    expect(lowered.statements).toBeGreaterThan(100);
+  });
+
+  // #1950 review: each threw before statements had a `missing` kind
+  it.each([
+    "for (i <- 0; i < 3; i) { }",
+    "if () { }",
+    "u8 <- 3;",
+    "for (u8 i <- 0; ; i +<- ) { }",
+    "while (x < 3",
+    "x 5;",
+  ])("lowers the repaired statement in `%s` to a missing part", (body) => {
+    const { tree, parseErrors } = CNextSourceParser.parse(
+      `void f() { ${body} }\n`,
+    );
+    expect(parseErrors.length).toBeGreaterThan(0);
+    const block = tree.declaration()[0].functionDeclaration()!.block();
+    expect(JSON.stringify(StatementLowering.block(block))).toContain(
+      '"kind":"missing"',
+    );
+  });
+
+  /** Every assignment target in a recovered source, lowered */
+  function loweredTargets(source: string): TExpression[] {
+    const { tree, parseErrors } = CNextSourceParser.parse(`${source}\n`);
+    expect(parseErrors.length).toBeGreaterThan(0);
+    const targets: TExpression[] = [];
+    const visit = (node: unknown): void => {
+      if (node instanceof Parser.AssignmentTargetContext) {
+        targets.push(SyntaxLowering.assignmentTarget(node));
+      }
+      for (const child of (node as { children?: unknown[] }).children ?? []) {
+        visit(child);
+      }
+    };
+    visit(tree);
+    return targets;
+  }
+
+  /** The ops of a target whose head is `head`, after lowering */
+  function opKinds(target: TExpression, head: string): string[] | null {
+    if (target.kind !== "postfix") return null;
+    const primary = target.primary;
+    const named =
+      primary.kind === "root"
+        ? primary.root
+        : primary.kind === "identifier"
+          ? primary.name
+          : null;
+    return named === head ? target.ops.map((op) => op.kind) : null;
+  }
+
+  // Each source below was found by the seeded run above; each reaches one
+  // recovery branch of `assignmentTarget` / `postfixTargetOp`.
+  it.each([
+    [
+      "a name the parser invented after `this.`",
+      "void f() { for (a <- 0; a < 1; this ! . +<- 1) {} }",
+      "this",
+      ["missing"],
+    ],
+    [
+      "`this` with no `.name` at all",
+      "void f() { for (a <- 0; a < 1; this global <- b ; + +<- 1) {} }",
+      "this",
+      ["missing"],
+    ],
+    [
+      "a member name the parser invented",
+      "void f() { for (a <- 0; a < 1; a . +<- 1) {} }",
+      "a",
+      ["missing"],
+    ],
+    [
+      "a subscript with no index",
+      "void f() { for (a <- 0; a < 1; a [ +<- 1) {} }",
+      "a",
+      ["missing", "missing"],
+    ],
+  ])("lowers %s to a missing op", (_label, source, head, kinds) => {
+    const shapes = loweredTargets(source)
+      .map((target) => opKinds(target, head))
+      .filter((shape) => shape !== null);
+
+    expect(shapes).toContainEqual(kinds);
   });
 });

@@ -33,16 +33,24 @@ class AssignmentTarget {
     const { primary, ops } = target;
     if (primary.kind === "root") {
       const [first, ...rest] = ops;
+      invariant(
+        first?.kind === "member",
+        `a rooted assignment target names a member first: '${target.written}'`,
+      );
       return {
         root: primary.root,
-        identifier: first?.kind === "member" ? first.name : null,
+        identifier: first.name,
         ops: rest,
         position,
       };
     }
+    invariant(
+      primary.kind === "identifier",
+      `an assignment target without a root starts with a name: '${target.written}'`,
+    );
     return {
       root: null,
-      identifier: primary.kind === "identifier" ? primary.name : null,
+      identifier: primary.name,
       ops,
       position,
     };

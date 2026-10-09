@@ -57,7 +57,7 @@ interface IAssignmentContext {
    * The target's source line -- where ADR-044's overflow decision is recorded.
    *
    * #1318: position comes from the span, not from holding the node that had
-   * one. This is the only thing any consumer asked `targetCtx.start` for.
+   * one. This is the only thing any consumer asked the target's start for.
    */
   readonly targetLine: number | undefined;
 

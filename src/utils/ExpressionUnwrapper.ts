@@ -117,30 +117,6 @@ class ExpressionUnwrapper {
 
     return shift.additiveExpression()[0];
   }
-
-  /**
-   * Extract a simple identifier from an expression.
-   * Returns the identifier name if the expression is a simple variable
-   * reference with no postfix operators (member access, indexing).
-   * Returns null for complex expressions.
-   *
-   * Use this for cases like:
-   * - Checking if an expression is a specific variable
-   * - Parameter lookup
-   * - Simple variable references
-   */
-  static getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
-    const postfix = this.getPostfixExpression(ctx);
-    if (!postfix) return null;
-
-    const ops = postfix.postfixOp();
-    // Must have no postfix operations (no member access, no indexing)
-    if (ops.length !== 0) return null;
-
-    const primary = postfix.primaryExpression();
-    const id = primary.IDENTIFIER();
-    return id ? id.getText() : null;
-  }
 }
 
 export default ExpressionUnwrapper;

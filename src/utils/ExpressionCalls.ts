@@ -1,3 +1,4 @@
+import invariant from "./invariant";
 import type TExpression from "../types/syntax/TExpression";
 import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
 
@@ -17,6 +18,31 @@ class ExpressionCalls {
     return ExpressionCalls.children(expr).some((child) =>
       ExpressionCalls.containsCall(child),
     );
+  }
+
+  /**
+   * Whether a call is one of an expression's own operations: through its
+   * operators and unary prefixes, not into a parenthesized expression or a
+   * call's arguments (#254, #366). E0890's side-effect check and MISRA
+   * 13.5's controlling-expression check (E0702) both ask this one function.
+   */
+  static callsAtTop(expr: TExpression): boolean {
+    switch (expr.kind) {
+      case "ternary":
+        return [expr.condition, expr.whenTrue, expr.whenFalse].some((arm) =>
+          ExpressionCalls.callsAtTop(arm),
+        );
+      case "binary":
+        return expr.operands.some((operand) =>
+          ExpressionCalls.callsAtTop(operand),
+        );
+      case "unary":
+        return ExpressionCalls.callsAtTop(expr.operand);
+      case "postfix":
+        return expr.ops.some((op) => op.kind === "call");
+      default:
+        return false;
+    }
   }
 
   private static children(expr: TExpression): readonly TExpression[] {
@@ -40,8 +66,13 @@ class ExpressionCalls {
         return expr.fill === null
           ? expr.elements
           : [...expr.elements, expr.fill];
-      default:
+      case "identifier":
+      case "root":
+      case "literal":
+      case "missing":
         return [];
+      default:
+        return ExpressionCalls.unhandled(expr);
     }
   }
 
@@ -51,9 +82,20 @@ class ExpressionCalls {
         return op.indexes;
       case "call":
         return op.arguments;
-      default:
+      case "member":
+      case "missing":
         return [];
+      default:
+        return ExpressionCalls.unhandled(op);
     }
+  }
+
+  /** A new expression or op kind is a compile error here until it is walked */
+  private static unhandled(value: never): never {
+    invariant(
+      false,
+      `ExpressionCalls walks every kind: ${JSON.stringify(value)}`,
+    );
   }
 }
 

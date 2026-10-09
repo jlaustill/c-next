@@ -107,6 +107,8 @@ import functionGenerator from "./3-Render/codegen/generators/declarationGenerato
 import scopeGenerator from "./3-Render/codegen/generators/declarationGenerators/ScopeGenerator";
 import FormatUtils from "../utils/FormatUtils";
 import TypeCheckUtils from "../utils/TypeCheckUtils";
+import ExpressionShape from "../utils/ExpressionShape";
+import type IChainHead from "../types/IChainHead";
 import ExpressionCalls from "../utils/ExpressionCalls";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
 import includeGenerators from "./3-Render/codegen/generators/support/IncludeGenerator";
@@ -451,34 +453,28 @@ class CodeGenWalker {
    * variable.
    */
   private resolveSubscriptBase(
-    primary: TExpression,
-    rootIdentifier: string | undefined,
-    ops: readonly TPostfixOpSyntax[],
+    head: IChainHead,
   ): { name: string; displayName: string; opOffset: number } | undefined {
-    if (rootIdentifier) {
-      return { name: rootIdentifier, displayName: rootIdentifier, opOffset: 0 };
-    }
-
-    if (primary.kind !== "root") {
+    if (head.identifier === null) {
       return undefined;
     }
-    const prefix = primary.root;
-
-    const first = ops[0];
-    if (first?.kind !== "member") {
-      return undefined;
+    const written = head.identifier.name;
+    if (head.root === null) {
+      return { name: written, displayName: written, opOffset: 0 };
     }
-    const memberName = first.name;
-
     // `this.x` is the scope-qualified variable `Scope_x`; `global.x` is plain `x`.
     const name =
-      prefix === "this"
+      head.root === "this"
         ? QualifiedNameGenerator.forMember(
             this.host.state.currentScopePath,
-            memberName,
+            written,
           )
-        : memberName;
-    return { name, displayName: `${prefix}.${memberName}`, opOffset: 1 };
+        : written;
+    return {
+      name,
+      displayName: `${head.root}.${written}`,
+      opOffset: head.opsConsumed,
+    };
   }
 
   /**
@@ -498,11 +494,8 @@ class CodeGenWalker {
     const ops = expr.kind === "postfix" ? expr.ops : [];
     const rootIdentifier =
       primary.kind === "identifier" ? primary.name : undefined;
-    const subscriptBase = this.resolveSubscriptBase(
-      primary,
-      rootIdentifier,
-      ops,
-    );
+    const head = ExpressionShape.headOf(expr);
+    const subscriptBase = this.resolveSubscriptBase(head);
 
     // #1445 review: planned FIRST, then counted off the planned ops.
     //
@@ -519,7 +512,7 @@ class CodeGenWalker {
     const typing = this.host.state.typingContext();
     const chain = OperandTyper.chainOf(expr, typing);
     const steps = chain.steps;
-    const offset = ops.length - steps.length;
+    const offset = head.opsConsumed;
     const plannedOps = ops.map((op, i) =>
       this.planPostfixOp(op, steps[i - offset] ?? null),
     );
@@ -767,45 +760,13 @@ class CodeGenWalker {
    * Issue #1030: Extended to handle struct member access (e.g., person.name)
    */
   private isStringExpression(expr: TExpression): boolean {
-    // `written` runs from the first token to the last, as `getText` did
-    if (expr.written.startsWith('"') && expr.written.endsWith('"')) {
+    if (expr.kind === "literal" && expr.literalKind === "string") {
       return true;
     }
 
     return OperandTyper.isString(
       OperandTyper.typeOf(expr, this.host.state.typingContext()),
     );
-  }
-
-  /**
-   * The expression as a primary and its postfix operations, when it is one --
-   * no unary, binary or ternary operator at its top.
-   */
-  private static postfixView(expr: TExpression): {
-    readonly primary: TExpression;
-    readonly ops: readonly TPostfixOpSyntax[];
-  } | null {
-    switch (expr.kind) {
-      case "ternary":
-      case "binary":
-      case "unary":
-      case "missing":
-        return null;
-      case "postfix":
-        return { primary: expr.primary, ops: expr.ops };
-      default:
-        return { primary: expr, ops: [] };
-    }
-  }
-
-  private static rootName(expr: TExpression): string | null {
-    const view = CodeGenWalker.postfixView(expr);
-    return view?.primary.kind === "identifier" ? view.primary.name : null;
-  }
-
-  private static simpleIdentifier(expr: TExpression): string | null {
-    const view = CodeGenWalker.postfixView(expr);
-    return view?.ops.length === 0 ? CodeGenWalker.rootName(expr) : null;
   }
 
   private static positionOf(expr: TExpression): ISourcePosition {
@@ -850,7 +811,7 @@ class CodeGenWalker {
   private boundArgumentName(
     expr: TExpression,
   ): { readonly id: string; readonly emitted: string } | null {
-    const id = CodeGenWalker.simpleIdentifier(expr);
+    const id = ExpressionShape.simpleIdentifier(expr);
     if (id === null) return null;
     return {
       id,
@@ -879,7 +840,7 @@ class CodeGenWalker {
    */
   private nameTypeOf(expr: TExpression): TTypeInfo | undefined {
     const typing = this.host.state.typingContext();
-    if (CodeGenWalker.postfixView(expr) === null) return undefined;
+    if (ExpressionShape.postfixView(expr) === null) return undefined;
     const chain = OperandTyper.chainOf(expr, typing);
     if (chain.steps.length !== DeclaredTypeInfo.nameSteps(chain)) {
       return undefined;
@@ -902,7 +863,7 @@ class CodeGenWalker {
    */
   private isHandleArrayElement(expr: TExpression): boolean {
     const typing = this.host.state.typingContext();
-    if (CodeGenWalker.postfixView(expr) === null) return false;
+    if (ExpressionShape.postfixView(expr) === null) return false;
     const chain = OperandTyper.chainOf(expr, typing);
     const subscript = chain.steps[DeclaredTypeInfo.nameSteps(chain)];
     if (subscript?.subscript !== "array_element") return false;
@@ -1013,12 +974,21 @@ class CodeGenWalker {
           this.planReturn(statement),
         );
       case "critical":
+        // ADR-050: a critical statement for atomic multi-variable operations.
+        // #1445: the block is rendered here and the generator wraps it, so the
+        // block still renders before the wrapper's irq_wrappers effect is
+        // applied, and effect order is unchanged.
         return this.invokeGenerator(generateCriticalStatement, {
           blockCode: this.renderBlock(statement.body),
           line: statement.span.line,
         });
       case "block":
         return this.renderBlock(statement);
+      case "missing":
+        invariant(
+          false,
+          "a statement the parser repaired never reaches render -- the run stops at the parse error",
+        );
     }
   }
 
@@ -2449,10 +2419,6 @@ class CodeGenWalker {
    * ADR-029: Check if a function is used as a callback type (field type in a struct)
    */
   /**
-   * ADR-017: Check if an expression represents an integer literal or numeric type.
-   * Used to detect comparisons between enums and integers.
-   */
-  /**
    * ADR-045: Check if an expression is a string concatenation.
    *
    * #1445: the shape question is read from the lowered expression and the
@@ -2461,17 +2427,11 @@ class CodeGenWalker {
   private _getStringConcatOperands(
     expression: TExpression,
   ): IStringConcatOps | null {
-    if (
-      expression.kind !== "binary" ||
-      expression.level !== "additive" ||
-      expression.operands.length !== 2 ||
-      expression.operators[0] !== "+"
-    ) {
-      return null;
-    }
+    const operands = ExpressionShape.additionOperands(expression);
+    if (operands === null) return null;
     return StringOperationsHelper.getStringConcatOperands(
-      CodeGenWalker.stringTextOf(expression.operands[0]),
-      CodeGenWalker.stringTextOf(expression.operands[1]),
+      CodeGenWalker.stringTextOf(operands[0]),
+      CodeGenWalker.stringTextOf(operands[1]),
       this.declaredTypeAt(expression.span),
     );
   }
@@ -2484,18 +2444,11 @@ class CodeGenWalker {
    * knows whether this is a substring at all. See its comment.
    */
   private _getSubstringOperands(expression: TExpression): ISubstringOps | null {
-    if (
-      expression.kind !== "postfix" ||
-      expression.primary.kind !== "identifier" ||
-      expression.ops.length !== 1 ||
-      expression.ops[0].kind !== "subscript"
-    ) {
-      return null;
-    }
-    const indexes = expression.ops[0].indexes;
+    const subscripted = ExpressionShape.subscriptedIdentifier(expression);
+    if (subscripted === null) return null;
     return StringOperationsHelper.getSubstringOperands(
-      expression.primary.name,
-      () => indexes.map((index) => this.renderExpression(index)),
+      subscripted.name,
+      () => subscripted.indexes.map((index) => this.renderExpression(index)),
       this.declaredTypeAt(expression.span),
     );
   }
@@ -2521,7 +2474,7 @@ class CodeGenWalker {
    * Returns the type of lvalue or null if not an lvalue.
    */
   private getLvalueType(expr: TExpression): "member" | "array" | null {
-    const view = CodeGenWalker.postfixView(expr);
+    const view = ExpressionShape.postfixView(expr);
     if (!view) return null;
 
     const result = CppMemberHelper.getLastPostfixOpType(
@@ -2554,8 +2507,8 @@ class CodeGenWalker {
     if (!this.host.state.cppMode) return false;
     if (!targetParamBaseType) return false;
 
-    const view = CodeGenWalker.postfixView(expr);
-    const baseId = CodeGenWalker.rootName(expr);
+    const view = ExpressionShape.postfixView(expr);
+    const baseId = ExpressionShape.rootName(expr);
     if (!view || !baseId) return false;
 
     const ops = view.ops;
@@ -2617,7 +2570,7 @@ class CodeGenWalker {
    * Used to determine when to cast char* to uint8_t* etc.
    */
   private isStringSubscriptAccess(expr: TExpression): boolean {
-    const view = CodeGenWalker.postfixView(expr);
+    const view = ExpressionShape.postfixView(expr);
     if (!view) return false;
 
     const ops = view.ops;
@@ -2625,7 +2578,7 @@ class CodeGenWalker {
     const lastOpHasExpression =
       hasPostfixOps && ops.at(-1)!.kind === "subscript";
 
-    const baseId = CodeGenWalker.rootName(expr);
+    const baseId = ExpressionShape.rootName(expr);
     if (!baseId) return false;
 
     const typeInfo = this.host.state.declarationTypeInfo(
@@ -2657,12 +2610,12 @@ class CodeGenWalker {
   private getMemberAccessArrayStatus(
     expr: TExpression,
   ): "array" | "not-array" | "unknown" {
-    const view = CodeGenWalker.postfixView(expr);
+    const view = ExpressionShape.postfixView(expr);
     if (!view) return "not-array";
 
     if (view.ops.at(-1)?.kind !== "member") return "not-array";
 
-    const baseId = CodeGenWalker.rootName(expr);
+    const baseId = ExpressionShape.rootName(expr);
     if (!baseId || !this.rootBindsToVariable(baseId, expr)) {
       return "not-array";
     }
@@ -2883,10 +2836,17 @@ class CodeGenWalker {
         renderType: () => this.renderType(decl.type),
       };
     }
+
+    // Issue #500: check for an array BEFORE skipping -- arrays must be emitted.
+    // Both spellings count: C-style trailing dimensions and the C-Next arrayType.
     const isConst = decl.modifiers.const;
     const arrayDims = decl.dimensions;
     const arrayType = decl.type.kind === "array" ? decl.type : null;
-    const isArray = arrayDims.length > 0 || arrayType !== null;
+    const isArray = CodeGenWalker.isArrayDeclaration(decl);
+
+    // Issue #282: a private const scalar is inlined at its uses, not emitted at
+    // file scope. Issue #500 exempts arrays, which cannot be inlined. Decided
+    // before any render, so a skipped declaration registers no include.
     if (isPrivate && isConst && !isArray) {
       return { kind: "skipped" };
     }
@@ -3043,6 +3003,8 @@ class CodeGenWalker {
     dims: ReadonlyArray<TExpression | null>,
     declaration: IVariableDeclarationSyntax | null,
   ): readonly IPlannedDimension[] {
+    // #1664 box 3: an omitted size is the declaration's count, the number
+    // the `.h` states, for every declaration renderer that asks here.
     return dims.map((size) =>
       size
         ? { renderSize: () => this.renderLoweredDimension(size) }
@@ -3065,7 +3027,7 @@ class CodeGenWalker {
     if (args === null) return null;
 
     return args.map((expression) => ({
-      simpleIdentifier: CodeGenWalker.simpleIdentifier(expression),
+      simpleIdentifier: ExpressionShape.simpleIdentifier(expression),
       declared: this.nameTypeOf(expression),
       expressionType: () => this.directTypeOf(expression),
       isArray: () =>
@@ -3441,7 +3403,11 @@ class CodeGenWalker {
     return String(dimension);
   }
 
-  /** `[N][M]`, or `[]` for an omitted size */
+  /**
+   * `[N][M]`, or `[]` for an omitted size. Bug #8 folded only at file scope;
+   * #1175: a dimension is a constant wherever it is written (ADR-023: no
+   * VLAs), so it folds everywhere, by the one rule.
+   */
   private renderLoweredDimensions(
     dimensions: ReadonlyArray<TExpression | null>,
   ): string {
@@ -3555,6 +3521,11 @@ class CodeGenWalker {
     const name = decl.name;
     const type = this._inferVariableType(decl);
     this._trackLocalVariable(name);
+    // ADR-057: the identifier this declaration is EMITTED under. Computed once,
+    // here, because the string and array forms below return before the plain
+    // declaration is assembled -- a second call would be a second place
+    // deciding the same thing. Registries keep the source name; only the
+    // generated text moves.
     const emittedName = this.host.state.emittedLocalName(name);
     const stringPlan = this.planStringDecl(decl);
     if (stringPlan) {
@@ -3566,6 +3537,10 @@ class CodeGenWalker {
         isConst: decl.modifiers.const,
       };
     }
+    // Statements rather than an object literal, because the ORDER matters and
+    // an object literal's property order is not something a reader checks:
+    // the array half renders its type dimensions eagerly, and it must do so
+    // before anything the initializer renders.
     const array = this.planArrayDeclaration(decl);
     const initializer = this.planVariableInitializer(decl);
     return {
@@ -3644,7 +3619,7 @@ class CodeGenWalker {
   ): IPlannedArrayDeclaration {
     const arrayDims = decl.dimensions;
     const typeDims = decl.type.kind === "array" ? decl.type.dimensions : null;
-    if (arrayDims.length === 0 && typeDims === null) {
+    if (!CodeGenWalker.isArrayDeclaration(decl)) {
       return {
         isArray: false,
         hasEmptyDimension: false,
@@ -3659,8 +3634,11 @@ class CodeGenWalker {
     const hasEmptyDimension =
       arrayDims.includes(null) || hasEmptyArrayTypeDimension;
     const initializer = decl.initializer;
+    // #1822: the inferred path emits its one counted size as the whole suffix,
+    // which is right only for a one-dimensional array. E0892 rejects every
+    // other empty dimension in pass 2.1.
     invariant(
-      !hasEmptyDimension || (typeDims?.length ?? 0) + arrayDims.length === 1,
+      !hasEmptyDimension || CodeGenWalker.arrayRank(decl) === 1,
       `an array that omits a size is one-dimensional -- E0892 rejects '${decl.name}' in pass 2.1, before this runs`,
     );
     return {
@@ -3688,6 +3666,23 @@ class CodeGenWalker {
   }
 
   /**
+   * Issue #500: both spellings make an array -- C-style trailing dimensions
+   * and the C-Next array type. The one predicate for a local, a scope member
+   * and a file-scope variable.
+   */
+  private static isArrayDeclaration(decl: IVariableDeclarationSyntax): boolean {
+    return decl.dimensions.length > 0 || decl.type.kind === "array";
+  }
+
+  /** How many dimensions a declaration states, in both spellings together */
+  private static arrayRank(decl: IVariableDeclarationSyntax): number {
+    return (
+      (decl.type.kind === "array" ? decl.type.dimensions.length : 0) +
+      decl.dimensions.length
+    );
+  }
+
+  /**
    * #1664 box 3: what this declaration says, as 1.3 recorded it and 1.4
    * settled it -- the facts the `.h` is written from. The name binds to its
    * own declaration from the end of the name on (LexicalFrames), so asking
@@ -3708,9 +3703,7 @@ class CodeGenWalker {
    * counted (E0892), and an uncounted size is `UNRESOLVED_DIMENSION`, 0.
    */
   private countedSize(decl: IVariableDeclarationSyntax): number | null {
-    const rank =
-      (decl.type.kind === "array" ? decl.type.dimensions.length : 0) +
-      decl.dimensions.length;
+    const rank = CodeGenWalker.arrayRank(decl);
     const size = this.declaredHere(decl)?.arrayDimensions?.[0];
     return rank === 1 && size !== undefined && size > 0 ? size : null;
   }
@@ -3861,6 +3854,10 @@ class CodeGenWalker {
       kind: "array",
       elementCapacity: Number.parseInt(elementCapacity, 10),
       dimensions,
+      // #1644: the SAME call the loop above renders the declarator with. The
+      // size used to expand a fill-all must equal the size emitted in `[...]`,
+      // or the array is the declared length with the wrong contents.
+      // An omitted size is the declaration's count; a written one folds.
       declaredSize: typeDims[0]
         ? this.foldFirstDimension(typeDims)
         : this.countedSize(decl),
@@ -3970,14 +3967,14 @@ class CodeGenWalker {
    * @public
    */
   analyzeMemberChainForBitAccess(
-    targetCtx: TExpression,
+    targetExpr: TExpression,
     lastStep: IChainStep | undefined,
   ): IBitAccessAnalysis {
     // #1668 (C12): what the last subscript indexes is the typer's answer,
     // typed once with the target (`IChainBase.last`)
     return MemberChainAnalyzer.analyze(
       lastStep,
-      AssignmentTarget.parts(targetCtx).ops.map((op) => this.planTargetOp(op)),
+      AssignmentTarget.parts(targetExpr).ops.map((op) => this.planTargetOp(op)),
     );
   }
 
@@ -4028,12 +4025,12 @@ class CodeGenWalker {
    * its own width, so it has none (#1085).
    */
   private assignedValueType(
-    targetCtx: TExpression,
+    targetExpr: TExpression,
     target: IChainBase,
   ): string | null {
     if (target.last?.subscript === "array_slice") return null;
     const written = OperandTyper.typeOfTarget(
-      targetCtx,
+      targetExpr,
       this.host.state.typingContext(),
     );
     const name = written?.cType ?? written?.typeName ?? null;
@@ -4046,12 +4043,12 @@ class CodeGenWalker {
   }
 
   private generateAssignment(site: IAssignmentSyntax): string {
-    const targetCtx = site.target;
+    const targetExpr = site.target;
 
     // #1668 (C7): what the target writes, bound once -- the expected type
     // below and every classifier rule and handler read this
-    const target = this.targetDeclaration(targetCtx);
-    const expectedType = this.assignedValueType(targetCtx, target);
+    const target = this.targetDeclaration(targetExpr);
+    const expectedType = this.assignedValueType(targetExpr, target);
     // withExpectedType restores expectedType however the render exits
     const value = this.host.state.withExpectedType(expectedType, () =>
       this.renderExpression(site.value),
@@ -4073,7 +4070,7 @@ class CodeGenWalker {
     // Writing to a float invalidates its bit-shadow: the union copy is stale
     // until the next read refreshes it. Only a whole-variable assignment does
     // this -- writing THROUGH a member or an element does not rebind the float.
-    const parts = AssignmentTarget.parts(targetCtx);
+    const parts = AssignmentTarget.parts(targetExpr);
     if (parts.ops.length === 0) {
       const assignedName = parts.identifier;
       if (assignedName !== null) {
@@ -4356,7 +4353,10 @@ class CodeGenWalker {
     return {
       init: this.planForInit(statement.init),
       renderCondition: () => {
-        invariant(condition !== null, "a for header states its condition");
+        invariant(
+          condition !== null,
+          "a for header states its condition -- E0707 rejects an empty one in pass 2.1, before this runs",
+        );
         return this.renderExpression(condition);
       },
       update: update ? this.planForAssignment(update) : null,
@@ -4656,7 +4656,7 @@ class CodeGenWalker {
     invariant(expression !== null, "sizeof holds a type or an expression");
     return {
       kind: "expression",
-      simpleIdentifier: CodeGenWalker.simpleIdentifier(expression),
+      simpleIdentifier: ExpressionShape.simpleIdentifier(expression),
       hasSideEffects: ExpressionCalls.containsCall(expression),
       code: this.renderExpression(expression),
     };

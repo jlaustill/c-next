@@ -32,13 +32,17 @@ class StatementLowering {
   static statement(ctx: Parser.StatementContext): TStatement {
     const node = SyntaxLowering.node(ctx);
     const declaration = ctx.variableDeclaration();
-    if (declaration) return StatementLowering.declaration(declaration);
+    if (declaration) {
+      return StatementLowering.isWholeDeclaration(declaration)
+        ? StatementLowering.declaration(declaration)
+        : StatementLowering.missing(ctx);
+    }
     const assignment = ctx.assignmentStatement();
     if (assignment) {
-      return {
-        kind: "assignment",
-        ...StatementLowering.assignment(assignment),
-      };
+      const lowered = StatementLowering.assignmentOrNull(assignment);
+      return lowered
+        ? { kind: "assignment", ...lowered }
+        : StatementLowering.missing(ctx);
     }
     const expression = ctx.expressionStatement();
     if (expression) {
@@ -57,18 +61,60 @@ class StatementLowering {
       | Parser.ForAssignmentContext
       | Parser.ForUpdateContext,
   ): IAssignmentSyntax {
-    const operator = ctx.assignmentOperator().getText();
+    const lowered = StatementLowering.assignmentOrNull(ctx);
     invariant(
-      ASSIGNMENT_OPERATOR_SET.has(operator),
-      `'${operator}' is one of the grammar's assignment operators`,
+      lowered !== null,
+      `'${ctx.getText()}' has a target and one of the grammar's assignment operators -- only a repaired parse lacks them`,
     );
+    return lowered;
+  }
+
+  /** The assignment, or null when the parser repaired its target or operator */
+  private static assignmentOrNull(
+    ctx:
+      | Parser.AssignmentStatementContext
+      | Parser.ForAssignmentContext
+      | Parser.ForUpdateContext,
+  ): IAssignmentSyntax | null {
+    const target = ctx.assignmentTarget();
+    const operatorCtx = ctx.assignmentOperator();
+    if (!target || !operatorCtx) return null;
+    const operator = operatorCtx.getText();
+    if (!ASSIGNMENT_OPERATOR_SET.has(operator)) return null;
     return {
-      target: SyntaxLowering.assignmentTarget(ctx.assignmentTarget()),
+      target: SyntaxLowering.assignmentTarget(target),
       operator: operator as TAssignmentOperator,
-      operatorSpan: ParserUtils.getSpan(ctx.assignmentOperator()),
+      operatorSpan: ParserUtils.getSpan(operatorCtx),
       value: StatementLowering.expressionOf(ctx),
       ...SyntaxLowering.node(ctx),
     };
+  }
+
+  /** A declaration with its type and a name the parser did not invent */
+  private static isWholeDeclaration(ctx: {
+    type(): Parser.TypeContext | null;
+    IDENTIFIER(): { readonly symbol: { readonly tokenIndex: number } } | null;
+  }): boolean {
+    const identifier = ctx.IDENTIFIER();
+    return (
+      ctx.type() !== null &&
+      identifier !== null &&
+      identifier.symbol.tokenIndex >= 0
+    );
+  }
+
+  private static missing(ctx: ParserRuleContext): TStatement {
+    return { kind: "missing", ...SyntaxLowering.node(ctx) };
+  }
+
+  /** A required statement child; a repaired parse may lack it */
+  private static statementOrMissing(
+    child: Parser.StatementContext | null | undefined,
+    parent: ParserRuleContext,
+  ): TStatement {
+    return child
+      ? StatementLowering.statement(child)
+      : StatementLowering.missing(parent);
   }
 
   static variableDeclaration(
@@ -137,7 +183,7 @@ class StatementLowering {
       return {
         kind: "if",
         condition: StatementLowering.expressionOf(ifStatement),
-        whenTrue: StatementLowering.statement(whenTrue),
+        whenTrue: StatementLowering.statementOrMissing(whenTrue, ifStatement),
         whenFalse: whenFalse ? StatementLowering.statement(whenFalse) : null,
         ...node,
       };
@@ -147,12 +193,16 @@ class StatementLowering {
       return {
         kind: "while",
         condition: StatementLowering.expressionOf(whileStatement),
-        body: StatementLowering.statement(whileStatement.statement()),
+        body: StatementLowering.statementOrMissing(
+          whileStatement.statement(),
+          whileStatement,
+        ),
         ...node,
       };
     }
     const doWhile = ctx.doWhileStatement();
     if (doWhile) {
+      if (!doWhile.block()) return StatementLowering.missing(ctx);
       return {
         kind: "doWhile",
         body: StatementLowering.block(doWhile.block()),
@@ -164,6 +214,7 @@ class StatementLowering {
     if (forStatement) return StatementLowering.forLoop(forStatement, ctx);
     const forever = ctx.foreverStatement();
     if (forever) {
+      if (!forever.block()) return StatementLowering.missing(ctx);
       return {
         kind: "forever",
         body: StatementLowering.block(forever.block()),
@@ -190,6 +241,7 @@ class StatementLowering {
     const node = SyntaxLowering.node(ctx);
     const critical = ctx.criticalStatement();
     if (critical) {
+      if (!critical.block()) return StatementLowering.missing(ctx);
       return {
         kind: "critical",
         body: StatementLowering.block(critical.block()),
@@ -197,11 +249,10 @@ class StatementLowering {
       };
     }
     const block = ctx.block();
+    if (!block) return StatementLowering.missing(ctx);
     return {
       kind: "block",
-      statements: block
-        ? block.statement().map((s) => StatementLowering.statement(s))
-        : [],
+      statements: block.statement().map((s) => StatementLowering.statement(s)),
       ...node,
     };
   }
@@ -210,31 +261,41 @@ class StatementLowering {
     ctx: Parser.ForStatementContext,
     statement: Parser.StatementContext,
   ): TStatement {
-    const update = ctx.forUpdate();
+    const init = StatementLowering.forInitOf(ctx.forInit());
+    const updateCtx = ctx.forUpdate();
+    const update = updateCtx
+      ? StatementLowering.assignmentOrNull(updateCtx)
+      : null;
+    if (init === undefined || (updateCtx && update === null)) {
+      return StatementLowering.missing(statement);
+    }
     return {
       kind: "for",
-      init: StatementLowering.forInitOf(ctx.forInit()),
+      init,
       condition: StatementLowering.optionalExpression(ctx.expression()),
-      update: update ? StatementLowering.assignment(update) : null,
-      body: StatementLowering.statement(ctx.statement()),
+      update,
+      body: StatementLowering.statementOrMissing(ctx.statement(), ctx),
       ...SyntaxLowering.node(statement),
     };
   }
 
+  /** The for header's init; undefined when the parser repaired it */
   private static forInitOf(
     init: Parser.ForInitContext | null,
-  ): Extract<TStatement, { kind: "for" }>["init"] {
+  ): Extract<TStatement, { kind: "for" }>["init"] | undefined {
     const declaration = init?.forVarDecl();
     if (declaration) {
-      return {
-        kind: "variableDeclaration",
-        ...StatementLowering.variableDeclaration(declaration),
-      };
+      return StatementLowering.isWholeDeclaration(declaration)
+        ? {
+            kind: "variableDeclaration",
+            ...StatementLowering.variableDeclaration(declaration),
+          }
+        : undefined;
     }
     const assignment = init?.forAssignment();
-    return assignment
-      ? { kind: "assignment", ...StatementLowering.assignment(assignment) }
-      : null;
+    if (!assignment) return null;
+    const lowered = StatementLowering.assignmentOrNull(assignment);
+    return lowered ? { kind: "assignment", ...lowered } : undefined;
   }
 
   private static switchOf(
@@ -242,6 +303,12 @@ class StatementLowering {
     statement: Parser.StatementContext,
   ): TStatement {
     const defaultCase = ctx.defaultCase();
+    if (
+      ctx.switchCase().some((switchCase) => !switchCase.block()) ||
+      (defaultCase && !defaultCase.block())
+    ) {
+      return StatementLowering.missing(statement);
+    }
     return {
       kind: "switch",
       subject: StatementLowering.expressionOf(ctx),
