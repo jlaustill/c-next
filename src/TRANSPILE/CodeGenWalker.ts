@@ -62,6 +62,7 @@ import controlFlowGenerators from "./3-Render/codegen/generators/statements/Cont
 import IPlannedFor from "./3-Render/codegen/types/IPlannedFor";
 import IPlannedForAssignment from "./3-Render/codegen/types/IPlannedForAssignment";
 import type IAssignmentSyntax from "../types/syntax/IAssignmentSyntax";
+import type IVariableDeclarationSyntax from "../types/syntax/IVariableDeclarationSyntax";
 import AssignmentTarget from "../utils/AssignmentTarget";
 import StatementLowering from "../PARSE/2-Parse/StatementLowering";
 import IPlannedForVarDecl from "./3-Render/codegen/types/IPlannedForVarDecl";
@@ -1359,7 +1360,11 @@ class CodeGenWalker {
    * A fifth declaration site should call this rather than repeat the pairing.
    */
   generateDeclaredType(typeCtx: Parser.TypeContext): string {
-    const declared = this.generateType(typeCtx);
+    return this.renderDeclaredType(SyntaxLowering.type(typeCtx));
+  }
+
+  private renderDeclaredType(type: TTypeSyntax): string {
+    const declared = this.renderType(type);
     return this.host.getCallbackTypedefName(declared) ?? declared;
   }
 
@@ -3748,18 +3753,33 @@ class CodeGenWalker {
    * E0910).
    */
   private renderDimension(expression: Parser.ExpressionContext): string {
+    return this.renderLoweredDimension(SyntaxLowering.expression(expression));
+  }
+
+  private renderLoweredDimension(expression: TExpression): string {
     // ADR-036: a dimension is a constant expression in every context, so a
     // fixture occupies the matrix cell it is written in
-    AdrProvenance.record("036", expression.start?.line);
+    AdrProvenance.record("036", expression.span.line);
     const dimension = ConstantFold.settled(
-      ConstExprLowering.lower(SyntaxLowering.expression(expression)),
+      ConstExprLowering.lower(expression),
       dimensionEvalOptions(this.transpileState),
     );
     invariant(
       dimension !== null,
-      `2.1 rejects a dimension with no value (E0909, E0910) before render: '${expression.getText()}'`,
+      `2.1 rejects a dimension with no value (E0909, E0910) before render: '${expression.written}'`,
     );
     return String(dimension);
+  }
+
+  /** `[N][M]`, or `[]` for an omitted size */
+  private renderLoweredDimensions(
+    dimensions: ReadonlyArray<TExpression | null>,
+  ): string {
+    return dimensions
+      .map((dimension) =>
+        dimension ? `[${this.renderLoweredDimension(dimension)}]` : "[]",
+      )
+      .join("");
   }
 
   /** A dimension's value, by the one evaluator; undefined when it has none */
@@ -4744,29 +4764,27 @@ class CodeGenWalker {
    * what yields the EMITTED name (ADR-057), and an initializer rendered ahead
    * of it would resolve the loop variable's own name against the outer scope.
    */
-  private planForVarDecl(ctx: Parser.ForVarDeclContext): IPlannedForVarDecl {
+  private planForVarDecl(decl: IVariableDeclarationSyntax): IPlannedForVarDecl {
     // Issue #696: Use shared modifier builder
-    const modifiers = VariableModifierBuilder.buildSimple(
-      StatementLowering.variableDeclaration(ctx).modifiers,
-    );
+    const modifiers = VariableModifierBuilder.buildSimple(decl.modifiers);
     // #1484: a `for` init declares a variable like any other, including one
     // typed by an ADR-029 function-as-type.
-    const typeName = this.generateDeclaredType(ctx.type());
-    const arrayDims = ctx.arrayDimension();
-    const initCtx = ctx.expression();
-
+    const typeName = this.renderDeclaredType(decl.type);
+    const initializer = decl.initializer;
     return {
       atomic: modifiers.atomic,
       volatile: modifiers.volatile,
       typeName,
-      declaredName: ctx.IDENTIFIER().getText(),
+      declaredName: decl.name,
       renderArrayDimensions:
-        arrayDims.length > 0
-          ? () => this.generateArrayDimensions(arrayDims)
+        decl.dimensions.length > 0
+          ? () => this.renderLoweredDimensions(decl.dimensions)
           : null,
-      renderInitializer: initCtx
+      renderInitializer: initializer
         ? (expectedType) =>
-            this.generateExpressionWithExpectedType(initCtx, expectedType)
+            this.host.state.withExpectedType(expectedType, () =>
+              this.renderExpression(initializer),
+            )
         : null,
     };
   }
@@ -4818,7 +4836,12 @@ class CodeGenWalker {
   private planForInit(ctx: Parser.ForInitContext | null): IPlannedFor["init"] {
     const varDecl = ctx?.forVarDecl();
     if (varDecl) {
-      return { kind: "varDecl", plan: this.planForVarDecl(varDecl) };
+      return {
+        kind: "varDecl",
+        plan: this.planForVarDecl(
+          StatementLowering.variableDeclaration(varDecl),
+        ),
+      };
     }
 
     const assignment = ctx?.forAssignment();
