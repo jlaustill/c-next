@@ -8,8 +8,8 @@
  *
  * ## It renders a plan, not a type context (#1445)
  *
- * The six type alternatives are classified once, by `TypeBinding` -- 1.3
- * Declare's one ladder, whose header already named this helper as one of the
+ * The six type alternatives are classified once, by `TypeNameLadder` -- the
+ * one ladder every pass asks, whose header already named this helper as one of the
  * seven it was meant to collapse. This module received `ITypeAccessors` and
  * walked them again, so the ladder was still standing in two places and the
  * two agreed only because nothing had changed either since #1285.
@@ -17,13 +17,13 @@
  * Three methods went with it. `generateScopedType`, `generateGlobalType` and
  * `generateQualifiedType` had no caller outside that ladder and no caller
  * outside this file's TESTS, which is why knip could not report them (#1418):
- * a test counts as a user. Their decisions are `TypeBinding`'s now -- and were
+ * a test counts as a user. Their decisions are `TypeNameLadder`'s now -- and were
  * already identical, `forMember(path, name)` being a one-line call to the
  * `ScopeUtils.qualifyInScope` that ladder uses.
  *
  * What is left here is the part that really is 2.3's: ADR-046's `cstring`,
  * the `struct` keyword C needs for a tag with no typedef, `TYPE_MAP`, and
- * `char` for a bounded string. `TypeBinding` answers those differently on
+ * `char` for a bounded string. `TypeNameLadder` answers those differently on
  * purpose -- it yields `string<32>` where this yields `char` -- which is why
  * the plan keeps them as separate fields instead of folding them into the
  * union.
@@ -111,7 +111,7 @@ class TypeGenerationHelper {
   }
 
   /**
-   * Render a named type from the branch `TypeBinding` classified.
+   * Render a named type from the branch `TypeNameLadder` classified.
    *
    * The four branches are the same four that ladder reports, and three of them
    * are its name verbatim: `this.T` qualified against the scope chain,

@@ -7,7 +7,7 @@
  * to record -- ADR-057 resolves from the parse tree, so the written form is the
  * input, not the output.
  *
- * #1445: lifted out of `TypeBinding` so a pass that must not name a parse type
+ * #1445: lifted out of the ladder (now `utils/TypeNameLadder`) so a pass that must not name a parse type
  * can still receive the ladder's answer. It names none itself, which is what
  * lets 2.3 Render take this instead of the accessors it used to be handed.
  */

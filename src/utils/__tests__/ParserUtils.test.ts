@@ -4,8 +4,6 @@
  */
 import { describe, it, expect } from "vitest";
 import ParserUtils from "../ParserUtils";
-import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 
 describe("ParserUtils", () => {
   describe("getPosition", () => {
@@ -101,78 +99,6 @@ describe("ParserUtils", () => {
       const pos = ParserUtils.getPosition(ctx);
       expect(pos.line).toBe(0);
       expect(pos.column).toBe(0);
-    });
-  });
-
-  describe("parseErrorLocation", () => {
-    it.each([
-      [
-        "should extract line:column prefix from error message",
-        "8:4 Error: Cannot assign u32 to u8 (narrowing)",
-        8,
-        4,
-        "Error: Cannot assign u32 to u8 (narrowing)",
-      ],
-      ["should handle line 1 column 0", "1:0 Some error", 1, 0, "Some error"],
-      [
-        "should handle large line numbers",
-        "999:42 Overflow at boundary",
-        999,
-        42,
-        "Overflow at boundary",
-      ],
-    ])("%s", (_label, source, line, column, message) => {
-      const result = ParserUtils.parseErrorLocation(source);
-      expect(result.line).toBe(line);
-      expect(result.column).toBe(column);
-      expect(result.message).toBe(message);
-    });
-
-    it("should default to line 1 column 0 when no prefix found", () => {
-      const result = ParserUtils.parseErrorLocation(
-        "Error: something went wrong",
-      );
-      expect(result.line).toBe(1);
-      expect(result.column).toBe(0);
-      expect(result.message).toBe("Error: something went wrong");
-    });
-
-    it.each([
-      ["should default for empty string", "", ""],
-      [
-        "should not match non-numeric prefix",
-        "abc:def some error",
-        "abc:def some error",
-      ],
-      ["should not match if no space after column", "8:4", "8:4"],
-    ])("%s", (_label, source, expected) => {
-      const result = ParserUtils.parseErrorLocation(source);
-      expect(result.line).toBe(1);
-      expect(result.column).toBe(0);
-      expect(result.message).toBe(expected);
-    });
-
-    it("should preserve full message content after prefix", () => {
-      const result = ParserUtils.parseErrorLocation(
-        "5:10 Error: Use bit indexing: value[0, 8]",
-      );
-      expect(result.line).toBe(5);
-      expect(result.column).toBe(10);
-      expect(result.message).toBe("Error: Use bit indexing: value[0, 8]");
-    });
-
-    it("should not match numeric line with non-numeric column", () => {
-      const result = ParserUtils.parseErrorLocation("8:abc some error");
-      expect(result.line).toBe(1);
-      expect(result.column).toBe(0);
-      expect(result.message).toBe("8:abc some error");
-    });
-
-    it("should not match when colon is at position 0", () => {
-      const result = ParserUtils.parseErrorLocation(":4 some error");
-      expect(result.line).toBe(1);
-      expect(result.column).toBe(0);
-      expect(result.message).toBe(":4 some error");
     });
   });
 
@@ -306,68 +232,6 @@ describe("ParserUtils", () => {
       // member with no start token must not land on the start of the file.
       const span = ParserUtils.getSpanOr({}, FALLBACK);
       expect([span.line, span.column]).not.toEqual([0, 0]);
-    });
-  });
-
-  /**
-   * Helper to parse a function declaration and get its parameter list
-   */
-  function parseFunctionDeclaration(source: string): {
-    name: string;
-    paramList: Parser.ParameterListContext | null;
-  } {
-    const { tree, parseErrors: errors } = CNextSourceParser.parse(source);
-
-    if (errors.length > 0) {
-      throw new Error(
-        `Parse failed: ${errors.map((e) => e.message).join(", ")}`,
-      );
-    }
-
-    for (const decl of tree.declaration()) {
-      const funcDecl = decl.functionDeclaration();
-      if (funcDecl) {
-        return {
-          name: funcDecl.IDENTIFIER().getText(),
-          paramList: funcDecl.parameterList() ?? null,
-        };
-      }
-    }
-
-    throw new Error("Could not find function declaration in parsed tree");
-  }
-
-  describe("isMainFunctionWithArgs", () => {
-    it.each([
-      [
-        "returns true for main with string args[]",
-        "void main(string args[]) {}",
-      ],
-      ["returns true for main with u8 args[][]", "void main(u8 args[][]) {}"],
-      ["returns true for main with i8 args[][]", "void main(i8 args[][]) {}"],
-    ])("%s", (_label, source) => {
-      const { name, paramList } = parseFunctionDeclaration(source);
-      expect(ParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(true);
-    });
-
-    it("returns false for main with no parameters", () => {
-      const { name, paramList } = parseFunctionDeclaration("void main() {}");
-      expect(ParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(false);
-    });
-
-    it.each([
-      ["returns false for non-main function", "void foo(string args[]) {}"],
-      [
-        "returns false for main with wrong parameter type",
-        "void main(u32 count) {}",
-      ],
-      [
-        "returns false for main with multiple parameters",
-        "void main(string args[], u32 count) {}",
-      ],
-    ])("%s", (_label, source) => {
-      const { name, paramList } = parseFunctionDeclaration(source);
-      expect(ParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(false);
     });
   });
 });

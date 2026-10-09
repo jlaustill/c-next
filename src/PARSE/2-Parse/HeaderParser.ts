@@ -12,6 +12,9 @@ import { CLexer } from "./c/grammar/CLexer";
 import { CParser, CompilationUnitContext } from "./c/grammar/CParser";
 import { CPP14Lexer } from "./cpp/grammar/CPP14Lexer";
 import { CPP14Parser, TranslationUnitContext } from "./cpp/grammar/CPP14Parser";
+import EHeaderLanguage from "../1-Discover/types/EHeaderLanguage";
+import type IHeaderSource from "../1-Discover/types/IHeaderSource";
+import type TParsedHeader from "./types/TParsedHeader";
 
 /**
  * Result of parsing a C header
@@ -33,6 +36,27 @@ interface ICppParseResult {
  * Parses C and C++ header files
  */
 class HeaderParser {
+  /**
+   * One header, as 1.1 handed it over: its text, parsed by the parser its
+   * language names (#208, #1844). Nothing here judges the text again.
+   */
+  static parse(source: IHeaderSource): TParsedHeader {
+    switch (source.language) {
+      case EHeaderLanguage.Assembler:
+        return { language: EHeaderLanguage.Assembler };
+      case EHeaderLanguage.Cpp:
+        return {
+          language: EHeaderLanguage.Cpp,
+          tree: HeaderParser.parseCpp(source.text).tree,
+        };
+      case EHeaderLanguage.C:
+        return {
+          language: EHeaderLanguage.C,
+          tree: HeaderParser.parseC(source.text).tree,
+        };
+    }
+  }
+
   /**
    * Parse a C header file
    *

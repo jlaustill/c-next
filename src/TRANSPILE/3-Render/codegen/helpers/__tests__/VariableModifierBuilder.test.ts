@@ -9,9 +9,9 @@ describe("VariableModifierBuilder", () => {
   describe("build", () => {
     it("returns empty modifiers when no modifiers present", () => {
       const ctx = {
-        constModifier: () => null,
-        atomicModifier: () => null,
-        volatileModifier: () => null,
+        const: false,
+        atomic: false,
+        volatile: false,
       };
 
       const result = VariableModifierBuilder.build(ctx, true, false, C_RUN);
@@ -24,9 +24,9 @@ describe("VariableModifierBuilder", () => {
 
     it("returns const modifier when present", () => {
       const ctx = {
-        constModifier: () => ({}),
-        atomicModifier: () => null,
-        volatileModifier: () => null,
+        const: true,
+        atomic: false,
+        volatile: false,
       };
 
       const result = VariableModifierBuilder.build(ctx, true, false, C_RUN);
@@ -36,9 +36,9 @@ describe("VariableModifierBuilder", () => {
 
     it("returns atomic as volatile when present", () => {
       const ctx = {
-        constModifier: () => null,
-        atomicModifier: () => ({}),
-        volatileModifier: () => null,
+        const: false,
+        atomic: true,
+        volatile: false,
       };
 
       const result = VariableModifierBuilder.build(ctx, true, false, C_RUN);
@@ -48,9 +48,9 @@ describe("VariableModifierBuilder", () => {
 
     it("returns volatile modifier when present", () => {
       const ctx = {
-        constModifier: () => null,
-        atomicModifier: () => null,
-        volatileModifier: () => ({}),
+        const: false,
+        atomic: false,
+        volatile: true,
       };
 
       const result = VariableModifierBuilder.build(ctx, true, false, C_RUN);
@@ -60,9 +60,9 @@ describe("VariableModifierBuilder", () => {
 
     it("returns extern for const at file scope (declaration without initializer, C mode)", () => {
       const ctx = {
-        constModifier: () => ({}),
-        atomicModifier: () => null,
-        volatileModifier: () => null,
+        const: true,
+        atomic: false,
+        volatile: false,
       };
 
       // Declaration (no initializer) in C mode - should have extern
@@ -76,9 +76,9 @@ describe("VariableModifierBuilder", () => {
       // When a variable has an initializer, it's a DEFINITION, not a declaration.
       // The extern declaration comes from the header; the .c file should not duplicate it.
       const ctx = {
-        constModifier: () => ({}),
-        atomicModifier: () => null,
-        volatileModifier: () => null,
+        const: true,
+        atomic: false,
+        volatile: false,
       };
 
       // Definition (has initializer) in C mode - should NOT have extern
@@ -91,9 +91,9 @@ describe("VariableModifierBuilder", () => {
       // In C++, const at file scope has internal linkage by default.
       // extern is needed for cross-file access, even for definitions.
       const ctx = {
-        constModifier: () => ({}),
-        atomicModifier: () => null,
-        volatileModifier: () => null,
+        const: true,
+        atomic: false,
+        volatile: false,
       };
 
       // Definition (has initializer) in C++ mode - SHOULD have extern for external linkage
@@ -104,9 +104,9 @@ describe("VariableModifierBuilder", () => {
 
     it("does not return extern for const inside function body", () => {
       const ctx = {
-        constModifier: () => ({}),
-        atomicModifier: () => null,
-        volatileModifier: () => null,
+        const: true,
+        atomic: false,
+        volatile: false,
       };
 
       const result = VariableModifierBuilder.build(ctx, true, false, C_RUN);
@@ -116,10 +116,9 @@ describe("VariableModifierBuilder", () => {
 
     it("throws error when both atomic and volatile are specified", () => {
       const ctx = {
-        constModifier: () => null,
-        atomicModifier: () => ({}),
-        volatileModifier: () => ({}),
-        start: { line: 42 },
+        const: false,
+        atomic: true,
+        volatile: true,
       };
 
       expect(() =>
@@ -141,9 +140,9 @@ describe("VariableModifierBuilder", () => {
   describe("buildSimple", () => {
     it("returns only atomic and volatile modifiers", () => {
       const ctx = {
-        constModifier: () => ({}),
-        atomicModifier: () => ({}),
-        volatileModifier: () => null,
+        const: true,
+        atomic: true,
+        volatile: false,
       };
 
       const result = VariableModifierBuilder.buildSimple(ctx);

@@ -1,11 +1,9 @@
 /**
- * Utility class for analyzing literal values in the parse tree.
+ * Utility class for analyzing literal values from their written text.
  *
  * Extracted from DivisionByZeroAnalyzer and FloatModuloAnalyzer
  * to eliminate duplicate literal checking code.
  */
-
-import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 
 /**
  * A float literal's shape as the grammar spells one: digits, an optional
@@ -19,17 +17,6 @@ const FLOAT_LITERAL = /^\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?:[fF](32|64))?$/;
  * Static utility methods for literal analysis
  */
 class LiteralUtils {
-  /**
-   * Check if a literal represents zero, in any C-Next literal format
-   * (decimal, hex, binary, float, each with or without a suffix).
-   *
-   * @param ctx - The literal context from the parse tree
-   * @returns true if the literal is zero
-   */
-  static isZero(ctx: Parser.LiteralContext): boolean {
-    return LiteralUtils.isZeroText(ctx.getText());
-  }
-
   /**
    * Whether a numeric literal's text is zero, by its VALUE rather than its
    * spelling -- for a node's text, and for a const's initializer, which

@@ -4,6 +4,7 @@ import type * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import type IComment from "./IComment";
 import type ITargetDirective from "./ITargetDirective";
 import type ITranspileError from "./ITranspileError";
+import type IProgramSyntax from "./syntax/IProgramSyntax";
 
 /**
  * What 1.2 Parse produces for one file: syntax, and nothing derived from it.
@@ -27,14 +28,13 @@ import type ITranspileError from "./ITranspileError";
  * A pass re-deriving a fact about the PARSE is what the lifetime axis forbids,
  * so it is computed once, here, by the pass that owns it.
  *
- * What did NOT move, and is not the same question: the render layer holds ONE
- * `CommentScanner` (built in `CodeGenerator`, passed into `CommentUtils`) and
- * asks it `getCommentsBefore` / `getCommentsAfter` to re-attach comments to
- * generated declarations. Those are queries about a token INDEX, not about the
- * file, and this field cannot answer them. An earlier draft of this comment
- * called that "two more derivations" and counted three in total; it is one
- * instance answering two positional queries, and the whole-file scan it was
- * being added to was only ever done once.
+ * What did NOT move, and is not the same question: 1.2 holds ONE
+ * `CommentScanner` per parse and `ProgramLowering` asks it `getCommentsBefore`
+ * to attach each item's leading comments to `program` (#1932). That is a query
+ * about a token INDEX, not about the file, and this field cannot answer it.
+ * An earlier draft of this comment called that "two more derivations" and
+ * counted three in total; it was one instance answering positional queries,
+ * and the whole-file scan it was being added to was only ever done once.
  *
  * ## Parse errors are carried, not returned beside it
  *
@@ -64,12 +64,21 @@ interface IParsedFile {
    * OF the parse, because the token stream it walks is this artifact's own.
    *
    * Each entry carries `tokenIndex`. Nothing reads it today: the positional
-   * question ("which comments precede THIS token") is answered by the render
-   * layer's `CommentScanner` off the token stream, and an index-ordered array
+   * question ("which comments precede THIS token") is answered in 1.2 by
+   * `ProgramLowering`, which asks the parse's `CommentScanner` while it lowers
+   * each item into `program` (see above), and an index-ordered array
    * is not obviously the better answer. It is recorded because 1.2 is the
    * pass that can see it for free, not because a consumer was waiting.
    */
   readonly comments: readonly IComment[];
+  /**
+   * The file as plain data (#1932): what passes after 2.1 read instead of
+   * `tree`. Lowered by 1.2 on parse, not on first read, so it exists before
+   * the tree is released at the end of 2.1. Meaningful only when `parseErrors` is empty -- a repaired tree's
+   * invented names (`<missing IDENTIFIER>`) pass through as names, and the
+   * run stops at the parse error before anything reads this.
+   */
+  readonly program: IProgramSyntax;
 
   /**
    * The file's `#pragma` lines as plain data (ADR-049), for 1.4 to settle the

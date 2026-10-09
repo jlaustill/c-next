@@ -40,6 +40,8 @@
  * change on code the corpus treats as valid.
  */
 
+import MainSignature from "../../utils/MainSignature";
+import ProgramLowering from "../../PARSE/2-Parse/ProgramLowering";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
@@ -145,9 +147,9 @@ class ArrayDeclarationListener extends CNextListener {
     const fn = ctx.parent?.parent;
     if (
       fn instanceof Parser.FunctionDeclarationContext &&
-      ParserUtils.isMainFunctionWithArgs(
+      MainSignature.takesArgs(
         fn.IDENTIFIER().getText(),
-        fn.parameterList(),
+        ProgramLowering.parameters(fn.parameterList()),
       )
     ) {
       return;

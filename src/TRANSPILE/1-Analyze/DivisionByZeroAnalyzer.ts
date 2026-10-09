@@ -88,7 +88,7 @@ class DivisionByZeroListener extends CNextListener {
     // Check if it's a literal
     const literal = primaryExpr.literal();
     if (literal) {
-      return LiteralUtils.isZero(literal);
+      return LiteralUtils.isZeroText(literal.getText());
     }
 
     // A const that is zero where it is used

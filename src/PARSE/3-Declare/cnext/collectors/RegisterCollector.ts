@@ -64,7 +64,7 @@ class RegisterCollector {
       // Is the member type a bitmap? ONE key, the one the ladder produced.
       //
       // ADR-057: "Qualify from the parse tree, never from a resolved name."
-      // `typeName` has already been through the single TypeBinding ladder
+      // `typeName` has already been through the single TypeNameLadder
       // above, which qualified it if and only if the syntax and the scope
       // called for it. Re-qualifying it here was a SECOND qualification
       // decision taken on an already-resolved name -- and by that point

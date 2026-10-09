@@ -663,7 +663,7 @@ E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees 
 - **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` — numbers for resolved constants, strings for C macros
 - **What an analyzer may read is `IAnalysisContext`, and nothing else.** #1456
   made it a parameter: `symbols` (this file's view), `program` (1.4's artifact),
-  `symbolTable`, `reachesForeignHeader`, and `sourceFile`. `Transpiler._analyzeFile` builds it
+  `symbolTable`, `reachesForeignHeader`, and `sourceFile`. `Transpiler._analysisInputs` builds it
   from artifacts settled before 2.1 begins, and
   `2-1-analyze-reads-no-later-pass` (`error`, `reachable: true`) makes an
   analyzer that reaches `TranspileState` fail the **`lint`** job — through a

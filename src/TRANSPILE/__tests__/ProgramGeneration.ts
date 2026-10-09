@@ -7,6 +7,7 @@ import TargetResolver from "../../cli/TargetResolver";
 import invariant from "../../utils/invariant";
 import type CodeGenWalker from "../CodeGenWalker";
 import type ITargetDescription from "../../types/ITargetDescription";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
 
 /**
@@ -25,6 +26,9 @@ import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
  * and `CodeGenWalker.coverage.test` each carried a verbatim copy of this, and
  * neither gave the program a target, so the first C call the typer met threw.
  *
+ * The lowered program is the one `CNextSourceParser.parse` produced, as in
+ * production: 1.2 lowers once, so this helper lowers nothing itself.
+ *
  * #1428: the program also carries the run's mode, which codegen reads from it
  * and from nowhere else. A test has no 1.1 to detect one, so it states it:
  * `cppMode` is required here, and nothing falls back to "C".
@@ -35,7 +39,7 @@ import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
  * as an orchestrator that names none would.
  */
 type ITestGenerateOptions = Omit<
-  Parameters<CodeGenWalker["generate"]>[2],
+  Parameters<CodeGenWalker["generate"]>[1],
   "targetDescription"
 > & {
   readonly targetDescription?: ITargetDescription;
@@ -46,7 +50,7 @@ class ProgramGeneration {
   static generate(
     generator: CodeGenWalker,
     tree: Parser.ProgramContext,
-    tokenStream: Parameters<CodeGenWalker["generate"]>[1],
+    program: IProgramSyntax,
     options: ITestGenerateOptions,
     registry: SymbolRegistry,
   ): ReturnType<CodeGenWalker["generate"]> {
@@ -71,7 +75,7 @@ class ProgramGeneration {
       },
     });
 
-    return generator.generate(tree, tokenStream, {
+    return generator.generate(program, {
       ...options,
       targetDescription,
     });

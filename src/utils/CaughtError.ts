@@ -1,3 +1,6 @@
+import type ITranspileError from "../types/ITranspileError";
+import ErrorLocation from "./ErrorLocation";
+
 /**
  * The one reading of a value a `catch` received. JavaScript can throw anything,
  * so an `Error` gives its message and any other value its `String` form (#1896).
@@ -19,6 +22,21 @@ class CaughtError {
    */
   static isDiagnostic(error: unknown): boolean {
     return error instanceof Error && /^E\d{4}: /.test(error.message);
+  }
+
+  /**
+   * A thrown failure as the diagnostic every pass reports it as, at the
+   * location its message carries. One decision for the host and for
+   * `TreePasses` (#1932), so changing the wording means editing one place.
+   */
+  static asTranspileError(error: unknown): ITranspileError {
+    const parsed = ErrorLocation.parse(CaughtError.messageOf(error));
+    return {
+      line: parsed.line,
+      column: parsed.column,
+      message: `Code generation failed: ${parsed.message}`,
+      severity: "error",
+    };
   }
 }
 

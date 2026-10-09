@@ -29,7 +29,9 @@
  */
 import { describe, it, expect } from "vitest";
 import {
+  Node,
   Project,
+  SyntaxKind,
   type ClassDeclaration,
   type ParameterDeclaration,
   type PropertyDeclaration,
@@ -101,15 +103,12 @@ function reachesParseNode(
   }
 
   // What a callable HANDS BACK. This is the difference between a thunk and a
-  // re-export, and it is the whole reason these artifacts are legal.
-  // `IAssignmentContext` carries eight functions that close over
-  // `Parser.AssignmentTargetContext` and friends, and `ICodeGenApi` takes parse
-  // nodes as `unknown`; a consumer therefore RETAINS a tree for the duration of
-  // a render. But every one returns `string`, `IBitAccessAnalysis`,
-  // `number | undefined` -- a value, never a node -- so no later pass can
-  // OBTAIN a parse node from an artifact and walk it. Retention for the length
-  // of the render is the lifetime the design asks for; handing the node back is
-  // what box 2 forbids, and only this check can tell the two apart.
+  // re-export. A closure's captures are invisible to the type checker, so what
+  // this can check is the return type: a callable returning `string`,
+  // `IBitAccessAnalysis` or `number | undefined` hands back a value, never a
+  // node, so no later pass can OBTAIN a parse node from it and walk it. Since
+  // #1950 the closures in `IAssignmentContext` capture plain `TExpression`s, not
+  // parser contexts; this is what catches one that starts returning a node.
   try {
     for (const sig of type.getCallSignatures())
       if (reachesParseNode(sig.getReturnType(), depth + 1, seen)) return true;
@@ -156,8 +155,9 @@ const ARTIFACTS: ReadonlyArray<readonly [string, string]> = [
   ["src/PARSE/4-Resolve/VisibleSymbols.ts", "VisibleSymbols"],
   ["src/PARSE/3-Declare/SymbolTable.ts", "SymbolTable"],
   ["src/PARSE/3-Declare/SymbolRegistry.ts", "SymbolRegistry"],
-  // The two artifacts whose RUNTIME values retain a tree through closures --
-  // included precisely so the return-type check above is exercised on them.
+  // The two artifacts built of closures -- included so the return-type check
+  // above runs on real function-valued fields. Their closures capture plain
+  // `TExpression`s since #1950; a parse node handed back would turn this red.
   ["src/TRANSPILE/2-Plan/types/IAssignmentContext.ts", "IAssignmentContext"],
   ["src/types/TPlannedTargetOp.ts", "TPlannedTargetOp"],
 ];
@@ -231,6 +231,132 @@ function storedParseNodes(pattern: RegExp): string[] {
 }
 
 /**
+ * Every parameter, field and property signature under `pattern` that would
+ * accept a real parse context.
+ *
+ * #1932 box 1: a pass can take a parse node without naming a parse type, by
+ * declaring a structural copy of the part it reads -- `IModifierContext`
+ * (`atomicModifier(): unknown`) and `CommentUtils`' `{ start?: { tokenIndex:
+ * number } }` both did, and `parse-tree-confined-to-parser`, which matches
+ * import paths, could see neither. So the question is asked of the TYPE
+ * CHECKER: is a generated context assignable here? Top types (`unknown`,
+ * `any`, `object`, `{}`, an unconstrained type parameter) accept anything and
+ * say nothing about parse nodes, so they are skipped.
+ */
+function parseNodeAcceptors(pattern: RegExp): string[] {
+  const grammar = project.getSourceFileOrThrow(
+    join(repoRoot, "src/PARSE/2-Parse/grammar/CNextParser.ts"),
+  );
+  // Every generated context, not a sample: a stand-in copies the shape of the
+  // ONE context its pass reads (`IModifierContext` was a variable
+  // declaration's), so a sample of four would miss most of them.
+  const contexts = grammar
+    .getClasses()
+    .filter((c) => c.getName()?.endsWith("Context"))
+    .map((c) => c.getType());
+  const isTop = (t: Type): boolean =>
+    t.isAny() ||
+    t.isUnknown() ||
+    t.isTypeParameter() ||
+    ["object", "{}"].includes(t.getText());
+
+  const found: string[] = [];
+  for (const sf of project.getSourceFiles()) {
+    const path = sf.getFilePath();
+    if (path.includes("__tests__") || !pattern.test(path)) continue;
+    const nodes = [
+      ...sf.getDescendantsOfKind(SyntaxKind.Parameter),
+      ...sf.getDescendantsOfKind(SyntaxKind.PropertyDeclaration),
+      ...sf.getDescendantsOfKind(SyntaxKind.PropertySignature),
+    ];
+    for (const node of nodes) {
+      const type = node.getType();
+      if ((type.isUnion() ? type.getUnionTypes() : [type]).some(isTop))
+        continue;
+      // `Map<string, Ctx>`, `ReadonlyArray<Ctx>`, `Ctx[]`, and containers of
+      // containers: a context held inside one is held all the same.
+      const targets = containedTypes(type).filter((t) => !isTop(t));
+      if (contexts.some((c) => targets.some((t) => c.isAssignableTo(t))))
+        found.push(
+          `${relative(repoRoot, path)} ${node.getText().split(":")[0].trim()}`,
+        );
+    }
+  }
+  return found;
+}
+
+/** `type` and every type argument and array element inside it, recursively */
+function containedTypes(type: Type, depth = 0): Type[] {
+  if (depth > 3) return [type];
+  const element = type.getArrayElementType();
+  const inner = [...type.getTypeArguments(), ...(element ? [element] : [])];
+  return [type, ...inner.flatMap((t) => containedTypes(t, depth + 1))];
+}
+
+/** Whether `type`, a union member, or anything it contains is a parse type */
+function containsParseType(type: Type): boolean {
+  const members = type.isUnion() ? type.getUnionTypes() : [type];
+  return members.some((member) => containedTypes(member).some(isParseType));
+}
+
+/**
+ * `reachesParseNode` for a call's result, answered once per type: most calls
+ * return one of a few hundred types, and the walk was 95% of the sweep's time.
+ */
+const callResultCache = new Map<Type["compilerType"], boolean>();
+function callResultReaches(type: Type): boolean {
+  let reaches = callResultCache.get(type.compilerType);
+  if (reaches === undefined) {
+    reaches = reachesParseNode(type);
+    callResultCache.set(type.compilerType, reaches);
+  }
+  return reaches;
+}
+
+/**
+ * Every expression under `pattern` whose value is a parse node, however the
+ * module got it (#1957).
+ *
+ * `parse-tree-confined-to-parser` reads imports, so a module that gets a tree
+ * as a RETURN VALUE -- `CNextSourceParser.parse(src).tree` -- names no parse
+ * type and passes it. This asks the type checker about every expression
+ * instead. A call is also walked by reachability, so a call handing back a
+ * bundle that carries a tree (`IParsedFile`) is found before anyone reads it.
+ */
+function heldParseValues(pattern: RegExp, stopAfter = Infinity): string[] {
+  const found: string[] = [];
+  for (const sf of project.getSourceFiles()) {
+    const path = sf.getFilePath();
+    if (path.includes("__tests__") || !pattern.test(path)) continue;
+    // Every way a value is obtained or named: a call, a member read, an
+    // index, a declared variable. Bare identifiers only re-read one of these,
+    // and skipping them keeps the sweep inside the coverage-run timeout.
+    const nodes = [
+      ...sf.getDescendantsOfKind(SyntaxKind.CallExpression),
+      ...sf.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression),
+      ...sf.getDescendantsOfKind(SyntaxKind.ElementAccessExpression),
+      ...sf.getDescendantsOfKind(SyntaxKind.VariableDeclaration),
+    ];
+    for (const node of nodes) {
+      if (found.length >= stopAfter) break;
+      const type = node.getType();
+      if (
+        containsParseType(type) ||
+        (Node.isCallExpression(node) && callResultReaches(type))
+      )
+        found.push(
+          `${relative(repoRoot, path)}:${node.getStartLineNumber()} ${node.getText().slice(0, 60)}`,
+        );
+    }
+  }
+  return found;
+}
+
+/** The modules after 2.1 Analyze: the walker, its state, and every later layer */
+const AFTER_ANALYZE =
+  /src\/TRANSPILE\/(2-Plan|3-Render|types)\/|src\/TRANSPILE\/(CodeGenWalker|TranspileState)\.ts$|src\/WRITE\//;
+
+/**
  * Each assertion walks types across the whole program, and `npm run unit` runs
  * under v8 coverage in CI, which took these from ~0.5s to 5.8-11.4s -- past
  * vitest's 5000ms default. The local gate passed because it does not instrument.
@@ -243,12 +369,13 @@ describe("artifact lifetime (#1445 box 2)", () => {
     () => {
       // The control, and it is load-bearing. Every assertion below is an
       // emptiness claim, and an emptiness claim from a broken scan is
-      // indistinguishable from a true one. `Transpiler.retainedParses` is
-      // `Map<string, IParsedFile>` -- the one field in this repository that holds
-      // every retained tree on purpose -- so the scan must see it.
-      const control = storedParseNodes(/src\/cli\/Transpiler\.ts$/);
+      // indistinguishable from a true one. 2.1's listeners index parse nodes on
+      // instance fields while they walk -- that is what analysis is -- so the
+      // scan must see them. (The control used to be `Transpiler.retainedParses`,
+      // which #1932 deleted: the host no longer holds a tree.)
+      const control = storedParseNodes(/src\/TRANSPILE\/1-Analyze\//);
 
-      expect(control.some((f) => f.includes("retainedParses"))).toBe(true);
+      expect(control.length).toBeGreaterThan(0);
     },
     WALK_TIMEOUT_MS,
   );
@@ -296,49 +423,26 @@ describe("artifact lifetime (#1445 box 2)", () => {
   );
 
   it(
-    "pins every field outside the parser that holds a parse node",
+    "no field outside the parser and 2.1 holds a parse node",
     () => {
-      // An EXHAUSTIVE roster, not an emptiness claim. Four fields legitimately
-      // hold one and all are released when the run ends; asserting "none" would
-      // have to exempt them, and an exemption is invisible once written. A roster
-      // makes a fifth holder a failing diff.
+      // The pattern is ALL of `src/` minus the two directories that may hold a
+      // tree, because a check scoped to where holders were already known cannot
+      // find one anywhere else. It used to read
+      // `src/transpiler/|src/TRANSPILE/CodeGenWalker.ts$` -- one directory plus
+      // one file -- so `src/cli/` was outside it, and `ServeCommand` sat unlisted.
+      // Found by review. `parse-tree-sites.md` reports modules that NAME a parse
+      // type, and `ServeCommand` names none -- transitive reach is precisely what
+      // this file exists to catch.
       //
-      // The pattern is ALL of `src/` minus the two directories whose emptiness
-      // the other assertions here own, because a roster scoped to where the
-      // holders were already known cannot find one anywhere else. It used to
-      // read `src/transpiler/|src/TRANSPILE/CodeGenWalker.ts$` -- one directory
-      // plus one file -- so `src/cli/` was outside it, and `ServeCommand`
-      // sat unlisted under a test named "pins EVERY field outside the parser".
-      // Found by review. The backstop did not cover the gap either:
-      // `parse-tree-sites.md` reports modules that NAME a parse type, and
-      // `ServeCommand` names none -- transitive reach is precisely what this
-      // file exists to catch.
+      // This was a roster of two until #1932: `Transpiler.retainedParses`, and
+      // `ServeCommand.transpiler`, which reached a tree only through it. Since
+      // 2.1's `TreePasses` holds every tree as a local of one call, the host has
+      // none to hold, and a field that brings one back fails here.
       const holders = storedParseNodes(
         /src\/(?!PARSE\/2-Parse|TRANSPILE\/1-Analyze)/,
-      ).map((f) => f.replace(/:\d+ /, " "));
-
-      expect(holders.sort()).toEqual(
-        [
-          // #1301: Stage 5 reuses Stage 3's parse. Cleared in a `finally`, which
-          // `RetainedParseCacheRelease.test.ts` asserts and mutation-checks.
-          "src/cli/Transpiler.ts Transpiler.codeGenerator",
-          "src/cli/Transpiler.ts Transpiler.retainedParses",
-          // The walk itself. `tokenStream` and the `CommentScanner` over it are
-          // ADR-043 comment plumbing, assigned per file and released by
-          // `releaseParseState()` at run end -- they used not to be, which is the
-          // residency defect #1445 box 2 found and fixed.
-          "src/TRANSPILE/CodeGenWalker.ts CodeGenWalker.commentExtractor",
-          "src/TRANSPILE/CodeGenWalker.ts CodeGenWalker.tokenStream",
-          // The longest-lived holder in the codebase, and `private static` --
-          // CLAUDE.md singles it out ("`ServeCommand` holds a static transpiler
-          // and serves many requests"). Not a leak: it reaches a tree only
-          // through the two `Transpiler` fields above, which `Transpiler`
-          // clears in a `finally`. It is here because the roster claims to be
-          // exhaustive, and a holder reachable only transitively is the one
-          // shape the generated `parse-tree-sites.md` backstop cannot see.
-          "src/cli/serve/ServeCommand.ts ServeCommand.transpiler",
-        ].sort(),
       );
+
+      expect(holders).toEqual([]);
     },
     WALK_TIMEOUT_MS,
   );
@@ -389,6 +493,61 @@ describe("artifact lifetime (#1445 box 2)", () => {
       }
 
       expect(statics).toEqual([]);
+    },
+    WALK_TIMEOUT_MS,
+  );
+
+  it(
+    "nothing after 2.1 accepts a parse node, by name or by shape (#1932)",
+    () => {
+      const afterAnalyze = AFTER_ANALYZE;
+
+      // POPULATION CONTROL: the pattern reaches the walker, the state it
+      // writes into, and every layer and type directory after 2.1.
+      const modules = matchingModules(afterAnalyze);
+      expect(modules).toContain("src/TRANSPILE/CodeGenWalker.ts");
+      expect(modules).toContain("src/TRANSPILE/TranspileState.ts");
+      for (const layer of [
+        "2-Plan/",
+        "3-Render/",
+        "TRANSPILE/types/",
+        "src/WRITE/",
+      ])
+        expect(modules.some((m) => m.includes(layer))).toBe(true);
+
+      // DETECTOR CONTROL: 2.1 is handed the tree and must be, so the same scan
+      // over it has to find acceptors -- otherwise an empty result below could
+      // mean a scan that cannot match.
+      expect(
+        parseNodeAcceptors(/src\/TRANSPILE\/1-Analyze\//).length,
+      ).toBeGreaterThan(0);
+
+      expect(parseNodeAcceptors(afterAnalyze)).toEqual([]);
+    },
+    WALK_TIMEOUT_MS,
+  );
+  it(
+    "nothing after 2.1 holds a parse node as a value, however obtained (#1957)",
+    () => {
+      // DETECTOR CONTROL: 2.1 walks the tree, so the same sweep over it must
+      // find parse-node values -- otherwise an empty result below could mean
+      // a sweep that cannot match.
+      expect(heldParseValues(/src\/TRANSPILE\/1-Analyze\//, 1)).toHaveLength(1);
+
+      expect(heldParseValues(AFTER_ANALYZE)).toEqual([]);
+    },
+    WALK_TIMEOUT_MS,
+  );
+  it(
+    "the host holds no parse node as a value, however obtained (#1932)",
+    () => {
+      // `cli/` orchestrates the passes. Since #1932 the passes that read a tree
+      // run as one call, 2.1's `TreePasses`, so nothing here may obtain one --
+      // not by a parser call, not through a returned artifact.
+      const host = /src\/cli\//;
+      expect(matchingModules(host)).toContain("src/cli/Transpiler.ts");
+
+      expect(heldParseValues(host)).toEqual([]);
     },
     WALK_TIMEOUT_MS,
   );

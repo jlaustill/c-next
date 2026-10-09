@@ -126,3 +126,47 @@ describe("ExpressionShape", () => {
     });
   });
 });
+
+describe("ExpressionShape.additionOperands (ADR-045 concatenation, #1445)", () => {
+  it.each([
+    ["a + b", ["a", "b"]],
+    ['"hello" + "world"', ['"hello"', '"world"']],
+    ["1 + 2", ["1", "2"]],
+    // Regression: the operator, not a text test for "-". The hyphen is inside
+    // a literal here, so a text test reads this as a subtraction.
+    ['str + "hello-world"', ["str", '"hello-world"']],
+    ["my_str + other", ["my_str", "other"]],
+  ])("%s is a two-operand addition", (source, texts) => {
+    const operands = ExpressionShape.additionOperands(lowered(source));
+    expect(operands?.map((operand) => operand.written)).toEqual(texts);
+  });
+
+  it.each(["a + b + c", "a - b", "a + b - c", "a * b", "a > b", "a", "f()"])(
+    "%s is not",
+    (source) => {
+      expect(ExpressionShape.additionOperands(lowered(source))).toBeNull();
+    },
+  );
+});
+
+describe("ExpressionShape.subscriptedIdentifier (ADR-045 substring, #1445)", () => {
+  it.each([
+    ["s[0]", "s", ["0"]],
+    ["s[0, 5]", "s", ["0", "5"]],
+  ])("%s is a subscripted identifier", (source, name, indexes) => {
+    const subscripted = ExpressionShape.subscriptedIdentifier(lowered(source));
+    expect(subscripted?.name).toBe(name);
+    expect(subscripted?.indexes.map((index) => index.written)).toEqual(indexes);
+  });
+
+  it.each([
+    "getStr()[0, 5]",
+    "obj.field",
+    "grid[1][2]",
+    "s",
+    "obj.s[0]",
+    "a + b",
+  ])("%s is not", (source) => {
+    expect(ExpressionShape.subscriptedIdentifier(lowered(source))).toBeNull();
+  });
+});
