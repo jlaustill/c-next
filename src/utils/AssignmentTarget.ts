@@ -46,7 +46,7 @@ class AssignmentTarget {
     }
     invariant(
       primary.kind === "identifier",
-      `an unrooted assignment target starts with a name: '${target.written}'`,
+      `an assignment target without a root starts with a name: '${target.written}'`,
     );
     return {
       root: null,
