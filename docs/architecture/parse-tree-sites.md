@@ -137,7 +137,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/ast/AssignmentTargetExtractor.ts`                    | grammar           |
 | `src/utils/ast/ChildStatementCollector.ts`                      | grammar           |
 | `src/utils/ast/StatementExpressionCollector.ts`                 | grammar           |
-| `src/utils/ChainRoot.ts`                                        | antlr4ng, grammar |
+| `src/utils/ChainRoot.ts`                                        | grammar           |
 | `src/utils/ExpressionUnwrapper.ts`                              | grammar           |
 | `src/utils/ExpressionUtils.ts`                                  | grammar           |
 | `src/utils/LiteralUtils.ts`                                     | grammar           |
