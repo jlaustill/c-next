@@ -49,7 +49,7 @@ uint32_t Timing__tickSource(void) {
 }
 
 uint32_t Timing__run(void) {
-    Timing__Config cfg = {};
+    Timing__Config cfg = { Timing__tickSource, {} };
     cfg.tick = Timing__tickSource;
     cfg.divisor = 4U;
     return cfg.tick() + cfg.divisor;
@@ -62,7 +62,7 @@ uint32_t Later__producer(void) {
 }
 
 uint32_t Later__run(void) {
-    Later__Holder h = {};
+    Later__Holder h = { Later__producer };
     h.make = Later__producer;
     return h.make();
 }
@@ -88,7 +88,7 @@ uint32_t Shadow__Config(void) {
 }
 
 uint32_t Shadow__run(void) {
-    Shadow__Wrapper w = {};
+    Shadow__Wrapper w = { Shadow__Config };
     w.c = Shadow__Config;
     return w.c();
 }

@@ -45,10 +45,7 @@ void describeLocal(const char* label) {
 }
 
 LocalHandlers LocalHandlers_init(void) {
-    LocalHandlers value = {0};
-    value.onRecord = record;
-    value.onMutate = mutate;
-    value.onDescribeLocal = describeLocal;
+    LocalHandlers value = { .onRecord = record, .onMutate = mutate, .onDescribeLocal = describeLocal };
     return value;
 }
 

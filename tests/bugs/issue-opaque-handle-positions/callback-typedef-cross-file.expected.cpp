@@ -22,14 +22,12 @@
 #include <stdint.h>
 
 RemoteHandlers RemoteHandlers_init(void) {
-    RemoteHandlers value = {};
-    value.onDev = remotePoke;
-    value.onBoth = remotePokeBoth;
+    RemoteHandlers value = { remotePoke, remotePokeBoth };
     return value;
 }
 
 int main(void) {
-    RemoteHandlers h = {};
+    RemoteHandlers h = { remotePoke, remotePokeBoth };
     h.onDev = remotePoke;
     h.onBoth = remotePokeBoth;
     Dev* d = dev_create();

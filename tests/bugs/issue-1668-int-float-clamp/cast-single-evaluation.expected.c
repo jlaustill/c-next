@@ -50,8 +50,7 @@ float measure(void) {
 }
 
 Sensor Sensor_init(void) {
-    Sensor value = {0};
-    value.read = measure;
+    Sensor value = { .read = measure };
     return value;
 }
 

@@ -21,14 +21,12 @@
 #include <stdint.h>
 
 Readers Readers_init(void) {
-    Readers value = {};
-    value.onRead = readSample;
-    value.onBump = bumpSample;
+    Readers value = { readSample, bumpSample };
     return value;
 }
 
 int main(void) {
-    Readers r = {};
+    Readers r = { readSample, bumpSample };
     r.onRead = readSample;
     r.onBump = bumpSample;
     Sample s = { .value = 4U };

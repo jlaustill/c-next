@@ -19,14 +19,12 @@
 #include <stdint.h>
 
 Readers Readers_init(void) {
-    Readers value = {0};
-    value.onRead = readSample;
-    value.onBump = bumpSample;
+    Readers value = { .onRead = readSample, .onBump = bumpSample };
     return value;
 }
 
 int main(void) {
-    Readers r = {0};
+    Readers r = { .onRead = readSample, .onBump = bumpSample };
     r.onRead = readSample;
     r.onBump = bumpSample;
     Sample s = { .value = 4U };

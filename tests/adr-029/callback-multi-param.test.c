@@ -55,25 +55,22 @@ uint32_t mixedParams(uint32_t val, bool flag) {
 
 // Structs to hold callbacks
 TwoParamHandler TwoParamHandler_init(void) {
-    TwoParamHandler value = {0};
-    value.handler = addTwo;
+    TwoParamHandler value = { .handler = addTwo };
     return value;
 }
 
 ThreeParamHandler ThreeParamHandler_init(void) {
-    ThreeParamHandler value = {0};
-    value.handler = addThree;
+    ThreeParamHandler value = { .handler = addThree };
     return value;
 }
 
 MixedHandler MixedHandler_init(void) {
-    MixedHandler value = {0};
-    value.handler = mixedParams;
+    MixedHandler value = { .handler = mixedParams };
     return value;
 }
 
 int main(void) {
-    TwoParamHandler tph = {0};
+    TwoParamHandler tph = { .handler = addTwo };
     tph.handler = addTwo;
     uint32_t result = tph.handler(10U, 20U);
     if (result != 30) return 1U;
@@ -82,13 +79,13 @@ int main(void) {
     tph.handler = multiplyTwo;
     result = tph.handler(6U, 7U);
     if (result != 42) return 3U;
-    ThreeParamHandler thph = {0};
+    ThreeParamHandler thph = { .handler = addThree };
     thph.handler = addThree;
     result = thph.handler(10U, 20U, 30U);
     if (result != 60) return 4U;
     result = thph.handler(100U, 200U, 300U);
     if (result != 600) return 5U;
-    MixedHandler mh = {0};
+    MixedHandler mh = { .handler = mixedParams };
     mh.handler = mixedParams;
     result = mh.handler(50U, true);
     if (result != 100) return 6U;

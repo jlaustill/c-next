@@ -42,15 +42,12 @@ uint32_t fullPeek(const Full& f) {
 }
 
 Handlers Handlers_init(void) {
-    Handlers value = {};
-    value.onDev = aPoke;
-    value.onBoth = pokeBoth;
-    value.onFull = fullPeek;
+    Handlers value = { aPoke, pokeBoth, fullPeek };
     return value;
 }
 
 int main(void) {
-    Handlers h = {};
+    Handlers h = { aPoke, pokeBoth, fullPeek };
     h.onDev = aPoke;
     h.onBoth = pokeBoth;
     h.onFull = fullPeek;

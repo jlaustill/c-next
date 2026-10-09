@@ -27,9 +27,7 @@ uint64_t wide(uint64_t v) {
 }
 
 Handlers Handlers_init(void) {
-    Handlers value = {0};
-    value.f = sink32;
-    value.w = sinkVoid;
+    Handlers value = { .f = sink32, .w = sinkVoid };
     return value;
 }
 
@@ -64,7 +62,7 @@ uint32_t run(const Handlers* h, sinkI_fp cb) {
 }
 
 int main(void) {
-    Handlers h = {0};
+    Handlers h = { .f = sink32, .w = sinkVoid };
     h.f = sink32;
     h.w = sinkVoid;
     return run(&h, sinkI);

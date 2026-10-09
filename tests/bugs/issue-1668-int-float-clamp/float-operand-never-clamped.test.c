@@ -28,8 +28,7 @@ float scaleFn(void) {
 }
 
 Scaler Scaler_init(void) {
-    Scaler value = {0};
-    value.fn = scaleFn;
+    Scaler value = { .fn = scaleFn };
     return value;
 }
 

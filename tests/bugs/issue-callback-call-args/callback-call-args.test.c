@@ -50,11 +50,7 @@ Point shifted(const Point* p) {
 }
 
 Handlers Handlers_init(void) {
-    Handlers value = {0};
-    value.onPeek = peek;
-    value.onPoke = poke;
-    value.onTwice = twice;
-    value.onShift = shifted;
+    Handlers value = { .onPeek = peek, .onPoke = poke, .onTwice = twice, .onShift = shifted };
     return value;
 }
 
@@ -77,7 +73,7 @@ uint32_t twiceVia(twice_fp cb, uint32_t v) {
 }
 
 int main(void) {
-    Handlers h = {0};
+    Handlers h = { .onPeek = peek, .onPoke = poke, .onTwice = twice, .onShift = shifted };
     h.onPeek = peek;
     h.onPoke = poke;
     h.onTwice = twice;

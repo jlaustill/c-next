@@ -281,12 +281,26 @@ struct Controller {
 };
 
 // Initialization always sets to default
-struct Controller Controller_init(void) {
-    return (struct Controller){
-        ._handler = defaultHandler
-    };
+Controller Controller_init(void) {
+    Controller value = { ._handler = defaultHandler };
+    return value;
 }
+
+// Every declaration without an initializer holds the same default (#1283),
+// at file scope, in a scope, as a local, and in every array element:
+Controller ctrl = { ._handler = defaultHandler };
+Controller ctrls[2] = { { ._handler = defaultHandler }, { ._handler = defaultHandler } };
 ```
+
+The default is a constant brace rather than a call to `Controller_init()`
+because C forbids a function call in a file-scope or `static` initializer.
+C++14 has no designated initializers, so there every field is listed in
+declaration order and a zero field is `{}`: `Controller ctrl = { defaultHandler };`.
+The default is recursive (#1570): a field whose type is a struct with
+callbacks holds that struct's default, and a callback array field holds the
+default in every element (#1565). A struct gets `<Struct>_init()` when its
+default is not all zero; a scope-nested struct is initialized the same way at
+its declarations.
 
 ### Type Checking
 
@@ -295,7 +309,9 @@ The compiler:
 1. Sees a function definition -> creates matching typedef with `_fp` suffix
 2. Tracks which functions match which callback types
 3. Only allows assignment of functions explicitly marked as compatible
-4. Initializes all callback fields to the default function
+4. Initializes all callback fields to the default function, so a callback
+   field read before any assignment is not E0381 (#1283); a non-callback
+   field read before assignment still is
 
 ### No Conversions (MISRA 11.1)
 
