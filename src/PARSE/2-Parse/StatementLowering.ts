@@ -207,25 +207,31 @@ class StatementLowering {
     ctx: Parser.ForStatementContext,
     statement: Parser.StatementContext,
   ): TStatement {
-    const init = ctx.forInit();
-    const declaration = init?.forVarDecl();
-    const assignment = init?.forAssignment();
     const update = ctx.forUpdate();
     return {
       kind: "for",
-      init: declaration
-        ? {
-            kind: "variableDeclaration",
-            ...StatementLowering.variableDeclaration(declaration),
-          }
-        : assignment
-          ? { kind: "assignment", ...StatementLowering.assignment(assignment) }
-          : null,
+      init: StatementLowering.forInitOf(ctx.forInit()),
       condition: StatementLowering.optionalExpression(ctx.expression()),
       update: update ? StatementLowering.assignment(update) : null,
       body: StatementLowering.statement(ctx.statement()),
       ...SyntaxLowering.node(statement),
     };
+  }
+
+  private static forInitOf(
+    init: Parser.ForInitContext | null,
+  ): Extract<TStatement, { kind: "for" }>["init"] {
+    const declaration = init?.forVarDecl();
+    if (declaration) {
+      return {
+        kind: "variableDeclaration",
+        ...StatementLowering.variableDeclaration(declaration),
+      };
+    }
+    const assignment = init?.forAssignment();
+    return assignment
+      ? { kind: "assignment", ...StatementLowering.assignment(assignment) }
+      : null;
   }
 
   private static switchOf(
