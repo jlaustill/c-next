@@ -5,6 +5,7 @@
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import CNEXT_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
 import TypeBinding from "../../TypeBinding";
+import SyntaxLowering from "../../../2-Parse/SyntaxLowering";
 import TypeResolver from "../../../../utils/TypeResolver";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import ScopeUtils from "../../../../utils/ScopeUtils";
@@ -35,18 +36,19 @@ class TypeUtils {
   ): string {
     if (!ctx) return "void";
 
-    // #1285: resolveName recurses into arrayType itself, so an explicit array
-    // branch here would be a second array-handling path -- and it carried a
-    // DIFFERENT fallback (bracket-stripped text) from this one (raw text),
-    // reachable only if a seventh element alternative ever appeared. One call,
-    // one fallback.
-    const result = TypeBinding.resolveName(ctx, scopePath, { isScopeType });
+    // #1285/#1932: one ladder for a type's written name. The walker asks the
+    // same `resolveWrittenName`, so the `.h` and the `.c` cannot disagree.
+    const result = TypeBinding.resolveWrittenName(
+      SyntaxLowering.type(ctx),
+      scopePath,
+      { isScopeType },
+    );
     if (result !== null) {
       return result;
     }
 
-    // templateType and `void` are the alternatives resolveName does not answer
-    // for; both are already their own text.
+    // templateType and `void` are the alternatives resolveWrittenName does not
+    // answer for; both are already their own text.
     return ctx.getText();
   }
 
@@ -90,7 +92,7 @@ class TypeUtils {
    * At file scope there is nothing to defer: ADR-057 qualification does not
    * apply, so a bare name there is already its own answer.
    *
-   * Arrays recurse, because `resolveName` treats an array context as its
+   * Arrays recurse, because `resolveWrittenName` treats an array context as its
    * ELEMENT type -- dimensions live in their own slot on the symbol -- so an
    * array of an unsettled scope type must defer on the element.
    */

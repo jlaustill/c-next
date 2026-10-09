@@ -356,7 +356,7 @@ describe("artifact lifetime (#1445 box 2)", () => {
       // An EXHAUSTIVE roster, not an emptiness claim. Two fields legitimately
       // hold one and all are released when the run ends; asserting "none" would
       // have to exempt them, and an exemption is invisible once written. A roster
-      // makes a fifth holder a failing diff.
+      // makes a third holder a failing diff.
       //
       // The pattern is ALL of `src/` minus the two directories whose emptiness
       // the other assertions here own, because a roster scoped to where the

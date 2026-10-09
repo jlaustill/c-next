@@ -385,9 +385,6 @@ class Transpiler {
       // calls the worst anti-pattern, and the unreachable half is the #1143 shape.
       this.retainedParses.clear();
       this.sourceGraph = null;
-
-      // #1445 box 2: the walker holds the token stream and the comment scanner
-      // over it on its own fields, which the map clear above cannot reach.
     }
   }
 

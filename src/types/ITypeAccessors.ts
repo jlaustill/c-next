@@ -10,7 +10,7 @@ import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
  * shape, which is what lets one resolver recurse from an array into its element
  * type instead of each caller re-deriving the element separately.
  *
- * The two extras are why `resolveName` returning null is not the same event on
+ * The two extras are why a TypeBinding resolver returning null is not the same event on
  * a TypeContext as on an ArrayTypeContext: on the former it also means
  * "template or void", which every caller handles for itself.
  *

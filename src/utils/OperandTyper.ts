@@ -13,6 +13,8 @@
  * or C++ header's operand is typed by `ForeignTypeFacts` from its spelling
  * and the run's target.
  */
+import ExpressionCalls from "./ExpressionCalls";
+import ExpressionShape from "./ExpressionShape";
 import ConstExprLowering from "./ConstExprLowering";
 import ConstantEvaluator from "./ConstantEvaluator";
 import ConstantFold from "./ConstantFold";
@@ -92,33 +94,9 @@ class OperandTyper {
    */
   static hasSideEffect(expr: TExpression, ctx: ITypingContext): boolean {
     return (
-      OperandTyper.callsAtTop(expr) ||
+      ExpressionCalls.callsAtTop(expr) ||
       OperandTyper.typeOf(expr, ctx)?.hasSideEffect === true
     );
-  }
-
-  /**
-   * Whether a call is one of an expression's own operations: through its
-   * operators and unary prefixes, not into a parenthesized expression or a
-   * call's arguments (#254, #366).
-   */
-  private static callsAtTop(expr: TExpression): boolean {
-    switch (expr.kind) {
-      case "ternary":
-        return [expr.condition, expr.whenTrue, expr.whenFalse].some((arm) =>
-          OperandTyper.callsAtTop(arm),
-        );
-      case "binary":
-        return expr.operands.some((operand) =>
-          OperandTyper.callsAtTop(operand),
-        );
-      case "unary":
-        return OperandTyper.callsAtTop(expr.operand);
-      case "postfix":
-        return expr.ops.some((op) => op.kind === "call");
-      default:
-        return false;
-    }
   }
 
   /**
@@ -396,8 +374,6 @@ class OperandTyper {
   // --------------------------------------------------------------------------
   // Levels
   // --------------------------------------------------------------------------
-
-  /** Through every level that has exactly one rule child and nothing else */
 
   private static isBooleanLevel(expr: TExpressionOf<"binary">): boolean {
     return (
@@ -860,35 +836,30 @@ class OperandTyper {
     ctx: ITypingContext,
   ): IChainStart {
     const at = OperandTyper.positionOf(chain);
-    const head = chain.kind === "postfix" ? chain.primary : chain;
-    const ops = chain.kind === "postfix" ? chain.ops : [];
-    if (head.kind === "root") {
-      const first = ops[0];
-      if (first?.kind !== "member") {
+    const head = ExpressionShape.headOf(chain);
+    const rest = head.ops.slice(head.opsConsumed);
+    if (head.root !== null) {
+      if (head.identifier === null) {
         return { binding: null, value: UNKNOWN, ops: [] };
       }
       return OperandTyper.rootedStart(
         head.root,
-        first.name,
-        ops.slice(1),
+        head.identifier.name,
+        rest,
         at,
         ctx,
       );
     }
-    if (head.kind === "identifier") {
-      return OperandTyper.namedStart(head.name, ops, at, ctx);
+    if (head.identifier !== null) {
+      return OperandTyper.namedStart(head.identifier.name, rest, at, ctx);
     }
-    const t = OperandTyper.typeOf(head, ctx);
+    const t = OperandTyper.typeOf(head.primary, ctx);
     return {
       binding: null,
       value: t ? { k: "value", t, register: false } : UNKNOWN,
-      ops,
+      ops: rest,
     };
   }
-
-  /** A target spells `this.name` in the rule itself */
-
-  /** An expression's first postfix op is a `this.`/`global.` root's `.name` */
 
   /** `this.name` or `global.name`, with that first member consumed */
   private static rootedStart(

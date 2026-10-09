@@ -16,7 +16,8 @@
  */
 
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
-import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
+import ExpressionShape from "../../../utils/ExpressionShape";
+import SyntaxLowering from "../../../PARSE/2-Parse/SyntaxLowering";
 
 /** The two ADR-051 builtins, which share a signature. */
 const SAFE_DIVISION = new Set(["safe_div", "safe_mod"]);
@@ -52,7 +53,7 @@ class SafeDivision {
     const first = args[0];
     return first === undefined
       ? null
-      : ExpressionUnwrapper.getSimpleIdentifier(first);
+      : ExpressionShape.simpleIdentifier(SyntaxLowering.expression(first));
   }
 }
 

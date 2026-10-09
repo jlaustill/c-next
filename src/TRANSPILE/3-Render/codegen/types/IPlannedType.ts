@@ -11,8 +11,8 @@ import type INamedTypeResolution from "../../../../types/INamedTypeResolution";
  *
  * The three non-named alternatives stay separate fields rather than joining
  * the union, because 1.3 Declare and 2.3 Render want DIFFERENT answers for
- * them: `TypeBinding.resolveStringType` yields `string<32>`, where the
- * renderer wants `char`; `resolveNamedOrPrimitiveType` yields a primitive's
+ * them: `TypeBinding.resolveWrittenName` yields `string<32>`, where the
+ * renderer wants `char`, and a primitive's
  * written name, where the renderer wants it through `TYPE_MAP`. Folding them
  * in would force one of the two to re-derive, which is the thing this replaces.
  */

@@ -102,14 +102,21 @@ class ProgramLowering {
     return {
       returnType: SyntaxLowering.type(ctx.type()),
       name: ctx.IDENTIFIER().getText(),
-      parameters:
-        ctx
-          .parameterList()
-          ?.parameter()
-          .map((parameter) => ProgramLowering.parameter(parameter)) ?? null,
+      parameters: ProgramLowering.parameters(ctx.parameterList()),
       body: StatementLowering.block(ctx.block()),
       ...SyntaxLowering.node(ctx),
     };
+  }
+
+  /** A function's parameters, or null when it has no parameter list */
+  static parameters(
+    ctx: Parser.ParameterListContext | null,
+  ): IParameterSyntax[] | null {
+    return (
+      ctx
+        ?.parameter()
+        .map((parameter) => ProgramLowering.parameter(parameter)) ?? null
+    );
   }
 
   private static parameter(ctx: Parser.ParameterContext): IParameterSyntax {

@@ -14,7 +14,7 @@
  *
  * That also fixes an under-measurement. `parse-tree-confined-to-parser` counts
  * modules that NAME a parse type, so the four handler files that read
- * `ctx.valueCtx` and `ctx.subscripts[0]` off this interface held parse trees
+ * `ctx.valueExpr` and `ctx.subscripts[0]` off this interface held parse trees
  * without ever being counted -- the contract was acting as an unsanctioned
  * carrier. They hold no nodes now, and the two modules that did name types are
  * out of the population for real rather than by spelling.
@@ -207,9 +207,9 @@ function buildAssignmentContext(
   site: IAssignmentSyntax,
   deps: IContextBuilderDeps,
 ): IAssignmentContext {
-  const targetCtx = site.target;
-  const parts = AssignmentTarget.parts(targetCtx);
-  const valueCtx = site.value;
+  const targetExpr = site.target;
+  const parts = AssignmentTarget.parts(targetExpr);
+  const valueExpr = site.value;
 
   // Extract operator info
   const cnextOp = site.operator;
@@ -219,7 +219,7 @@ function buildAssignmentContext(
   const generatedValue = deps.generatedValue();
 
   // Generate fully-resolved target (with scope prefixes)
-  const resolvedTarget = deps.generateAssignmentTarget(targetCtx);
+  const resolvedTarget = deps.generateAssignmentTarget(targetExpr);
 
   // Extract resolved base identifier for type lookups
   // Removes subscripts ([...]) and member access (. or ->) from the end
@@ -260,18 +260,18 @@ function buildAssignmentContext(
 
   return {
     state: deps.state,
-    renderTarget: () => deps.generateAssignmentTarget(targetCtx),
+    renderTarget: () => deps.generateAssignmentTarget(targetExpr),
     renderBitTarget: () =>
-      deps.generateAssignmentTarget(targetCtx, postfixOps.length - 1),
+      deps.generateAssignmentTarget(targetExpr, postfixOps.length - 1),
     analyzeTargetForBitAccess: () =>
-      deps.analyzeMemberChainForBitAccess(targetCtx, deps.target.last),
-    targetLine: targetCtx.span.line,
-    hasValue: valueCtx.kind !== "missing",
-    valueExpressionType: () => deps.expressionType(valueCtx),
-    valueIntegerType: () => deps.integerExpressionType(valueCtx),
+      deps.analyzeMemberChainForBitAccess(targetExpr, deps.target.last),
+    targetLine: targetExpr.span.line,
+    hasValue: valueExpr.kind !== "missing",
+    valueExpressionType: () => deps.expressionType(valueExpr),
+    valueIntegerType: () => deps.integerExpressionType(valueExpr),
     valueHasFloatingOperand: () =>
-      valueCtx.kind !== "missing" && deps.hasFloatingOperand(valueCtx),
-    foldValue: () => deps.tryEvaluateConstant(valueCtx),
+      valueExpr.kind !== "missing" && deps.hasFloatingOperand(valueExpr),
+    foldValue: () => deps.tryEvaluateConstant(valueExpr),
     identifiers,
     subscriptCount: subscripts.length,
     renderSubscript: (index) => deps.generateExpression(subscripts[index]),

@@ -1,9 +1,6 @@
-import type ISyntaxNode from "./ISyntaxNode";
 import type TStatement from "./TStatement";
 
-/** `{ ... }`: its statements, in order */
-type TBlockSyntax = ISyntaxNode & {
-  readonly statements: readonly TStatement[];
-};
+/** `{ ... }`: its statements, in order -- the shape every statement body has */
+type TBlockSyntax = Extract<TStatement, { readonly kind: "forever" }>["body"];
 
 export default TBlockSyntax;
