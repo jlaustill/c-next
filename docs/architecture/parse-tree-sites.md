@@ -36,9 +36,8 @@ lexer-only include scan. Nothing from 2.2 Plan on.
 | `src/PARSE/`     |      24 |
 | `src/utils/`     |       9 |
 | `src/types/`     |       3 |
-| `src/lib/`       |       2 |
 | `src/cli/`       |       1 |
-| **total**        |  **99** |
+| **total**        |  **97** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -49,8 +48,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | Module                                                          | Holds             |
 | --------------------------------------------------------------- | ----------------- |
 | `src/cli/Transpiler.ts`                                         | grammar           |
-| `src/lib/parseCHeader.ts`                                       | grammar           |
-| `src/lib/parseWithSymbols.ts`                                   | grammar           |
 | `src/PARSE/1-Discover/IncludeDiscovery.ts`                      | antlr4ng, grammar |
 | `src/PARSE/3-Declare/c/collectors/EnumCollector.ts`             | grammar           |
 | `src/PARSE/3-Declare/c/collectors/FunctionCollector.ts`         | grammar           |
@@ -148,4 +145,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/ParserUtils.ts`                                      | antlr4ng, grammar |
 | `src/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-99 module(s).
+97 module(s).

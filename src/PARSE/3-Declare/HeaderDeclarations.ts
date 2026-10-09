@@ -103,6 +103,21 @@ class HeaderDeclarations {
   }
 
   /**
+   * One C header's text, parsed and resolved; `null` when it cannot be parsed.
+   *
+   * The run's 1.3 and `lib/parseCHeader` both come through here, so the tree
+   * never leaves 1.3 and neither caller holds one (#1957).
+   */
+  static resolveC(
+    content: string,
+    filePath: string,
+    symbolTable?: SymbolTable,
+  ): ReturnType<typeof CResolver.resolve> | null {
+    const { tree } = HeaderParser.parseC(content);
+    return tree ? CResolver.resolve(tree, filePath, symbolTable) : null;
+  }
+
+  /**
    * Issue #208: Parse a pure C header (no C++ syntax detected)
    * Uses CResolver for symbol collection
    * ADR-055 Phase 7: Direct TCSymbol storage (no adapter conversion)
@@ -112,9 +127,8 @@ class HeaderDeclarations {
     filePath: string,
     symbolTable: SymbolTable,
   ): void {
-    const { tree } = HeaderParser.parseC(content);
-    if (tree) {
-      const result = CResolver.resolve(tree, filePath, symbolTable);
+    const result = HeaderDeclarations.resolveC(content, filePath, symbolTable);
+    if (result) {
       // ADR-055 Phase 7: Store TCSymbol directly
       symbolTable.addCSymbols(result.symbols);
     }
