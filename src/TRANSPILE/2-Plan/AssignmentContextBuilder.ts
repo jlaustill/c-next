@@ -19,14 +19,16 @@
  * carrier. They hold no nodes now, and the two modules that did name types are
  * out of the population for real rather than by spelling.
  */
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import AssignmentTarget from "../../utils/AssignmentTarget";
+import type TExpression from "../../types/syntax/TExpression";
+import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
 import type IChainStep from "../../types/IChainStep";
 import IAssignmentContext from "./types/IAssignmentContext";
 import IBitAccessAnalysis from "../../types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../types/TPlannedTargetOp";
 import type IChainBase from "../../types/IChainBase";
 import type TranspileState from "../TranspileState";
-import type TAssignmentSite from "../../types/TAssignmentSite";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 
 /**
  * Dependencies for building context.
@@ -55,31 +57,28 @@ interface IContextBuilderDeps {
    * Generate the fully-resolved assignment target with scope prefixes, or
    * its first `opCount` postfix operations
    */
-  generateAssignmentTarget(
-    ctx: Parser.AssignmentTargetContext,
-    opCount?: number,
-  ): string;
+  generateAssignmentTarget(target: TExpression, opCount?: number): string;
 
   /** ADR-034: analyze the target's member chain for bit access */
   analyzeMemberChainForBitAccess(
-    ctx: Parser.AssignmentTargetContext,
+    target: TExpression,
     lastStep: IChainStep | undefined,
   ): IBitAccessAnalysis;
 
   /** Generate a subscript expression */
-  generateExpression(ctx: Parser.ExpressionContext): string;
+  generateExpression(expr: TExpression): string;
 
   /** Fold an expression to a compile-time constant */
-  tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined;
+  tryEvaluateConstant(expr: TExpression): number | undefined;
 
   /** The value expression's essential type */
-  expressionType(ctx: Parser.ExpressionContext): string | null;
+  expressionType(expr: TExpression): string | null;
 
   /** The value expression's integer type */
-  integerExpressionType(ctx: Parser.ExpressionContext): string | null;
+  integerExpressionType(expr: TExpression): string | null;
 
   /** #1668: whether any operand of the value expression is floating */
-  hasFloatingOperand(ctx: Parser.ExpressionContext): boolean;
+  hasFloatingOperand(expr: TExpression): boolean;
 
   /**
    * ADR-001's assignment operator mapping, injected rather than imported.
@@ -99,7 +98,7 @@ interface IContextBuilderDeps {
  */
 interface ITargetExtraction {
   identifiers: string[];
-  subscripts: Parser.ExpressionContext[];
+  subscripts: TExpression[];
   ops: TPlannedTargetOp[];
   hasMemberAccess: boolean;
   hasArrayAccess: boolean;
@@ -142,14 +141,12 @@ function extractResolvedBaseIdentifier(resolvedTarget: string): string {
  * Extract base identifier from assignment target.
  * With unified grammar, all patterns use IDENTIFIER postfixTargetOp*.
  */
-function extractBaseIdentifier(
-  targetCtx: Parser.AssignmentTargetContext,
-): ITargetExtraction {
+function extractBaseIdentifier(identifier: string | null): ITargetExtraction {
   const identifiers: string[] = [];
 
   // All patterns now have a base IDENTIFIER
-  if (targetCtx.IDENTIFIER()) {
-    identifiers.push(targetCtx.IDENTIFIER()!.getText());
+  if (identifier !== null) {
+    identifiers.push(identifier);
   }
 
   return {
@@ -167,18 +164,18 @@ function extractBaseIdentifier(
  * SonarCloud S3776: Extracted from buildAssignmentContext().
  */
 function processPostfixOps(
-  postfixOps: Parser.PostfixTargetOpContext[],
+  postfixOps: readonly TPostfixOpSyntax[],
   extraction: ITargetExtraction,
   deps: IContextBuilderDeps,
 ): void {
   for (const op of postfixOps) {
-    if (op.IDENTIFIER()) {
-      const name = op.IDENTIFIER()!.getText();
+    if (op.kind === "member") {
+      const name = op.name;
       extraction.identifiers.push(name);
       extraction.hasMemberAccess = true;
       extraction.ops.push({ kind: "member", name });
     } else {
-      const exprs = op.expression();
+      const exprs = op.kind === "subscript" ? op.indexes : [];
       for (const expr of exprs) {
         extraction.subscripts.push(expr);
       }
@@ -207,16 +204,16 @@ function processPostfixOps(
  * SonarCloud S3776: Refactored to use helper functions.
  */
 function buildAssignmentContext(
-  ctx: TAssignmentSite,
+  site: IAssignmentSyntax,
   deps: IContextBuilderDeps,
 ): IAssignmentContext {
-  const targetCtx = ctx.assignmentTarget();
-  const valueCtx = ctx.expression();
+  const targetCtx = site.target;
+  const parts = AssignmentTarget.parts(targetCtx);
+  const valueCtx = site.value;
 
   // Extract operator info
-  const operatorCtx = ctx.assignmentOperator();
-  const cnextOp = operatorCtx.getText();
-  const cOp = deps.toCOperator(cnextOp, operatorCtx.start?.line);
+  const cnextOp = site.operator;
+  const cOp = deps.toCOperator(cnextOp, site.operatorSpan.line);
   const isCompound = cOp !== "=";
 
   const generatedValue = deps.generatedValue();
@@ -229,12 +226,12 @@ function buildAssignmentContext(
   const resolvedBaseIdentifier = extractResolvedBaseIdentifier(resolvedTarget);
 
   // Extract target info
-  const hasGlobal = targetCtx.GLOBAL() !== null;
-  const hasThis = targetCtx.THIS() !== null;
-  const postfixOps = targetCtx.postfixTargetOp();
+  const hasGlobal = parts.root === "global";
+  const hasThis = parts.root === "this";
+  const postfixOps = parts.ops;
 
   // Extract base identifier and process postfix operations
-  const extraction = extractBaseIdentifier(targetCtx);
+  const extraction = extractBaseIdentifier(parts.identifier);
   processPostfixOps(postfixOps, extraction, deps);
 
   const {
@@ -268,12 +265,12 @@ function buildAssignmentContext(
       deps.generateAssignmentTarget(targetCtx, postfixOps.length - 1),
     analyzeTargetForBitAccess: () =>
       deps.analyzeMemberChainForBitAccess(targetCtx, deps.target.last),
-    targetLine: targetCtx.start?.line,
-    hasValue: valueCtx !== null,
+    targetLine: targetCtx.span.line,
+    hasValue: valueCtx.kind !== "missing",
     valueExpressionType: () => deps.expressionType(valueCtx),
     valueIntegerType: () => deps.integerExpressionType(valueCtx),
     valueHasFloatingOperand: () =>
-      valueCtx !== null && deps.hasFloatingOperand(valueCtx),
+      valueCtx.kind !== "missing" && deps.hasFloatingOperand(valueCtx),
     foldValue: () => deps.tryEvaluateConstant(valueCtx),
     identifiers,
     subscriptCount: subscripts.length,

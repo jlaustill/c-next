@@ -41,6 +41,7 @@ import ForHeaderAssignment from "../../utils/ForHeaderAssignment";
 import ILoopError from "./types/ILoopError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type TAssignmentSite from "../../types/TAssignmentSite";
+import StatementLowering from "../../PARSE/2-Parse/StatementLowering";
 
 const FOREVER_HELP = "write 'forever { ... }' for an intentional infinite loop";
 
@@ -120,7 +121,10 @@ class LoopListener extends CNextListener {
 
   /** E0715: a header clause holds one expression; these forms lower to more. */
   private checkHeaderAssignment(site: TAssignmentSite, help: string): void {
-    const form = ForHeaderAssignment.multiStatementForm(site, this.context);
+    const form = ForHeaderAssignment.multiStatementForm(
+      StatementLowering.assignment(site),
+      this.context,
+    );
     if (form === null) return;
     this.report(
       site,

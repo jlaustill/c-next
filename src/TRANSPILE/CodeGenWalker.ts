@@ -61,7 +61,9 @@ import generatePostfixExpression from "./3-Render/codegen/generators/expressions
 import controlFlowGenerators from "./3-Render/codegen/generators/statements/ControlFlowGenerator";
 import IPlannedFor from "./3-Render/codegen/types/IPlannedFor";
 import IPlannedForAssignment from "./3-Render/codegen/types/IPlannedForAssignment";
-import type TAssignmentSite from "../types/TAssignmentSite";
+import type IAssignmentSyntax from "../types/syntax/IAssignmentSyntax";
+import AssignmentTarget from "../utils/AssignmentTarget";
+import StatementLowering from "../PARSE/2-Parse/StatementLowering";
 import IPlannedForVarDecl from "./3-Render/codegen/types/IPlannedForVarDecl";
 import IPlannedForever from "./3-Render/codegen/types/IPlannedForever";
 import IPlannedIf from "./3-Render/codegen/types/IPlannedIf";
@@ -1021,17 +1023,14 @@ class CodeGenWalker {
    * The integer type an expression converts from: its one type, or a
    * composite's integer type -- the answer 2.1's E0869 reads
    */
-  private integerTypeOf(ctx: ParserRuleContext): string | null {
-    const expr = SyntaxLowering.expressionNode(ctx);
+  private integerTypeOf(expr: TExpression): string | null {
     return this.directTypeOf(expr) ?? this.compositeClampType(expr);
   }
 
   /** Whether any value leaf is floating, or indeterminate (CompositeType) */
-  private hasFloatingLeaf(ctx: ParserRuleContext): boolean {
+  private hasFloatingLeaf(expr: TExpression): boolean {
     const typing = this.host.state.typingContext();
-    return CompositeType.anyFloating(
-      OperandTyper.valueLeaves(SyntaxLowering.expressionNode(ctx), typing),
-    );
+    return CompositeType.anyFloating(OperandTyper.valueLeaves(expr, typing));
   }
 
   /**
@@ -1072,7 +1071,9 @@ class CodeGenWalker {
     if (ctx.variableDeclaration()) {
       result = this.generateVariableDecl(ctx.variableDeclaration()!);
     } else if (ctx.assignmentStatement()) {
-      result = this.generateAssignment(ctx.assignmentStatement()!);
+      result = this.generateAssignment(
+        StatementLowering.assignment(ctx.assignmentStatement()!),
+      );
     } else if (ctx.expressionStatement()) {
       result =
         this.generateExpression(ctx.expressionStatement()!.expression()) + ";";
@@ -1118,21 +1119,19 @@ class CodeGenWalker {
    *        a renamed local, a scope member or a struct parameter is spelled
    *        once, here.
    */
-  generateAssignmentTarget(
-    ctx: Parser.AssignmentTargetContext,
-    opCount?: number,
-  ): string {
-    const hasGlobal = ctx.GLOBAL() !== null;
-    const hasThis = ctx.THIS() !== null;
-    const identifier = ctx.IDENTIFIER()?.getText();
-    const postfixOps = ctx.postfixTargetOp().slice(0, opCount);
+  generateAssignmentTarget(ctx: TExpression, opCount?: number): string {
+    const parts = AssignmentTarget.parts(ctx);
+    const hasGlobal = parts.root === "global";
+    const hasThis = parts.root === "this";
+    const identifier = parts.identifier ?? undefined;
+    const postfixOps = parts.ops.slice(0, opCount);
 
     // SonarCloud S3776: Use SimpleIdentifierResolver for simple identifier case
     if (!hasGlobal && !hasThis && postfixOps.length === 0 && identifier) {
       return SimpleIdentifierResolver.resolve(
         identifier,
         this._buildSimpleIdentifierDeps(),
-        ParserUtils.getPosition(ctx),
+        parts.position,
       );
     }
 
@@ -1171,7 +1170,7 @@ class CodeGenWalker {
         // the local, in the same function, compiling clean.
         const resolved = TypeValidator.resolveBareIdentifier(
           identifier,
-          ParserUtils.getPosition(ctx),
+          parts.position,
           (name: string) => this.host.isKnownStruct(name),
           this.host.state,
         );
@@ -1270,12 +1269,12 @@ class CodeGenWalker {
   }
 
   /** Try to evaluate a constant expression at compile time */
-  tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined {
+  tryEvaluateConstant(expr: TExpression): number | undefined {
     // Issue #1127: the shared builder, not a fourth inline copy of the same
     // three lookups. This is the orchestrator entry point that
     // ArrayDimensionUtils uses to emit declaration dimensions, so it is on the
     // hot path for exactly the divergences this work closes.
-    return this.dimensionValue(ctx);
+    return this.constantOf(expr);
   }
 
   /**
@@ -4412,14 +4411,14 @@ class CodeGenWalker {
    * @public
    */
   analyzeMemberChainForBitAccess(
-    targetCtx: Parser.AssignmentTargetContext,
+    targetCtx: TExpression,
     lastStep: IChainStep | undefined,
   ): IBitAccessAnalysis {
     // #1668 (C12): what the last subscript indexes is the typer's answer,
     // typed once with the target (`IChainBase.last`)
     return MemberChainAnalyzer.analyze(
       lastStep,
-      targetCtx.postfixTargetOp().map((op) => this.planTargetOp(op)),
+      AssignmentTarget.parts(targetCtx).ops.map((op) => this.planTargetOp(op)),
     );
   }
 
@@ -4432,30 +4431,26 @@ class CodeGenWalker {
    * rendering an index queues a pending temp declaration in some shapes. See
    * `TPlannedTargetOp`.
    */
-  private planTargetOp(op: Parser.PostfixTargetOpContext): TPlannedTargetOp {
-    const member = op.IDENTIFIER();
-    if (member) {
-      return { kind: "member", name: member.getText() };
+  private planTargetOp(op: TPostfixOpSyntax): TPlannedTargetOp {
+    if (op.kind === "member") {
+      return { kind: "member", name: op.name };
     }
 
-    const indexes = op.expression();
+    const indexes = op.kind === "subscript" ? op.indexes : [];
     return {
       kind: "subscript",
       indexCount: indexes.length,
-      renderIndexes: () =>
-        indexes.map((index) => this.generateExpression(index)),
+      renderIndexes: () => indexes.map((index) => this.renderExpression(index)),
       foldWidth: () =>
-        indexes.length === 2 ? this.tryEvaluateConstant(indexes[1]) : undefined,
+        indexes.length === 2 ? this.constantOf(indexes[1]) : undefined,
     };
   }
 
   /** #1668 (C7): what an assignment target writes, by the one binder */
-  private targetDeclaration(
-    target: Parser.AssignmentTargetContext,
-  ): IChainBase {
+  private targetDeclaration(target: TExpression): IChainBase {
     const typing = this.host.state.typingContext();
     return DeclaredTypeInfo.ofChain(
-      OperandTyper.chainOf(SyntaxLowering.assignmentTarget(target), typing),
+      OperandTyper.chainOf(target, typing),
       typing.symbols,
       this.host.state.symbolTable,
       this.host.state.targetDescription,
@@ -4474,12 +4469,12 @@ class CodeGenWalker {
    * its own width, so it has none (#1085).
    */
   private assignedValueType(
-    targetCtx: Parser.AssignmentTargetContext,
+    targetCtx: TExpression,
     target: IChainBase,
   ): string | null {
     if (target.last?.subscript === "array_slice") return null;
     const written = OperandTyper.typeOfTarget(
-      SyntaxLowering.assignmentTarget(targetCtx),
+      targetCtx,
       this.host.state.typingContext(),
     );
     const name = written?.cType ?? written?.typeName ?? null;
@@ -4491,8 +4486,8 @@ class CodeGenWalker {
         );
   }
 
-  private generateAssignment(ctx: TAssignmentSite): string {
-    const targetCtx = ctx.assignmentTarget();
+  private generateAssignment(site: IAssignmentSyntax): string {
+    const targetCtx = site.target;
 
     // #1668 (C7): what the target writes, bound once -- the expected type
     // below and every classifier rule and handler read this
@@ -4500,7 +4495,7 @@ class CodeGenWalker {
     const expectedType = this.assignedValueType(targetCtx, target);
     // withExpectedType restores expectedType however the render exits
     const value = this.host.state.withExpectedType(expectedType, () =>
-      this.generateExpression(ctx.expression()),
+      this.renderExpression(site.value),
     );
 
     // #1322: the operator was mapped to its C form here and used for nothing
@@ -4519,9 +4514,10 @@ class CodeGenWalker {
     // Writing to a float invalidates its bit-shadow: the union copy is stale
     // until the next read refreshes it. Only a whole-variable assignment does
     // this -- writing THROUGH a member or an element does not rebind the float.
-    if (targetCtx.postfixTargetOp().length === 0) {
-      const assignedName = targetCtx.IDENTIFIER()?.getText();
-      if (assignedName !== undefined) {
+    const parts = AssignmentTarget.parts(targetCtx);
+    if (parts.ops.length === 0) {
+      const assignedName = parts.identifier;
+      if (assignedName !== null) {
         this.host.state.floatShadowCurrent.delete(
           BitRangeHelper.getShadowVarName(assignedName),
         );
@@ -4530,7 +4526,7 @@ class CodeGenWalker {
 
     // ADR-065: Dispatch to assignment handlers
     // Build context, classify, and dispatch - all patterns handled by handlers
-    const assignCtx = buildAssignmentContext(ctx, {
+    const assignCtx = buildAssignmentContext(site, {
       target,
       state: this.host.state,
       // Already rendered, inside the expectedType window above -- never again.
@@ -4539,10 +4535,9 @@ class CodeGenWalker {
         this.generateAssignmentTarget(target, opCount),
       analyzeMemberChainForBitAccess: (target, lastStep) =>
         this.analyzeMemberChainForBitAccess(target, lastStep),
-      generateExpression: (expr) => this.generateExpression(expr),
+      generateExpression: (expr) => this.renderExpression(expr),
       tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
-      expressionType: (expr) =>
-        this.directTypeOf(SyntaxLowering.expressionNode(expr)),
+      expressionType: (expr) => this.directTypeOf(expr),
       integerExpressionType: (expr) => this.integerTypeOf(expr),
       hasFloatingOperand: (expr) => this.hasFloatingLeaf(expr),
       toCOperator: (cnextOp, line) =>
@@ -4587,17 +4582,17 @@ class CodeGenWalker {
    * Extract postfix operations from parser contexts
    */
   private _extractPostfixOperations(
-    postfixOps: Parser.PostfixTargetOpContext[],
+    postfixOps: readonly TPostfixOpSyntax[],
   ): IPostfixOperation[] {
     return postfixOps.map((op) => {
-      const expressions = op.expression();
+      const expressions = op.kind === "subscript" ? op.indexes : [];
       return {
-        memberName: op.IDENTIFIER()?.getText() ?? null,
+        memberName: op.kind === "member" ? op.name : null,
         indexCount: expressions.length,
         // #1652: the nodes stay closed over HERE, in the walk. What crosses
         // into the render layer is a count and a function returning strings.
         renderIndexes: () =>
-          expressions.map((expr) => this.generateExpression(expr)),
+          expressions.map((expr) => this.renderExpression(expr)),
       };
     });
   }
@@ -4775,7 +4770,7 @@ class CodeGenWalker {
    * clamp and MISRA C:2012 Rule 7.2's suffix included. Only the terminator
    * differs, since a header clause is an expression, not a statement.
    */
-  private planForAssignment(site: TAssignmentSite): IPlannedForAssignment {
+  private planForAssignment(site: IAssignmentSyntax): IPlannedForAssignment {
     return {
       render: () => {
         const form = ForHeaderAssignment.multiStatementForm(
@@ -4802,7 +4797,9 @@ class CodeGenWalker {
       // `for (;;)` is E0707 in pass 2.1, so the controlling expression is
       // guaranteed present here.
       renderCondition: () => this.generateExpression(ctx.expression()!),
-      update: forUpdate ? this.planForAssignment(forUpdate) : null,
+      update: forUpdate
+        ? this.planForAssignment(StatementLowering.assignment(forUpdate))
+        : null,
       renderBody: () => this.generateStatement(ctx.statement()),
     };
   }
@@ -4818,7 +4815,7 @@ class CodeGenWalker {
     if (assignment) {
       return {
         kind: "assignment",
-        plan: this.planForAssignment(assignment),
+        plan: this.planForAssignment(StatementLowering.assignment(assignment)),
       };
     }
 

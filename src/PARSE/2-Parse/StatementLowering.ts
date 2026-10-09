@@ -65,6 +65,7 @@ class StatementLowering {
     return {
       target: SyntaxLowering.assignmentTarget(ctx.assignmentTarget()),
       operator: operator as TAssignmentOperator,
+      operatorSpan: ParserUtils.getSpan(ctx.assignmentOperator()),
       value: StatementLowering.expressionOf(ctx),
       ...SyntaxLowering.node(ctx),
     };

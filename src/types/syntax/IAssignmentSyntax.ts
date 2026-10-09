@@ -7,6 +7,7 @@ interface IAssignmentSyntax extends ISyntaxNode {
   /** The lowered `assignmentTarget`: an identifier, a root or a postfix chain */
   readonly target: TExpression;
   readonly operator: TAssignmentOperator;
+  readonly operatorSpan: ISyntaxNode["span"];
   readonly value: TExpression;
 }
 
