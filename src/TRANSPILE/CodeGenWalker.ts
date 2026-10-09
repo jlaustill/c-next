@@ -488,12 +488,11 @@ class CodeGenWalker {
    * nearer expression holds today.
    */
   private planPostfixExpression(expr: TExpression): IPlannedPostfix {
-    // 1.2 lowers a postfix with no operations to its primary (#1932)
-    const primary = expr.kind === "postfix" ? expr.primary : expr;
-    const ops = expr.kind === "postfix" ? expr.ops : [];
-    const rootIdentifier =
-      primary.kind === "identifier" ? primary.name : undefined;
     const head = ExpressionShape.headOf(expr);
+    const primary = head.primary;
+    const ops = head.ops;
+    const rootIdentifier =
+      head.root === null ? (head.identifier?.name ?? undefined) : undefined;
     const subscriptBase = this.resolveSubscriptBase(head);
 
     // #1445 review: planned FIRST, then counted off the planned ops.
@@ -759,7 +758,7 @@ class CodeGenWalker {
    * Issue #1030: Extended to handle struct member access (e.g., person.name)
    */
   private isStringExpression(expr: TExpression): boolean {
-    if (expr.kind === "literal" && expr.literalKind === "string") {
+    if (ExpressionShape.isStringLiteral(expr)) {
       return true;
     }
 

@@ -75,6 +75,17 @@ describe("ExpressionShape", () => {
       expect(ExpressionShape.rootName(lowered(source))).toBe(expected);
     });
   });
+  describe("isStringLiteral", () => {
+    it.each([
+      ['"a"', true],
+      ['"a" < "b"', false],
+      ['("a")', false],
+      ["s", false],
+    ])("%s -> %s", (source, expected) => {
+      expect(ExpressionShape.isStringLiteral(lowered(source))).toBe(expected);
+    });
+  });
+
   describe("headOf", () => {
     it.each([
       ["myVar", null, "myVar", 0],
@@ -90,6 +101,16 @@ describe("ExpressionShape", () => {
       expect(head.identifier?.name ?? null).toBe(name);
       expect(head.opsConsumed).toBe(opsConsumed);
     });
+
+    it.each(["this[0]", "global[0]"])(
+      "names nothing when %s subscripts its root",
+      (source) => {
+        const head = ExpressionShape.headOf(lowered(source));
+
+        expect(head.identifier).toBeNull();
+        expect(head.opsConsumed).toBe(1);
+      },
+    );
 
     it("puts a rooted chain's call after the consumed name", () => {
       const head = ExpressionShape.headOf(lowered("this.read()"));

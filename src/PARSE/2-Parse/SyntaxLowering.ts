@@ -10,7 +10,8 @@
  * shape minus its pass-through levels -- see `TExpression` -- and leaves every
  * question about meaning to the pass that owns it.
  */
-import type { ParserRuleContext, ParseTree } from "antlr4ng";
+import { TerminalNode } from "antlr4ng";
+import type { ParserRuleContext, ParseTree, Token } from "antlr4ng";
 import * as Parser from "./grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
 import ChainRoot from "../../utils/ChainRoot";
@@ -92,7 +93,7 @@ class SyntaxLowering {
             stop: named.symbol,
           }),
           span: ParserUtils.getSpan({
-            start: named.symbol,
+            start: SyntaxLowering.rootDot(ctx) ?? named.symbol,
             stop: named.symbol,
           }),
           written: `.${named.getText()}`,
@@ -109,6 +110,20 @@ class SyntaxLowering {
       ops: [first, ...ops],
       ...SyntaxLowering.node(ctx),
     };
+  }
+
+  /**
+   * The `.` between a target's `this`/`global` and its first name, so that
+   * member op's span covers it the way an expression's member op does. Null
+   * when recovery left none written.
+   */
+  private static rootDot(ctx: Parser.AssignmentTargetContext): Token | null {
+    const dot = ctx.getChild(1);
+    return dot instanceof TerminalNode &&
+      dot.symbol.tokenIndex >= 0 &&
+      dot.getText() === "."
+      ? dot.symbol
+      : null;
   }
 
   private static postfixTargetOp(
@@ -339,12 +354,9 @@ class SyntaxLowering {
         ...SyntaxLowering.node(ctx),
       };
     }
-    if (ctx.THIS() || ctx.GLOBAL()) {
-      return {
-        kind: "root",
-        root: ctx.THIS() ? "this" : "global",
-        ...SyntaxLowering.node(ctx),
-      };
+    const root = ChainRoot.ofPrimary(ctx);
+    if (root !== null) {
+      return { kind: "root", root, ...SyntaxLowering.node(ctx) };
     }
     const identifier = ctx.IDENTIFIER();
     if (!identifier) return SyntaxLowering.missing(ctx);
