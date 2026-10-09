@@ -175,6 +175,13 @@ function setupSymbols(overrides: Partial<ICodeGenSymbols> = {}): void {
 // ========================================================================
 // SIMPLE Assignment
 // ========================================================================
+/**
+ * #1934: the scope 2.3 Render has entered on the state, deliberately not the
+ * one a case's `scopePath` names. The classifier takes the scope from the
+ * assignment, so a classifier reading the state instead fails these cases.
+ */
+const RENDER_SCOPE = "Elsewhere";
+
 let state = new TranspileState();
 
 describe("AssignmentClassifier - SIMPLE", () => {
@@ -621,7 +628,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
   it("classifies this.member", () => {
     setupSymbols();
-    enterScope(state, "Counter");
+    enterScope(state, RENDER_SCOPE);
 
     const ctx = createMockContext(state, {
       scopePath: "Counter",
@@ -636,7 +643,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
   it("classifies this.arr[i]", () => {
     setupSymbols();
-    enterScope(state, "Buffer");
+    enterScope(state, RENDER_SCOPE);
 
     // #1668 (C12): the typer types every subscript; this is its answer
     const ctx = typedLast(
@@ -662,7 +669,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
   // carries the scope prefix, so no `this.`-specific kind is needed.
   it("classifies this.flags[3] as INTEGER_BIT for integer type", () => {
     setupSymbols();
-    enterScope(state, "Sensor");
+    enterScope(state, RENDER_SCOPE);
     // Register Sensor_flags as a non-array integer type
     declare(
       "Sensor__flags",
@@ -688,7 +695,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
   it("classifies this.value[0, 8] as INTEGER_BIT_RANGE for integer type", () => {
     setupSymbols();
-    enterScope(state, "Sensor");
+    enterScope(state, RENDER_SCOPE);
     // Register Sensor_value as a non-array integer type
     declare(
       "Sensor__value",
@@ -717,7 +724,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
   it("classifies this.data[i] as ARRAY_ELEMENT for array type", () => {
     setupSymbols();
-    enterScope(state, "Buffer");
+    enterScope(state, RENDER_SCOPE);
     // Register Buffer_data as an array type
     declare(
       "Buffer__data",
@@ -791,7 +798,7 @@ describe("AssignmentClassifier - Register Bit Access", () => {
     const knownScopes = new Set(["Teensy4"]);
     const knownRegisters = new Set(["Teensy4__GPIO7"]);
     setupSymbols({ knownScopes, knownRegisters });
-    enterScope(state, "Teensy4");
+    enterScope(state, RENDER_SCOPE);
 
     const ctx = createMockContext(state, {
       scopePath: "Teensy4",
@@ -961,7 +968,7 @@ describe("AssignmentClassifier - Scoped Register Bit Range", () => {
   it("classifies this.reg[start, width] as SCOPED_REGISTER_BIT_RANGE", () => {
     const knownRegisters = new Set(["Teensy4__GPIO7"]);
     setupSymbols({ knownRegisters });
-    enterScope(state, "Teensy4");
+    enterScope(state, RENDER_SCOPE);
 
     const ctx = createMockContext(state, {
       scopePath: "Teensy4",
@@ -1240,7 +1247,7 @@ describe("AssignmentClassifier - This Prefix Register Bitmap", () => {
       ["CtrlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
     ]);
     setupSymbols({ knownRegisters, registerMemberTypes, bitmapFields });
-    enterScope(state, "Motor");
+    enterScope(state, RENDER_SCOPE);
 
     const ctx = createMockContext(state, {
       scopePath: "Motor",

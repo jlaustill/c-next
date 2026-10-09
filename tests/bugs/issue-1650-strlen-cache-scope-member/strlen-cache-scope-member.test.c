@@ -9,25 +9,38 @@
 #include <string.h>
 
 // test-execution
+// test-no-warnings
+// test-adr: 016, 057
 // Issue #1650 (part 1): the strlen cache of a scope member named the bare member.
 //
 // `label` is emitted qualified (`Cfg__label`, ADR-016), but the length cache
 // was declared from the source name, as `strlen(label)` -- an undeclared
 // identifier, so gcc rejected the program the transpiler reported as fine.
 // The cache needs two `.char_count` reads; one read was already right.
+//
+// Negative controls: the member read ONCE (no cache, correct before the fix)
+// and a file-scope string read twice (cached as `strlen(title)`, which worked
+// and must keep working).
+char title[9] = "xyz";
+
 /* Scope: Cfg */
 char Cfg__label[9] = "ab";
 
 uint32_t Cfg__check(void) {
-    size_t cnx_len_label = strlen(label);
-    if (strlen(Cfg__label) != 2 || strlen(Cfg__label) < 1) {
+    size_t cnx_len_label = strlen(Cfg__label);
+    if (cnx_len_label != 2 || cnx_len_label < 1) {
         return 1U;
+    }
+    if (strlen(Cfg__label) != 2) {
+        return 2U;
     }
     return 0U;
 }
 
 int main(void) {
     uint32_t result = Cfg__check();
-    if (result != 0) return 1U;
+    if (result != 0) return result;
+    size_t cnx_len_title = strlen(title);
+    if (cnx_len_title != 3 || cnx_len_title < 1) return 3U;
     return 0U;
 }

@@ -20,7 +20,7 @@ uint32_t label = 0U;
 
 int main(void) {
     char main__label[9] = "ab";
-    size_t cnx_len_label = strlen(label);
-    if (strlen(main__label) != 2 || strlen(main__label) < 1) return 1U;
+    size_t cnx_len_label = strlen(main__label);
+    if (cnx_len_label != 2 || cnx_len_label < 1) return 1U;
     return 0U;
 }
