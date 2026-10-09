@@ -37,6 +37,7 @@ import type INamedTypeResolution from "../../types/INamedTypeResolution";
 import type ITypeBindingDeps from "../../types/ITypeBindingDeps";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
+import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
 import * as Parser from "../2-Parse/grammar/CNextParser";
 
 /**
@@ -230,6 +231,28 @@ class TypeBinding {
   static resolveStringType(stringCtx: Parser.StringTypeContext): string {
     const intLiteral = stringCtx.INTEGER_LITERAL();
     return intLiteral ? `string<${intLiteral.getText()}>` : "string";
+  }
+
+  /** `resolveName` over a lowered type, for a pass that holds no parse tree (#1932) */
+  static resolveWrittenName(
+    type: TTypeSyntax,
+    scopePath: string,
+    deps?: ITypeBindingDeps,
+  ): string | null {
+    const named = TypeBinding.classifyNamed(type, scopePath, deps);
+    if (named !== null) {
+      return named.name;
+    }
+    switch (type.kind) {
+      case "primitive":
+        return type.name;
+      case "array":
+        return TypeBinding.resolveWrittenName(type.element, scopePath, deps);
+      case "string":
+        return type.capacity === null ? "string" : `string<${type.capacity}>`;
+      default:
+        return null;
+    }
   }
 }
 

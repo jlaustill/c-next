@@ -1241,11 +1241,15 @@ class CodeGenWalker {
 
   /** Get the raw type name without C conversion */
   getTypeName(ctx: Parser.TypeContext): string {
+    return this.typeNameOf(SyntaxLowering.type(ctx));
+  }
+
+  private typeNameOf(type: TTypeSyntax): string {
     // #1285: one ladder. This was the largest of seven copies, and the only one
     // that handled `arrayType` by peeking at two of its six element
     // alternatives -- TypeBinding recurses into all of them.
-    const resolved = TypeBinding.resolveName(
-      ctx,
+    const resolved = TypeBinding.resolveWrittenName(
+      type,
       this.host.state.currentScopePath,
       this.host.state.typeBindingDeps((identifiers) =>
         this.resolveQualifiedType(identifiers),
@@ -1263,9 +1267,9 @@ class CodeGenWalker {
     // the two the matrix guidance warns against mixing: neither depends on a
     // diagnostic, and a fixture is credited once per position either way.
     if (resolved !== null && this.host.state.isCrossFileDeclaration(resolved)) {
-      AdrProvenance.record("010", ctx.start?.line);
+      AdrProvenance.record("010", type.span.line);
     }
-    return resolved ?? ctx.getText();
+    return resolved ?? type.text;
   }
 
   /** Try to evaluate a constant expression at compile time */
@@ -1283,6 +1287,10 @@ class CodeGenWalker {
    * ADR-017: Handle enum types by initializing to first member
    */
   getZeroInitializer(typeCtx: Parser.TypeContext, isArray: boolean): string {
+    return this.zeroInitializerOf(SyntaxLowering.type(typeCtx), isArray);
+  }
+
+  private zeroInitializerOf(type: TTypeSyntax, isArray: boolean): string {
     // Issue #379 / #1004: arrays zero-init with the aggregate brace ({} in
     // C++, {0} in C) regardless of element type.
     if (isArray) {
@@ -1290,7 +1298,7 @@ class CodeGenWalker {
     }
 
     // Handle named types (scoped, global, qualified, user)
-    const resolved = this._resolveTypeNameFromContext(typeCtx);
+    const resolved = this.namedTypeOf(type);
     if (resolved) {
       // Check if enum
       if (this.host.state.symbols!.knownEnums.has(resolved.name)) {
@@ -1303,18 +1311,18 @@ class CodeGenWalker {
     }
 
     // Issue #295: C++ template types use value initialization {}
-    if (typeCtx.templateType()) {
+    if (type.kind === "template") {
       return "{}";
     }
 
     // Issue #1019: string<N> types use empty string initializer
-    if (typeCtx.stringType()) {
+    if (type.kind === "string") {
       return '""';
     }
 
     // Primitive types use lookup map
-    if (typeCtx.primitiveType()) {
-      const primType = typeCtx.primitiveType()!.getText();
+    if (type.kind === "primitive") {
+      const primType = type.name;
       return CodeGenWalker.PRIMITIVE_ZERO_VALUES.get(primType) ?? "0";
     }
 
@@ -4369,22 +4377,22 @@ class CodeGenWalker {
    * Returns { name, separator } or null if not a named type.
    * ADR-016: Handles scoped, global, qualified, and user types
    */
-  private _resolveTypeNameFromContext(
-    typeCtx: Parser.TypeContext,
+  private namedTypeOf(
+    type: TTypeSyntax,
   ): { name: string; separator: string } | null {
     // #1285: ask for named types by name. Everything else -- string, array,
     // template, primitive, `void` -- returns null and is handled by the
     // caller's own chain, which is where it was always handled. An enumerated
     // list of alternatives to SKIP would have to be kept in step with the
     // grammar from ~3000 lines away, and getting it wrong fails open.
-    const name = TypeBinding.resolveNamedType(
-      typeCtx,
+    const name = TypeBinding.classifyNamed(
+      type,
       this.host.state.currentScopePath,
       this.host.state.typeBindingDeps((parts) =>
         this.resolveQualifiedType(parts),
       ),
-    );
-    if (name === null) {
+    )?.name;
+    if (name === undefined) {
       return null;
     }
 
