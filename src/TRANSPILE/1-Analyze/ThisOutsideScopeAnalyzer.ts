@@ -9,7 +9,7 @@
  * scope is a PARSE error, so the assignment-path guards could never fire.
  *
  * Every copy reached the user as `1:0`, because a throw from codegen carries no
- * position -- `ParserUtils.parseErrorLocation` has nothing to scrape and falls
+ * position -- `ErrorLocation.parse` has nothing to scrape and falls
  * back. That is the defect this card exists to fix, and it is why the rule
  * moves rather than being tidied where it stood.
  *

@@ -8,7 +8,7 @@ import createMockSymbols from "../../../cli/__tests__/codeGenSymbolsHelpers";
  * `TranspileState`.
  *
  * #1456 made the analyzers take their inputs instead of reaching for them.
- * Production builds this in `Transpiler._analyzeFile`, from the artifacts it
+ * Production builds this in `Transpiler._analysisInputs`, from the artifacts it
  * is holding. The unit tests set the same facts up on `TranspileState` and have
  * done since before the boundary existed, so this reads them back rather than
  * rewriting several hundred assertions to construct symbol views by hand.

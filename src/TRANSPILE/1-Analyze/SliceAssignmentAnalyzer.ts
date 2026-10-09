@@ -6,7 +6,7 @@
  *
  *     throw new Error(`${line}:0 Error: Slice assignment out of bounds: ...`)
  *
- * The `${line}:0` was read back out of the message by `parseErrorLocation`, so
+ * The `${line}:0` was read back out of the message by `ErrorLocation.parse`, so
  * the diagnostic reached the user with a real line and a hard-coded column 0.
  * That is what makes this tier A: the position is not missing, it is being
  * smuggled through the one channel a throw has. Relocating removes the hack

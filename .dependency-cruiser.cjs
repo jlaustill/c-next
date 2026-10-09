@@ -452,13 +452,15 @@ module.exports = {
         "from 2.2 Plan on may -- not Plan, not Render, not CodeGenWalker, not " +
         "Write, and not a helper any of them calls. Also exempt: the helpers in " +
         "PARSE_TREE_HELPERS, which are `to` targets too, so only an allowed pass " +
-        "can call one; `cli/Transpiler.ts`, the host that hands 1.2's artifact " +
-        "to 1.3 and 2.1 (generation receives the plain-data `IProgramSyntax`); " +
+        "can call one; " +
         "1.2's carriers `IParsedFile` and `ITypeAccessors`; " +
         "and 1.1's `IncludeDiscovery`, which lexes with 1.2's `CNextLexer` and " +
         "builds no tree (#1745, owner ruling 2026-09-30; PASS_ORDER `mayRead`). " +
         "The library entry points in `lib/` hand 1.3 source text and get " +
         "symbols back, so they hold no tree and are not exempt (#1957). " +
+        "Nor is the host: 1-Analyze's `TreePasses` runs 1.2 through 2.1 as one " +
+        "call, and `cli/Transpiler.ts` gets plain data in and out (#1932, " +
+        "owner ruling 2026-10-09). " +
         "A structural stand-in -- a later pass declaring its own copy of a " +
         "context's shape -- names no path this rule can match; " +
         "scripts/__tests__/artifact-lifetime.test.ts asks the type checker " +
@@ -471,7 +473,6 @@ module.exports = {
           "^src/PARSE/3-Declare/",
           "^src/TRANSPILE/1-Analyze/",
           "^src/types/(IParsedFile|ITypeAccessors)\\.ts$",
-          "^src/cli/Transpiler\\.ts$",
           "^src/PARSE/1-Discover/IncludeDiscovery\\.ts$",
           ...PARSE_TREE_HELPERS,
           "__tests__/",

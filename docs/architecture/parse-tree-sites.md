@@ -32,11 +32,10 @@ lexer-only include scan. Nothing from 2.2 Plan on.
 
 | Layer            | Modules |
 | ---------------- | ------: |
-| `src/TRANSPILE/` |      60 |
+| `src/TRANSPILE/` |      61 |
 | `src/PARSE/`     |      24 |
 | `src/utils/`     |       9 |
 | `src/types/`     |       3 |
-| `src/cli/`       |       1 |
 | **total**        |  **97** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
@@ -47,7 +46,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 
 | Module                                                          | Holds             |
 | --------------------------------------------------------------- | ----------------- |
-| `src/cli/Transpiler.ts`                                         | grammar           |
 | `src/PARSE/1-Discover/IncludeDiscovery.ts`                      | antlr4ng, grammar |
 | `src/PARSE/3-Declare/c/collectors/EnumCollector.ts`             | grammar           |
 | `src/PARSE/3-Declare/c/collectors/FunctionCollector.ts`         | grammar           |
@@ -130,6 +128,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts`              | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`            | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ThisOutsideScopeAnalyzer.ts`           | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/TreePasses.ts`                         | grammar           |
 | `src/TRANSPILE/1-Analyze/UndeclaredTypeAnalyzer.ts`             | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/UndeclaredValueAnalyzer.ts`            | antlr4ng, grammar |
 | `src/types/IParsedFile.ts`                                      | antlr4ng, grammar |

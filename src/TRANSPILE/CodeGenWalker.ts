@@ -1437,7 +1437,7 @@ class CodeGenWalker {
   private initializeGenerateOptions(options: ICodeGeneratorOptions): void {
     this.host.state.debugMode = options.debugMode ?? false;
     this.host.state.sourcePath = options.sourcePath ?? null;
-    // #1241: Transpiler._analyzeFile sets the provenance file before analyzers
+    // #1241: Transpiler._analysisInputs sets the provenance file before analyzers
     // run; re-assert it here for API callers that drive the generator directly
     // and never go through that path. (Said `_transpileFile` until #1320
     // hoisted analysis out of it into its own pass -- by the time

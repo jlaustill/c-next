@@ -371,12 +371,13 @@ describe("artifact lifetime (#1445 box 2)", () => {
     () => {
       // The control, and it is load-bearing. Every assertion below is an
       // emptiness claim, and an emptiness claim from a broken scan is
-      // indistinguishable from a true one. `Transpiler.retainedParses` is
-      // `Map<string, IParsedFile>` -- the one field in this repository that holds
-      // every retained tree on purpose -- so the scan must see it.
-      const control = storedParseNodes(/src\/cli\/Transpiler\.ts$/);
+      // indistinguishable from a true one. 2.1's listeners index parse nodes on
+      // instance fields while they walk -- that is what analysis is -- so the
+      // scan must see them. (The control used to be `Transpiler.retainedParses`,
+      // which #1932 deleted: the host no longer holds a tree.)
+      const control = storedParseNodes(/src\/TRANSPILE\/1-Analyze\//);
 
-      expect(control.some((f) => f.includes("retainedParses"))).toBe(true);
+      expect(control.length).toBeGreaterThan(0);
     },
     WALK_TIMEOUT_MS,
   );
@@ -424,45 +425,26 @@ describe("artifact lifetime (#1445 box 2)", () => {
   );
 
   it(
-    "pins every field outside the parser that holds a parse node",
+    "no field outside the parser and 2.1 holds a parse node",
     () => {
-      // An EXHAUSTIVE roster, not an emptiness claim. Two fields legitimately
-      // hold one and all are released when the run ends; asserting "none" would
-      // have to exempt them, and an exemption is invisible once written. A roster
-      // makes a third holder a failing diff.
+      // The pattern is ALL of `src/` minus the two directories that may hold a
+      // tree, because a check scoped to where holders were already known cannot
+      // find one anywhere else. It used to read
+      // `src/transpiler/|src/TRANSPILE/CodeGenWalker.ts$` -- one directory plus
+      // one file -- so `src/cli/` was outside it, and `ServeCommand` sat unlisted.
+      // Found by review. `parse-tree-sites.md` reports modules that NAME a parse
+      // type, and `ServeCommand` names none -- transitive reach is precisely what
+      // this file exists to catch.
       //
-      // The pattern is ALL of `src/` minus the two directories whose emptiness
-      // the other assertions here own, because a roster scoped to where the
-      // holders were already known cannot find one anywhere else. It used to
-      // read `src/transpiler/|src/TRANSPILE/CodeGenWalker.ts$` -- one directory
-      // plus one file -- so `src/cli/` was outside it, and `ServeCommand`
-      // sat unlisted under a test named "pins EVERY field outside the parser".
-      // Found by review. The backstop did not cover the gap either:
-      // `parse-tree-sites.md` reports modules that NAME a parse type, and
-      // `ServeCommand` names none -- transitive reach is precisely what this
-      // file exists to catch.
+      // This was a roster of two until #1932: `Transpiler.retainedParses`, and
+      // `ServeCommand.transpiler`, which reached a tree only through it. Since
+      // 2.1's `TreePasses` holds every tree as a local of one call, the host has
+      // none to hold, and a field that brings one back fails here.
       const holders = storedParseNodes(
         /src\/(?!PARSE\/2-Parse|TRANSPILE\/1-Analyze)/,
-      ).map((f) => f.replace(/:\d+ /, " "));
-
-      expect(holders.sort()).toEqual(
-        [
-          // #1301: Stage 4d reuses Stage 3's parse, and `_releaseParseTrees`
-          // empties it before Stage 5 (#1932). Cleared in a `finally`, which
-          // `RetainedParseCacheRelease.test.ts` asserts and mutation-checks.
-          // The walker held one too (`tokenStream` and its `CommentScanner`)
-          // until #1932 handed it the plain-data `IProgramSyntax` instead.
-          "src/cli/Transpiler.ts Transpiler.retainedParses",
-          // The longest-lived holder in the codebase, and `private static` --
-          // CLAUDE.md singles it out ("`ServeCommand` holds a static transpiler
-          // and serves many requests"). Not a leak: it reaches a tree only
-          // through `Transpiler.retainedParses` above, which `Transpiler`
-          // clears in a `finally`. It is here because the roster claims to be
-          // exhaustive, and a holder reachable only transitively is the one
-          // shape the generated `parse-tree-sites.md` backstop cannot see.
-          "src/cli/serve/ServeCommand.ts ServeCommand.transpiler",
-        ].sort(),
       );
+
+      expect(holders).toEqual([]);
     },
     WALK_TIMEOUT_MS,
   );
@@ -555,6 +537,19 @@ describe("artifact lifetime (#1445 box 2)", () => {
       expect(heldParseValues(/src\/TRANSPILE\/1-Analyze\//, 1)).toHaveLength(1);
 
       expect(heldParseValues(AFTER_ANALYZE)).toEqual([]);
+    },
+    WALK_TIMEOUT_MS,
+  );
+  it(
+    "the host holds no parse node as a value, however obtained (#1932)",
+    () => {
+      // `cli/` orchestrates the passes. Since #1932 the passes that read a tree
+      // run as one call, 2.1's `TreePasses`, so nothing here may obtain one --
+      // not by a parser call, not through a returned artifact.
+      const host = /src\/cli\//;
+      expect(matchingModules(host)).toContain("src/cli/Transpiler.ts");
+
+      expect(heldParseValues(host)).toEqual([]);
     },
     WALK_TIMEOUT_MS,
   );
