@@ -3,30 +3,7 @@
  * Extracted from CodeGenerator.ts.
  */
 import IComment from "../../../../../types/IComment";
-import CommentScanner from "../../../../../PARSE/2-Parse/CommentScanner";
 import CommentFormatter from "../../CommentFormatter";
-
-/**
- * Get comments that appear before a parse tree node
- */
-const getLeadingComments = (
-  ctx: { start?: { tokenIndex: number } | null },
-  extractor: CommentScanner | null,
-): IComment[] => {
-  if (!extractor || !ctx.start) return [];
-  return extractor.getCommentsBefore(ctx.start.tokenIndex);
-};
-
-/**
- * Get inline comments that appear after a parse tree node (same line)
- */
-const getTrailingComments = (
-  ctx: { stop?: { tokenIndex: number } | null },
-  extractor: CommentScanner | null,
-): IComment[] => {
-  if (!extractor || !ctx.stop) return [];
-  return extractor.getCommentsAfter(ctx.stop.tokenIndex);
-};
 
 /**
  * Format leading comments with current indentation
@@ -40,24 +17,9 @@ const formatLeadingComments = (
   return formatter.formatLeadingComments(comments, indent);
 };
 
-/**
- * Format a trailing/inline comment
- */
-const formatTrailingComment = (
-  comments: IComment[],
-  formatter: CommentFormatter,
-): string => {
-  if (comments.length === 0) return "";
-  // Only use the first comment for inline
-  return formatter.formatTrailingComment(comments[0]);
-};
-
 // Export as an object for consistent module pattern
 const commentUtils = {
-  getLeadingComments,
-  getTrailingComments,
   formatLeadingComments,
-  formatTrailingComment,
 };
 
 export default commentUtils;

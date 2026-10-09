@@ -30,6 +30,7 @@
 import { describe, it, expect } from "vitest";
 import {
   Project,
+  SyntaxKind,
   type ClassDeclaration,
   type ParameterDeclaration,
   type PropertyDeclaration,
@@ -231,6 +232,59 @@ function storedParseNodes(pattern: RegExp): string[] {
 }
 
 /**
+ * Every parameter, field and property signature under `pattern` that would
+ * accept a real parse context.
+ *
+ * #1932 box 1: a pass can take a parse node without naming a parse type, by
+ * declaring a structural copy of the part it reads -- `IModifierContext`
+ * (`atomicModifier(): unknown`) and `CommentUtils`' `{ start?: { tokenIndex:
+ * number } }` both did, and `parse-tree-confined-to-parser`, which matches
+ * import paths, could see neither. So the question is asked of the TYPE
+ * CHECKER: is a generated context assignable here? Top types (`unknown`,
+ * `any`, `object`, `{}`, an unconstrained type parameter) accept anything and
+ * say nothing about parse nodes, so they are skipped.
+ */
+function parseNodeAcceptors(pattern: RegExp): string[] {
+  const grammar = project.getSourceFileOrThrow(
+    join(repoRoot, "src/PARSE/2-Parse/grammar/CNextParser.ts"),
+  );
+  const contexts = [
+    "ProgramContext",
+    "ExpressionContext",
+    "LiteralContext",
+    "TypeContext",
+  ].map((name) => grammar.getClassOrThrow(name).getType());
+  const isTop = (t: Type): boolean =>
+    t.isAny() ||
+    t.isUnknown() ||
+    t.isTypeParameter() ||
+    ["object", "{}"].includes(t.getText());
+
+  const found: string[] = [];
+  for (const sf of project.getSourceFiles()) {
+    const path = sf.getFilePath();
+    if (path.includes("__tests__") || !pattern.test(path)) continue;
+    const nodes = [
+      ...sf.getDescendantsOfKind(SyntaxKind.Parameter),
+      ...sf.getDescendantsOfKind(SyntaxKind.PropertyDeclaration),
+      ...sf.getDescendantsOfKind(SyntaxKind.PropertySignature),
+    ];
+    for (const node of nodes) {
+      const type = node.getType();
+      if ((type.isUnion() ? type.getUnionTypes() : [type]).some(isTop))
+        continue;
+      const element = type.getArrayElementType();
+      const targets = element ? [type, element] : [type];
+      if (contexts.some((c) => targets.some((t) => c.isAssignableTo(t))))
+        found.push(
+          `${relative(repoRoot, path)} ${node.getText().split(":")[0].trim()}`,
+        );
+    }
+  }
+  return found;
+}
+
+/**
  * Each assertion walks types across the whole program, and `npm run unit` runs
  * under v8 coverage in CI, which took these from ~0.5s to 5.8-11.4s -- past
  * vitest's 5000ms default. The local gate passed because it does not instrument.
@@ -384,6 +438,30 @@ describe("artifact lifetime (#1445 box 2)", () => {
       }
 
       expect(statics).toEqual([]);
+    },
+    WALK_TIMEOUT_MS,
+  );
+
+  it(
+    "nothing after 2.1 accepts a parse node, by name or by shape (#1932)",
+    () => {
+      const afterAnalyze =
+        /src\/TRANSPILE\/(2-Plan|3-Render)\/|src\/TRANSPILE\/CodeGenWalker\.ts$|src\/WRITE\//;
+
+      // POPULATION CONTROL: the pattern reaches the walker and all three layers.
+      const modules = matchingModules(afterAnalyze);
+      expect(modules).toContain("src/TRANSPILE/CodeGenWalker.ts");
+      for (const layer of ["2-Plan/", "3-Render/", "src/WRITE/"])
+        expect(modules.some((m) => m.includes(layer))).toBe(true);
+
+      // DETECTOR CONTROL: 2.1 is handed the tree and must be, so the same scan
+      // over it has to find acceptors -- otherwise an empty result below could
+      // mean a scan that cannot match.
+      expect(
+        parseNodeAcceptors(/src\/TRANSPILE\/1-Analyze\//).length,
+      ).toBeGreaterThan(0);
+
+      expect(parseNodeAcceptors(afterAnalyze)).toEqual([]);
     },
     WALK_TIMEOUT_MS,
   );
