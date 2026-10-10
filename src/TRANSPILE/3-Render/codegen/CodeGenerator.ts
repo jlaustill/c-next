@@ -616,13 +616,6 @@ export default class CodeGenerator implements IOrchestrator {
     return this.state.isParameterModified(funcName, paramName);
   }
 
-  /**
-   * Issue #268: Check if a name is a parameter of the current function.
-   */
-  isCurrentParameter(name: string): boolean {
-    return this.state.currentParameters.has(name);
-  }
-
   // === Postfix Expression Helpers (Issue #644) ===
 
   /**

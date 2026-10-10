@@ -23,7 +23,7 @@ describe("SimpleIdentifierResolver", () => {
       const result = SimpleIdentifierResolver.resolve("myVar", deps, AT);
 
       expect(result).toBe("myVar");
-      expect(deps.getParameterInfo).toHaveBeenCalledWith("myVar");
+      expect(deps.getParameterInfo).toHaveBeenCalledWith("myVar", AT);
       expect(deps.resolveBareIdentifier).toHaveBeenCalledWith("myVar", AT);
     });
 

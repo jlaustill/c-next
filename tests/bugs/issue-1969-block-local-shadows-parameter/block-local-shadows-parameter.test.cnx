@@ -1,0 +1,44 @@
+// test-execution
+// Issue #1969: a block-local that shadows a parameter is the local inside its
+// block. Whether a name is a parameter came from the function-wide parameter
+// table, so in C the local was read as the parameter: `(*x)` for a modified
+// primitive parameter, `cfg->a` for a struct parameter -- neither compiles.
+// After the block, the name is the parameter again.
+
+struct Pair {
+    u8 a;
+    u32 b;
+}
+
+u32 shadowPrimitive(u32 x) {
+    x <- x + 1;
+    u32 flag <- 1;
+    if (flag = 1) {
+        u32 x <- 5;
+        u32 y <- x + 1;
+        if (y != 6) return 9;
+    }
+    return x;
+}
+
+u32 shadowStruct(const Pair cfg) {
+    u32 flag <- 1;
+    if (flag = 1) {
+        Pair cfg <- { a: 7, b: 9 };
+        u8 inner <- cfg.a;
+        if (inner != 7) return 8;
+    }
+    return cfg.b;
+}
+
+u32 main() {
+    u32 v <- 3;
+    u32 primitive <- shadowPrimitive(v);
+    if (primitive = 9) return 1;
+    if (primitive != 4) return 2;
+    Pair p <- { a: 1, b: 4 };
+    u32 member <- shadowStruct(p);
+    if (member = 8) return 3;
+    if (member != 4) return 4;
+    return 0;
+}

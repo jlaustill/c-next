@@ -10,10 +10,12 @@
  *
  * ## It takes an operand, not a node (#1445)
  *
- * Every question here is about a NAME: what `arr` or `cfg` binds to where the
- * `sizeof` is (#1966), and whether `Scope` is a known scope. The tree was consulted only to find out WHICH grammar
- * alternative matched, which is the caller's question -- so `TSizeofOperand`
- * arrives already discriminated and this module names no parse type.
+ * Every question here is about a NAME: what `arr` binds to where the `sizeof`
+ * is (#1966), and whether `Scope` is a known scope. The tree was consulted
+ * only to find out WHICH grammar alternative matched, which is the caller's
+ * question -- so `TSizeofOperand` arrives already discriminated and this
+ * module names no parse type. A member chain (#1972) and a type name (#1974)
+ * arrive already rendered, by the decisions every other position uses.
  *
  * The one thing it must not do is render a type name for `a.b` before
  * deciding `a.b` is a type, which is why that arm carries a thunk. See
@@ -24,7 +26,6 @@ import TSizeofOperand from "../types/TSizeofOperand";
 import type TSizeofName from "../types/TSizeofName";
 import type TParameterInfo from "../../../../types/TParameterInfo";
 import invariant from "../../../../utils/invariant";
-import memberAccessChain from "../memberAccessChain";
 import type TranspileState from "../../../TranspileState";
 
 /**
@@ -39,12 +40,10 @@ export default class SizeofResolver {
   static generate(operand: TSizeofOperand, state: TranspileState): string {
     switch (operand.kind) {
       case "qualified-type":
-        // `a.b` matched the qualified-TYPE alternative, and may still be a
-        // member access -- the binding at the `sizeof` says which.
+        // `a.b` that is not a member access (#1972): a type, or #1973's form
         return (
           this.sizeofQualifiedType(
             operand.firstName,
-            operand.firstBinding,
             operand.memberName,
             state,
           ) ?? `sizeof(${operand.renderTypeName()})`
@@ -54,50 +53,34 @@ export default class SizeofResolver {
       case "plain-type":
         return `sizeof(${operand.cTypeName})`;
       case "expression":
-        return this.sizeofExpression(operand, state);
+        return this.sizeofExpression(operand);
     }
   }
 
   /**
-   * Handle sizeof(qualified.type) - may be struct.member access
-   * Returns null if this is actually a type reference (Scope.Type)
+   * `a.b` that does not type as a member chain (#1972 renders those as
+   * expressions): a scope's or enum's type (`Scope.Type`) renders as a type.
+   * Returns null for that case.
    */
   private static sizeofQualifiedType(
     firstName: string,
-    first: TSizeofName,
     memberName: string,
     state: TranspileState,
   ): string | null {
-    switch (first.kind) {
-      case "parameter": {
-        const sep = this.parameterMemberSeparator(
-          this.parameterOf(firstName, state),
-          state,
-        );
-        return `sizeof(${firstName}${sep}${memberName})`;
-      }
-      case "value":
-        // ADR-057: the name a local, scope member or global is emitted under
-        // (#1953, #1967)
-        return `sizeof(${first.cName}.${memberName})`;
-      case "none":
-        break;
+    if (state.isKnownScope(firstName) || state.isKnownEnum(firstName)) {
+      return null;
     }
-
-    // Not a value C-Next binds: a scope or enum is a type reference
-    // (Scope.Type); anything else is taken as a struct variable
-    if (!state.isKnownScope(firstName) && !state.isKnownEnum(firstName)) {
-      return `sizeof(${firstName}.${memberName})`;
-    }
-    return null;
+    // #1973: a struct type's field (`Point.y`). ADR-023 has not decided
+    // whether that form is valid, so it is written as it is until it does.
+    return `sizeof(${firstName}.${memberName})`;
   }
 
   /**
-   * Handle sizeof(identifier) - could be variable or type name
+   * Handle sizeof(identifier) where the identifier binds to a value
    */
   private static sizeofUserType(
     varName: string,
-    binding: TSizeofName,
+    binding: Exclude<TSizeofName, { readonly kind: "none" }>,
     state: TranspileState,
   ): string {
     switch (binding.kind) {
@@ -108,27 +91,7 @@ export default class SizeofResolver {
         // array -- 16 bytes where 8 was correct, compiling clean -- and a scope
         // member's bare name did not compile (#1967)
         return `sizeof(${binding.cName})`;
-      case "none":
-        // A type name, written as it is
-        return `sizeof(${varName})`;
     }
-  }
-
-  /**
-   * A struct parameter's member separator: the one decision every member
-   * access reads (ADR-006) -- `->` for a pointer, `.` for a C++ reference
-   */
-  private static parameterMemberSeparator(
-    paramInfo: TParameterInfo,
-    state: TranspileState,
-  ): string {
-    if (!paramInfo.isStruct) {
-      return ".";
-    }
-    return memberAccessChain.getStructParamSeparator({
-      cppMode: state.cppMode,
-      forcePointerSemantics: paramInfo.forcePointerSemantics ?? false,
-    });
   }
 
   /** The current function's parameter a `sizeof` operand binds to */
@@ -181,12 +144,10 @@ export default class SizeofResolver {
    */
   private static sizeofExpression(
     operand: Extract<TSizeofOperand, { kind: "expression" }>,
-    state: TranspileState,
   ): string {
     // E0601: Check if expression is an array parameter
     if (operand.simpleIdentifier !== null) {
-      const paramInfo = state.currentParameters.get(operand.simpleIdentifier);
-      if (paramInfo?.isArray) {
+      if (operand.parameter?.isArray) {
         this.throwArrayParamSizeofError(operand.simpleIdentifier);
       }
     }

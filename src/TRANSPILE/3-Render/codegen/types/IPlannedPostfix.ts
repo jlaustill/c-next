@@ -1,5 +1,6 @@
 import type TPlannedPostfixOp from "./TPlannedPostfixOp";
 import type IChainBase from "../../../../types/IChainBase";
+import type TParameterInfo from "../../../../types/TParameterInfo";
 
 /**
  * A postfix expression: a primary, and the operations applied to it.
@@ -16,6 +17,9 @@ interface IPlannedPostfix {
    * the source spelling rather than anything emitted.
    */
   readonly rootIdentifier: string | undefined;
+
+  /** #1969: the parameter `rootIdentifier` binds to where it is written */
+  readonly rootParameter: TParameterInfo | undefined;
 
   /**
    * The primary, unevaluated.

@@ -6,8 +6,11 @@ import type ISourcePosition from "../../../../utils/types/ISourcePosition";
 import TParameterInfo from "../../../../types/TParameterInfo";
 
 interface ISimpleIdentifierDeps {
-  /** Get parameter info by name */
-  getParameterInfo(name: string): TParameterInfo | undefined;
+  /** The parameter a name binds to at `at` (#1969) */
+  getParameterInfo(
+    name: string,
+    at: ISourcePosition,
+  ): TParameterInfo | undefined;
 
   /** Resolve parameter to its output form */
   resolveParameter(name: string, paramInfo: TParameterInfo): string;

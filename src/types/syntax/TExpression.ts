@@ -70,6 +70,12 @@ type TExpression = ISyntaxNode &
         /** Exactly one of `type` and `expression` is set */
         readonly type: TTypeSyntax | null;
         readonly expression: TExpression | null;
+        /**
+         * #1972: a qualified `type` (`a.b.c`) read as the member chain it may
+         * be -- the same tokens, which the binding at the `sizeof` decides
+         * between. Null for any other operand.
+         */
+        readonly memberChain: TExpression | null;
       }
     | {
         readonly kind: "structInitializer";

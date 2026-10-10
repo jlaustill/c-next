@@ -38,10 +38,12 @@ uint32_t measureLocalMember(const Pair* cfg) {
 int main(void) {
     Pair p = {0};
     uint32_t afterBlock = measure(&p);
+    if (afterBlock == 3) return 3U;
     if (afterBlock != 4) return 1U;
     uint32_t direct = measureDirect(&p);
     if (direct != 4) return 2U;
     uint32_t localMember = measureLocalMember(&p);
+    if (localMember == 5) return 5U;
     if (localMember != 1) return 4U;
     return 0U;
 }

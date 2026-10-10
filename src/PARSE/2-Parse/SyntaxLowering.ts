@@ -370,11 +370,57 @@ class SyntaxLowering {
   private static sizeOf(ctx: Parser.SizeofExpressionContext): TExpression {
     const type = ctx.type();
     const expression = ctx.expression();
+    const qualified = type?.qualifiedType() ?? null;
     return {
       kind: "sizeof",
       type: type ? SyntaxLowering.type(type) : null,
       expression: expression ? SyntaxLowering.expression(expression) : null,
+      memberChain: qualified ? SyntaxLowering.memberChain(qualified) : null,
       ...SyntaxLowering.node(ctx),
+    };
+  }
+
+  /**
+   * #1972: `a.b.c` read as the member access it may be. The grammar's
+   * `qualifiedType` and a postfix chain of members are the same tokens, so
+   * this is the chain the expression `a.b.c` lowers to.
+   */
+  private static memberChain(ctx: Parser.QualifiedTypeContext): TExpression {
+    const [root, ...members] = ctx.IDENTIFIER();
+    return {
+      kind: "postfix",
+      primary: {
+        kind: "identifier",
+        name: root.getText(),
+        ...SyntaxLowering.tokenNode(root.symbol, root.symbol),
+      },
+      ops: members.map((member) => {
+        const dot = ctx.getChild(ctx.children.indexOf(member) - 1);
+        invariant(
+          dot instanceof TerminalNode,
+          "a qualified type's names are separated by '.'",
+        );
+        return {
+          kind: "member",
+          name: member.getText(),
+          nameSpan: ParserUtils.getSpan({
+            start: member.symbol,
+            stop: member.symbol,
+          }),
+          ...SyntaxLowering.tokenNode(dot.symbol, member.symbol),
+        };
+      }),
+      ...SyntaxLowering.node(ctx),
+    };
+  }
+
+  /** A node spanning `start` to `stop`, as written */
+  private static tokenNode(start: Token, stop: Token): ISyntaxNode {
+    return {
+      span: ParserUtils.getSpan({ start, stop }),
+      written:
+        start.inputStream?.getTextFromRange(start.start, stop.stop) ??
+        `${start.text ?? ""}`,
     };
   }
 

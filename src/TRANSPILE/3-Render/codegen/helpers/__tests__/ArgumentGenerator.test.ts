@@ -55,6 +55,7 @@ describe("ArgumentGenerator", () => {
         const result = ArgumentGenerator.handleIdentifierArg(
           "cfg",
           "cfg",
+          state.currentParameters.get("cfg"),
           declared.get("cfg"),
           state,
         );
@@ -74,6 +75,7 @@ describe("ArgumentGenerator", () => {
         const result = ArgumentGenerator.handleIdentifierArg(
           "buffer",
           "buffer",
+          state.currentParameters.get("buffer"),
           declared.get("buffer"),
           state,
         );
@@ -93,6 +95,7 @@ describe("ArgumentGenerator", () => {
         const result = ArgumentGenerator.handleIdentifierArg(
           "globalArr",
           "globalArr",
+          state.currentParameters.get("globalArr"),
           declared.get("globalArr"),
           state,
         );
@@ -118,6 +121,7 @@ describe("ArgumentGenerator", () => {
         const result = ArgumentGenerator.handleIdentifierArg(
           "name",
           "name",
+          state.currentParameters.get("name"),
           declared.get("name"),
           state,
         );
@@ -134,6 +138,7 @@ describe("ArgumentGenerator", () => {
         const result = ArgumentGenerator.handleIdentifierArg(
           "brightness",
           "LED__brightness",
+          state.currentParameters.get("brightness"),
           declared.get("brightness"),
           state,
         );
@@ -146,6 +151,7 @@ describe("ArgumentGenerator", () => {
         const result = ArgumentGenerator.handleIdentifierArg(
           "brightness",
           "LED__brightness",
+          state.currentParameters.get("brightness"),
           declared.get("brightness"),
           state,
         );
@@ -160,6 +166,7 @@ describe("ArgumentGenerator", () => {
         const result = ArgumentGenerator.handleIdentifierArg(
           "x",
           "g__x",
+          state.currentParameters.get("x"),
           declared.get("x"),
           state,
         );
@@ -177,6 +184,7 @@ describe("ArgumentGenerator", () => {
         const result = ArgumentGenerator.handleIdentifierArg(
           "buf",
           "main__buf",
+          state.currentParameters.get("buf"),
           declared.get("buf"),
           state,
         );
@@ -191,6 +199,7 @@ describe("ArgumentGenerator", () => {
         const result = ArgumentGenerator.handleIdentifierArg(
           "value",
           "value",
+          state.currentParameters.get("value"),
           declared.get("value"),
           state,
         );
@@ -203,6 +212,7 @@ describe("ArgumentGenerator", () => {
         const result = ArgumentGenerator.handleIdentifierArg(
           "value",
           "value",
+          state.currentParameters.get("value"),
           declared.get("value"),
           state,
         );
@@ -503,7 +513,11 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.generateArg(
-        { id: "value", emitted: "value" },
+        {
+          id: "value",
+          emitted: "value",
+          parameter: state.currentParameters.get("value"),
+        },
         declared.get("value"),
         "u8",
         callbacks,
@@ -527,7 +541,11 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.generateArg(
-        { id: "cfg", emitted: "cfg" },
+        {
+          id: "cfg",
+          emitted: "cfg",
+          parameter: state.currentParameters.get("cfg"),
+        },
         declared.get("cfg"),
         "Config",
         callbacks,

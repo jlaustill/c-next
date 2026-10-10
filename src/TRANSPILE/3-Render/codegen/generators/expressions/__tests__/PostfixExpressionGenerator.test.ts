@@ -201,7 +201,6 @@ function createMockOrchestrator(overrides?: {
     updateFunctionParamsAutoConst: vi.fn(),
     markParameterModified: vi.fn(),
     isCalleeParameterModified: vi.fn(),
-    isCurrentParameter: vi.fn(),
     generatePrimaryExpr:
       overrides?.generatePrimaryExpr ?? vi.fn((ctx) => ctx.getText()),
     isKnownScope: overrides?.isKnownScope ?? vi.fn(() => false),
@@ -310,6 +309,7 @@ function createMockPostfixOp(options?: {
     planArguments: () =>
       options?.argumentList?.expression().map((expression) => ({
         simpleIdentifier: expression.getText(),
+        parameter: undefined,
         declared: undefined,
         expressionType: () => null,
         isArray: () => false,
@@ -321,7 +321,10 @@ function createMockPostfixOp(options?: {
 }
 
 /** A plan, plus the primary text `runPostfix` renders through the orchestrator. */
-interface IMockPostfixPlan extends Omit<IPlannedPostfix, "base"> {
+interface IMockPostfixPlan extends Omit<
+  IPlannedPostfix,
+  "base" | "rootParameter"
+> {
   readonly primaryText: string;
   /** #1668: the bound base, when a case's chain is not a named primary's */
   readonly base?: IChainBase;
@@ -460,6 +463,9 @@ function runPostfix(
   return generatePostfixExpression(
     {
       ...plan,
+      rootParameter: plan.rootIdentifier
+        ? state.currentParameters.get(plan.rootIdentifier)
+        : undefined,
       base: plan.base ?? {
         root: null,
         rootTypeInfo: declared,

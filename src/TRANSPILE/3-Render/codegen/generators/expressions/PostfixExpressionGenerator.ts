@@ -12,6 +12,7 @@
  * to reduce the size and complexity of CodeGenerator.ts.
  */
 import type IChainBase from "../../../../../types/IChainBase";
+import type TParameterInfo from "../../../../../types/TParameterInfo";
 import type IChainStep from "../../../../../types/IChainStep";
 import type IOperandType from "../../../../../types/IOperandType";
 import IGeneratorOutput from "../IGeneratorOutput";
@@ -131,6 +132,8 @@ const initializeTrackingState = (
  */
 interface IPostfixContext {
   rootIdentifier: string | undefined;
+  /** #1969: the parameter the root binds to where it is written */
+  rootParameter: TParameterInfo | undefined;
   /** How the root is held (`memberAccessChain.rootHolding`) */
   holding: IRootHolding;
   input: IGeneratorInput;
@@ -169,11 +172,8 @@ const generatePostfixExpression = (
   // pointer -- and so whether its members take `->` (the one answer the
   // write path reads too)
   const rootIdentifier = plan.rootIdentifier;
-  const paramInfo = rootIdentifier
-    ? state.currentParameters.get(rootIdentifier)
-    : null;
   const holding = memberAccessChain.rootHolding(
-    paramInfo ?? undefined,
+    plan.rootParameter,
     rootIdentifier ? plan.base.rootTypeInfo : undefined,
     orchestrator,
   );
@@ -214,6 +214,7 @@ const generatePostfixExpression = (
 
   const postfixCtx: IPostfixContext = {
     rootIdentifier,
+    rootParameter: plan.rootParameter,
     holding,
     input,
     state,
@@ -281,7 +282,7 @@ const generatePostfixExpression = (
     return {
       code: memberAccessChain.wholeParamValue(
         result,
-        paramInfo ?? undefined,
+        plan.rootParameter,
         orchestrator.isCppMode(),
       ),
       effects,
@@ -337,6 +338,7 @@ const handleMemberOp = (
       result: tracking.result,
       memberName,
       rootIdentifier: ctx.rootIdentifier,
+      rootParameter: ctx.rootParameter,
       holding: ctx.holding,
       isGlobalAccess: tracking.isGlobalAccess,
       isCppAccessChain: tracking.isCppAccessChain,
@@ -679,6 +681,8 @@ interface IMemberAccessContext {
   result: string;
   memberName: string;
   rootIdentifier: string | undefined;
+  /** #1969: the parameter the root binds to where it is written */
+  rootParameter: TParameterInfo | undefined;
   /** How the root is held (`memberAccessChain.rootHolding`) */
   holding: IRootHolding;
   isGlobalAccess: boolean;
@@ -791,7 +795,7 @@ const tryBitmapFieldAccess = (
     ctx.result === ctx.rootIdentifier
       ? memberAccessChain.wholeParamValue(
           ctx.result,
-          orchestrator.state.currentParameters.get(ctx.rootIdentifier),
+          ctx.rootParameter,
           orchestrator.isCppMode(),
         )
       : ctx.result;

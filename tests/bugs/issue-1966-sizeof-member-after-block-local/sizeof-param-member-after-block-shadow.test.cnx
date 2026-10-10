@@ -35,10 +35,12 @@ u32 measureLocalMember(Pair cfg) {
 u32 main() {
     Pair p;
     u32 afterBlock <- measure(p);
+    if (afterBlock = 3) return 3;
     if (afterBlock != 4) return 1;
     u32 direct <- measureDirect(p);
     if (direct != 4) return 2;
     u32 localMember <- measureLocalMember(p);
+    if (localMember = 5) return 5;
     if (localMember != 1) return 4;
     return 0;
 }

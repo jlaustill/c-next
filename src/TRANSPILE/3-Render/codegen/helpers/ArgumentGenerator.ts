@@ -19,6 +19,7 @@ import TYPE_MAP from "../types/TYPE_MAP";
 import IArgumentGeneratorCallbacks from "./types/IArgumentGeneratorCallbacks";
 import type TranspileState from "../../../TranspileState";
 import type TTypeInfo from "../../../../types/TTypeInfo";
+import type TParameterInfo from "../../../../types/TParameterInfo";
 
 /**
  * Generates function arguments with proper pass-by-reference semantics.
@@ -38,11 +39,13 @@ class ArgumentGenerator {
   static handleIdentifierArg(
     id: string,
     emitted: string,
+    parameter: TParameterInfo | undefined,
     declared: TTypeInfo | undefined,
     state: TranspileState,
   ): string {
-    // Parameters are already pointers
-    if (state.currentParameters.get(id)) {
+    // Parameters are already pointers (#1969: the parameter the name binds to
+    // where it is passed, not a block-local that shadows it)
+    if (parameter) {
       return id;
     }
 
@@ -226,7 +229,11 @@ class ArgumentGenerator {
    * @param callbacks - Callbacks to CodeGenerator methods
    */
   static generateArg(
-    simpleId: { readonly id: string; readonly emitted: string } | null,
+    simpleId: {
+      readonly id: string;
+      readonly emitted: string;
+      readonly parameter: TParameterInfo | undefined;
+    } | null,
     declared: TTypeInfo | undefined,
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
@@ -237,6 +244,7 @@ class ArgumentGenerator {
       return ArgumentGenerator.handleIdentifierArg(
         simpleId.id,
         simpleId.emitted,
+        simpleId.parameter,
         declared,
         state,
       );

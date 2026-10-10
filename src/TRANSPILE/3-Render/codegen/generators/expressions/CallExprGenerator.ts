@@ -165,20 +165,15 @@ const _generateCFunctionArg = (
   // Issue #937: Check if argument is a callback-promoted parameter (already a pointer)
   // BEFORE generating the expression. If target expects a pointer and we have a
   // callback-promoted param, use the identifier directly instead of dereferencing.
-  const argIdentifier = arg.simpleIdentifier;
-  const paramInfo = argIdentifier
-    ? orchestrator.state.currentParameters.get(argIdentifier)
-    : undefined;
-  const isCallbackPromotedParam = paramInfo?.forcePointerSemantics ?? false;
+  const callbackPromotedParam = arg.parameter?.forcePointerSemantics
+    ? arg.simpleIdentifier
+    : null;
 
   // If target expects a pointer and argument is a callback-promoted param,
   // use the identifier directly (it's already a pointer matching the typedef)
-  if (targetParam?.baseType?.endsWith("*") && isCallbackPromotedParam) {
-    // `argIdentifier` is non-null here only because `isCallbackPromotedParam`
-    // implies it -- `paramInfo` is undefined without it. That coupling is the
-    // assertion's only guard.
+  if (targetParam?.baseType?.endsWith("*") && callbackPromotedParam !== null) {
     return wrapWithCppEnumCast(
-      argIdentifier!,
+      callbackPromotedParam,
       arg,
       targetParam?.baseType,
       orchestrator,
@@ -522,10 +517,9 @@ const trackPassThroughModifications = (
 ): void => {
   for (let argIdx = 0; argIdx < args.length; argIdx++) {
     const argId = args[argIdx].simpleIdentifier;
-    if (!argId) continue;
-
-    // Check if this argument is a parameter of the current function
-    if (!orchestrator.isCurrentParameter(argId)) continue;
+    // Check if this argument is a parameter of the current function (#1969:
+    // the one its name binds to where it is passed)
+    if (!argId || !args[argIdx].parameter) continue;
 
     // Check if the callee's parameter at this index is modified
     if (orchestrator.isCalleeParameterModified(funcName, argIdx)) {

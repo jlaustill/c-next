@@ -38,7 +38,7 @@ class SimpleIdentifierResolver {
     at: ISourcePosition,
   ): string {
     // ADR-006: Check if it's a function parameter
-    const paramInfo = deps.getParameterInfo(id);
+    const paramInfo = deps.getParameterInfo(id, at);
     if (paramInfo) {
       return deps.resolveParameter(id, paramInfo);
     }

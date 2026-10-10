@@ -841,21 +841,6 @@ describe("CodeGenWalker", () => {
       });
     });
 
-    describe("isCurrentParameter()", () => {
-      it("should check if name is a current parameter", () => {
-        const { host } = createMinimalGenerator(
-          `
-          void test(u32 value) { }
-        `,
-          false,
-        );
-
-        // Parameters are only current during function body generation
-        // After generation, parameters are cleared
-        expect(host.isCurrentParameter("value")).toBe(false);
-      });
-    });
-
     describe("getFunctionUnmodifiedParams()", () => {
       it("should return map of unmodified parameters", () => {
         const { generator } = createMinimalGenerator(

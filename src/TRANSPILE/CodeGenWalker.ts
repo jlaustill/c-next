@@ -521,6 +521,13 @@ class CodeGenWalker {
 
     return {
       rootIdentifier,
+      rootParameter:
+        rootIdentifier && head.identifier
+          ? this.host.state.parameterAt(rootIdentifier, {
+              line: head.identifier.span.line,
+              column: head.identifier.span.column,
+            })
+          : undefined,
       renderPrimary: () => this.renderPrimary(primary),
       subscriptBase: subscriptBase
         ? { name: subscriptBase.name, displayName: subscriptBase.displayName }
@@ -821,15 +828,29 @@ class CodeGenWalker {
    * (#1760 review): the same answer a read and an assignment target take,
    * through `TypeValidator.resolveBareIdentifier`.
    */
-  private boundArgumentName(
-    expr: TExpression,
-  ): { readonly id: string; readonly emitted: string } | null {
+  private boundArgumentName(expr: TExpression): {
+    readonly id: string;
+    readonly emitted: string;
+    readonly parameter: TParameterInfo | undefined;
+  } | null {
     const id = ExpressionShape.simpleIdentifier(expr);
     if (id === null) return null;
     return {
       id,
       emitted: this.boundName(id, CodeGenWalker.positionOf(expr)),
+      parameter: this.host.state.parameterAt(
+        id,
+        CodeGenWalker.positionOf(expr),
+      ),
     };
+  }
+
+  /** #1969: the parameter a bare-name expression binds to, where it is */
+  private parameterNamed(expr: TExpression): TParameterInfo | undefined {
+    const id = ExpressionShape.simpleIdentifier(expr);
+    return id === null
+      ? undefined
+      : this.host.state.parameterAt(id, CodeGenWalker.positionOf(expr));
   }
 
   /** The C name a bare identifier at `at` is emitted under (ADR-057) */
@@ -1038,7 +1059,7 @@ class CodeGenWalker {
     // to enable proper register validation (requiring global. when shadowed).
     let resolvedIdentifier = identifier ?? "";
     if (!hasGlobal && !hasThis && identifier) {
-      const isParameter = this.host.state.currentParameters.has(identifier);
+      const paramInfo = this.host.state.parameterAt(identifier, parts.position);
       const isKnownRegister =
         this.host.state.symbols?.knownRegisters.has(identifier);
       // Issue #1100: Parameters with postfix ops (array/bit subscript, member
@@ -1051,8 +1072,7 @@ class CodeGenWalker {
       // access (`v[4] <- true`) now correctly dereferences to `(*v)[4]`
       // (which AssignmentContextBuilder reduces to base identifier `(*v)`)
       // instead of assigning through the raw pointer.
-      if (isParameter) {
-        const paramInfo = this.host.state.currentParameters.get(identifier)!;
+      if (paramInfo) {
         resolvedIdentifier = ParameterDereferenceResolver.resolve(
           identifier,
           paramInfo,
@@ -1098,6 +1118,7 @@ class CodeGenWalker {
       hasGlobal,
       hasThis,
       this.targetDeclaration(ctx).rootTypeInfo,
+      parts.position,
     );
 
     return PostfixChainBuilder.build(
@@ -2527,7 +2548,10 @@ class CodeGenWalker {
     const ops = view.ops;
 
     // Case 1: Direct parameter member access (cfg.value)
-    const paramInfo = this.host.state.currentParameters.get(baseId);
+    const paramInfo = this.host.state.parameterAt(
+      baseId,
+      CodeGenWalker.positionOf(expr),
+    );
     if (paramInfo) {
       return CppMemberHelper.needsParamMemberConversion(
         paramInfo,
@@ -2599,7 +2623,10 @@ class CodeGenWalker {
       baseId,
       CodeGenWalker.positionOf(expr),
     );
-    const paramInfo = this.host.state.currentParameters.get(baseId);
+    const paramInfo = this.host.state.parameterAt(
+      baseId,
+      CodeGenWalker.positionOf(expr),
+    );
 
     return CppMemberHelper.isStringSubscriptPattern(
       hasPostfixOps,
@@ -2648,7 +2675,9 @@ class CodeGenWalker {
         null,
         baseId,
         CodeGenWalker.positionOf(at),
-      ) !== undefined || this.host.state.currentParameters.has(baseId)
+      ) !== undefined ||
+      this.host.state.parameterAt(baseId, CodeGenWalker.positionOf(at)) !==
+        undefined
     );
   }
 
@@ -3061,6 +3090,7 @@ class CodeGenWalker {
 
     return args.map((expression) => ({
       simpleIdentifier: ExpressionShape.simpleIdentifier(expression),
+      parameter: this.parameterNamed(expression),
       declared: this.nameTypeOf(expression),
       expressionType: () => this.directTypeOf(expression),
       isArray: () =>
@@ -4144,8 +4174,8 @@ class CodeGenWalker {
    */
   private _buildSimpleIdentifierDeps(): ISimpleIdentifierDeps {
     return {
-      getParameterInfo: (name: string) =>
-        this.host.state.currentParameters.get(name),
+      getParameterInfo: (name: string, at: ISourcePosition) =>
+        this.host.state.parameterAt(name, at),
       // A target with no postfix op is the parameter's whole value, written
       // as the read side reads it (#1760 second review: `p = (*q);`)
       resolveParameter: (name: string, paramInfo: TParameterInfo) =>
@@ -4195,11 +4225,12 @@ class CodeGenWalker {
     hasGlobal: boolean,
     hasThis: boolean,
     rootTypeInfo: TTypeInfo | undefined,
+    at: ISourcePosition,
   ): IPostfixChainDeps {
     // How the root is held: the one answer the read path reads too (#1760
     // review: a local #895 made a pointer took `.`)
     const holding = memberAccessChain.rootHolding(
-      this.host.state.currentParameters.get(firstId),
+      this.host.state.parameterAt(firstId, at),
       rootTypeInfo,
       this.host,
     );
@@ -4499,7 +4530,7 @@ class CodeGenWalker {
     }
 
     // ADR-006: Check if it's a function parameter
-    const paramInfo = this.host.state.currentParameters.get(id);
+    const paramInfo = this.host.state.parameterAt(id, at);
     if (paramInfo) {
       return ParameterDereferenceResolver.resolve(
         id,
@@ -4676,26 +4707,36 @@ class CodeGenWalker {
     const type = expr.type;
     if (type) {
       if (type.kind === "qualified") {
+        const chain = expr.memberChain;
+        invariant(chain !== null, "a qualified operand is also a member chain");
+        // #1972: a chain that types is a member access, spelled as every
+        // member access is
+        if (OperandTyper.typeOf(chain, this.host.state.typingContext())) {
+          return {
+            kind: "expression",
+            simpleIdentifier: null,
+            parameter: undefined,
+            hasSideEffects: false,
+            code: this.renderExpression(chain),
+          };
+        }
         return {
           kind: "qualified-type",
           firstName: type.path[0],
-          firstBinding: this.sizeofName(
-            type.path[0],
-            CodeGenWalker.positionOf(expr),
-          ),
           memberName: type.path[1],
           renderTypeName: () => this.renderType(type),
         };
       }
       if (type.kind === "user") {
-        return {
-          kind: "user-type",
-          text: type.text,
-          textBinding: this.sizeofName(
-            type.text,
-            CodeGenWalker.positionOf(expr),
-          ),
-        };
+        const textBinding = this.sizeofName(
+          type.text,
+          CodeGenWalker.positionOf(expr),
+        );
+        // #1974: a name that binds to no value is a type, named as every
+        // type position names it
+        if (textBinding.kind !== "none") {
+          return { kind: "user-type", text: type.text, textBinding };
+        }
       }
       return { kind: "plain-type", cTypeName: this.renderType(type) };
     }
@@ -4705,6 +4746,7 @@ class CodeGenWalker {
     return {
       kind: "expression",
       simpleIdentifier: ExpressionShape.simpleIdentifier(expression),
+      parameter: this.parameterNamed(expression),
       hasSideEffects: ExpressionCalls.containsCall(expression),
       code: this.renderExpression(expression),
     };

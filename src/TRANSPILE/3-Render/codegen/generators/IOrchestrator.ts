@@ -215,11 +215,6 @@ interface IOrchestrator {
    */
   isCalleeParameterModified(funcName: string, paramIndex: number): boolean;
 
-  /**
-   * Issue #268: Check if a name is a parameter of the current function.
-   */
-  isCurrentParameter(name: string): boolean;
-
   // === Postfix Expression Helpers (Issue #644) ===
 
   /** Check if a name is a known scope */

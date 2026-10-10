@@ -1,0 +1,73 @@
+// test-execution
+// Issue #1974: `sizeof` of a scope's own struct, enum or bitmap is written with
+// the type's C name, as every other type position writes it -- `S__Cfg`,
+// `S__Mode`, `S__Flags`. Before, the source spelling was emitted, which C does
+// not declare. A global type is the control: `sizeof(Pair)` stays as it is.
+
+struct Pair {
+    u8 a;
+    u32 b;
+}
+
+scope S {
+    struct Cfg {
+        u8 a;
+        u32 b;
+    }
+
+    enum Mode {
+        A,
+        B
+    }
+
+    bitmap8 Flags {
+        f0,
+        f1,
+        f2,
+        f3,
+        f4,
+        f5,
+        f6,
+        f7
+    }
+
+    public u32 cfgSize() {
+        return sizeof(Cfg);
+    }
+
+    public u32 cfgValueSize() {
+        Cfg c;
+        return sizeof(c);
+    }
+
+    public u32 modeSize() {
+        return sizeof(Mode);
+    }
+
+    public u32 modeValueSize() {
+        Mode m <- Mode.A;
+        return sizeof(m);
+    }
+
+    public u32 flagsSize() {
+        return sizeof(Flags);
+    }
+
+    public u32 pairSize() {
+        return sizeof(Pair);
+    }
+}
+
+u32 main() {
+    u32 cfg <- S.cfgSize();
+    u32 cfgValue <- S.cfgValueSize();
+    if (cfg != cfgValue) return 1;
+    u32 mode <- S.modeSize();
+    u32 modeValue <- S.modeValueSize();
+    if (mode != modeValue) return 2;
+    u32 flags <- S.flagsSize();
+    if (flags != 1) return 3;
+    u32 pair <- S.pairSize();
+    if (pair != sizeof(Pair)) return 4;
+    return 0;
+}

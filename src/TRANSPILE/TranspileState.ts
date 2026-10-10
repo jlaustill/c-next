@@ -262,6 +262,19 @@ class TranspileState {
   }
 
   /**
+   * #1969: the current function's parameter a name means where it is used.
+   * Bound at `at`, so a block-local that shadows a parameter is the local
+   * inside its block, and the parameter again after it.
+   */
+  parameterAt(name: string, at: ISourcePosition): TParameterInfo | undefined {
+    const binding = this.bindingAt(null, name, at);
+    if (binding?.kind !== "local" || binding.declaration.kind !== "parameter") {
+      return undefined;
+    }
+    return this.currentParameters.get(name);
+  }
+
+  /**
    * What the one operand typer reads for the file being rendered. Render
    * always runs against a program (#1668 review: fifteen sites carried a
    * default for a missing one, guards that could not fire in production and
