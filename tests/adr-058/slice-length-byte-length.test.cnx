@@ -5,6 +5,8 @@
 
 u8[8] bufArray;
 u32 magic <- 0x12345678;
+// .bit_length folds where a constant is expected too
+u8[magic.bit_length] bitsSized;
 
 i32 main() {
     bufArray[0, magic.byte_length] <- magic;
@@ -17,6 +19,9 @@ i32 main() {
     // The fifth byte is past the slice
     if (bufArray[4] != 0) {
         return 3;
+    }
+    if (bitsSized.element_count != 32) {
+        return 4;
     }
     return 0;
 }

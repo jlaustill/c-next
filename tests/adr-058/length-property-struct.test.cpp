@@ -14,6 +14,17 @@
 // #1535: a struct's .element_count is its field count, and its .bit_length /
 // .byte_length are its fields' sizes together, without C padding (ADR-058
 // resolved question 7). C stores P in 8 bytes on x86-64; its .byte_length is 5.
+// ADR-058's ### Struct Examples block, as written there
+SensorReading reading = {};
+
+uint32_t bits = 88;
+
+uint32_t bytes = 11;
+
+uint32_t fields = 4;
+
+SensorReading readings[100] = {};
+
 P p = {};
 
 P ps[3] = {};
@@ -63,6 +74,18 @@ int main(void) {
     }
     if (8 != 8) {
         return 12;
+    }
+    if (bits != 88) {
+        return 13;
+    }
+    if (bytes != 11) {
+        return 14;
+    }
+    if (fields != 4) {
+        return 15;
+    }
+    if (1100 != 1100) {
+        return 16;
     }
     return 0;
 }

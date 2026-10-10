@@ -24,8 +24,19 @@ typedef struct Nested {
     char s[8];
     bool b;
 } Nested;
+typedef struct SensorReading {
+    uint32_t timestamp;
+    float temperature;
+    uint16_t humidity;
+    uint8_t status;
+} SensorReading;
 
 /* External variables */
+extern SensorReading reading;
+extern uint32_t bits;
+extern uint32_t bytes;
+extern uint32_t fields;
+extern SensorReading readings[100];
 extern P p;
 extern P ps[3];
 extern Nested n;

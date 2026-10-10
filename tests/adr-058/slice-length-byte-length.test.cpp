@@ -15,6 +15,9 @@ uint8_t bufArray[8] = {};
 
 uint32_t magic = 0x12345678U;
 
+// .bit_length folds where a constant is expected too
+uint8_t bitsSized[32] = {};
+
 int main(void) {
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t cnx_tmp0 = (uint32_t)(magic);
@@ -30,6 +33,9 @@ int main(void) {
     }
     if (bufArray[4U] != 0) {
         return 3;
+    }
+    if (32 != 32) {
+        return 4;
     }
     return 0;
 }

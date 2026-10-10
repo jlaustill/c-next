@@ -15,6 +15,7 @@ extern "C" {
 /* External variables */
 extern uint8_t bufArray[8];
 extern uint32_t magic;
+extern uint8_t bitsSized[32];
 
 #ifdef __cplusplus
 }

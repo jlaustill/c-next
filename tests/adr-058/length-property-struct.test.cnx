@@ -16,6 +16,20 @@ struct Nested {
     bool b;
 }
 
+// ADR-058's ### Struct Examples block, as written there
+struct SensorReading {
+    u32 timestamp;
+    f32 temperature;
+    u16 humidity;
+    u8 status;
+}
+
+SensorReading reading;
+u32 bits <- reading.bit_length;
+u32 bytes <- reading.byte_length;
+u32 fields <- reading.element_count;
+SensorReading[100] readings;
+
 P p;
 P[3] ps;
 Nested n;
@@ -63,6 +77,19 @@ i32 main() {
     }
     if (sizedByString.element_count != 8) {
         return 12;
+    }
+    if (bits != 88) {
+        return 13;
+    }
+    if (bytes != 11) {
+        return 14;
+    }
+    if (fields != 4) {
+        return 15;
+    }
+    // C stores this array in 1200 bytes; its .byte_length is 1100
+    if (readings.byte_length != 1100) {
+        return 16;
     }
     return 0;
 }
