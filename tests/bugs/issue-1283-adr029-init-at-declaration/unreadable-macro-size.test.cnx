@@ -1,0 +1,18 @@
+// test-error
+// #1283 review: ADR-029 gives every element of a callback array its default
+// function, so C-Next must know how many elements there are. A macro whose
+// value C-Next cannot read (a sizeof) is rejected at the dimension.
+#include "handler_sizes.h"
+
+u32 onSample(u32 input) {
+    return input + 1;
+}
+
+struct Bank {
+    onSample[N_UNREADABLE] handlers;
+}
+
+u32 main() {
+    Bank b;
+    return b.handlers[0](1);
+}
