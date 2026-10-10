@@ -300,6 +300,8 @@ POINTER CAST (NOT SUPPORTED):  use register keyword for MMIO
 
 ## sizeof (ADR-023)
 
+ADR-023 is **Research**: no decision has been made, so `sizeof` is not settled C-Next. The compiler accepts it today, as described here (#1975).
+
 `sizeof(...)` returns the byte size (a compile-time constant) of a type, variable, struct, struct member, or array:
 
 ```cnx

@@ -2,7 +2,9 @@
 
 ## Status
 
-**Implemented**
+**Research**
+
+No decision has been made. This record holds the problem, the options and the research; "Recommended Decision" below is a recommendation, not a decision. The compiler accepts `sizeof` ahead of a decision (#1975).
 
 ## Context
 

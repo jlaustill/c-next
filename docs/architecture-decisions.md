@@ -34,7 +34,6 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-025](decisions/adr-025-switch-statements.md)          | Switch Statements          | Safe switch with braces, `\|\|` syntax, counted `default(n)` |
 | [ADR-029](decisions/adr-029-function-pointers.md)          | Callbacks                  | Function-as-Type pattern with nominal typing                 |
 | [ADR-045](decisions/adr-045-string-type.md)                | Bounded Strings            | `string<N>` with compile-time safety                         |
-| [ADR-023](decisions/adr-023-sizeof.md)                     | Sizeof                     | Type/value size queries with safety checks                   |
 | [ADR-027](decisions/adr-027-do-while.md)                   | Do-While                   | `do { } while ()` with boolean condition (E0701)             |
 | [ADR-032](decisions/adr-032-nested-structs.md)             | Nested Structs             | Named nested structs only (no anonymous)                     |
 | [ADR-035](decisions/adr-035-array-initializers.md)         | Array Initializers         | `[1, 2, 3]` syntax with `[0*]` fill-all                      |
@@ -83,6 +82,7 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | ------------------------------------------------------- | ----------------------------- | ------------------------------------------------ |
 | [ADR-008](decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention              |
 | [ADR-009](decisions/adr-009-isr-safety.md)              | ISR Safety                    | Safe interrupts without `unsafe` blocks          |
+| [ADR-023](decisions/adr-023-sizeof.md)                  | Sizeof                        | Type/value size queries with safety checks       |
 | [ADR-054](decisions/adr-054-array-index-overflow.md)    | Array Index Overflow          | Overflow semantics for array index expressions   |
 | [ADR-056](decisions/adr-056-cast-overflow-behavior.md)  | Cast Overflow Behavior        | Consistent overflow semantics for type casts     |
 | [ADR-066](decisions/adr-066-do178c-compliance.md)       | DO-178C Compliance            | Safety-critical software certification framework |

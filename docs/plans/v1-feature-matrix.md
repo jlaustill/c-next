@@ -80,17 +80,17 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 6. Operators
 
-| Feature                     | C-Next Status  | ADR     | Notes                            |
-| --------------------------- | -------------- | ------- | -------------------------------- |
-| Arithmetic `+ - * / %`      | ✅ Implemented | —       | —                                |
-| Comparison `= != < > <= >=` | ✅ Implemented | ADR-001 | `=` for equality                 |
-| Logical `&& \|\| !`         | ✅ Implemented | —       | —                                |
-| Bitwise `& \| ^ ~ << >>`    | ✅ Implemented | —       | —                                |
-| Compound assignment         | ✅ Implemented | ADR-001 | `+<-`, `-<-`, etc.               |
-| Increment/decrement `++ --` | 🚫 Rejected    | ADR-021 | Compound assignment is clearer   |
-| Ternary `? :`               | ✅ Implemented | ADR-022 | Required parentheses for clarity |
-| Sizeof                      | ✅ Implemented | ADR-023 | `sizeof(T)` and `.size` property |
-| Address-of `&`              | ✅ Implemented | ADR-006 | Read-only address                |
+| Feature                     | C-Next Status     | ADR     | Notes                                |
+| --------------------------- | ----------------- | ------- | ------------------------------------ |
+| Arithmetic `+ - * / %`      | ✅ Implemented    | —       | —                                    |
+| Comparison `= != < > <= >=` | ✅ Implemented    | ADR-001 | `=` for equality                     |
+| Logical `&& \|\| !`         | ✅ Implemented    | —       | —                                    |
+| Bitwise `& \| ^ ~ << >>`    | ✅ Implemented    | —       | —                                    |
+| Compound assignment         | ✅ Implemented    | ADR-001 | `+<-`, `-<-`, etc.                   |
+| Increment/decrement `++ --` | 🚫 Rejected       | ADR-021 | Compound assignment is clearer       |
+| Ternary `? :`               | ✅ Implemented    | ADR-022 | Required parentheses for clarity     |
+| Sizeof                      | ❓ Needs Decision | ADR-023 | ADR-023 is Research; no decision yet |
+| Address-of `&`              | ✅ Implemented    | ADR-006 | Read-only address                    |
 
 ---
 
@@ -215,11 +215,10 @@ The following critical features are implemented:
 5. **Forward declarations** (ADR-030) ✅
 6. **Preprocessor handling** (ADR-037) ✅
 7. **Ternary operator** (ADR-022) ✅
-8. **Sizeof** (ADR-023) ✅
-9. **Nested structs** (ADR-032) ✅
-10. **Do-while** (ADR-027) ✅
-11. **Array initializers** (ADR-035) ✅
-12. **Multi-dimensional arrays** (ADR-036) ✅
+8. **Nested structs** (ADR-032) ✅
+9. **Do-while** (ADR-027) ✅
+10. **Array initializers** (ADR-035) ✅
+11. **Multi-dimensional arrays** (ADR-036) ✅
 
 ### Rejected by Design
 
