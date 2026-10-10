@@ -237,7 +237,9 @@ class HeaderMacros {
 
   /** An integer literal's value: hex, binary, octal (a leading 0) or decimal */
   private static literalValue(literal: string): number {
-    const digits = literal.replace(/[uUlL]+$/, "");
+    let end = literal.length;
+    while ("uUlL".includes(literal[end - 1])) end--;
+    const digits = literal.slice(0, end);
     if (/^0[xX]/.test(digits)) return Number.parseInt(digits.slice(2), 16);
     if (/^0[bB]/.test(digits)) return Number.parseInt(digits.slice(2), 2);
     if (/^0\d/.test(digits)) {

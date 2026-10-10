@@ -14,14 +14,14 @@ codes that already have a fixture.
 | --------- | ---------------------------------------------- | ------- |
 | E00xx     | Reserved/Test                                  | 1       |
 | E02xx     | Identifier/Param Naming                        | 5       |
-| E03xx     | Struct Fields/Init                             | 5       |
+| E03xx     | Struct Fields/Init                             | 6       |
 | E04xx     | Symbol Resolution                              | 16      |
 | E05xx     | Include/Preprocessor                           | 17      |
 | E06xx     | Sizeof Expressions                             | 2       |
 | E07xx     | Control Flow                                   | 13      |
 | E08xx     | Arithmetic/Array Safety                        | 56      |
 | E09xx     | NULL Safety, Compile-Time Values, Literal Form | 12      |
-| **Total** |                                                | **127** |
+| **Total** |                                                | **128** |
 
 ---
 
