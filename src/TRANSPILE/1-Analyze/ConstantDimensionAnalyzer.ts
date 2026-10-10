@@ -53,12 +53,28 @@ class ConstantDimensionListener extends CNextListener {
   override enterArrayTypeDimension = (
     ctx: Parser.ArrayTypeDimensionContext,
   ): void => {
+    if (ConstantDimensionListener.isSizeofSubscript(ctx)) return;
     this.check(ctx.expression());
   };
 
   override enterArrayDimension = (ctx: Parser.ArrayDimensionContext): void => {
     this.check(ctx.expression());
   };
+
+  /**
+   * ADR-023: `sizeof ( type | expression )` is ambiguous for `arr[0]` and
+   * ANTLR takes the `type` branch, so a subscript of a variable arrives as a
+   * `userType` dimension (UndeclaredTypeAnalyzer's ruling). A primitive base,
+   * `sizeof(u8[4])`, is a type and its dimension is checked.
+   */
+  private static isSizeofSubscript(
+    ctx: Parser.ArrayTypeDimensionContext,
+  ): boolean {
+    const arrayType = ctx.parent;
+    if (!(arrayType instanceof Parser.ArrayTypeContext)) return false;
+    if (arrayType.userType() === null) return false;
+    return arrayType.parent?.parent instanceof Parser.SizeofExpressionContext;
+  }
 
   /** Report any E0909 / E0910 / E0913 the dimension earns */
   private check(expression: Parser.ExpressionContext | null): void {

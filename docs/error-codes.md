@@ -20,8 +20,8 @@ codes that already have a fixture.
 | E06xx     | Sizeof Expressions                             | 2       |
 | E07xx     | Control Flow                                   | 14      |
 | E08xx     | Arithmetic/Array Safety                        | 56      |
-| E09xx     | NULL Safety, Compile-Time Values, Literal Form | 12      |
-| **Total** |                                                | **129** |
+| E09xx     | NULL Safety, Compile-Time Values, Literal Form | 13      |
+| **Total** |                                                | **130** |
 
 ---
 

@@ -1,1 +1,6 @@
-34:11 error[E0381]: use of uninitialized variable 'b.handlers'
+14:13 error[E0359]: Array of 'onSample' must have a size C-Next can read: every element has a default (ADR-029, ADR-017), so C-Next spells each one, and it cannot read the value of 'N_UNREADABLE'
+       help: Size it with a C-Next const, e.g. `const u32 N_HANDLERS <- 3;`
+15:20 error[E0359]: Array of 'onSample' must have a size C-Next can read: every element has a default (ADR-029, ADR-017), so C-Next spells each one, and it cannot read the value of 'N_UNREADABLE'
+       help: Size it with a C-Next const, e.g. `const u32 N_HANDLERS <- 3;`
+23:10 error[E0359]: Array of 'Pump__Stage' must have a size C-Next can read: every element has a default (ADR-029, ADR-017), so C-Next spells each one, and it cannot read the value of 'N_UNREADABLE'
+       help: Size it with a C-Next const, e.g. `const u32 N_HANDLERS <- 3;`
